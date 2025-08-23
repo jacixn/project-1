@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fivefold - Faith & Focus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,112 +12,338 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --white-90: rgba(255, 255, 255, 0.9);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--primary-gradient);
             min-height: 100vh;
             color: white;
             padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(30px, -30px) rotate(1deg); }
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
         
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
+            animation: fadeInDown 0.8s ease-out;
         }
         
         h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #ffffff, #f0f8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .tagline {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            font-weight: 300;
             opacity: 0.95;
+            letter-spacing: 0.5px;
         }
         
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            color: #333;
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: var(--white-90);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
         .prayer-times {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 24px 0;
         }
         
         .prayer-slot {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 24px;
+            border-radius: 16px;
             text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .prayer-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .prayer-slot:hover::before {
+            left: 100%;
+        }
+        
+        .prayer-slot:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.2);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
         
         .prayer-slot h3 {
-            color: #667eea;
-            margin-bottom: 5px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+        
+        .prayer-slot:hover h3 {
+            color: white;
         }
         
         .time {
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
         
         .todo-input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             font-size: 1rem;
-            margin-bottom: 10px;
+            font-family: inherit;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .todo-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
         }
         
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: 16px 32px;
+            border-radius: 12px;
             font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
         
         .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
         }
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 24px;
+            margin: 24px 0;
         }
         
         .stat {
             text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .stat:hover {
+            transform: translateY(-4px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
         }
         
         .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #667eea;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, #f0f8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
         }
         
         .stat-label {
-            color: #666;
-            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .todo-item {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+        }
+        
+        .todo-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .card {
+                padding: 24px;
+                margin-bottom: 16px;
+            }
+            
+            .prayer-times {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
+            }
+            
+            .prayer-slot {
+                padding: 16px;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
         }
     </style>
 </head>
@@ -128,84 +355,307 @@
         </header>
         
         <div class="card">
-            <h2>Today's Prayer Times</h2>
+            <h2>🕊️ Today's Prayer Times</h2>
             <div class="prayer-times">
-                <div class="prayer-slot">
+                <div class="prayer-slot" onclick="showPrayer('Before Sunrise')">
                     <h3>🌅 Before Sunrise</h3>
-                    <p class="time">5:30 AM</p>
+                    <p class="time" id="prayer1">5:30 AM</p>
                 </div>
-                <div class="prayer-slot">
+                <div class="prayer-slot" onclick="showPrayer('After Sunrise')">
                     <h3>☀️ After Sunrise</h3>
-                    <p class="time">7:00 AM</p>
+                    <p class="time" id="prayer2">7:00 AM</p>
                 </div>
-                <div class="prayer-slot">
+                <div class="prayer-slot" onclick="showPrayer('Midday')">
                     <h3>🌞 Midday</h3>
-                    <p class="time">12:30 PM</p>
+                    <p class="time" id="prayer3">12:30 PM</p>
                 </div>
-                <div class="prayer-slot">
+                <div class="prayer-slot" onclick="showPrayer('Before Sunset')">
                     <h3>🌇 Before Sunset</h3>
-                    <p class="time">6:00 PM</p>
+                    <p class="time" id="prayer4">6:00 PM</p>
                 </div>
-                <div class="prayer-slot">
+                <div class="prayer-slot" onclick="showPrayer('After Sunset')">
                     <h3>🌙 After Sunset</h3>
-                    <p class="time">8:30 PM</p>
+                    <p class="time" id="prayer5">8:30 PM</p>
                 </div>
             </div>
         </div>
         
         <div class="card">
-            <h2>My Tasks</h2>
-            <input type="text" class="todo-input" placeholder="What do you need to do?" id="todoInput">
-            <button class="btn" onclick="addTodo()">Add Task</button>
+            <h2>📝 My Tasks</h2>
+            <input type="text" class="todo-input" placeholder="What would you like to accomplish today?" id="todoInput">
+            <button class="btn" onclick="addTodo()">✨ Add Task</button>
             <div id="todoList" style="margin-top: 20px;"></div>
         </div>
         
         <div class="card">
-            <h2>My Progress</h2>
+            <h2>📊 My Progress</h2>
             <div class="stats">
-                <div class="stat">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Points</div>
+                <div class="stat" onclick="animateStats()">
+                    <div class="stat-value" id="pointsValue">0</div>
+                    <div class="stat-label">🏆 Points</div>
                 </div>
-                <div class="stat">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Day Streak</div>
+                <div class="stat" onclick="animateStats()">
+                    <div class="stat-value" id="streakValue">0</div>
+                    <div class="stat-label">🔥 Day Streak</div>
                 </div>
-                <div class="stat">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Verses Read</div>
+                <div class="stat" onclick="animateStats()">
+                    <div class="stat-value" id="versesValue">0</div>
+                    <div class="stat-label">📖 Verses Read</div>
                 </div>
-                <div class="stat">
-                    <div class="stat-value">1</div>
-                    <div class="stat-label">Level</div>
+                <div class="stat" onclick="animateStats()">
+                    <div class="stat-value" id="levelValue">1</div>
+                    <div class="stat-label">⭐ Level</div>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
+        let todos = [];
+        let stats = {
+            points: 0,
+            streak: 0,
+            verses: 0,
+            level: 1
+        };
+
+        // Initialize real-time prayer times
+        function updatePrayerTimes() {
+            const now = new Date();
+            const times = calculatePrayerTimes(now);
+            
+            document.getElementById('prayer1').textContent = times.beforeSunrise;
+            document.getElementById('prayer2').textContent = times.afterSunrise;
+            document.getElementById('prayer3').textContent = times.midday;
+            document.getElementById('prayer4').textContent = times.beforeSunset;
+            document.getElementById('prayer5').textContent = times.afterSunset;
+        }
+
+        function calculatePrayerTimes(date) {
+            // Simple calculation for demo - in real app would use solar calculations
+            const sunrise = new Date(date);
+            sunrise.setHours(6, 30, 0);
+            
+            const sunset = new Date(date);
+            sunset.setHours(18, 45, 0);
+            
+            const noon = new Date(date);
+            noon.setHours(12, 15, 0);
+            
+            return {
+                beforeSunrise: formatTime(new Date(sunrise.getTime() - 60*60*1000)),
+                afterSunrise: formatTime(new Date(sunrise.getTime() + 30*60*1000)),
+                midday: formatTime(noon),
+                beforeSunset: formatTime(new Date(sunset.getTime() - 30*60*1000)),
+                afterSunset: formatTime(new Date(sunset.getTime() + 45*60*1000))
+            };
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function showPrayer(prayerName) {
+            // Animate the clicked prayer slot
+            event.target.closest('.prayer-slot').classList.add('pulse');
+            
+            // Show inspirational message
+            const messages = [
+                "🙏 Take a moment for reflection and gratitude",
+                "✨ This is your time for spiritual connection", 
+                "💫 Find peace in this moment of prayer",
+                "🌟 Let your heart be filled with serenity",
+                "🕊️ A moment of prayer brings clarity to the soul"
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            setTimeout(() => {
+                alert(`${prayerName} Prayer Time\n\n${randomMessage}`);
+                updateStats('prayer');
+                event.target.closest('.prayer-slot').classList.remove('pulse');
+            }, 300);
+        }
+
         function addTodo() {
             const input = document.getElementById('todoInput');
             const list = document.getElementById('todoList');
             
             if (input.value.trim()) {
+                const todoText = input.value.trim();
+                const difficulty = calculateDifficulty(todoText);
+                const points = calculatePoints(difficulty);
+                
                 const todo = document.createElement('div');
-                todo.style.padding = '10px';
-                todo.style.background = '#f0f0f0';
-                todo.style.borderRadius = '5px';
-                todo.style.marginTop = '10px';
-                todo.innerHTML = input.value;
+                todo.className = 'todo-item';
+                todo.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${todoText}</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span style="font-size: 0.8rem; color: #667eea; font-weight: 600;">${getDifficultyLabel(difficulty)} (+${points} pts)</span>
+                            <button onclick="completeTodo(this, ${points})" style="background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">✓</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add with animation
+                todo.style.opacity = '0';
+                todo.style.transform = 'translateY(20px)';
                 list.appendChild(todo);
+                
+                setTimeout(() => {
+                    todo.style.transition = 'all 0.3s ease';
+                    todo.style.opacity = '1';
+                    todo.style.transform = 'translateY(0)';
+                }, 10);
+                
+                todos.push({text: todoText, points: points, completed: false});
                 input.value = '';
+                
+                // Animate input
+                input.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    input.style.transform = 'scale(1)';
+                }, 150);
             }
         }
-        
-        // Allow Enter key to add todo
-        document.getElementById('todoInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addTodo();
+
+        function completeTodo(button, points) {
+            const todoItem = button.closest('.todo-item');
+            
+            // Celebration animation
+            button.innerHTML = '🎉';
+            button.style.background = '#FFD700';
+            
+            setTimeout(() => {
+                todoItem.style.transform = 'translateX(100%)';
+                todoItem.style.opacity = '0';
+                updateStats('todo', points);
+                
+                setTimeout(() => {
+                    todoItem.remove();
+                }, 300);
+            }, 500);
+        }
+
+        function calculateDifficulty(text) {
+            const words = text.toLowerCase();
+            let difficulty = 0.3; // base difficulty
+            
+            // Simple AI-like scoring
+            if (words.includes('quick') || words.includes('easy')) difficulty -= 0.2;
+            if (words.includes('hard') || words.includes('difficult')) difficulty += 0.3;
+            if (words.includes('study') || words.includes('research')) difficulty += 0.4;
+            if (words.includes('meeting') || words.includes('call')) difficulty += 0.2;
+            if (text.length > 50) difficulty += 0.2;
+            
+            return Math.max(0.1, Math.min(0.9, difficulty));
+        }
+
+        function getDifficultyLabel(difficulty) {
+            if (difficulty < 0.2) return 'Tiny';
+            if (difficulty < 0.4) return 'Small';
+            if (difficulty < 0.6) return 'Medium';
+            if (difficulty < 0.8) return 'Big';
+            return 'Epic';
+        }
+
+        function calculatePoints(difficulty) {
+            const basePts = {0.2: 5, 0.4: 10, 0.6: 25, 0.8: 60, 1.0: 120};
+            for (let threshold in basePts) {
+                if (difficulty <= threshold) return basePts[threshold];
             }
+            return 120;
+        }
+
+        function updateStats(type, points = 15) {
+            if (type === 'prayer') {
+                stats.points += 15;
+                stats.verses += 2;
+            } else if (type === 'todo') {
+                stats.points += points;
+            }
+            
+            // Level up calculation
+            const newLevel = Math.floor(stats.points / 100) + 1;
+            if (newLevel > stats.level) {
+                stats.level = newLevel;
+                showLevelUp();
+            }
+            
+            animateStatUpdate();
+        }
+
+        function animateStatUpdate() {
+            document.getElementById('pointsValue').textContent = stats.points;
+            document.getElementById('versesValue').textContent = stats.verses;
+            document.getElementById('levelValue').textContent = stats.level;
+            
+            // Pulse animation
+            ['pointsValue', 'versesValue', 'levelValue'].forEach(id => {
+                const element = document.getElementById(id);
+                element.style.transform = 'scale(1.2)';
+                element.style.color = '#FFD700';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                    element.style.color = '';
+                }, 300);
+            });
+        }
+
+        function showLevelUp() {
+            const celebration = document.createElement('div');
+            celebration.innerHTML = '🎉 LEVEL UP! 🎉';
+            celebration.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #FFD700, #FFA500); color: white;
+                padding: 20px 40px; border-radius: 20px; font-size: 2rem; font-weight: bold;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3); z-index: 1000;
+                animation: bounce 0.6s ease-out;
+            `;
+            
+            document.body.appendChild(celebration);
+            setTimeout(() => celebration.remove(), 2000);
+        }
+
+        function animateStats() {
+            event.target.classList.add('pulse');
+            setTimeout(() => {
+                event.target.classList.remove('pulse');
+            }, 2000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePrayerTimes();
+            
+            // Update prayer times every minute
+            setInterval(updatePrayerTimes, 60000);
+            
+            // Enter key for todo input
+            document.getElementById('todoInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            });
+
+            // Add some sample progress for demo
+            setTimeout(() => {
+                stats.streak = 3;
+                document.getElementById('streakValue').textContent = '3';
+            }, 2000);
         });
+
+        // Add CSS animation for bounce
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes bounce {
+                0%, 20%, 60%, 100% { transform: translate(-50%, -50%) translateY(0); }
+                40% { transform: translate(-50%, -50%) translateY(-20px); }
+                80% { transform: translate(-50%, -50%) translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
