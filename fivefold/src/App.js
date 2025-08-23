@@ -276,7 +276,7 @@ function App() {
   };
 
   // Show loading state while initializing
-  if (!isInitialized) {
+  if (!isInitialized || !userStats) {
     return (
       <div className="App loading">
         <div className="loading-spinner">
@@ -332,7 +332,7 @@ function App() {
       
       <main className="app-main">
         <Dashboard 
-          userStats={userStats} 
+          userData={userStats} 
           prayerTimes={prayerTimes} 
           location={location}
           settings={settings}
@@ -345,7 +345,7 @@ function App() {
               <PrayerCard 
                 prayerTimes={prayerTimes} 
                 onComplete={handlePrayerComplete}
-                prayerHistory={prayerHistory}
+                completedPrayers={prayerHistory}
                 verseProgress={verseProgress}
               />
             )}
@@ -364,7 +364,7 @@ function App() {
           <section className="progress-section">
             <h2>📊 My Progress</h2>
             <ProgressTracker 
-              userStats={userStats} 
+              userData={userStats} 
               prayerHistory={prayerHistory}
               todos={todos}
               settings={settings}

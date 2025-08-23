@@ -18,7 +18,7 @@ const Dashboard = ({ userData, prayerTimes }) => {
   };
 
   const nextPrayer = getNextPrayer();
-  const progressPercentage = Math.min((userData.points / 100) * 100, 100);
+  const progressPercentage = Math.min(((userData?.points || 0) / 100) * 100, 100);
 
   return (
     <div className="dashboard">
@@ -37,7 +37,7 @@ const Dashboard = ({ userData, prayerTimes }) => {
         <div className="stat-card">
           <FaTrophy className="stat-icon gold" />
           <div className="stat-content">
-            <span className="stat-value">{userData.points}</span>
+            <span className="stat-value">{userData?.points || 0}</span>
             <span className="stat-label">Points</span>
           </div>
         </div>
@@ -45,7 +45,7 @@ const Dashboard = ({ userData, prayerTimes }) => {
         <div className="stat-card">
           <FaFire className="stat-icon orange" />
           <div className="stat-content">
-            <span className="stat-value">{userData.streak}</span>
+            <span className="stat-value">{userData?.streak || 0}</span>
             <span className="stat-label">Day Streak</span>
           </div>
         </div>
@@ -53,7 +53,7 @@ const Dashboard = ({ userData, prayerTimes }) => {
         <div className="stat-card">
           <FaBible className="stat-icon purple" />
           <div className="stat-content">
-            <span className="stat-value">{userData.versesRead}</span>
+            <span className="stat-value">{userData?.versesRead || 0}</span>
             <span className="stat-label">Verses Read</span>
           </div>
         </div>
@@ -61,7 +61,7 @@ const Dashboard = ({ userData, prayerTimes }) => {
         <div className="stat-card">
           <FaPray className="stat-icon blue" />
           <div className="stat-content">
-            <span className="stat-value">Level {userData.level}</span>
+            <span className="stat-value">Level {userData?.level || 1}</span>
             <span className="stat-label">Current Level</span>
           </div>
         </div>

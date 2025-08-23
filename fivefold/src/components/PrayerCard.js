@@ -16,9 +16,9 @@ const PrayerCard = ({ prayerTimes, onComplete, completedPrayers }) => {
 
   const isPrayerCompleted = (prayerId) => {
     const today = new Date().toDateString();
-    return completedPrayers.some(p => 
+    return (completedPrayers || []).some(p => 
       p.id === prayerId && 
-      new Date(p.date).toDateString() === today
+      new Date(p.timestamp || p.date).toDateString() === today
     );
   };
 
