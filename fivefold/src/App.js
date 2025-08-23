@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard';
 import PrayerCard from './components/PrayerCard';
 import TodoList from './components/TodoList';
 import ProgressTracker from './components/ProgressTracker';
-import Settings from './components/Settings';
+// import Settings from './components/Settings';
 import { calculatePrayerTimes } from './utils/solarCalculations';
 import { 
   getStoredData, 
@@ -14,7 +14,7 @@ import {
   restoreFromBackup,
   getStorageInfo
 } from './utils/localStorage';
-import themeManager from './utils/themeManager';
+// import themeManager from './utils/themeManager';
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -74,10 +74,10 @@ function App() {
       setVerseProgress(getStoredData('verseProgress'));
       
       // Initialize theme
-      const savedSettings = getStoredData('settings');
-      if (savedSettings?.theme) {
-        themeManager.setTheme(savedSettings.theme);
-      }
+      // const savedSettings = getStoredData('settings');
+      // if (savedSettings?.theme) {
+      //   themeManager.setTheme(savedSettings.theme);
+      // }
       
       setIsInitialized(true);
     };
@@ -208,40 +208,40 @@ function App() {
     setTodos(prev => prev.filter(t => t.id !== todoId));
   };
 
-  const handleSettingsChange = (newSettings) => {
-    setSettings(newSettings);
-    saveData('settings', newSettings);
+  // const handleSettingsChange = (newSettings) => {
+  //   setSettings(newSettings);
+  //   saveData('settings', newSettings);
     
-    // Apply theme if changed
-    if (newSettings.theme && newSettings.theme !== themeManager.getCurrentTheme()) {
-      themeManager.setTheme(newSettings.theme);
-    }
+  //   // Apply theme if changed
+  //   if (newSettings.theme && newSettings.theme !== themeManager.getCurrentTheme()) {
+  //     themeManager.setTheme(newSettings.theme);
+  //   }
     
-    // Apply display settings
-    if (newSettings.display) {
-      if (newSettings.display.reducedMotion) {
-        themeManager.enableReducedMotion();
-      } else {
-        themeManager.disableReducedMotion();
-      }
+  //   // Apply display settings
+  //   if (newSettings.display) {
+  //     if (newSettings.display.reducedMotion) {
+  //       themeManager.enableReducedMotion();
+  //     } else {
+  //       themeManager.disableReducedMotion();
+  //     }
       
-      // Apply font size
-      document.documentElement.style.setProperty(
-        '--base-font-size', 
-        getFontSizeValue(newSettings.display.fontSize)
-      );
-    }
-  };
+  //     // Apply font size
+  //     document.documentElement.style.setProperty(
+  //       '--base-font-size', 
+  //       getFontSizeValue(newSettings.display.fontSize)
+  //     );
+  //   }
+  // };
 
-  const getFontSizeValue = (size) => {
-    const sizes = {
-      'small': '14px',
-      'medium': '16px',
-      'large': '18px',
-      'extra-large': '20px'
-    };
-    return sizes[size] || sizes.medium;
-  };
+  // const getFontSizeValue = (size) => {
+  //   const sizes = {
+  //     'small': '14px',
+  //     'medium': '16px',
+  //     'large': '18px',
+  //     'extra-large': '20px'
+  //   };
+  //   return sizes[size] || sizes.medium;
+  // };
 
   // Data management functions
   const exportData = () => {
@@ -295,7 +295,7 @@ function App() {
         
         {/* App Controls */}
         <div className="data-controls">
-          <button className="btn-icon" onClick={() => setShowSettings(true)} title="Settings">
+          <button className="btn-icon" onClick={() => alert('Settings coming soon!')} title="Settings">
             ⚙️
           </button>
           <button className="btn-icon" onClick={exportData} title="Export Data">
@@ -373,14 +373,14 @@ function App() {
         </div>
       </main>
 
-      {/* Settings Modal */}
-      {showSettings && (
+      {/* Settings Modal - Coming Soon */}
+      {/* {showSettings && (
         <Settings
           settings={settings}
           onSettingsChange={handleSettingsChange}
           onClose={() => setShowSettings(false)}
         />
-      )}
+      )} */}
     </div>
   );
 }
