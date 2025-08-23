@@ -1,7 +1,6 @@
 {
   "short_name": "Fivefold",
   "name": "Fivefold - Faith & Focus Daily",
-  "description": "Combine spiritual practice with daily productivity",
   "icons": [
     {
       "src": "favicon.ico",
@@ -11,22 +10,16 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable any"
+      "sizes": "192x192"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable any"
+      "sizes": "512x512"
     }
   ],
-  "start_url": "./",
+  "start_url": ".",
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#667eea",
-  "background_color": "#667eea",
-  "categories": ["productivity", "lifestyle", "health"],
-  "scope": "./",
-  "prefer_related_applications": false
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
 }
