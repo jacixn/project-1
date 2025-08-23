@@ -103,6 +103,12 @@ export const saveData = (key, data, options = {}) => {
 
 export const getStoredData = (key, options = {}) => {
   try {
+    // Check if localStorage is available
+    if (typeof Storage === 'undefined') {
+      console.warn('localStorage is not available');
+      return options.defaultValue || null;
+    }
+
     const prefixedKey = STORAGE_PREFIX + key;
     const stored = localStorage.getItem(prefixedKey);
     
@@ -112,6 +118,12 @@ export const getStoredData = (key, options = {}) => {
     if (!serialized) return options.defaultValue || null;
     
     const dataPackage = JSON.parse(serialized);
+    
+    // Handle legacy data format (direct values without wrapper)
+    if (typeof dataPackage !== 'object' || !dataPackage.hasOwnProperty('data')) {
+      // This is legacy data, return as-is
+      return dataPackage;
+    }
     
     // Verify data integrity
     if (dataPackage.checksum && !verifyChecksum(dataPackage.data, dataPackage.checksum)) {

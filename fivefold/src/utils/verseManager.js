@@ -1,3 +1,5 @@
+import { getStoredData, saveData } from './localStorage';
+
 // Sample verses for now - in production, this would be a full Bible database
 const sampleVerses = [
   { text: "The Lord is my shepherd. He gives me everything I need.", reference: "Psalm 23:1" },
@@ -39,25 +41,25 @@ const shuffleWithSeed = (array, seed) => {
   return arr;
 };
 
-// Get user-specific seed from localStorage or generate new one
+// Get user-specific seed from storage or generate new one
 const getUserSeed = () => {
-  let seed = localStorage.getItem('verseSeed');
+  let seed = getStoredData('verseSeed');
   if (!seed) {
     seed = Math.floor(Math.random() * 1000000);
-    localStorage.setItem('verseSeed', seed);
+    saveData('verseSeed', seed);
   }
   return parseInt(seed);
 };
 
 // Get verse pointer
 const getVersePointer = () => {
-  const pointer = localStorage.getItem('versePointer');
+  const pointer = getStoredData('versePointer');
   return pointer ? parseInt(pointer) : 0;
 };
 
 // Update verse pointer
 const updateVersePointer = (newPointer) => {
-  localStorage.setItem('versePointer', newPointer);
+  saveData('versePointer', newPointer);
 };
 
 export const getVerses = (count = 2) => {

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
 import PrayerCard from './components/PrayerCard';
 import TodoList from './components/TodoList';
 import ProgressTracker from './components/ProgressTracker';
+import ErrorBoundary from './components/ErrorBoundary';
 // import Settings from './components/Settings';
 import { calculatePrayerTimes } from './utils/solarCalculations';
 import { 
@@ -28,7 +29,7 @@ function App() {
   const [prayerHistory, setPrayerHistory] = useState(() => getStoredData('prayerHistory') || []);
   const [settings, setSettings] = useState(() => getStoredData('settings'));
   const [verseProgress, setVerseProgress] = useState(() => getStoredData('verseProgress'));
-  const [showSettings, setShowSettings] = useState(false);
+  // const [showSettings, setShowSettings] = useState(false); // TODO: Re-enable when Settings is fixed
 
   // Initialize app data on mount
   useEffect(() => {
@@ -133,7 +134,7 @@ function App() {
     }
   }, [userStats, todos, prayerHistory, isInitialized]);
 
-  const updateUserStats = (updates) => {
+  const updateUserStats = useCallback((updates) => {
     setUserStats(prev => {
       const newStats = { ...prev, ...updates };
       
@@ -149,64 +150,73 @@ function App() {
       
       return newStats;
     });
-  };
+  }, []);
 
-  const handlePrayerComplete = (prayerId, verses = []) => {
-    const completedPrayer = {
-      id: prayerId,
-      timestamp: new Date().toISOString(),
-      verses: verses,
-      points: 15
-    };
-    
-    // Update stats
-    updateUserStats({
-      points: userStats.points + 15,
-      versesRead: userStats.versesRead + verses.length,
-      totalPrayers: userStats.totalPrayers + 1
-    });
-    
-    // Add to prayer history
-    setPrayerHistory(prev => [completedPrayer, ...prev]);
-    
-    // Update verse progress
-    setVerseProgress(prev => ({
-      ...prev,
-      readVerses: [...(prev.readVerses || []), ...verses.map(v => v.id)]
-    }));
-  };
+  const handlePrayerComplete = useCallback((prayerId, verses = []) => {
+    try {
+      const completedPrayer = {
+        id: prayerId,
+        timestamp: new Date().toISOString(),
+        verses: verses,
+        points: 15
+      };
+      
+      // Update stats
+      updateUserStats({
+        points: (userStats?.points || 0) + 15,
+        versesRead: (userStats?.versesRead || 0) + verses.length,
+        totalPrayers: (userStats?.totalPrayers || 0) + 1
+      });
+      
+      // Add to prayer history
+      setPrayerHistory(prev => [completedPrayer, ...(prev || [])]);
+      
+      // Update verse progress
+      setVerseProgress(prev => ({
+        ...prev,
+        readVerses: [...((prev && prev.readVerses) || []), ...verses.map(v => v.id || v.reference)]
+      }));
+    } catch (error) {
+      console.error('Error completing prayer:', error);
+      // Show user-friendly error message
+      alert('There was an issue recording your prayer. Please try again.');
+    }
+  }, [userStats, updateUserStats]);
 
-  const handleTodoAdd = (newTodo) => {
-    const todo = {
-      ...newTodo,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      completed: false
-    };
-    setTodos(prev => [todo, ...prev]);
-  };
+  const handleTodoAdd = useCallback((newTodo) => {
+    // TodoList already creates a complete todo object, just add it
+    setTodos(prev => [newTodo, ...prev]);
+  }, []);
 
-  const handleTodoComplete = (todoId) => {
-    const todo = todos.find(t => t.id === todoId);
-    if (!todo) return;
-    
-    // Update todo status
-    setTodos(prev => prev.map(t => 
-      t.id === todoId 
-        ? { ...t, completed: true, completedAt: new Date().toISOString() }
-        : t
-    ));
-    
-    // Update stats
-    updateUserStats({
-      points: userStats.points + (todo.points || 10),
-      totalTasks: userStats.totalTasks + 1
-    });
-  };
+  const handleTodoComplete = useCallback((todoId) => {
+    try {
+      const todo = todos.find(t => t.id === todoId);
+      if (!todo) {
+        console.warn('Todo not found:', todoId);
+        return;
+      }
+      
+      // Update todo status
+      setTodos(prev => prev.map(t => 
+        t.id === todoId 
+          ? { ...t, completed: true, completedAt: new Date().toISOString() }
+          : t
+      ));
+      
+      // Update stats
+      updateUserStats({
+        points: (userStats?.points || 0) + (todo.points || 10),
+        totalTasks: (userStats?.totalTasks || 0) + 1
+      });
+    } catch (error) {
+      console.error('Error completing todo:', error);
+      alert('There was an issue completing your task. Please try again.');
+    }
+  }, [todos, userStats, updateUserStats]);
 
-  const handleTodoDelete = (todoId) => {
+  const handleTodoDelete = useCallback((todoId) => {
     setTodos(prev => prev.filter(t => t.id !== todoId));
-  };
+  }, []);
 
   // const handleSettingsChange = (newSettings) => {
   //   setSettings(newSettings);
@@ -288,25 +298,27 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <header className="app-header">
-        <h1>✨ Fivefold</h1>
-        <p>Faith & Focus, Every Day</p>
+    <ErrorBoundary>
+      <div className="App">
+        <header className="app-header" role="banner">
+          <h1>✨ Fivefold</h1>
+          <p>Faith & Focus, Every Day</p>
         
         {/* App Controls */}
-        <div className="data-controls">
-          <button className="btn-icon" onClick={() => alert('Settings coming soon!')} title="Settings">
+        <div className="data-controls" role="toolbar" aria-label="App controls">
+          <button className="btn-icon" onClick={() => alert('Settings coming soon!')} title="Settings" aria-label="Open settings">
             ⚙️
           </button>
-          <button className="btn-icon" onClick={exportData} title="Export Data">
+          <button className="btn-icon" onClick={exportData} title="Export Data" aria-label="Export app data">
             📤
           </button>
-          <label className="btn-icon" title="Import Data">
+          <label className="btn-icon" title="Import Data" aria-label="Import app data">
             📥
             <input 
               type="file" 
               accept=".txt"
               style={{ display: 'none' }}
+              aria-label="Select backup file to import"
               onChange={(e) => {
                 const file = e.target.files[0];
                 if (file) {
@@ -330,7 +342,7 @@ function App() {
         </div>
       </header>
       
-      <main className="app-main">
+      <main className="app-main" role="main">
         <Dashboard 
           userData={userStats} 
           prayerTimes={prayerTimes} 
@@ -339,8 +351,8 @@ function App() {
         />
         
         <div className="content-grid">
-          <section className="prayer-section">
-            <h2>🕊️ Today's Prayers</h2>
+          <section className="prayer-section" aria-labelledby="prayers-heading">
+            <h2 id="prayers-heading">🕊️ Today's Prayers</h2>
             {prayerTimes && (
               <PrayerCard 
                 prayerTimes={prayerTimes} 
@@ -351,8 +363,8 @@ function App() {
             )}
           </section>
           
-          <section className="todo-section">
-            <h2>📝 My Tasks</h2>
+          <section className="todo-section" aria-labelledby="tasks-heading">
+            <h2 id="tasks-heading">📝 My Tasks</h2>
             <TodoList 
               todos={todos}
               onComplete={handleTodoComplete}
@@ -361,8 +373,8 @@ function App() {
             />
           </section>
           
-          <section className="progress-section">
-            <h2>📊 My Progress</h2>
+          <section className="progress-section" aria-labelledby="progress-heading">
+            <h2 id="progress-heading">📊 My Progress</h2>
             <ProgressTracker 
               userData={userStats} 
               prayerHistory={prayerHistory}
@@ -381,7 +393,8 @@ function App() {
           onClose={() => setShowSettings(false)}
         />
       )} */}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 

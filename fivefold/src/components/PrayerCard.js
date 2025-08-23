@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, memo } from 'react';
 import { FaClock, FaCheck, FaSun, FaMoon, FaCloudSun } from 'react-icons/fa';
 import { getVerses } from '../utils/verseManager';
 import './PrayerCard.css';
@@ -92,4 +92,4 @@ const PrayerCard = ({ prayerTimes, onComplete, completedPrayers }) => {
   );
 };
 
-export default PrayerCard;
+export default memo(PrayerCard);

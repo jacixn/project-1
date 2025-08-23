@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FaTrophy, FaMedal, FaAward, FaStar } from 'react-icons/fa';
 import './ProgressTracker.css';
 
@@ -64,4 +64,4 @@ const ProgressTracker = ({ userData }) => {
   );
 };
 
-export default ProgressTracker;
+export default memo(ProgressTracker);

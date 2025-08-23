@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FaPray, FaTrophy, FaFire, FaBible } from 'react-icons/fa';
 import './Dashboard.css';
 
@@ -83,4 +83,4 @@ const Dashboard = ({ userData, prayerTimes }) => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

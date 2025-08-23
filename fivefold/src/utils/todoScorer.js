@@ -1,18 +1,19 @@
 // AI-powered todo difficulty scoring
 // In production, this would use a real AI API
 
-const scoringExamples = [
-  { task: "turn tv off", difficulty: 0.05 },
-  { task: "make coffee", difficulty: 0.10 },
-  { task: "send email", difficulty: 0.15 },
-  { task: "clean room", difficulty: 0.35 },
-  { task: "workout", difficulty: 0.45 },
-  { task: "study for exams", difficulty: 0.78 },
-  { task: "prepare presentation", difficulty: 0.88 },
-  { task: "apply to jobs", difficulty: 0.72 },
-  { task: "write report", difficulty: 0.65 },
-  { task: "learn new skill", difficulty: 0.85 }
-];
+// Training examples for AI scoring validation (future use)
+// const scoringExamples = [
+//   { task: "turn tv off", difficulty: 0.05 },
+//   { task: "make coffee", difficulty: 0.10 },
+//   { task: "send email", difficulty: 0.15 },
+//   { task: "clean room", difficulty: 0.35 },
+//   { task: "workout", difficulty: 0.45 },
+//   { task: "study for exams", difficulty: 0.78 },
+//   { task: "prepare presentation", difficulty: 0.88 },
+//   { task: "apply to jobs", difficulty: 0.72 },
+//   { task: "write report", difficulty: 0.65 },
+//   { task: "learn new skill", difficulty: 0.85 }
+// ];
 
 const difficultyBands = {
   tiny: { min: 0.0, max: 0.20, basePoints: 5 },

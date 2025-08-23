@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { FaPlus, FaCheck, FaStar, FaBolt, FaMountain, FaRocket } from 'react-icons/fa';
 import { scoreTodo } from '../utils/todoScorer';
 import './TodoList.css';
@@ -77,7 +77,7 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
           <div key={todo.id} className="todo-item">
             <button 
               className="todo-checkbox"
-              onClick={() => onComplete(todo)}
+              onClick={() => onComplete(todo.id)}
             >
               <FaCheck />
             </button>
@@ -117,4 +117,4 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
   );
 };
 
-export default TodoList;
+export default memo(TodoList);
