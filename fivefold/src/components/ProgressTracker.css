@@ -1,0 +1,151 @@
+.progress-tracker {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+}
+
+.level-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 12px;
+}
+
+.level-section h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+}
+
+.level-progress-bar {
+  height: 25px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.level-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.level-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.level-points {
+  color: #666;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.badges-section {
+  margin-bottom: 30px;
+}
+
+.badges-section h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.badge.earned {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%);
+  border: 2px solid #4CAF50;
+}
+
+.badge.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.badge:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.badge-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  color: #667eea;
+}
+
+.badge.earned .badge-icon {
+  color: #4CAF50;
+}
+
+.badge-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.badge-description {
+  font-size: 0.75rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+.weekly-stats {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.weekly-stats h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.weekly-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: center;
+}
+
+.weekly-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.weekly-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.weekly-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 5px;
+}
