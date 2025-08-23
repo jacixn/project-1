@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import PrayerCard from './components/PrayerCard';
 import TodoList from './components/TodoList';
 import ProgressTracker from './components/ProgressTracker';
+import Settings from './components/Settings';
 import { calculatePrayerTimes } from './utils/solarCalculations';
 import { 
   getStoredData, 
@@ -13,6 +14,7 @@ import {
   restoreFromBackup,
   getStorageInfo
 } from './utils/localStorage';
+import themeManager from './utils/themeManager';
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -26,6 +28,7 @@ function App() {
   const [prayerHistory, setPrayerHistory] = useState(() => getStoredData('prayerHistory') || []);
   const [settings, setSettings] = useState(() => getStoredData('settings'));
   const [verseProgress, setVerseProgress] = useState(() => getStoredData('verseProgress'));
+  const [showSettings, setShowSettings] = useState(false);
 
   // Initialize app data on mount
   useEffect(() => {
@@ -69,6 +72,12 @@ function App() {
       setPrayerHistory(getStoredData('prayerHistory') || []);
       setSettings(getStoredData('settings'));
       setVerseProgress(getStoredData('verseProgress'));
+      
+      // Initialize theme
+      const savedSettings = getStoredData('settings');
+      if (savedSettings?.theme) {
+        themeManager.setTheme(savedSettings.theme);
+      }
       
       setIsInitialized(true);
     };
@@ -199,6 +208,41 @@ function App() {
     setTodos(prev => prev.filter(t => t.id !== todoId));
   };
 
+  const handleSettingsChange = (newSettings) => {
+    setSettings(newSettings);
+    saveData('settings', newSettings);
+    
+    // Apply theme if changed
+    if (newSettings.theme && newSettings.theme !== themeManager.getCurrentTheme()) {
+      themeManager.setTheme(newSettings.theme);
+    }
+    
+    // Apply display settings
+    if (newSettings.display) {
+      if (newSettings.display.reducedMotion) {
+        themeManager.enableReducedMotion();
+      } else {
+        themeManager.disableReducedMotion();
+      }
+      
+      // Apply font size
+      document.documentElement.style.setProperty(
+        '--base-font-size', 
+        getFontSizeValue(newSettings.display.fontSize)
+      );
+    }
+  };
+
+  const getFontSizeValue = (size) => {
+    const sizes = {
+      'small': '14px',
+      'medium': '16px',
+      'large': '18px',
+      'extra-large': '20px'
+    };
+    return sizes[size] || sizes.medium;
+  };
+
   // Data management functions
   const exportData = () => {
     const backup = createEncryptedBackup();
@@ -249,8 +293,11 @@ function App() {
         <h1>✨ Fivefold</h1>
         <p>Faith & Focus, Every Day</p>
         
-        {/* Data Management Controls */}
+        {/* App Controls */}
         <div className="data-controls">
+          <button className="btn-icon" onClick={() => setShowSettings(true)} title="Settings">
+            ⚙️
+          </button>
           <button className="btn-icon" onClick={exportData} title="Export Data">
             📤
           </button>
@@ -325,8 +372,43 @@ function App() {
           </section>
         </div>
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <Settings
+          settings={settings}
+          onSettingsChange={handleSettingsChange}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
+
+// Make export/import functions available globally for settings component
+window.exportData = () => {
+  const backup = createEncryptedBackup();
+  if (backup) {
+    const blob = new Blob([backup], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fivefold-backup-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+};
+
+window.importData = (backupString) => {
+  const result = restoreFromBackup(backupString);
+  if (result.success) {
+    alert(`Successfully restored ${result.restoredCount} data entries!`);
+    window.location.reload(); // Reload to apply all changes
+  } else {
+    alert(`Import failed: ${result.error}`);
+  }
+};
 
 export default App;
