@@ -24,6 +24,7 @@ body {
   color: white;
   margin-bottom: 40px;
   animation: fadeIn 0.8s ease;
+  position: relative;
 }
 
 .app-header h1 {
@@ -35,6 +36,31 @@ body {
 .app-header p {
   font-size: 1.2rem;
   opacity: 0.95;
+}
+
+.data-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  color: white;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .app-main {
@@ -93,6 +119,34 @@ body {
   }
 }
 
+/* Loading state */
+.App.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .app-header h1 {
@@ -105,5 +159,11 @@ body {
   
   .App {
     padding: 15px;
+  }
+  
+  .data-controls {
+    position: static;
+    justify-content: center;
+    margin-top: 1rem;
   }
 }
