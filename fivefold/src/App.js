@@ -5,7 +5,7 @@ import PrayerCard from './components/PrayerCard';
 import TodoList from './components/TodoList';
 import ProgressTracker from './components/ProgressTracker';
 import ErrorBoundary from './components/ErrorBoundary';
-// import Settings from './components/Settings';
+import Settings from './components/Settings';
 import { calculatePrayerTimes } from './utils/solarCalculations';
 import { 
   getStoredData, 
@@ -30,7 +30,7 @@ function App() {
   const [prayerHistory, setPrayerHistory] = useState(() => getStoredData('prayerHistory') || []);
   const [settings, setSettings] = useState(() => getStoredData('settings'));
   const [verseProgress, setVerseProgress] = useState(() => getStoredData('verseProgress'));
-  // const [showSettings, setShowSettings] = useState(false); // settings broke, will fix later
+  const [showSettings, setShowSettings] = useState(false);
 
   // Initialize app data on mount
   useEffect(() => {
@@ -222,30 +222,10 @@ function App() {
     setTodos(prev => prev.filter(t => t.id !== todoId));
   }, []);
 
-  // const handleSettingsChange = (newSettings) => {
-  //   setSettings(newSettings);
-  //   saveData('settings', newSettings);
-    
-  //   // Apply theme if changed
-  //   if (newSettings.theme && newSettings.theme !== themeManager.getCurrentTheme()) {
-  //     themeManager.setTheme(newSettings.theme);
-  //   }
-    
-  //   // Apply display settings
-  //   if (newSettings.display) {
-  //     if (newSettings.display.reducedMotion) {
-  //       themeManager.enableReducedMotion();
-  //     } else {
-  //       themeManager.disableReducedMotion();
-  //     }
-      
-  //     // Apply font size
-  //     document.documentElement.style.setProperty(
-  //       '--base-font-size', 
-  //       getFontSizeValue(newSettings.display.fontSize)
-  //     );
-  //   }
-  // };
+  const handleSettingsChange = useCallback((newSettings) => {
+    setSettings(newSettings);
+    saveData('settings', newSettings);
+  }, []);
 
   // const getFontSizeValue = (size) => {
   //   const sizes = {
@@ -310,7 +290,7 @@ function App() {
         
         {/* buttons for backup and stuff */}
         <div className="data-controls" role="toolbar" aria-label="App controls">
-          <button className="btn-icon" onClick={() => alert('Settings coming soon!')} title="Settings" aria-label="Open settings">
+          <button className="btn-icon" onClick={() => setShowSettings(true)} title="Settings" aria-label="Open settings">
             ⚙️
           </button>
           <button className="btn-icon" onClick={exportData} title="Export Data" aria-label="Export app data">
@@ -389,14 +369,14 @@ function App() {
         </div>
       </main>
 
-      {/* settings page is broken right now, commented out */}
-      {/* {showSettings && (
+      {/* Settings panel with AI setup */}
+      {showSettings && (
         <Settings
           settings={settings}
           onSettingsChange={handleSettingsChange}
           onClose={() => setShowSettings(false)}
         />
-      )} */}
+      )}
       </div>
     </ErrorBoundary>
   );
