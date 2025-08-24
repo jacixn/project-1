@@ -345,7 +345,10 @@ export const scoreTodo = async (taskText) => {
     
     // Handle AI response
     if (result.source === 'ai') {
-      const tierData = difficultyTiers[result.tier];
+      const tierData = difficultyTiers[result.tier] || difficultyTiers.mid; // fallback to mid if tier not found
+      
+      console.log('🤖 AI result:', result);
+      console.log('📊 Tier data:', tierData);
       
       return {
         // Legacy compatibility
@@ -358,12 +361,13 @@ export const scoreTodo = async (taskText) => {
         tier: result.tier,
         tierData: tierData,
         complexity: result.complexity || 0.5,
-        rationale: `${tierData.icon} ${tierData.name}: ${result.reasoning}`,
+        rationale: `${tierData.icon} ${tierData.name}: ${result.reasoning || result.rationale || 'AI analysis'}`,
         
         // AI-specific data
         aiEnabled: true,
         confidence: result.confidence,
         timeEstimate: result.timeEstimate,
+        reasoning: result.reasoning,
         source: 'ai'
       };
     }
