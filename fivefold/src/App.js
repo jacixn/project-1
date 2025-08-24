@@ -37,6 +37,8 @@ function App() {
       // Initialize default data if first time user
       initializeDefaultData();
       
+      // Using enhanced local analysis for todo scoring
+      
       // Load stored location or get new one
       const storedLocation = getStoredData('location');
       if (storedLocation) {

@@ -111,7 +111,9 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
               </div>
               {todo.rationale && (
                 <div className="todo-rationale" title={todo.rationale}>
-                  {getTierDisplay(todo).description}
+                  <span className="local-analyzed">
+                    {getTierDisplay(todo).description}
+                  </span>
                 </div>
               )}
             </div>

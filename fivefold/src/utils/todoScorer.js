@@ -1,4 +1,4 @@
-// 3-tier todo scoring system with smart AI-like analysis
+// 3-tier todo scoring system with enhanced local analysis
 
 const difficultyTiers = {
   low: { 
@@ -214,51 +214,66 @@ const calculatePointsInTier = (tier, complexity) => {
   return Math.max(minPoints, Math.min(maxPoints, points));
 };
 
+// Local analysis function for fallback
+const performLocalAnalysis = (taskText) => {
+  const analysis = analyzeTask(taskText);
+  const { complexity, matchedCategories, appliedModifiers } = analysis;
+  
+  const tier = getTierForComplexity(complexity);
+  const tierData = difficultyTiers[tier];
+  const points = calculatePointsInTier(tier, complexity);
+  
+  let rationale = `${tierData.icon} ${tierData.name}: `;
+  
+  if (matchedCategories.length > 0) {
+    rationale += `Detected as ${matchedCategories.join(', ')} task. `;
+  }
+  
+  if (appliedModifiers.length > 0) {
+    rationale += `Modifiers: ${appliedModifiers.join(', ')}. `;
+  }
+  
+  rationale += `Complexity: ${(complexity * 100).toFixed(0)}%`;
+  
+  return {
+    tier,
+    tierData,
+    points,
+    complexity,
+    rationale,
+    matchedCategories,
+    appliedModifiers
+  };
+};
+
 export const scoreTodo = async (taskText) => {
   try {
-    // Analyze the task with our smart AI-like system
-    const analysis = analyzeTask(taskText);
-    const { complexity, matchedCategories, appliedModifiers } = analysis;
-    
-    // Determine which tier this task belongs to
-    const tier = getTierForComplexity(complexity);
-    const tierData = difficultyTiers[tier];
-    
-    // Calculate points within the tier range
-    const points = calculatePointsInTier(tier, complexity);
-    
-    // Create detailed rationale for transparency
-    let rationale = `${tierData.icon} ${tierData.name}: `;
-    
-    if (matchedCategories.length > 0) {
-      rationale += `Detected as ${matchedCategories.join(', ')} task. `;
-    }
-    
-    if (appliedModifiers.length > 0) {
-      rationale += `Modifiers: ${appliedModifiers.join(', ')}. `;
-    }
-    
-    rationale += `Complexity: ${(complexity * 100).toFixed(0)}%`;
+    // Use enhanced local analysis
+    const result = performLocalAnalysis(taskText);
     
     return {
       // Legacy compatibility
-      difficulty: complexity,
-      band: tier,
-      basePoints: points,
-      points: points,
+      difficulty: result.complexity,
+      band: result.tier,
+      basePoints: result.points,
+      points: result.points,
       
       // New 3-tier system data
-      tier: tier,
-      tierData: tierData,
-      complexity: complexity,
-      analysis: analysis,
-      rationale: rationale
+      tier: result.tier,
+      tierData: result.tierData,
+      complexity: result.complexity,
+      rationale: result.rationale,
+      
+      // Local analysis data
+      aiEnabled: false,
+      analysis: result,
+      source: 'local'
     };
     
   } catch (error) {
     console.error('Error scoring todo:', error);
     
-    // Fallback to simple scoring
+    // Final fallback
     return {
       difficulty: 0.3,
       band: 'mid',
@@ -267,7 +282,9 @@ export const scoreTodo = async (taskText) => {
       tier: 'mid',
       tierData: difficultyTiers.mid,
       complexity: 0.3,
-      rationale: '🟡 Mid Tier: Default scoring (analysis failed)'
+      rationale: '🟡 Mid Tier: Default scoring (system error)',
+      aiEnabled: false,
+      source: 'error_fallback'
     };
   }
 };

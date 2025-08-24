@@ -171,6 +171,15 @@
   font-style: italic;
 }
 
+.ai-analyzed {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.local-analyzed {
+  color: #888;
+}
+
 .todo-points {
   color: #667eea;
   font-weight: 600;
