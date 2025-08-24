@@ -18,22 +18,28 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
     
     try {
       if (!isAiEnabled) {
-        // turning AI on - use the hidden key automatically
-        const disguisedKey = getHiddenApiKey();
+        // turning AI on - ask for API key
+        const apiKey = prompt(
+          "To enable AI scoring, please paste your Groq API key:\n\n" +
+          "Get one free at: console.groq.com/keys\n" +
+          "(This will be saved securely on your device)"
+        );
         
-        const success = aiService.setApiKey(disguisedKey);
-        if (success) {
-          try {
-            // test the key quickly
-            await aiService.analyzeTask('test task');
-            setIsAiEnabled(true);
-            alert('✅ AI enabled! Your tasks will now get smart scoring.');
-          } catch (error) {
-            aiService.removeApiKey();
-            alert('❌ AI connection failed. Please try again.');
+        if (apiKey && apiKey.trim()) {
+          const success = aiService.setApiKey(apiKey.trim());
+          if (success) {
+            try {
+              // test the key quickly
+              await aiService.analyzeTask('test task');
+              setIsAiEnabled(true);
+              alert('✅ AI enabled! Your tasks will now get smart scoring.');
+            } catch (error) {
+              aiService.removeApiKey();
+              alert('❌ API key test failed. Please check your key and try again.');
+            }
+          } else {
+            alert('❌ Invalid API key format.');
           }
-        } else {
-          alert('❌ AI setup failed.');
         }
       } else {
         // turning AI off
@@ -48,22 +54,6 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
     }
     
     setIsToggling(false);
-  };
-
-  // disguise the API key so GitHub doesn't detect it
-  const getHiddenApiKey = () => {
-    // XOR encoded key (looks like random hex)
-    const encodedKey = "0317031f2d7e726667757073746e667c777867776777682d7e7e6a7173777479717d727d786b7970676a7a77";
-    
-    // decode using XOR with key 42
-    let decoded = '';
-    for (let i = 0; i < encodedKey.length; i += 2) {
-      const hex = encodedKey.substr(i, 2);
-      const charCode = parseInt(hex, 16) ^ 42;
-      decoded += String.fromCharCode(charCode);
-    }
-    
-    return decoded;
   };
 
   return (
@@ -81,7 +71,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
           <div className="settings-section">
             <h3>🤖 Smart Task Scoring</h3>
             <p className="section-description">
-              Turn on AI to get super smart task difficulty scoring that actually understands what you're asking it to do!
+              Turn on AI to get super smart task difficulty scoring! First time setup requires your Groq API key (free from console.groq.com/keys).
             </p>
 
             <div className="ai-toggle-container">
@@ -119,7 +109,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
                 </p>
               ) : (
                 <p className="ai-off-message">
-                  📝 Using simple local scoring. Turn on AI for much smarter analysis!
+                  📝 Using simple local scoring. Turn on AI for much smarter analysis! You'll need to paste your free Groq API key.
                 </p>
               )}
             </div>
