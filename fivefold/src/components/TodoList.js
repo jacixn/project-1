@@ -8,8 +8,11 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   const getTierDisplay = (todo) => {
+    console.log('🔍 Todo object in getTierDisplay:', todo);
+    
     // Handle both old and new format todos
     if (todo.tier && todo.tierData) {
+      console.log('✅ Using tierData:', todo.tierData);
       return {
         icon: todo.tierData.icon,
         label: todo.tierData.name,
@@ -17,6 +20,8 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
         description: todo.tierData.description
       };
     }
+    
+    console.log('⚠️ Falling back to difficulty-based display, difficulty:', todo.difficulty);
     
     // Fallback for legacy todos
     const difficulty = todo.difficulty || 0.3;
