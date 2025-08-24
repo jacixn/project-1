@@ -156,11 +156,19 @@
   font-size: 0.85rem;
 }
 
-.todo-difficulty {
+.todo-tier {
   display: flex;
   align-items: center;
-  gap: 5px;
-  color: #666;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.todo-rationale {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .todo-points {

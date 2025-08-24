@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { FaPlus, FaCheck, FaStar, FaBolt, FaMountain, FaRocket } from 'react-icons/fa';
+import { FaPlus, FaCheck } from 'react-icons/fa';
 import { scoreTodo } from '../utils/todoScorer';
 import './TodoList.css';
 
@@ -7,36 +7,56 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  const getDifficultyIcon = (difficulty) => {
-    if (difficulty < 0.2) return <FaStar style={{ color: '#4CAF50' }} />;
-    if (difficulty < 0.4) return <FaBolt style={{ color: '#2196F3' }} />;
-    if (difficulty < 0.65) return <FaMountain style={{ color: '#FF9800' }} />;
-    if (difficulty < 0.85) return <FaRocket style={{ color: '#f44336' }} />;
-    return <FaRocket style={{ color: '#9C27B0' }} />;
-  };
-
-  const getDifficultyLabel = (difficulty) => {
-    if (difficulty < 0.2) return 'Tiny';
-    if (difficulty < 0.4) return 'Small';
-    if (difficulty < 0.65) return 'Medium';
-    if (difficulty < 0.85) return 'Big';
-    return 'Epic';
+  const getTierDisplay = (todo) => {
+    // Handle both old and new format todos
+    if (todo.tier && todo.tierData) {
+      return {
+        icon: todo.tierData.icon,
+        label: todo.tierData.name,
+        color: todo.tierData.color,
+        description: todo.tierData.description
+      };
+    }
+    
+    // Fallback for legacy todos
+    const difficulty = todo.difficulty || 0.3;
+    if (difficulty <= 0.33) {
+      return { icon: '🟢', label: 'Low Tier', color: '#4CAF50', description: 'Quick & simple' };
+    } else if (difficulty <= 0.66) {
+      return { icon: '🟡', label: 'Mid Tier', color: '#FF9800', description: 'Moderate effort' };
+    } else {
+      return { icon: '🔴', label: 'High Tier', color: '#f44336', description: 'Complex & intensive' };
+    }
   };
 
   const handleAddTodo = async () => {
     if (newTodo.trim()) {
-      const scored = await scoreTodo(newTodo);
-      const todo = {
-        id: Date.now().toString(),
-        text: newTodo,
-        difficulty: scored.difficulty,
-        points: scored.points,
-        completed: false,
-        createdAt: new Date().toISOString()
-      };
-      onAdd(todo);
-      setNewTodo('');
-      setIsAdding(false);
+      setIsAdding(false); // Show loading by hiding form
+      
+      try {
+        const scored = await scoreTodo(newTodo);
+        const todo = {
+          id: Date.now().toString(),
+          text: newTodo,
+          // Legacy format for compatibility
+          difficulty: scored.difficulty,
+          points: scored.points,
+          // New 3-tier system data
+          tier: scored.tier,
+          tierData: scored.tierData,
+          complexity: scored.complexity,
+          rationale: scored.rationale,
+          completed: false,
+          createdAt: new Date().toISOString()
+        };
+        
+        onAdd(todo);
+        setNewTodo('');
+      } catch (error) {
+        console.error('Error adding todo:', error);
+        alert('Failed to score task. Please try again.');
+        setIsAdding(true); // Re-show form on error
+      }
     }
   };
 
@@ -84,12 +104,16 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
             <div className="todo-content">
               <span className="todo-text">{todo.text}</span>
               <div className="todo-meta">
-                <span className="todo-difficulty">
-                  {getDifficultyIcon(todo.difficulty)}
-                  {getDifficultyLabel(todo.difficulty)}
+                <span className="todo-tier" style={{ color: getTierDisplay(todo).color }}>
+                  {getTierDisplay(todo).icon} {getTierDisplay(todo).label}
                 </span>
                 <span className="todo-points">+{todo.points} pts</span>
               </div>
+              {todo.rationale && (
+                <div className="todo-rationale" title={todo.rationale}>
+                  {getTierDisplay(todo).description}
+                </div>
+              )}
             </div>
           </div>
         ))}
