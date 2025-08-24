@@ -350,7 +350,9 @@ export const scoreTodo = async (taskText) => {
     console.log('🤖 AI result:', aiResult);
     
     // Use AI result with proper tier data
-    const tierData = difficultyTiers[aiResult.tier];
+    const tierData = difficultyTiers[aiResult.tier] || difficultyTiers.mid;
+    
+    console.log('📊 TierData for', aiResult.tier, ':', tierData);
     
     return {
       // Legacy compatibility  
