@@ -8,11 +8,20 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   const getTierDisplay = (todo) => {
-    console.log('🔍 Todo object in getTierDisplay:', todo);
+    // ALWAYS use AI result if available - trust the AI!
+    if (todo.source === 'ai' && todo.tier) {
+      // AI said low/mid/high - use exactly what AI said
+      if (todo.tier === 'low') {
+        return { icon: '🟢', label: 'Low Tier', color: '#4CAF50', description: 'Quick & simple' };
+      } else if (todo.tier === 'mid') {
+        return { icon: '🟡', label: 'Mid Tier', color: '#FF9800', description: 'Moderate effort' };
+      } else if (todo.tier === 'high') {
+        return { icon: '🔴', label: 'High Tier', color: '#f44336', description: 'Complex & intensive' };
+      }
+    }
     
-    // Handle both old and new format todos
+    // Handle tierData format if available
     if (todo.tier && todo.tierData) {
-      console.log('✅ Using tierData:', todo.tierData);
       return {
         icon: todo.tierData.icon,
         label: todo.tierData.name,
@@ -21,9 +30,7 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
       };
     }
     
-    console.log('⚠️ Falling back to difficulty-based display, difficulty:', todo.difficulty);
-    
-    // Fallback for legacy todos
+    // Fallback for old todos
     const difficulty = todo.difficulty || 0.3;
     if (difficulty <= 0.33) {
       return { icon: '🟢', label: 'Low Tier', color: '#4CAF50', description: 'Quick & simple' };
