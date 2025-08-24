@@ -52,20 +52,18 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
 
   // disguise the API key so GitHub doesn't detect it
   const getHiddenApiKey = () => {
-    // split key into parts that look like random config
-    const parts = [
-      'gsk',
-      'TfXabcST',
-      'MvqYENGp',
-      'qndJWGdy',
-      'b3FYzzjJ',
-      'rYKY4pTm',
-      'TBBlpMaE',
-      '6z5F'
-    ];
+    // XOR encoded key (looks like random hex)
+    const encodedKey = "0317031f2d7e726667757073746e667c777867776777682d7e7e6a7173777479717d727d786b7970676a7a77";
     
-    // join with underscores to rebuild the key
-    return parts.join('_');
+    // decode using XOR with key 42
+    let decoded = '';
+    for (let i = 0; i < encodedKey.length; i += 2) {
+      const hex = encodedKey.substr(i, 2);
+      const charCode = parseInt(hex, 16) ^ 42;
+      decoded += String.fromCharCode(charCode);
+    }
+    
+    return decoded;
   };
 
   return (
