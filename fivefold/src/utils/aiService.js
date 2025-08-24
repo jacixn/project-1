@@ -188,12 +188,7 @@ class AIService {
       }
 
       this.lastError = null;
-      return {
-        success: true,
-        analysis: analysis,
-        source: 'ai',
-        requestCount: this.requestCount
-      };
+      return analysis; // Return analysis directly, not wrapped
 
     } catch (error) {
       console.error('AI Service error:', error);
