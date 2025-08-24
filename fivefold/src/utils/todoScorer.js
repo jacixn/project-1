@@ -39,7 +39,7 @@ const taskAnalysis = {
   // Simple device operations
   simpleActions: {
     weight: 0.15,
-    keywords: ['turn on', 'turn off', 'click', 'open', 'close', 'save', 'delete', 'copy', 'paste', 'download']
+    keywords: ['turn on', 'turn off', 'click', 'open', 'close', 'save', 'delete', 'copy', 'paste', 'download', 'test']
   },
   
   // Communication tasks
