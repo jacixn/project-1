@@ -1,76 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaRobot, FaKey, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
+import { FaTimes, FaRobot, FaCheck } from 'react-icons/fa';
 import aiService from '../utils/aiService';
 import './Settings.css';
 
 const Settings = ({ settings, onSettingsChange, onClose }) => {
-  const [apiKey, setApiKey] = useState('');
-  const [aiStatus, setAiStatus] = useState('checking');
-  const [testResult, setTestResult] = useState('');
-  const [isTestingAI, setIsTestingAI] = useState(false);
+  const [isAiEnabled, setIsAiEnabled] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
-    // check current AI status when settings open
+    // check if AI is currently enabled
     const status = aiService.getStatus();
-    if (status.hasApiKey) {
-      setApiKey('*'.repeat(20)); // hide the actual key
-      setAiStatus('enabled');
-    } else {
-      setAiStatus('disabled');
-    }
+    setIsAiEnabled(status.hasApiKey);
   }, []);
 
-  const handleApiKeySubmit = async () => {
-    if (!apiKey || apiKey.startsWith('*')) {
-      alert('Please enter a valid API key');
-      return;
-    }
-
-    setIsTestingAI(true);
-    setTestResult('Testing AI connection...');
-
+  const handleAiToggle = async () => {
+    setIsToggling(true);
+    
     try {
-      // test the AI with a simple task
-      const success = aiService.setApiKey(apiKey);
-      if (success) {
-        // try a quick test to make sure it actually works
-        await aiService.analyzeTask('make coffee');
-        setAiStatus('enabled');
-        setTestResult('✅ AI is working perfectly! Your tasks will now get smart scoring.');
-        setApiKey('*'.repeat(20)); // hide the key after successful setup
+      if (!isAiEnabled) {
+        // turning AI on - ask for API key once
+        const apiKey = prompt(
+          "To enable AI scoring, please paste your Groq API key:\n\n" +
+          "Get one free at: console.groq.com/keys\n" +
+          "(This will be saved securely on your device)"
+        );
+        
+        if (apiKey && apiKey.trim()) {
+          const success = aiService.setApiKey(apiKey.trim());
+          if (success) {
+            try {
+              // test the key quickly
+              await aiService.analyzeTask('test task');
+              setIsAiEnabled(true);
+              alert('✅ AI enabled! Your tasks will now get smart scoring.');
+            } catch (error) {
+              aiService.removeApiKey();
+              alert('❌ API key test failed. Please check your key and try again.');
+            }
+          } else {
+            alert('❌ Invalid API key format.');
+          }
+        }
       } else {
-        setAiStatus('error');
-        setTestResult('❌ Invalid API key format');
+        // turning AI off
+        if (window.confirm('Turn off AI scoring? You can turn it back on anytime.')) {
+          aiService.removeApiKey();
+          setIsAiEnabled(false);
+        }
       }
     } catch (error) {
-      setAiStatus('error');
-      setTestResult(`❌ AI test failed: ${error.message}`);
+      console.error('Error toggling AI:', error);
+      alert('Something went wrong. Please try again.');
     }
     
-    setIsTestingAI(false);
+    setIsToggling(false);
   };
-
-  const handleDisableAI = () => {
-    aiService.removeApiKey();
-    setApiKey('');
-    setAiStatus('disabled');
-    setTestResult('AI disabled. Tasks will use simple local scoring.');
-  };
-
-  const getAiStatusDisplay = () => {
-    switch (aiStatus) {
-      case 'enabled':
-        return { icon: <FaCheck />, text: 'AI Smart Scoring: ON', color: '#4CAF50' };
-      case 'disabled':
-        return { icon: <FaRobot />, text: 'AI Smart Scoring: OFF', color: '#888' };
-      case 'error':
-        return { icon: <FaExclamationTriangle />, text: 'AI Error', color: '#f44336' };
-      default:
-        return { icon: <FaRobot />, text: 'Checking...', color: '#888' };
-    }
-  };
-
-  const statusDisplay = getAiStatusDisplay();
 
   return (
     <div className="settings-overlay">
@@ -83,71 +67,52 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
         </div>
 
         <div className="settings-content">
-          {/* AI Configuration Section */}
+          {/* AI Toggle Section */}
           <div className="settings-section">
             <h3>🤖 Smart Task Scoring</h3>
             <p className="section-description">
-              Enable AI to intelligently analyze your tasks and give them accurate difficulty scores.
-              This makes your points more fair and interesting!
+              Turn on AI to get super smart task difficulty scoring that actually understands what you're asking it to do!
             </p>
 
-            <div className="ai-status" style={{ color: statusDisplay.color }}>
-              {statusDisplay.icon}
-              <span>{statusDisplay.text}</span>
+            <div className="ai-toggle-container">
+              <div className="ai-status-display">
+                {isAiEnabled ? (
+                  <div className="ai-status enabled">
+                    <FaCheck /> AI Smart Scoring: ON
+                  </div>
+                ) : (
+                  <div className="ai-status disabled">
+                    <FaRobot /> AI Smart Scoring: OFF
+                  </div>
+                )}
+              </div>
+
+              <div className="toggle-switch-container">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={isAiEnabled}
+                    onChange={handleAiToggle}
+                    disabled={isToggling}
+                  />
+                  <span className="toggle-slider">
+                    {isToggling ? '...' : (isAiEnabled ? 'ON' : 'OFF')}
+                  </span>
+                </label>
+              </div>
             </div>
 
-            {aiStatus !== 'enabled' && (
-              <div className="api-key-setup">
-                <label htmlFor="api-key">
-                  <FaKey /> Groq API Key:
-                </label>
-                <div className="api-key-input-group">
-                  <input
-                    id="api-key"
-                    type="password"
-                    placeholder="Enter your Groq API key here..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleApiKeySubmit()}
-                  />
-                  <button 
-                    onClick={handleApiKeySubmit} 
-                    disabled={isTestingAI || !apiKey}
-                    className="test-ai-btn"
-                  >
-                    {isTestingAI ? 'Testing...' : 'Connect'}
-                  </button>
-                </div>
-                
-                <div className="api-key-help">
-                  <p>
-                    <strong>Need an API key?</strong> Get one free at{' '}
-                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
-                      console.groq.com/keys
-                    </a>
-                  </p>
-                  <p>• Create account → Generate API key → Paste it above</p>
-                  <p>• Free tier gives you plenty of task scoring!</p>
-                </div>
-              </div>
-            )}
-
-            {aiStatus === 'enabled' && (
-              <div className="ai-enabled-controls">
-                <p className="ai-success">
-                  🎉 AI is active! Your new tasks will get intelligent scoring with reasons.
+            <div className="ai-explanation">
+              {isAiEnabled ? (
+                <p className="ai-on-message">
+                  ✨ Perfect! Your tasks will now get intelligent scoring with detailed reasons.
                 </p>
-                <button onClick={handleDisableAI} className="disable-ai-btn">
-                  Turn Off AI
-                </button>
-              </div>
-            )}
-
-            {testResult && (
-              <div className={`test-result ${aiStatus === 'enabled' ? 'success' : 'error'}`}>
-                {testResult}
-              </div>
-            )}
+              ) : (
+                <p className="ai-off-message">
+                  📝 Using simple local scoring. Turn on AI for much smarter analysis! First time setup requires a free API key from console.groq.com/keys
+                </p>
+              )}
+            </div>
           </div>
 
           {/* App Info Section */}
@@ -157,34 +122,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
               <p><strong>Version:</strong> 1.0.0</p>
               <p><strong>Purpose:</strong> Blend daily prayer with productivity</p>
               <p><strong>Privacy:</strong> All data stays on your device</p>
-              <p><strong>Storage:</strong> {localStorage.length} items stored locally</p>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="settings-section">
-            <h3>🔧 Quick Actions</h3>
-            <div className="quick-actions">
-              <button 
-                onClick={() => {
-                  const info = aiService.getStatus();
-                  alert(`AI Status: ${info.isAvailable ? 'Available' : 'Not available'}\nRequests made: ${info.requestCount}\nWorking model: ${info.workingModel || 'None'}`);
-                }}
-                className="info-btn"
-              >
-                AI Status Info
-              </button>
-              
-              <button 
-                onClick={() => {
-                  if (window.confirm('This will reload the app. Continue?')) {
-                    window.location.reload();
-                  }
-                }}
-                className="reload-btn"
-              >
-                Refresh App
-              </button>
+              <p><strong>Storage:</strong> {typeof localStorage !== 'undefined' ? localStorage.length : 0} items stored locally</p>
             </div>
           </div>
         </div>
