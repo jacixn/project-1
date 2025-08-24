@@ -29,7 +29,7 @@ function App() {
   const [prayerHistory, setPrayerHistory] = useState(() => getStoredData('prayerHistory') || []);
   const [settings, setSettings] = useState(() => getStoredData('settings'));
   const [verseProgress, setVerseProgress] = useState(() => getStoredData('verseProgress'));
-  // const [showSettings, setShowSettings] = useState(false); // TODO: Re-enable when Settings is fixed
+  // const [showSettings, setShowSettings] = useState(false); // settings broke, will fix later
 
   // Initialize app data on mount
   useEffect(() => {
@@ -304,7 +304,7 @@ function App() {
           <h1>✨ Fivefold</h1>
           <p>Faith & Focus, Every Day</p>
         
-        {/* App Controls */}
+        {/* buttons for backup and stuff */}
         <div className="data-controls" role="toolbar" aria-label="App controls">
           <button className="btn-icon" onClick={() => alert('Settings coming soon!')} title="Settings" aria-label="Open settings">
             ⚙️
@@ -385,7 +385,7 @@ function App() {
         </div>
       </main>
 
-      {/* Settings Modal - Coming Soon */}
+      {/* settings page is broken right now, commented out */}
       {/* {showSettings && (
         <Settings
           settings={settings}
@@ -398,7 +398,7 @@ function App() {
   );
 }
 
-// Make export/import functions available globally for settings component
+// putting these on window so settings can use them when i fix it
 window.exportData = () => {
   const backup = createEncryptedBackup();
   if (backup) {

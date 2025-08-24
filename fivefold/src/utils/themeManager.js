@@ -346,7 +346,7 @@ class ThemeManager {
 // Create and export singleton instance
 const themeManager = new ThemeManager();
 
-// CSS for theme transitions and accessibility
+// some css to make theme switching smooth
 const themeCSS = `
   /* Theme transition styles */
   * {

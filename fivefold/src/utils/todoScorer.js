@@ -1,5 +1,5 @@
-// AI-powered todo difficulty scoring
-// In production, this would use a real AI API
+// trying to score how hard each todo is
+// eventually want to hook this up to actual AI but for now it's just keyword matching
 
 // Training examples for AI scoring validation (future use)
 // const scoringExamples = [
