@@ -54,6 +54,7 @@ class AIService {
     this.isAvailable = false;
     this.requestCount = 0;
     this.lastError = null;
+    this.workingModel = null;
     this.checkApiKey();
   }
 
@@ -62,11 +63,56 @@ class AIService {
     this.isAvailable = !!key;
   }
 
+  async findWorkingModel(apiKey) {
+    // List of models to try in order of preference
+    const modelsToTry = [
+      'llama-3.2-3b-preview',
+      'llama-3.2-1b-preview', 
+      'llama-3.1-8b-instant',
+      'gemma-7b-it',
+      'gemma2-9b-it',
+      'llama3-8b-8192',
+      'llama3-70b-8192'
+    ];
+
+    for (const model of modelsToTry) {
+      try {
+        const testResponse = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: 'test' }],
+            max_tokens: 5
+          })
+        });
+
+        if (testResponse.ok) {
+          this.workingModel = model;
+          console.log(`🤖 Found working model: ${model}`);
+          return model;
+        }
+      } catch (error) {
+        console.log(`Model ${model} failed, trying next...`);
+      }
+    }
+    
+    throw new Error('No working models found');
+  }
+
   async analyzeTask(taskText) {
     try {
       const apiKey = getApiKey();
       if (!apiKey) {
         throw new Error('No API key available');
+      }
+
+      // Find working model if we don't have one
+      if (!this.workingModel) {
+        await this.findWorkingModel(apiKey);
       }
 
       this.requestCount++;
@@ -78,7 +124,7 @@ class AIService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
+          model: this.workingModel,
           messages: [
             {
               role: 'user',
@@ -92,6 +138,14 @@ class AIService {
       });
 
       if (!response.ok) {
+        // If this model failed, try to find a new working model
+        if (response.status === 400) {
+          console.log(`Model ${this.workingModel} failed, trying to find new model...`);
+          this.workingModel = null;
+          await this.findWorkingModel(apiKey);
+          // Retry with new model
+          return this.analyzeTask(taskText);
+        }
         const errorText = await response.text();
         throw new Error(`Groq API error: ${response.status} - ${errorText}`);
       }
