@@ -285,7 +285,7 @@ function App() {
     <ErrorBoundary>
       <div className="App">
         <header className="app-header" role="banner">
-          <h1>🐉 Fivefold</h1>
+          <h1>✝️ Fivefold</h1>
           <p>Faith & Focus, Every Day</p>
         
         {/* buttons for backup and stuff */}
