@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "✝️ Fivefold",
+    "slug": "fivefold-ios",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#667eea"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fivefold.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#667eea"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.fivefold.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "description": "✝️ Faith & Focus Daily - Combine prayer with productivity in a beautiful app",
+    "privacy": "unlisted"
+  }
+}
