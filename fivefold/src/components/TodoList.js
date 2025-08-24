@@ -72,7 +72,11 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
         setNewTodo('');
       } catch (error) {
         console.error('Error adding todo:', error);
-        alert('Failed to score task. Please try again.');
+        if (error.message.includes('Please enable AI in Settings')) {
+          alert('🤖 ' + error.message);
+        } else {
+          alert('Failed to score task. Please check your AI setup and try again.');
+        }
         setIsAdding(true); // Re-show form on error
       }
     }

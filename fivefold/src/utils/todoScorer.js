@@ -340,45 +340,43 @@ const performLocalAnalysis = (taskText) => {
 
 export const scoreTodo = async (taskText) => {
   try {
-    // ONLY use AI - no fallbacks, no local analysis
+    // Check if AI is available
     if (!aiService.getStatus().hasApiKey) {
-      return {
-        tier: 'mid',
-        points: 150,
-        rationale: 'AI not configured - using default',
-        source: 'no_ai',
-        aiEnabled: false
-      };
+      // No API key - ask user to set one up
+      throw new Error('Please enable AI in Settings to get smart task scoring!');
     }
 
     const aiResult = await aiService.analyzeTask(taskText);
-    
     console.log('🤖 AI result:', aiResult);
     
-    // Use EXACTLY what AI returns - no modifications
+    // Use AI result with proper tier data
+    const tierData = difficultyTiers[aiResult.tier];
+    
     return {
-      tier: aiResult.tier,           // AI says: low/mid/high
-      points: aiResult.points,       // AI says: exact points
+      // Legacy compatibility  
+      difficulty: aiResult.complexity || 0.5,
+      band: aiResult.tier,
+      basePoints: aiResult.points,
+      points: aiResult.points,
+      
+      // New 3-tier system data
+      tier: aiResult.tier,               // AI says: low/mid/high
+      tierData: tierData,                // Get proper tier display data
+      complexity: aiResult.complexity || 0.5,
+      rationale: `${tierData.icon} ${tierData.name}: ${aiResult.reasoning}`,
+      
+      // AI-specific data
+      aiEnabled: true,
       confidence: aiResult.confidence,
       timeEstimate: aiResult.timeEstimate,
       reasoning: aiResult.reasoning,
-      rationale: `AI: ${aiResult.reasoning}`,
-      source: 'ai',
-      aiEnabled: true,
-      complexity: aiResult.complexity || 0.5
+      source: 'ai'
     };
     
   } catch (error) {
     console.error('AI scoring failed:', error);
-    
-    // Simple fallback - no complex logic
-    return {
-      tier: 'mid',
-      points: 150,
-      rationale: 'AI failed - using default',
-      source: 'ai_failed',
-      aiEnabled: false
-    };
+    // Re-throw the error so the UI can handle it
+    throw error;
   }
 };
 
