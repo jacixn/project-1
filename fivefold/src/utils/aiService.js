@@ -208,16 +208,17 @@ class AIService {
   async analyzeTaskWithFallback(taskText, localAnalyzer) {
     // Try AI first if available
     if (this.isAvailable) {
-      const aiResult = await this.analyzeTask(taskText);
-      
-      if (aiResult.success) {
+      try {
+        const aiResult = await this.analyzeTask(taskText);
+        // If we get here, AI analysis worked
         return {
-          ...aiResult.analysis,
+          ...aiResult,
           source: 'ai',
           aiEnabled: true
         };
-      } else {
-        console.log('AI failed, using local analysis:', aiResult.error);
+      } catch (error) {
+        console.log('AI failed, using local analysis:', error.message);
+        this.lastError = error.message;
       }
     }
 
@@ -226,7 +227,7 @@ class AIService {
     
     return {
       ...localResult,
-      source: 'local_fallback',
+      source: this.isAvailable ? 'local_fallback' : 'local',
       aiEnabled: false,
       aiError: this.lastError
     };
