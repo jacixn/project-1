@@ -188,12 +188,12 @@ const getTierForComplexity = (complexity) => {
   }
 };
 
-// Calculate points within tier range
-const calculatePointsInTier = (tier, complexity) => {
+// Calculate points within tier range with much better variation
+const calculatePointsInTier = (tier, complexity, taskText) => {
   const tierData = difficultyTiers[tier];
   const { minPoints, maxPoints } = tierData;
   
-  // Use complexity to determine position within tier range
+  // Start with base complexity position within tier
   let tierPosition;
   
   if (tier === 'low') {
@@ -207,11 +207,102 @@ const calculatePointsInTier = (tier, complexity) => {
     tierPosition = ((complexity - 0.66) / 0.34);
   }
   
-  // Calculate final points within the tier range
-  const pointRange = maxPoints - minPoints;
-  const points = Math.round(minPoints + (pointRange * tierPosition));
+  // Add variation based on task characteristics
+  const taskLower = taskText.toLowerCase();
+  let pointMultiplier = 1.0;
   
-  return Math.max(minPoints, Math.min(maxPoints, points));
+  // Effort indicators that increase points within tier
+  const effortBoosts = {
+    'very': 0.2,
+    'really': 0.15,
+    'super': 0.2,
+    'extremely': 0.25,
+    'completely': 0.15,
+    'thoroughly': 0.2,
+    'carefully': 0.15,
+    'properly': 0.1,
+    'detailed': 0.2,
+    'comprehensive': 0.25
+  };
+  
+  // Time-based modifiers
+  const timeModifiers = {
+    'urgent': 0.3,
+    'asap': 0.25,
+    'immediately': 0.2,
+    'tonight': 0.15,
+    'tomorrow': 0.1,
+    'weekend': -0.1,
+    'when i have time': -0.2,
+    'eventually': -0.15
+  };
+  
+  // Apply effort boosts
+  for (const [word, boost] of Object.entries(effortBoosts)) {
+    if (taskLower.includes(word)) {
+      pointMultiplier += boost;
+    }
+  }
+  
+  // Apply time modifiers
+  for (const [phrase, modifier] of Object.entries(timeModifiers)) {
+    if (taskLower.includes(phrase)) {
+      pointMultiplier += modifier;
+    }
+  }
+  
+  // Add some randomness based on task length and word patterns
+  const wordCount = taskText.split(' ').length;
+  
+  // More detailed descriptions get slight point boost
+  if (wordCount > 5) {
+    pointMultiplier += 0.1;
+  }
+  if (wordCount > 10) {
+    pointMultiplier += 0.15;
+  }
+  
+  // Tasks with numbers (quantities, time estimates) get variation
+  if (taskLower.match(/\d+/)) {
+    const numbers = taskLower.match(/\d+/g);
+    const avgNumber = numbers.reduce((sum, num) => sum + parseInt(num), 0) / numbers.length;
+    
+    if (avgNumber > 10) {
+      pointMultiplier += 0.1; // higher numbers suggest more work
+    }
+    if (avgNumber > 100) {
+      pointMultiplier += 0.2;
+    }
+  }
+  
+  // Questions get slight boost (they require thinking)
+  if (taskLower.includes('?')) {
+    pointMultiplier += 0.1;
+  }
+  
+  // Multiple tasks in one get boost
+  if (taskLower.includes(' and ') || taskLower.includes(' & ') || taskLower.includes(', ')) {
+    pointMultiplier += 0.15;
+  }
+  
+  // Add a small random element for natural variation (but deterministic based on task)
+  const taskHash = taskText.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  const randomFactor = 0.85 + (Math.abs(taskHash % 100) / 100) * 0.3; // 0.85 to 1.15
+  pointMultiplier *= randomFactor;
+  
+  // Ensure multiplier stays reasonable
+  pointMultiplier = Math.max(0.7, Math.min(1.4, pointMultiplier));
+  
+  // Calculate final points with all the variation
+  const pointRange = maxPoints - minPoints;
+  const basePoints = minPoints + (pointRange * tierPosition);
+  const finalPoints = Math.round(basePoints * pointMultiplier);
+  
+  return Math.max(minPoints, Math.min(maxPoints, finalPoints));
 };
 
 // Local analysis function for fallback
@@ -221,7 +312,7 @@ const performLocalAnalysis = (taskText) => {
   
   const tier = getTierForComplexity(complexity);
   const tierData = difficultyTiers[tier];
-  const points = calculatePointsInTier(tier, complexity);
+  const points = calculatePointsInTier(tier, complexity, taskText);
   
   let rationale = `${tierData.icon} ${tierData.name}: `;
   
