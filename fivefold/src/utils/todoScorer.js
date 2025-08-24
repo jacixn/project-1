@@ -1,4 +1,5 @@
-// 3-tier todo scoring system with enhanced local analysis
+// 3-tier todo scoring system with AI understanding + local fallback
+import aiService from './aiService';
 
 const difficultyTiers = {
   low: { 
@@ -339,9 +340,35 @@ const performLocalAnalysis = (taskText) => {
 
 export const scoreTodo = async (taskText) => {
   try {
-    // Use enhanced local analysis
-    const result = performLocalAnalysis(taskText);
+    // Try AI analysis first, fall back to local if it fails
+    const result = await aiService.analyzeTaskWithFallback(taskText, performLocalAnalysis);
     
+    // Handle AI response
+    if (result.source === 'ai') {
+      const tierData = difficultyTiers[result.tier];
+      
+      return {
+        // Legacy compatibility
+        difficulty: result.complexity || 0.5,
+        band: result.tier,
+        basePoints: result.points,
+        points: result.points,
+        
+        // New 3-tier system data
+        tier: result.tier,
+        tierData: tierData,
+        complexity: result.complexity || 0.5,
+        rationale: `${tierData.icon} ${tierData.name}: ${result.reasoning}`,
+        
+        // AI-specific data
+        aiEnabled: true,
+        confidence: result.confidence,
+        timeEstimate: result.timeEstimate,
+        source: 'ai'
+      };
+    }
+    
+    // Handle local fallback response
     return {
       // Legacy compatibility
       difficulty: result.complexity,
@@ -353,12 +380,12 @@ export const scoreTodo = async (taskText) => {
       tier: result.tier,
       tierData: result.tierData,
       complexity: result.complexity,
-      rationale: result.rationale,
+      rationale: result.rationale + (result.aiError ? ' (AI unavailable)' : ' (Local analysis)'),
       
       // Local analysis data
-      aiEnabled: false,
+      aiEnabled: result.aiEnabled || false,
       analysis: result,
-      source: 'local'
+      source: result.source || 'local'
     };
     
   } catch (error) {

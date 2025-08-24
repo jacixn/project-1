@@ -15,6 +15,7 @@ import {
   restoreFromBackup,
   getStorageInfo
 } from './utils/localStorage';
+import aiService from './utils/aiService';
 // import themeManager from './utils/themeManager';
 
 function App() {
@@ -37,7 +38,8 @@ function App() {
       // Initialize default data if first time user
       initializeDefaultData();
       
-      // Using enhanced local analysis for todo scoring
+      // AI service ready for configuration
+      // User can call enableAI('your-api-key') from console to activate
       
       // Load stored location or get new one
       const storedLocation = getStoredData('location');
@@ -401,6 +403,27 @@ function App() {
 }
 
 // putting these on window so settings can use them when i fix it
+window.enableAI = (apiKey) => {
+  if (aiService.setApiKey(apiKey)) {
+    console.log('🤖 AI analysis enabled! New todos will use intelligent scoring.');
+    return true;
+  } else {
+    console.log('❌ Invalid API key');
+    return false;
+  }
+};
+
+window.disableAI = () => {
+  aiService.removeApiKey();
+  console.log('🔧 AI disabled, using local analysis');
+};
+
+window.aiStatus = () => {
+  const status = aiService.getStatus();
+  console.log('AI Status:', status);
+  return status;
+};
+
 window.exportData = () => {
   const backup = createEncryptedBackup();
   if (backup) {

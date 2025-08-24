@@ -46,6 +46,12 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
           tierData: scored.tierData,
           complexity: scored.complexity,
           rationale: scored.rationale,
+          // AI-specific data
+          aiEnabled: scored.aiEnabled,
+          confidence: scored.confidence,
+          timeEstimate: scored.timeEstimate,
+          reasoning: scored.reasoning,
+          source: scored.source,
           completed: false,
           createdAt: new Date().toISOString()
         };
@@ -111,9 +117,18 @@ const TodoList = ({ todos, onComplete, onAdd }) => {
               </div>
               {todo.rationale && (
                 <div className="todo-rationale" title={todo.rationale}>
-                  <span className="local-analyzed">
-                    {getTierDisplay(todo).description}
-                  </span>
+                  {todo.aiEnabled && todo.source === 'ai' ? (
+                    <span className="ai-analyzed">
+                      🤖 AI: {todo.reasoning || getTierDisplay(todo).description}
+                      {todo.timeEstimate && ` (~${todo.timeEstimate})`}
+                      {todo.confidence && ` (${todo.confidence}% confident)`}
+                    </span>
+                  ) : (
+                    <span className="local-analyzed">
+                      {getTierDisplay(todo).description}
+                      {todo.source === 'local_fallback' && ' (AI unavailable)'}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
