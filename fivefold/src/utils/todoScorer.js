@@ -340,73 +340,44 @@ const performLocalAnalysis = (taskText) => {
 
 export const scoreTodo = async (taskText) => {
   try {
-    // Try AI analysis first, fall back to local if it fails
-    const result = await aiService.analyzeTaskWithFallback(taskText, performLocalAnalysis);
-    
-    // Handle AI response
-    if (result.source === 'ai') {
-      const tierData = difficultyTiers[result.tier] || difficultyTiers.mid; // fallback to mid if tier not found
-      
-      console.log('🤖 AI result:', result);
-      console.log('📊 Tier data:', tierData);
-      
+    // ONLY use AI - no fallbacks, no local analysis
+    if (!aiService.getStatus().hasApiKey) {
       return {
-        // Legacy compatibility
-        difficulty: result.complexity || 0.5,
-        band: result.tier,
-        basePoints: result.points,
-        points: result.points,
-        
-        // New 3-tier system data
-        tier: result.tier,
-        tierData: tierData,
-        complexity: result.complexity || 0.5,
-        rationale: `${tierData.icon} ${tierData.name}: ${result.reasoning || result.rationale || 'AI analysis'}`,
-        
-        // AI-specific data
-        aiEnabled: true,
-        confidence: result.confidence,
-        timeEstimate: result.timeEstimate,
-        reasoning: result.reasoning,
-        source: 'ai'
+        tier: 'mid',
+        points: 150,
+        rationale: 'AI not configured - using default',
+        source: 'no_ai',
+        aiEnabled: false
       };
     }
+
+    const aiResult = await aiService.analyzeTask(taskText);
     
-    // Handle local fallback response
+    console.log('🤖 AI result:', aiResult);
+    
+    // Use EXACTLY what AI returns - no modifications
     return {
-      // Legacy compatibility
-      difficulty: result.complexity,
-      band: result.tier,
-      basePoints: result.points,
-      points: result.points,
-      
-      // New 3-tier system data
-      tier: result.tier,
-      tierData: result.tierData,
-      complexity: result.complexity,
-      rationale: result.rationale + (result.aiError ? ' (AI unavailable)' : ' (Local analysis)'),
-      
-      // Local analysis data
-      aiEnabled: result.aiEnabled || false,
-      analysis: result,
-      source: result.source || 'local'
+      tier: aiResult.tier,           // AI says: low/mid/high
+      points: aiResult.points,       // AI says: exact points
+      confidence: aiResult.confidence,
+      timeEstimate: aiResult.timeEstimate,
+      reasoning: aiResult.reasoning,
+      rationale: `AI: ${aiResult.reasoning}`,
+      source: 'ai',
+      aiEnabled: true,
+      complexity: aiResult.complexity || 0.5
     };
     
   } catch (error) {
-    console.error('Error scoring todo:', error);
+    console.error('AI scoring failed:', error);
     
-    // Final fallback
+    // Simple fallback - no complex logic
     return {
-      difficulty: 0.3,
-      band: 'mid',
-      basePoints: 150,
-      points: 150,
       tier: 'mid',
-      tierData: difficultyTiers.mid,
-      complexity: 0.3,
-      rationale: '🟡 Mid Tier: Default scoring (system error)',
-      aiEnabled: false,
-      source: 'error_fallback'
+      points: 150,
+      rationale: 'AI failed - using default',
+      source: 'ai_failed',
+      aiEnabled: false
     };
   }
 };
