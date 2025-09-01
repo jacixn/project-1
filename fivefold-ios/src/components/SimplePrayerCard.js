@@ -41,8 +41,8 @@ const SimplePrayerCard = () => {
   const [selectedPrayer, setSelectedPrayer] = useState(null);
   
   // Simple and Discussion states
-  const [showSimpleModal, setShowSimpleModal] = useState(false);
-  const [simplifiedText, setSimplifiedText] = useState('');
+  const [simplifiedVerses, setSimplifiedVerses] = useState(new Map()); // Track which verses are simplified
+  const [loadingSimplification, setLoadingSimplification] = useState(new Set()); // Track loading states
   const [showDiscussModal, setShowDiscussModal] = useState(false);
   const [verseToDiscuss, setVerseToDiscuss] = useState(null);
 
@@ -126,21 +126,55 @@ const SimplePrayerCard = () => {
     try {
       hapticFeedback.light();
       
+      // If already simplified, toggle back to original
+      if (simplifiedVerses.has(verse.id)) {
+        const newMap = new Map(simplifiedVerses);
+        newMap.delete(verse.id);
+        setSimplifiedVerses(newMap);
+        return;
+      }
+      
+      // Start loading
+      const newLoadingSet = new Set(loadingSimplification);
+      newLoadingSet.add(verse.id);
+      setLoadingSimplification(newLoadingSet);
+      
+      let simplifiedText;
+      
       // Try to get AI simplification
       try {
         const productionAiService = require('../services/productionAiService').default;
-        const simplified = await productionAiService.simplifyBibleVerse(verse.text, verse.reference);
-        setSimplifiedText(simplified);
+        simplifiedText = await productionAiService.simplifyBibleVerse(verse.text, verse.reference);
       } catch (error) {
-        // Fallback to basic simplification
-        const fallback = `This verse means: ${verse.text.replace(/thee|thou|thy/gi, 'you').replace(/ye/gi, 'you all')}`;
-        setSimplifiedText(fallback);
+        // Fallback to basic simplification [[memory:7766870]]
+        simplifiedText = `This verse means: ${verse.text
+          .replace(/thee|thou|thy/gi, 'you')
+          .replace(/ye/gi, 'you all')
+          .replace(/hath/gi, 'has')
+          .replace(/doth/gi, 'does')
+          .replace(/shalt/gi, 'should')
+          .replace(/unto/gi, 'to')}
+
+In simple words: God is telling us something important here that we can understand and follow in our daily lives.`;
       }
       
-      setShowSimpleModal(true);
+      // Stop loading and show simplified text
+      const newLoadingSetAfter = new Set(loadingSimplification);
+      newLoadingSetAfter.delete(verse.id);
+      setLoadingSimplification(newLoadingSetAfter);
+      
+      const newMap = new Map(simplifiedVerses);
+      newMap.set(verse.id, simplifiedText);
+      setSimplifiedVerses(newMap);
+      
     } catch (error) {
       console.log('Error simplifying verse:', error);
       Alert.alert('Error', 'Could not simplify verse');
+      
+      // Stop loading on error
+      const newLoadingSet = new Set(loadingSimplification);
+      newLoadingSet.delete(verse.id);
+      setLoadingSimplification(newLoadingSet);
     }
   };
 
@@ -338,22 +372,43 @@ const SimplePrayerCard = () => {
                         </Text>
                       </View>
                       
+                      {/* Original Verse Text */}
                       <Text style={[styles.verseText, { color: theme.text }]}>
                         {verse.text}
                       </Text>
+
+                      {/* Simplified Text (if available) */}
+                      {simplifiedVerses.has(verse.id) && (
+                        <View style={[styles.simplifiedContainer, { backgroundColor: theme.success + '10', borderColor: theme.success + '30' }]}>
+                          <View style={styles.simplifiedHeader}>
+                            <MaterialIcons name="child-care" size={16} color={theme.success} />
+                            <Text style={[styles.simplifiedLabel, { color: theme.success }]}>
+                              Simple Version:
+                            </Text>
+                          </View>
+                          <Text style={[styles.simplifiedText, { color: theme.textSecondary }]}>
+                            {simplifiedVerses.get(verse.id)}
+                          </Text>
+                        </View>
+                      )}
 
                       {/* Verse Action Buttons */}
                       <View style={styles.verseActions}>
                         <TouchableOpacity
                           style={[styles.verseActionButton, { 
-                            backgroundColor: theme.success + '20',
-                            borderColor: theme.success + '40'
+                            backgroundColor: simplifiedVerses.has(verse.id) ? theme.success + '30' : theme.success + '20',
+                            borderColor: simplifiedVerses.has(verse.id) ? theme.success : theme.success + '40'
                           }]}
                           onPress={() => simplifyVerse(verse)}
+                          disabled={loadingSimplification.has(verse.id)}
                         >
-                          <MaterialIcons name="child-care" size={16} color={theme.success} />
+                          {loadingSimplification.has(verse.id) ? (
+                            <MaterialIcons name="hourglass-empty" size={16} color={theme.success} />
+                          ) : (
+                            <MaterialIcons name="child-care" size={16} color={theme.success} />
+                          )}
                           <Text style={[styles.verseActionText, { color: theme.success }]}>
-                            Simple
+                            {simplifiedVerses.has(verse.id) ? 'Original' : 'Simple'}
                           </Text>
                         </TouchableOpacity>
 
@@ -390,35 +445,7 @@ const SimplePrayerCard = () => {
         </BlurView>
       </Modal>
 
-      {/* Simple Verse Modal */}
-      <Modal
-        visible={showSimpleModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowSimpleModal(false)}
-      >
-        <BlurView intensity={100} tint="dark" style={styles.overlayModal}>
-          <View style={[styles.simpleModal, { backgroundColor: theme.card + 'FA' }]}>
-            <View style={styles.simpleHeader}>
-              <MaterialIcons name="child-care" size={24} color={theme.success} />
-              <Text style={[styles.simpleTitle, { color: theme.text }]}>
-                Simple Explanation
-              </Text>
-            </View>
-            <ScrollView style={styles.simpleContent} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.simpleText, { color: theme.textSecondary }]}>
-                {simplifiedText}
-              </Text>
-            </ScrollView>
-            <TouchableOpacity
-              style={[styles.simpleButton, { backgroundColor: theme.success }]}
-              onPress={() => setShowSimpleModal(false)}
-            >
-              <Text style={styles.simpleButtonText}>Got it! 👍</Text>
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-      </Modal>
+
 
       {/* AI Discussion Modal */}
       {showDiscussModal && verseToDiscuss && (
@@ -666,52 +693,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Simple modal styles
-  overlayModal: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  // Simplified text inline styles
+  simplifiedContainer: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  simpleModal: {
-    width: '90%',
-    maxHeight: '70%',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  simpleHeader: {
+  simplifiedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 8,
+    gap: 6,
   },
-  simpleTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  simplifiedLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  simpleContent: {
-    maxHeight: 200,
-    marginBottom: 20,
-  },
-  simpleText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  simpleButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  simpleButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  simplifiedText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
 });
 
