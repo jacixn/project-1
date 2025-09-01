@@ -492,7 +492,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
           {/* Header */}
           <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
