@@ -24,11 +24,11 @@ import PrayerManagementService from '../services/prayerManagementService';
 const EnhancedPrayerCard = () => {
   const { theme } = useTheme();
   
-  // Simple state management
+  // Core states
   const [prayers, setPrayers] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Modal states
+  // Simple modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -37,13 +37,14 @@ const EnhancedPrayerCard = () => {
   const [showSimplified, setShowSimplified] = useState(false);
   
   // Form states
-  const [newPrayerName, setNewPrayerName] = useState('');
-  const [newPrayerTime, setNewPrayerTime] = useState('06:00');
+  const [prayerName, setPrayerName] = useState('');
+  const [prayerTime, setPrayerTime] = useState('06:00');
   const [editingPrayer, setEditingPrayer] = useState(null);
   const [selectedPrayer, setSelectedPrayer] = useState(null);
   const [selectedVerse, setSelectedVerse] = useState(null);
-  const [simplifiedVerse, setSimplifiedVerse] = useState('');
+  const [simplifiedText, setSimplifiedText] = useState('');
 
+  // Load prayers on mount
   useEffect(() => {
     loadPrayers();
   }, []);
@@ -51,17 +52,20 @@ const EnhancedPrayerCard = () => {
   const loadPrayers = async () => {
     try {
       setLoading(true);
+      console.log('Loading prayers...');
       await PrayerManagementService.checkAndReactivatePrayers();
       const storedPrayers = await PrayerManagementService.getPrayers();
       setPrayers(storedPrayers);
-      console.log('Loaded prayers:', storedPrayers.length);
+      console.log('Prayers loaded:', storedPrayers);
     } catch (error) {
       console.error('Error loading prayers:', error);
+      Alert.alert('Error', 'Failed to load prayers');
     } finally {
       setLoading(false);
     }
   };
 
+  // Utility functions
   const formatTime = (timeString) => {
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);
@@ -78,78 +82,30 @@ const EnhancedPrayerCard = () => {
     return PrayerManagementService.getTimeUntilActive(prayer);
   };
 
-  // Simple modal functions
-  const openAddModal = () => {
-    console.log('Opening add modal');
-    setNewPrayerName('');
-    setNewPrayerTime('06:00');
+  // ADD PRAYER FUNCTIONS
+  const handleAddPress = () => {
+    console.log('ADD BUTTON PRESSED');
+    setPrayerName('');
+    setPrayerTime('06:00');
     setShowAddModal(true);
     hapticFeedback.light();
   };
 
-  const closeAddModal = () => {
-    console.log('Closing add modal');
-    setShowAddModal(false);
-    setNewPrayerName('');
-    setNewPrayerTime('06:00');
-  };
-
-  const openPrayerModal = (prayer) => {
-    console.log('Opening prayer modal for:', prayer.name);
-    setSelectedPrayer(prayer);
-    setShowPrayerModal(true);
-    hapticFeedback.light();
-  };
-
-  const closePrayerModal = () => {
-    console.log('Closing prayer modal');
-    setShowPrayerModal(false);
-    setSelectedPrayer(null);
-  };
-
-  const openEditModal = (prayer) => {
-    console.log('Opening edit modal for:', prayer.name);
-    setEditingPrayer(prayer);
-    setNewPrayerName(prayer.name);
-    setShowEditModal(true);
-  };
-
-  const closeEditModal = () => {
-    setShowEditModal(false);
-    setEditingPrayer(null);
-    setNewPrayerName('');
-  };
-
-  const openTimeModal = (prayer = null) => {
-    console.log('Opening time modal for:', prayer ? prayer.name : 'new prayer');
-    setEditingPrayer(prayer);
-    if (prayer) {
-      setNewPrayerTime(prayer.time);
-    }
-    setShowTimeModal(true);
-  };
-
-  const closeTimeModal = () => {
-    setShowTimeModal(false);
-    setEditingPrayer(null);
-  };
-
-  // Prayer actions
-  const addPrayer = async () => {
-    if (!newPrayerName.trim()) {
+  const handleAddSave = async () => {
+    if (!prayerName.trim()) {
       Alert.alert('Error', 'Please enter a prayer name');
       return;
     }
 
     try {
-      console.log('Adding prayer:', newPrayerName, newPrayerTime);
-      const result = await PrayerManagementService.addPrayer(newPrayerName.trim(), newPrayerTime);
+      console.log('SAVING PRAYER:', prayerName, prayerTime);
+      const result = await PrayerManagementService.addPrayer(prayerName.trim(), prayerTime);
       
       if (result.success) {
+        setShowAddModal(false);
         await loadPrayers();
-        closeAddModal();
         hapticFeedback.success();
-        Alert.alert('Success', 'Prayer added successfully! 🙏');
+        Alert.alert('Success', 'Prayer added! 🙏');
       } else {
         Alert.alert('Error', result.error || 'Failed to add prayer');
       }
@@ -159,55 +115,101 @@ const EnhancedPrayerCard = () => {
     }
   };
 
-  const editPrayerName = async () => {
-    if (!newPrayerName.trim() || !editingPrayer) return;
-    
-    try {
-      const result = await PrayerManagementService.updatePrayerName(editingPrayer.id, newPrayerName.trim());
-      
-      if (result.success) {
-        await loadPrayers();
-        closeEditModal();
-        hapticFeedback.success();
-      } else {
-        Alert.alert('Error', result.error || 'Failed to update prayer name');
-      }
-    } catch (error) {
-      console.error('Error editing prayer name:', error);
-      Alert.alert('Error', 'Failed to update prayer name');
-    }
+  const handleAddCancel = () => {
+    console.log('ADD CANCELLED');
+    setShowAddModal(false);
+    setPrayerName('');
+    setPrayerTime('06:00');
   };
 
-  const editPrayerTime = async (time) => {
-    console.log('editPrayerTime called with:', time, 'editingPrayer:', editingPrayer);
+  // TIME PICKER FUNCTIONS
+  const handleTimePress = (prayer = null) => {
+    console.log('TIME BUTTON PRESSED for:', prayer ? prayer.name : 'new prayer');
+    setEditingPrayer(prayer);
+    if (prayer) {
+      setPrayerTime(prayer.time);
+    }
+    setShowTimeModal(true);
+    hapticFeedback.light();
+  };
+
+  const handleTimeSelected = async (time) => {
+    console.log('TIME SELECTED:', time, 'for:', editingPrayer ? editingPrayer.name : 'new prayer');
     
     if (!editingPrayer) {
-      // Adding new prayer time
-      setNewPrayerTime(time);
-      closeTimeModal();
+      // New prayer - just update the time
+      setPrayerTime(time);
+      setShowTimeModal(false);
       return;
     }
 
+    // Existing prayer - update in database
     try {
       const result = await PrayerManagementService.updatePrayerTime(editingPrayer.id, time);
       
       if (result.success) {
+        setShowTimeModal(false);
         await loadPrayers();
-        closeTimeModal();
         hapticFeedback.success();
+        Alert.alert('Success', 'Prayer time updated! ⏰');
       } else {
-        Alert.alert('Error', result.error || 'Failed to update prayer time');
+        Alert.alert('Error', result.error || 'Failed to update time');
       }
     } catch (error) {
-      console.error('Error editing prayer time:', error);
-      Alert.alert('Error', 'Failed to update prayer time');
+      console.error('Error updating time:', error);
+      Alert.alert('Error', 'Failed to update time');
     }
   };
 
-  const deletePrayer = (prayerId) => {
+  const handleTimeCancel = () => {
+    console.log('TIME CANCELLED');
+    setShowTimeModal(false);
+    setEditingPrayer(null);
+  };
+
+  // EDIT PRAYER FUNCTIONS
+  const handleEditPress = (prayer) => {
+    console.log('EDIT BUTTON PRESSED for:', prayer.name);
+    setEditingPrayer(prayer);
+    setPrayerName(prayer.name);
+    setShowEditModal(true);
+    hapticFeedback.light();
+  };
+
+  const handleEditSave = async () => {
+    if (!prayerName.trim() || !editingPrayer) return;
+    
+    try {
+      console.log('SAVING EDIT:', prayerName, 'for:', editingPrayer.name);
+      const result = await PrayerManagementService.updatePrayerName(editingPrayer.id, prayerName.trim());
+      
+      if (result.success) {
+        setShowEditModal(false);
+        await loadPrayers();
+        hapticFeedback.success();
+        Alert.alert('Success', 'Prayer name updated! ✏️');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to update name');
+      }
+    } catch (error) {
+      console.error('Error updating name:', error);
+      Alert.alert('Error', 'Failed to update name');
+    }
+  };
+
+  const handleEditCancel = () => {
+    console.log('EDIT CANCELLED');
+    setShowEditModal(false);
+    setEditingPrayer(null);
+    setPrayerName('');
+  };
+
+  // DELETE PRAYER FUNCTION
+  const handleDeletePress = (prayer) => {
+    console.log('DELETE BUTTON PRESSED for:', prayer.name);
     Alert.alert(
       'Delete Prayer',
-      'Are you sure you want to delete this prayer?',
+      `Are you sure you want to delete "${prayer.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -215,10 +217,12 @@ const EnhancedPrayerCard = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const result = await PrayerManagementService.deletePrayer(prayerId);
+              console.log('DELETING PRAYER:', prayer.name);
+              const result = await PrayerManagementService.deletePrayer(prayer.id);
               if (result.success) {
                 await loadPrayers();
                 hapticFeedback.success();
+                Alert.alert('Success', 'Prayer deleted! 🗑️');
               } else {
                 Alert.alert('Error', result.error || 'Failed to delete prayer');
               }
@@ -232,20 +236,31 @@ const EnhancedPrayerCard = () => {
     );
   };
 
-  const completePrayer = async (prayerId) => {
+  // PRAYER MODAL FUNCTIONS
+  const handlePrayerPress = (prayer) => {
+    console.log('PRAYER CARD PRESSED:', prayer.name);
+    if (isPrayerActive(prayer)) {
+      setSelectedPrayer(prayer);
+      setShowPrayerModal(true);
+      hapticFeedback.light();
+    }
+  };
+
+  const handlePrayerComplete = async (prayer) => {
     try {
-      const result = await PrayerManagementService.completePrayer(prayerId);
+      console.log('COMPLETING PRAYER:', prayer.name);
+      const result = await PrayerManagementService.completePrayer(prayer.id);
       
       if (result.success) {
-        // Award 500 points
+        // Award points
         await awardPoints(500);
+        setShowPrayerModal(false);
         await loadPrayers();
-        closePrayerModal();
         hapticFeedback.success();
         
         Alert.alert(
           '🙏 Prayer Completed!',
-          'You earned 500 points! Your prayer will be available again in 24 hours with new verses.',
+          'You earned 500 points! Your prayer will be available again in 24 hours.',
           [{ text: 'Amen! 🙏', style: 'default' }]
         );
       } else {
@@ -280,167 +295,31 @@ const EnhancedPrayerCard = () => {
     }
   };
 
-  const simplifyVerse = async (verse) => {
+  // VERSE FUNCTIONS
+  const handleSimplifyVerse = async (verse) => {
     try {
+      console.log('SIMPLIFYING VERSE:', verse.reference);
       hapticFeedback.light();
       const result = await VerseSimplificationService.simplifyVerse(verse);
-      setSimplifiedVerse(result.simplified);
+      setSimplifiedText(result.simplified);
       setShowSimplified(true);
       
       if (!result.success) {
         setTimeout(() => {
-          Alert.alert('Note', 'Using offline explanation. For AI-powered simplification, please configure your API key in Settings.');
+          Alert.alert('Note', 'Using offline explanation. Configure API key in Settings for AI simplification.');
         }, 2000);
       }
     } catch (error) {
-      Alert.alert('Error', 'Could not simplify verse. Please try again.');
+      console.error('Error simplifying verse:', error);
+      Alert.alert('Error', 'Could not simplify verse');
     }
   };
 
-  const openDiscussion = (verse) => {
+  const handleDiscussVerse = (verse) => {
+    console.log('DISCUSSING VERSE:', verse.reference);
     setSelectedVerse(verse);
     setShowChatModal(true);
-  };
-
-  const renderVerse = (verse, index) => (
-    <View key={verse.id} style={[styles.verseCard, { backgroundColor: theme.card + 'F0' }]}>
-      <View style={styles.verseHeader}>
-        <View style={[styles.verseNumber, { backgroundColor: theme.primary }]}>
-          <Text style={styles.verseNumberText}>{index + 1}</Text>
-        </View>
-        <Text style={[styles.verseReference, { color: theme.primary }]}>{verse.reference}</Text>
-      </View>
-      
-      <Text style={[styles.verseText, { color: theme.text }]}>{verse.text}</Text>
-      
-      <View style={styles.verseActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, { 
-            backgroundColor: theme.success + '15',
-            borderColor: theme.success + '30'
-          }]}
-          onPress={() => simplifyVerse(verse)}
-        >
-          <MaterialIcons name="child-care" size={18} color={theme.success} />
-          <Text style={[styles.actionButtonText, { color: theme.success }]}>Simple</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.actionButton, { 
-            backgroundColor: theme.primary + '15',
-            borderColor: theme.primary + '30'
-          }]}
-          onPress={() => openDiscussion(verse)}
-        >
-          <MaterialIcons name="chat" size={18} color={theme.primary} />
-          <Text style={[styles.actionButtonText, { color: theme.primary }]}>Discuss</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderPrayer = (prayer) => {
-    const isActive = isPrayerActive(prayer);
-    const hoursLeft = getTimeUntilActive(prayer);
-
-    return (
-      <View key={prayer.id} style={[
-        styles.prayerCard,
-        { backgroundColor: theme.card + 'E0' },
-        !isActive && styles.inactivePrayerCard
-      ]}>
-        <TouchableOpacity
-          style={styles.prayerContent}
-          onPress={() => {
-            console.log('Prayer card tapped:', prayer.name, 'isActive:', isActive);
-            if (isActive) {
-              openPrayerModal(prayer);
-            }
-          }}
-          disabled={!isActive}
-          activeOpacity={0.7}
-        >
-          <View style={styles.prayerMainInfo}>
-            <View style={styles.prayerTitleRow}>
-              <View style={[
-                styles.prayerIcon,
-                { backgroundColor: isActive ? theme.primary : theme.textTertiary }
-              ]}>
-                <MaterialIcons name="favorite" size={16} color="#ffffff" />
-              </View>
-              <Text style={[styles.prayerName, { color: theme.text }]}>
-                {prayer.name}
-              </Text>
-              {isActive && (
-                <MaterialIcons name="keyboard-arrow-right" size={24} color={theme.primary} />
-              )}
-            </View>
-            
-            <View style={styles.prayerMetaRow}>
-              <View style={styles.timeContainer}>
-                <MaterialIcons name="schedule" size={16} color={theme.primary} />
-                <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>
-                  {formatTime(prayer.time)}
-                </Text>
-              </View>
-              
-              {!isActive && hoursLeft && (
-                <View style={[styles.cooldownBadge, { backgroundColor: theme.warning + '25' }]}>
-                  <MaterialIcons name="timer" size={14} color={theme.warning} />
-                  <Text style={[styles.cooldownText, { color: theme.warning }]}>
-                    {hoursLeft}h left
-                  </Text>
-                </View>
-              )}
-              
-              {isActive && (
-                <View style={[styles.activeBadge, { backgroundColor: theme.success + '25' }]}>
-                  <MaterialIcons name="check-circle" size={14} color={theme.success} />
-                  <Text style={[styles.activeText, { color: theme.success }]}>
-                    Ready to pray
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-          
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: theme.primary + '20' }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                console.log('Edit button pressed for:', prayer.name);
-                openEditModal(prayer);
-              }}
-            >
-              <MaterialIcons name="edit" size={16} color={theme.primary} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: theme.textSecondary + '20' }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                console.log('Time button pressed for:', prayer.name);
-                openTimeModal(prayer);
-              }}
-            >
-              <MaterialIcons name="schedule" size={16} color={theme.textSecondary} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: theme.error + '20' }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                console.log('Delete button pressed for:', prayer.name);
-                deletePrayer(prayer.id);
-              }}
-            >
-              <MaterialIcons name="delete" size={16} color={theme.error} />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </View>
-    );
+    hapticFeedback.light();
   };
 
   if (loading) {
@@ -460,7 +339,7 @@ const EnhancedPrayerCard = () => {
     <View style={[styles.container, { backgroundColor: theme.card + 'E0' }]}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View>
           <Text style={[styles.title, { color: theme.text }]}>🙏 My Prayers</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {prayers.length} prayer{prayers.length !== 1 ? 's' : ''}
@@ -468,10 +347,8 @@ const EnhancedPrayerCard = () => {
         </View>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.primary }]}
-          onPress={() => {
-            console.log('Add button pressed');
-            openAddModal();
-          }}
+          onPress={handleAddPress}
+          activeOpacity={0.8}
         >
           <MaterialIcons name="add" size={28} color="#ffffff" />
         </TouchableOpacity>
@@ -486,21 +363,116 @@ const EnhancedPrayerCard = () => {
               No prayers yet
             </Text>
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Create your first prayer to start your spiritual journey with daily verses from God's Word
+              Create your first prayer to start your spiritual journey
             </Text>
             <TouchableOpacity
               style={[styles.emptyButton, { backgroundColor: theme.primary }]}
-              onPress={() => {
-                console.log('Empty state add button pressed');
-                openAddModal();
-              }}
+              onPress={handleAddPress}
+              activeOpacity={0.8}
             >
               <MaterialIcons name="add" size={20} color="#ffffff" />
               <Text style={styles.emptyButtonText}>Add Prayer</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          prayers.map(renderPrayer)
+          prayers.map((prayer) => {
+            const isActive = isPrayerActive(prayer);
+            const hoursLeft = getTimeUntilActive(prayer);
+
+            return (
+              <View key={prayer.id} style={[
+                styles.prayerCard,
+                { backgroundColor: theme.card + 'F0' },
+                !isActive && styles.inactivePrayerCard
+              ]}>
+                <TouchableOpacity
+                  style={styles.prayerContent}
+                  onPress={() => handlePrayerPress(prayer)}
+                  disabled={!isActive}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.prayerMainInfo}>
+                    <View style={styles.prayerTitleRow}>
+                      <View style={[
+                        styles.prayerIcon,
+                        { backgroundColor: isActive ? theme.primary : theme.textTertiary }
+                      ]}>
+                        <MaterialIcons name="favorite" size={16} color="#ffffff" />
+                      </View>
+                      <Text style={[styles.prayerName, { color: theme.text }]}>
+                        {prayer.name}
+                      </Text>
+                      {isActive && (
+                        <MaterialIcons name="keyboard-arrow-right" size={24} color={theme.primary} />
+                      )}
+                    </View>
+                    
+                    <View style={styles.prayerMetaRow}>
+                      <View style={styles.timeContainer}>
+                        <MaterialIcons name="schedule" size={16} color={theme.primary} />
+                        <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>
+                          {formatTime(prayer.time)}
+                        </Text>
+                      </View>
+                      
+                      {!isActive && hoursLeft && (
+                        <View style={[styles.cooldownBadge, { backgroundColor: theme.warning + '25' }]}>
+                          <MaterialIcons name="timer" size={14} color={theme.warning} />
+                          <Text style={[styles.cooldownText, { color: theme.warning }]}>
+                            {hoursLeft}h left
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {isActive && (
+                        <View style={[styles.activeBadge, { backgroundColor: theme.success + '25' }]}>
+                          <MaterialIcons name="check-circle" size={14} color={theme.success} />
+                          <Text style={[styles.activeText, { color: theme.success }]}>
+                            Ready
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  
+                  <View style={styles.quickActions}>
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, { backgroundColor: theme.primary + '20' }]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleEditPress(prayer);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="edit" size={16} color={theme.primary} />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, { backgroundColor: theme.textSecondary + '20' }]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleTimePress(prayer);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="schedule" size={16} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, { backgroundColor: theme.error + '20' }]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeletePress(prayer);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="delete" size={16} color={theme.error} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
@@ -509,18 +481,18 @@ const EnhancedPrayerCard = () => {
         visible={showAddModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={closeAddModal}
+        onRequestClose={handleAddCancel}
       >
         <BlurView intensity={100} tint="light" style={styles.modalContainer}>
           <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F5' }]}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={closeAddModal}>
+              <TouchableOpacity onPress={handleAddCancel}>
                 <MaterialIcons name="close" size={28} color={theme.text} />
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
                 Add New Prayer
               </Text>
-              <TouchableOpacity onPress={addPrayer}>
+              <TouchableOpacity onPress={handleAddSave}>
                 <Text style={[styles.saveButton, { color: theme.primary }]}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -538,8 +510,8 @@ const EnhancedPrayerCard = () => {
                   }]}
                   placeholder="e.g., Morning Prayer, Evening Gratitude"
                   placeholderTextColor={theme.textSecondary}
-                  value={newPrayerName}
-                  onChangeText={setNewPrayerName}
+                  value={prayerName}
+                  onChangeText={setPrayerName}
                   autoFocus
                 />
               </View>
@@ -553,15 +525,12 @@ const EnhancedPrayerCard = () => {
                     backgroundColor: theme.verseBackground,
                     borderColor: theme.border
                   }]}
-                  onPress={() => {
-                    console.log('Time selector pressed in add modal');
-                    openTimeModal();
-                  }}
+                  onPress={() => handleTimePress()}
                   activeOpacity={0.7}
                 >
                   <MaterialIcons name="schedule" size={24} color={theme.primary} />
                   <Text style={[styles.timeText, { color: theme.text }]}>
-                    {formatTime(newPrayerTime)}
+                    {formatTime(prayerTime)}
                   </Text>
                   <MaterialIcons name="keyboard-arrow-down" size={24} color={theme.textSecondary} />
                 </TouchableOpacity>
@@ -571,23 +540,23 @@ const EnhancedPrayerCard = () => {
         </BlurView>
       </Modal>
 
-      {/* Edit Prayer Name Modal */}
+      {/* Edit Prayer Modal */}
       <Modal
         visible={showEditModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={closeEditModal}
+        onRequestClose={handleEditCancel}
       >
         <BlurView intensity={100} tint="light" style={styles.modalContainer}>
           <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F5' }]}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={closeEditModal}>
+              <TouchableOpacity onPress={handleEditCancel}>
                 <MaterialIcons name="close" size={28} color={theme.text} />
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
                 Edit Prayer Name
               </Text>
-              <TouchableOpacity onPress={editPrayerName}>
+              <TouchableOpacity onPress={handleEditSave}>
                 <Text style={[styles.saveButton, { color: theme.primary }]}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -605,8 +574,8 @@ const EnhancedPrayerCard = () => {
                   }]}
                   placeholder="Prayer name"
                   placeholderTextColor={theme.textSecondary}
-                  value={newPrayerName}
-                  onChangeText={setNewPrayerName}
+                  value={prayerName}
+                  onChangeText={setPrayerName}
                   autoFocus
                 />
               </View>
@@ -618,9 +587,9 @@ const EnhancedPrayerCard = () => {
       {/* Time Picker Modal */}
       <TimePicker
         visible={showTimeModal}
-        onClose={closeTimeModal}
-        onTimeSelected={editPrayerTime}
-        currentTime={editingPrayer?.time || newPrayerTime}
+        onClose={handleTimeCancel}
+        onTimeSelected={handleTimeSelected}
+        currentTime={prayerTime}
         title={editingPrayer ? "Edit Prayer Time" : "Select Prayer Time"}
       />
 
@@ -629,14 +598,14 @@ const EnhancedPrayerCard = () => {
         visible={showPrayerModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={closePrayerModal}
+        onRequestClose={() => setShowPrayerModal(false)}
       >
         <BlurView intensity={100} tint="light" style={styles.modalContainer}>
           <SafeAreaView style={[styles.prayerModalContent, { backgroundColor: theme.background + 'F8' }]}>
             {selectedPrayer && (
               <>
                 <View style={styles.prayerModalHeader}>
-                  <TouchableOpacity onPress={closePrayerModal}>
+                  <TouchableOpacity onPress={() => setShowPrayerModal(false)}>
                     <MaterialIcons name="close" size={28} color={theme.text} />
                   </TouchableOpacity>
                   <View style={styles.prayerModalTitleContainer}>
@@ -659,14 +628,50 @@ const EnhancedPrayerCard = () => {
                   </Text>
                   
                   <View style={styles.versesContainer}>
-                    {selectedPrayer.verses?.map((verse, index) => 
-                      renderVerse(verse, index)
-                    )}
+                    {selectedPrayer.verses?.map((verse, index) => (
+                      <View key={verse.id} style={[styles.verseCard, { backgroundColor: theme.card + 'F0' }]}>
+                        <View style={styles.verseHeader}>
+                          <View style={[styles.verseNumber, { backgroundColor: theme.primary }]}>
+                            <Text style={styles.verseNumberText}>{index + 1}</Text>
+                          </View>
+                          <Text style={[styles.verseReference, { color: theme.primary }]}>{verse.reference}</Text>
+                        </View>
+                        
+                        <Text style={[styles.verseText, { color: theme.text }]}>{verse.text}</Text>
+                        
+                        <View style={styles.verseActions}>
+                          <TouchableOpacity
+                            style={[styles.actionButton, { 
+                              backgroundColor: theme.success + '15',
+                              borderColor: theme.success + '30'
+                            }]}
+                            onPress={() => handleSimplifyVerse(verse)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="child-care" size={18} color={theme.success} />
+                            <Text style={[styles.actionButtonText, { color: theme.success }]}>Simple</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity
+                            style={[styles.actionButton, { 
+                              backgroundColor: theme.primary + '15',
+                              borderColor: theme.primary + '30'
+                            }]}
+                            onPress={() => handleDiscussVerse(verse)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="chat" size={18} color={theme.primary} />
+                            <Text style={[styles.actionButtonText, { color: theme.primary }]}>Discuss</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
                   </View>
 
                   <TouchableOpacity
                     style={[styles.completeButton, { backgroundColor: theme.success }]}
-                    onPress={() => completePrayer(selectedPrayer.id)}
+                    onPress={() => handlePrayerComplete(selectedPrayer)}
+                    activeOpacity={0.8}
                   >
                     <MaterialIcons name="check-circle" size={28} color="#ffffff" />
                     <Text style={styles.completeButtonText}>Complete Prayer</Text>
@@ -694,11 +699,12 @@ const EnhancedPrayerCard = () => {
               Simple Explanation
             </Text>
             <Text style={[styles.simplifiedText, { color: theme.textSecondary }]}>
-              {simplifiedVerse}
+              {simplifiedText}
             </Text>
             <TouchableOpacity
               style={[styles.simplifiedButton, { backgroundColor: theme.primary }]}
               onPress={() => setShowSimplified(false)}
+              activeOpacity={0.8}
             >
               <Text style={styles.simplifiedButtonText}>Got it! 👍</Text>
             </TouchableOpacity>
@@ -754,9 +760,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 24,
-  },
-  headerLeft: {
-    flex: 1,
   },
   title: {
     fontSize: 26,
@@ -914,65 +917,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
-  // Verse Card
-  verseCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  verseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  verseNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  verseNumberText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  verseReference: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  verseText: {
-    fontSize: 17,
-    lineHeight: 26,
-    marginBottom: 20,
-    fontStyle: 'italic',
-  },
-  verseActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  
   // Modal Styles
   modalContainer: {
     flex: 1,
@@ -1075,6 +1019,66 @@ const styles = StyleSheet.create({
   versesContainer: {
     marginBottom: 32,
   },
+  
+  // Verse Card
+  verseCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  verseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  verseNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  verseNumberText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  verseReference: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  verseText: {
+    fontSize: 17,
+    lineHeight: 26,
+    marginBottom: 20,
+    fontStyle: 'italic',
+  },
+  verseActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
