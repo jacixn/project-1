@@ -250,6 +250,15 @@ const BiblePrayerTab = () => {
         <BibleReader
           visible={showBible}
           onClose={() => setShowBible(false)}
+          onNavigateToAI={(verseContent) => {
+            setShowBible(false);
+            if (verseContent) {
+              setVerseToInterpret(verseContent);
+            } else {
+              setVerseToInterpret(null); // General chat
+            }
+            setTimeout(() => setShowFriendChat(true), 300);
+          }}
           onInterpretVerse={(verseContent, reference) => {
             setShowBible(false);
             setVerseToInterpret({ content: verseContent, reference });
