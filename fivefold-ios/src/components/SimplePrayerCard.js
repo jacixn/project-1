@@ -321,13 +321,13 @@ In simple words: God is telling us something important here that we can understa
       }
     }
     
-    const hours = Math.floor(minutesUntil / 60);
-    const mins = minutesUntil % 60;
+    const hoursUntil = Math.floor(minutesUntil / 60);
+    const minsUntil = minutesUntil % 60;
     
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
+    if (hoursUntil > 0) {
+      return `${hoursUntil}h ${minsUntil}m`;
     } else {
-      return `${mins}m`;
+      return `${minsUntil}m`;
     }
   };
 
