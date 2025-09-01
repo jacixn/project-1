@@ -37,8 +37,11 @@ const SimplePrayerCard = () => {
   const [prayers, setPrayers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [newPrayerName, setNewPrayerName] = useState('');
+  const [newPrayerTime, setNewPrayerTime] = useState('');
   const [selectedPrayer, setSelectedPrayer] = useState(null);
+  const [editingPrayer, setEditingPrayer] = useState(null);
   
   // Simple and Discussion states
   const [simplifiedVerses, setSimplifiedVerses] = useState(new Map()); // Track which verses are simplified
@@ -50,6 +53,25 @@ const SimplePrayerCard = () => {
   useEffect(() => {
     loadPrayers();
   }, []);
+
+  // Format time input with auto-colon (17 -> 17:00)
+  const formatTimeInput = (input) => {
+    // Remove any non-digits
+    const digits = input.replace(/\D/g, '');
+    
+    if (digits.length === 0) return '';
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) {
+      return digits.slice(0, 2) + ':' + digits.slice(2);
+    }
+    return digits.slice(0, 2) + ':' + digits.slice(2, 4);
+  };
+
+  // Validate time format (HH:MM)
+  const isValidTime = (time) => {
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(time);
+  };
 
   const loadPrayers = async () => {
     try {
@@ -68,8 +90,9 @@ const SimplePrayerCard = () => {
     }
   };
 
-  // Get random verses
-  const getRandomVerses = () => {
+  // Get exactly 2 verses - always the same for consistency
+  const getTwoVerses = () => {
+    // Always return exactly 2 verses, no changing
     const shuffled = [...VERSES].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 2);
   };
@@ -81,11 +104,24 @@ const SimplePrayerCard = () => {
       return;
     }
 
+    if (!newPrayerTime.trim()) {
+      Alert.alert('Error', 'Please enter a prayer time');
+      return;
+    }
+
+    if (!isValidTime(newPrayerTime)) {
+      Alert.alert('Error', 'Please enter a valid time (e.g., 17:00)');
+      return;
+    }
+
     const newPrayer = {
       id: Date.now(),
       name: newPrayerName.trim(),
-      verses: getRandomVerses(),
+      time: newPrayerTime,
+      verses: getTwoVerses(), // Always exactly 2 verses
       createdAt: new Date().toISOString(),
+      completedAt: null, // Track when completed
+      canComplete: true, // Can complete initially
     };
 
     const updatedPrayers = [...prayers, newPrayer];
@@ -94,9 +130,54 @@ const SimplePrayerCard = () => {
     
     setShowAddModal(false);
     setNewPrayerName('');
+    setNewPrayerTime('');
     hapticFeedback.success();
     
-    Alert.alert('Prayer Added! 🙏', `"${newPrayer.name}" has been added to your prayers.`);
+    Alert.alert('Prayer Added! 🙏', `"${newPrayer.name}" at ${newPrayer.time} has been added to your prayers.`);
+  };
+
+  // Edit prayer
+  const editPrayer = (prayer) => {
+    setEditingPrayer(prayer);
+    setNewPrayerName(prayer.name);
+    setNewPrayerTime(prayer.time);
+    setShowEditModal(true);
+    hapticFeedback.light();
+  };
+
+  // Save edited prayer
+  const saveEditedPrayer = async () => {
+    if (!newPrayerName.trim()) {
+      Alert.alert('Error', 'Please enter a prayer name');
+      return;
+    }
+
+    if (!newPrayerTime.trim()) {
+      Alert.alert('Error', 'Please enter a prayer time');
+      return;
+    }
+
+    if (!isValidTime(newPrayerTime)) {
+      Alert.alert('Error', 'Please enter a valid time (e.g., 17:00)');
+      return;
+    }
+
+    const updatedPrayers = prayers.map(p => 
+      p.id === editingPrayer.id 
+        ? { ...p, name: newPrayerName.trim(), time: newPrayerTime }
+        : p
+    );
+    
+    setPrayers(updatedPrayers);
+    await savePrayers(updatedPrayers);
+    
+    setShowEditModal(false);
+    setEditingPrayer(null);
+    setNewPrayerName('');
+    setNewPrayerTime('');
+    hapticFeedback.success();
+    
+    Alert.alert('Prayer Updated! ✏️', 'Your prayer has been successfully updated.');
   };
 
   // Remove prayer
@@ -191,9 +272,44 @@ In simple words: God is telling us something important here that we can understa
     }, 300);
   };
 
-  // Complete prayer
+  // Check if prayer can be completed (24-hour cooldown)
+  const canCompletePrayer = (prayer) => {
+    if (!prayer.completedAt) return true; // Never completed before
+    
+    const completedTime = new Date(prayer.completedAt);
+    const now = new Date();
+    const hoursSinceCompletion = (now - completedTime) / (1000 * 60 * 60);
+    
+    return hoursSinceCompletion >= 24;
+  };
+
+  // Get time until prayer can be completed again
+  const getTimeUntilAvailable = (prayer) => {
+    if (!prayer.completedAt) return null;
+    
+    const completedTime = new Date(prayer.completedAt);
+    const availableTime = new Date(completedTime.getTime() + (24 * 60 * 60 * 1000));
+    const now = new Date();
+    
+    if (now >= availableTime) return null;
+    
+    const hoursLeft = Math.ceil((availableTime - now) / (1000 * 60 * 60));
+    return hoursLeft;
+  };
+
+  // Complete prayer with 24-hour cooldown
   const completePrayer = async (prayer) => {
     try {
+      if (!canCompletePrayer(prayer)) {
+        const hoursLeft = getTimeUntilAvailable(prayer);
+        Alert.alert(
+          'Prayer Already Completed 🙏',
+          `You can complete this prayer again in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}. Take time to reflect on today's verses!`,
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
+
       // Award 500 points
       const currentStats = await getStoredData('userStats') || {
         points: 0,
@@ -212,10 +328,14 @@ In simple words: God is telling us something important here that we can understa
       updatedStats.level = Math.floor(updatedStats.points / 1000) + 1;
       await saveData('userStats', updatedStats);
 
-      // Give new verses to the prayer
+      // Mark prayer as completed with timestamp - verses stay the same
       const updatedPrayers = prayers.map(p => 
         p.id === prayer.id 
-          ? { ...p, verses: getRandomVerses() }
+          ? { 
+              ...p, 
+              completedAt: new Date().toISOString(),
+              canComplete: false
+            }
           : p
       );
       setPrayers(updatedPrayers);
@@ -226,7 +346,7 @@ In simple words: God is telling us something important here that we can understa
       
       Alert.alert(
         'Prayer Completed! 🙏',
-        'Wonderful! You earned 500 points and received fresh verses for next time.',
+        'Wonderful! You earned 500 points. You can complete this prayer again in 24 hours.',
         [{ text: 'Amen! 🙏', style: 'default' }]
       );
     } catch (error) {
@@ -261,35 +381,50 @@ In simple words: God is telling us something important here that we can understa
             </Text>
           </View>
         ) : (
-          prayers.map((prayer) => (
-            <View key={prayer.id} style={[styles.prayerItem, { backgroundColor: theme.card + 'CC' }]}>
-              <TouchableOpacity
-                style={styles.prayerContent}
-                onPress={() => {
-                  setSelectedPrayer(prayer);
-                  setShowPrayerModal(true);
-                  hapticFeedback.light();
-                }}
-              >
-                <View style={styles.prayerInfo}>
-                  <View style={[styles.prayerIcon, { backgroundColor: theme.primary }]}>
-                    <MaterialIcons name="favorite" size={16} color="#ffffff" />
+          prayers.map((prayer) => {
+            const canComplete = canCompletePrayer(prayer);
+            const hoursLeft = getTimeUntilAvailable(prayer);
+            
+            return (
+              <View key={prayer.id} style={[styles.prayerItem, { 
+                backgroundColor: theme.card + 'CC',
+                opacity: canComplete ? 1 : 0.7
+              }]}>
+                <TouchableOpacity
+                  style={styles.prayerContent}
+                  onPress={() => {
+                    setSelectedPrayer(prayer);
+                    setShowPrayerModal(true);
+                    hapticFeedback.light();
+                  }}
+                >
+                  <View style={styles.prayerInfo}>
+                    <View style={[styles.prayerIcon, { 
+                      backgroundColor: canComplete ? theme.primary : theme.textSecondary 
+                    }]}>
+                      <MaterialIcons name="favorite" size={16} color="#ffffff" />
+                    </View>
+                    <View style={styles.prayerDetails}>
+                      <Text style={[styles.prayerName, { color: theme.text }]}>
+                        {prayer.name}
+                      </Text>
+                      <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>
+                        {prayer.time} {!canComplete && hoursLeft ? `• Available in ${hoursLeft}h` : ''}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={[styles.prayerName, { color: theme.text }]}>
-                    {prayer.name}
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.removeButton, { backgroundColor: theme.error + '20' }]}
-                onPress={() => removePrayer(prayer.id)}
-              >
-                <MaterialIcons name="close" size={16} color={theme.error} />
-              </TouchableOpacity>
-            </View>
-          ))
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.editButton, { backgroundColor: theme.primary + '20' }]}
+                  onPress={() => editPrayer(prayer)}
+                >
+                  <MaterialIcons name="edit" size={16} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
@@ -330,6 +465,26 @@ In simple words: God is telling us something important here that we can understa
                 onChangeText={setNewPrayerName}
                 autoFocus
               />
+
+              <Text style={[styles.inputLabel, { color: theme.text, marginTop: 20 }]}>
+                Prayer Time
+              </Text>
+              <TextInput
+                style={[styles.textInput, { 
+                  backgroundColor: theme.card,
+                  color: theme.text,
+                  borderColor: theme.border
+                }]}
+                placeholder="e.g., 17:00, 09:30"
+                placeholderTextColor={theme.textSecondary}
+                value={newPrayerTime}
+                onChangeText={(text) => setNewPrayerTime(formatTimeInput(text))}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+              <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                Just type the numbers (e.g., 1700 becomes 17:00)
+              </Text>
             </View>
           </SafeAreaView>
         </BlurView>
@@ -429,14 +584,23 @@ In simple words: God is telling us something important here that we can understa
                   ))}
 
                   <TouchableOpacity
-                    style={[styles.completeButton, { backgroundColor: theme.success }]}
+                    style={[styles.completeButton, { 
+                      backgroundColor: canCompletePrayer(selectedPrayer) ? theme.success : theme.textSecondary,
+                      opacity: canCompletePrayer(selectedPrayer) ? 1 : 0.6
+                    }]}
                     onPress={() => completePrayer(selectedPrayer)}
+                    disabled={!canCompletePrayer(selectedPrayer)}
                   >
                     <MaterialIcons name="check-circle" size={24} color="#ffffff" />
-                    <Text style={styles.completeButtonText}>Complete Prayer</Text>
-                    <View style={styles.pointsBadge}>
-                      <Text style={styles.pointsText}>+500 pts</Text>
-                    </View>
+                    <Text style={styles.completeButtonText}>
+                      {canCompletePrayer(selectedPrayer) ? 'Complete Prayer' : 
+                       `Available in ${getTimeUntilAvailable(selectedPrayer)}h`}
+                    </Text>
+                    {canCompletePrayer(selectedPrayer) && (
+                      <View style={styles.pointsBadge}>
+                        <Text style={styles.pointsText}>+500 pts</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 </ScrollView>
               </>
@@ -445,7 +609,82 @@ In simple words: God is telling us something important here that we can understa
         </BlurView>
       </Modal>
 
+      {/* Edit Prayer Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <BlurView intensity={100} tint="light" style={styles.modalContainer}>
+          <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F0' }]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <MaterialIcons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Edit Prayer
+              </Text>
+              <TouchableOpacity onPress={saveEditedPrayer}>
+                <Text style={[styles.saveButton, { color: theme.primary }]}>Save</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>
+                Prayer Name
+              </Text>
+              <TextInput
+                style={[styles.textInput, { 
+                  backgroundColor: theme.card,
+                  color: theme.text,
+                  borderColor: theme.border
+                }]}
+                placeholder="e.g., Morning Prayer, Gratitude"
+                placeholderTextColor={theme.textSecondary}
+                value={newPrayerName}
+                onChangeText={setNewPrayerName}
+                autoFocus
+              />
 
+              <Text style={[styles.inputLabel, { color: theme.text, marginTop: 20 }]}>
+                Prayer Time
+              </Text>
+              <TextInput
+                style={[styles.textInput, { 
+                  backgroundColor: theme.card,
+                  color: theme.text,
+                  borderColor: theme.border
+                }]}
+                placeholder="e.g., 17:00, 09:30"
+                placeholderTextColor={theme.textSecondary}
+                value={newPrayerTime}
+                onChangeText={(text) => setNewPrayerTime(formatTimeInput(text))}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+              <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                Just type the numbers (e.g., 1700 becomes 17:00)
+              </Text>
+
+              {editingPrayer && (
+                <TouchableOpacity
+                  style={[styles.deleteButton, { backgroundColor: theme.error + '20', marginTop: 30 }]}
+                  onPress={() => {
+                    setShowEditModal(false);
+                    setTimeout(() => removePrayer(editingPrayer.id), 300);
+                  }}
+                >
+                  <MaterialIcons name="delete" size={20} color={theme.error} />
+                  <Text style={[styles.deleteButtonText, { color: theme.error }]}>
+                    Delete Prayer
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </SafeAreaView>
+        </BlurView>
+      </Modal>
 
       {/* AI Discussion Modal */}
       {showDiscussModal && verseToDiscuss && (
@@ -546,17 +785,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
+  prayerDetails: {
+    flex: 1,
+  },
   prayerName: {
     fontSize: 16,
     fontWeight: '600',
   },
-  removeButton: {
+  prayerTime: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  editButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
     borderRadius: 16,
+  },
+  helpText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   
   // Modal styles
