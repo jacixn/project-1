@@ -301,21 +301,20 @@ class ProductionAIService {
       if (isVerseInterpretation) {
         prompt = `You are a warm, caring Christian friend having a personal conversation with ${userName}. The user is asking about a Bible verse: "${userMessage}"
 
-        Respond as a close friend would, using their name "${userName}" naturally in your response. Structure your response in 2-3 clear paragraphs:
+        Respond as a close friend would, using their name "${userName}" naturally. Keep your response SHORT and conversational - just 2-3 sentences maximum.
 
-        Paragraph 1: Start with a warm, personal greeting using their name "${userName}". Give the main meaning of the verse in simple, everyday language.
+        1. Start with a warm greeting using their name "${userName}"
+        2. Give the main meaning in simple, everyday language 
+        3. End with a short question to keep chatting
 
-        Paragraph 2: Explain how this applies to real life situations and why it's encouraging. Make it relatable and practical.
-
-        Paragraph 3: End with a personal question to keep the conversation going, asking about their thoughts or experiences related to the verse. Use their name "${userName}" again.
-
-        Keep it conversational, warm, and personal. Never use dashes or bullet points. Sound like a caring friend who genuinely wants to help them grow spiritually. Make it feel like a real conversation between close friends.`;
+        Keep it brief, warm, and personal. Never use dashes or bullet points. Sound like a caring friend texting back quickly. Make it feel natural and conversational.`;
       } else {
         prompt = `You are a warm Christian friend having a personal conversation with ${userName}. The user says: "${userMessage}"
         
-        Respond naturally as a caring friend would, using their name "${userName}" in your response. If they say hey, greet them warmly with their name. 
-        Structure your response clearly and ask follow-up questions to keep the conversation flowing.
-        Never use dashes in your response. Sound like a real person talking to a close friend named ${userName}. Be warm, encouraging, and personal.`;
+        Respond naturally as a caring friend would, using their name "${userName}" in your response. Keep it SHORT - just 2-3 sentences maximum.
+        
+        If they say hey, greet them warmly with their name. Ask a simple follow-up question to keep the conversation going.
+        Never use dashes. Sound like a real person texting a close friend named ${userName}. Be warm, encouraging, and brief.`;
       }
 
       const response = await this.simpleAIChat(prompt);
@@ -329,9 +328,15 @@ class ProductionAIService {
       cleanResponse = cleanResponse.replace(/–/g, ' ');
       cleanResponse = cleanResponse.replace(/•/g, '');
       
-      // Replace "AI" references with more natural language
+      // Replace "AI" references with more natural language [[memory:7174238]]
       cleanResponse = cleanResponse.replace(/\bAI\b/gi, 'I');
       cleanResponse = cleanResponse.replace(/artificial intelligence/gi, 'my understanding');
+      
+      // Keep responses short and conversational - limit to first 3 sentences if too long
+      const sentences = cleanResponse.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      if (sentences.length > 3) {
+        cleanResponse = sentences.slice(0, 3).join('. ') + '.';
+      }
       
       // Ensure proper paragraph spacing for better readability
       cleanResponse = cleanResponse.replace(/\n\n+/g, '\n\n');
