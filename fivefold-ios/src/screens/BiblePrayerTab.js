@@ -143,65 +143,44 @@ const BiblePrayerTab = () => {
 
   // Bible access section
   const BibleSection = () => (
-    <View>
-      <BlurView intensity={18} tint="light" style={styles.bibleCard}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>📖 Holy Bible</Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-          Read, study, and grow in faith
-        </Text>
-        
-        <TouchableOpacity 
-          style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
-          onPress={() => {
-            hapticFeedback.medium(); // Medium feedback when opening Bible
-            setShowBible(!showBible); // Toggle instead of always opening modal
-          }}
-        >
-          <MaterialIcons name="menu-book" size={24} color={theme.primary} />
-          <View style={styles.bibleButtonContent}>
-            <Text style={[styles.bibleButtonTitle, { color: theme.text }]}>
-              {showBible ? 'Close Bible' : 'Open Bible'}
-            </Text>
-            <Text style={[styles.bibleButtonSubtitle, { color: theme.textSecondary }]}>
-              Simple English + Original text
-            </Text>
-          </View>
-          <MaterialIcons 
-            name={showBible ? "expand-less" : "chevron-right"} 
-            size={20} 
-            color={theme.textTertiary} 
-          />
-        </TouchableOpacity>
-        
-        {/* Verse of the day */}
-        <BlurView intensity={30} tint="light" style={styles.verseOfDay}>
-          <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
-            💫 Verse of the Day
+    <BlurView intensity={18} tint="light" style={styles.bibleCard}>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>📖 Holy Bible</Text>
+      <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+        Read, study, and grow in faith
+      </Text>
+      
+      <TouchableOpacity 
+        style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
+        onPress={() => {
+          hapticFeedback.medium(); // Medium feedback when opening Bible
+          setShowBible(true); // Open modal like prayers do
+        }}
+      >
+        <MaterialIcons name="menu-book" size={24} color={theme.primary} />
+        <View style={styles.bibleButtonContent}>
+          <Text style={[styles.bibleButtonTitle, { color: theme.text }]}>
+            Open Bible
           </Text>
-          <Text style={[styles.verseText, { color: theme.text }]}>
-            "For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, to give you hope and a future."
+          <Text style={[styles.bibleButtonSubtitle, { color: theme.textSecondary }]}>
+            Simple English + Original text
           </Text>
-          <Text style={[styles.verseReference, { color: theme.textSecondary }]}>
-            Jeremiah 29:11
-          </Text>
-        </BlurView>
-      </BlurView>
-
-      {/* Inline Bible Reader - appears below the card when opened */}
-      {showBible && (
-        <View style={[styles.inlineBibleContainer, { backgroundColor: theme.background }]}>
-          <BibleReader
-            visible={true}
-            onClose={() => setShowBible(false)}
-            onInterpretVerse={(verseContent, reference) => {
-              setVerseToInterpret({ content: verseContent, reference });
-              setTimeout(() => setShowFriendChat(true), 300);
-            }}
-            isInline={true} // New prop to tell BibleReader it's inline
-          />
         </View>
-      )}
-    </View>
+        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+      </TouchableOpacity>
+      
+      {/* Verse of the day */}
+      <BlurView intensity={30} tint="light" style={styles.verseOfDay}>
+        <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
+          💫 Verse of the Day
+        </Text>
+        <Text style={[styles.verseText, { color: theme.text }]}>
+          "For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, to give you hope and a future."
+        </Text>
+        <Text style={[styles.verseReference, { color: theme.textSecondary }]}>
+          Jeremiah 29:11
+        </Text>
+      </BlurView>
+    </BlurView>
   );
 
   return (
@@ -265,6 +244,19 @@ const BiblePrayerTab = () => {
       </Animated.ScrollView>
 
 
+
+      {/* Bible Modal */}
+      {showBible && (
+        <BibleReader
+          visible={showBible}
+          onClose={() => setShowBible(false)}
+          onInterpretVerse={(verseContent, reference) => {
+            setShowBible(false);
+            setVerseToInterpret({ content: verseContent, reference });
+            setTimeout(() => setShowFriendChat(true), 300);
+          }}
+        />
+      )}
 
       {/* Prayer Screen Modal */}
       {showPrayerScreen && (
@@ -433,20 +425,6 @@ const styles = StyleSheet.create({
   verseReference: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  
-  // Inline Bible container
-  inlineBibleContainer: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
 });
 

@@ -31,7 +31,7 @@ import VerseDataManager from '../utils/verseDataManager';
 import VerseJournalingModal from './VerseJournalingModal';
 // Removed InteractiveSwipeBack import
 
-const BibleReader = ({ visible, onClose, onNavigateToAI, isInline = false }) => {
+const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
   
   const { theme, isDark } = useTheme();
   const { language, t } = useLanguage();
@@ -1310,57 +1310,49 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, isInline = false }) => 
     }
   };
 
-  const BibleContent = () => (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {renderHeader()}
-      <View style={[styles.mainContent, isInline && { height: 400 }]}>
-        {renderContent()}
-      </View>
-    
-    {/* Smart Assistant Button - Fixed at bottom */}
-    {view === 'books' && !isInline && (
-      <View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-        <TouchableOpacity
-          style={[styles.aiAssistantButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-          activeOpacity={0.7}
-          onPress={() => {
-            console.log('🤖 AI button tapped!');
-            try {
-              hapticFeedback.medium();
-              
-              if (onNavigateToAI) {
-                onNavigateToAI(null); // null means general chat
-              }
-              
-              onClose(); // Close Bible reader after navigation
-              console.log('🤖 Navigating to AI chat');
-            } catch (error) {
-              console.error('Error opening AI chat:', error);
-            }
-          }}
-        >
-          <View style={styles.aiButtonContent}>
-            <MaterialIcons name="smart-toy" size={20} color={theme.primary} />
-            <Text style={[styles.aiButtonText, { color: theme.text }]}>
-              Ask me anything...
-            </Text>
-            <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
-          </View>
-        </TouchableOpacity>
-      </View>
-    )}
-    </View>
-  );
-
   return (
     <>
-      {isInline ? (
-        <BibleContent />
-      ) : (
-        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-          <BibleContent />
-        </Modal>
-      )}
+      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          {renderHeader()}
+          <View style={styles.mainContent}>
+            {renderContent()}
+          </View>
+        
+        {/* Smart Assistant Button - Fixed at bottom */}
+        {view === 'books' && (
+          <View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+            <TouchableOpacity
+              style={[styles.aiAssistantButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+              activeOpacity={0.7}
+              onPress={() => {
+                console.log('🤖 AI button tapped!');
+                try {
+                  hapticFeedback.medium();
+                  
+                  if (onNavigateToAI) {
+                    onNavigateToAI(null); // null means general chat
+                  }
+                  
+                  onClose(); // Close Bible reader after navigation
+                  console.log('🤖 Navigating to AI chat');
+                } catch (error) {
+                  console.error('Error opening AI chat:', error);
+                }
+              }}
+            >
+              <View style={styles.aiButtonContent}>
+                <MaterialIcons name="smart-toy" size={20} color={theme.primary} />
+                <Text style={[styles.aiButtonText, { color: theme.text }]}>
+                  Ask me anything...
+                </Text>
+                <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+        </View>
+      </Modal>
 
       {/* Bible Version Picker Modal */}
       <Modal visible={showVersionPicker} animationType="slide" transparent={true}>
