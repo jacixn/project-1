@@ -1,5 +1,4 @@
 import { getStoredData, saveData } from '../utils/localStorage';
-import notificationService from './notificationService';
 
 // Extended verse pool with more verses
 const VERSE_POOL = [
@@ -170,8 +169,7 @@ class PrayerManagementService {
       const updatedPrayers = [...prayers, newPrayer];
       await this.savePrayers(updatedPrayers);
       
-      // Schedule notification for this prayer
-      await this.schedulePrayerNotification(newPrayer);
+      // Note: Prayer notification scheduling would go here when notification service is available
       
       return { success: true, prayer: newPrayer };
     } catch (error) {
@@ -186,8 +184,7 @@ class PrayerManagementService {
       const updatedPrayers = prayers.filter(p => p.id !== prayerId);
       await this.savePrayers(updatedPrayers);
       
-      // Cancel notification for this prayer
-      await notificationService.cancelNotification(`prayer_${prayerId}`);
+      // Note: Notification cancellation would go here when notification service is available
       
       return { success: true };
     } catch (error) {
@@ -225,9 +222,7 @@ class PrayerManagementService {
       
       await this.savePrayers(updatedPrayers);
       
-      // Reschedule notification with new time
-      const updatedPrayer = { ...prayer, time: newTime };
-      await this.schedulePrayerNotification(updatedPrayer);
+      // Note: Prayer notification rescheduling would go here when notification service is available
       
       return { success: true };
     } catch (error) {
@@ -272,8 +267,7 @@ class PrayerManagementService {
       
       await this.savePrayers(updatedPrayers);
       
-      // Schedule notification for when prayer becomes available again (24 hours)
-      await this.scheduleReactivationNotification(prayer);
+      // Note: Prayer reactivation notification would go here when notification service is available
       
       return { success: true, prayer: updatedPrayers.find(p => p.id === prayerId) };
     } catch (error) {
@@ -332,9 +326,7 @@ class PrayerManagementService {
       
       await this.savePrayers(updatedPrayers);
       
-      // Reschedule regular notification
-      const reactivatedPrayer = updatedPrayers.find(p => p.id === prayerId);
-      await this.schedulePrayerNotification(reactivatedPrayer);
+      // Note: Regular prayer notification rescheduling would go here when notification service is available
       
       return { success: true, prayer: reactivatedPrayer };
     } catch (error) {
@@ -343,52 +335,7 @@ class PrayerManagementService {
     }
   }
 
-  static async schedulePrayerNotification(prayer) {
-    try {
-      const settings = await getStoredData('notificationSettings') || {};
-      if (!settings.prayerReminders) return;
-
-      const [hours, minutes] = prayer.time.split(':').map(Number);
-      const now = new Date();
-      const notificationTime = new Date();
-      notificationTime.setHours(hours, minutes, 0, 0);
-      
-      // If time has passed today, schedule for tomorrow
-      if (notificationTime <= now) {
-        notificationTime.setDate(notificationTime.getDate() + 1);
-      }
-
-      await notificationService.scheduleNotification(
-        `prayer_${prayer.id}`,
-        `🙏 ${prayer.name}`,
-        'Time for your prayer with new verses from God\'s Word',
-        notificationTime,
-        true // repeat daily
-      );
-    } catch (error) {
-      console.error('Error scheduling prayer notification:', error);
-    }
-  }
-
-  static async scheduleReactivationNotification(prayer) {
-    try {
-      const settings = await getStoredData('notificationSettings') || {};
-      if (!settings.prayerReminders) return;
-
-      const reactivationTime = new Date(prayer.completedAt);
-      reactivationTime.setHours(reactivationTime.getHours() + 24);
-
-      await notificationService.scheduleNotification(
-        `prayer_reactivate_${prayer.id}`,
-        `🙏 ${prayer.name} is Ready!`,
-        'Your prayer is available again with fresh verses',
-        reactivationTime,
-        false // one-time notification
-      );
-    } catch (error) {
-      console.error('Error scheduling reactivation notification:', error);
-    }
-  }
+  // Note: Notification functions would be implemented here when notification service is available
 
   static async checkAndReactivatePrayers() {
     try {
@@ -415,14 +362,7 @@ class PrayerManagementService {
       if (hasUpdates) {
         await this.savePrayers(updatedPrayers);
         
-        // Reschedule notifications for reactivated prayers
-        const reactivatedPrayers = updatedPrayers.filter(p => 
-          prayers.find(original => original.id === p.id && original.completed && !p.completed)
-        );
-        
-        for (const prayer of reactivatedPrayers) {
-          await this.schedulePrayerNotification(prayer);
-        }
+        // Note: Notification rescheduling for reactivated prayers would go here when notification service is available
       }
       
       return { success: true, reactivatedCount: hasUpdates ? updatedPrayers.filter(p => !p.completed).length : 0 };
