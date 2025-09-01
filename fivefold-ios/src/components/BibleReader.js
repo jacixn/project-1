@@ -1312,7 +1312,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+      <Modal 
+        visible={visible} 
+        animationType="slide" 
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           {renderHeader()}
           <View style={styles.mainContent}>
