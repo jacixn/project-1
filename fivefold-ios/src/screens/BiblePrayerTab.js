@@ -22,6 +22,7 @@ import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 
 // Components
 import PrayerCard from '../components/PrayerCard';
+import EnhancedPrayerCard from '../components/EnhancedPrayerCard';
 import BibleReader from '../components/BibleReader';
 import PrayerScreen from '../components/PrayerScreen';
 import AiBibleChat from '../components/AiBibleChat';
@@ -233,15 +234,8 @@ const BiblePrayerTab = () => {
         )}
         scrollEventThrottle={16}
       >
-        {/* Prayer Times Card */}
-        <PrayerCard
-          prayerTimes={prayerTimes}
-          prayerHistory={prayerHistory}
-          onPrayerComplete={handlePrayerComplete}
-          onPrayerPress={handlePrayerPress}
-          location={location}
-          nextPrayer={nextPrayer}
-        />
+        {/* Enhanced Prayer Card */}
+        <EnhancedPrayerCard />
 
 
 
