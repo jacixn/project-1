@@ -15,6 +15,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import AiBibleChat from './AiBibleChat';
 
 // Simple verse pool
 const VERSES = [
@@ -38,6 +39,12 @@ const SimplePrayerCard = () => {
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [newPrayerName, setNewPrayerName] = useState('');
   const [selectedPrayer, setSelectedPrayer] = useState(null);
+  
+  // Simple and Discussion states
+  const [showSimpleModal, setShowSimpleModal] = useState(false);
+  const [simplifiedText, setSimplifiedText] = useState('');
+  const [showDiscussModal, setShowDiscussModal] = useState(false);
+  const [verseToDiscuss, setVerseToDiscuss] = useState(null);
 
   // Load prayers on start
   useEffect(() => {
@@ -112,6 +119,42 @@ const SimplePrayerCard = () => {
         }
       ]
     );
+  };
+
+  // Simplify verse for 12-year-old understanding
+  const simplifyVerse = async (verse) => {
+    try {
+      hapticFeedback.light();
+      
+      // Try to get AI simplification
+      try {
+        const productionAiService = require('../services/productionAiService').default;
+        const simplified = await productionAiService.simplifyBibleVerse(verse.text, verse.reference);
+        setSimplifiedText(simplified);
+      } catch (error) {
+        // Fallback to basic simplification
+        const fallback = `This verse means: ${verse.text.replace(/thee|thou|thy/gi, 'you').replace(/ye/gi, 'you all')}`;
+        setSimplifiedText(fallback);
+      }
+      
+      setShowSimpleModal(true);
+    } catch (error) {
+      console.log('Error simplifying verse:', error);
+      Alert.alert('Error', 'Could not simplify verse');
+    }
+  };
+
+  // Open discussion with AI about verse
+  const discussVerse = (verse) => {
+    hapticFeedback.light();
+    setVerseToDiscuss({
+      text: verse.text,
+      reference: verse.reference
+    });
+    setShowPrayerModal(false); // Close prayer modal first
+    setTimeout(() => {
+      setShowDiscussModal(true); // Then open discussion modal
+    }, 300);
   };
 
   // Complete prayer
@@ -298,6 +341,35 @@ const SimplePrayerCard = () => {
                       <Text style={[styles.verseText, { color: theme.text }]}>
                         {verse.text}
                       </Text>
+
+                      {/* Verse Action Buttons */}
+                      <View style={styles.verseActions}>
+                        <TouchableOpacity
+                          style={[styles.verseActionButton, { 
+                            backgroundColor: theme.success + '20',
+                            borderColor: theme.success + '40'
+                          }]}
+                          onPress={() => simplifyVerse(verse)}
+                        >
+                          <MaterialIcons name="child-care" size={16} color={theme.success} />
+                          <Text style={[styles.verseActionText, { color: theme.success }]}>
+                            Simple
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.verseActionButton, { 
+                            backgroundColor: theme.primary + '20',
+                            borderColor: theme.primary + '40'
+                          }]}
+                          onPress={() => discussVerse(verse)}
+                        >
+                          <MaterialIcons name="chat" size={16} color={theme.primary} />
+                          <Text style={[styles.verseActionText, { color: theme.primary }]}>
+                            Discuss
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ))}
 
@@ -317,6 +389,53 @@ const SimplePrayerCard = () => {
           </SafeAreaView>
         </BlurView>
       </Modal>
+
+      {/* Simple Verse Modal */}
+      <Modal
+        visible={showSimpleModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSimpleModal(false)}
+      >
+        <BlurView intensity={100} tint="dark" style={styles.overlayModal}>
+          <View style={[styles.simpleModal, { backgroundColor: theme.card + 'FA' }]}>
+            <View style={styles.simpleHeader}>
+              <MaterialIcons name="child-care" size={24} color={theme.success} />
+              <Text style={[styles.simpleTitle, { color: theme.text }]}>
+                Simple Explanation
+              </Text>
+            </View>
+            <ScrollView style={styles.simpleContent} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.simpleText, { color: theme.textSecondary }]}>
+                {simplifiedText}
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.simpleButton, { backgroundColor: theme.success }]}
+              onPress={() => setShowSimpleModal(false)}
+            >
+              <Text style={styles.simpleButtonText}>Got it! 👍</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </Modal>
+
+      {/* AI Discussion Modal */}
+      {showDiscussModal && verseToDiscuss && (
+        <AiBibleChat
+          visible={showDiscussModal}
+          onClose={() => {
+            setShowDiscussModal(false);
+            setVerseToDiscuss(null);
+            // Reopen prayer modal after discussion
+            setTimeout(() => {
+              setShowPrayerModal(true);
+            }, 300);
+          }}
+          initialVerse={verseToDiscuss}
+          title="Discuss This Verse"
+        />
+      )}
     </BlurView>
   );
 };
@@ -521,6 +640,77 @@ const styles = StyleSheet.create({
   pointsText: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
+  // Verse action buttons
+  verseActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  verseActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  verseActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  // Simple modal styles
+  overlayModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  simpleModal: {
+    width: '90%',
+    maxHeight: '70%',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  simpleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  simpleTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  simpleContent: {
+    maxHeight: 200,
+    marginBottom: 20,
+  },
+  simpleText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  simpleButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  simpleButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
