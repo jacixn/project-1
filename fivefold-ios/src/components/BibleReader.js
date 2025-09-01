@@ -984,12 +984,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
                       <TouchableOpacity
                         onPress={() => {
                           console.log('🎨 Highlight button tapped!', verse);
+                          console.log('🎨 Current showHighlightPicker state:', showHighlightPicker);
                           setSelectedVerseForAction(verse);
                           setShowHighlightPicker(true);
                           hapticFeedback.light();
                           console.log('🎨 Highlight picker should open now');
-                          console.log('🎨 showHighlightPicker state:', showHighlightPicker);
-                          console.log('🎨 selectedVerseForAction:', verse);
+                          // Add a small delay to check state
+                          setTimeout(() => {
+                            console.log('🎨 showHighlightPicker state after timeout:', showHighlightPicker);
+                          }, 100);
                         }}
                         style={[styles.modernActionButton, { 
                           backgroundColor: verseHighlights[verse.id] ? `${verseHighlights[verse.id].color}30` : `${theme.surface}40`
@@ -1573,11 +1576,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       </Modal>
 
       {/* Highlight Color Picker Modal */}
+      {console.log('🎨 Rendering highlight modal, visible:', showHighlightPicker)}
       <Modal
         visible={showHighlightPicker}
         transparent={true}
         animationType="fade"
         onRequestClose={() => {
+          console.log('🎨 Highlight modal onRequestClose called');
           setShowHighlightPicker(false);
           setSelectedVerseForAction(null);
         }}
