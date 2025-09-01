@@ -1580,15 +1580,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       <Modal
         visible={showHighlightPicker}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
+        presentationStyle="overFullScreen"
         onRequestClose={() => {
           console.log('🎨 Highlight modal onRequestClose called');
           setShowHighlightPicker(false);
           setSelectedVerseForAction(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.pickerModal}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
+          <View style={[styles.pickerModal, { backgroundColor: theme.background, borderWidth: 2, borderColor: theme.primary }]}>
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Highlight Color</Text>
             <View style={styles.colorGrid}>
               {[
@@ -1631,14 +1632,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       <Modal
         visible={showBookmarkPicker}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
+        presentationStyle="overFullScreen"
         onRequestClose={() => {
           setShowBookmarkPicker(false);
           setSelectedVerseForAction(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.pickerModal}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
+          <View style={[styles.pickerModal, { backgroundColor: theme.background, borderWidth: 2, borderColor: theme.warning }]}>
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Bookmark Category</Text>
             <View style={styles.bookmarkGrid}>
               {[
@@ -1671,6 +1673,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
           </BlurView>
         </View>
       </Modal>
+
+      {/* Journal Modal */}
+      <VerseJournalingModal
+        visible={showJournalingModal}
+        onClose={() => {
+          setShowJournalingModal(false);
+          setSelectedVerseForJournal(null);
+        }}
+        verse={selectedVerseForJournal}
+        onSave={handleSaveNote}
+      />
 
     </>
   );
