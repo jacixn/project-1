@@ -1411,8 +1411,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, isInline = false }) => 
           </View>
         </View>
       </Modal>
-    </View>
-  </Modal>
 
       {/* Verse Journaling Modal */}
       <Modal
