@@ -1,0 +1,153 @@
+// Prayer-specific verses for different prayer times
+// Each prayer type has its own collection of verses that rotate
+
+export const prayerVerses = {
+  'pre_dawn': [
+    {
+      text: "Very early in the morning, while it was still dark, Jesus got up, left the house and went off to a solitary place, where he prayed.",
+      reference: "Mark 1:35"
+    },
+    {
+      text: "In the morning, Lord, you hear my voice; in the morning I lay my requests before you and wait expectantly.",
+      reference: "Psalm 5:3"
+    },
+    {
+      text: "Let the morning bring me word of your unfailing love, for I have put my trust in you. Show me the way I should go, for to you I entrust my life.",
+      reference: "Psalm 143:8"
+    },
+    {
+      text: "My heart is steadfast, O God; I will sing and make music with all my soul. Awake, harp and lyre! I will awaken the dawn.",
+      reference: "Psalm 108:1-2"
+    }
+  ],
+  
+  'post_dawn': [
+    {
+      text: "This is the day the Lord has made; we will rejoice and be glad in it.",
+      reference: "Psalm 118:24"
+    },
+    {
+      text: "Because of the Lord's great love we are not consumed, for his compassions never fail. They are new every morning; great is your faithfulness.",
+      reference: "Lamentations 3:22-23"
+    },
+    {
+      text: "Satisfy us in the morning with your unfailing love, that we may sing for joy and be glad all our days.",
+      reference: "Psalm 90:14"
+    },
+    {
+      text: "But I trust in your unfailing love; my heart rejoices in your salvation. I will sing the Lord's praise, for he has been good to me.",
+      reference: "Psalm 13:5-6"
+    }
+  ],
+  
+  'midday': [
+    {
+      text: "At noon I will pray and cry aloud, and He shall hear my voice.",
+      reference: "Psalm 55:17"
+    },
+    {
+      text: "But I call to God, and the Lord saves me. Evening, morning and noon I cry out in distress, and he hears my voice.",
+      reference: "Psalm 55:16-17"
+    },
+    {
+      text: "Cast all your anxiety on him because he cares for you.",
+      reference: "1 Peter 5:7"
+    },
+    {
+      text: "Come to me, all you who are weary and burdened, and I will give you rest.",
+      reference: "Matthew 11:28"
+    }
+  ],
+  
+  'pre_sunset': [
+    {
+      text: "From the rising of the sun to the place where it sets, the name of the Lord is to be praised.",
+      reference: "Psalm 113:3"
+    },
+    {
+      text: "Let my prayer be set before You as incense, the lifting up of my hands as the evening sacrifice.",
+      reference: "Psalm 141:2"
+    },
+    {
+      text: "The Lord your God is with you, the Mighty Warrior who saves. He will take great delight in you; in his love he will no longer rebuke you, but will rejoice over you with singing.",
+      reference: "Zephaniah 3:17"
+    },
+    {
+      text: "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth.",
+      reference: "Psalm 46:10"
+    }
+  ],
+  
+  'post_sunset': [
+    {
+      text: "When I lie down, I go to sleep in peace; you alone, O Lord, let me sleep in safety.",
+      reference: "Psalm 4:8"
+    },
+    {
+      text: "The Lord bless you and keep you; the Lord make his face shine on you and be gracious to you; the Lord turn his face toward you and give you peace.",
+      reference: "Numbers 6:24-26"
+    },
+    {
+      text: "I will both lie down in peace, and sleep; For You alone, O Lord, make me dwell in safety.",
+      reference: "Psalm 4:8"
+    },
+    {
+      text: "He gives strength to the weary and increases the power of the weak.",
+      reference: "Isaiah 40:29"
+    }
+  ],
+  
+  'night': [
+    {
+      text: "I will praise the Lord, who counsels me; even at night my heart instructs me.",
+      reference: "Psalm 16:7"
+    },
+    {
+      text: "On my bed I remember you; I think of you through the watches of the night.",
+      reference: "Psalm 63:6"
+    },
+    {
+      text: "By day the Lord directs his love, at night his song is with me—a prayer to the God of my life.",
+      reference: "Psalm 42:8"
+    },
+    {
+      text: "The Lord appeared to us in the past, saying: 'I have loved you with an everlasting love; I have drawn you with unfailing kindness.'",
+      reference: "Jeremiah 31:3"
+    }
+  ]
+};
+
+export const getPrayerVerses = (prayerSlot) => {
+  return prayerVerses[prayerSlot] || [];
+};
+
+export const getRotatingVerse = (prayerSlot, index = null) => {
+  const verses = prayerVerses[prayerSlot];
+  if (!verses || verses.length === 0) {
+    return {
+      text: "Be still, and know that I am God.",
+      reference: "Psalm 46:10"
+    };
+  }
+
+  // Use provided index or rotate based on day of year for consistency
+  const today = new Date();
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+  const verseIndex = index !== null ? index % verses.length : dayOfYear % verses.length;
+  
+  return verses[verseIndex];
+};
+
+// Get two different verses for a prayer session
+export const getTwoVerses = (prayerSlot) => {
+  const verses = prayerVerses[prayerSlot];
+  if (!verses || verses.length < 2) return [];
+
+  const today = new Date();
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+
+  const firstIndex = dayOfYear % verses.length;
+  const secondIndex = (dayOfYear + 1) % verses.length;
+
+  return [verses[firstIndex], verses[secondIndex]];
+};

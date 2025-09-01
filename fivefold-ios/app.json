@@ -1,20 +1,27 @@
 {
   "expo": {
-    "name": "✝️ Fivefold",
+    "name": "Biblely",
     "slug": "fivefold-ios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#667eea"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fivefold.app"
+      "bundleIdentifier": "com.fivefold.app",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
+        "UIBackgroundModes": [
+          "background-processing",
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,12 +29,34 @@
         "backgroundColor": "#667eea"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.fivefold.app"
+      "package": "com.fivefold.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "description": "✝️ Faith & Focus Daily - Combine prayer with productivity in a beautiful app",
-    "privacy": "unlisted"
+    "description": "Faith & Focus Daily - Combine prayer with productivity in a beautiful spiritual companion app",
+    "privacy": "public",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#667eea",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f95f19ac-4387-4307-8812-3202ead7a0e9"
+      }
+    },
+    "owner": "jesusxoi"
   }
 }

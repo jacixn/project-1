@@ -275,7 +275,7 @@ function App() {
       <div className="App loading">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Initializing Fivefold...</p>
+          <p>Initializing Biblely...</p>
         </div>
       </div>
     );
@@ -285,7 +285,7 @@ function App() {
     <ErrorBoundary>
       <div className="App">
         <header className="app-header" role="banner">
-          <h1>✝️ Fivefold</h1>
+          <h1>✝️ Biblely</h1>
           <p>Faith & Focus, Every Day</p>
         
         {/* buttons for backup and stuff */}

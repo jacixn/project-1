@@ -1,0 +1,113 @@
+{
+  "app_name": "Fivefold",
+  "home_title": "Home",
+  "open_bible": "Open Bible",
+  "verse_of_the_day": "Verse of the Day",
+  "settings": "Settings",
+  "language": "Language",
+  "save": "Save",
+  "remove": "Remove",
+  "simple": "Simple",
+  "discuss": "Discuss",
+  
+  "prayer_title": "Prayer",
+  "prayer_header": "Faith & Focus, Every Day",
+  "tasks_title": "Tasks",
+  "tasks_header": "Goals & Growth",
+  "profile_title": "Profile",
+  "profile_header": "Your Journey",
+  
+  "pull_to_refresh": "Pull to refresh",
+  "loading": "Loading...",
+  "error": "Error",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "done": "Done",
+  "edit": "Edit",
+  "delete": "Delete",
+  "confirm": "Confirm",
+  
+  "todo_add": "Add To-Do",
+  "todo_due": "Due",
+  "todo_completed": "Completed",
+  "todo_missed": "Missed",
+  "todo_placeholder": "What needs to be done?",
+  
+  "prayer_times": "Prayer Times",
+  "before_sunrise": "Before Sunrise",
+  "after_sunset": "After Sunset",
+  "sunrise": "Sunrise",
+  "sunset": "Sunset",
+  "morning": "Morning",
+  "afternoon": "Afternoon",
+  "evening": "Evening",
+  
+  "achievements": "Achievements",
+  "level": "Level",
+  "points": "points",
+  "believer": "Believer",
+  "first_prayer": "First Prayer",
+  "bible_reader": "Bible Reader",
+  "task_master": "Task Master",
+  "view_all_achievements": "View All Achievements",
+  
+  "stats_tasks_done": "Tasks Done",
+  "stats_saved_verses": "Saved Verses",
+  "stats_prayers": "Prayers",
+  "stats_day_streak": "Day Streak",
+  
+  "settings_dark_mode": "Dark Mode",
+  "settings_light_mode": "Light Mode",
+  "settings_bible_version": "Bible Version",
+  "settings_haptic_feedback": "Haptic Feedback",
+  "settings_notifications": "Notifications",
+  "settings_delete_account": "Delete Account",
+  
+  "bible_books": "Books",
+  "bible_chapters": "Chapters",
+  "bible_verses": "Verses",
+  "bible_chapter": "Chapter",
+  "bible_verse": "Verse",
+  "bible_previous": "Previous",
+  "bible_next": "Next",
+  
+  "saved_verses_title": "Saved Verses",
+  "no_saved_verses": "No saved verses yet",
+  "tap_to_save": "Tap the bookmark icon on any verse to save it",
+  
+  "smart_analysis": "Smart Analysis",
+  "analyzing": "Analyzing...",
+  
+  "friend_chat": "Friend Chat",
+  "type_message": "Type a message...",
+  "send": "Send",
+  
+  "coming_soon": "Coming Soon",
+  "not_available": "Not Available",
+  
+  "days": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  
+  "months": {
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
+  }
+}
+
