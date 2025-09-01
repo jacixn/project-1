@@ -272,41 +272,132 @@ In simple words: God is telling us something important here that we can understa
     }, 300);
   };
 
-  // Check if prayer can be completed (24-hour cooldown)
+  // Check if prayer is within time window (30 minutes before/after)
+  const isPrayerTimeAvailable = (prayer) => {
+    if (!prayer.time) return true; // No time set, always available
+    
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
+    
+    // Parse prayer time (HH:MM)
+    const [hours, minutes] = prayer.time.split(':').map(Number);
+    const prayerTime = hours * 60 + minutes; // Prayer time in minutes
+    
+    // Calculate time difference (handle day wrap-around)
+    let timeDiff = Math.abs(currentTime - prayerTime);
+    if (timeDiff > 12 * 60) { // More than 12 hours difference, check wrap-around
+      timeDiff = 24 * 60 - timeDiff;
+    }
+    
+    return timeDiff <= 30; // Within 30 minutes
+  };
+
+  // Get time until prayer window opens
+  const getTimeUntilPrayerWindow = (prayer) => {
+    if (!prayer.time) return null;
+    
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const [hours, minutes] = prayer.time.split(':').map(Number);
+    const prayerTime = hours * 60 + minutes;
+    
+    // Calculate minutes until prayer window starts (30 minutes before prayer time)
+    const windowStart = prayerTime - 30;
+    let minutesUntil;
+    
+    if (windowStart > currentTime) {
+      minutesUntil = windowStart - currentTime;
+    } else if (windowStart < 0) { // Next day
+      minutesUntil = (24 * 60) + windowStart - currentTime;
+    } else {
+      // Check if we're past the window (30 minutes after)
+      const windowEnd = prayerTime + 30;
+      if (currentTime > windowEnd) {
+        // Next occurrence is tomorrow
+        minutesUntil = (24 * 60) + windowStart - currentTime;
+      } else {
+        return null; // We're in the window
+      }
+    }
+    
+    const hours = Math.floor(minutesUntil / 60);
+    const mins = minutesUntil % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    } else {
+      return `${mins}m`;
+    }
+  };
+
+  // Check if prayer can be completed (both time window and 24-hour cooldown)
   const canCompletePrayer = (prayer) => {
-    if (!prayer.completedAt) return true; // Never completed before
+    // Check 24-hour cooldown first
+    if (prayer.completedAt) {
+      const completedTime = new Date(prayer.completedAt);
+      const now = new Date();
+      const hoursSinceCompletion = (now - completedTime) / (1000 * 60 * 60);
+      
+      if (hoursSinceCompletion < 24) {
+        return false; // Still in cooldown
+      }
+    }
     
-    const completedTime = new Date(prayer.completedAt);
-    const now = new Date();
-    const hoursSinceCompletion = (now - completedTime) / (1000 * 60 * 60);
-    
-    return hoursSinceCompletion >= 24;
+    // Check if we're in the prayer time window
+    return isPrayerTimeAvailable(prayer);
   };
 
-  // Get time until prayer can be completed again
+  // Get time until prayer can be completed again (handles both cooldown and time window)
   const getTimeUntilAvailable = (prayer) => {
-    if (!prayer.completedAt) return null;
+    // Check 24-hour cooldown first
+    if (prayer.completedAt) {
+      const completedTime = new Date(prayer.completedAt);
+      const availableTime = new Date(completedTime.getTime() + (24 * 60 * 60 * 1000));
+      const now = new Date();
+      
+      if (now < availableTime) {
+        const hoursLeft = Math.ceil((availableTime - now) / (1000 * 60 * 60));
+        return `${hoursLeft}h (cooldown)`;
+      }
+    }
     
-    const completedTime = new Date(prayer.completedAt);
-    const availableTime = new Date(completedTime.getTime() + (24 * 60 * 60 * 1000));
-    const now = new Date();
+    // If not in cooldown, check prayer time window
+    if (!isPrayerTimeAvailable(prayer)) {
+      const timeUntilWindow = getTimeUntilPrayerWindow(prayer);
+      return timeUntilWindow ? `${timeUntilWindow} (prayer time)` : null;
+    }
     
-    if (now >= availableTime) return null;
-    
-    const hoursLeft = Math.ceil((availableTime - now) / (1000 * 60 * 60));
-    return hoursLeft;
+    return null; // Available now
   };
 
-  // Complete prayer with 24-hour cooldown
+  // Complete prayer with time window and 24-hour cooldown
   const completePrayer = async (prayer) => {
     try {
       if (!canCompletePrayer(prayer)) {
-        const hoursLeft = getTimeUntilAvailable(prayer);
-        Alert.alert(
-          'Prayer Already Completed 🙏',
-          `You can complete this prayer again in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}. Take time to reflect on today's verses!`,
-          [{ text: 'OK', style: 'default' }]
-        );
+        const timeUntil = getTimeUntilAvailable(prayer);
+        
+        if (timeUntil && timeUntil.includes('cooldown')) {
+          Alert.alert(
+            'Prayer Already Completed 🙏',
+            `You can complete this prayer again in ${timeUntil.replace(' (cooldown)', '')}. Take time to reflect on today's verses!`,
+            [{ text: 'OK', style: 'default' }]
+          );
+        } else if (timeUntil && timeUntil.includes('prayer time')) {
+          const [hours, minutes] = prayer.time.split(':');
+          const timeStr = `${hours}:${minutes}`;
+          Alert.alert(
+            'Prayer Time Window ⏰',
+            `This prayer can only be completed between ${timeStr} ± 30 minutes. Available in ${timeUntil.replace(' (prayer time)', '')}.`,
+            [{ text: 'OK', style: 'default' }]
+          );
+        } else {
+          Alert.alert(
+            'Prayer Not Available 🙏',
+            'This prayer is not available right now. Please check the time window.',
+            [{ text: 'OK', style: 'default' }]
+          );
+        }
         return;
       }
 
@@ -383,7 +474,8 @@ In simple words: God is telling us something important here that we can understa
         ) : (
           prayers.map((prayer) => {
             const canComplete = canCompletePrayer(prayer);
-            const hoursLeft = getTimeUntilAvailable(prayer);
+            const timeUntil = getTimeUntilAvailable(prayer);
+            const isInTimeWindow = isPrayerTimeAvailable(prayer);
             
             return (
               <View key={prayer.id} style={[styles.prayerItem, { 
@@ -400,7 +492,8 @@ In simple words: God is telling us something important here that we can understa
                 >
                   <View style={styles.prayerInfo}>
                     <View style={[styles.prayerIcon, { 
-                      backgroundColor: canComplete ? theme.primary : theme.textSecondary 
+                      backgroundColor: canComplete ? theme.success : 
+                                     isInTimeWindow ? theme.primary : theme.textSecondary 
                     }]}>
                       <MaterialIcons name="favorite" size={16} color="#ffffff" />
                     </View>
@@ -409,7 +502,8 @@ In simple words: God is telling us something important here that we can understa
                         {prayer.name}
                       </Text>
                       <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>
-                        {prayer.time} {!canComplete && hoursLeft ? `• Available in ${hoursLeft}h` : ''}
+                        {prayer.time} {timeUntil ? `• ${timeUntil}` : 
+                         isInTimeWindow ? '• Available now' : ''}
                       </Text>
                     </View>
                   </View>
@@ -594,7 +688,8 @@ In simple words: God is telling us something important here that we can understa
                     <MaterialIcons name="check-circle" size={24} color="#ffffff" />
                     <Text style={styles.completeButtonText}>
                       {canCompletePrayer(selectedPrayer) ? 'Complete Prayer' : 
-                       `Available in ${getTimeUntilAvailable(selectedPrayer)}h`}
+                       getTimeUntilAvailable(selectedPrayer) ? 
+                       `${getTimeUntilAvailable(selectedPrayer)}` : 'Not Available'}
                     </Text>
                     {canCompletePrayer(selectedPrayer) && (
                       <View style={styles.pointsBadge}>
