@@ -96,6 +96,7 @@ const ModernPrayerCard = () => {
 
   // Modal management
   const openModal = useCallback((modalName, data = {}) => {
+    console.log('Opening modal:', modalName, 'with data:', data);
     setModals(prev => ({ ...prev, [modalName]: true }));
     if (data) {
       setFormData(prev => ({ ...prev, ...data }));
@@ -191,10 +192,14 @@ const ModernPrayerCard = () => {
   }, [formData.name, formData.editingPrayer, refreshPrayers, closeModal]);
 
   const handleEditPrayerTime = useCallback(async (time) => {
+    console.log('handleEditPrayerTime called with:', time, 'editingPrayer:', formData.editingPrayer);
+    
     if (!formData.editingPrayer) {
       // Adding new prayer time
+      console.log('Setting new prayer time:', time);
       setFormData(prev => ({ ...prev, time }));
       closeModal('time');
+      hapticFeedback.light();
       return;
     }
 
@@ -483,7 +488,8 @@ const ModernPrayerCard = () => {
               style={[styles.quickActionButton, { backgroundColor: theme.textSecondary + '20' }]}
               onPress={(e) => {
                 e.stopPropagation();
-                openModal('time', { editingPrayer: prayer, time: prayer.time });
+                console.log('Quick time edit pressed for prayer:', prayer.name);
+                openModal('time', { editingPrayer: prayer });
               }}
             >
               <MaterialIcons name="schedule" size={16} color={theme.textSecondary} />
@@ -627,7 +633,11 @@ const ModernPrayerCard = () => {
                     backgroundColor: theme.verseBackground,
                     borderColor: theme.border
                   }]}
-                  onPress={() => openModal('time')}
+                  onPress={() => {
+                    console.log('Time selector pressed');
+                    openModal('time', { editingPrayer: null });
+                  }}
+                  activeOpacity={0.7}
                 >
                   <MaterialIcons name="schedule" size={24} color={theme.primary} />
                   <Text style={[styles.timeText, { color: theme.text }]}>
@@ -695,8 +705,14 @@ const ModernPrayerCard = () => {
       {/* Time Picker Modal */}
       <TimePicker
         visible={modals.time}
-        onClose={() => closeModal('time')}
-        onTimeSelected={handleEditPrayerTime}
+        onClose={() => {
+          console.log('TimePicker onClose called');
+          closeModal('time');
+        }}
+        onTimeSelected={(time) => {
+          console.log('TimePicker onTimeSelected called with:', time);
+          handleEditPrayerTime(time);
+        }}
         currentTime={formData.editingPrayer?.time || formData.time}
         title={formData.editingPrayer ? "Edit Prayer Time" : "Select Prayer Time"}
       />
