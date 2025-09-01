@@ -1670,7 +1670,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
             >
               <Text style={[styles.cancelButtonText, { color: theme.text }]}>Cancel</Text>
             </TouchableOpacity>
-          </BlurView>
+          </View>
         </View>
       </Modal>
 
