@@ -132,8 +132,6 @@ const SimplePrayerCard = () => {
     setNewPrayerName('');
     setNewPrayerTime('');
     hapticFeedback.success();
-    
-    Alert.alert('Prayer Added! 🙏', `"${newPrayer.name}" at ${newPrayer.time} has been added to your prayers.`);
   };
 
   // Edit prayer
@@ -176,8 +174,6 @@ const SimplePrayerCard = () => {
     setNewPrayerName('');
     setNewPrayerTime('');
     hapticFeedback.success();
-    
-    Alert.alert('Prayer Updated! ✏️', 'Your prayer has been successfully updated.');
   };
 
   // Remove prayer
@@ -195,7 +191,6 @@ const SimplePrayerCard = () => {
             setPrayers(updatedPrayers);
             await savePrayers(updatedPrayers);
             hapticFeedback.success();
-            Alert.alert('Prayer Removed', 'The prayer has been removed from your list.');
           }
         }
       ]
@@ -606,6 +601,27 @@ In simple words: God is telling us something important here that we can understa
                 </View>
                 
                 <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                  {/* Prayer Time Display */}
+                  <View style={[styles.prayerTimeCard, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+                    <MaterialIcons name="schedule" size={20} color={theme.primary} />
+                    <Text style={[styles.prayerTimeText, { color: theme.primary }]}>
+                      Prayer Time: {selectedPrayer.time}
+                    </Text>
+                    <View style={[styles.timeBadge, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.timeBadgeText}>⏰</Text>
+                    </View>
+                  </View>
+
+                  {/* Inspirational Quote */}
+                  <View style={[styles.quoteCard, { backgroundColor: theme.success + '10', borderColor: theme.success + '20' }]}>
+                    <Text style={[styles.quoteText, { color: theme.textSecondary }]}>
+                      "Prayer is not asking. It is a longing of the soul." 
+                    </Text>
+                    <Text style={[styles.quoteAuthor, { color: theme.success }]}>
+                      — Mahatma Gandhi
+                    </Text>
+                  </View>
+
                   <Text style={[styles.sectionTitle, { color: theme.text }]}>
                     📖 Today's Verses
                   </Text>
@@ -677,26 +693,47 @@ In simple words: God is telling us something important here that we can understa
                     </View>
                   ))}
 
-                  <TouchableOpacity
-                    style={[styles.completeButton, { 
-                      backgroundColor: canCompletePrayer(selectedPrayer) ? theme.success : theme.textSecondary,
-                      opacity: canCompletePrayer(selectedPrayer) ? 1 : 0.6
-                    }]}
-                    onPress={() => completePrayer(selectedPrayer)}
-                    disabled={!canCompletePrayer(selectedPrayer)}
-                  >
-                    <MaterialIcons name="check-circle" size={24} color="#ffffff" />
-                    <Text style={styles.completeButtonText}>
-                      {canCompletePrayer(selectedPrayer) ? 'Complete Prayer' : 
-                       getTimeUntilAvailable(selectedPrayer) ? 
-                       `${getTimeUntilAvailable(selectedPrayer)}` : 'Not Available'}
+                  {/* Prayer Completion Section */}
+                  <View style={[styles.completionSection, { backgroundColor: theme.card + '80' }]}>
+                    <View style={styles.completionHeader}>
+                      <MaterialIcons name="auto-awesome" size={20} color={theme.success} />
+                      <Text style={[styles.completionTitle, { color: theme.text }]}>
+                        Ready to Complete?
+                      </Text>
+                    </View>
+                    
+                    <Text style={[styles.completionSubtitle, { color: theme.textSecondary }]}>
+                      Take a moment to reflect on these verses and complete your prayer when ready.
                     </Text>
-                    {canCompletePrayer(selectedPrayer) && (
-                      <View style={styles.pointsBadge}>
-                        <Text style={styles.pointsText}>+500 pts</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.completeButton, { 
+                        backgroundColor: canCompletePrayer(selectedPrayer) ? theme.success : theme.textSecondary,
+                        opacity: canCompletePrayer(selectedPrayer) ? 1 : 0.6
+                      }]}
+                      onPress={() => completePrayer(selectedPrayer)}
+                      disabled={!canCompletePrayer(selectedPrayer)}
+                    >
+                      <MaterialIcons name="check-circle" size={24} color="#ffffff" />
+                      <Text style={styles.completeButtonText}>
+                        {canCompletePrayer(selectedPrayer) ? 'Complete Prayer' : 
+                         getTimeUntilAvailable(selectedPrayer) ? 
+                         `${getTimeUntilAvailable(selectedPrayer)}` : 'Not Available'}
+                      </Text>
+                      {canCompletePrayer(selectedPrayer) && (
+                        <View style={styles.pointsBadge}>
+                          <Text style={styles.pointsText}>+500 pts</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Decorative Elements */}
+                    <View style={styles.decorativeElements}>
+                      <Text style={styles.decorativeEmoji}>🙏</Text>
+                      <Text style={styles.decorativeEmoji}>✨</Text>
+                      <Text style={styles.decorativeEmoji}>💫</Text>
+                    </View>
+                  </View>
                 </ScrollView>
               </>
             )}
@@ -1074,6 +1111,81 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  
+  // New visual elements
+  prayerTimeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 12,
+  },
+  prayerTimeText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  timeBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeBadgeText: {
+    fontSize: 16,
+  },
+  quoteCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  quoteText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  quoteAuthor: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  completionSection: {
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 20,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  completionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  completionSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  decorativeElements: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 20,
+  },
+  decorativeEmoji: {
+    fontSize: 24,
+    opacity: 0.6,
   },
 });
 
