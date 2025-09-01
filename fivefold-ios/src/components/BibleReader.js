@@ -505,17 +505,67 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
     const reference = `${bookName} ${chapterNum}:${verseNum}`;
     
     try {
-      await VerseDataManager.addHighlight(verseId, color, reference);
-      setVerseHighlights(prev => ({
-        ...prev,
-        [verseId]: { color, timestamp: new Date().toISOString() }
-      }));
+      if (color === null) {
+        // Remove highlight
+        await VerseDataManager.removeHighlight(verseId);
+        setVerseHighlights(prev => {
+          const newHighlights = { ...prev };
+          delete newHighlights[verseId];
+          return newHighlights;
+        });
+        console.log(`🚫 Removed highlight from verse ${verseId}`);
+      } else {
+        // Add/update highlight
+        await VerseDataManager.addHighlight(verseId, color, reference);
+        setVerseHighlights(prev => ({
+          ...prev,
+          [verseId]: { color, timestamp: new Date().toISOString() }
+        }));
+        console.log(`✨ Highlighted verse ${verseId} with color ${color}`);
+      }
       hapticFeedback.success();
       setShowHighlightPicker(false);
       setSelectedVerseForAction(null);
-      console.log(`✨ Highlighted verse ${verseId} with color ${color}`);
     } catch (error) {
       console.error('Error highlighting verse:', error);
+      hapticFeedback.error();
+    }
+  };
+
+  const handleSimplifyVerse = async (verse) => {
+    const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+    
+    try {
+      if (verse.isSimplified) {
+        // Toggle back to original
+        setVerses(prevVerses => 
+          prevVerses.map(v => 
+            v.id === verseId ? { ...v, isSimplified: false } : v
+          )
+        );
+        hapticFeedback.light();
+      } else {
+        // Simplify the verse
+        hapticFeedback.light();
+        
+        // Use AI service to simplify the verse
+        const { productionAiService } = await import('../services/productionAiService');
+        const simplifiedText = await productionAiService.simplifyVerse(verse.content || verse.text);
+        
+        setVerses(prevVerses => 
+          prevVerses.map(v => 
+            v.id === verseId ? { 
+              ...v, 
+              isSimplified: true, 
+              simplifiedContent: simplifiedText 
+            } : v
+          )
+        );
+        
+        console.log(`🧒 Simplified verse ${verseId}`);
+      }
+    } catch (error) {
+      console.error('Error simplifying verse:', error);
       hapticFeedback.error();
     }
   };
@@ -874,24 +924,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
         </TouchableOpacity>
       </BlurView>
       
-      {/* Debug Info */}
-      <View style={{ padding: 10, backgroundColor: 'rgba(255,0,0,0.1)' }}>
-        <Text style={{ color: theme.text, fontSize: 12 }}>
-          Debug: Journal={showJournalingModal ? 'OPEN' : 'CLOSED'} | 
-          Highlight={showHighlightPicker ? 'OPEN' : 'CLOSED'} | 
-          Bookmark={showBookmarkPicker ? 'OPEN' : 'CLOSED'}
-        </Text>
-      </View>
+
 
       <View style={styles.versesContainer}>
         {verses.map((verse, index) => {
         const isSimplified = verse.isSimplified && verse.simplifiedContent;
+        const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+        const highlightColor = verseHighlights[verseId]?.color;
         
         return (
             <View key={verse.id} style={styles.modernVerseCard}>
               <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.verseBlurCard}>
                 <LinearGradient
-                  colors={[
+                  colors={highlightColor ? [
+                    `${highlightColor}40`,
+                    `${highlightColor}20`
+                  ] : [
                     `${theme.primary}${Math.round(8 + (index % 5) * 3).toString(16)}`,
                     `${theme.primaryLight}${Math.round(4 + (index % 5) * 2).toString(16)}`
                   ]}
@@ -1025,6 +1073,29 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
                           <MaterialIcons name="forum" size={18} color={theme.primary} />
                         </BlurView>
                       </TouchableOpacity>
+
+                      {/* Journal Button */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          console.log('📝 Journal button tapped!', verse);
+                          setSelectedVerseForJournal(verse);
+                          setShowJournalingModal(true);
+                          hapticFeedback.light();
+                        }}
+                        style={[styles.modernActionButton, { 
+                          backgroundColor: verseNotes[verseId] ? `${theme.success}30` : `${theme.surface}40`
+                        }]}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                      >
+                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
+                          <MaterialIcons 
+                            name={verseNotes[verseId] ? "edit-note" : "note-add"} 
+                            size={18} 
+                            color={verseNotes[verseId] ? theme.success : theme.textSecondary} 
+                          />
+                        </BlurView>
+                      </TouchableOpacity>
                     </View>
             </View>
             
@@ -1068,6 +1139,48 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
             </Text>
                       </View>
                     )}
+
+                    {/* Journal Indicator - Show if verse has journal entry */}
+                    {verseNotes[verseId] && (
+                      <View style={styles.journalIndicatorContainer}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedVerseForJournal(verse);
+                            setShowJournalingModal(true);
+                            hapticFeedback.light();
+                          }}
+                          style={[styles.journalIndicator, { backgroundColor: `${theme.success}20`, borderColor: `${theme.success}40` }]}
+                        >
+                          <MaterialIcons name="auto-stories" size={16} color={theme.success} />
+                          <Text style={[styles.journalIndicatorText, { color: theme.success }]}>
+                            Journal Entry
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Simple Button - Simplify verse for 12-year-olds */}
+                    <View style={styles.simpleButtonContainer}>
+                      <TouchableOpacity
+                        onPress={() => handleSimplifyVerse(verse)}
+                        style={[styles.simpleButton, { 
+                          backgroundColor: verse.isSimplified ? `${theme.warning}30` : `${theme.primary}20`,
+                          borderColor: verse.isSimplified ? `${theme.warning}60` : `${theme.primary}40`
+                        }]}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons 
+                          name={verse.isSimplified ? "child-care" : "child-friendly"} 
+                          size={16} 
+                          color={verse.isSimplified ? theme.warning : theme.primary} 
+                        />
+                        <Text style={[styles.simpleButtonText, { 
+                          color: verse.isSimplified ? theme.warning : theme.primary 
+                        }]}>
+                          {verse.isSimplified ? 'Simplified' : 'Simple'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </LinearGradient>
               </BlurView>
@@ -1474,12 +1587,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Highlight Color</Text>
             <View style={styles.colorGrid}>
               {[
-                { name: 'Hope', color: '#FFD700', emoji: '✨' },
-                { name: 'Love', color: '#FF69B4', emoji: '💝' },
-                { name: 'Strength', color: '#32CD32', emoji: '💪' },
-                { name: 'Peace', color: '#87CEEB', emoji: '🕊️' },
-                { name: 'Wisdom', color: '#9370DB', emoji: '🧠' },
-                { name: 'Faith', color: '#FF6347', emoji: '🙏' }
+                { name: 'None', color: null, emoji: '🚫' },
+                { name: 'Yellow', color: '#FFD700', emoji: '💛' },
+                { name: 'Pink', color: '#FF1493', emoji: '💖' },
+                { name: 'Green', color: '#32CD32', emoji: '💚' },
+                { name: 'Blue', color: '#1E90FF', emoji: '💙' },
+                { name: 'Purple', color: '#9932CC', emoji: '💜' },
+                { name: 'Orange', color: '#FF4500', emoji: '🧡' },
+                { name: 'Red', color: '#DC143C', emoji: '❤️' },
+                { name: 'Teal', color: '#20B2AA', emoji: '💎' },
+                { name: 'Lime', color: '#32CD32', emoji: '🍃' },
+                { name: 'Coral', color: '#FF7F50', emoji: '🪸' }
               ].map((item) => (
                 <TouchableOpacity
                   key={item.name}
@@ -2472,6 +2590,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  
+  // Journal Indicator Styles
+  journalIndicatorContainer: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  journalIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  journalIndicatorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  
+  // Simple Button Styles
+  simpleButtonContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  simpleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  simpleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
 

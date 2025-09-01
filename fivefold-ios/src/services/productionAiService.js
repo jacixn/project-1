@@ -455,6 +455,49 @@ class ProductionAIService {
       };
     }
   }
+
+  // Simplify verse for 12-year-olds
+  async simplifyVerse(verseText) {
+    try {
+      await this.initialize();
+      
+      const prompt = `Please simplify this Bible verse so that a 12-year-old can easily understand it. Keep the meaning the same but use simple words and shorter sentences:
+
+"${verseText}"
+
+Please respond with only the simplified version, no explanations or extra text.`;
+
+      const response = await fetch(`${PROXY_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          message: prompt,
+          model: 'groq',
+          temperature: 0.3
+        }),
+        timeout: 30000
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.response) {
+        return data.response.trim();
+      } else {
+        throw new Error(data.error || 'Failed to simplify verse');
+      }
+    } catch (error) {
+      console.error('Error simplifying verse:', error);
+      // Return a fallback simplified version
+      return `This verse means: ${verseText}`;
+    }
+  }
 }
 
 // Create singleton instance
