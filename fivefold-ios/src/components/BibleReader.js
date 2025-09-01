@@ -1579,17 +1579,28 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       {console.log('🎨 Rendering highlight modal, visible:', showHighlightPicker)}
       <Modal
         visible={showHighlightPicker}
-        transparent={true}
+        transparent={false}
         animationType="slide"
-        presentationStyle="overFullScreen"
+        presentationStyle="pageSheet"
         onRequestClose={() => {
           console.log('🎨 Highlight modal onRequestClose called');
           setShowHighlightPicker(false);
           setSelectedVerseForAction(null);
         }}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
-          <View style={[styles.pickerModal, { backgroundColor: theme.background, borderWidth: 2, borderColor: theme.primary }]}>
+        <View style={[styles.fullScreenModal, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowHighlightPicker(false);
+                setSelectedVerseForAction(null);
+              }}
+              style={styles.closeButton}
+            >
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.pickerModal, { backgroundColor: theme.background }]}>
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Highlight Color</Text>
             <View style={styles.colorGrid}>
               {[
@@ -1631,16 +1642,27 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       {/* Bookmark Category Picker Modal */}
       <Modal
         visible={showBookmarkPicker}
-        transparent={true}
+        transparent={false}
         animationType="slide"
-        presentationStyle="overFullScreen"
+        presentationStyle="pageSheet"
         onRequestClose={() => {
           setShowBookmarkPicker(false);
           setSelectedVerseForAction(null);
         }}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
-          <View style={[styles.pickerModal, { backgroundColor: theme.background, borderWidth: 2, borderColor: theme.warning }]}>
+        <View style={[styles.fullScreenModal, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowBookmarkPicker(false);
+                setSelectedVerseForAction(null);
+              }}
+              style={styles.closeButton}
+            >
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.pickerModal, { backgroundColor: theme.background }]}>
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Bookmark Category</Text>
             <View style={styles.bookmarkGrid}>
               {[
@@ -2646,6 +2668,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  
+  // Full screen modal styles
+  fullScreenModal: {
+    flex: 1,
+    paddingTop: 50,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
 });
 
