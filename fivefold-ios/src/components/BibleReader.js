@@ -1704,6 +1704,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
           setSelectedVerseForJournal(null);
         }}
         verse={selectedVerseForJournal}
+        verseReference={selectedVerseForJournal ? `${currentBook?.name || 'Book'} ${currentChapter?.number || ''}:${selectedVerseForJournal.number || selectedVerseForJournal.verse || ''}` : ''}
         onSave={handleSaveNote}
       />
 

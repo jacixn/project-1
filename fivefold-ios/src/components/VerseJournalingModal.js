@@ -57,7 +57,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
   const loadVerseData = async () => {
     try {
       setLoading(true);
-      const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+      const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
       const data = await VerseDataManager.getVerseData(verseId);
       setVerseData(data);
       
@@ -82,7 +83,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
     
     try {
       hapticFeedback.success();
-      const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+      const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
       await VerseDataManager.addNote(verseId, newNote.trim(), verseReference);
       setNewNote('');
       await loadVerseData();
@@ -95,7 +97,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
   const handleUpdateNote = async (noteId, newText) => {
     try {
       hapticFeedback.light();
-      const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+      const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
       await VerseDataManager.updateNote(verseId, noteId, newText);
       setEditingNote(null);
       await loadVerseData();
@@ -117,7 +120,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
           onPress: async () => {
             try {
               hapticFeedback.error();
-              const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+              const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
               await VerseDataManager.deleteNote(verseId, noteId);
               await loadVerseData();
             } catch (error) {
@@ -132,7 +136,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
   const handleHighlight = async (color) => {
     try {
       hapticFeedback.medium();
-      const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+      const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
       
       if (selectedHighlight === color) {
         // Remove highlight
@@ -153,7 +158,8 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
   const handleBookmark = async (category) => {
     try {
       hapticFeedback.light();
-      const verseId = `${verseReference}_${verse.substring(0, 50)}`;
+      const verseText = verse?.content || verse?.text || verse || '';
+      const verseId = `${verseReference}_${verseText.substring(0, 50)}`;
       
       if (selectedBookmarks.includes(category)) {
         // Remove bookmark
@@ -161,7 +167,7 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
         setSelectedBookmarks(prev => prev.filter(c => c !== category));
       } else {
         // Add bookmark
-        await VerseDataManager.addBookmark(verseId, category, verseReference, verse);
+        await VerseDataManager.addBookmark(verseId, category, verseReference, verseText);
         setSelectedBookmarks(prev => [...prev, category]);
       }
       
@@ -213,7 +219,7 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
                   color: theme.text,
                   backgroundColor: selectedHighlight ? `${selectedHighlight}20` : 'transparent'
                 }]}>
-                  "{verse}"
+                  "{verse?.content || verse?.text || verse || 'No verse text available'}"
                 </Text>
               </View>
             </BlurView>
