@@ -149,6 +149,7 @@ After the Fall, Adam names her Eve (meaning "living") because she would become "
     },
     'Cain': {
       name: 'Cain - The First Murderer',
+      image: require('../assets/cain.png'),
       story: `Cain is Adam and Eve's firstborn son, whose name means "acquired" (Genesis 4). He became a farmer while his brother Abel became a shepherd. When both brothers brought offerings to God, God accepted Abel's offering of the best portions from his flock but rejected Cain's offering of produce from the ground.
 
 Consumed by anger and jealousy, Cain murdered Abel in the field, making him history's first murderer. When God asked where Abel was, Cain gave the famous callous response: "I don't know. Am I my brother's keeper?" God cursed Cain to be a restless wanderer, unable to successfully farm the ground that had absorbed Abel's blood.
@@ -165,6 +166,7 @@ Fearing for his life, Cain complained that his punishment was too great. In an a
     },
     'Abel': {
       name: 'Abel - The First Martyr',
+      image: require('../assets/abel.png'),
       story: `Abel is Adam and Eve's second son, whose name means "breath" or "vapor" (Genesis 4). He became a shepherd and brought God an offering of the fat portions from the firstborn of his flock. God looked favorably on Abel and his offering, which sparked his brother Cain's deadly jealousy.
 
 Abel speaks no recorded words in Scripture. When Cain invited him to the field, Abel went unsuspectingly and was murdered there. His death made him the first martyr—an innocent person killed for his righteousness. God told Cain that Abel's blood was crying out from the ground for justice.
