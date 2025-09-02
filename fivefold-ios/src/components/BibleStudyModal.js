@@ -56,7 +56,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
     {
       id: 'verses',
       title: 'Key Verses',
-      icon: 'format_quote',
+      icon: 'book',
       description: 'Essential verses by topic',
       color: '#FECA57',
       features: ['Topical verses', 'Memory verses', 'Life guidance', 'Inspirational quotes']
@@ -80,7 +80,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
     {
       id: 'parallels',
       title: 'Parallel Stories',
-      icon: 'compare_arrows',
+      icon: 'link',
       description: 'Connected Old & New Testament',
       color: '#5F27CD',
       features: ['Story connections', 'Prophecy fulfillment', 'Type & antitype', 'Cross-references']
@@ -88,7 +88,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
     {
       id: 'audio',
       title: 'Audio Learning',
-      icon: 'volume_up',
+      icon: 'headset',
       description: 'Listen and learn',
       color: '#00D2D3',
       features: ['Name pronunciation', 'Story summaries', 'Audio guides', 'Listening plans']
