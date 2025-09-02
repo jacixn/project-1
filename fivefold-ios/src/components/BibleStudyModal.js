@@ -132,6 +132,7 @@ After the Fall, Adam lived 930 years and had many children, including Cain, Abel
     },
     'Eve': {
       name: 'Eve - The First Woman',
+      image: require('../assets/eve.png'),
       story: `Eve is the first woman, created by God from Adam's rib to be his companion (Genesis 2-3). When Adam first sees her, he joyfully declares, "This is now bone of my bones and flesh of my flesh." Her creation establishes the institution of marriage and the principle that men and women are equal in essence and dignity.
 
 Eve plays a crucial role in the Fall. The serpent approaches her with questions about God's command, eventually deceiving her into believing that eating the forbidden fruit would make her wise like God. She takes the fruit and also gives some to Adam. When God confronts them, Eve acknowledges her deception: "The serpent deceived me, and I ate."
