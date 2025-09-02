@@ -169,7 +169,7 @@ Fearing for his life, Cain complained that his punishment was too great. In an a
       image: require('../assets/abel.png'),
       story: `Abel is Adam and Eve's second son, whose name means "breath" or "vapor" (Genesis 4). He became a shepherd and brought God an offering of the fat portions from the firstborn of his flock. God looked favorably on Abel and his offering, which sparked his brother Cain's deadly jealousy.
 
-Abel speaks no recorded words in Scripture. When Cain invited him to the field, Abel went unsuspectingly and was murdered there. His death made him the first martyr—an innocent person killed for his righteousness. God told Cain that Abel's blood was crying out from the ground for justice.
+Abel speaks no recorded words in Scripture. When Cain invited him to the field, Abel went unsuspectingly and was murdered there. His death made him the first martyr - an innocent person killed for his righteousness. God told Cain that Abel's blood was crying out from the ground for justice.
 
 Though Abel died childless and young, his legacy lived on. Jesus called him "righteous Abel" and placed him first in the line of righteous people who suffered persecution. The Book of Hebrews honors Abel as the first person in its "hall of faith," saying that "by faith Abel still speaks, even though he is dead."`,
       themes: [
