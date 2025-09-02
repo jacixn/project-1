@@ -114,223 +114,223 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const characterGroups = [
     {
       id: 'adam-eve',
-      title: 'Adam and Eve Section',
+      title: 'Garden of Eden & First Generations',
       icon: '🌱',
       characters: ['Adam', 'Eve', 'Cain', 'Abel', 'Seth', 'Enosh', 'Kenan', 'Mahalalel', 'Jared', 'Enoch', 'Methuselah', 'Lamech', 'Noah']
     },
     {
       id: 'noah',
-      title: 'Noah Section',
+      title: "Noah's Ark & The Great Flood",
       icon: '🚢',
       characters: ['Noah', "Noah's Wife", 'Shem', 'Ham', 'Japheth', 'Nimrod']
     },
     {
       id: 'abraham',
-      title: 'Abraham Section',
+      title: 'Abraham: Father of Faith',
       icon: '⭐',
       characters: ['Abraham', 'Sarah', 'Hagar', 'Isaac', 'Ishmael', 'Lot', "Lot's Wife", "Lot's Daughters", 'Eliezer of Damascus', 'Melchizedek', 'King Abimelech', 'Phicol']
     },
     {
       id: 'isaac',
-      title: 'Isaac Section',
+      title: 'Isaac: The Promised Son',
       icon: '🔥',
       characters: ['Isaac', 'Rebekah', 'Esau', 'Jacob', 'Bethuel', 'Laban']
     },
     {
       id: 'jacob-israel',
-      title: 'Jacob (Israel) Section',
+      title: 'Jacob & The Twelve Tribes',
       icon: '🏺',
       characters: ['Jacob', 'Leah', 'Rachel', 'Bilhah', 'Zilpah', 'Reuben', 'Simeon', 'Levi', 'Judah', 'Dan', 'Naphtali', 'Gad', 'Asher', 'Issachar', 'Zebulun', 'Dinah', 'Joseph', 'Benjamin']
     },
     {
       id: 'joseph',
-      title: 'Joseph Section',
+      title: 'Joseph: Dreams & Egypt',
       icon: '👑',
       characters: ['Joseph', 'Jacob', 'Rachel', 'Pharaoh', 'Potiphar', "Potiphar's Wife", 'Chief Cupbearer', 'Chief Baker', 'Manasseh', 'Ephraim', 'Asenath', 'Simeon', 'Judah', 'Reuben', 'Benjamin']
     },
     {
       id: 'job',
-      title: 'Job Section',
+      title: 'Job: Faith Through Suffering',
       icon: '💪',
       characters: ['Job', 'Eliphaz', 'Bildad', 'Zophar', 'Elihu', "Job's Wife"]
     },
     {
       id: 'moses',
-      title: 'Moses Section',
+      title: 'Moses & The Exodus',
       icon: '📜',
       characters: ['Moses', 'Aaron', 'Miriam', 'Pharaoh', "Pharaoh's Daughter", 'Jethro (Reuel)', 'Zipporah', 'Gershom', 'Eliezer (son of Moses)', 'Joshua', 'Caleb', 'Hur', 'Bezalel', 'Oholiab', 'Korah', 'Dathan', 'Abiram', 'Nadab', 'Abihu', 'Eleazar', 'Ithamar', 'Balaam', 'Balak', 'Hobab', 'Amalek', "Joshua's Aides", 'Elders of Israel']
     },
     {
       id: 'levitical-priests',
-      title: 'Levitical Priests Section',
+      title: 'Temple Priests & Sacred Service',
       icon: '🕯️',
       characters: ['Aaron', 'Eleazar', 'Ithamar', 'Phinehas', 'Elazar (son of Aaron)', 'Eli', 'Hophni', 'Phinehas (son of Eli)', 'Abiathar', 'Zadok', 'Ahimelech', 'Jehoiada', 'Zechariah (son of Jehoiada)', 'Azariah', 'Hilkiah', 'Seraiah', 'Ezra']
     },
     {
       id: 'wilderness-conquest',
-      title: 'Wilderness and Conquest Section',
+      title: 'Conquering the Promised Land',
       icon: '⚔️',
       characters: ['Joshua', 'Caleb', 'Rahab', 'Achar (Achan)', 'Eleazar', 'Phinehas', "Zilpah's Descendants", 'Gibeonites', 'Othniel']
     },
     {
       id: 'judges',
-      title: 'Judges Section',
+      title: 'Heroes & Judges of Israel',
       icon: '⚖️',
       characters: ['Othniel', 'Ehud', 'Shamgar', 'Deborah', 'Barak', 'Jael', 'Sisera', 'Gideon', 'Jerubbaal', 'Abimelech', 'Tola', 'Jair', 'Jephthah', 'Ibzan', 'Elon', 'Abdon', 'Samson', 'Delilah', 'Manoah', 'Philistine Lords', 'Micah of Ephraim', 'Levite of Micah', 'Danites']
     },
     {
       id: 'ruth',
-      title: 'Ruth Section',
+      title: 'Ruth: Love & Loyalty',
       icon: '🌾',
       characters: ['Ruth', 'Naomi', 'Boaz', 'Orpah', 'Obed']
     },
     {
       id: 'samuel-saul',
-      title: 'Samuel and Saul Section',
+      title: 'Samuel & The First King',
       icon: '👑',
       characters: ['Samuel', 'Hannah', 'Elkanah', 'Eli', 'Hophni', 'Phinehas', 'Ichabod', 'Saul', 'Jonathan', 'Michal', 'Merab', 'Agag', 'Doeg the Edomite', 'Abner', 'Kish', 'Ahimelech']
     },
     {
       id: 'david',
-      title: 'David Section',
+      title: 'David: Giant Slayer & King',
       icon: '🎵',
       characters: ['David', 'Goliath', 'Saul', 'Jonathan', 'Michal', 'Abigail', 'Bathsheba', 'Uriah', 'Joab', 'Abner', 'Ish-bosheth', 'Mephibosheth', 'Nathan', 'Gad', 'Zadok', 'Abiathar', 'Shimei', 'Hushai', 'Ahithophel', 'Ittai', 'Amnon', 'Tamar (daughter of David)', 'Absalom', 'Adonijah', 'Solomon', 'Benaiah', 'Zeruiah', 'Asahel']
     },
     {
       id: 'solomon',
-      title: 'Solomon Section',
+      title: 'Solomon: Wisdom & Glory',
       icon: '🏛️',
       characters: ['Solomon', 'Bathsheba', 'Nathan', 'Zadok', 'Adonijah', 'Abiathar', 'Benaiah', 'Queen of Sheba', 'Hiram of Tyre', 'Rehoboam', 'Jeroboam', "Pharaoh's Daughter"]
     },
     {
       id: 'elijah-elisha',
-      title: 'Elijah and Elisha Section',
+      title: 'Elijah & Elisha: Fire Prophets',
       icon: '🔥',
       characters: ['Elijah', 'Elisha', 'Gehazi', 'Ahab', 'Jezebel', 'Omri', 'Ahaziah of Israel', 'Jehoram (Joram) of Israel', 'Naboth', 'Obadiah (court official)', 'Ben-hadad', 'Hazael', 'Naaman', 'The Shunammite Woman', 'Jehu', 'Jehoahaz', 'Jehoash (Joash) of Israel', 'Jonah (son of Amittai)']
     },
     {
       id: 'kings-israel-north',
-      title: 'Kings of Israel (North) Section',
+      title: 'Northern Kingdom: Israel',
       icon: '👑',
       characters: ['Jeroboam (son of Nebat)', 'Nadab', 'Baasha', 'Elah', 'Zimri', 'Omri', 'Ahab', 'Ahaziah', 'Jehoram (Joram)', 'Jehu', 'Jehoahaz', 'Jehoash', 'Jeroboam II', 'Zechariah', 'Shallum', 'Menahem', 'Pekahiah', 'Pekah', 'Hoshea']
     },
     {
       id: 'kings-judah-south',
-      title: 'Kings of Judah (South) Section',
+      title: 'Southern Kingdom: Judah',
       icon: '🏰',
       characters: ['Rehoboam', 'Abijah', 'Asa', 'Jehoshaphat', 'Jehoram', 'Ahaziah', 'Athaliah', 'Joash (Jehoash)', 'Amaziah', 'Uzziah (Azariah)', 'Jotham', 'Ahaz', 'Hezekiah', 'Manasseh', 'Amon', 'Josiah', 'Jehoahaz (Shallum)', 'Jehoiakim', 'Jehoiachin (Jeconiah)', 'Zedekiah']
     },
     {
       id: 'prophets-around-kings',
-      title: 'Prophets Around the Kings Section',
+      title: 'Prophets: God\'s Messengers',
       icon: '📢',
       characters: ['Ahijah the Shilonite', 'Shemaiah', 'Iddo', 'Jehu (son of Hanani)', 'Hanani', 'Azariah (son of Oded)', 'Oded', 'Micah (son of Imlah)', 'Huldah', 'Isaiah', 'Micah of Moreshah', 'Jeremiah', 'Uriah (son of Shemaiah)', 'Baruch', 'Zephaniah', 'Nahum', 'Habakkuk', 'Joel', 'Amos', 'Hosea', 'Obadiah', 'Jonah', 'Zechariah', 'Haggai', 'Malachi', 'Gad', 'Nathan']
     },
     {
       id: 'assyria-babylon-persia',
-      title: 'Assyria, Babylon, Persia Rulers Section',
+      title: 'Ancient Empires & Rulers',
       icon: '🏺',
       characters: ['Shalmaneser V', 'Sargon II', 'Sennacherib', 'Esarhaddon', 'Nebuchadnezzar II', 'Evil-merodach', 'Belshazzar', 'Darius the Mede', 'Cyrus the Great', 'Cambyses', 'Darius I', 'Xerxes (Ahasuerus)', 'Artaxerxes']
     },
     {
       id: 'exile-return',
-      title: 'Exile and Return Section',
+      title: 'Babylon Exile & Homecoming',
       icon: '🏠',
       characters: ['Daniel', 'Hananiah (Shadrach)', 'Mishael (Meshach)', 'Azariah (Abednego)', 'Arioch', 'Darius the Mede', 'Cyrus', 'Belshazzar', 'Zerubbabel', 'Jeshua (Jozadak)', 'Ezra', 'Nehemiah', 'Sheshbazzar', 'Sanballat', 'Tobiah', 'Geshem the Arab', 'Haggai', 'Zechariah']
     },
     {
       id: 'esther',
-      title: 'Esther Section',
+      title: 'Esther: Queen of Courage',
       icon: '👸',
       characters: ['Esther (Hadassah)', 'Mordecai', 'King Ahasuerus (Xerxes)', 'Haman', 'Vashti', 'Zeresh']
     },
     {
       id: 'wisdom-poetry',
-      title: 'Wisdom Poetry Contributors Section',
+      title: 'Psalms, Proverbs & Poetry',
       icon: '📝',
       characters: ['Job', 'Eliphaz', 'Bildad', 'Zophar', 'Elihu', 'David', 'Asaph', 'Sons of Korah', 'Heman', 'Ethan', 'Solomon', 'Agur', 'Lemuel']
     },
     {
       id: 'john-baptist',
-      title: 'John the Baptist Section',
+      title: 'John the Baptist: Voice in Wilderness',
       icon: '🌊',
       characters: ['John the Baptist', 'Zechariah', 'Elizabeth', 'Herod Antipas', 'Herodias', "Herodias' Daughter"]
     },
     {
       id: 'herodian-family',
-      title: 'Herodian Family and Rulers Section',
+      title: 'Herod Dynasty & Roman Rule',
       icon: '🏛️',
       characters: ['Herod the Great', 'Archelaus', 'Herod Antipas', 'Herod Philip the Tetrarch', 'Herod Agrippa I', 'Herod Agrippa II', 'Bernice', 'Drusilla', 'Salome']
     },
     {
       id: 'jesus',
-      title: 'Jesus Section',
+      title: 'Jesus: The Messiah',
       icon: '✝️',
       characters: ['Jesus', 'Mary (mother of Jesus)', 'Joseph', 'Zechariah', 'Elizabeth', 'Simeon', 'Anna', 'Magi', 'Shepherds', 'John the Baptist', 'Peter', 'Andrew', 'James (son of Zebedee)', 'John (son of Zebedee)', 'Philip', 'Bartholomew', 'Thomas', 'Matthew', 'James (son of Alphaeus)', 'Thaddaeus (Jude)', 'Simon the Zealot', 'Judas Iscariot', 'Mary Magdalene', 'Joanna', 'Susanna', 'Salome', 'Martha', 'Mary of Bethany', 'Lazarus', 'Zacchaeus', 'Jairus', 'Bartimaeus', 'Joseph of Arimathea', 'Nicodemus', 'Caiaphas', 'Annas', 'Pontius Pilate', 'Barabbas', 'Herod Antipas', 'Centurion at Capernaum', 'Centurion at the Cross', 'Cleopas']
     },
     {
       id: 'twelve-apostles',
-      title: 'Twelve Apostles Section',
+      title: 'The Twelve Disciples',
       icon: '👥',
       characters: ['Peter', 'Andrew', 'James (son of Zebedee)', 'John', 'Philip', 'Bartholomew', 'Thomas', 'Matthew (Levi)', 'James (son of Alphaeus)', 'Thaddaeus (Jude)', 'Simon the Zealot', 'Judas Iscariot', 'Matthias']
     },
     {
       id: 'opponents-groups',
-      title: 'Opponents and Groups in the Gospels Section',
+      title: 'Religious Leaders & Groups',
       icon: '⚡',
       characters: ['Pharisees', 'Sadducees', 'Scribes', 'Chief Priests', 'Herodians', 'Zealots', 'Samaritan Villagers']
     },
     {
       id: 'early-church-deacons',
-      title: 'Early Church Deacons and Leaders Section',
+      title: 'Early Church Leaders',
       icon: '⛪',
       characters: ['Stephen', 'Philip the Evangelist', 'Prochorus', 'Nicanor', 'Timon', 'Parmenas', 'Nicholas of Antioch', "James (the Lord's Brother)", 'Barnabas', 'John Mark', 'Silas', 'Timothy', 'Titus', 'Apollos']
     },
     {
       id: 'acts-notable',
-      title: 'Acts Notable People Section',
+      title: 'Acts: Church Expansion',
       icon: '🌟',
       characters: ['Cornelius', 'Tabitha (Dorcas)', 'Simon the Tanner', 'Ananias of Damascus', 'Sapphira', 'Gamaliel', 'Rhoda', 'Agabus', 'Sergius Paulus', 'Elymas (Bar-Jesus)', 'Lydia', 'The Philippian Jailer', 'Damsel with Spirit of Divination', 'Eutychus', 'Crispus', 'Gallio', 'Demetrius the Silversmith', 'Eutychus']
     },
     {
       id: 'paul-coworkers',
-      title: "Paul's Coworkers and Contacts Section",
+      title: 'Paul\'s Ministry Team',
       icon: '✉️',
       characters: ['Luke', 'Priscilla', 'Aquila', 'Phoebe', 'Junia', 'Andronicus', 'Urbanus', 'Apelles', 'Herodion', 'Rufus and his Mother', 'Tryphena', 'Tryphosa', 'Persis', 'Aristarchus', 'Epaphras', 'Epaphroditus', 'Onesimus', 'Philemon', 'Archippus', 'Onesiphorus', 'Demas', 'Mark (John Mark)', 'Crescent', 'Carpus', 'Erastus', 'Trophimus', 'Tychicus', 'Tertius', 'Quartus', 'Gaius', 'Sopater', 'Secundus', 'Timothy', 'Titus', 'Silvanus', 'Chloe', 'Stephanas', 'Sosthenes', 'Crispus', 'Nympha', 'Diotrephes', 'Demetrius of Third John', 'Alexander the Coppersmith']
     },
     {
       id: 'general-epistles',
-      title: 'General Epistles Circle Section',
+      title: 'Letters to the Churches',
       icon: '📜',
       characters: ['James', 'Jude', 'Peter', 'John', 'Gaius', 'The Elect Lady', 'Elders and Overseers', 'Deacons', 'Widows']
     },
     {
       id: 'revelation',
-      title: 'Revelation Section',
+      title: 'Revelation: End Times Vision',
       icon: '🌅',
       characters: ['John of Patmos', 'The Seven Churches (Ephesus, Smyrna, Pergamum, Thyatira, Sardis, Philadelphia, Laodicea)', 'The Two Witnesses', 'Twenty-Four Elders', 'Four Living Creatures', 'The Archangel Michael']
     },
     {
       id: 'angels-spiritual',
-      title: 'Angels and Spiritual Beings Section',
+      title: 'Angels & Spiritual Beings',
       icon: '👼',
       characters: ['Michael', 'Gabriel', 'Cherubim', 'Seraphim', 'Angels of the Churches', 'Satan (The Adversary)', 'The Devil', 'The Accuser', 'Evil Spirits', 'Legion']
     },
     {
       id: 'women-bible',
-      title: 'Women of the Bible Section',
+      title: 'Women of Faith & Courage',
       icon: '👩',
       characters: ['Sarah', 'Rebekah', 'Leah', 'Rachel', 'Bilhah', 'Zilpah', 'Miriam', 'Deborah', 'Jael', 'Ruth', 'Naomi', 'Hannah', 'Abigail', 'Michal', 'Bathsheba', 'Tamar (daughter-in-law of Judah)', 'Tamar (daughter of David)', 'Athaliah', 'Jezebel', 'Huldah', 'Esther', 'Vashti', 'Widow of Zarephath', 'Shunammite Woman', 'Rahab', 'Delilah', 'Queen of Sheba', 'Mary (mother of Jesus)', 'Elizabeth', 'Mary Magdalene', 'Salome', 'Joanna', 'Susanna', 'Martha', 'Mary of Bethany', 'Priscilla', 'Tabitha (Dorcas)', 'Rhoda', 'Lydia', 'Damaris', 'Phoebe', 'Eunice', 'Lois']
     },
     {
       id: 'foreign-nations',
-      title: 'Foreign Nations and Opponents Section',
+      title: 'Enemy Nations & Conflicts',
       icon: '🗡️',
       characters: ['Amalek and Agag', 'Philistines and Goliath', 'Moab and Balak', 'Ammon', 'Edom', 'Aram (Syria) and Ben-hadad', 'Assyria and Sennacherib', 'Babylon and Nebuchadnezzar', 'Persia and Haman', 'Samaria Opponents (Sanballat, Tobiah, Geshem)']
     },
     {
       id: 'additional-named',
-      title: 'Additional Named Figures Section',
+      title: 'Other Notable Figures',
       icon: '📋',
       characters: ['Jabez', 'Boaz', 'Elkanah', 'Obed', 'Oholah and Oholibah', 'Uriah the Prophet', 'Shebna', 'Eliakim', 'Rabshakeh', 'Pashhur', 'Gedaliah', 'Ebed-melech', 'Baruch (son of Neriah)', 'Saphan (Shaphan)', 'Ahikam', 'Gemariah', 'Micaiah (son of Gemariah)', 'Pelatiah', 'Jazaniah', 'Jaazaniah', 'Ishmael (son of Nethaniah)']
     }
