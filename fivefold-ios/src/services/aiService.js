@@ -29,8 +29,8 @@ class AIService {
   }
 
   // Friend chat - conversational AI
-  async chatWithFriend(userMessage) {
-    return await this.secureService.chatWithFriend(userMessage);
+  async chatWithFriend(userMessage, conversationContext = null) {
+    return await this.secureService.chatWithFriend(userMessage, conversationContext);
   }
 
   // For future chat features

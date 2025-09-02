@@ -47,15 +47,15 @@ const EnhancedOnboarding = ({ onComplete }) => {
   const [showMoreLanguages, setShowMoreLanguages] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
 
-  // Onboarding data with proper content
+  // Onboarding data with AMAZING super cool colors! 🎨✨
   const onboardingData = [
     {
       id: 'welcome',
-      title: 'Welcome to Biblely',
+      title: 'Welcome to BIBLELY',
       subtitle: 'Faith & Focus, Every Day',
       description: 'Your spiritual companion for daily growth, prayer, and Bible study',
       icon: '✨',
-      gradient: ['#2c3e50', '#34495e'],
+      gradient: ['#4a5568', '#6b46c1', '#a855f7'], // Soft purple depths
       features: [
         { icon: 'checkmark-circle', text: 'Smart task prioritization' },
         { icon: 'heart', text: 'Daily prayer reminders' },
@@ -68,7 +68,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       subtitle: 'Select your preferred language',
       description: 'We support multiple languages for your comfort',
       icon: '🌍',
-      gradient: ['#1a252f', '#2c3e50'],
+      gradient: ['#1e3a8a', '#0f766e', '#166534'], // Deep ocean calm
       isLanguagePage: true,
     },
     {
@@ -77,7 +77,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       subtitle: 'Everything you need for spiritual growth',
       description: 'Discover tools designed to strengthen your faith journey',
       icon: '🚀',
-      gradient: ['#2c3e50', '#3498db'],
+      gradient: ['#be185d', '#dc2626', '#ea580c'], // Warm earth tones
       features: [
         { icon: 'flash', text: 'Smart Tasks & Goals' },
         { icon: 'time', text: 'Prayer Time Tracking' },
@@ -86,11 +86,11 @@ const EnhancedOnboarding = ({ onComplete }) => {
     },
     {
       id: 'smart',
-      title: 'Enable Smart Features',
+      title: 'Smart Features',
       subtitle: 'Personalized spiritual guidance',
       description: 'AI-powered recommendations for your faith journey',
       icon: '🧠',
-      gradient: ['#2c3e50', '#27ae60'],
+      gradient: ['#1e40af', '#3730a3', '#581c87'], // Deep royal blue to purple
       features: [
         { icon: 'bulb', text: 'Intelligent task suggestions' },
         { icon: 'star', text: 'Personalized Bible verses' },
@@ -104,7 +104,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       subtitle: 'Tell us about yourself',
       description: 'Help us personalize your spiritual journey',
       icon: '👤',
-      gradient: ['#2c3e50', '#8e44ad'],
+      gradient: ['#7c2d12', '#a21caf', '#7e22ce'], // Rich burgundy purple
       isProfilePage: true,
     }
   ];
@@ -134,10 +134,8 @@ const EnhancedOnboarding = ({ onComplete }) => {
       // Set default theme to Eterna for new users
       changeTheme('eterna');
       
-      // Set default country to first country (Afghanistan for now, will be updated)
-      if (countries && countries.length > 0) {
-        setSelectedCountry(countries[0]);
-      }
+      // Keep country selector empty until user picks their country
+      setSelectedCountry(null);
       
       console.log('✅ Initialized defaults for new user');
     } catch (error) {
@@ -345,26 +343,6 @@ const EnhancedOnboarding = ({ onComplete }) => {
           Your data is encrypted and secure. We never share your information.
         </Text>
       </View>
-      
-      <TouchableOpacity 
-        style={styles.enableButton} 
-        onPress={() => {
-          setSmartFeaturesEnabled(true);
-          goToNextPage();
-        }}
-      >
-        <Text style={styles.enableButtonText}>Enable Smart Features</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.skipButton} 
-        onPress={() => {
-          setSmartFeaturesEnabled(false);
-          goToNextPage();
-        }}
-      >
-        <Text style={styles.skipButtonText}>Continue without smart features</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -397,7 +375,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
             {selectedCountry?.flag || '🏳️'}
           </Text>
           <Text style={styles.countryName}>
-            {selectedCountry?.name || 'Select Country'}
+            {selectedCountry?.name || 'Choose Your Country'}
           </Text>
           <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
@@ -755,10 +733,15 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   emoji: {
     fontSize: 60,
@@ -819,10 +802,17 @@ const styles = StyleSheet.create({
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   backButtonText: {
     color: '#fff',
@@ -958,19 +948,33 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(76, 175, 80, 0.25)',
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 32,
     width: '100%',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.4)',
   },
   privacyText: {
     color: '#fff',

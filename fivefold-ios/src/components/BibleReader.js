@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,12 +29,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bibleVersions, getVersionById } from '../data/bibleVersions';
 import VerseDataManager from '../utils/verseDataManager';
 import VerseJournalingModal from './VerseJournalingModal';
+import bibleReferenceParser from '../utils/bibleReferenceParser';
 // Removed InteractiveSwipeBack import
 
-const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
+const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }) => {
   
   const { theme, isDark } = useTheme();
   const { language, t } = useLanguage();
+  const versesScrollViewRef = useRef(null);
   const [books, setBooks] = useState([]);
   const [currentBook, setCurrentBook] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -57,24 +59,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
   const [showJournalingModal, setShowJournalingModal] = useState(false);
   const [selectedVerseForJournal, setSelectedVerseForJournal] = useState(null);
   const [verseNotes, setVerseNotes] = useState({});
-  const [verseHighlights, setVerseHighlights] = useState({});
-  const [verseBookmarks, setVerseBookmarks] = useState({});
-  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
-  const [showBookmarkPicker, setShowBookmarkPicker] = useState(false);
-  const [selectedVerseForAction, setSelectedVerseForAction] = useState(null);
+  const [highlightedVerse, setHighlightedVerse] = useState(null);
 
   // Debug state changes
   useEffect(() => {
     console.log('🔍 showJournalingModal changed to:', showJournalingModal);
   }, [showJournalingModal]);
-
-  useEffect(() => {
-    console.log('🔍 showHighlightPicker changed to:', showHighlightPicker);
-  }, [showHighlightPicker]);
-
-  useEffect(() => {
-    console.log('🔍 showBookmarkPicker changed to:', showBookmarkPicker);
-  }, [showBookmarkPicker]);
 
   // Load saved verses on mount
   useEffect(() => {
@@ -89,14 +79,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
     }
   }, [verses]);
 
+  // Handle initial verse reference navigation
+  useEffect(() => {
+    if (visible && initialVerseReference && books.length > 0) {
+      console.log('📖 Navigating to initial verse reference:', initialVerseReference);
+      navigateToVerse(initialVerseReference);
+    }
+  }, [visible, initialVerseReference, books]);
+
   // Load interactive data (notes, highlights, bookmarks)
   const loadInteractiveData = async () => {
     try {
-      const highlights = await VerseDataManager.getHighlights();
-      const bookmarks = await VerseDataManager.getBookmarks();
-      setVerseHighlights(highlights);
-      setVerseBookmarks(bookmarks);
-      
       // Load notes for currently displayed verses
       if (verses && verses.length > 0) {
         const notes = {};
@@ -138,54 +131,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
     }
   };
 
-  const handleSaveVerse = async (verse) => {
-    try {
-      hapticFeedback.success();
-      
-      // Get current saved verses
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
-      let versesArray = savedVersesData ? JSON.parse(savedVersesData) : [];
-      
-      const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
-      const bookName = currentBook?.name || 'Book';
-      const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
-      const verseNum = verse.number || verse.verse || '';
-      
-      if (savedVerses.has(verseId)) {
-        // Remove from saved
-        versesArray = versesArray.filter(v => v.id !== verseId);
-        const newSet = new Set(savedVerses);
-        newSet.delete(verseId);
-        setSavedVerses(newSet);
-      } else {
-        // Add to saved
-        const verseToSave = {
-          id: verseId,
-          reference: `${bookName} ${chapterNum}:${verseNum}`,
-          content: verse.content || verse.text,
-          version: selectedBibleVersion,
-          savedAt: new Date().toISOString()
-        };
-        versesArray.push(verseToSave);
-        const newSet = new Set(savedVerses);
-        newSet.add(verseId);
-        setSavedVerses(newSet);
-      }
-      
-      // Save to AsyncStorage
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(versesArray));
-      
-      // Update user stats
-      const stats = await AsyncStorage.getItem('userStats');
-      const userStats = stats ? JSON.parse(stats) : {};
-      userStats.savedVerses = versesArray.length;
-      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-      
-    } catch (error) {
-      console.error('Error saving verse:', error);
-      Alert.alert('Error', 'Failed to save verse');
-    }
-  };
+
 
   // Handle smart back navigation based on current view
   const handleBackNavigation = () => {
@@ -374,6 +320,142 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
     }
   };
 
+  // Navigate to a specific verse from a Bible reference
+  const navigateToVerse = async (verseReference) => {
+    try {
+      console.log('📖 Starting navigation to verse:', verseReference);
+      
+      // Parse the verse reference
+      const parsedRef = bibleReferenceParser.parseReference(verseReference);
+      if (!parsedRef) {
+        console.error('❌ Failed to parse verse reference:', verseReference);
+        Alert.alert('Invalid Reference', `Could not understand the Bible reference: "${verseReference}"`);
+        return;
+      }
+
+      console.log('✅ Parsed reference:', parsedRef);
+      
+      // Find the book
+      const targetBook = books.find(book => 
+        book.name.toLowerCase() === parsedRef.book.toLowerCase()
+      );
+      
+      if (!targetBook) {
+        console.error('❌ Book not found:', parsedRef.book);
+        Alert.alert('Book Not Found', `Could not find the book: "${parsedRef.book}"`);
+        return;
+      }
+
+      console.log('✅ Found book:', targetBook);
+
+      // Set the book and load chapters
+      setCurrentBook(targetBook);
+      setLoading(true);
+
+      try {
+        // Load chapters for the book
+        const chaptersData = await completeBibleService.getChapters(targetBook.id);
+        setChapters(chaptersData);
+
+        // Find the target chapter
+        const targetChapter = chaptersData.find(chapter => 
+          parseInt(chapter.number) === parsedRef.chapter
+        );
+
+        if (!targetChapter) {
+          console.error('❌ Chapter not found:', parsedRef.chapter);
+          Alert.alert('Chapter Not Found', `Could not find chapter ${parsedRef.chapter} in ${parsedRef.book}`);
+          setView('chapters');
+          return;
+        }
+
+        console.log('✅ Found chapter:', targetChapter);
+
+        // Load verses for the chapter
+        const versesData = await completeBibleService.getVerses(targetChapter.id, selectedBibleVersion);
+        setVerses(versesData);
+        setCurrentChapter(targetChapter);
+        setView('verses');
+
+        console.log('✅ Navigation completed successfully');
+        
+        // Show success message
+        hapticFeedback.success();
+        
+        // Scroll to and highlight the specific verse
+        if (parsedRef.verse) {
+          setTimeout(() => {
+            scrollToSpecificVerse(parsedRef.verse);
+          }, 500); // Wait for verses to render
+        }
+        
+      } catch (error) {
+        console.error('❌ Error loading Bible data:', error);
+        Alert.alert('Navigation Error', 'Failed to load the requested verse. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+      Alert.alert('Navigation Error', 'An error occurred while navigating to the verse.');
+    }
+  };
+
+  // Scroll to a specific verse number within the current chapter
+  const scrollToSpecificVerse = (verseNumber) => {
+    try {
+      console.log('📍 Scrolling to verse:', verseNumber);
+      
+      // Find the verse element by its number
+      // Since we can't directly access DOM elements in React Native,
+      // we'll use a different approach - find the verse in our data and scroll to its position
+      
+      const targetVerseIndex = verses.findIndex(verse => 
+        parseInt(verse.number || verse.verse) === parseInt(verseNumber)
+      );
+      
+      if (targetVerseIndex !== -1) {
+        console.log('✅ Found verse at index:', targetVerseIndex);
+        
+        // Calculate approximate scroll position
+        // Each verse card is roughly 150-200px tall
+        const estimatedVerseHeight = 180;
+        const scrollPosition = targetVerseIndex * estimatedVerseHeight;
+        
+        // Scroll to the calculated position
+        setTimeout(() => {
+          console.log('📍 Scrolling to position:', scrollPosition);
+          if (versesScrollViewRef.current) {
+            versesScrollViewRef.current.scrollTo({
+              y: scrollPosition,
+              animated: true
+            });
+          }
+        }, 100);
+        
+        // Also highlight the verse temporarily
+        highlightVerse(verseNumber);
+      } else {
+        console.warn('⚠️ Verse not found in current chapter:', verseNumber);
+      }
+    } catch (error) {
+      console.error('❌ Error scrolling to verse:', error);
+    }
+  };
+
+  // Temporarily highlight a specific verse
+  const highlightVerse = (verseNumber) => {
+    console.log('✨ Highlighting verse:', verseNumber);
+    setHighlightedVerse(parseInt(verseNumber));
+    hapticFeedback.light();
+    
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedVerse(null);
+    }, 3000);
+  };
+
   const handleSimplifyToggle = async (verse) => {
     hapticFeedback.light();
     
@@ -497,40 +579,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
     }
   };
 
-  const handleHighlightVerse = async (verse, color) => {
-    const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
-    const bookName = currentBook?.name || 'Book';
-    const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
-    const verseNum = verse.number || verse.verse || '';
-    const reference = `${bookName} ${chapterNum}:${verseNum}`;
-    
-    try {
-      if (color === null) {
-        // Remove highlight
-        await VerseDataManager.removeHighlight(verseId);
-        setVerseHighlights(prev => {
-          const newHighlights = { ...prev };
-          delete newHighlights[verseId];
-          return newHighlights;
-        });
-        console.log(`🚫 Removed highlight from verse ${verseId}`);
-      } else {
-        // Add/update highlight
-        await VerseDataManager.addHighlight(verseId, color, reference);
-        setVerseHighlights(prev => ({
-          ...prev,
-          [verseId]: { color, timestamp: new Date().toISOString() }
-        }));
-        console.log(`✨ Highlighted verse ${verseId} with color ${color}`);
-      }
-      hapticFeedback.success();
-      setShowHighlightPicker(false);
-      setSelectedVerseForAction(null);
-    } catch (error) {
-      console.error('Error highlighting verse:', error);
-      hapticFeedback.error();
-    }
-  };
+
 
   const handleSimplifyVerse = async (verse) => {
     const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
@@ -544,55 +593,80 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
           )
         );
         hapticFeedback.light();
+        console.log(`📖 Showing original verse ${verseId}`);
       } else {
         // Simplify the verse
         hapticFeedback.light();
+        console.log(`🧒 Simplifying verse ${verseId} for 12-year-old understanding...`);
         
-        // Use AI service to simplify the verse
-        const { productionAiService } = await import('../services/productionAiService');
-        const simplifiedText = await productionAiService.simplifyVerse(verse.content || verse.text);
+        // Show loading state
+        setTranslatingVerse(verseId);
+        
+        try {
+          // Use AI service to simplify the verse [[memory:7766870]]
+          const productionAiService = require('../services/productionAiService').default;
+          const bookName = currentBook?.name || 'Book';
+          const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
+          const verseNum = verse.number || verse.verse || '';
+          const reference = `${bookName} ${chapterNum}:${verseNum}`;
+          
+          const simplifiedText = await productionAiService.simplifyBibleVerse(
+            verse.content || verse.text, 
+            reference
+          );
         
         setVerses(prevVerses => 
           prevVerses.map(v => 
             v.id === verseId ? { 
               ...v, 
               isSimplified: true, 
-              simplifiedContent: simplifiedText 
+                simplifiedContent: simplifiedText,
+                originalContent: v.content || v.text
             } : v
           )
         );
         
-        console.log(`🧒 Simplified verse ${verseId}`);
+          hapticFeedback.success();
+          console.log(`✅ Successfully simplified verse ${verseId}`);
+        } catch (aiError) {
+          console.error('AI simplification failed, using fallback:', aiError);
+          
+          // Fallback simplification [[memory:7766870]]
+          const fallbackText = `This verse means: ${(verse.content || verse.text)
+            .replace(/thee|thou|thy/gi, 'you')
+            .replace(/ye/gi, 'you all')
+            .replace(/hath/gi, 'has')
+            .replace(/doth/gi, 'does')
+            .replace(/shalt/gi, 'should')
+            .replace(/unto/gi, 'to')}
+
+In simple words: God is telling us something important here that we can understand and follow in our daily lives.`;
+          
+          setVerses(prevVerses => 
+            prevVerses.map(v => 
+              v.id === verseId ? { 
+                ...v, 
+                isSimplified: true, 
+                simplifiedContent: fallbackText,
+                originalContent: v.content || v.text
+              } : v
+            )
+          );
+          
+          hapticFeedback.success();
+          console.log(`📝 Used fallback simplification for verse ${verseId}`);
+        }
       }
     } catch (error) {
       console.error('Error simplifying verse:', error);
       hapticFeedback.error();
+      Alert.alert('Error', 'Could not simplify verse. Please try again.');
+    } finally {
+      setTranslatingVerse(null);
     }
   };
 
-  const handleBookmarkVerse = async (verse, category) => {
-    const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
-    const bookName = currentBook?.name || 'Book';
-    const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
-    const verseNum = verse.number || verse.verse || '';
-    const reference = `${bookName} ${chapterNum}:${verseNum}`;
-    const verseText = verse.content || verse.text || '';
-    
-    try {
-      await VerseDataManager.addBookmark(verseId, category, reference, verseText);
-      setVerseBookmarks(prev => ({
-        ...prev,
-        [verseId]: { category, timestamp: new Date().toISOString() }
-      }));
-      hapticFeedback.success();
-      setShowBookmarkPicker(false);
-      setSelectedVerseForAction(null);
-      console.log(`🔖 Bookmarked verse ${verseId} in category ${category}`);
-    } catch (error) {
-      console.error('Error bookmarking verse:', error);
-      hapticFeedback.error();
-    }
-  };
+
 
   const handleShareVerse = async (verse) => {
     const bookName = currentBook?.name || 'Book';
@@ -611,6 +685,70 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       hapticFeedback.success();
     } catch (error) {
       console.error('Error sharing verse:', error);
+    }
+  };
+
+  // Handle saving/unsaving verses
+  const handleSaveVerse = async (verse) => {
+    try {
+      hapticFeedback.light();
+      
+    const bookName = currentBook?.name || 'Book';
+    const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
+    const verseNum = verse.number || verse.verse || '';
+    const reference = `${bookName} ${chapterNum}:${verseNum}`;
+    const verseText = verse.content || verse.text || '';
+      const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+      
+      // Get current saved verses
+      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      let savedVersesList = savedVersesData ? JSON.parse(savedVersesData) : [];
+      
+      // Check if verse is already saved
+      const existingIndex = savedVersesList.findIndex(v => v.id === verseId);
+      
+      if (existingIndex !== -1) {
+        // Remove from saved verses
+        savedVersesList.splice(existingIndex, 1);
+        setSavedVerses(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(verseId);
+          return newSet;
+        });
+        console.log('📖 Verse removed from saved:', reference);
+      hapticFeedback.success();
+      } else {
+        // Add to saved verses
+        const newSavedVerse = {
+          id: verseId,
+          reference: reference,
+          content: verseText,
+          version: selectedBibleVersion.toUpperCase(),
+          savedAt: new Date().toISOString(),
+          bookName: bookName,
+          chapter: chapterNum,
+          verse: verseNum
+        };
+        
+        savedVersesList.push(newSavedVerse);
+        setSavedVerses(prev => new Set([...prev, verseId]));
+        console.log('📖 Verse saved:', reference);
+        hapticFeedback.success();
+      }
+      
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(savedVersesList));
+      
+      // Update user stats
+      const stats = await AsyncStorage.getItem('userStats');
+      const userStats = stats ? JSON.parse(stats) : {};
+      userStats.savedVerses = savedVersesList.length;
+      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      
+    } catch (error) {
+      console.error('Error saving/unsaving verse:', error);
+      hapticFeedback.error();
+      Alert.alert('Error', 'Failed to save verse. Please try again.');
     }
   };
 
@@ -672,7 +810,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
             onSubmitEditing={searchBible}
           />
           <TouchableOpacity onPress={searchBible} style={styles.searchSubmit}>
-            <MaterialIcons name="search" size={20} color="#667eea" />
+            <MaterialIcons name="search" size={20} color={theme.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -767,51 +905,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
       </TouchableOpacity>
       </View>
 
-      {/* Quick Access Section */}
-      <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.quickAccessSection}>
-        <Text style={[styles.quickAccessTitle, { color: theme.text }]}>✨ Quick Access</Text>
-        <View style={styles.quickAccessGrid}>
-          <TouchableOpacity style={styles.quickAccessItem} onPress={() => {
-            hapticFeedback.buttonPress();
-            // Navigate to Psalms
-            const psalms = books.find(book => book.name === 'Psalms');
-            if (psalms) loadChapters(psalms);
-          }}>
-            <Text style={styles.quickAccessEmoji}>🎵</Text>
-            <Text style={[styles.quickAccessText, { color: theme.text }]}>Psalms</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickAccessItem} onPress={() => {
-            hapticFeedback.buttonPress();
-            // Navigate to Proverbs
-            const proverbs = books.find(book => book.name === 'Proverbs');
-            if (proverbs) loadChapters(proverbs);
-          }}>
-            <Text style={styles.quickAccessEmoji}>💎</Text>
-            <Text style={[styles.quickAccessText, { color: theme.text }]}>Proverbs</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickAccessItem} onPress={() => {
-            hapticFeedback.buttonPress();
-            // Navigate to John
-            const john = books.find(book => book.name === 'John');
-            if (john) loadChapters(john);
-          }}>
-            <Text style={styles.quickAccessEmoji}>❤️</Text>
-            <Text style={[styles.quickAccessText, { color: theme.text }]}>John</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickAccessItem} onPress={() => {
-            hapticFeedback.buttonPress();
-            // Navigate to Romans
-            const romans = books.find(book => book.name === 'Romans');
-            if (romans) loadChapters(romans);
-          }}>
-            <Text style={styles.quickAccessEmoji}>⚡</Text>
-            <Text style={[styles.quickAccessText, { color: theme.text }]}>Romans</Text>
-          </TouchableOpacity>
-        </View>
-      </BlurView>
+
     </ScrollView>
   );
 
@@ -870,6 +964,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
 
   const renderVerses = () => (
     <ScrollView 
+      ref={versesScrollViewRef}
       style={[styles.content, { backgroundColor: 'transparent' }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
@@ -930,16 +1025,23 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
         {verses.map((verse, index) => {
         const isSimplified = verse.isSimplified && verse.simplifiedContent;
         const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
-        const highlightColor = verseHighlights[verseId]?.color;
+        const isHighlighted = highlightedVerse === parseInt(verse.number || verse.verse);
         
         return (
-            <View key={verse.id} style={styles.modernVerseCard}>
+            <View key={verse.id} style={[
+              styles.modernVerseCard,
+              isHighlighted && { 
+                backgroundColor: `${theme.primary}20`,
+                borderWidth: 2,
+                borderColor: theme.primary,
+                borderRadius: 16,
+                marginHorizontal: 16,
+                marginVertical: 8
+              }
+            ]}>
               <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.verseBlurCard}>
                 <LinearGradient
-                  colors={highlightColor ? [
-                    `${highlightColor}40`,
-                    `${highlightColor}20`
-                  ] : [
+                  colors={[
                     `${theme.primary}${Math.round(8 + (index % 5) * 3).toString(16)}`,
                     `${theme.primaryLight}${Math.round(4 + (index % 5) * 2).toString(16)}`
                   ]}
@@ -962,92 +1064,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
                     </View>
               
                     <View style={styles.modernVerseActions}>
-                      {/* Journal/Notes Button */}
-                      <TouchableOpacity
-                        onPress={() => handleJournalVerse(verse)}
-                        style={[styles.modernActionButton, { 
-                          backgroundColor: verseNotes[verse.id] ? `${theme.success}30` : `${theme.surface}40`
-                        }]}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                      >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
-                          <MaterialIcons 
-                            name={verseNotes[verse.id] ? "edit-note" : "note-add"} 
-                            size={18} 
-                            color={verseNotes[verse.id] ? theme.success : theme.textSecondary} 
-                          />
-                        </BlurView>
-                      </TouchableOpacity>
-
-                      {/* Highlight Button */}
-                      <TouchableOpacity
-                        onPress={() => {
-                          console.log('🎨 Highlight button tapped!', verse);
-                          console.log('🎨 Current showHighlightPicker state:', showHighlightPicker);
-                          setSelectedVerseForAction(verse);
-                          setShowHighlightPicker(true);
-                          hapticFeedback.light();
-                          console.log('🎨 Highlight picker should open now');
-                          // Add a small delay to check state
-                          setTimeout(() => {
-                            console.log('🎨 showHighlightPicker state after timeout:', showHighlightPicker);
-                          }, 100);
-                        }}
-                        style={[styles.modernActionButton, { 
-                          backgroundColor: verseHighlights[verse.id] ? `${verseHighlights[verse.id].color}30` : `${theme.surface}40`
-                        }]}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                      >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
-                          <MaterialIcons 
-                            name="highlight" 
-                            size={18} 
-                            color={verseHighlights[verse.id] ? verseHighlights[verse.id].color : theme.textSecondary} 
-                          />
-                        </BlurView>
-                      </TouchableOpacity>
-
-                      {/* Bookmark Button */}
-                      <TouchableOpacity
-                        onPress={() => {
-                          console.log('🔖 Bookmark button tapped!', verse);
-                          setSelectedVerseForAction(verse);
-                          setShowBookmarkPicker(true);
-                          hapticFeedback.light();
-                          console.log('🔖 Bookmark picker should open now');
-                          console.log('🔖 showBookmarkPicker state:', showBookmarkPicker);
-                          console.log('🔖 selectedVerseForAction:', verse);
-                        }}
-                        style={[styles.modernActionButton, { 
-                          backgroundColor: verseBookmarks[verse.id] ? `${theme.warning}30` : `${theme.surface}40`
-                        }]}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                      >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
-                          <MaterialIcons 
-                            name={verseBookmarks[verse.id] ? "bookmark" : "bookmark-border"} 
-                            size={18} 
-                            color={verseBookmarks[verse.id] ? theme.warning : theme.textSecondary} 
-                          />
-                        </BlurView>
-                      </TouchableOpacity>
-
-                      {/* Share Button */}
-                      <TouchableOpacity
-                        onPress={() => handleShareVerse(verse)}
-                        style={[styles.modernActionButton, { 
-                          backgroundColor: `${theme.primary}20`
-                        }]}
-                      >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
-                          <MaterialIcons name="share" size={18} color={theme.primary} />
-                        </BlurView>
-                      </TouchableOpacity>
-
-                      {/* Discuss Button */}
+                      {/* Discussion Button */}
                       <TouchableOpacity
                         onPress={() => {
                           hapticFeedback.buttonPress();
@@ -1071,31 +1088,46 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
                         style={[styles.modernActionButton, { 
                           backgroundColor: `${theme.primary}30`
                         }]}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
                         <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
                           <MaterialIcons name="forum" size={18} color={theme.primary} />
                         </BlurView>
                       </TouchableOpacity>
 
-                      {/* Journal Button */}
+                      {/* Simple Button */}
                       <TouchableOpacity
-                        onPress={() => {
-                          console.log('📝 Journal button tapped!', verse);
-                          setSelectedVerseForJournal(verse);
-                          setShowJournalingModal(true);
-                          hapticFeedback.light();
-                        }}
+                        onPress={() => handleSimplifyVerse(verse)}
                         style={[styles.modernActionButton, { 
-                          backgroundColor: verseNotes[verseId] ? `${theme.success}30` : `${theme.surface}40`
+                          backgroundColor: verse.isSimplified ? `${theme.warning}30` : `${theme.surface}40`
                         }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
                         <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
                           <MaterialIcons 
-                            name={verseNotes[verseId] ? "edit-note" : "note-add"} 
+                            name={verse.isSimplified ? "child-care" : "child-friendly"} 
                             size={18} 
-                            color={verseNotes[verseId] ? theme.success : theme.textSecondary} 
+                            color={verse.isSimplified ? theme.warning : theme.textSecondary} 
+                          />
+                        </BlurView>
+                      </TouchableOpacity>
+
+                      {/* Save Button */}
+                      <TouchableOpacity
+                        onPress={() => handleSaveVerse(verse)}
+                        style={[styles.modernActionButton, { 
+                          backgroundColor: savedVerses.has(verse.id) ? `${theme.success}30` : `${theme.surface}40`
+                        }]}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                      >
+                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
+                          <MaterialIcons 
+                            name={savedVerses.has(verse.id) ? "bookmark" : "bookmark-border"} 
+                            size={18} 
+                            color={savedVerses.has(verse.id) ? theme.success : theme.textSecondary} 
                           />
                         </BlurView>
                       </TouchableOpacity>
@@ -1104,41 +1136,44 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
             
                   {/* Beautiful Verse Content */}
                   <View style={styles.verseContentContainer}>
-                    <Text style={[styles.modernVerseText, { color: theme.text }]}>
-                      {isSimplified ? verse.simplifiedContent : verse.content}
+                    {/* Always show original text first */}
+                    <Text 
+                      style={[styles.modernVerseText, { color: theme.text }]}
+                      selectable={true}
+                      selectTextOnFocus={false}
+                      dataDetectorType="none"
+                      allowFontScaling={true}
+                    >
+                      {verse.content || verse.text}
                     </Text>
                     
-                    {/* Show both versions if simplified */}
-                    {isSimplified && verse.content !== verse.simplifiedContent && (
-                      <TouchableOpacity 
-                        style={styles.originalToggle}
-                        onPress={() => {
-                          hapticFeedback.light();
-                          setShowOriginal(prev => {
-                            const newSet = new Set(prev);
-                            if (newSet.has(verse.id)) {
-                              newSet.delete(verse.id);
-                            } else {
-                              newSet.add(verse.id);
-                            }
-                            return newSet;
-                          });
-                        }}
-                      >
-                        <Text style={[styles.originalToggleText, { color: theme.textSecondary }]}>
-                          {showOriginal.has(verse.id) ? '← Simple' : 'Original →'}
+                    {/* Show simplified text below original when simplified */}
+                    {verse.isSimplified && verse.simplifiedContent && (
+                      <View style={styles.simplifiedTextContainer}>
+                        <View style={styles.simplifiedHeader}>
+                          <MaterialIcons name="child-friendly" size={16} color={theme.warning} />
+                          <Text style={[styles.simplifiedLabel, { color: theme.warning }]}>
+                            Easy to understand:
                         </Text>
-                      </TouchableOpacity>
+                        </View>
+                        <Text 
+                          style={[styles.simplifiedText, { color: theme.text, backgroundColor: `${theme.warning}10` }]}
+                          selectable={true}
+                          selectTextOnFocus={false}
+                          dataDetectorType="none"
+                          allowFontScaling={true}
+                        >
+                          {verse.simplifiedContent}
+                        </Text>
+                      </View>
                     )}
                     
-                    {/* Show original text when toggled */}
-                    {isSimplified && showOriginal.has(verse.id) && (
-                      <View style={styles.originalTextContainer}>
-                        <Text style={[styles.originalLabel, { color: theme.textSecondary }]}>
-                          Original Text:
-                        </Text>
-                        <Text style={[styles.originalText, { color: theme.text }]}>
-              {verse.content}
+                    {/* Loading indicator for simplification */}
+                    {translatingVerse === verse.id && (
+                      <View style={styles.simplifyingContainer}>
+                        <ActivityIndicator size="small" color={theme.warning} />
+                        <Text style={[styles.simplifyingText, { color: theme.textSecondary }]}>
+                          Making this easier to understand...
             </Text>
                       </View>
                     )}
@@ -1575,126 +1610,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI }) => {
         </View>
       </Modal>
 
-      {/* Highlight Color Picker Modal */}
-      {console.log('🎨 Rendering highlight modal, visible:', showHighlightPicker)}
-      <Modal
-        visible={showHighlightPicker}
-        transparent={false}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          console.log('🎨 Highlight modal onRequestClose called');
-          setShowHighlightPicker(false);
-          setSelectedVerseForAction(null);
-        }}
-      >
-        <View style={[styles.fullScreenModal, { backgroundColor: theme.background }]}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setShowHighlightPicker(false);
-                setSelectedVerseForAction(null);
-              }}
-              style={styles.closeButton}
-            >
-              <MaterialIcons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.pickerModal, { backgroundColor: theme.background }]}>
-            <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Highlight Color</Text>
-            <View style={styles.colorGrid}>
-              {[
-                { name: 'None', color: null, emoji: '🚫' },
-                { name: 'Yellow', color: '#FFD700', emoji: '💛' },
-                { name: 'Pink', color: '#FF1493', emoji: '💖' },
-                { name: 'Green', color: '#32CD32', emoji: '💚' },
-                { name: 'Blue', color: '#1E90FF', emoji: '💙' },
-                { name: 'Purple', color: '#9932CC', emoji: '💜' },
-                { name: 'Orange', color: '#FF4500', emoji: '🧡' },
-                { name: 'Red', color: '#DC143C', emoji: '❤️' },
-                { name: 'Teal', color: '#20B2AA', emoji: '💎' },
-                { name: 'Lime', color: '#32CD32', emoji: '🍃' },
-                { name: 'Coral', color: '#FF7F50', emoji: '🪸' }
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.name}
-                  style={[styles.colorOption, { backgroundColor: item.color }]}
-                  onPress={() => selectedVerseForAction && handleHighlightVerse(selectedVerseForAction, item.color)}
-                >
-                  <Text style={styles.colorEmoji}>{item.emoji}</Text>
-                  <Text style={styles.colorName}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.cancelButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                setShowHighlightPicker(false);
-                setSelectedVerseForAction(null);
-              }}
-            >
-              <Text style={[styles.cancelButtonText, { color: theme.text }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
-      {/* Bookmark Category Picker Modal */}
-      <Modal
-        visible={showBookmarkPicker}
-        transparent={false}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          setShowBookmarkPicker(false);
-          setSelectedVerseForAction(null);
-        }}
-      >
-        <View style={[styles.fullScreenModal, { backgroundColor: theme.background }]}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setShowBookmarkPicker(false);
-                setSelectedVerseForAction(null);
-              }}
-              style={styles.closeButton}
-            >
-              <MaterialIcons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.pickerModal, { backgroundColor: theme.background }]}>
-            <Text style={[styles.pickerTitle, { color: theme.text }]}>Choose Bookmark Category</Text>
-            <View style={styles.bookmarkGrid}>
-              {[
-                { name: 'Study', emoji: '📖', category: 'study' },
-                { name: 'Favorites', emoji: '💝', category: 'favorites' },
-                { name: 'Prayer', emoji: '🙏', category: 'prayer' },
-                { name: 'Inspiration', emoji: '✨', category: 'inspiration' },
-                { name: 'Comfort', emoji: '🤗', category: 'comfort' },
-                { name: 'Guidance', emoji: '🧭', category: 'guidance' }
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.category}
-                  style={[styles.bookmarkOption, { backgroundColor: theme.card, borderColor: theme.border }]}
-                  onPress={() => selectedVerseForAction && handleBookmarkVerse(selectedVerseForAction, item.category)}
-                >
-                  <Text style={styles.bookmarkEmoji}>{item.emoji}</Text>
-                  <Text style={[styles.bookmarkName, { color: theme.text }]}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.cancelButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                setShowBookmarkPicker(false);
-                setSelectedVerseForAction(null);
-              }}
-            >
-              <Text style={[styles.cancelButtonText, { color: theme.text }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+
+
 
       {/* Journal Modal */}
       <VerseJournalingModal
@@ -1783,19 +1701,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    // color will be set dynamically with theme.text
     marginBottom: 20,
     paddingHorizontal: 20,
   },
   testamentTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
     marginTop: 20,
     marginBottom: 12,
     paddingHorizontal: 20,
@@ -1804,7 +1722,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    // backgroundColor will be set dynamically with theme.card
     padding: 16,
     marginHorizontal: 20,
     marginBottom: 8,
@@ -1813,12 +1731,12 @@ const styles = StyleSheet.create({
   bookName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    // color will be set dynamically with theme.text
     flex: 1,
   },
   chapterCount: {
     fontSize: 12,
-    color: '#666',
+    // color will be set dynamically with theme.textSecondary
     marginRight: 8,
   },
   chaptersGrid: {
@@ -1829,7 +1747,7 @@ const styles = StyleSheet.create({
   chapterItem: {
     width: '15%',
     aspectRatio: 1,
-    backgroundColor: '#fff',
+    // backgroundColor will be set dynamically with theme.card
     margin: 4,
     borderRadius: 8,
     justifyContent: 'center',
@@ -1838,14 +1756,15 @@ const styles = StyleSheet.create({
   chapterNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
   },
   verseContainer: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
+    // backgroundColor will be set dynamically with theme.card
+    marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
+    width: undefined, // Let it use full available width
   },
   verseHeader: {
     flexDirection: 'row',
@@ -2007,7 +1926,7 @@ const styles = StyleSheet.create({
   verseNumber: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
     minWidth: 30,
   },
   toggleButton: {
@@ -2044,30 +1963,33 @@ const styles = StyleSheet.create({
   verseText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    // color will be set dynamically with theme.text
   },
   simplifiedContainer: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#f0f9ff',
+    // backgroundColor will be set dynamically with theme colors
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#667eea',
+    // borderLeftColor will be set dynamically with theme.primary
   },
   simplifiedLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
     marginBottom: 4,
   },
   simplifiedText: {
     fontSize: 16,
     lineHeight: 22,
-    color: '#333',
+    // color will be set dynamically with theme.text
     fontStyle: 'italic',
+    width: '100%',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   searchResultItem: {
-    backgroundColor: '#fff',
+    // backgroundColor will be set dynamically with theme.card
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 12,
@@ -2076,18 +1998,18 @@ const styles = StyleSheet.create({
   searchReference: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#667eea',
+    // color will be set dynamically with theme.primary
     marginBottom: 8,
   },
   searchText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    // color will be set dynamically with theme.text
   },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#666',
+    // color will be set dynamically with theme.textSecondary
     marginTop: 40,
     paddingHorizontal: 20,
   },
@@ -2231,35 +2153,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   
-  // Quick Access
-  quickAccessSection: {
-    margin: 20,
-    borderRadius: 20,
-    padding: 20,
-    overflow: 'hidden',
-  },
-  quickAccessTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  quickAccessGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  quickAccessItem: {
-    alignItems: 'center',
-    padding: 12,
-  },
-  quickAccessEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  quickAccessText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+
   
   // Books Container
   booksContainer: {
@@ -2403,7 +2297,7 @@ const styles = StyleSheet.create({
   
   // Verse Cards
   versesContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   modernVerseCard: {
     marginBottom: 16,
@@ -2413,7 +2307,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   verseGradient: {
-    padding: 20,
+    padding: 16,
   },
   modernVerseHeader: {
     flexDirection: 'row',
@@ -2475,11 +2369,16 @@ const styles = StyleSheet.create({
   },
   verseContentContainer: {
     marginTop: 8,
+    width: '100%',
   },
   modernVerseText: {
     fontSize: 17,
     lineHeight: 26,
     marginBottom: 12,
+    textAlign: 'left',
+    width: '100%',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   originalToggle: {
     alignSelf: 'flex-end',
@@ -2686,6 +2585,46 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  
+  // Simplified text styles
+  simplifiedTextContainer: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.2)',
+  },
+  simplifiedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  simplifiedLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  simplifiedText: {
+    fontSize: 15,
+    lineHeight: 22,
+    padding: 12,
+    borderRadius: 8,
+    fontStyle: 'italic',
+    width: '100%',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+  },
+  simplifyingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 8,
+    gap: 8,
+  },
+  simplifyingText: {
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 

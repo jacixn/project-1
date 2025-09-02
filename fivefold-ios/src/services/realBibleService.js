@@ -469,7 +469,7 @@ class RealBibleService {
       const data = await response.json();
       
       const results = data.verses ? data.verses.slice(0, limit).map(verse => ({
-        reference: `${data.reference}:${verse.verse}`,
+        reference: data.reference || `${verse.book_name} ${verse.chapter}:${verse.verse}`,
         content: verse.text.trim()
       })) : [];
 

@@ -400,7 +400,7 @@ class BibleService {
       
       // Transform to our format
       const results = data.verses ? data.verses.slice(0, limit).map(verse => ({
-        reference: `${data.reference}:${verse.verse}`,
+        reference: data.reference || `${verse.book_name} ${verse.chapter}:${verse.verse}`,
         content: verse.text.trim()
       })) : [];
 

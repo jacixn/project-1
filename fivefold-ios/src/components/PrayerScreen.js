@@ -168,7 +168,13 @@ const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistor
               </LinearGradient>
               
               <View style={styles.verseContent}>
-                <Text style={[styles.verseText, { color: theme.text }]}>
+                <Text 
+                  style={[styles.verseText, { color: theme.text }]}
+                  selectable={true}
+                  selectTextOnFocus={false}
+                  dataDetectorType="none"
+                  allowFontScaling={true}
+                >
                   "{verse.text}"
                 </Text>
                 <Text style={[styles.verseReference, { color: theme.primary }]}>

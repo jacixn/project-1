@@ -74,6 +74,7 @@ const ProfileTab = () => {
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
+  const [refreshingSavedVerses, setRefreshingSavedVerses] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
 
@@ -100,10 +101,21 @@ const ProfileTab = () => {
         const userStatsData = stats ? JSON.parse(stats) : {};
         userStatsData.savedVerses = verses.length;
         await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
+        
+        console.log(`📖 Loaded ${verses.length} saved verses in ProfileTab`);
+      } else {
+        setSavedVersesList([]);
+        console.log('📖 No saved verses found');
       }
     } catch (error) {
       console.error('Error loading saved verses:', error);
     }
+  };
+
+  const refreshSavedVerses = async () => {
+    setRefreshingSavedVerses(true);
+    await loadSavedVerses();
+    setRefreshingSavedVerses(false);
   };
 
   // Animation values
@@ -128,6 +140,14 @@ const ProfileTab = () => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Refresh saved verses when modal becomes visible
+  useEffect(() => {
+    if (showSavedVerses) {
+      console.log('📖 Saved verses modal opened, refreshing data...');
+      loadSavedVerses();
+    }
+  }, [showSavedVerses]);
 
   const loadUserData = async () => {
     try {
@@ -434,10 +454,15 @@ const ProfileTab = () => {
           style={[styles.statBox, { backgroundColor: theme.surface }]}
           onPress={() => {
             hapticFeedback.light();
+            // Refresh saved verses before showing modal
+            loadSavedVerses();
             setShowSavedVerses(true);
           }}
         >
           <MaterialIcons name="bookmark" size={24} color={theme.info} />
+          <Text style={[styles.statValue, { color: theme.text }]}>
+            {savedVersesList.length}
+          </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.savedVerses || 'Saved Verses'}
           </Text>
@@ -1017,19 +1042,35 @@ const ProfileTab = () => {
       <Modal
         visible={showSavedVerses}
         animationType="slide"
-        transparent={true}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowSavedVerses(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <View style={[styles.modalHeader, { paddingTop: 45, paddingBottom: 15, paddingHorizontal: 16 }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            {/* Pull indicator */}
+            <View style={styles.pullIndicatorContainer}>
+              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary }]} />
+            </View>
+            
+            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16 }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>{t.savedVersesTitle || 'Saved Verses'}</Text>
               <TouchableOpacity onPress={() => setShowSavedVerses(false)}>
                 <MaterialIcons name="close" size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshingSavedVerses}
+                  onRefresh={refreshSavedVerses}
+                  tintColor={theme.primary}
+                  colors={[theme.primary]}
+                />
+              }
+            >
               {savedVersesList.length === 0 ? (
                 <View style={styles.emptyState}>
                   <MaterialIcons name="bookmark-border" size={48} color={theme.textTertiary} />
@@ -1054,17 +1095,33 @@ const ProfileTab = () => {
                         {verse.version?.toUpperCase() || 'KJV'}
                       </Text>
                     </View>
+                    {/* Always show original content */}
                     <Text style={[styles.savedVerseContent, { color: theme.text }]}>
-                      {simplifiedSavedVerses.get(verse.id) || verse.content}
+                      {verse.content}
                     </Text>
+                    
+                    {/* Show simplified text below original when simplified */}
+                    {simplifiedSavedVerses.has(verse.id) && (
+                      <View style={styles.simplifiedSavedVerseContainer}>
+                        <View style={styles.simplifiedSavedVerseHeader}>
+                          <MaterialIcons name="child-friendly" size={16} color={theme.warning} />
+                          <Text style={[styles.simplifiedSavedVerseLabel, { color: theme.warning }]}>
+                            Easy to understand:
+                          </Text>
+                        </View>
+                        <Text style={[styles.simplifiedSavedVerseText, { color: theme.text, backgroundColor: `${theme.warning}10` }]}>
+                          {simplifiedSavedVerses.get(verse.id)}
+                        </Text>
+                      </View>
+                    )}
                     
                     {/* Action buttons */}
                     <View style={styles.savedVerseActions}>
                       {/* Simple Button */}
                       <TouchableOpacity
                         style={[styles.savedVerseButton, { 
-                          backgroundColor: simplifiedSavedVerses.has(verse.id) ? theme.success + '20' : theme.textSecondary + '15',
-                          borderColor: simplifiedSavedVerses.has(verse.id) ? theme.success : theme.textSecondary + '30'
+                          backgroundColor: simplifiedSavedVerses.has(verse.id) ? theme.warning + '20' : theme.textSecondary + '15',
+                          borderColor: simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary + '30'
                         }]}
                         onPress={async () => {
                           hapticFeedback.light();
@@ -1073,22 +1130,32 @@ const ProfileTab = () => {
                             const newMap = new Map(simplifiedSavedVerses);
                             newMap.delete(verse.id);
                             setSimplifiedSavedVerses(newMap);
+                            console.log(`📖 Hiding simplified text for saved verse: ${verse.reference}`);
                           } else {
-                            // Simplify the verse
+                            // Simplify the verse [[memory:7766870]]
                             try {
+                              console.log(`🧒 Simplifying saved verse for 12-year-old: ${verse.reference}`);
                               const productionAiService = require('../services/productionAiService').default;
                               const simplifiedText = await productionAiService.simplifyBibleVerse(verse.content, verse.reference);
                               const newMap = new Map(simplifiedSavedVerses);
                               newMap.set(verse.id, simplifiedText);
                               setSimplifiedSavedVerses(newMap);
+                              console.log(`✅ Successfully simplified saved verse: ${verse.reference}`);
                             } catch (error) {
-                              Alert.alert('Error', 'Could not simplify verse');
+                              console.error('Error simplifying saved verse:', error);
+                              Alert.alert('Error', 'Could not simplify verse. Please try again.');
                             }
                           }
                         }}
                       >
-                        <MaterialIcons name="lightbulb-outline" size={16} color={simplifiedSavedVerses.has(verse.id) ? theme.success : theme.textSecondary} />
-                        <Text style={[styles.savedVerseButtonText, { color: simplifiedSavedVerses.has(verse.id) ? theme.success : theme.textSecondary }]}>{t.simple || 'Simple'}</Text>
+                        <MaterialIcons 
+                          name={simplifiedSavedVerses.has(verse.id) ? "child-care" : "child-friendly"} 
+                          size={16} 
+                          color={simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary} 
+                        />
+                        <Text style={[styles.savedVerseButtonText, { color: simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary }]}>
+                          {t.simple || 'Simple'}
+                        </Text>
                       </TouchableOpacity>
                       
                       {/* Discuss Button */}
@@ -1134,7 +1201,7 @@ const ProfileTab = () => {
               )}
             </ScrollView>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Settings Modal */}
@@ -1528,6 +1595,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
@@ -1984,6 +2057,43 @@ const styles = StyleSheet.create({
   modalScrollView: {
     flex: 1,
     paddingTop: 15,
+  },
+  pullIndicatorContainer: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  pullIndicator: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.3,
+  },
+  
+  // Simplified saved verse styles
+  simplifiedSavedVerseContainer: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.2)',
+  },
+  simplifiedSavedVerseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  simplifiedSavedVerseLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  simplifiedSavedVerseText: {
+    fontSize: 14,
+    lineHeight: 20,
+    padding: 10,
+    borderRadius: 8,
+    fontStyle: 'italic',
   },
 });
 

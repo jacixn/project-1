@@ -24,16 +24,17 @@ import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import PrayerCard from '../components/PrayerCard';
 import SimplePrayerCard from '../components/SimplePrayerCard';
 import BibleReader from '../components/BibleReader';
+import BibleStudyModal from '../components/BibleStudyModal';
 import PrayerScreen from '../components/PrayerScreen';
 import AiBibleChat from '../components/AiBibleChat';
 import { getStoredData, saveData } from '../utils/localStorage';
-import { requestLocationPermission } from '../utils/locationPermission';
+// Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
+import { getDailyVerse } from '../utils/dailyVerse';
 
-// Placeholder prayer time functions - replace with actual solar calculations
-const calculatePrayerTimes = (location) => {
-  const now = new Date();
+// Fixed prayer times - no location needed
+const calculatePrayerTimes = () => {
   return {
     beforeSunrise: '05:30',
     afterSunrise: '06:30', 
@@ -51,19 +52,42 @@ const getNextPrayerTime = (times) => {
 const BiblePrayerTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
   const [showBible, setShowBible] = useState(false);
+  const [showBibleStudy, setShowBibleStudy] = useState(false);
   const [showPrayerScreen, setShowPrayerScreen] = useState(false);
   const [selectedPrayer, setSelectedPrayer] = useState(null);
   const [showFriendChat, setShowFriendChat] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
+  const [verseReference, setVerseReference] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [prayerTimes, setPrayerTimes] = useState({});
   const [prayerHistory, setPrayerHistory] = useState([]);
   const [location, setLocation] = useState(null);
   const [nextPrayer, setNextPrayer] = useState(null);
+  const [dailyVerse, setDailyVerse] = useState(getDailyVerse());
 
   useEffect(() => {
     initializePrayerData();
   }, []);
+
+  // Update daily verse at midnight
+  useEffect(() => {
+    const updateDailyVerse = () => {
+      setDailyVerse(getDailyVerse());
+    };
+
+    // Update verse immediately
+    updateDailyVerse();
+
+    // Set up interval to check for date change every minute
+    const interval = setInterval(() => {
+      const currentVerse = getDailyVerse();
+      if (currentVerse.reference !== dailyVerse.reference) {
+        updateDailyVerse();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [dailyVerse.reference]);
 
   const initializePrayerData = async () => {
     try {
@@ -73,20 +97,14 @@ const BiblePrayerTab = () => {
       // Schedule automatic reset at midnight
       scheduleNextDayReset();
 
-      // Load location and prayer data
-      const userLocation = await requestLocationPermission();
-      setLocation(userLocation);
-      
       // Load prayer history (after potential reset)
       const history = await getStoredData('prayerHistory') || [];
       setPrayerHistory(history);
       
-      // Calculate prayer times (imported from your existing logic)
-      if (userLocation) {
-        const times = calculatePrayerTimes(userLocation);
-        setPrayerTimes(times);
-        setNextPrayer(getNextPrayerTime(times));
-      }
+      // Calculate fixed prayer times (no location needed)
+      const times = calculatePrayerTimes();
+      setPrayerTimes(times);
+      setNextPrayer(getNextPrayerTime(times));
     } catch (error) {
       console.error('Failed to initialize prayer data:', error);
     }
@@ -109,6 +127,13 @@ const BiblePrayerTab = () => {
     setShowPrayerScreen(false);
     setSelectedPrayer(null);
     setShowFriendChat(true);
+  }, []);
+
+  // Handle navigation to specific Bible verse
+  const handleNavigateToVerse = useCallback((verseRef) => {
+    console.log('📖 BiblePrayerTab: Navigating to verse:', verseRef);
+    setVerseReference(verseRef);
+    setShowBible(true);
   }, []);
 
   const handlePrayerComplete = useCallback(async (prayerName) => {
@@ -173,13 +198,93 @@ const BiblePrayerTab = () => {
         <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
           💫 Verse of the Day
         </Text>
-        <Text style={[styles.verseText, { color: theme.text }]}>
-          "For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, to give you hope and a future."
+        <Text 
+          style={[styles.verseText, { color: theme.text }]}
+          selectable={true}
+          selectTextOnFocus={false}
+          dataDetectorType="none"
+          allowFontScaling={true}
+        >
+          "{dailyVerse.text}"
         </Text>
-        <Text style={[styles.verseReference, { color: theme.textSecondary }]}>
-          Jeremiah 29:11
+        <Text 
+          style={[styles.verseReference, { color: theme.textSecondary }]}
+          selectable={true}
+          selectTextOnFocus={false}
+          dataDetectorType="none"
+          allowFontScaling={true}
+        >
+          {dailyVerse.reference}
         </Text>
       </BlurView>
+    </BlurView>
+  );
+
+  // Bible Study section with educational features
+  const BibleStudySection = () => (
+    <BlurView intensity={18} tint="light" style={styles.bibleCard}>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>📚 Bible Study</Text>
+      <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+        Explore characters, timeline, maps & more
+      </Text>
+      
+      <TouchableOpacity 
+        style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
+        onPress={() => {
+          hapticFeedback.medium();
+          setShowBibleStudy(true);
+        }}
+      >
+        <MaterialIcons name="school" size={24} color={theme.primary} />
+        <View style={styles.bibleButtonContent}>
+          <Text style={[styles.bibleButtonTitle, { color: theme.text }]}>
+            Interactive Learning
+          </Text>
+          <Text style={[styles.bibleButtonSubtitle, { color: theme.textSecondary }]}>
+            Characters, Timeline, Maps & Quizzes
+          </Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+      </TouchableOpacity>
+
+      {/* Quick access features */}
+      <View style={styles.quickAccessContainer}>
+        <TouchableOpacity 
+          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
+          onPress={() => {
+            hapticFeedback.light();
+            setShowBibleStudy(true);
+            // Could set initial section to characters
+          }}
+        >
+          <MaterialIcons name="people" size={18} color={theme.primary} />
+          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Characters</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
+          onPress={() => {
+            hapticFeedback.light();
+            setShowBibleStudy(true);
+            // Could set initial section to timeline
+          }}
+        >
+          <MaterialIcons name="timeline" size={18} color={theme.primary} />
+          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Timeline</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
+          onPress={() => {
+            hapticFeedback.light();
+            setShowBibleStudy(true);
+            // Could set initial section to maps
+          }}
+        >
+          <MaterialIcons name="map" size={18} color={theme.primary} />
+          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Maps</Text>
+        </TouchableOpacity>
+      </View>
     </BlurView>
   );
 
@@ -241,6 +346,9 @@ const BiblePrayerTab = () => {
 
         {/* Bible Section */}
         <BibleSection />
+
+        {/* Bible Study Section */}
+        <BibleStudySection />
       </Animated.ScrollView>
 
 
@@ -249,9 +357,14 @@ const BiblePrayerTab = () => {
       {showBible && (
         <BibleReader
           visible={showBible}
-          onClose={() => setShowBible(false)}
+          onClose={() => {
+            setShowBible(false);
+            setVerseReference(null); // Clear verse reference when closing
+          }}
+          initialVerseReference={verseReference}
           onNavigateToAI={(verseContent) => {
             setShowBible(false);
+            setVerseReference(null);
             if (verseContent) {
               setVerseToInterpret(verseContent);
             } else {
@@ -261,9 +374,18 @@ const BiblePrayerTab = () => {
           }}
           onInterpretVerse={(verseContent, reference) => {
             setShowBible(false);
+            setVerseReference(null);
             setVerseToInterpret({ content: verseContent, reference });
             setTimeout(() => setShowFriendChat(true), 300);
           }}
+        />
+      )}
+
+      {/* Bible Study Modal */}
+      {showBibleStudy && (
+        <BibleStudyModal
+          visible={showBibleStudy}
+          onClose={() => setShowBibleStudy(false)}
         />
       )}
 
@@ -291,6 +413,7 @@ const BiblePrayerTab = () => {
             setVerseToInterpret(null);
           }}
           initialVerse={verseToInterpret}
+          onNavigateToBible={handleNavigateToVerse}
         />
       )}
     </SafeAreaView>
@@ -434,6 +557,26 @@ const styles = StyleSheet.create({
   verseReference: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  quickAccessContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 8,
+  },
+  quickAccessButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  quickAccessText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

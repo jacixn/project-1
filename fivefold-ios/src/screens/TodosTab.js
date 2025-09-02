@@ -218,7 +218,114 @@ const TodosTab = () => {
     await saveData('todos', updatedTodos);
   }, [todos]);
 
-  // Stats overview component
+  // Beautiful Calendar Component
+  const CalendarHeader = () => {
+    const today = new Date();
+    const currentMonth = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const currentDate = today.getDate();
+    const currentDay = today.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // Get days of the week
+    const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    
+    // Get calendar days for current month
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const firstDayWeekday = firstDayOfMonth.getDay();
+    const daysInMonth = lastDayOfMonth.getDate();
+    
+    // Create calendar grid
+    const calendarDays = [];
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDayWeekday; i++) {
+      calendarDays.push(null);
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(today.getFullYear(), today.getMonth(), day);
+      const isToday = day === currentDate;
+      const dayTodos = todos.filter(todo => {
+        if (!todo.completedAt) return false;
+        const todoDate = new Date(todo.completedAt);
+        return todoDate.getDate() === day && 
+               todoDate.getMonth() === today.getMonth() && 
+               todoDate.getFullYear() === today.getFullYear();
+      });
+      
+      calendarDays.push({
+        day,
+        isToday,
+        hasActivity: dayTodos.length > 0,
+        completedCount: dayTodos.length
+      });
+    }
+
+    return (
+      <BlurView intensity={20} tint="light" style={styles.calendarCard}>
+        {/* Today Banner */}
+        <View style={styles.todayBanner}>
+          <TouchableOpacity style={[styles.todayButton, { backgroundColor: theme.primary }]}>
+            <Text style={styles.todayButtonText}>Today</Text>
+          </TouchableOpacity>
+          <Text style={[styles.monthYear, { color: theme.text }]}>{currentMonth}</Text>
+          <TouchableOpacity style={styles.moreButton}>
+            <MaterialIcons name="more-horiz" size={24} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Days of Week Header */}
+        <View style={styles.weekHeader}>
+          {daysOfWeek.map((day, index) => (
+            <Text key={index} style={[styles.weekDay, { color: theme.textSecondary }]}>
+              {day}
+            </Text>
+          ))}
+        </View>
+
+        {/* Calendar Grid */}
+        <View style={styles.calendarGrid}>
+          {calendarDays.map((dayData, index) => {
+            if (!dayData) {
+              return <View key={index} style={styles.emptyDay} />;
+            }
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.calendarDay,
+                  dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
+                  dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
+                ]}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setSelectedDate(new Date(today.getFullYear(), today.getMonth(), dayData.day));
+                }}
+              >
+                <Text style={[
+                  styles.dayNumber,
+                  { color: dayData.isToday ? '#fff' : theme.text },
+                  dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
+                ]}>
+                  {dayData.day}
+                </Text>
+                {dayData.hasActivity && (
+                  <View style={[
+                    styles.activityDot,
+                    { backgroundColor: dayData.isToday ? '#fff' : theme.success }
+                  ]} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </BlurView>
+    );
+  };
+
+  // Stats overview component (moved below tasks)
   const StatsOverview = () => {
     const activeTodos = todos.filter(todo => !todo.completed);
     const completedToday = todos.filter(todo => {
@@ -408,8 +515,8 @@ const TodosTab = () => {
         )}
         scrollEventThrottle={16}
       >
-        {/* Stats Overview */}
-        <StatsOverview />
+        {/* Beautiful Calendar Header */}
+        <CalendarHeader />
 
         {/* Main Content - List or Calendar View */}
         {viewMode === 'list' ? (
@@ -422,6 +529,9 @@ const TodosTab = () => {
               onTodoDelete={handleTodoDelete}
               userStats={userStats}
             />
+
+            {/* Stats Overview - Now below tasks */}
+            <StatsOverview />
 
             {/* Quick Add Suggestions */}
             <HistorySection />
@@ -627,6 +737,104 @@ const styles = StyleSheet.create({
   emptyHistoryText: {
     marginTop: 10,
     fontSize: 14,
+  },
+  // Compact Calendar Styles - Like the reference image
+  calendarCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  todayBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  todayButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  todayButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  monthYear: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  moreButton: {
+    padding: 6,
+  },
+  weekHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  weekDay: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+    width: 28,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    paddingHorizontal: 2,
+  },
+  emptyDay: {
+    width: 28,
+    height: 28,
+    margin: 1,
+  },
+  calendarDay: {
+    width: 28,
+    height: 28,
+    margin: 1,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  todayDay: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activeDay: {
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  activityDot: {
+    position: 'absolute',
+    bottom: 2,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
   },
 });
 

@@ -215,10 +215,16 @@ const VerseJournalingModal = ({ visible, onClose, verse, verseReference }) => {
               </LinearGradient>
               
               <View style={styles.verseContent}>
-                <Text style={[styles.verseText, { 
-                  color: theme.text,
-                  backgroundColor: selectedHighlight ? `${selectedHighlight}20` : 'transparent'
-                }]}>
+                <Text 
+                  style={[styles.verseText, { 
+                    color: theme.text,
+                    backgroundColor: selectedHighlight ? `${selectedHighlight}20` : 'transparent'
+                  }]}
+                  selectable={true}
+                  selectTextOnFocus={false}
+                  dataDetectorType="none"
+                  allowFontScaling={true}
+                >
                   "{verse?.content || verse?.text || verse || 'No verse text available'}"
                 </Text>
               </View>

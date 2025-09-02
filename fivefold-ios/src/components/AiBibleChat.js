@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   Alert,
   Clipboard,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -24,8 +26,9 @@ import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 
 // Bible Verse Reference Parser Component
 const BibleVerseText = memo(({ text, style, onVersePress }) => {
-  // Regex to match Bible verse references like "John 3:16", "1 Corinthians 13:4-7", "Isaiah 14:12"
-  const bibleVerseRegex = /(\d?\s?[A-Za-z]+\s?\d+:\d+(?:-\d+)?)/g;
+  // Enhanced regex to match various Bible verse reference formats:
+  // "John 3:16", "1 Corinthians 13:4-7", "Matthew, chapter 1, verse 1", "book of Matthew, chapter 1, verse 1"
+  const bibleVerseRegex = /(?:(?:the\s+)?book\s+of\s+)?(\d?\s?[A-Za-z]+)(?:,?\s*chapter\s+(\d+)(?:,?\s*verses?\s+(\d+)(?:-(\d+))?)?|\s+(\d+):(\d+)(?:-(\d+))?)/gi;
   
   const parts = [];
   let lastIndex = 0;
@@ -41,12 +44,35 @@ const BibleVerseText = memo(({ text, style, onVersePress }) => {
       });
     }
     
+    // Parse the matched groups to create a standardized reference
+    const book = match[1]; // Book name
+    const chapter1 = match[2]; // Chapter from "chapter X" format
+    const verse1 = match[3]; // Verse from "verse X" format  
+    const verseEnd1 = match[4]; // End verse from "verse X-Y" format
+    const chapter2 = match[5]; // Chapter from "Book X:Y" format
+    const verse2 = match[6]; // Verse from "Book X:Y" format
+    const verseEnd2 = match[7]; // End verse from "Book X:Y-Z" format
+    
+    // Determine the actual chapter and verse numbers
+    const chapter = chapter1 || chapter2;
+    const verse = verse1 || verse2;
+    const verseEnd = verseEnd1 || verseEnd2;
+    
+    // Create standardized reference format (Book Chapter:Verse)
+    let standardReference = book;
+    if (chapter && verse) {
+      standardReference = `${book} ${chapter}:${verse}`;
+      if (verseEnd) {
+        standardReference += `-${verseEnd}`;
+      }
+    }
+    
     // Add the Bible verse reference
     parts.push({
       type: 'verse',
       content: match[0],
       key: `verse-${match.index}`,
-      reference: match[0].trim()
+      reference: standardReference.trim()
     });
     
     lastIndex = match.index + match[0].length;
@@ -63,11 +89,27 @@ const BibleVerseText = memo(({ text, style, onVersePress }) => {
   
   // If no matches found, return original text
   if (parts.length === 0) {
-    return <Text style={style}>{text}</Text>;
+    return (
+      <Text 
+        style={style} 
+        selectable={true}
+        selectTextOnFocus={false}
+        dataDetectorType="none"
+        allowFontScaling={true}
+      >
+        {text}
+      </Text>
+    );
   }
   
   return (
-    <Text style={style}>
+    <Text 
+      style={style} 
+      selectable={true}
+      selectTextOnFocus={false}
+      dataDetectorType="none"
+      allowFontScaling={true}
+    >
       {parts.map((part) => {
         if (part.type === 'verse') {
           return (
@@ -141,6 +183,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [userName, setUserName] = useState('Friend');
   const [nameLoaded, setNameLoaded] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef(null);
 
   // Suggested questions that appear on first load
@@ -174,6 +217,32 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     };
     
     loadUserName();
+  }, []);
+
+  // Handle keyboard events for better input visibility
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener?.remove();
+      keyboardWillHideListener?.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -335,8 +404,16 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         console.log('🔍 AiBibleChat - NOT adding name context because userName is:', userName);
       }
       
+      // Pass conversation context to prevent repeated greetings
+      const isFirstMessage = messages.length <= 1;
+      const conversationContext = {
+        isFirstMessage,
+        messageCount: messages.length,
+        userName: userName
+      };
+      
       // Direct call to proxy for chat (not task analysis!)
-      const response = await aiService.chatWithFriend(contextualQuestion);
+      const response = await aiService.chatWithFriend(contextualQuestion, conversationContext);
       
       if (response) {
         console.log('✅ Friend response received');
@@ -472,17 +549,22 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   };
 
   const renderSuggestedQuestions = () => {
+    console.log('🔍 AiBibleChat - renderSuggestedQuestions called, messages.length:', messages.length);
     if (messages.length > 1) return null; // Only show on welcome
 
     return (
       <View style={styles.suggestionsContainer}>
+        {console.log('🔍 AiBibleChat - Rendering suggested questions')}
         {suggestedQuestions.map((question, index) => (
           <TouchableOpacity
             key={index}
-            style={[styles.suggestionButton, { backgroundColor: theme.verseBackground, borderColor: theme.border }]}
+            style={[styles.suggestionButton, { 
+              backgroundColor: theme.verseBackground || theme.card || (isDark ? '#2D2D2D' : '#F5F5F5'), 
+              borderColor: theme.border || (isDark ? '#444444' : '#E0E0E0') 
+            }]}
             onPress={() => handleSuggestedQuestion(question)}
           >
-            <Text style={[styles.suggestionText, { color: theme.text }]}>
+            <Text style={[styles.suggestionText, { color: theme.text || (isDark ? '#FFFFFF' : '#000000') }]}>
               {question}
             </Text>
           </TouchableOpacity>
@@ -498,9 +580,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}>
           {/* Header */}
-          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+          <View style={[styles.header, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF'), borderBottomColor: theme.border || (isDark ? '#333333' : '#E0E0E0') }]}>
             <TouchableOpacity onPress={handleClose} style={styles.backButton}>
               <MaterialIcons name="arrow-back" size={24} color={theme.text} />
             </TouchableOpacity>
@@ -510,18 +592,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView 
-          style={styles.chatContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
+        <View style={styles.chatContainer}>
           {/* Messages */}
           <ScrollView
             ref={scrollViewRef}
-            style={styles.messagesContainer}
+            style={[styles.messagesContainer, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.messagesContent}
+            contentContainerStyle={[styles.messagesContent, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
           >
+            {console.log('🔍 AiBibleChat - Messages array:', messages)}
             {messages.map(renderMessage)}
             {renderSuggestedQuestions()}
             
@@ -538,19 +617,50 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               </View>
             )}
           </ScrollView>
+        </View>
 
-          {/* Input Area */}
-          <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-            <View style={[styles.inputWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {/* Input Area - Fixed at bottom with keyboard avoidance */}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <View style={[
+            styles.inputContainer, 
+            { 
+              backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF'), 
+              borderTopColor: theme.border || (isDark ? '#333333' : '#E0E0E0'),
+            }
+          ]}>
+            <View style={[styles.inputWrapper, { 
+              backgroundColor: theme.card || (isDark ? '#2D2D2D' : '#FFFFFF'), 
+              borderColor: theme.border || (isDark ? '#444444' : '#E0E0E0')
+            }]}>
               <TextInput
-                style={[styles.textInput, { color: theme.text }]}
+                style={[styles.textInput, { 
+                  color: theme.text || (isDark ? '#FFFFFF' : '#000000'), // Fallback colors
+                  backgroundColor: 'transparent' // Ensure background is transparent
+                }]}
                 placeholder="Ask me anything..."
-                placeholderTextColor={theme.textSecondary}
+                placeholderTextColor={theme.textSecondary || (isDark ? '#AAAAAA' : '#666666')}
                 value={inputText}
-                onChangeText={setInputText}
+                onChangeText={(text) => {
+                  console.log('💬 Text input changed:', text); // Debug logging
+                  setInputText(text);
+                }}
+                onFocus={() => {
+                  console.log('💬 Text input focused');
+                  // Scroll to bottom when input is focused
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
                 multiline
                 maxLength={1000}
                 onSubmitEditing={() => sendMessage()}
+                autoCorrect={true}
+                autoCapitalize="sentences"
+                returnKeyType="send"
+                blurOnSubmit={false}
               />
               <TouchableOpacity
                 style={[styles.sendButton, { backgroundColor: inputText.trim() ? theme.primary : theme.textSecondary }]}
@@ -702,7 +812,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     maxHeight: 100,
+    minHeight: 32,
     marginRight: 12,
+    paddingVertical: 4,
+    textAlignVertical: 'top', // For Android
   },
   sendButton: {
     width: 32,
