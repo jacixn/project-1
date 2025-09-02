@@ -119,7 +119,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       image: require('../assets/adam.png'),
       story: `Adam is the first human being created by God, formed from dust and given life through God's breath (Genesis 1-3). His name means "man" or "human" and comes from the Hebrew word for ground (adamah). God placed Adam in the Garden of Eden to tend it and gave him authority to name all the animals. When God saw it wasn't good for Adam to be alone, He created Eve from Adam's rib as his companion.
 
-Adam's most significant moment comes with the Fall. Despite God's warning not to eat from the tree of the knowledge of good and evil, Adam (along with Eve) ate the forbidden fruit after being tempted. This act of disobedience brought sin and death into the world. When God confronted him, Adam blamed both Eve and God himself ("The woman you put here with me—she gave me some fruit"). As punishment, God cursed the ground, making Adam's work difficult, and declared that he would eventually die and return to dust.
+Adam's most significant moment comes with the Fall. Despite God's warning not to eat from the tree of the knowledge of good and evil, Adam (along with Eve) ate the forbidden fruit after being tempted. This act of disobedience brought sin and death into the world. When God confronted him, Adam blamed both Eve and God himself ("The woman you put here with me - she gave me some fruit"). As punishment, God cursed the ground, making Adam's work difficult, and declared that he would eventually die and return to dust.
 
 After the Fall, Adam lived 930 years and had many children, including Cain, Abel, and Seth. He represents humanity's original innocence, fall into sin, and need for redemption.`,
       themes: [
