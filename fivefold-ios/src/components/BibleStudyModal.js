@@ -716,120 +716,191 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.detailHeader}>
+        {/* Professional Header with Back Button */}
+        <View style={styles.professionalHeader}>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={styles.modernBackButton}
             onPress={() => {
               hapticFeedback.light();
               setSelectedCharacter(null);
             }}
           >
-            <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            <View style={[styles.backButtonCircle, { backgroundColor: `${section.color}15` }]}>
+              <MaterialIcons name="arrow-back" size={20} color={section.color} />
+            </View>
           </TouchableOpacity>
-          
-          <View style={styles.detailTitleContainer}>
+        </View>
+
+        {/* Stunning Hero Section */}
+        <View style={[styles.heroSection, { backgroundColor: `${section.color}08` }]}>
+          <LinearGradient
+            colors={[`${section.color}15`, `${section.color}05`, 'transparent']}
+            style={styles.heroGradient}
+          >
+            {/* Enhanced Profile Image */}
             {character.image && (
-              <View style={styles.profileImageContainer}>
-                <LinearGradient
-                  colors={[`${section.color}20`, `${section.color}10`, 'transparent']}
-                  style={styles.profileImageGradient}
-                >
-                  <Image 
-                    source={character.image}
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                </LinearGradient>
+              <View style={styles.heroImageContainer}>
+                <View style={[styles.imageRing, { borderColor: `${section.color}40` }]}>
+                  <View style={[styles.imageRingInner, { borderColor: `${section.color}60` }]}>
+                    <Image
+                      source={character.image}
+                      style={styles.heroImage}
+                      resizeMode="cover"
+                    />
+                    <View style={[styles.imageGlow, { backgroundColor: `${section.color}20` }]} />
+                  </View>
+                </View>
               </View>
             )}
-            <Text style={[styles.characterDetailTitle, { color: theme.text }]}>
-              {character.name}
-            </Text>
-          </View>
+            
+            {/* Beautiful Typography */}
+            <View style={styles.nameContainer}>
+              <View style={[styles.decorativeLine, { backgroundColor: section.color }]} />
+              <Text style={[styles.characterHeroTitle, { color: theme.text }]}>
+                {character.name.split(' - ')[0]}
+              </Text>
+              <Text style={[styles.characterSubtitle, { color: section.color }]}>
+                {character.name.split(' - ')[1]}
+              </Text>
+              <View style={[styles.decorativeLine, { backgroundColor: section.color }]} />
+            </View>
+          </LinearGradient>
         </View>
 
-        {/* Biblical Story */}
-        <View style={styles.characterSection}>
-          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
-            📖 Biblical Story
-          </Text>
-          <Text 
-            style={[styles.characterSectionText, { color: theme.text }]}
-            selectable={true}
-            selectTextOnFocus={false}
-            dataDetectorType="none"
-            allowFontScaling={true}
-          >
-            {character.story}
-          </Text>
-        </View>
-
-        {/* Key Themes */}
-        <View style={styles.characterSection}>
-          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
-            🎯 Key Themes
-          </Text>
-          {character.themes.map((theme, index) => (
-            <View key={index} style={styles.themeItem}>
-              <Text style={[styles.themeBullet, { color: section.color }]}>•</Text>
+        {/* Story Card - Magazine Style */}
+        <View style={styles.cardContainer}>
+          <View style={[styles.storyCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+            <LinearGradient
+              colors={[`${section.color}08`, 'transparent']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
+                  <MaterialIcons name="auto-stories" size={24} color={section.color} />
+                </View>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  Biblical Story
+                </Text>
+              </View>
+              
               <Text 
-                style={[styles.themeText, { color: theme.text }]}
+                style={[styles.storyText, { color: theme.textSecondary }]}
                 selectable={true}
                 selectTextOnFocus={false}
                 dataDetectorType="none"
                 allowFontScaling={true}
               >
-                {theme}
+                {character.story}
               </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Cultural Impact */}
-        <View style={styles.characterSection}>
-          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
-            🎨 Cultural Impact
-          </Text>
-          <Text 
-            style={[styles.characterSectionText, { color: theme.text }]}
-            selectable={true}
-            selectTextOnFocus={false}
-            dataDetectorType="none"
-            allowFontScaling={true}
-          >
-            {character.culturalImpact}
-          </Text>
-        </View>
-
-        {/* Key Verses */}
-        <View style={styles.characterSection}>
-          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
-            📜 Key Verses
-          </Text>
-          <View style={styles.versesContainer}>
-            {character.verses.map((verse, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.verseCard, { backgroundColor: theme.card }]}
-                onPress={() => {
-                  hapticFeedback.light();
-                  // Future: Navigate to Bible verse
-                }}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={[`${section.color}10`, 'transparent']}
-                  style={styles.verseCardGradient}
-                >
-                  <MaterialIcons name="book" size={16} color={section.color} />
-                  <Text style={[styles.verseText, { color: theme.text }]}>
-                    {verse}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+            </LinearGradient>
           </View>
         </View>
+
+        {/* Themes Card - Beautiful Grid */}
+        <View style={styles.cardContainer}>
+          <View style={[styles.themesCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+            <LinearGradient
+              colors={[`${section.color}08`, 'transparent']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
+                  <MaterialIcons name="psychology" size={24} color={section.color} />
+                </View>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  Key Themes
+                </Text>
+              </View>
+              
+              <View style={styles.themesGrid}>
+                {character.themes.map((theme, index) => (
+                  <View key={index} style={[styles.themeCard, { backgroundColor: `${section.color}10` }]}>
+                    <View style={[styles.themeIndicator, { backgroundColor: section.color }]} />
+                    <Text 
+                      style={[styles.themeCardText, { color: theme.text }]}
+                      selectable={true}
+                      selectTextOnFocus={false}
+                      dataDetectorType="none"
+                      allowFontScaling={true}
+                    >
+                      {theme}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Cultural Impact Card */}
+        <View style={styles.cardContainer}>
+          <View style={[styles.culturalCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+            <LinearGradient
+              colors={[`${section.color}08`, 'transparent']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
+                  <MaterialIcons name="palette" size={24} color={section.color} />
+                </View>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  Cultural Impact
+                </Text>
+              </View>
+              
+              <Text 
+                style={[styles.culturalText, { color: theme.textSecondary }]}
+                selectable={true}
+                selectTextOnFocus={false}
+                dataDetectorType="none"
+                allowFontScaling={true}
+              >
+                {character.culturalImpact}
+              </Text>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Key Verses Card - Elegant Chips */}
+        <View style={styles.cardContainer}>
+          <View style={[styles.versesCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+            <LinearGradient
+              colors={[`${section.color}08`, 'transparent']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
+                  <MaterialIcons name="menu-book" size={24} color={section.color} />
+                </View>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  Key Verses
+                </Text>
+              </View>
+              
+              <View style={styles.versesGrid}>
+                {character.verses.map((verse, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.verseChip, { backgroundColor: `${section.color}12`, borderColor: `${section.color}30` }]}
+                    onPress={() => {
+                      hapticFeedback.light();
+                      // Future: Navigate to Bible verse
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="bookmark" size={16} color={section.color} />
+                    <Text style={[styles.verseChipText, { color: section.color }]}>
+                      {verse}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     );
   };
@@ -1180,6 +1251,205 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 8,
+  },
+  // Professional UI Styles
+  professionalHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  modernBackButton: {
+    alignSelf: 'flex-start',
+  },
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  heroSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    marginBottom: 20,
+  },
+  heroGradient: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  heroImageContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  imageRing: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  imageRingInner: {
+    width: 165,
+    height: 165,
+    borderRadius: 82.5,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  heroImage: {
+    width: 155,
+    height: 155,
+    borderRadius: 77.5,
+  },
+  imageGlow: {
+    position: 'absolute',
+    width: 155,
+    height: 155,
+    borderRadius: 77.5,
+    opacity: 0.3,
+  },
+  nameContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  decorativeLine: {
+    width: 60,
+    height: 3,
+    borderRadius: 1.5,
+    marginVertical: 12,
+  },
+  characterHeroTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  characterSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  cardContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  storyCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  themesCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  culturalCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  versesCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  cardGradient: {
+    padding: 20,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    flex: 1,
+  },
+  storyText: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'justify',
+  },
+  themesGrid: {
+    gap: 12,
+  },
+  themeCard: {
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  themeIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 8,
+    marginRight: 12,
+  },
+  themeCardText: {
+    fontSize: 15,
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: '500',
+  },
+  culturalText: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'justify',
+  },
+  versesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  verseChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  verseChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
 
