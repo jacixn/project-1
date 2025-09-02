@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   storyText: {
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'justify',
+    textAlign: 'left',
   },
   themesGrid: {
     gap: 12,
@@ -1433,7 +1433,7 @@ const styles = StyleSheet.create({
   culturalText: {
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'justify',
+    textAlign: 'left',
   },
   versesGrid: {
     flexDirection: 'row',
