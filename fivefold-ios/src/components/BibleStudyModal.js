@@ -769,9 +769,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
         {/* Story Card - Magazine Style */}
         <View style={styles.cardContainer}>
-          <View style={[styles.storyCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+          <View style={[styles.storyCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
             <LinearGradient
-              colors={[`${section.color}08`, 'transparent']}
+              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
@@ -784,7 +784,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               </View>
               
               <Text 
-                style={[styles.storyText, { color: theme.textSecondary }]}
+                style={[styles.storyText, { color: theme.text }]}
                 selectable={true}
                 selectTextOnFocus={false}
                 dataDetectorType="none"
@@ -798,9 +798,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
         {/* Themes Card - Beautiful Grid */}
         <View style={styles.cardContainer}>
-          <View style={[styles.themesCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+          <View style={[styles.themesCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
             <LinearGradient
-              colors={[`${section.color}08`, 'transparent']}
+              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
@@ -813,8 +813,8 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               </View>
               
               <View style={styles.themesGrid}>
-                {character.themes.map((theme, index) => (
-                  <View key={index} style={[styles.themeCard, { backgroundColor: `${section.color}10` }]}>
+                {character.themes.map((themeText, index) => (
+                  <View key={index} style={[styles.themeCard, { backgroundColor: `${section.color}15`, borderColor: `${section.color}30`, borderWidth: 1 }]}>
                     <View style={[styles.themeIndicator, { backgroundColor: section.color }]} />
                     <Text 
                       style={[styles.themeCardText, { color: theme.text }]}
@@ -823,7 +823,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                       dataDetectorType="none"
                       allowFontScaling={true}
                     >
-                      {theme}
+                      {themeText}
                     </Text>
                   </View>
                 ))}
@@ -834,9 +834,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
         {/* Cultural Impact Card */}
         <View style={styles.cardContainer}>
-          <View style={[styles.culturalCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+          <View style={[styles.culturalCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
             <LinearGradient
-              colors={[`${section.color}08`, 'transparent']}
+              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
@@ -849,7 +849,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               </View>
               
               <Text 
-                style={[styles.culturalText, { color: theme.textSecondary }]}
+                style={[styles.culturalText, { color: theme.text }]}
                 selectable={true}
                 selectTextOnFocus={false}
                 dataDetectorType="none"
@@ -863,9 +863,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
         {/* Key Verses Card - Elegant Chips */}
         <View style={styles.cardContainer}>
-          <View style={[styles.versesCard, { backgroundColor: theme.card, shadowColor: section.color }]}>
+          <View style={[styles.versesCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
             <LinearGradient
-              colors={[`${section.color}08`, 'transparent']}
+              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
