@@ -19,6 +19,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
 
   const studySections = [
     {
@@ -110,6 +111,72 @@ const BibleStudyModal = ({ visible, onClose }) => {
       features: ['Ancient customs', 'Food & clothing', 'Social structure', 'Historical context']
     }
   ];
+
+  const characterProfiles = {
+    'Adam': {
+      name: 'Adam - The First Man',
+      story: `Adam is the first human being created by God, formed from dust and given life through God's breath (Genesis 1-3). His name means "man" or "human" and comes from the Hebrew word for ground (adamah). God placed Adam in the Garden of Eden to tend it and gave him authority to name all the animals. When God saw it wasn't good for Adam to be alone, He created Eve from Adam's rib as his companion.
+
+Adam's most significant moment comes with the Fall. Despite God's warning not to eat from the tree of the knowledge of good and evil, Adam (along with Eve) ate the forbidden fruit after being tempted. This act of disobedience brought sin and death into the world. When God confronted him, Adam blamed both Eve and God himself ("The woman you put here with me—she gave me some fruit"). As punishment, God cursed the ground, making Adam's work difficult, and declared that he would eventually die and return to dust.
+
+After the Fall, Adam lived 930 years and had many children, including Cain, Abel, and Seth. He represents humanity's original innocence, fall into sin, and need for redemption.`,
+      themes: [
+        'Image of God: Adam was created in God\'s image, establishing human dignity and our role as God\'s representatives on earth',
+        'Original Sin: Adam\'s disobedience introduced sin into humanity, affecting all his descendants',
+        'Type of Christ: In Christian theology, Adam is contrasted with Jesus (the "Second Adam"). Where Adam\'s disobedience brought death, Christ\'s obedience brought life'
+      ],
+      culturalImpact: `Adam appears throughout art, literature, and culture. Michelangelo's "Creation of Adam" on the Sistine Chapel ceiling is one of the most famous religious paintings. Milton's "Paradise Lost" portrays Adam as noble but ultimately responsible for the Fall. The phrase "Adam's apple" comes from the folk belief that the forbidden fruit got stuck in his throat.`,
+      verses: ['Genesis 1:27', 'Genesis 2:7', 'Genesis 3:19', 'Romans 5:12']
+    },
+    'Eve': {
+      name: 'Eve - The First Woman',
+      story: `Eve is the first woman, created by God from Adam's rib to be his companion (Genesis 2-3). When Adam first sees her, he joyfully declares, "This is now bone of my bones and flesh of my flesh." Her creation establishes the institution of marriage and the principle that men and women are equal in essence and dignity.
+
+Eve plays a crucial role in the Fall. The serpent approaches her with questions about God's command, eventually deceiving her into believing that eating the forbidden fruit would make her wise like God. She takes the fruit and also gives some to Adam. When God confronts them, Eve acknowledges her deception: "The serpent deceived me, and I ate."
+
+After the Fall, Adam names her Eve (meaning "living") because she would become "the mother of all living." God promises that her offspring would eventually defeat the serpent, which Christians interpret as the first hint of salvation through Jesus Christ. Eve experienced the pain of childbirth and the difficulty of relationships as consequences of sin.`,
+      themes: [
+        'Helper and Equality: Eve was created as Adam\'s equal partner, not his subordinate',
+        'Temptation and Choice: Her conversation with the serpent represents humanity\'s struggle with temptation and the freedom to choose',
+        'Mother of Humanity: As the mother of all living people, Eve represents both the entry of sin and the hope of redemption',
+        'New Eve: Christian tradition sees Mary, the mother of Jesus, as the "New Eve" whose obedience reversed Eve\'s disobedience'
+      ],
+      culturalImpact: `Eve appears frequently in art, often at the moment of temptation or after the Fall. Renaissance painters like Titian and Dürer portrayed her as the archetype of beauty and temptation. In literature, Milton's "Paradise Lost" gives Eve a complex character who shows both intelligence and remorse. Modern feminist interpretations often emphasize her desire for wisdom and her role as a tragic figure rather than simply the cause of humanity's problems.`,
+      verses: ['Genesis 2:22-23', 'Genesis 3:6', 'Genesis 3:15', 'Genesis 3:20']
+    },
+    'Cain': {
+      name: 'Cain - The First Murderer',
+      story: `Cain is Adam and Eve's firstborn son, whose name means "acquired" (Genesis 4). He became a farmer while his brother Abel became a shepherd. When both brothers brought offerings to God, God accepted Abel's offering of the best portions from his flock but rejected Cain's offering of produce from the ground.
+
+Consumed by anger and jealousy, Cain murdered Abel in the field, making him history's first murderer. When God asked where Abel was, Cain gave the famous callous response: "I don't know. Am I my brother's keeper?" God cursed Cain to be a restless wanderer, unable to successfully farm the ground that had absorbed Abel's blood.
+
+Fearing for his life, Cain complained that his punishment was too great. In an act of mercy, God placed a protective mark on Cain, warning that anyone who killed him would face sevenfold vengeance. Cain then went to live in the land of Nod ("wandering") east of Eden, where he built the first city and had descendants who became pioneers in music, metalworking, and other crafts.`,
+      themes: [
+        'Sin\'s Progression: Cain\'s story shows how quickly sin escalated from disobedience (Adam and Eve) to murder in the next generation',
+        'Brother\'s Keeper: His question "Am I my brother\'s keeper?" has become a fundamental moral challenge about our responsibility for others',
+        'Jealousy and Worship: Cain\'s rejected offering teaches that God desires sincere worship from the heart, not just external ritual',
+        'Grace in Judgment: Even as God punished Cain, He also protected him, showing mercy within justice'
+      ],
+      culturalImpact: `The phrase "raising Cain" means causing trouble, while the "mark of Cain" refers to a stigma of shame. Cain and Abel represent the eternal struggle between good and evil, appearing in countless works from Byron's dramatic poem "Cain" to Steinbeck's "East of Eden." The question "Am I my brother's keeper?" continues to challenge discussions about social responsibility and human compassion.`,
+      verses: ['Genesis 4:1-16', 'Hebrews 11:4', '1 John 3:12']
+    },
+    'Abel': {
+      name: 'Abel - The First Martyr',
+      story: `Abel is Adam and Eve's second son, whose name means "breath" or "vapor" (Genesis 4). He became a shepherd and brought God an offering of the fat portions from the firstborn of his flock. God looked favorably on Abel and his offering, which sparked his brother Cain's deadly jealousy.
+
+Abel speaks no recorded words in Scripture. When Cain invited him to the field, Abel went unsuspectingly and was murdered there. His death made him the first martyr—an innocent person killed for his righteousness. God told Cain that Abel's blood was crying out from the ground for justice.
+
+Though Abel died childless and young, his legacy lived on. Jesus called him "righteous Abel" and placed him first in the line of righteous people who suffered persecution. The Book of Hebrews honors Abel as the first person in its "hall of faith," saying that "by faith Abel still speaks, even though he is dead."`,
+      themes: [
+        'True Worship: Abel exemplifies genuine faith-based worship, offering his best to God with a sincere heart',
+        'Innocent Suffering: As the first martyr, Abel represents all righteous people who suffer for their faith',
+        'Blood that Speaks: Abel\'s spilled blood crying for justice contrasts with Christ\'s blood, which speaks for mercy and forgiveness',
+        'Faith\'s Testimony: Though Abel died young, his faith continues to teach and inspire others'
+      ],
+      culturalImpact: `Abel appears in Christian art as a shepherd with a lamb, often symbolizing Christ the Good Shepherd. His story represents the triumph of faith over worldly success and the eternal significance of righteousness. The concept of Abel as the first martyr connects him to all later martyrs and saints who died for their beliefs.`,
+      verses: ['Genesis 4:2-10', 'Matthew 23:35', 'Hebrews 11:4', 'Hebrews 12:24']
+    }
+  };
 
   const characterGroups = [
     {
@@ -468,6 +535,10 @@ const BibleStudyModal = ({ visible, onClose }) => {
   };
 
   const renderCharactersSection = (section) => {
+    if (selectedCharacter) {
+      return renderCharacterDetail();
+    }
+    
     if (selectedCharacterGroup) {
       return renderCharacterGroupDetail();
     }
@@ -570,7 +641,9 @@ const BibleStudyModal = ({ visible, onClose }) => {
               style={[styles.characterCard, { backgroundColor: theme.card }]}
               onPress={() => {
                 hapticFeedback.light();
-                // Future: Navigate to character detail
+                if (characterProfiles[character]) {
+                  setSelectedCharacter(character);
+                }
               }}
               activeOpacity={0.7}
             >
@@ -581,7 +654,40 @@ const BibleStudyModal = ({ visible, onClose }) => {
                 <Text style={[styles.characterName, { color: theme.text }]}>
                   {character}
                 </Text>
-                <MaterialIcons name="person" size={16} color={section.color} />
+                <MaterialIcons 
+                  name={characterProfiles[character] ? "info" : "person"} 
+                  size={16} 
+                  color={section.color} 
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Show available profiles */}
+        <View style={styles.availableProfilesContainer}>
+          <Text style={[styles.availableProfilesTitle, { color: theme.text }]}>
+            📚 Detailed Profiles Available
+          </Text>
+          {group.characters.filter(char => characterProfiles[char]).map((character, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.profilePreviewCard, { backgroundColor: theme.card }]}
+              onPress={() => {
+                hapticFeedback.light();
+                setSelectedCharacter(character);
+              }}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={[`${section.color}15`, `${section.color}05`]}
+                style={styles.profilePreviewGradient}
+              >
+                <MaterialIcons name="info" size={20} color={section.color} />
+                <Text style={[styles.profilePreviewName, { color: theme.text }]}>
+                  {characterProfiles[character].name}
+                </Text>
+                <MaterialIcons name="chevron-right" size={16} color={theme.textTertiary} />
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -591,12 +697,122 @@ const BibleStudyModal = ({ visible, onClose }) => {
           <BlurView intensity={20} style={styles.comingSoonCard}>
             <MaterialIcons name="construction" size={24} color={section.color} />
             <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-              Character Profiles Coming Soon!
+              More Profiles Coming Soon!
             </Text>
             <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-              Detailed profiles with life stories, key events, family trees, and Bible references are being prepared for each character.
+              Detailed profiles for all characters are being prepared with life stories, key events, family trees, and Bible references.
             </Text>
           </BlurView>
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const renderCharacterDetail = () => {
+    const character = characterProfiles[selectedCharacter];
+    const section = studySections.find(s => s.id === 'characters');
+
+    return (
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.detailHeader}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => {
+              hapticFeedback.light();
+              setSelectedCharacter(null);
+            }}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+          </TouchableOpacity>
+          
+          <View style={styles.detailTitleContainer}>
+            <Text style={[styles.characterDetailTitle, { color: theme.text }]}>
+              {character.name}
+            </Text>
+          </View>
+        </View>
+
+        {/* Biblical Story */}
+        <View style={styles.characterSection}>
+          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
+            📖 Biblical Story
+          </Text>
+          <Text 
+            style={[styles.characterSectionText, { color: theme.text }]}
+            selectable={true}
+            selectTextOnFocus={false}
+            dataDetectorType="none"
+            allowFontScaling={true}
+          >
+            {character.story}
+          </Text>
+        </View>
+
+        {/* Key Themes */}
+        <View style={styles.characterSection}>
+          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
+            🎯 Key Themes
+          </Text>
+          {character.themes.map((theme, index) => (
+            <View key={index} style={styles.themeItem}>
+              <Text style={[styles.themeBullet, { color: section.color }]}>•</Text>
+              <Text 
+                style={[styles.themeText, { color: theme.text }]}
+                selectable={true}
+                selectTextOnFocus={false}
+                dataDetectorType="none"
+                allowFontScaling={true}
+              >
+                {theme}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Cultural Impact */}
+        <View style={styles.characterSection}>
+          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
+            🎨 Cultural Impact
+          </Text>
+          <Text 
+            style={[styles.characterSectionText, { color: theme.text }]}
+            selectable={true}
+            selectTextOnFocus={false}
+            dataDetectorType="none"
+            allowFontScaling={true}
+          >
+            {character.culturalImpact}
+          </Text>
+        </View>
+
+        {/* Key Verses */}
+        <View style={styles.characterSection}>
+          <Text style={[styles.characterSectionTitle, { color: section.color }]}>
+            📜 Key Verses
+          </Text>
+          <View style={styles.versesContainer}>
+            {character.verses.map((verse, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.verseCard, { backgroundColor: theme.card }]}
+                onPress={() => {
+                  hapticFeedback.light();
+                  // Future: Navigate to Bible verse
+                }}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[`${section.color}10`, 'transparent']}
+                  style={styles.verseCardGradient}
+                >
+                  <MaterialIcons name="book" size={16} color={section.color} />
+                  <Text style={[styles.verseText, { color: theme.text }]}>
+                    {verse}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
     );
@@ -845,6 +1061,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  // Available Profiles Styles
+  availableProfilesContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  availableProfilesTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  profilePreviewCard: {
+    marginBottom: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  profilePreviewGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  profilePreviewName: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+    marginLeft: 12,
+  },
+  // Character Detail Styles
+  characterDetailTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  characterSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  characterSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  characterSectionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'justify',
+  },
+  themeItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    paddingRight: 8,
+  },
+  themeBullet: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+    marginTop: 2,
+  },
+  themeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  versesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  verseCard: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  verseCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  verseText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 
