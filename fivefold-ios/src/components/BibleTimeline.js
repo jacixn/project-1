@@ -27,7 +27,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     Array.from({ length: 12 }, () => ({
       float: new Animated.Value(0),
       pulse: new Animated.Value(1),
-      rotate: new Animated.Value(0),
     }))
   );
 
@@ -161,19 +160,19 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     }
   ];
 
-  // Floating animation for bubbles
+  // Smooth floating animation for bubbles (no rotation)
   useEffect(() => {
     const animations = bubbleAnimations.map((anim, index) => {
       const floatAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(anim.float, {
             toValue: 1,
-            duration: 3000 + (index * 200),
+            duration: 4000 + (index * 300),
             useNativeDriver: true,
           }),
           Animated.timing(anim.float, {
             toValue: 0,
-            duration: 3000 + (index * 200),
+            duration: 4000 + (index * 300),
             useNativeDriver: true,
           }),
         ])
@@ -182,38 +181,28 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(anim.pulse, {
-            toValue: 1.05,
-            duration: 2000 + (index * 150),
+            toValue: 1.03,
+            duration: 3000 + (index * 200),
             useNativeDriver: true,
           }),
           Animated.timing(anim.pulse, {
             toValue: 1,
-            duration: 2000 + (index * 150),
+            duration: 3000 + (index * 200),
             useNativeDriver: true,
           }),
         ])
       );
 
-      const rotateAnimation = Animated.loop(
-        Animated.timing(anim.rotate, {
-          toValue: 1,
-          duration: 20000 + (index * 1000),
-          useNativeDriver: true,
-        })
-      );
-
       floatAnimation.start();
       pulseAnimation.start();
-      rotateAnimation.start();
 
-      return { floatAnimation, pulseAnimation, rotateAnimation };
+      return { floatAnimation, pulseAnimation };
     });
 
     return () => {
-      animations.forEach(({ floatAnimation, pulseAnimation, rotateAnimation }) => {
+      animations.forEach(({ floatAnimation, pulseAnimation }) => {
         floatAnimation.stop();
         pulseAnimation.stop();
-        rotateAnimation.stop();
       });
     };
   }, []);
@@ -283,19 +272,13 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
               {
                 translateY: anim.float.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, -15],
+                  outputRange: [0, -8],
                 }),
               },
               {
                 scale: anim.pulse.interpolate({
-                  inputRange: [1, 1.05],
-                  outputRange: [isSelected ? 1.1 : 1, isSelected ? 1.15 : 1.05],
-                }),
-              },
-              {
-                rotate: anim.rotate.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '360deg'],
+                  inputRange: [1, 1.03],
+                  outputRange: [isSelected ? 1.1 : 1, isSelected ? 1.13 : 1.03],
                 }),
               },
             ],
@@ -454,24 +437,56 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     );
   };
 
-  // Pan responder for dragging the mindmap
+  // Smooth pan responder for intuitive mindmap movement
   const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+    },
     onPanResponderGrant: () => {
       hapticFeedback.light();
+      panX.setOffset(panX._value);
+      panY.setOffset(panY._value);
+      panX.setValue(0);
+      panY.setValue(0);
     },
     onPanResponderMove: (evt, gestureState) => {
+      // Smooth, responsive movement
       panX.setValue(gestureState.dx);
       panY.setValue(gestureState.dy);
     },
-    onPanResponderRelease: () => {
+    onPanResponderRelease: (evt, gestureState) => {
+      panX.flattenOffset();
+      panY.flattenOffset();
+      
+      // Smooth deceleration with boundaries
+      const maxX = 100;
+      const maxY = 200;
+      const minX = -100;
+      const minY = -200;
+      
+      let finalX = panX._value;
+      let finalY = panY._value;
+      
+      // Add momentum
+      finalX += gestureState.vx * 100;
+      finalY += gestureState.vy * 100;
+      
+      // Clamp to boundaries
+      finalX = Math.max(minX, Math.min(maxX, finalX));
+      finalY = Math.max(minY, Math.min(maxY, finalY));
+      
       Animated.spring(panX, {
-        toValue: 0,
+        toValue: finalX,
         useNativeDriver: true,
+        tension: 80,
+        friction: 8,
       }).start();
+      
       Animated.spring(panY, {
-        toValue: 0,
+        toValue: finalY,
         useNativeDriver: true,
+        tension: 80,
+        friction: 8,
       }).start();
     },
   });
@@ -505,58 +520,56 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Interactive Mindmap */}
-      <View style={styles.mindmapContainer} {...panResponder.panHandlers}>
-        <Animated.View
-          style={[
-            styles.mindmapContent,
-            {
-              transform: [
-                { translateX: panX },
-                { translateY: panY },
-                { scale: scale },
-              ],
-            },
-          ]}
-        >
-          {/* Connection Lines */}
-          <View style={styles.connectionsContainer}>
-            {timelineData.map((era) =>
-              era.connections.map((connectionId) =>
-                renderConnectionLine(era.id, connectionId)
-              )
-            )}
-          </View>
+      {/* Interactive Mindmap with Smooth Scrolling */}
+      <ScrollView
+        style={styles.mindmapScrollContainer}
+        contentContainerStyle={styles.mindmapContent}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        bounces={true}
+        bouncesZoom={true}
+        minimumZoomScale={0.8}
+        maximumZoomScale={2.0}
+        pinchGestureEnabled={true}
+        scrollEventThrottle={16}
+      >
+        {/* Connection Lines */}
+        <View style={styles.connectionsContainer}>
+          {timelineData.map((era) =>
+            era.connections.map((connectionId) =>
+              renderConnectionLine(era.id, connectionId)
+            )
+          )}
+        </View>
 
-          {/* Floating Bubbles */}
-          {timelineData.map((era, index) => renderTimelineBubble(era, index))}
-          
-          {/* Floating Particles */}
-          <View style={styles.particlesContainer}>
-            {Array.from({ length: 20 }).map((_, index) => (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.particle,
-                  {
-                    left: Math.random() * width,
-                    top: Math.random() * height,
-                    backgroundColor: timelineData[index % timelineData.length]?.color + '30',
-                    transform: [
-                      {
-                        translateY: bubbleAnimations[index % bubbleAnimations.length]?.float.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -30],
-                        }) || 0,
-                      },
-                    ],
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </Animated.View>
-      </View>
+        {/* Floating Bubbles */}
+        {timelineData.map((era, index) => renderTimelineBubble(era, index))}
+        
+        {/* Floating Particles */}
+        <View style={styles.particlesContainer}>
+          {Array.from({ length: 15 }).map((_, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.particle,
+                {
+                  left: Math.random() * (width * 1.2),
+                  top: Math.random() * 900,
+                  backgroundColor: timelineData[index % timelineData.length]?.color + '40',
+                  transform: [
+                    {
+                      translateY: bubbleAnimations[index % bubbleAnimations.length]?.float.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -20],
+                      }) || 0,
+                    },
+                  ],
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </ScrollView>
 
       {/* Era Detail Panel */}
       {renderSelectedEraDetail()}
@@ -626,12 +639,12 @@ const styles = StyleSheet.create({
   },
   
   // Interactive Mindmap
-  mindmapContainer: {
+  mindmapScrollContainer: {
     flex: 1,
-    position: 'relative',
   },
   mindmapContent: {
-    flex: 1,
+    width: width * 1.5,
+    height: 1000,
     position: 'relative',
   },
   
@@ -666,41 +679,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   bubbleBgEmoji: {
     position: 'absolute',
-    opacity: 0.3,
+    opacity: 0.2,
     zIndex: 1,
   },
   bubbleEmoji: {
     zIndex: 2,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   glowRing: {
     position: 'absolute',
-    borderWidth: 3,
-    opacity: 0.8,
+    borderWidth: 4,
+    opacity: 1,
     zIndex: 0,
+    elevation: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
   },
   bubbleTitle: {
     marginTop: 12,
     alignItems: 'center',
   },
   titleBlur: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   titleText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '900',
     textAlign: 'center',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subtitleText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 2,
+    letterSpacing: 0.3,
   },
   
   // Floating Particles
@@ -714,10 +750,15 @@ const styles = StyleSheet.create({
   },
   particle: {
     position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    opacity: 0.6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.7,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   },
   
   // Era Detail Panel
