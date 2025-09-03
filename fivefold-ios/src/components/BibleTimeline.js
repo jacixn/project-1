@@ -7,9 +7,8 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  PanGestureHandler,
-  GestureHandlerRootView,
 } from 'react-native';
+import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -178,7 +177,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   };
 
   const handleEraPress = (era) => {
-    hapticFeedback.impact.medium();
+    hapticFeedback.medium();
     setSelectedEra(era);
     setSelectedEvent(null);
     setShowEventDetail(false);
@@ -193,13 +192,13 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   };
 
   const handleEventPress = (eventId) => {
-    hapticFeedback.impact.light();
+    hapticFeedback.light();
     setSelectedEvent(epicEvents[eventId]);
     setShowEventDetail(true);
   };
 
   const closeEventDetail = () => {
-    hapticFeedback.impact.light();
+    hapticFeedback.light();
     setShowEventDetail(false);
     setSelectedEvent(null);
   };
@@ -411,7 +410,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
                         key={index}
                         style={[styles.verseButton, { backgroundColor: `${selectedEra?.color}15`, borderColor: `${selectedEra?.color}40` }]}
                         onPress={() => {
-                          hapticFeedback.impact.light();
+                          hapticFeedback.light();
                           if (onNavigateToVerse) onNavigateToVerse(verse);
                           closeEventDetail();
                         }}
