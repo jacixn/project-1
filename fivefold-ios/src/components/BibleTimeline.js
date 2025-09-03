@@ -231,28 +231,64 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     const toEra = timelineData.find(era => era.id === to);
     if (!fromEra || !toEra) return null;
 
-    const angle = Math.atan2(
-      toEra.position.y - fromEra.position.y,
-      toEra.position.x - fromEra.position.x
-    );
+    // Calculate smooth curved path
+    const startX = fromEra.position.x;
+    const startY = fromEra.position.y + fromEra.size / 2;
+    const endX = toEra.position.x;
+    const endY = toEra.position.y + toEra.size / 2;
+    
+    // Create curved path with control points
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const controlX = midX + (Math.random() - 0.5) * 50;
+    const controlY = midY - 30;
 
     return (
-      <View
-        key={`${from}-${to}`}
-        style={[
-          styles.connectionLine,
-          {
-            left: fromEra.position.x,
-            top: fromEra.position.y + fromEra.size / 2,
-            width: Math.sqrt(
-              Math.pow(toEra.position.x - fromEra.position.x, 2) +
-              Math.pow(toEra.position.y - fromEra.position.y, 2)
-            ),
-            transform: [{ rotate: `${angle}rad` }],
-            backgroundColor: fromEra.color + '40',
-          },
-        ]}
-      />
+      <View key={`${from}-${to}`} style={styles.connectionContainer}>
+        {/* Glowing connection line */}
+        <View
+          style={[
+            styles.connectionGlow,
+            {
+              left: startX,
+              top: startY,
+              width: Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)),
+              transform: [{ 
+                rotate: `${Math.atan2(endY - startY, endX - startX)}rad` 
+              }],
+              backgroundColor: fromEra.color + '20',
+            },
+          ]}
+        />
+        
+        {/* Main connection line */}
+        <View
+          style={[
+            styles.connectionLine,
+            {
+              left: startX,
+              top: startY,
+              width: Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)),
+              transform: [{ 
+                rotate: `${Math.atan2(endY - startY, endX - startX)}rad` 
+              }],
+              backgroundColor: fromEra.color + '60',
+            },
+          ]}
+        />
+        
+        {/* Flow particles along connection */}
+        <Animated.View
+          style={[
+            styles.flowParticle,
+            {
+              left: startX + (endX - startX) * 0.3,
+              top: startY + (endY - startY) * 0.3,
+              backgroundColor: fromEra.color,
+            },
+          ]}
+        />
+      </View>
     );
   };
 
@@ -492,12 +528,35 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Epic Header */}
+    <View style={styles.container}>
+      {/* Space-themed background */}
       <LinearGradient
-        colors={isDark ? ['#1a1a2e', '#16213e'] : ['#667eea', '#764ba2']}
-        style={styles.header}
+        colors={isDark 
+          ? ['#0F0F23', '#1B1B3A', '#2D1B69', '#0F0F23'] 
+          : ['#667eea', '#764ba2', '#667eea', '#f093fb']
+        }
+        style={styles.spaceBackground}
       >
+        {/* Cosmic particles */}
+        <View style={styles.cosmicParticles}>
+          {Array.from({ length: 50 }).map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.cosmicStar,
+                {
+                  left: Math.random() * width,
+                  top: Math.random() * height,
+                  opacity: Math.random() * 0.8 + 0.2,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </LinearGradient>
+
+      {/* Epic Header */}
+      <BlurView intensity={20} style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
           <BlurView intensity={20} style={styles.backButtonBlur}>
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
@@ -591,6 +650,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
+  // Space Theme Background
+  spaceBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  cosmicParticles: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  cosmicStar: {
+    position: 'absolute',
+    width: 2,
+    height: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1,
+  },
+  
   // Epic Header
   header: {
     flexDirection: 'row',
@@ -598,16 +680,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    overflow: 'hidden',
   },
   backButton: {
-    borderRadius: 20,
+    borderRadius: 25,
     overflow: 'hidden',
   },
   backButtonBlur: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 25,
   },
   headerContent: {
     flex: 1,
@@ -628,14 +714,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   helpButton: {
-    borderRadius: 20,
+    borderRadius: 25,
     overflow: 'hidden',
   },
   helpButtonBlur: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 25,
   },
   
   // Interactive Mindmap
@@ -656,11 +743,30 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  connectionContainer: {
+    position: 'absolute',
+  },
+  connectionGlow: {
+    position: 'absolute',
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.4,
+    elevation: 2,
+  },
   connectionLine: {
     position: 'absolute',
-    height: 3,
-    borderRadius: 1.5,
-    opacity: 0.6,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.8,
+    elevation: 4,
+  },
+  flowParticle: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    opacity: 0.9,
+    elevation: 6,
   },
   
   // Timeline Bubbles
@@ -712,15 +818,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleBlur: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     alignItems: 'center',
-    elevation: 4,
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   titleText: {
     fontSize: 13,
@@ -769,8 +875,13 @@ const styles = StyleSheet.create({
     right: 20,
   },
   eraDetailCard: {
-    borderRadius: 20,
+    borderRadius: 30,
     overflow: 'hidden',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   eraDetailGradient: {
     padding: 20,
