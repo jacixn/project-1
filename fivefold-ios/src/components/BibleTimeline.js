@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  PanResponder,
 } from 'react-native';
-import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -20,500 +20,556 @@ const { width, height } = Dimensions.get('window');
 const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   const { theme, isDark } = useTheme();
   const [selectedEra, setSelectedEra] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [timelinePosition, setTimelinePosition] = useState(0);
-  const [showEventDetail, setShowEventDetail] = useState(false);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const timelineScrollRef = useRef(null);
+  const [panX] = useState(new Animated.Value(0));
+  const [panY] = useState(new Animated.Value(0));
+  const [scale] = useState(new Animated.Value(1));
+  const [bubbleAnimations] = useState(
+    Array.from({ length: 12 }, () => ({
+      float: new Animated.Value(0),
+      pulse: new Animated.Value(1),
+      rotate: new Animated.Value(0),
+    }))
+  );
 
-  // Stunning Timeline Eras - Each one is a visual journey!
-  const timelineEras = [
+  // EPIC VISUAL MINDMAP DATA - Like a cosmic journey!
+  const timelineData = [
     {
       id: 'creation',
-      title: '🌍 THE BEGINNING',
-      subtitle: 'God Creates Everything',
-      period: '? - 2000 BC',
+      title: 'CREATION',
+      subtitle: 'The Big Bang of Faith',
+      emoji: '🌌',
+      bgEmoji: '✨',
       color: '#E91E63',
-      gradient: ['#FF6B9D', '#E91E63', '#AD1457'],
-      icon: '🌱',
-      bgEmoji: '🌟',
-      description: 'In the beginning, God spoke and BOOM! The universe exploded into existence! Stars, planets, animals, and humans - all created with just His voice. But then came the forbidden fruit...',
-      events: ['creation', 'fall', 'cain_abel', 'noah_flood', 'tower_babel']
+      gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
+      position: { x: width * 0.5, y: 120 },
+      size: 100,
+      description: 'God speaks and BOOM! Universe created in 6 days!',
+      events: ['🌍 Day 1: Light!', '🌊 Day 2: Sky!', '🌱 Day 3: Plants!', '☀️ Day 4: Sun & Moon!', '🐟 Day 5: Sea Life!', '🦁 Day 6: Animals & Humans!'],
+      connections: ['patriarchs']
     },
     {
       id: 'patriarchs',
-      title: '⭐ CHOSEN FAMILY',
-      subtitle: 'Abraham\'s Adventure',
-      period: '2000 - 1600 BC',
+      title: 'PATRIARCHS',
+      subtitle: 'God\'s Chosen Squad',
+      emoji: '👨‍👩‍👧‍👦',
+      bgEmoji: '⭐',
       color: '#FF9800',
       gradient: ['#FFB74D', '#FF9800', '#F57C00'],
-      icon: '🏃‍♂️',
-      bgEmoji: '✨',
-      description: 'God tells Abraham "Pack your bags, we\'re going on an adventure!" At 75 years old, Abraham becomes the ultimate road tripper, following God to a new land and starting the most important family in history!',
-      events: ['abraham_call', 'isaac_birth', 'jacob_ladder', 'joseph_egypt']
+      position: { x: width * 0.2, y: 220 },
+      size: 90,
+      description: 'Abraham, Isaac, Jacob - the ultimate family adventure!',
+      events: ['🏃‍♂️ Abraham\'s Journey', '👶 Isaac\'s Miracle Birth', '🪜 Jacob\'s Ladder', '🌈 Joseph\'s Coat', '🇪🇬 Move to Egypt'],
+      connections: ['exodus']
     },
     {
       id: 'exodus',
-      title: '🔥 THE GREAT ESCAPE',
-      subtitle: 'Freedom from Slavery',
-      period: '1600 - 1400 BC',
+      title: 'EXODUS',
+      subtitle: 'The Great Escape',
+      emoji: '🌊',
+      bgEmoji: '⚡',
       color: '#F44336',
       gradient: ['#FF6B6B', '#F44336', '#D32F2F'],
-      icon: '⚡',
-      bgEmoji: '🌊',
-      description: 'Moses vs Pharaoh in the ultimate showdown! Plagues, miracles, and the most epic escape scene ever - the Red Sea literally splits in half! Plus 40 years of desert survival training.',
-      events: ['burning_bush', 'ten_plagues', 'red_sea', 'ten_commandments', 'golden_calf']
+      position: { x: width * 0.8, y: 200 },
+      size: 95,
+      description: 'Moses vs Pharaoh! Plagues, miracles, Red Sea splits!',
+      events: ['🔥 Burning Bush', '🐸 10 Plagues', '🌊 Red Sea Parts', '⛰️ Mount Sinai', '🐄 Golden Calf'],
+      connections: ['conquest']
     },
     {
       id: 'conquest',
-      title: '⚔️ EPIC BATTLES',
-      subtitle: 'Heroes & Legends',
-      period: '1400 - 1000 BC',
+      title: 'CONQUEST',
+      subtitle: 'Epic Battle Mode',
+      emoji: '⚔️',
+      bgEmoji: '🏆',
       color: '#4CAF50',
       gradient: ['#66BB6A', '#4CAF50', '#388E3C'],
-      icon: '🏆',
-      bgEmoji: '⚔️',
-      description: 'Time for the most epic battles ever! Walls fall down from shouting, the sun stops moving, 300 warriors defeat thousands, and a guy kills a lion with his bare hands. This is superhero-level stuff!',
-      events: ['jericho', 'sun_stands_still', 'gideon_300', 'samson_strength', 'ruth_love']
+      position: { x: width * 0.3, y: 340 },
+      size: 85,
+      description: 'Walls fall, sun stops, giants defeated!',
+      events: ['🎺 Jericho Falls', '☀️ Sun Stops', '💪 Samson\'s Power', '👸 Ruth\'s Love', '⚖️ Judges Rule'],
+      connections: ['kingdom']
     },
     {
       id: 'kingdom',
-      title: '👑 KINGS & GLORY',
-      subtitle: 'Golden Age Power',
-      period: '1000 - 586 BC',
+      title: 'KINGDOM',
+      subtitle: 'Kings & Glory',
+      emoji: '👑',
+      bgEmoji: '💎',
       color: '#2196F3',
       gradient: ['#42A5F5', '#2196F3', '#1976D2'],
-      icon: '💎',
-      bgEmoji: '🏰',
-      description: 'David slays Goliath and becomes king! Solomon gets unlimited wisdom and builds a temple covered in GOLD. But then things get messy with evil kings and amazing prophets calling down fire from heaven!',
-      events: ['david_goliath', 'solomon_temple', 'elijah_fire', 'divided_kingdom']
+      position: { x: width * 0.7, y: 360 },
+      size: 92,
+      description: 'David slays Goliath, Solomon builds golden temple!',
+      events: ['🎯 David vs Goliath', '🏛️ Solomon\'s Temple', '🔥 Elijah\'s Fire', '💔 Kingdom Splits', '📢 Prophets Warn'],
+      connections: ['exile']
+    },
+    {
+      id: 'exile',
+      title: 'EXILE',
+      subtitle: 'Babylon Prison',
+      emoji: '🏺',
+      bgEmoji: '🦁',
+      color: '#795548',
+      gradient: ['#8D6E63', '#795548', '#5D4037'],
+      position: { x: width * 0.15, y: 480 },
+      size: 80,
+      description: 'Captured! But Daniel survives lions, friends walk through fire!',
+      events: ['🔥 Fiery Furnace', '🦁 Daniel & Lions', '👁️ Ezekiel\'s Visions', '✍️ Writing on Wall', '😭 Jerusalem Falls'],
+      connections: ['return']
+    },
+    {
+      id: 'return',
+      title: 'RETURN',
+      subtitle: 'Coming Home',
+      emoji: '🏠',
+      bgEmoji: '🔨',
+      color: '#607D8B',
+      gradient: ['#78909C', '#607D8B', '#455A64'],
+      position: { x: width * 0.85, y: 500 },
+      size: 75,
+      description: 'Freedom! Rebuilding temple, walls, and hope!',
+      events: ['🗽 Cyrus\' Freedom', '🏛️ Temple Rebuilt', '🧱 Nehemiah\'s Wall', '👸 Queen Esther', '📚 Ezra Teaches'],
+      connections: ['jesus']
     },
     {
       id: 'jesus',
-      title: '✝️ THE MESSIAH',
-      subtitle: 'God Becomes Human',
-      period: '4 BC - 30 AD',
+      title: 'JESUS',
+      subtitle: 'GOD BECOMES HUMAN',
+      emoji: '✝️',
+      bgEmoji: '👑',
       color: '#9C27B0',
       gradient: ['#BA68C8', '#9C27B0', '#7B1FA2'],
-      icon: '👑',
-      bgEmoji: '✨',
-      description: 'The moment everyone was waiting for! God becomes a human baby, grows up, performs mind-blowing miracles, teaches with epic stories, dies for our sins, and RISES FROM THE DEAD! Game changer!',
-      events: ['jesus_birth', 'jesus_baptism', 'feeding_5000', 'walking_water', 'crucifixion', 'resurrection']
+      position: { x: width * 0.5, y: 620 },
+      size: 110,
+      description: 'The ultimate plot twist! God becomes a baby, performs miracles, dies, RISES AGAIN!',
+      events: ['👶 Born in Bethlehem', '🕊️ Baptism & Ministry', '🍞 Feeds 5,000', '🚶‍♂️ Walks on Water', '💀 Dies on Cross', '🌅 RESURRECTION!'],
+      connections: ['church']
+    },
+    {
+      id: 'church',
+      title: 'CHURCH',
+      subtitle: 'Spirit Power!',
+      emoji: '🔥',
+      bgEmoji: '🌍',
+      color: '#00BCD4',
+      gradient: ['#26C6DA', '#00BCD4', '#0097A7'],
+      position: { x: width * 0.25, y: 760 },
+      size: 88,
+      description: 'Holy Spirit comes! Church explodes across the world!',
+      events: ['💨 Pentecost Wind', '🗣️ Speaking Languages', '⚡ Paul\'s Conversion', '🚢 Missionary Journeys', '📜 Letters Written'],
+      connections: []
     }
   ];
 
-  // Epic Bible Events with teenage-friendly descriptions
-  const epicEvents = {
-    creation: {
-      title: '🌍 GOD CREATES EVERYTHING',
-      date: '? BC',
-      summary: 'Day 1: "Let there be light!" BOOM! Day 6: Humans! God looks at everything and says "This is AWESOME!"',
-      verses: ['Genesis 1:1', 'Genesis 1:31'],
-      funFact: 'God created light before the sun - that\'s some serious power! 💡'
-    },
-    fall: {
-      title: '🍎 THE FORBIDDEN FRUIT',
-      date: '? BC',
-      summary: 'One rule: Don\'t eat THAT fruit. Guess what happens? Yep, they eat it. Sin enters the world, but God promises a Savior!',
-      verses: ['Genesis 3:6', 'Genesis 3:15'],
-      funFact: 'The Bible never says it was an apple - could have been any fruit! 🤔'
-    },
-    noah_flood: {
-      title: '🚢 NOAH\'S EPIC ARK',
-      date: '? BC',
-      summary: 'God tells Noah to build a MASSIVE boat. People laugh... until it starts raining for 40 days straight!',
-      verses: ['Genesis 7:17', 'Genesis 8:20'],
-      funFact: 'The ark was 1.5 football fields long and housed 2+ of every animal! 🦁🐘🦒'
-    },
-    abraham_call: {
-      title: '🗺️ ABRAHAM\'S ROAD TRIP',
-      date: '2000 BC',
-      summary: 'God: "Abraham, pack up and follow Me!" Abraham: "Where?" God: "I\'ll tell you when we get there!" Ultimate trust fall!',
-      verses: ['Genesis 12:1', 'Genesis 12:4'],
-      funFact: 'Abraham was 75 when he started this adventure - never too old to follow God! 🏃‍♂️'
-    },
-    red_sea: {
-      title: '🌊 RED SEA SPLITS IN HALF',
-      date: '1446 BC',
-      summary: 'Moses raises his staff and the sea SPLITS! 2 million people walk through on dry ground with walls of water on both sides!',
-      verses: ['Exodus 14:21', 'Exodus 14:29'],
-      funFact: 'The water walls were probably 300+ feet tall - like walking between skyscrapers! 🏢'
-    },
-    jericho: {
-      title: '🎺 WALLS FALL FROM SHOUTING',
-      date: '1406 BC',
-      summary: 'March around the city, blow trumpets, SHOUT... and the massive walls collapse! No siege weapons needed!',
-      verses: ['Joshua 6:20', 'Joshua 6:27'],
-      funFact: 'They marched 13 times total - imagine the workout! 🚶‍♂️💪'
-    },
-    david_goliath: {
-      title: '🎯 TEEN DEFEATS GIANT',
-      date: '1025 BC',
-      summary: 'Teenage shepherd boy David faces 9-foot giant Goliath. One stone, one shot, GIANT DOWN! Ultimate underdog victory!',
-      verses: ['1 Samuel 17:49-50'],
-      funFact: 'Goliath\'s spear tip alone weighed 15 pounds - heavier than a bowling ball! 🎳'
-    },
-    jesus_birth: {
-      title: '👶 GOD BECOMES A BABY',
-      date: '4 BC',
-      summary: 'The Creator of the universe becomes a helpless baby! Angels announce it, shepherds visit, wise men bring gifts!',
-      verses: ['Luke 2:7', 'Matthew 2:11'],
-      funFact: 'Jesus was probably born in a cave, not a wooden stable! 🕳️'
-    },
-    feeding_5000: {
-      title: '🍞 ULTIMATE FOOD HACK',
-      date: '29 AD',
-      summary: 'Boy brings 5 loaves + 2 fish. Jesus feeds 5,000 people with 12 baskets LEFT OVER! Best meal multiplication ever!',
-      verses: ['John 6:11-13'],
-      funFact: 'They ended up with MORE food than they started with! 🤯'
-    },
-    resurrection: {
-      title: '💥 JESUS DEFEATS DEATH',
-      date: '30 AD',
-      summary: 'Jesus dies on Friday, buried in tomb with 4,000-pound stone. Sunday morning: EMPTY TOMB! Death = defeated!',
-      verses: ['Matthew 28:6', 'Luke 24:6'],
-      funFact: 'The Roman guards were so scared they became "like dead men"! ⚰️'
-    }
-  };
+  // Floating animation for bubbles
+  useEffect(() => {
+    const animations = bubbleAnimations.map((anim, index) => {
+      const floatAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim.float, {
+            toValue: 1,
+            duration: 3000 + (index * 200),
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim.float, {
+            toValue: 0,
+            duration: 3000 + (index * 200),
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-  const handleEraPress = (era) => {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim.pulse, {
+            toValue: 1.05,
+            duration: 2000 + (index * 150),
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim.pulse, {
+            toValue: 1,
+            duration: 2000 + (index * 150),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+      const rotateAnimation = Animated.loop(
+        Animated.timing(anim.rotate, {
+          toValue: 1,
+          duration: 20000 + (index * 1000),
+          useNativeDriver: true,
+        })
+      );
+
+      floatAnimation.start();
+      pulseAnimation.start();
+      rotateAnimation.start();
+
+      return { floatAnimation, pulseAnimation, rotateAnimation };
+    });
+
+    return () => {
+      animations.forEach(({ floatAnimation, pulseAnimation, rotateAnimation }) => {
+        floatAnimation.stop();
+        pulseAnimation.stop();
+        rotateAnimation.stop();
+      });
+    };
+  }, []);
+
+  const handleBubblePress = (era) => {
     hapticFeedback.medium();
     setSelectedEra(era);
-    setSelectedEvent(null);
-    setShowEventDetail(false);
     
-    // Animate to era
-    Animated.spring(scrollY, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start();
+    // Epic selection animation
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1.2,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
-  const handleEventPress = (eventId) => {
-    hapticFeedback.light();
-    setSelectedEvent(epicEvents[eventId]);
-    setShowEventDetail(true);
+  const renderConnectionLine = (from, to) => {
+    const fromEra = timelineData.find(era => era.id === from);
+    const toEra = timelineData.find(era => era.id === to);
+    if (!fromEra || !toEra) return null;
+
+    const angle = Math.atan2(
+      toEra.position.y - fromEra.position.y,
+      toEra.position.x - fromEra.position.x
+    );
+
+    return (
+      <View
+        key={`${from}-${to}`}
+        style={[
+          styles.connectionLine,
+          {
+            left: fromEra.position.x,
+            top: fromEra.position.y + fromEra.size / 2,
+            width: Math.sqrt(
+              Math.pow(toEra.position.x - fromEra.position.x, 2) +
+              Math.pow(toEra.position.y - fromEra.position.y, 2)
+            ),
+            transform: [{ rotate: `${angle}rad` }],
+            backgroundColor: fromEra.color + '40',
+          },
+        ]}
+      />
+    );
   };
 
-  const closeEventDetail = () => {
-    hapticFeedback.light();
-    setShowEventDetail(false);
-    setSelectedEvent(null);
-  };
+  const renderTimelineBubble = (era, index) => {
+    const anim = bubbleAnimations[index];
+    const isSelected = selectedEra?.id === era.id;
 
-  const renderTimelineRail = () => (
-    <View style={styles.timelineRailContainer}>
-      <ScrollView 
-        ref={timelineScrollRef}
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.timelineRailContent}
-        decelerationRate="fast"
-        snapToInterval={120}
-        snapToAlignment="center"
+    return (
+      <Animated.View
+        key={era.id}
+        style={[
+          styles.timelineBubbleContainer,
+          {
+            left: era.position.x - era.size / 2,
+            top: era.position.y,
+            transform: [
+              {
+                translateY: anim.float.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -15],
+                }),
+              },
+              {
+                scale: anim.pulse.interpolate({
+                  inputRange: [1, 1.05],
+                  outputRange: [isSelected ? 1.1 : 1, isSelected ? 1.15 : 1.05],
+                }),
+              },
+              {
+                rotate: anim.rotate.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '360deg'],
+                }),
+              },
+            ],
+          },
+        ]}
       >
-        {timelineEras.map((era, index) => (
-          <TouchableOpacity
-            key={era.id}
-            style={styles.eraNodeContainer}
-            onPress={() => handleEraPress(era)}
-            activeOpacity={0.8}
+        <TouchableOpacity
+          style={[styles.timelineBubble, { width: era.size, height: era.size }]}
+          onPress={() => handleBubblePress(era)}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={era.gradient}
+            style={[styles.bubbleGradient, { width: era.size, height: era.size, borderRadius: era.size / 2 }]}
           >
-            <Animated.View
-              style={[
-                styles.eraNode,
+            {/* Background Emoji */}
+            <Text style={[styles.bubbleBgEmoji, { fontSize: era.size * 0.8 }]}>
+              {era.bgEmoji}
+            </Text>
+            
+            {/* Main Emoji */}
+            <Text style={[styles.bubbleEmoji, { fontSize: era.size * 0.4 }]}>
+              {era.emoji}
+            </Text>
+            
+            {/* Glowing Ring Effect */}
+            {isSelected && (
+              <View style={[styles.glowRing, { 
+                width: era.size + 20, 
+                height: era.size + 20, 
+                borderRadius: (era.size + 20) / 2,
+                borderColor: era.color + '60'
+              }]} />
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+        
+        {/* Floating Title */}
+        <Animated.View
+          style={[
+            styles.bubbleTitle,
+            {
+              transform: [
                 {
-                  transform: [
-                    {
-                      scale: selectedEra?.id === era.id 
-                        ? scrollY.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.2],
-                          })
-                        : 1
-                    }
-                  ]
-                }
-              ]}
-            >
-              <LinearGradient
-                colors={era.gradient}
-                style={styles.eraNodeGradient}
-              >
-                <Text style={styles.eraNodeIcon}>{era.icon}</Text>
-                <Text style={styles.eraNodeBg}>{era.bgEmoji}</Text>
-              </LinearGradient>
-            </Animated.View>
-            <Text style={[styles.eraNodeTitle, { color: theme.text }]}>
+                  translateY: anim.float.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -5],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <BlurView intensity={15} style={styles.titleBlur}>
+            <Text style={[styles.titleText, { color: theme.text }]}>
               {era.title}
             </Text>
-            <Text style={[styles.eraNodePeriod, { color: theme.textSecondary }]}>
-              {era.period}
+            <Text style={[styles.subtitleText, { color: era.color }]}>
+              {era.subtitle}
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      
-      {/* Connecting Line */}
-      <View style={[styles.timelineConnector, { backgroundColor: theme.border }]} />
-    </View>
-  );
+          </BlurView>
+        </Animated.View>
+      </Animated.View>
+    );
+  };
 
-  const renderSelectedEra = () => {
+  const renderSelectedEraDetail = () => {
     if (!selectedEra) return null;
 
     return (
       <Animated.View
         style={[
-          styles.selectedEraContainer,
+          styles.eraDetailContainer,
           {
-            opacity: scrollY.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 1],
-            }),
+            opacity: selectedEra ? 1 : 0,
             transform: [
               {
-                translateY: scrollY.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [50, 0],
-                })
-              }
-            ]
-          }
+                translateY: selectedEra ? 0 : 50,
+              },
+            ],
+          },
         ]}
       >
-        <BlurView intensity={20} style={styles.selectedEraCard}>
+        <BlurView intensity={25} style={styles.eraDetailCard}>
           <LinearGradient
-            colors={[`${selectedEra.color}20`, `${selectedEra.color}10`, 'transparent']}
-            style={styles.selectedEraGradient}
+            colors={[`${selectedEra.color}25`, `${selectedEra.color}15`, 'transparent']}
+            style={styles.eraDetailGradient}
           >
-            {/* Era Header */}
-            <View style={styles.selectedEraHeader}>
-              <View style={[styles.selectedEraIconContainer, { backgroundColor: `${selectedEra.color}30` }]}>
-                <Text style={styles.selectedEraIcon}>{selectedEra.icon}</Text>
-                <Text style={styles.selectedEraBgEmoji}>{selectedEra.bgEmoji}</Text>
+            {/* Header */}
+            <View style={styles.eraDetailHeader}>
+              <View style={[styles.eraDetailIcon, { backgroundColor: `${selectedEra.color}30` }]}>
+                <Text style={styles.eraDetailEmoji}>{selectedEra.emoji}</Text>
+                <Text style={styles.eraDetailBgEmoji}>{selectedEra.bgEmoji}</Text>
               </View>
-              <View style={styles.selectedEraTitleContainer}>
-                <Text style={[styles.selectedEraTitle, { color: theme.text }]}>
+              <View style={styles.eraDetailTitles}>
+                <Text style={[styles.eraDetailTitle, { color: theme.text }]}>
                   {selectedEra.title}
                 </Text>
-                <Text style={[styles.selectedEraSubtitle, { color: selectedEra.color }]}>
+                <Text style={[styles.eraDetailSubtitle, { color: selectedEra.color }]}>
                   {selectedEra.subtitle}
-                </Text>
-                <Text style={[styles.selectedEraPeriod, { color: theme.textSecondary }]}>
-                  {selectedEra.period}
                 </Text>
               </View>
             </View>
 
-            {/* Era Description */}
-            <Text style={[styles.selectedEraDescription, { color: theme.text }]}>
+            {/* Description */}
+            <Text style={[styles.eraDetailDescription, { color: theme.text }]}>
               {selectedEra.description}
             </Text>
 
-            {/* Events in Era - Interactive Bubbles */}
-            <View style={styles.eventsSection}>
-              <Text style={[styles.eventsSectionTitle, { color: selectedEra.color }]}>
-                🎬 EPIC EVENTS
+            {/* Events Grid - Like Achievement Badges */}
+            <View style={styles.eventsGrid}>
+              <Text style={[styles.eventsTitle, { color: selectedEra.color }]}>
+                🏆 EPIC MOMENTS
               </Text>
-              <View style={styles.eventBubblesContainer}>
-                {selectedEra.events.map((eventId, index) => {
-                  const event = epicEvents[eventId];
-                  if (!event) return null;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={eventId}
-                      style={[styles.eventBubble, { backgroundColor: `${selectedEra.color}15`, borderColor: `${selectedEra.color}40` }]}
-                      onPress={() => handleEventPress(eventId)}
-                      activeOpacity={0.7}
-                    >
-                      <LinearGradient
-                        colors={[`${selectedEra.color}20`, `${selectedEra.color}10`]}
-                        style={styles.eventBubbleGradient}
-                      >
-                        <Text style={[styles.eventBubbleTitle, { color: theme.text }]}>
-                          {event.title}
-                        </Text>
-                        <Text style={[styles.eventBubbleDate, { color: selectedEra.color }]}>
-                          {event.date}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={styles.eventBadgesContainer}>
+                {selectedEra.events.map((event, index) => (
+                  <Animated.View
+                    key={index}
+                    style={[
+                      styles.eventBadge,
+                      {
+                        backgroundColor: `${selectedEra.color}20`,
+                        borderColor: `${selectedEra.color}40`,
+                        transform: [
+                          {
+                            scale: new Animated.Value(0).interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, 1],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.eventBadgeText, { color: theme.text }]}>
+                      {event}
+                    </Text>
+                  </Animated.View>
+                ))}
               </View>
             </View>
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: `${selectedEra.color}20` }]}
+              onPress={() => {
+                hapticFeedback.light();
+                setSelectedEra(null);
+              }}
+            >
+              <MaterialIcons name="close" size={20} color={selectedEra.color} />
+            </TouchableOpacity>
           </LinearGradient>
         </BlurView>
       </Animated.View>
     );
   };
 
-  const renderEventDetail = () => {
-    if (!selectedEvent || !showEventDetail) return null;
-
-    return (
-      <Animated.View style={styles.eventDetailOverlay}>
-        <BlurView intensity={30} style={styles.eventDetailBlur}>
-          <TouchableOpacity 
-            style={styles.eventDetailBackdrop}
-            onPress={closeEventDetail}
-            activeOpacity={1}
-          >
-            <View style={[styles.eventDetailCard, { backgroundColor: theme.card }]}>
-              <LinearGradient
-                colors={[`${selectedEra?.color}20`, `${selectedEra?.color}10`, 'transparent']}
-                style={styles.eventDetailGradient}
-              >
-                {/* Close Button */}
-                <TouchableOpacity 
-                  style={styles.eventDetailClose}
-                  onPress={closeEventDetail}
-                >
-                  <View style={[styles.closeButtonCircle, { backgroundColor: `${selectedEra?.color}20` }]}>
-                    <MaterialIcons name="close" size={20} color={selectedEra?.color} />
-                  </View>
-                </TouchableOpacity>
-
-                {/* Event Content */}
-                <Text style={[styles.eventDetailTitle, { color: theme.text }]}>
-                  {selectedEvent.title}
-                </Text>
-                
-                <View style={[styles.eventDetailDateBadge, { backgroundColor: `${selectedEra?.color}20` }]}>
-                  <Text style={[styles.eventDetailDate, { color: selectedEra?.color }]}>
-                    {selectedEvent.date}
-                  </Text>
-                </View>
-
-                <Text style={[styles.eventDetailSummary, { color: theme.text }]}>
-                  {selectedEvent.summary}
-                </Text>
-
-                <View style={styles.eventDetailFunFact}>
-                  <Text style={[styles.funFactText, { color: selectedEra?.color }]}>
-                    🤯 {selectedEvent.funFact}
-                  </Text>
-                </View>
-
-                {/* Verses */}
-                <View style={styles.eventDetailVerses}>
-                  <Text style={[styles.versesTitle, { color: theme.text }]}>
-                    📖 Read the Full Story:
-                  </Text>
-                  <View style={styles.versesGrid}>
-                    {selectedEvent.verses.map((verse, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={[styles.verseButton, { backgroundColor: `${selectedEra?.color}15`, borderColor: `${selectedEra?.color}40` }]}
-                        onPress={() => {
-                          hapticFeedback.light();
-                          if (onNavigateToVerse) onNavigateToVerse(verse);
-                          closeEventDetail();
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons name="auto-stories" size={16} color={selectedEra?.color} />
-                        <Text style={[styles.verseButtonText, { color: selectedEra?.color }]}>
-                          {verse}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </LinearGradient>
-            </View>
-          </TouchableOpacity>
-        </BlurView>
-      </Animated.View>
-    );
-  };
+  // Pan responder for dragging the mindmap
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      hapticFeedback.light();
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      panX.setValue(gestureState.dx);
+      panY.setValue(gestureState.dy);
+    },
+    onPanResponderRelease: () => {
+      Animated.spring(panX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+      Animated.spring(panY, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    },
+  });
 
   return (
-    <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Epic Header */}
+      <LinearGradient
+        colors={isDark ? ['#1a1a2e', '#16213e'] : ['#667eea', '#764ba2']}
+        style={styles.header}
+      >
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <View style={[styles.backButtonCircle, { backgroundColor: theme.primary + '20' }]}>
-            <MaterialIcons name="arrow-back" size={20} color={theme.primary} />
-          </View>
+          <BlurView intensity={20} style={styles.backButtonBlur}>
+            <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+          </BlurView>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          📅 Bible Timeline
-        </Text>
-        <View style={{ width: 40 }} />
+        
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>
+            🌟 BIBLE TIMELINE
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            Explore 4,000 Years of Epic Adventures
+          </Text>
+        </View>
+        
+        <TouchableOpacity style={styles.helpButton}>
+          <BlurView intensity={20} style={styles.helpButtonBlur}>
+            <MaterialIcons name="help" size={24} color="#FFFFFF" />
+          </BlurView>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* Interactive Mindmap */}
+      <View style={styles.mindmapContainer} {...panResponder.panHandlers}>
+        <Animated.View
+          style={[
+            styles.mindmapContent,
+            {
+              transform: [
+                { translateX: panX },
+                { translateY: panY },
+                { scale: scale },
+              ],
+            },
+          ]}
+        >
+          {/* Connection Lines */}
+          <View style={styles.connectionsContainer}>
+            {timelineData.map((era) =>
+              era.connections.map((connectionId) =>
+                renderConnectionLine(era.id, connectionId)
+              )
+            )}
+          </View>
+
+          {/* Floating Bubbles */}
+          {timelineData.map((era, index) => renderTimelineBubble(era, index))}
+          
+          {/* Floating Particles */}
+          <View style={styles.particlesContainer}>
+            {Array.from({ length: 20 }).map((_, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.particle,
+                  {
+                    left: Math.random() * width,
+                    top: Math.random() * height,
+                    backgroundColor: timelineData[index % timelineData.length]?.color + '30',
+                    transform: [
+                      {
+                        translateY: bubbleAnimations[index % bubbleAnimations.length]?.float.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -30],
+                        }) || 0,
+                      },
+                    ],
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </Animated.View>
       </View>
 
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-      >
-        {/* Hero Section */}
-        <LinearGradient
-          colors={isDark ? ['#1a1a2e', '#16213e', '#0f3460'] : ['#667eea', '#764ba2', '#f093fb']}
-          style={styles.heroSection}
-        >
-          <Text style={styles.heroTitle}>
-            🌟 Journey Through Bible History
+      {/* Era Detail Panel */}
+      {renderSelectedEraDetail()}
+
+      {/* Instructions */}
+      <View style={styles.instructionsContainer}>
+        <BlurView intensity={15} style={styles.instructionsCard}>
+          <Text style={[styles.instructionsText, { color: theme.text }]}>
+            🎯 Tap bubbles to explore • 👆 Drag to move around • 🔍 Discover epic Bible adventures!
           </Text>
-          <Text style={styles.heroSubtitle}>
-            Explore 4,000+ years of epic adventures, miracles, and God's amazing plan!
-          </Text>
-          <View style={styles.heroStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Epic Eras</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>100+</Text>
-              <Text style={styles.statLabel}>Amazing Events</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>∞</Text>
-              <Text style={styles.statLabel}>Mind = Blown</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Interactive Timeline Rail */}
-        <View style={styles.timelineSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            🎯 Tap Any Era to Explore
-          </Text>
-          {renderTimelineRail()}
-        </View>
-
-        {/* Selected Era Details */}
-        {renderSelectedEra()}
-
-        {/* Coming Soon Features */}
-        <View style={styles.comingSoonSection}>
-          <BlurView intensity={20} style={styles.comingSoonCard}>
-            <Text style={styles.comingSoonEmoji}>🚀</Text>
-            <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-              Even More Epic Features Coming!
-            </Text>
-            <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-              Interactive maps, zoomable timelines, character connections, prophecy threads, and mind-blowing visualizations!
-            </Text>
-          </BlurView>
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-
-      {/* Event Detail Modal */}
-      {renderEventDetail()}
-    </GestureHandlerRootView>
+        </BlurView>
+      </View>
+    </View>
   );
 };
 
@@ -521,391 +577,261 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  
+  // Epic Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 15,
-    paddingBottom: 15,
+    paddingBottom: 20,
   },
   backButton: {
-    padding: 4,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  backButtonCircle: {
+  backButtonBlur: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+  headerContent: {
     flex: 1,
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  
-  // Hero Section
-  heroSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 40,
     alignItems: 'center',
   },
-  heroTitle: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: '900',
     color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 12,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  heroSubtitle: {
-    fontSize: 16,
+  headerSubtitle: {
+    fontSize: 14,
     color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
     opacity: 0.9,
+    marginTop: 4,
   },
-  heroStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  helpButton: {
     borderRadius: 20,
+    overflow: 'hidden',
   },
-  statItem: {
+  helpButtonBlur: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 20,
+    justifyContent: 'center',
   },
   
-  // Timeline Section
-  timelineSection: {
-    paddingVertical: 30,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  timelineRailContainer: {
+  // Interactive Mindmap
+  mindmapContainer: {
+    flex: 1,
     position: 'relative',
-    paddingVertical: 20,
   },
-  timelineRailContent: {
-    paddingHorizontal: 40,
-    alignItems: 'center',
+  mindmapContent: {
+    flex: 1,
+    position: 'relative',
   },
-  timelineConnector: {
+  
+  // Connection Lines
+  connectionsContainer: {
     position: 'absolute',
-    height: 4,
-    left: 40,
-    right: 40,
-    top: 70,
-    borderRadius: 2,
-    opacity: 0.3,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  eraNodeContainer: {
+  connectionLine: {
+    position: 'absolute',
+    height: 3,
+    borderRadius: 1.5,
+    opacity: 0.6,
+  },
+  
+  // Timeline Bubbles
+  timelineBubbleContainer: {
+    position: 'absolute',
     alignItems: 'center',
-    marginHorizontal: 20,
   },
-  eraNode: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
+  timelineBubble: {
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  eraNodeGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  bubbleGradient: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  eraNodeIcon: {
-    fontSize: 32,
-    zIndex: 2,
-  },
-  eraNodeBg: {
+  bubbleBgEmoji: {
     position: 'absolute',
-    fontSize: 60,
-    opacity: 0.2,
-    zIndex: 1,
-  },
-  eraNodeTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  eraNodePeriod: {
-    fontSize: 10,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  
-  // Selected Era
-  selectedEraContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  selectedEraCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  selectedEraGradient: {
-    padding: 24,
-  },
-  selectedEraHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  selectedEraIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 20,
-    position: 'relative',
-  },
-  selectedEraIcon: {
-    fontSize: 36,
-    zIndex: 2,
-  },
-  selectedEraBgEmoji: {
-    position: 'absolute',
-    fontSize: 60,
     opacity: 0.3,
     zIndex: 1,
   },
-  selectedEraTitleContainer: {
-    flex: 1,
+  bubbleEmoji: {
+    zIndex: 2,
   },
-  selectedEraTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    marginBottom: 4,
+  glowRing: {
+    position: 'absolute',
+    borderWidth: 3,
+    opacity: 0.8,
+    zIndex: 0,
   },
-  selectedEraSubtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  selectedEraPeriod: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  selectedEraDescription: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  
-  // Events Section
-  eventsSection: {
-    marginTop: 10,
-  },
-  eventsSectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  eventBubblesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  eventBubble: {
-    borderRadius: 16,
-    borderWidth: 2,
-    overflow: 'hidden',
-    minWidth: 140,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  eventBubbleGradient: {
-    padding: 12,
+  bubbleTitle: {
+    marginTop: 12,
     alignItems: 'center',
   },
-  eventBubbleTitle: {
-    fontSize: 13,
+  titleBlur: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  titleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 10,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 4,
-  },
-  eventBubbleDate: {
-    fontSize: 11,
-    fontWeight: '500',
+    marginTop: 2,
   },
   
-  // Event Detail Modal
-  eventDetailOverlay: {
+  // Floating Particles
+  particlesContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 1000,
+    pointerEvents: 'none',
   },
-  eventDetailBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  particle: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    opacity: 0.6,
   },
-  eventDetailBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  
+  // Era Detail Panel
+  eraDetailContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
-  eventDetailCard: {
-    width: '100%',
-    maxWidth: 350,
+  eraDetailCard: {
     borderRadius: 20,
     overflow: 'hidden',
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
   },
-  eventDetailGradient: {
-    padding: 24,
+  eraDetailGradient: {
+    padding: 20,
   },
-  eventDetailClose: {
-    alignSelf: 'flex-end',
+  eraDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  eraDetailIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    position: 'relative',
+  },
+  eraDetailEmoji: {
+    fontSize: 24,
+    zIndex: 2,
+  },
+  eraDetailBgEmoji: {
+    position: 'absolute',
+    fontSize: 40,
+    opacity: 0.3,
+    zIndex: 1,
+  },
+  eraDetailTitles: {
+    flex: 1,
+  },
+  eraDetailTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  eraDetailSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  eraDetailDescription: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  
+  // Events Grid
+  eventsGrid: {
+    marginBottom: 16,
+  },
+  eventsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 12,
   },
-  closeButtonCircle: {
+  eventBadgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  eventBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  eventBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  
+  // Close Button
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  eventDetailTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  eventDetailDateBadge: {
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  eventDetailDate: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  eventDetailSummary: {
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  eventDetailFunFact: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  funFactText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  eventDetailVerses: {
-    marginTop: 8,
-  },
-  versesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  versesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  verseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  verseButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
   
-  // Coming Soon
-  comingSoonSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
+  // Instructions
+  instructionsContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
   },
-  comingSoonCard: {
-    padding: 24,
-    borderRadius: 20,
+  instructionsCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
     alignItems: 'center',
   },
-  comingSoonEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  comingSoonTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
+  instructionsText: {
+    fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
-  },
-  comingSoonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
+    opacity: 0.8,
   },
 });
 
