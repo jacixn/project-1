@@ -15,12 +15,14 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import BibleTimeline from './BibleTimeline';
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const studySections = [
     {
@@ -485,6 +487,20 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
     // Special handling for characters section
     if (selectedSection === 'characters') {
       return renderCharactersSection(section);
+    }
+
+    // Special handling for timeline section
+    if (selectedSection === 'timeline') {
+      return (
+        <BibleTimeline
+          visible={true}
+          onClose={() => setSelectedSection('main')}
+          onNavigateToVerse={(verse) => {
+            // Future: Navigate to Bible verse
+            console.log('Navigate to verse:', verse);
+          }}
+        />
+      );
     }
 
     return (
