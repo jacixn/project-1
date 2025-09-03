@@ -577,7 +577,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             <MaterialIcons name="help" size={24} color="#FFFFFF" />
           </BlurView>
         </TouchableOpacity>
-      </LinearGradient>
+      </BlurView>
 
       {/* Interactive Mindmap with Smooth Scrolling */}
       <ScrollView
