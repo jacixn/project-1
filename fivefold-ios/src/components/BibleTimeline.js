@@ -1848,7 +1848,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     if (!selectedEra) return null;
 
     return (
-      <Animated.View
+      <TouchableOpacity
         style={[
           styles.eraDetailContainer,
           {
@@ -1860,8 +1860,18 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             ],
           },
         ]}
+        activeOpacity={1}
+        onPress={() => {
+          hapticFeedback.light();
+          setSelectedEra(null);
+        }}
       >
-        <BlurView intensity={35} tint={isDark ? "systemMaterialDark" : "systemMaterialLight"} style={styles.eraDetailCard}>
+        <TouchableOpacity 
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
+          <BlurView intensity={35} tint={isDark ? "systemMaterialDark" : "systemMaterialLight"} style={styles.eraDetailCard}>
           <LinearGradient
             colors={[`${selectedEra.color}25`, `${selectedEra.color}15`, 'transparent']}
             style={styles.eraDetailGradient}
@@ -1921,8 +1931,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Bible Story:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a', fontWeight: '600' }]}>{storyItem.bibleStory}</Text>
-                      </View>
-                      
+            </View>
+
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Characters:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a' }]}>{storyItem.characters}</Text>
@@ -1937,19 +1947,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
               </ScrollView>
             </View>
 
-            {/* Close Button */}
-            <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: `${selectedEra.color}20` }]}
-              onPress={() => {
-                hapticFeedback.light();
-                setSelectedEra(null);
-              }}
-            >
-              <MaterialIcons name="close" size={20} color={selectedEra.color} />
-            </TouchableOpacity>
-          </LinearGradient>
-        </BlurView>
-      </Animated.View>
+            </LinearGradient>
+          </BlurView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     );
   };
 
@@ -2384,12 +2385,17 @@ const styles = StyleSheet.create({
   // Era Detail Panel
   eraDetailContainer: {
     position: 'absolute',
-    top: 120,
-    left: 20,
-    right: 20,
-    maxHeight: '75%',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)', // Semi-transparent overlay
   },
   eraDetailCard: {
+    width: width - 40,
+    maxHeight: '75%',
     borderRadius: 30,
     overflow: 'hidden',
     elevation: 15,
