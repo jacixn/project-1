@@ -30,7 +30,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   const [panY] = useState(new Animated.Value(0));
   const [scale] = useState(new Animated.Value(1));
   const [bubbleAnimations] = useState(
-    Array.from({ length: 10 }, () => ({
+    Array.from({ length: 11 }, () => ({
       float: new Animated.Value(0),
       pulse: new Animated.Value(1),
     }))
@@ -796,6 +796,22 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         }
       ],
       connections: []
+    },
+    {
+      id: 'jesus',
+      title: 'LIFE OF JESUS',
+      subtitle: 'c. 5 BC – AD 30',
+      emoji: '✝️',
+      bgEmoji: '🌟',
+      color: '#2196F3',
+      gradient: ['#42A5F5', '#2196F3', '#1976D2'],
+      position: { x: width * 0.75, y: 460 },
+      size: 120,
+      description: 'The most important person who ever lived! Jesus came to Earth as God\'s Son to save the world. His life, teachings, death, and resurrection changed everything forever!',
+      stories: [
+        // Stories will be added when user provides the content
+      ],
+      connections: []
     }
   ];
 
@@ -880,7 +896,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 40 + 15; // Bigger: Size between 15-55
-      const x = Math.random() * (width * 5.5 - size); // Extend much wider
+      const x = Math.random() * (width * 6.0 - size); // Extended to cover new era
       const y = Math.random() * (2500 - size); // Extend much taller
       const rotation = Math.random() * 360;
       const opacity = Math.random() * 0.4 + 0.1; // Opacity between 0.1-0.5
@@ -992,7 +1008,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 60 + 40; // Bigger: Medium sizes 40-100
-      const x = Math.random() * (width * 5.5 - size); // Extend much wider
+      const x = Math.random() * (width * 6.0 - size); // Extended to cover new era
       const y = Math.random() * (2500 - size); // Extend much taller
       const opacity = Math.random() * 0.3 + 0.05; // More visible
       
@@ -1026,7 +1042,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const shapeType = ['circle', 'square', 'hexagon'][Math.floor(Math.random() * 3)];
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 100 + 100; // Much bigger: Large sizes 100-200
-      const x = Math.random() * (width * 5.5 - size); // Extend much wider
+      const x = Math.random() * (width * 6.0 - size); // Extended to cover new era
       const y = Math.random() * (2500 - size); // Extend much taller
       const opacity = Math.random() * 0.15 + 0.03; // More visible
       
@@ -1071,10 +1087,36 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
           if (index === timelineData.length - 1) return null; // No path after last era
           
           const nextEra = timelineData[index + 1];
-          const startX = era.position.x + era.size / 2;
-          const startY = era.position.y + era.size / 2;
-          const endX = nextEra.position.x + nextEra.size / 2;
-          const endY = nextEra.position.y + nextEra.size / 2;
+          
+          // Calculate edge-to-edge connection points for better visual connection
+          let startX, startY, endX, endY;
+          
+          // Determine connection points based on relative positions
+          if (nextEra.position.x > era.position.x) {
+            // Next era is to the right - connect from right edge to left edge
+            startX = era.position.x + era.size;
+            endX = nextEra.position.x;
+          } else {
+            // Next era is to the left - connect from left edge to right edge  
+            startX = era.position.x;
+            endX = nextEra.position.x + nextEra.size;
+          }
+          
+          if (nextEra.position.y > era.position.y) {
+            // Next era is below - connect from bottom edge to top edge
+            startY = era.position.y + era.size;
+            endY = nextEra.position.y;
+          } else {
+            // Next era is above - connect from top edge to bottom edge
+            startY = era.position.y;
+            endY = nextEra.position.y + nextEra.size;
+          }
+          
+          // For cases where eras are at similar heights, use center points
+          if (Math.abs(nextEra.position.y - era.position.y) < 50) {
+            startY = era.position.y + era.size / 2;
+            endY = nextEra.position.y + nextEra.size / 2;
+          }
           
           // Calculate arrow position at 80% along the path for better visibility
           const arrowX = startX + (endX - startX) * 0.8;
@@ -1446,7 +1488,9 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             ? require('../assets/exile-sticker.png')
             : era.id === 'return'
             ? require('../assets/return-sticker.png')
-            : require('../assets/intertestamental-sticker.png')
+            : era.id === 'intertestamental'
+            ? require('../assets/intertestamental-sticker.png')
+            : require('../assets/jesus-sticker.png')
           } 
               style={[styles.stickerImage, { 
                 width: era.size, 
@@ -1839,7 +1883,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   mindmapContent: {
-    width: width * 3.5,
+    width: width * 4.0,
     height: 1200,
     position: 'relative',
     backgroundColor: 'transparent', // Make content transparent too
@@ -1850,7 +1894,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -200, // Start above visible area
     left: -200, // Start left of visible area
-    width: width * 5.5 + 400, // Much wider with extra padding
+    width: width * 6.0 + 400, // Extended to cover new era
     height: 2500 + 400, // Much taller with extra padding
     zIndex: -1, // Behind everything else
   },
