@@ -23,6 +23,17 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [showTimeline, setShowTimeline] = useState(false);
+  
+  // Modal overlay states for each section
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showCharactersModal, setShowCharactersModal] = useState(false);
+  const [showMapsModal, setShowMapsModal] = useState(false);
+  const [showVersesModal, setShowVersesModal] = useState(false);
+  const [showFactsModal, setShowFactsModal] = useState(false);
+  const [showThemesModal, setShowThemesModal] = useState(false);
+  const [showReadingModal, setShowReadingModal] = useState(false);
+  const [showParallelsModal, setShowParallelsModal] = useState(false);
+  const [showAudioModal, setShowAudioModal] = useState(false);
 
   const studySections = [
     {
@@ -412,7 +423,40 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
   const handleSectionPress = (sectionId) => {
     hapticFeedback.light();
-    setSelectedSection(sectionId);
+    
+    // Open modal overlays instead of changing selectedSection
+    switch (sectionId) {
+      case 'timeline':
+        setShowTimelineModal(true);
+        break;
+      case 'characters':
+        setShowCharactersModal(true);
+        break;
+      case 'maps':
+        setShowMapsModal(true);
+        break;
+      case 'verses':
+        setShowVersesModal(true);
+        break;
+      case 'facts':
+        setShowFactsModal(true);
+        break;
+      case 'themes':
+        setShowThemesModal(true);
+        break;
+      case 'reading':
+        setShowReadingModal(true);
+        break;
+      case 'parallels':
+        setShowParallelsModal(true);
+        break;
+      case 'audio':
+        setShowAudioModal(true);
+        break;
+      default:
+        // Fallback to old behavior for any unhandled sections
+        setSelectedSection(sectionId);
+    }
   };
 
   const renderMainMenu = () => (
@@ -479,6 +523,71 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       </View>
     </ScrollView>
   );
+
+  // Create modal overlay for each section (keeping all existing content)
+  const renderSectionModalOverlay = (sectionId, showModal, setShowModal) => {
+    const section = studySections.find(s => s.id === sectionId);
+    if (!section) return null;
+
+    return (
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={() => setShowModal(false)} style={styles.closeButton}>
+              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>{section.title}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {/* Special handling for characters section */}
+          {sectionId === 'characters' && renderCharactersSection(section)}
+          
+          {/* For all other sections, show the existing "Coming Soon" content */}
+          {sectionId !== 'characters' && (
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              <View style={styles.detailHeader}>
+                <View style={styles.detailTitleContainer}>
+                  <View style={[styles.detailIcon, { backgroundColor: `${section.color}20` }]}>
+                    <MaterialIcons name={section.icon} size={32} color={section.color} />
+                  </View>
+                  <Text style={[styles.detailTitle, { color: theme.text }]}>
+                    {section.title}
+                  </Text>
+                  <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
+                    {section.description}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.comingSoonContainer}>
+                <BlurView intensity={20} style={styles.comingSoonCard}>
+                  <MaterialIcons name="build" size={32} color={section.color} />
+                  <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
+                    {section.title} - In Development
+                  </Text>
+                  <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
+                    This section will include:
+                  </Text>
+                  
+                  <View style={styles.featuresList}>
+                    {section.features.map((feature, idx) => (
+                      <View key={idx} style={styles.featureItem}>
+                        <MaterialIcons name="check-circle" size={16} color={section.color} />
+                        <Text style={[styles.featureItemText, { color: theme.text }]}>
+                          {feature}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </BlurView>
+              </View>
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
+    );
+  };
 
   const renderSectionDetail = () => {
     const section = studySections.find(s => s.id === selectedSection);
@@ -567,15 +676,6 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.detailHeader}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => {
-              hapticFeedback.light();
-              setSelectedSection('main');
-            }}
-          >
-            <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-          </TouchableOpacity>
           
           <View style={styles.detailTitleContainer}>
             <View style={[styles.detailIcon, { backgroundColor: `${section.color}20` }]}>
@@ -929,7 +1029,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       visible={visible} 
       animationType="slide" 
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={() => {}} // Disable pull-down-to-close gesture
     >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
@@ -943,6 +1043,25 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
         {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
       </SafeAreaView>
+
+      {/* Timeline Modal Overlay */}
+      <BibleTimeline
+        visible={showTimelineModal}
+        onClose={() => setShowTimelineModal(false)}
+        onNavigateToVerse={(verse) => {
+          console.log('Navigate to verse:', verse);
+        }}
+      />
+
+      {/* All Other Section Modal Overlays */}
+      {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
+      {renderSectionModalOverlay('maps', showMapsModal, setShowMapsModal)}
+      {renderSectionModalOverlay('verses', showVersesModal, setShowVersesModal)}
+      {renderSectionModalOverlay('facts', showFactsModal, setShowFactsModal)}
+      {renderSectionModalOverlay('themes', showThemesModal, setShowThemesModal)}
+      {renderSectionModalOverlay('reading', showReadingModal, setShowReadingModal)}
+      {renderSectionModalOverlay('parallels', showParallelsModal, setShowParallelsModal)}
+      {renderSectionModalOverlay('audio', showAudioModal, setShowAudioModal)}
     </Modal>
   );
 };

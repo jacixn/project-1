@@ -181,6 +181,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
   const [userName, setUserName] = useState('Friend');
   const [nameLoaded, setNameLoaded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -218,6 +220,118 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     
     loadUserName();
   }, []);
+
+  // Load chat history when component mounts
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
+
+  // Save current conversation to history when closing
+  useEffect(() => {
+    console.log('🔍 History Effect - visible:', visible, 'messages length:', messages.length);
+    if (!visible && messages.length > 0) {
+      console.log('💾 Triggering save to history...');
+      saveChatToHistory();
+    }
+  }, [visible, messages]);
+
+  // Load chat history from AsyncStorage
+  const loadChatHistory = async () => {
+    try {
+      const storedHistory = await AsyncStorage.getItem('friendChatHistory');
+      if (storedHistory) {
+        const history = JSON.parse(storedHistory);
+        setChatHistory(history);
+        console.log('📚 Loaded chat history:', history.length, 'conversations');
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+    }
+  };
+
+  // Save current conversation to history
+  const saveChatToHistory = async () => {
+    console.log('💾 saveChatToHistory called - messages length:', messages.length);
+    
+    if (messages.length === 0) {
+      console.log('❌ No messages to save');
+      return;
+    }
+
+    // Filter out only user and AI messages (not system messages)
+    const conversationMessages = messages.filter(msg => msg.text && msg.text.trim());
+    
+    if (conversationMessages.length === 0) {
+      console.log('❌ No valid conversation messages to save');
+      return;
+    }
+
+    try {
+      // Get the first user message for preview
+      const firstUserMessage = conversationMessages.find(msg => !msg.isAi);
+      const previewText = firstUserMessage?.text || conversationMessages[0]?.text || 'Conversation';
+      
+      const conversation = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        messages: conversationMessages,
+        preview: previewText.substring(0, 50) + (previewText.length > 50 ? '...' : ''),
+        date: new Date().toLocaleDateString()
+      };
+
+      console.log('💾 Creating conversation:', {
+        id: conversation.id,
+        messageCount: conversation.messages.length,
+        preview: conversation.preview
+      });
+
+      // Load current history to ensure we have the latest
+      const storedHistory = await AsyncStorage.getItem('friendChatHistory');
+      const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
+      
+      const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
+      await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
+      setChatHistory(updatedHistory);
+      
+      console.log('✅ Successfully saved conversation to history. Total conversations:', updatedHistory.length);
+    } catch (error) {
+      console.error('❌ Failed to save chat history:', error);
+    }
+  };
+
+  // Load a conversation from history
+  const loadConversationFromHistory = (conversation) => {
+    setMessages(conversation.messages);
+    setShowHistory(false);
+    hapticFeedback.light();
+    console.log('📖 Loaded conversation from history');
+  };
+
+  // Clear all chat history
+  const clearChatHistory = async () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure you want to delete all chat history? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('friendChatHistory');
+              setChatHistory([]);
+              setShowHistory(false);
+              hapticFeedback.success();
+              console.log('🗑️ Cleared all chat history');
+            } catch (error) {
+              console.error('Failed to clear chat history:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // Handle keyboard events for better input visibility
   useEffect(() => {
@@ -303,10 +417,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     hapticFeedback.light();
     
     if (onNavigateToBible) {
-      // Close the AI chat and navigate to the Bible
+      // Close the AI chat and navigate to the Bible with search
       onClose();
-      // Pass the verse reference to navigate to
-      onNavigateToBible(verseReference);
+      // Pass the verse reference as a search query instead of navigation
+      onNavigateToBible(verseReference, 'search');
     } else {
       // Fallback: show alert if navigation not available
       Alert.alert(
@@ -352,6 +466,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Auto-save conversation after AI response
+      setTimeout(() => {
+        saveChatToHistory();
+      }, 1000); // Small delay to ensure state is updated
       
       // Only play success sound if it's not an error message
       if (!response.includes('apologize') && !response.includes('trouble') && !response.includes('settings')) {
@@ -692,6 +811,30 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             
             <TouchableOpacity
               style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                setShowHistory(true);
+                hapticFeedback.light();
+              }}
+            >
+              <MaterialIcons name="history" size={20} color={theme.text} />
+              <Text style={[styles.menuItemText, { color: theme.text }]}>History</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                saveChatToHistory();
+                hapticFeedback.light();
+              }}
+            >
+              <MaterialIcons name="save" size={20} color={theme.text} />
+              <Text style={[styles.menuItemText, { color: theme.text }]}>Save Chat</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={clearChat}
             >
               <MaterialIcons name="clear" size={20} color={theme.text} />
@@ -710,6 +853,82 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal visible={showHistory} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={[styles.historyContainer, { backgroundColor: theme.background }]}>
+          {/* History Header */}
+          <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
+            <TouchableOpacity
+              style={styles.historyCloseButton}
+              onPress={() => setShowHistory(false)}
+            >
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.historyTitle, { color: theme.text }]}>Chat History</Text>
+            <TouchableOpacity
+              style={styles.historyClearButton}
+              onPress={clearChatHistory}
+            >
+              <MaterialIcons name="delete-outline" size={24} color={theme.error || '#FF6B6B'} />
+            </TouchableOpacity>
+          </View>
+
+          {/* History Content */}
+          <ScrollView style={styles.historyScrollView} showsVerticalScrollIndicator={false}>
+            {chatHistory.length === 0 ? (
+              <View style={styles.historyEmptyContainer}>
+                <MaterialIcons name="history" size={64} color={theme.textSecondary} />
+                <Text style={[styles.historyEmptyTitle, { color: theme.text }]}>No Chat History</Text>
+                <Text style={[styles.historyEmptyText, { color: theme.textSecondary }]}>
+                  Your conversations with Friend will appear here
+                </Text>
+              </View>
+            ) : (
+              chatHistory.map((conversation, index) => (
+                <TouchableOpacity
+                  key={conversation.id}
+                  style={[styles.historyItem, { 
+                    backgroundColor: `${theme.primary}15`,
+                    borderColor: `${theme.primary}30`
+                  }]}
+                  onPress={() => loadConversationFromHistory(conversation)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.historyItemContent}>
+                    <View style={styles.historyItemHeader}>
+                      <Text style={[styles.historyItemDate, { color: theme.primary }]}>
+                        {conversation.date}
+                      </Text>
+                      <Text style={[styles.historyItemTime, { color: theme.textSecondary }]}>
+                        {new Date(conversation.timestamp).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </Text>
+                    </View>
+                    <Text 
+                      style={[styles.historyItemPreview, { color: theme.text }]}
+                      numberOfLines={2}
+                    >
+                      {conversation.preview}
+                    </Text>
+                    <View style={styles.historyItemFooter}>
+                      <Text style={[styles.historyItemMessages, { color: theme.textSecondary }]}>
+                        {conversation.messages.length} messages
+                      </Text>
+                      <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+            
+            {/* Bottom spacing */}
+            <View style={{ height: 20 }} />
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </Modal>
   );
@@ -854,7 +1073,88 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontWeight: '500',
   },
-  // Removed preview styles
+  
+  // History Modal Styles
+  historyContainer: {
+    flex: 1,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  historyCloseButton: {
+    padding: 4,
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  historyClearButton: {
+    padding: 4,
+  },
+  historyScrollView: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  historyEmptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingTop: 100,
+  },
+  historyEmptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  historyEmptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  historyItem: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  historyItemContent: {
+    padding: 16,
+  },
+  historyItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  historyItemDate: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  historyItemTime: {
+    fontSize: 12,
+  },
+  historyItemPreview: {
+    fontSize: 15,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  historyItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyItemMessages: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
 });
 
 export default memo(AiBibleChat);

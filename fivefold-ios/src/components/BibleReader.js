@@ -14,7 +14,8 @@ import {
   Share,
   SafeAreaView,
   Dimensions,
-  StatusBar
+  StatusBar,
+  PanResponder
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,7 +35,10 @@ import bibleReferenceParser from '../utils/bibleReferenceParser';
 
 const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }) => {
   
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, isCresviaTheme, currentTheme } = useTheme();
+  
+  // All themes now get beautiful theme-colored cards for better visual appeal
+  const useThemeColors = true; // Always use theme colors for vibrant, appealing cards
   const { language, t } = useLanguage();
   const versesScrollViewRef = useRef(null);
   const [books, setBooks] = useState([]);
@@ -45,6 +49,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [simplifiedSearchResults, setSimplifiedSearchResults] = useState(new Map()); // Track simplified search results
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState('books'); // 'books', 'chapters', 'verses', 'search'
   const [translatingVerse, setTranslatingVerse] = useState(null);
@@ -66,6 +71,68 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     console.log('🔍 showJournalingModal changed to:', showJournalingModal);
   }, [showJournalingModal]);
 
+  // Swipe-to-go-back gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        const { pageX } = evt.nativeEvent;
+        const isFromLeftEdge = pageX < 50; // Only start if touch begins near left edge
+        console.log('🔍 onStartShouldSetPanResponder:', { pageX, isFromLeftEdge });
+        return isFromLeftEdge; // Only handle gestures that start from left edge
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        const { pageX } = evt.nativeEvent;
+        const isRightwardSwipe = dx > 15 && Math.abs(dy) < Math.abs(dx) * 2; // More horizontal than vertical
+        const isFromLeftEdge = pageX < 100; // Allow some tolerance for movement
+        
+        console.log('🔍 onMoveShouldSetPanResponder:', { 
+          dx, dy, pageX, isRightwardSwipe, isFromLeftEdge 
+        });
+        
+        return isFromLeftEdge && isRightwardSwipe;
+      },
+      onPanResponderGrant: (evt, gestureState) => {
+        console.log('🔍 onPanResponderGrant - gesture granted!');
+        hapticFeedback.light(); // Immediate feedback when gesture starts
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const { dx } = gestureState;
+        console.log('🔍 onPanResponderMove:', { dx });
+        
+        // Optional: Add visual feedback here (like iOS edge swipe indicator)
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        const { dx, vx } = gestureState; // vx is velocity
+        console.log('🔍 onPanResponderRelease:', { dx, vx });
+        
+        // Trigger back navigation if swipe is long enough OR fast enough
+        const isLongSwipe = dx > 80;
+        const isFastSwipe = vx > 0.5 && dx > 30;
+        
+        if (isLongSwipe || isFastSwipe) {
+          console.log('✅ Triggering back navigation', { isLongSwipe, isFastSwipe });
+          hapticFeedback.medium(); // Stronger feedback for successful action
+          
+          if (view !== 'books') {
+            goBack();
+          } else {
+            onClose();
+          }
+        } else {
+          console.log('❌ Swipe not strong enough', { dx, vx });
+        }
+      },
+      onPanResponderTerminationRequest: (evt, gestureState) => {
+        // Allow termination if the gesture isn't a clear swipe
+        const { dx } = gestureState;
+        const shouldTerminate = dx < 10;
+        console.log('🔍 onPanResponderTerminationRequest:', { dx, shouldTerminate });
+        return shouldTerminate;
+      },
+    })
+  ).current;
+
   // Load saved verses on mount
   useEffect(() => {
     loadSavedVerses();
@@ -79,11 +146,21 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     }
   }, [verses]);
 
-  // Handle initial verse reference navigation
+  // Handle initial verse reference navigation or search
   useEffect(() => {
     if (visible && initialVerseReference && books.length > 0) {
-      console.log('📖 Navigating to initial verse reference:', initialVerseReference);
+      console.log('📖 Processing initial verse reference:', initialVerseReference);
+      
+      // Check if it's a search query object
+      if (typeof initialVerseReference === 'object' && initialVerseReference.searchQuery) {
+        console.log('📖 Performing search for:', initialVerseReference.searchQuery);
+        setSearchQuery(initialVerseReference.searchQuery);
+        searchBibleWithQuery(initialVerseReference.searchQuery);
+      } else {
+        // Regular verse navigation
+        console.log('📖 Navigating to verse:', initialVerseReference);
       navigateToVerse(initialVerseReference);
+      }
     }
   }, [visible, initialVerseReference, books]);
 
@@ -314,6 +391,23 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       setSearchResults(results);
       setView('search');
     } catch (error) {
+      Alert.alert('🔍 Search Error', 'Failed to search Bible. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search with a specific query (used for AI chat verse references)
+  const searchBibleWithQuery = async (query) => {
+    if (!query.trim()) return;
+
+    setLoading(true);
+    try {
+      const results = await completeBibleService.searchVerses(query);
+      setSearchResults(results);
+      setView('search');
+    } catch (error) {
+      console.error('Search error:', error);
       Alert.alert('🔍 Search Error', 'Failed to search Bible. Please try again.');
     } finally {
       setLoading(false);
@@ -819,24 +913,22 @@ In simple words: God is telling us something important here that we can understa
 
   const renderBooks = () => (
     <ScrollView 
-      style={[styles.content, { backgroundColor: 'transparent' }]}
+      style={[styles.content, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Beautiful Header with Gradient */}
-      <LinearGradient
-        colors={[`${theme.primary}15`, 'transparent']}
-        style={styles.headerGradient}
-      >
-        <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.headerBlur}>
+      {/* Clean Header with theme colors */}
+      <View style={[styles.cleanHeader, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
           <Text style={[styles.beautifulTitle, { color: theme.text }]}>📚 Books of the Bible</Text>
           <Text style={[styles.beautifulSubtitle, { color: theme.textSecondary }]}>
             Explore the sacred texts with modern clarity
           </Text>
-        </BlurView>
-      </LinearGradient>
+      </View>
       
-      {/* Testament Navigation Cards with Blur Effects */}
+      {/* Clean Testament Cards with theme colors */}
       <View style={styles.testamentsContainer}>
       <TouchableOpacity
           style={styles.modernTestamentCard}
@@ -845,12 +937,11 @@ In simple words: God is telling us something important here that we can understa
             setView('old-testament');
           }}
         >
-          <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={styles.testamentBlurCard}>
-            <LinearGradient
-              colors={[`${theme.primary}30`, `${theme.primaryLight}15`]}
-              style={styles.testamentGradient}
-            >
-              <View style={styles.modernTestamentIcon}>
+          <View style={[styles.cleanTestamentCard, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
+            <View style={[styles.modernTestamentIcon, { backgroundColor: `${theme.primary}20` }]}>
                 <Text style={styles.modernTestamentEmoji}>📜</Text>
         </View>
               <View style={styles.modernTestamentInfo}>
@@ -859,7 +950,7 @@ In simple words: God is telling us something important here that we can understa
                   {books.filter(book => book.testament === 'old').length} books • Ancient Wisdom
           </Text>
                 <View style={styles.testamentStats}>
-                  <View style={[styles.statBadge, { backgroundColor: `${theme.primary}20` }]}>
+                <View style={[styles.statBadge, { backgroundColor: `${theme.primary}15` }]}>
                     <Text style={[styles.statText, { color: theme.primary }]}>Genesis to Malachi</Text>
         </View>
                 </View>
@@ -867,8 +958,7 @@ In simple words: God is telling us something important here that we can understa
               <View style={styles.modernChevron}>
                 <MaterialIcons name="chevron-right" size={28} color={theme.primary} />
               </View>
-            </LinearGradient>
-          </BlurView>
+          </View>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -878,12 +968,11 @@ In simple words: God is telling us something important here that we can understa
             setView('new-testament');
           }}
         >
-          <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={styles.testamentBlurCard}>
-            <LinearGradient
-              colors={[`${theme.primary}30`, `${theme.primaryLight}15`]}
-              style={styles.testamentGradient}
-            >
-              <View style={styles.modernTestamentIcon}>
+          <View style={[styles.cleanTestamentCard, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
+            <View style={[styles.modernTestamentIcon, { backgroundColor: `${theme.primary}20` }]}>
                 <Text style={styles.modernTestamentEmoji}>✝️</Text>
         </View>
               <View style={styles.modernTestamentInfo}>
@@ -892,7 +981,7 @@ In simple words: God is telling us something important here that we can understa
                   {books.filter(book => book.testament === 'new').length} books • Gospel & Letters
           </Text>
                 <View style={styles.testamentStats}>
-                  <View style={[styles.statBadge, { backgroundColor: `${theme.primary}20` }]}>
+                <View style={[styles.statBadge, { backgroundColor: `${theme.primary}15` }]}>
                     <Text style={[styles.statText, { color: theme.primary }]}>Matthew to Revelation</Text>
         </View>
                 </View>
@@ -900,35 +989,33 @@ In simple words: God is telling us something important here that we can understa
               <View style={styles.modernChevron}>
                 <MaterialIcons name="chevron-right" size={28} color={theme.primary} />
               </View>
-            </LinearGradient>
-          </BlurView>
+          </View>
       </TouchableOpacity>
       </View>
-
-
     </ScrollView>
   );
 
   const renderChapters = () => (
     <ScrollView 
-      style={[styles.content, { backgroundColor: 'transparent' }]}
+      style={[styles.content, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Beautiful Header */}
-      <LinearGradient
-        colors={[`${theme.primary}15`, 'transparent']}
-        style={styles.headerGradient}
-      >
-        <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.headerBlur}>
+      {/* Clean Header with theme colors */}
+      <View style={[styles.cleanHeader, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
           <Text style={[styles.beautifulTitle, { color: theme.text }]}>📖 {currentBook?.name}</Text>
           <Text style={[styles.beautifulSubtitle, { color: theme.textSecondary }]}>
             Choose a chapter to begin reading
           </Text>
-        </BlurView>
-      </LinearGradient>
+      </View>
       
-      <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.chaptersContainer}>
+      <View style={[styles.cleanChaptersContainer, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
         <View style={styles.modernChaptersGrid}>
           {chapters.map((chapter, index) => (
           <TouchableOpacity
@@ -939,53 +1026,49 @@ In simple words: God is telling us something important here that we can understa
                 loadVerses(chapter);
               }}
             >
-              <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={styles.chapterBlurCard}>
-                <LinearGradient
-                  colors={[
-                    `${theme.primary}${Math.round(15 + (index % 4) * 8).toString(16)}`,
-                    `${theme.primaryLight}${Math.round(8 + (index % 4) * 4).toString(16)}`
-                  ]}
-                  style={styles.chapterGradient}
-                >
+              <View style={[styles.cleanChapterCard, { 
+                backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+                borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+              }]}>
                   <Text style={[styles.modernChapterNumber, { color: theme.text }]}>
                     {chapter.number}
                   </Text>
                   <View style={styles.chapterIndicator}>
                     <MaterialIcons name="play-arrow" size={16} color={theme.primary} />
                   </View>
-                </LinearGradient>
-              </BlurView>
+              </View>
           </TouchableOpacity>
         ))}
       </View>
-      </BlurView>
+      </View>
     </ScrollView>
   );
 
   const renderVerses = () => (
     <ScrollView 
       ref={versesScrollViewRef}
-      style={[styles.content, { backgroundColor: 'transparent' }]}
+      style={[styles.content, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Beautiful Chapter Header */}
-      <LinearGradient
-        colors={[`${theme.primary}15`, 'transparent']}
-        style={styles.versesHeaderGradient}
-      >
-        <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={styles.versesHeaderBlur}>
+      {/* Clean Chapter Header with theme colors */}
+      <View style={[styles.cleanHeader, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
           <Text style={[styles.chapterTitle, { color: theme.text }]}>
             {currentBook?.name} {currentChapter?.number}
           </Text>
           <Text style={[styles.chapterSubtitle, { color: theme.textSecondary }]}>
             {verses.length} verses • Tap to interact
           </Text>
-        </BlurView>
-      </LinearGradient>
+      </View>
 
-      {/* Modern Chapter Navigation */}
-      <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.modernChapterNav}>
+      {/* Clean Chapter Navigation with theme colors */}
+      <View style={[styles.cleanChapterNav, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
         <TouchableOpacity 
           onPress={goToPreviousChapter}
           style={[styles.modernNavButton, { 
@@ -993,13 +1076,13 @@ In simple words: God is telling us something important here that we can understa
           }]}
           disabled={currentChapter?.number === '1' && books[0]?.id === currentBook?.id}
         >
-          <LinearGradient
-            colors={[`${theme.primary}20`, `${theme.primaryLight}10`]}
-            style={styles.navButtonGradient}
-          >
+          <View style={[styles.cleanNavButton, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
             <MaterialIcons name="chevron-left" size={20} color={theme.primary} />
             <Text style={[styles.modernNavText, { color: theme.primary }]}>Previous</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -1009,15 +1092,15 @@ In simple words: God is telling us something important here that we can understa
           }]}
           disabled={currentChapter?.number === currentBook?.chapters?.toString() && books[books.length - 1]?.id === currentBook?.id}
         >
-          <LinearGradient
-            colors={[`${theme.primary}20`, `${theme.primaryLight}10`]}
-            style={styles.navButtonGradient}
-          >
+          <View style={[styles.cleanNavButton, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
             <Text style={[styles.modernNavText, { color: theme.primary }]}>Next</Text>
             <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
-      </BlurView>
+      </View>
       
 
 
@@ -1039,14 +1122,10 @@ In simple words: God is telling us something important here that we can understa
                 marginVertical: 8
               }
             ]}>
-              <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.verseBlurCard}>
-                <LinearGradient
-                  colors={[
-                    `${theme.primary}${Math.round(8 + (index % 5) * 3).toString(16)}`,
-                    `${theme.primaryLight}${Math.round(4 + (index % 5) * 2).toString(16)}`
-                  ]}
-                  style={styles.verseGradient}
-                >
+              <View style={[styles.cleanVerseCard, { 
+                backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+                borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+              }]}>
                   <View style={styles.modernVerseHeader}>
                     <View style={[styles.verseNumberContainer, { backgroundColor: `${theme.primary}20` }]}>
                       <Text 
@@ -1086,50 +1165,50 @@ In simple words: God is telling us something important here that we can understa
                           onClose();
                         }}
                         style={[styles.modernActionButton, { 
-                          backgroundColor: `${theme.primary}30`
+                          backgroundColor: `${theme.primary}25`,
+                          borderColor: `${theme.primary}50`,
+                          borderWidth: 1
                         }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
                           <MaterialIcons name="forum" size={18} color={theme.primary} />
-                        </BlurView>
                       </TouchableOpacity>
 
                       {/* Simple Button */}
                       <TouchableOpacity
                         onPress={() => handleSimplifyVerse(verse)}
                         style={[styles.modernActionButton, { 
-                          backgroundColor: verse.isSimplified ? `${theme.warning}30` : `${theme.surface}40`
+                          backgroundColor: verse.isSimplified ? `${theme.warning}25` : `${theme.primary}25`,
+                          borderColor: verse.isSimplified ? `${theme.warning}50` : `${theme.primary}50`,
+                          borderWidth: 1
                         }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
                           <MaterialIcons 
                             name={verse.isSimplified ? "child-care" : "child-friendly"} 
                             size={18} 
-                            color={verse.isSimplified ? theme.warning : theme.textSecondary} 
+                          color={verse.isSimplified ? theme.warning : theme.primary} 
                           />
-                        </BlurView>
                       </TouchableOpacity>
 
                       {/* Save Button */}
                       <TouchableOpacity
                         onPress={() => handleSaveVerse(verse)}
                         style={[styles.modernActionButton, { 
-                          backgroundColor: savedVerses.has(verse.id) ? `${theme.success}30` : `${theme.surface}40`
+                          backgroundColor: savedVerses.has(verse.id) ? `${theme.success}25` : `${theme.primary}25`,
+                          borderColor: savedVerses.has(verse.id) ? `${theme.success}50` : `${theme.primary}50`,
+                          borderWidth: 1
                         }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                       >
-                        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={styles.actionButtonBlur}>
                           <MaterialIcons 
                             name={savedVerses.has(verse.id) ? "bookmark" : "bookmark-border"} 
                             size={18} 
-                            color={savedVerses.has(verse.id) ? theme.success : theme.textSecondary} 
+                          color={savedVerses.has(verse.id) ? theme.success : theme.primary} 
                           />
-                        </BlurView>
                       </TouchableOpacity>
                     </View>
             </View>
@@ -1220,15 +1299,17 @@ In simple words: God is telling us something important here that we can understa
                       </TouchableOpacity>
                     </View>
                   </View>
-                </LinearGradient>
-              </BlurView>
+              </View>
           </View>
         );
       })}
       </View>
       
-      {/* Beautiful Bottom Navigation */}
-      <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={styles.modernBottomNav}>
+      {/* Clean Bottom Navigation with theme colors */}
+      <View style={[styles.cleanBottomNav, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
         <TouchableOpacity 
           onPress={() => {
             hapticFeedback.buttonPress();
@@ -1239,10 +1320,10 @@ In simple words: God is telling us something important here that we can understa
           }]}
           disabled={currentChapter?.number === '1' && books[0]?.id === currentBook?.id}
         >
-          <LinearGradient
-            colors={[`${theme.primary}20`, `${theme.primaryLight}10`]}
-            style={styles.bottomButtonGradient}
-          >
+          <View style={[styles.cleanBottomButton, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
             <MaterialIcons name="arrow-back" size={24} color={theme.primary} />
             <View style={styles.bottomButtonText}>
               <Text style={[styles.bottomButtonTitle, { color: theme.primary }]}>Previous</Text>
@@ -1254,7 +1335,7 @@ In simple words: God is telling us something important here that we can understa
               : `Chapter ${parseInt(currentChapter?.number) - 1}`}
           </Text>
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -1267,10 +1348,10 @@ In simple words: God is telling us something important here that we can understa
           }]}
           disabled={currentChapter?.number === currentBook?.chapters?.toString() && books[books.length - 1]?.id === currentBook?.id}
         >
-          <LinearGradient
-            colors={[`${theme.primary}20`, `${theme.primaryLight}10`]}
-            style={styles.bottomButtonGradient}
-          >
+          <View style={[styles.cleanBottomButton, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+          }]}>
             <View style={styles.bottomButtonText}>
               <Text style={[styles.bottomButtonTitle, { color: theme.primary }]}>Next</Text>
               <Text style={[styles.bottomButtonSubtitle, { color: theme.textSecondary }]}>
@@ -1282,11 +1363,68 @@ In simple words: God is telling us something important here that we can understa
           </Text>
       </View>
             <MaterialIcons name="arrow-forward" size={24} color={theme.primary} />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
-      </BlurView>
+      </View>
     </ScrollView>
   );
+
+  const handleSimplifySearchResult = async (result, index) => {
+    const resultKey = `search_${index}`;
+    
+    try {
+      if (simplifiedSearchResults.has(resultKey)) {
+        // Toggle back to original
+        setSimplifiedSearchResults(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(resultKey);
+          return newMap;
+        });
+        hapticFeedback.light();
+        console.log(`📖 Showing original search result ${index}`);
+      } else {
+        // Simplify the verse
+        hapticFeedback.light();
+        console.log(`🧒 Simplifying search result ${index} for 12-year-old understanding...`);
+        
+        // Show loading state
+        setTranslatingVerse(resultKey);
+        
+        try {
+          // Use AI service to simplify the verse [[memory:7766870]]
+          const productionAiService = require('../services/productionAiService').default;
+          
+          const simplifiedText = await productionAiService.simplifyBibleVerse(
+            result.content, 
+            result.reference
+          );
+        
+          setSimplifiedSearchResults(prev => {
+            const newMap = new Map(prev);
+            newMap.set(resultKey, {
+              simplifiedContent: simplifiedText,
+              originalContent: result.content
+            });
+            return newMap;
+          });
+        
+          hapticFeedback.success();
+          console.log(`✅ Successfully simplified search result ${index}`);
+        } catch (aiError) {
+          console.error('AI simplification failed for search result:', aiError);
+          hapticFeedback.error();
+          Alert.alert('Error', 'Failed to simplify verse. Please try again.');
+        } finally {
+          setTranslatingVerse(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleSimplifySearchResult:', error);
+      setTranslatingVerse(null);
+      hapticFeedback.error();
+      Alert.alert('Error', 'Failed to simplify verse. Please try again.');
+    }
+  };
 
   const renderSearchResults = () => (
     <ScrollView style={[styles.content, { backgroundColor: theme.background }]}>
@@ -1295,34 +1433,125 @@ In simple words: God is telling us something important here that we can understa
       {searchResults.length === 0 ? (
         <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No verses found. Try a different search term.</Text>
       ) : (
-        searchResults.map((result, index) => (
-          <View key={index} style={[styles.searchResultItem, { backgroundColor: theme.card }]}>
+        searchResults.map((result, index) => {
+          const resultKey = `search_${index}`;
+          const isSimplified = simplifiedSearchResults.has(resultKey);
+          const isLoading = translatingVerse === resultKey;
+          const displayText = isSimplified ? 
+            simplifiedSearchResults.get(resultKey)?.simplifiedContent : 
+            result.content;
+          
+          return (
+          <View key={index} style={[styles.searchResultItem, { 
+            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+            borderColor: useThemeColors ? `${theme.primary}60` : theme.border,
+            borderWidth: 1
+          }]}>
             <Text style={[styles.searchReference, { color: theme.primary }]}>{result.reference}</Text>
-            <Text style={[styles.searchText, { color: theme.text }]}>{result.content}</Text>
+            
+            {/* Show simplified or original text */}
+            <Text style={[styles.searchText, { color: theme.text, fontStyle: 'italic' }]}>
+              {displayText}
+            </Text>
+            
+            {/* Show loading indicator when simplifying */}
+            {isLoading && (
+              <View style={styles.simplifyingContainer}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text style={[styles.simplifyingText, { color: theme.textSecondary }]}>
+                  Making it simple for you...
+                </Text>
           </View>
-        ))
+            )}
+            
+            {/* Show simplified label when simplified */}
+            {isSimplified && !isLoading && (
+              <View style={styles.simplifiedHeader}>
+                <MaterialIcons name="child-care" size={16} color={theme.warning} />
+                <Text style={[styles.simplifiedLabel, { color: theme.warning }]}>
+                  Simplified
+                </Text>
+              </View>
+            )}
+            
+            {/* Action Buttons */}
+            <View style={styles.searchActionButtons}>
+              {/* Discussion Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  const verseData = {
+                    text: result.content,
+                    reference: result.reference
+                  };
+                  
+                  if (onNavigateToAI) {
+                    onNavigateToAI(verseData);
+                  }
+                  
+                  onClose();
+                }}
+                style={[styles.searchActionButton, { 
+                  backgroundColor: `${theme.primary}25`,
+                  borderColor: `${theme.primary}50`,
+                  borderWidth: 1
+                }]}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="forum" size={16} color={theme.primary} />
+                <Text style={[styles.searchActionText, { color: theme.primary }]}>Discuss</Text>
+              </TouchableOpacity>
+
+              {/* Simplify Button */}
+              <TouchableOpacity
+                onPress={() => handleSimplifySearchResult(result, index)}
+                style={[styles.searchActionButton, { 
+                  backgroundColor: isSimplified ? `${theme.warning}25` : `${theme.primary}25`,
+                  borderColor: isSimplified ? `${theme.warning}50` : `${theme.primary}50`,
+                  borderWidth: 1
+                }]}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size={16} color={theme.primary} />
+                ) : (
+                  <MaterialIcons 
+                    name={isSimplified ? "child-care" : "child-friendly"} 
+                    size={16} 
+                    color={isSimplified ? theme.warning : theme.primary} 
+                  />
+                )}
+                <Text style={[styles.searchActionText, { 
+                  color: isSimplified ? theme.warning : theme.primary 
+                }]}>
+                  {isSimplified ? "Original" : "Simplify"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          );
+        })
       )}
     </ScrollView>
   );
 
   const renderOldTestament = () => (
     <ScrollView 
-      style={[styles.content, { backgroundColor: 'transparent' }]}
+      style={[styles.content, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Beautiful Header */}
-      <LinearGradient
-        colors={[`${theme.primary}20`, 'transparent']}
-        style={styles.headerGradient}
-      >
-        <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.headerBlur}>
+      {/* Clean Header with theme colors */}
+      <View style={[styles.cleanHeader, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
           <Text style={[styles.beautifulTitle, { color: theme.text }]}>📜 Old Testament</Text>
           <Text style={[styles.beautifulSubtitle, { color: theme.textSecondary }]}>
             Ancient wisdom and foundational stories of faith
           </Text>
-        </BlurView>
-      </LinearGradient>
+      </View>
 
       <View style={styles.booksContainer}>
         {books.filter(book => book.testament === 'old').map((book, index) => (
@@ -1334,14 +1563,10 @@ In simple words: God is telling us something important here that we can understa
               loadChapters(book);
             }}
           >
-            <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.bookBlurCard}>
-              <LinearGradient
-                colors={[
-                  `${theme.primary}${Math.round(15 + (index % 3) * 5).toString(16)}`,
-                  `${theme.primaryLight}${Math.round(8 + (index % 3) * 3).toString(16)}`
-                ]}
-                style={styles.bookGradient}
-              >
+            <View style={[styles.cleanBookCard, { 
+              backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+              borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+            }]}>
                 <View style={styles.bookIconContainer}>
                   <Text style={styles.bookEmoji}>
                     {index < 5 ? '📖' : index < 17 ? '👑' : index < 22 ? '✍️' : index < 27 ? '🔮' : '📜'}
@@ -1361,8 +1586,7 @@ In simple words: God is telling us something important here that we can understa
                 <View style={styles.bookChevron}>
                   <MaterialIcons name="chevron-right" size={24} color={theme.primary} />
                 </View>
-              </LinearGradient>
-            </BlurView>
+            </View>
         </TouchableOpacity>
       ))}
       </View>
@@ -1371,22 +1595,20 @@ In simple words: God is telling us something important here that we can understa
 
   const renderNewTestament = () => (
     <ScrollView 
-      style={[styles.content, { backgroundColor: 'transparent' }]}
+      style={[styles.content, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Beautiful Header */}
-      <LinearGradient
-        colors={[`${theme.primary}20`, 'transparent']}
-        style={styles.headerGradient}
-      >
-        <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.headerBlur}>
+      {/* Clean Header with theme colors */}
+      <View style={[styles.cleanHeader, { 
+        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
+      }]}>
           <Text style={[styles.beautifulTitle, { color: theme.text }]}>✝️ New Testament</Text>
           <Text style={[styles.beautifulSubtitle, { color: theme.textSecondary }]}>
             The Gospel message and early Christian teachings
           </Text>
-        </BlurView>
-      </LinearGradient>
+      </View>
 
       <View style={styles.booksContainer}>
         {books.filter(book => book.testament === 'new').map((book, index) => (
@@ -1398,14 +1620,10 @@ In simple words: God is telling us something important here that we can understa
               loadChapters(book);
             }}
           >
-            <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.bookBlurCard}>
-              <LinearGradient
-                colors={[
-                  `${theme.primary}${Math.round(15 + (index % 3) * 5).toString(16)}`,
-                  `${theme.primaryLight}${Math.round(8 + (index % 3) * 3).toString(16)}`
-                ]}
-                style={styles.bookGradient}
-              >
+            <View style={[styles.cleanBookCard, { 
+              backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
+              borderColor: useThemeColors ? `${theme.primary}60` : theme.border
+            }]}>
                 <View style={styles.bookIconContainer}>
                   <Text style={styles.bookEmoji}>
                     {index < 4 ? '✝️' : index < 5 ? '⚡' : index < 18 ? '✉️' : '🔮'}
@@ -1425,8 +1643,7 @@ In simple words: God is telling us something important here that we can understa
                 <View style={styles.bookChevron}>
                   <MaterialIcons name="chevron-right" size={24} color={theme.primary} />
                 </View>
-              </LinearGradient>
-            </BlurView>
+            </View>
         </TouchableOpacity>
       ))}
       </View>
@@ -1467,12 +1684,20 @@ In simple words: God is telling us something important here that we can understa
         visible={visible} 
         animationType="slide" 
         presentationStyle="pageSheet"
-        onRequestClose={onClose}
+        onRequestClose={() => {}} // Disable pull-down-to-close gesture
       >
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View 
+          style={[styles.container, { backgroundColor: theme.background }]}
+        >
           {renderHeader()}
           <View style={styles.mainContent}>
             {renderContent()}
+            
+            {/* Invisible left edge swipe area */}
+            <View 
+              style={styles.leftEdgeSwipeArea}
+              {...panResponder.panHandlers}
+            />
           </View>
         
         {/* Smart Assistant Button - Fixed at bottom */}
@@ -1571,7 +1796,7 @@ In simple words: God is telling us something important here that we can understa
         }}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={styles.pickerModal}>
+          <BlurView intensity={20} tint={useThemeColors ? 'dark' : 'light'} style={styles.pickerModal}>
             <Text style={[styles.pickerTitle, { color: theme.text }]}>Journal Entry</Text>
             <Text style={[{ color: theme.text, marginBottom: 20 }]}>
               {selectedVerseForJournal?.reference || 'Loading...'}
@@ -1636,9 +1861,19 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
+    position: 'relative',
+  },
+  leftEdgeSwipeArea: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 50, // 50px wide invisible swipe area on the left edge
+    backgroundColor: 'transparent',
+    zIndex: 1000, // Ensure it's above other content
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 70 : 40,
+    paddingTop: Platform.OS === 'ios' ? 15 : 10,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -2006,6 +2241,23 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     // color will be set dynamically with theme.text
   },
+  searchActionButtons: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 8,
+  },
+  searchActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 6,
+  },
+  searchActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
@@ -2073,16 +2325,131 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  // Modern Beautiful Styles
-  headerGradient: {
+  // Clean Styles without gradients
+  cleanHeader: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 12,
-  },
-  headerBlur: {
+    paddingVertical: 20,
+    marginHorizontal: 20,
+    marginBottom: 16,
     borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanTestamentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanChaptersContainer: {
+    margin: 20,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanChapterCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cleanChapterNav: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 12,
+    gap: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanNavButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cleanVerseCard: {
     padding: 16,
-    overflow: 'hidden',
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanBottomNav: {
+    flexDirection: 'row',
+    margin: 20,
+    borderRadius: 16,
+    padding: 12,
+    gap: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cleanBottomButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cleanBookCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   beautifulTitle: {
     fontSize: 28,
@@ -2361,12 +2728,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionButtonBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none', // Allow touches to pass through
-  },
   verseContentContainer: {
     marginTop: 8,
     width: '100%',
@@ -2379,6 +2740,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexShrink: 1,
     flexWrap: 'wrap',
+    fontStyle: 'italic',
   },
   originalToggle: {
     alignSelf: 'flex-end',

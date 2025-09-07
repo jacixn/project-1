@@ -130,9 +130,15 @@ const BiblePrayerTab = () => {
   }, []);
 
   // Handle navigation to specific Bible verse
-  const handleNavigateToVerse = useCallback((verseRef) => {
-    console.log('📖 BiblePrayerTab: Navigating to verse:', verseRef);
-    setVerseReference(verseRef);
+  const handleNavigateToVerse = useCallback((verseRef, mode = 'navigate') => {
+    console.log('📖 BiblePrayerTab: Navigating to verse:', verseRef, 'mode:', mode);
+    if (mode === 'search') {
+      // For search mode, pass the verse reference as a search query
+      setVerseReference({ searchQuery: verseRef });
+    } else {
+      // For navigation mode, pass as normal verse reference
+      setVerseReference(verseRef);
+    }
     setShowBible(true);
   }, []);
 

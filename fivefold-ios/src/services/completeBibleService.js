@@ -573,28 +573,159 @@ class CompleteBibleService {
     }
   }
 
-  // Search verses
+  // Search verses - Enhanced to handle both specific references and general text search
   async searchVerses(query, limit = 20) {
     try {
-      const url = `https://bible-api.com/${encodeURIComponent(query)}`;
-      const response = await fetch(url);
+      // First, try to parse as a specific Bible reference
+      const isSpecificReference = this.isValidBibleReference(query);
       
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
+      if (isSpecificReference) {
+        // Handle specific verse references like "Genesis 1:1" or "John 3:16"
+        const url = `https://bible-api.com/${encodeURIComponent(query)}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json();
+          const results = data.verses ? data.verses.slice(0, limit).map(verse => ({
+            reference: data.reference || `${verse.book_name} ${verse.chapter}:${verse.verse}`,
+            content: verse.text.trim()
+          })) : [];
+          return results;
+        }
       }
-
-      const data = await response.json();
       
-      const results = data.verses ? data.verses.slice(0, limit).map(verse => ({
-        reference: `${data.reference}:${verse.verse}`,
-        content: verse.text.trim()
-      })) : [];
-
-      return results;
+      // For general searches (like "Genesis" or "love"), use a different approach
+      return await this.performGeneralSearch(query, limit);
+      
     } catch (error) {
       console.error('Error searching verses:', error);
+      // Fallback to general search if specific reference fails
+      return await this.performGeneralSearch(query, limit);
+    }
+  }
+
+  // Check if query looks like a Bible reference
+  isValidBibleReference(query) {
+    // Matches patterns like: "Genesis 1", "Genesis 1:1", "John 3:16", "1 Corinthians 13"
+    const referencePattern = /^(1|2|3)?\s*[A-Za-z]+\s*\d+(\:\d+)?(-\d+)?$/;
+    return referencePattern.test(query.trim());
+  }
+
+  // Perform general text search across common verses
+  async performGeneralSearch(query, limit = 20) {
+    try {
+      const searchTerm = query.toLowerCase().trim();
+      
+      // If searching for a book name, return popular verses from that book
+      if (this.isBookName(searchTerm)) {
+        return await this.getPopularVersesFromBook(searchTerm, limit);
+      }
+      
+      // For other searches, use a curated list of popular verses that might match
+      return await this.searchInPopularVerses(searchTerm, limit);
+      
+    } catch (error) {
+      console.error('Error in general search:', error);
       return [];
     }
+  }
+
+  // Check if query is a book name
+  isBookName(query) {
+    const bookNames = [
+      'genesis', 'exodus', 'leviticus', 'numbers', 'deuteronomy', 'joshua', 'judges', 'ruth',
+      '1 samuel', '2 samuel', '1 kings', '2 kings', '1 chronicles', '2 chronicles', 'ezra',
+      'nehemiah', 'esther', 'job', 'psalms', 'proverbs', 'ecclesiastes', 'song of solomon',
+      'isaiah', 'jeremiah', 'lamentations', 'ezekiel', 'daniel', 'hosea', 'joel', 'amos',
+      'obadiah', 'jonah', 'micah', 'nahum', 'habakkuk', 'zephaniah', 'haggai', 'zechariah',
+      'malachi', 'matthew', 'mark', 'luke', 'john', 'acts', 'romans', '1 corinthians',
+      '2 corinthians', 'galatians', 'ephesians', 'philippians', 'colossians', '1 thessalonians',
+      '2 thessalonians', '1 timothy', '2 timothy', 'titus', 'philemon', 'hebrews', 'james',
+      '1 peter', '2 peter', '1 john', '2 john', '3 john', 'jude', 'revelation'
+    ];
+    
+    return bookNames.includes(query.toLowerCase());
+  }
+
+  // Get popular verses from a specific book
+  async getPopularVersesFromBook(bookName, limit) {
+    const popularVerses = {
+      'genesis': [
+        'Genesis 1:1', 'Genesis 1:27', 'Genesis 2:7', 'Genesis 3:6', 'Genesis 6:19',
+        'Genesis 8:22', 'Genesis 9:13', 'Genesis 12:2', 'Genesis 15:6', 'Genesis 22:14'
+      ],
+      'john': [
+        'John 3:16', 'John 14:6', 'John 8:32', 'John 1:1', 'John 10:10',
+        'John 15:13', 'John 11:25', 'John 8:12', 'John 14:27', 'John 1:14'
+      ],
+      'psalms': [
+        'Psalms 23:1', 'Psalms 46:10', 'Psalms 119:105', 'Psalms 27:1', 'Psalms 91:1',
+        'Psalms 139:14', 'Psalms 37:4', 'Psalms 121:1', 'Psalms 103:12', 'Psalms 34:8'
+      ],
+      'romans': [
+        'Romans 8:28', 'Romans 3:23', 'Romans 6:23', 'Romans 10:9', 'Romans 12:2',
+        'Romans 8:1', 'Romans 1:16', 'Romans 5:8', 'Romans 8:38', 'Romans 15:13'
+      ],
+      'matthew': [
+        'Matthew 28:19', 'Matthew 5:16', 'Matthew 6:33', 'Matthew 11:28', 'Matthew 5:44',
+        'Matthew 7:7', 'Matthew 19:26', 'Matthew 6:26', 'Matthew 5:8', 'Matthew 28:20'
+      ]
+    };
+
+    const verses = popularVerses[bookName.toLowerCase()] || [];
+    const results = [];
+
+    for (let i = 0; i < Math.min(verses.length, limit); i++) {
+      try {
+        const response = await fetch(`https://bible-api.com/${encodeURIComponent(verses[i])}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.text) {
+            results.push({
+              reference: verses[i],
+              content: data.text.trim()
+            });
+          }
+        }
+      } catch (error) {
+        console.log(`Failed to fetch ${verses[i]}`);
+      }
+    }
+
+    return results;
+  }
+
+  // Search in popular verses for general terms
+  async searchInPopularVerses(searchTerm, limit) {
+    // This is a simplified approach - in a real app you'd want a proper search API
+    const popularSearchVerses = [
+      'John 3:16', 'Psalms 23:1', 'Romans 8:28', 'Philippians 4:13', 'Isaiah 41:10',
+      'Jeremiah 29:11', 'Matthew 28:19', 'Ephesians 2:8', '1 Corinthians 13:4',
+      'Proverbs 3:5', 'Romans 3:23', 'John 14:6', 'Psalms 46:10', 'Matthew 11:28'
+    ];
+
+    const results = [];
+    
+    for (const verse of popularSearchVerses) {
+      if (results.length >= limit) break;
+      
+      try {
+        const response = await fetch(`https://bible-api.com/${encodeURIComponent(verse)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.text && data.text.toLowerCase().includes(searchTerm)) {
+            results.push({
+              reference: verse,
+              content: data.text.trim()
+            });
+          }
+        }
+      } catch (error) {
+        console.log(`Failed to search in ${verse}`);
+      }
+    }
+
+    return results;
   }
 
   // Test that all versions work
