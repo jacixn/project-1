@@ -1179,7 +1179,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 40 + 15; // Bigger: Size between 15-55
       const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (3200 - size); // Extended for Apostolic Age positioning
+      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
       const rotation = Math.random() * 360;
       const opacity = Math.random() * 0.4 + 0.1; // Opacity between 0.1-0.5
       
@@ -1291,7 +1291,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 60 + 40; // Bigger: Medium sizes 40-100
       const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (3200 - size); // Extended for Apostolic Age positioning
+      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
       const opacity = Math.random() * 0.3 + 0.05; // More visible
       
       // Medium shapes are completely static (no animations)
@@ -1325,7 +1325,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       const color = colors[Math.floor(Math.random() * colors.length)];
       const size = Math.random() * 100 + 100; // Much bigger: Large sizes 100-200
       const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (3200 - size); // Extended for Apostolic Age positioning
+      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
       const opacity = Math.random() * 0.15 + 0.03; // More visible
       
       // Large shapes are completely static (no animations)
@@ -2176,7 +2176,7 @@ const styles = StyleSheet.create({
   },
   mindmapContent: {
     width: width * 2.9 + 150, // Much tighter - just enough for rightmost era + minimal padding
-    height: 1600,
+    height: 1200, // Much tighter - lowest era at y:1000 + era size + minimal padding
     position: 'relative',
     backgroundColor: 'transparent', // Make content transparent too
   },
@@ -2187,7 +2187,7 @@ const styles = StyleSheet.create({
     top: -200, // Start above visible area
     left: -200, // Start left of visible area
     width: width * 3.1 + 300, // Tighter coverage matching reduced content width
-    height: 3200 + 400, // Extended for Apostolic Age positioning
+    height: 1400 + 300, // Much tighter - match reduced content height
     zIndex: -1, // Behind everything else
   },
   geometricShape: {
