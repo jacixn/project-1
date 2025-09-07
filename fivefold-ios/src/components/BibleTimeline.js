@@ -1898,11 +1898,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
               {selectedEra.description}
             </Text>
 
-            {/* Stories - Beautiful Bible Adventures */}
+            {/* Stories */}
             <View style={styles.storiesContainer}>
-              <Text style={[styles.storiesTitle, { color: '#1a1a1a' }]}>
-                BIBLE ADVENTURES
-              </Text>
               <ScrollView 
                 style={styles.storiesScrollView}
                 showsVerticalScrollIndicator={false}
