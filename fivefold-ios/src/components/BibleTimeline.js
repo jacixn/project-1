@@ -1848,7 +1848,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     if (!selectedEra) return null;
 
     return (
-      <TouchableOpacity
+      <Animated.View
         style={[
           styles.eraDetailContainer,
           {
@@ -1860,18 +1860,19 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             ],
           },
         ]}
-        activeOpacity={1}
-        onPress={() => {
-          hapticFeedback.light();
-          setSelectedEra(null);
-        }}
       >
-        <TouchableOpacity 
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <BlurView intensity={35} tint={isDark ? "systemMaterialDark" : "systemMaterialLight"} style={styles.eraDetailCard}>
+        <BlurView intensity={35} tint={isDark ? "systemMaterialDark" : "systemMaterialLight"} style={styles.eraDetailCard}>
+          {/* Close Button - Top Right */}
+          <TouchableOpacity
+            style={[styles.closeButtonTopRight, { backgroundColor: `${selectedEra.color}20` }]}
+            onPress={() => {
+              hapticFeedback.light();
+              setSelectedEra(null);
+            }}
+          >
+            <MaterialIcons name="close" size={20} color={selectedEra.color} />
+          </TouchableOpacity>
+          
           <LinearGradient
             colors={[`${selectedEra.color}25`, `${selectedEra.color}15`, 'transparent']}
             style={styles.eraDetailGradient}
@@ -1931,8 +1932,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Bible Story:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a', fontWeight: '600' }]}>{storyItem.bibleStory}</Text>
-            </View>
-
+                      </View>
+                      
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Characters:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a' }]}>{storyItem.characters}</Text>
@@ -1946,11 +1947,9 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
                 ))}
               </ScrollView>
             </View>
-
-            </LinearGradient>
-          </BlurView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+          </LinearGradient>
+        </BlurView>
+      </Animated.View>
     );
   };
 
@@ -2112,6 +2111,22 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+  },
+  closeButtonTopRight: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   backButton: {
     width: 60, // Bigger
@@ -2385,17 +2400,12 @@ const styles = StyleSheet.create({
   // Era Detail Panel
   eraDetailContainer: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)', // Semi-transparent overlay
+    top: 120,
+    left: 20,
+    right: 20,
+    maxHeight: '75%',
   },
   eraDetailCard: {
-    width: width - 40,
-    maxHeight: '75%',
     borderRadius: 30,
     overflow: 'hidden',
     elevation: 15,
