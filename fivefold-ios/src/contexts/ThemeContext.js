@@ -117,6 +117,7 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState('dark'); // Default to dark mode
+  const [isDarkMode, setIsDarkMode] = useState(true); // Separate dark mode state
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -126,8 +127,21 @@ export const ThemeProvider = ({ children }) => {
   const loadThemePreference = async () => {
     try {
       const savedTheme = await AsyncStorage.getItem('fivefold_theme');
+      const savedDarkMode = await AsyncStorage.getItem('fivefold_dark_mode');
+      
       if (savedTheme && themes[savedTheme]) {
         setCurrentTheme(savedTheme);
+      }
+      
+      if (savedDarkMode !== null) {
+        setIsDarkMode(JSON.parse(savedDarkMode));
+      } else {
+        // Set default based on theme
+        if (savedTheme === 'blush-bloom' || savedTheme === 'eterna') {
+          setIsDarkMode(false); // These themes default to light mode
+        } else {
+          setIsDarkMode(true); // Default to dark
+        }
       }
     } catch (error) {
       console.log('Error loading theme preference:', error);
@@ -141,38 +155,76 @@ export const ThemeProvider = ({ children }) => {
       if (themes[themeName]) {
         setCurrentTheme(themeName);
         await AsyncStorage.setItem('fivefold_theme', themeName);
+        
+        // Auto-set light mode for Blush Bloom and Eterna themes
+        if (themeName === 'blush-bloom' || themeName === 'eterna') {
+          setIsDarkMode(false);
+          await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(false));
+        }
+        // Auto-set dark mode for Cresvia theme
+        else if (themeName === 'cresvia') {
+          setIsDarkMode(true);
+          await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        }
       }
     } catch (error) {
       console.log('Error saving theme preference:', error);
     }
   };
 
-  const toggleTheme = async () => {
-    // Toggle between light and dark (for backward compatibility)
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    await changeTheme(newTheme);
+  const toggleDarkMode = async () => {
+    try {
+      const newDarkMode = !isDarkMode;
+      setIsDarkMode(newDarkMode);
+      await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(newDarkMode));
+    } catch (error) {
+      console.log('Error saving dark mode preference:', error);
+    }
   };
 
-  const theme = themes[currentTheme];
-  const isDark = currentTheme === 'dark';
+  const toggleTheme = async () => {
+    // Legacy function - now just toggles dark mode
+    await toggleDarkMode();
+  };
+
+  // Get the appropriate theme based on current theme and dark mode
+  const getActiveTheme = () => {
+    const baseTheme = themes[currentTheme];
+    
+    // Handle dual-mode themes (Blush Bloom, Cresvia, Eterna)
+    if (baseTheme && typeof baseTheme === 'object' && baseTheme.light && baseTheme.dark) {
+      return isDarkMode ? baseTheme.dark : baseTheme.light;
+    }
+    
+    // Handle legacy themes (light, dark)
+    return baseTheme;
+  };
+
+  const theme = getActiveTheme();
+  const isDark = isDarkMode;
   const isBlushTheme = currentTheme === 'blush-bloom';
   const isCresviaTheme = currentTheme === 'cresvia';
   const isEternaTheme = currentTheme === 'eterna';
   
-  const availableThemes = Object.keys(themes).map(key => ({
-    id: key,
-    name: themes[key].name || key,
-    theme: themes[key]
-  }));
+  // Filter available themes to only show the themed ones (not light/dark)
+  const availableThemes = Object.keys(themes)
+    .filter(key => !['light', 'dark'].includes(key))
+    .map(key => ({
+      id: key,
+      name: themes[key].name || key,
+      theme: themes[key]
+    }));
 
   const value = {
     theme,
     currentTheme,
     isDark,
+    isDarkMode,
     isBlushTheme,
     isCresviaTheme,
     isEternaTheme,
     toggleTheme,
+    toggleDarkMode,
     changeTheme,
     availableThemes,
     isLoading,

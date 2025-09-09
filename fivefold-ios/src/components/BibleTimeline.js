@@ -11,9 +11,9 @@ import {
   Image,
   StatusBar,
   Modal,
-  SafeAreaView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -41,40 +41,40 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'creation',
       title: 'CREATION & EARLY WORLD',
-      subtitle: 'Genesis 1–11',
+      subtitle: 'Genesis 1 to 11',
       emoji: '🌍',
       bgEmoji: '✨',
       color: '#E91E63',
       gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
       position: { x: width * 0.25, y: 40 },
       size: 120,
-      description: 'The beginning of everything! From God creating the universe to humanity\'s first steps - and mistakes. This is where all the Bible adventures start!',
+      description: 'The beginning of everything! From God creating the universe to humanity\'s first steps and mistakes. This is where all the Bible adventures start!',
       stories: [
         {
           title: 'God Creates Everything!',
           when: 'Way back at the very beginning (some people think around 4000 BC, but nobody knows for sure!)',
-          bibleStory: 'Genesis 1:1-31',
+          bibleStory: 'Genesis 1:1 to 31',
           characters: 'God, Adam, and Eve',
-          story: 'In just six days, God made EVERYTHING - the whole universe, our planet Earth, all the animals, plants, and the very first people named Adam and Eve. He made them special, just like Him! This is where everything started.'
+          story: 'In just six days, God made EVERYTHING: the whole universe, our planet Earth, all the animals, plants, and the very first people named Adam and Eve. He made them special, just like Him! This is where everything started.'
         },
         {
           title: 'Paradise: The Perfect Garden',
           when: 'Right after God made Adam and Eve',
-          bibleStory: 'Genesis 2:8-25',
+          bibleStory: 'Genesis 2:8 to 25',
           characters: 'Adam and Eve',
-          story: 'God made the most beautiful garden called Eden - think of the most beautiful park you\'ve ever seen, but a million times better! Adam and Eve got to take care of it and hang out with God every day. It was perfect! God also created marriage here and gave them just one rule: "Don\'t eat fruit from that one special tree."'
+          story: 'God made the most beautiful garden called Eden: think of the most beautiful park you\'ve ever seen, but a million times better! Adam and Eve got to take care of it and hang out with God every day. It was perfect! God also created marriage here and gave them just one rule: "Don\'t eat fruit from that one special tree."'
         },
         {
           title: 'The Big Mistake',
           when: 'Still in the very early days of people',
-          bibleStory: 'Genesis 3:1-24',
+          bibleStory: 'Genesis 3:1 to 24',
           characters: 'Adam, Eve, and a sneaky snake (which was really Satan in disguise)',
           story: 'A tricky snake convinced Eve to eat the forbidden fruit, and she shared it with Adam. This was the first time people disobeyed God, and it changed EVERYTHING. Suddenly they felt ashamed and had to leave their perfect garden home. This mistake brought sadness and death into the world, but God already had a plan to fix it.'
         },
         {
           title: 'The First Murder',
           when: 'Early human history (maybe before 3000 BC)',
-          bibleStory: 'Genesis 4:1-16',
+          bibleStory: 'Genesis 4:1 to 16',
           characters: 'Cain and Abel (Adam and Eve\'s sons)',
           story: 'Cain and Abel were brothers who both gave gifts to God. God liked Abel\'s gift better, which made Cain super jealous. In his anger, Cain killed his own brother! God punished Cain by making him wander around with no home. This shows how quickly people started making really bad choices after leaving Eden.'
         },
@@ -88,14 +88,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'God\'s Colorful Promise',
           when: 'Right after the flood ended',
-          bibleStory: 'Genesis 9:8-17',
+          bibleStory: 'Genesis 9:8 to 17',
           characters: 'Noah and God',
           story: 'When Noah and everyone got off the boat, God made a special promise: "I will NEVER flood the whole earth again!" And to help everyone remember this promise, God put the very first rainbow in the sky. Every time we see a rainbow, we can remember that God keeps His promises!'
         },
         {
           title: 'The Tower That Reached Too High',
           when: 'Maybe around 2100 BC',
-          bibleStory: 'Genesis 11:1-9',
+          bibleStory: 'Genesis 11:1 to 9',
           characters: 'All the people living then (Noah\'s descendants)',
           story: 'Back then, everyone spoke the same language. They got really proud and decided to build the tallest tower ever to show off how awesome they were. God wasn\'t happy about their pride, so He mixed up their languages so they couldn\'t understand each other anymore! The people scattered all over the earth, which is why we have so many different languages today. This shows that God is in charge, not people.'
         }
@@ -105,7 +105,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'patriarchs',
       title: 'THE PATRIARCHS',
-      subtitle: 'Genesis 12–50, Job',
+      subtitle: 'Genesis 12 to 50, Job',
       emoji: '👨‍👩‍👧‍👦',
       bgEmoji: '⭐',
       color: '#FF9800',
@@ -117,56 +117,56 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'God Calls Abraham on a Great Adventure',
           when: 'Around 2090-2080 BC',
-          bibleStory: 'Genesis 12:1-9',
+          bibleStory: 'Genesis 12:1 to 9',
           characters: 'Abram (later called Abraham), Sarai (later called Sarah), and God',
           story: 'God told a man named Abram, "Leave your home and family and go to a new land I\'ll show you. I\'m going to make you famous and give you TONS of descendants, and through your family, I\'ll bless the whole world!" So Abram packed up everything and started walking to this mysterious new place called Canaan. This was the beginning of God\'s special plan to save the world through Abraham\'s family.'
         },
         {
           title: 'God Makes a Very Important Promise',
           when: 'Around 2080-2070 BC',
-          bibleStory: 'Genesis 15 and 17:1-8',
+          bibleStory: 'Genesis 15 and 17:1 to 8',
           characters: 'Abraham and God',
           story: 'God made an official promise (called a covenant) with Abraham: "I\'ll give you more descendants than stars in the sky, this whole land will belong to your family, and through you I\'ll bless everyone on Earth!" God even changed Abram\'s name to "Abraham" (meaning "father of many") and Sarai\'s name to "Sarah." He also gave them a special sign called circumcision to remember this promise forever.'
         },
         {
           title: 'Abraham Gets Impatient and Has a Baby the Wrong Way',
           when: 'Around 2080 BC',
-          bibleStory: 'Genesis 16:1-16',
+          bibleStory: 'Genesis 16:1 to 16',
           characters: 'Abraham, Hagar (Sarah\'s helper), baby Ishmael, and Sarah',
           story: 'Abraham and Sarah got tired of waiting for God\'s promised baby, so Sarah told Abraham to have a baby with her servant Hagar instead. The baby was named Ishmael, and he became the father of the Arab people. But this caused a lot of family drama! God said, "I\'ll bless Ishmael too, but my special promise will come through Sarah\'s baby, not this one."'
         },
         {
           title: 'God Destroys Two Really Evil Cities',
           when: 'Around 2067 BC',
-          bibleStory: 'Genesis 19:24-29',
+          bibleStory: 'Genesis 19:24 to 29',
           characters: 'Abraham and his nephew Lot',
           story: 'Two cities called Sodom and Gomorrah were SO evil that God decided to destroy them with fire from the sky! But first, angels rescued Abraham\'s nephew Lot and his family. Unfortunately, Lot\'s wife looked back at the burning cities when she wasn\'t supposed to, and she turned into a pillar of salt! This shows that God punishes evil but saves good people.'
         },
         {
           title: 'The Miracle Baby Finally Arrives!',
           when: '2066 BC',
-          bibleStory: 'Genesis 21:1-7',
+          bibleStory: 'Genesis 21:1 to 7',
           characters: 'Abraham, Sarah, and baby Isaac',
-          story: 'When Abraham was 100 years old and Sarah was 90 (that\'s REALLY old!), God gave them the baby He promised - Isaac! Sarah laughed because she couldn\'t believe she was having a baby at her age. Isaac\'s birth proved that God always keeps His promises, even when it seems impossible.'
+          story: 'When Abraham was 100 years old and Sarah was 90 (that\'s REALLY old!), God gave them the baby He promised: Isaac! Sarah laughed because she couldn\'t believe she was having a baby at her age. Isaac\'s birth proved that God always keeps His promises, even when it seems impossible.'
         },
         {
           title: 'The Scariest Test Ever',
           when: 'Around 2054 BC',
-          bibleStory: 'Genesis 22:1-18',
+          bibleStory: 'Genesis 22:1 to 18',
           characters: 'Abraham and Isaac',
-          story: 'God gave Abraham the hardest test imaginable - He told him to sacrifice his beloved son Isaac! Abraham trusted God so much that he was actually going to do it. But right at the last second, God stopped him and provided a ram (sheep) to sacrifice instead. This showed that Abraham had incredible faith, and it was a sneak peek of how God would one day provide Jesus as a sacrifice for everyone\'s sins.'
+          story: 'God gave Abraham the hardest test imaginable: He told him to sacrifice his beloved son Isaac! Abraham trusted God so much that he was actually going to do it. But right at the last second, God stopped him and provided a ram (sheep) to sacrifice instead. This showed that Abraham had incredible faith, and it was a sneak peek of how God would one day provide Jesus as a sacrifice for everyone\'s sins.'
         },
         {
           title: 'Isaac Gets the Perfect Wife',
           when: '2026 BC',
-          bibleStory: 'Genesis 24:62-67',
+          bibleStory: 'Genesis 24:62 to 67',
           characters: 'Isaac, Rebekah, and Abraham\'s servant',
           story: 'Abraham sent his trusted servant on a mission to find the perfect wife for Isaac. Through a wonderful series of events (and lots of prayer!), the servant found Rebekah. She was kind, beautiful, and loved God. When Isaac met her, it was love at first sight! Their marriage continued God\'s special family line.'
         },
         {
           title: 'The Twin Brothers Who Couldn\'t Get Along',
           when: '2006 BC to around 1978 BC',
-          bibleStory: 'Genesis 25:21-34 and 27:1-40',
+          bibleStory: 'Genesis 25:21 to 34 and 27:1 to 40',
           characters: 'Jacob, Esau, Isaac, and Rebekah',
           story: 'Isaac and Rebekah had twin boys - hairy Esau (who loved hunting) and smooth Jacob (who was sneaky). Even before they were born, God chose Jacob to carry on His promise. Jacob was so tricky that he bought Esau\'s inheritance for a bowl of soup and later disguised himself to steal Esau\'s blessing from their blind father! Esau was so mad he wanted to kill Jacob. This started the rivalry between Israel (Jacob\'s descendants) and Edom (Esau\'s descendants).'
         },
@@ -180,35 +180,35 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Jacob Wrestles with God and Gets a New Name',
           when: 'Around 1906 BC',
-          bibleStory: 'Genesis 32:24-32 and 35:9-12',
+          bibleStory: 'Genesis 32:24 to 32 and 35:9 to 12',
           characters: 'Jacob (who becomes Israel)',
           story: 'On his way back home, Jacob spent a whole night wrestling with a mysterious man who was actually God in human form! Jacob wouldn\'t give up, even though his hip got hurt. God was so impressed with Jacob\'s determination that He gave him a new name: "Israel," which means "he wrestles with God." This is where the nation of Israel got its name!'
         },
         {
           title: 'Joseph and His Beautiful Colorful Coat',
           when: 'Around 1898 BC',
-          bibleStory: 'Genesis 37:3-28',
+          bibleStory: 'Genesis 37:3 to 28',
           characters: 'Joseph and his 11 brothers',
           story: 'Jacob loved his son Joseph SO much that he gave him a beautiful, colorful coat. This made Joseph\'s brothers super jealous, especially when Joseph told them about dreams where they all bowed down to him! The brothers got so mad they sold Joseph as a slave to traders going to Egypt. Then they lied to their dad and said Joseph was dead. It seemed terrible, but God had a secret plan!'
         },
         {
           title: 'From Slave to Very Important Leader',
           when: 'Around 1886-1875 BC',
-          bibleStory: 'Genesis 41:37-45 and 45:1-8',
+          bibleStory: 'Genesis 41:37 to 45 and 45:1 to 8',
           characters: 'Joseph and Pharaoh (the king of Egypt)',
           story: 'Even as a slave in Egypt, God blessed Joseph. He became famous for explaining dreams! When Pharaoh had scary dreams about a coming famine (time with no food), Joseph explained them and helped save Egypt by storing food. Pharaoh was so impressed he made Joseph his second-in-command! When the famine came, Joseph\'s brothers came to buy food and got the shock of their lives when they discovered their "dead" brother was now one of the most powerful men in Egypt! Joseph forgave them and said, "You meant it for evil, but God used it for good!"'
         },
         {
           title: 'The Whole Family Moves to Egypt',
           when: 'Around 1875 BC',
-          bibleStory: 'Genesis 46:1-7 and 47:11-12',
+          bibleStory: 'Genesis 46:1 to 7 and 47:11 to 12',
           characters: 'Jacob (Israel), Joseph, and Pharaoh',
           story: 'Because of the terrible famine, Joseph invited his whole family (70 people!) to move to Egypt where there was plenty of food. Pharaoh gave them the best land in Egypt, called Goshen. This move fulfilled God\'s earlier prediction that Abraham\'s descendants would live in a foreign country for a while. It was the beginning of the Israelites becoming a huge nation - but also the start of future troubles in Egypt.'
         },
         {
           title: 'Joseph\'s Death and Final Wish',
           when: '1806 BC',
-          bibleStory: 'Genesis 50:22-26',
+          bibleStory: 'Genesis 50:22 to 26',
           characters: 'Joseph and his brothers',
           story: 'Joseph lived to be 110 years old and saw his great-great-grandchildren! Before he died, he made his family promise something important: "When God brings you back to the Promised Land someday, take my bones with you!" Joseph believed God\'s promises so much that even in death, he wanted to be buried in the land God promised Abraham. His death ended the Patriarch era, but by then, the Israelites had grown into a huge family living in Egypt.'
         }
@@ -230,21 +230,21 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'God\'s People Become Slaves',
           when: '1800s-1500s BC',
-          bibleStory: 'Exodus 1:6-14',
+          bibleStory: 'Exodus 1:6 to 14',
           characters: 'The Israelites and a mean new Pharaoh (king of Egypt)',
           story: 'After Joseph died, the Israelites kept having lots and lots of babies until there were TONS of them living in Egypt. But a new Pharaoh came to power who didn\'t remember how Joseph saved Egypt. He got scared that there were so many Israelites and thought, "What if they fight against us?" So he made them all slaves and forced them to work super hard making bricks and building cities. Then he got even meaner and ordered his soldiers to kill all the Hebrew baby boys! This terrible time was actually part of God\'s plan that He had told Abraham about long ago.'
         },
         {
           title: 'A Baby Hidden in a Basket',
           when: 'Around 1526 BC',
-          bibleStory: 'Exodus 2:1-10',
+          bibleStory: 'Exodus 2:1 to 10',
           characters: 'Baby Moses, his mom Jochebed, his sister Miriam, and Pharaoh\'s daughter',
           story: 'During the scary time when soldiers were killing Hebrew babies, a Levite woman had a beautiful baby boy. She hid him for three months, but then he got too big and noisy! So she put him in a waterproof basket and floated it among the reeds by the river. Pharaoh\'s daughter found the basket while taking a bath and felt sorry for the crying baby. Miriam (Moses\' sister) was watching and cleverly suggested that Pharaoh\'s daughter hire a Hebrew woman to nurse the baby - and that woman was actually Moses\' own mom! So Moses grew up as Egyptian royalty but knew he was really a Hebrew. God had a special plan for this baby!'
         },
         {
           title: 'God Speaks from a Burning Bush',
           when: 'Around 1446 BC',
-          bibleStory: 'Exodus 3:1-14',
+          bibleStory: 'Exodus 3:1 to 14',
           characters: 'Moses and God',
           story: 'After Moses grew up, he had to run away from Egypt and became a shepherd for 40 years! One day, he saw something remarkable - a bush that was on fire but wasn\'t burning up! When he went to look closer, God spoke to him from the bush! God said, "Moses, I\'ve seen how badly my people are being treated in Egypt. I want YOU to go back and lead them out of slavery!" Moses was scared and made lots of excuses, but God said, "Don\'t worry, I\'ll be with you. My name is \'I AM\' - I\'m the God who always exists and keeps promises!" This was the beginning of the greatest rescue mission ever!'
         },
@@ -258,14 +258,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'The First Passover - A Night to Remember Forever',
           when: '1446 BC, on the 14th day of Nisan',
-          bibleStory: 'Exodus 12:1-14',
+          bibleStory: 'Exodus 12:1 to 14',
           characters: 'Moses and all the Israelites',
           story: 'Before the terrible 10th plague (death of the firstborn), God gave the Israelites special instructions: "Each family must kill a perfect lamb and paint its blood on your door frame. When I see the blood, I\'ll \'pass over\' your house and your firstborn will be safe." They also had to eat the lamb with unleavened bread (bread without yeast) and bitter herbs, and be ready to leave Egypt at any moment. That night, every Egyptian firstborn died, but God\'s people were safe because of the lamb\'s blood on their doors. This became the Passover meal that Jewish people still celebrate today, and it pointed forward to how Jesus (the perfect Lamb) would save us with His blood!'
         },
         {
           title: 'The Great Red Sea Crossing',
           when: '1446 BC',
-          bibleStory: 'Exodus 12:31-42 and 14:1-31',
+          bibleStory: 'Exodus 12:31 to 42 and 14:1 to 31',
           characters: 'Moses, Pharaoh, and about 2 million Israelites',
           story: 'Finally, Pharaoh let God\'s people go! About 600,000 men plus their families (around 2 million people total!) left Egypt after being there for 430 years. But then Pharaoh changed his mind AGAIN and sent his whole army to bring them back! The Israelites were trapped - Red Sea in front, Egyptian army behind. It looked hopeless! But Moses said, "Don\'t be afraid! God will fight for you!" Then God did the most powerful miracle - He split the Red Sea in half so the Israelites could walk across on dry ground with walls of water on both sides! When the Egyptian army tried to follow, God let the walls of water crash back down, and all the soldiers drowned. The Israelites were finally free!'
         },
@@ -279,7 +279,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'The Terrible Golden Calf Mistake',
           when: '1446 BC',
-          bibleStory: 'Exodus 32:1-20',
+          bibleStory: 'Exodus 32:1 to 20',
           characters: 'Moses, Aaron, and the Israelites',
           story: 'While Moses was up on the mountain for 40 days getting God\'s laws, the people got impatient and said to Aaron, "We don\'t know what happened to Moses! Make us a god to worship!" So Aaron collected everyone\'s gold jewelry and made a golden calf statue. The people said, "This is the god who brought us out of Egypt!" and threw a wild party around it. God was FURIOUS and wanted to destroy them all, but Moses begged God to forgive them. When Moses came down and saw what they were doing, he was so angry he smashed the stone tablets and melted the golden calf! Many people died as punishment for this terrible sin. It showed how quickly people can forget God\'s goodness and start worshiping fake gods instead.'
         },
@@ -293,21 +293,21 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: '40 Years of Wandering in the Desert',
           when: '1446-1406 BC (40 long years!)',
-          bibleStory: 'Numbers 14:26-35 and Deuteronomy 8:2-4',
+          bibleStory: 'Numbers 14:26 to 35 and Deuteronomy 8:2 to 4',
           characters: 'Moses, Aaron, Joshua, Caleb, and all the Israelites',
           story: 'For 40 years, about 2 million people lived like nomads in the desert! But God took wonderful care of them - He gave them a pillar of cloud to follow during the day and a pillar of fire at night. Every morning, He provided special bread called "manna" that appeared on the ground like dew. He also gave them quail (birds) to eat for meat, and their clothes and sandals never wore out! When they needed water, God provided it from rocks. During these 40 years, all the adults who refused to trust God died (except Joshua and Caleb), and their children grew up learning to depend on God for everything they needed.'
         },
         {
           title: 'Moses Makes a Costly Mistake',
           when: 'Around 1407 BC',
-          bibleStory: 'Numbers 20:7-13',
+          bibleStory: 'Numbers 20:7 to 13',
           characters: 'Moses, Aaron, and the complaining Israelites',
           story: 'Near the end of the 40 years, the people ran out of water again and started complaining to Moses, "Why did you bring us out here to die?" Moses was getting really tired of their constant complaining! God told Moses, "Speak to that rock, and water will come out." But Moses was so frustrated that instead of speaking to the rock, he hit it twice with his stick and yelled at the people, "Must we bring water out of this rock for you rebels?" Water gushed out, but God was not happy. He said to Moses and Aaron, "Because you didn\'t honor me as holy in front of the people, you won\'t be allowed to enter the Promised Land either." Even great leaders like Moses have to obey God!'
         },
         {
           title: 'Moses Says Goodbye',
           when: '1406 BC',
-          bibleStory: 'Deuteronomy 34:1-8',
+          bibleStory: 'Deuteronomy 34:1 to 8',
           characters: 'Moses, Joshua, and God',
           story: 'At the end of 40 years, Moses was 120 years old but still strong and healthy. God took him up to the top of Mount Nebo and showed him the beautiful Promised Land spread out below. God said, "This is the land I promised to Abraham, Isaac, and Jacob. I\'m letting you see it, but you can\'t enter because of your disobedience at the rock." Then Moses died on that mountain, and God Himself buried him. The people cried for 30 days because Moses had been such a great leader. Joshua became the new leader to take the people into the Promised Land. Moses was the greatest prophet who ever lived - no one else ever knew God face to face like Moses did!'
         }
@@ -329,21 +329,21 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Another Great River Crossing',
           when: '1406 BC',
-          bibleStory: 'Joshua 3:7-17',
+          bibleStory: 'Joshua 3:7 to 17',
           characters: 'Joshua, the Israelites, and priests carrying the Ark of the Covenant',
           story: 'After 40 years in the desert, it was finally time to enter the Promised Land! But there was one big problem - the Jordan River was completely flooded and impossible to cross. Sound familiar? Just like at the Red Sea, God had a special plan! He told the priests to carry the special golden box called the Ark of the Covenant and step right into the rushing water. The moment their feet touched the water, the whole river stopped flowing and piled up like a wall! All 2 million Israelites walked across on completely dry ground. To help everyone remember this powerful miracle, they stacked up 12 big stones at a place called Gilgal. This miracle proved to everyone (including their enemies) that God was still with His people and that Joshua was their new leader!'
         },
         {
           title: 'The Walls Come Tumbling Down',
           when: '1406 BC',
-          bibleStory: 'Joshua 6:1-20',
+          bibleStory: 'Joshua 6:1 to 20',
           characters: 'Joshua, Rahab the helpful woman, and the Israelites',
           story: 'The city of Jericho had massive walls and was locked up tight - nobody could get in or out because they were terrified of the Israelites! But God gave Joshua the weirdest battle plan ever: "March around the city once a day for six days. Don\'t say a word - just walk. On the seventh day, march around seven times, then have the priests blow their trumpets and everyone SHOUT as loud as you can!" It sounded crazy, but Joshua obeyed. On the seventh day, when the people shouted and the trumpets blared, the giant walls collapsed completely flat! The Israelites rushed in and captured the city. The only people who survived were Rahab and her family because she had helped the Israelite spies earlier. This victory showed that God would win their battles for them, not their own strength!'
         },
         {
           title: 'The Day the Sun Stood Still',
           when: 'Around 1405 BC',
-          bibleStory: 'Joshua 10:7-14',
+          bibleStory: 'Joshua 10:7 to 14',
           characters: 'Joshua and five enemy kings',
           story: 'Some people called Gibeonites had made peace with Israel, which made five powerful Amorite kings really mad. These kings decided to attack Gibeon to punish them. The Gibeonites sent a message to Joshua: "Help us! We\'re your allies!" So Joshua and his army marched all night to surprise the enemy. During the battle, Joshua prayed one of the most powerful prayers ever: "Sun, stand still over Gibeon!" And God actually made the sun stop moving across the sky for about a whole extra day so the Israelites could finish winning the battle! God also threw huge hailstones from heaven that killed more enemies than the Israelite swords did. This mighty miracle showed that the Lord of the whole universe was fighting for Israel!'
         },
@@ -357,7 +357,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Joshua\'s Final Speech and Death',
           when: 'Around 1380 BC',
-          bibleStory: 'Joshua 23:1-16 and 24:14-29',
+          bibleStory: 'Joshua 23:1 to 16 and 24:14 to 29',
           characters: 'Joshua and all the people of Israel',
           story: 'When Joshua was very old (110 years!), he gathered all the Israelites together for one last important meeting. He reminded them of all the wonderful things God had done for them and gave them a serious warning: "God has been faithful to you, so you must be faithful to Him! Get rid of any idols and serve only the Lord!" Then Joshua said the famous words that people still remember today: "Choose this day whom you will serve... but as for me and my house, we will serve the Lord!" All the people promised, "We will serve the Lord our God and obey Him!" Shortly after this, Joshua died. As long as Joshua and the other old leaders who remembered Egypt were alive, the people served God faithfully. But Joshua\'s death marked the end of having one strong leader for all of Israel, and things were about to get much more complicated!'
         }
@@ -379,7 +379,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'The Crazy Cycle Begins',
           when: 'Around 1375 BC',
-          bibleStory: 'Judges 2:10-19',
+          bibleStory: 'Judges 2:10 to 19',
           characters: 'Othniel (the first judge) and many others',
           story: 'After Joshua and all the old leaders died, something terrible happened - the Israelites forgot about God! They started worshiping the fake gods of their Canaanite neighbors instead. So God allowed enemy nations to attack and make life miserable for the Israelites. When things got really bad, the people would cry out, "Help us, God!" and God would feel sorry for them and send a special hero called a "judge" to rescue them. But then, after the judge died, the people would forget God again and the whole cycle would start over! This went on for over 300 years. The Bible says "everyone did what was right in his own eyes" - which means total chaos because people weren\'t following God\'s rules anymore.'
         },
@@ -414,14 +414,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Samuel - The Boy Who Heard God\'s Voice',
           when: 'Around 1050 BC',
-          bibleStory: '1 Samuel 3:19-21 and 7:3-6',
+          bibleStory: '1 Samuel 3:19 to 21 and 7:3 to 6',
           characters: 'Samuel, Eli the priest',
           story: 'A woman named Hannah desperately wanted a baby, so she prayed and promised God, "If you give me a son, I\'ll dedicate him to serve you forever!" God answered her prayer with a boy named Samuel. When Samuel was just a little kid, his mom took him to live at the Tabernacle with an old priest named Eli. One night, young Samuel heard someone calling his name. He thought it was Eli, but Eli said, "That\'s not me - that\'s God calling you! Next time, say \'Speak, Lord, your servant is listening.\'" Samuel grew up to be a great prophet and judge. Unlike the other judges who were mostly warriors, Samuel led the people by teaching them God\'s word and helping them repent from worshiping idols. He defeated the Philistines not by fighting but by praying! Samuel was like a bridge between the crazy time of the judges and what was coming next.'
         },
         {
           title: '"We Want a King Like Everyone Else!"',
           when: 'Around 1052 BC',
-          bibleStory: '1 Samuel 8:4-22',
+          bibleStory: '1 Samuel 8:4 to 22',
           characters: 'Samuel and the Israelites',
           story: 'When Samuel got old, his sons were supposed to help him lead Israel, but they were greedy and unfair. The people got frustrated and said to Samuel, "We don\'t want judges anymore! Give us a king like all the other nations have!" This really hurt Samuel\'s feelings, but God told him, "Don\'t take it personally, Samuel. They\'re not rejecting you - they\'re rejecting ME as their king. They want to be like everyone else instead of being my special people." God told Samuel to warn them what having a human king would be like: "A king will make your sons fight in his wars, take your daughters to work in his palace, take the best of your crops and animals for himself, and you\'ll end up being his servants!" But the people said, "We don\'t care! We want a king anyway!" So God sadly agreed to give them what they wanted. This was the end of the time of the judges and the beginning of having kings rule Israel.'
         }
@@ -443,14 +443,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Saul - Israel\'s First King',
           when: 'Around 1050 BC',
-          bibleStory: '1 Samuel 10:1-24',
+          bibleStory: '1 Samuel 10:1 to 24',
           characters: 'Saul and Samuel',
           story: 'Remember how the Israelites demanded a king? Well, God told Samuel to find a tall, handsome young man from the tribe of Benjamin named Saul. Samuel secretly anointed Saul with oil (which means God chose him to be king), and then later presented him to all the people. Saul was so tall he stood head and shoulders above everyone else! At first, Saul was a good king - he won battles against Israel\'s enemies and united the tribes. But this was just the beginning of a very complicated story. Saul would reign for about 40 years, and his story shows why Israel needed a king who truly followed God\'s heart.'
         },
         {
           title: 'David and the Giant Goliath',
           when: 'Around 1020 BC',
-          bibleStory: '1 Samuel 17:32-51',
+          bibleStory: '1 Samuel 17:32 to 51',
           characters: 'Young David, the giant Goliath, and King Saul',
           story: 'While Saul was king, the Philistines had a champion fighter who was absolutely HUGE - a giant named Goliath who was over 9 feet tall! Every day for 40 days, Goliath would shout at the Israelite army, "Send someone to fight me! If he wins, we\'ll be your slaves. If I win, you\'ll be ours!" All of Saul\'s soldiers were terrified. But then a teenage shepherd boy named David came to bring lunch to his brothers in the army. When David heard Goliath making fun of God, he got really mad and said, "I\'ll fight him!" Everyone thought David was crazy, but David said, "God helped me kill lions and bears when they attacked my sheep. He\'ll help me kill this giant too!" David refused armor and weapons - he just took his sling and five smooth stones. With one shot, the stone hit Goliath right in the forehead, and the giant fell down dead! The whole Philistine army ran away. This showed everyone that God doesn\'t need big armies or fancy weapons - He can win battles any way He wants!'
         },
@@ -464,28 +464,28 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'David Becomes King of All Israel',
           when: '1010 BC (king of Judah), 1003 BC (king of all Israel)',
-          bibleStory: '2 Samuel 5:1-5',
+          bibleStory: '2 Samuel 5:1 to 5',
           characters: 'David and all the tribes of Israel',
           story: 'After Saul died, David first became king of just his own tribe (Judah) in the city of Hebron. But there was a civil war because some people still supported Saul\'s family. After seven years, all the tribes finally agreed that David should be king of everyone! They came to David and said, "We\'re all your relatives, and even when Saul was king, you were the one who really led us in battle. Plus, God said you would be our shepherd and ruler!" So David became king of all 12 tribes at age 30 and ruled for 40 years (1010-970 BC). Under David, Israel became united, powerful, and had its "golden age" of success and worship of God.'
         },
         {
           title: 'David Captures Jerusalem',
           when: 'Around 1003 BC',
-          bibleStory: '2 Samuel 5:6-10',
+          bibleStory: '2 Samuel 5:6 to 10',
           characters: 'David and the Jebusites',
           story: 'One of the first smart things David did as king was capture a city called Jebus (which we now call Jerusalem). The Jebusites who lived there were really cocky and said, "You\'ll never capture our city - it\'s too well protected!" But David and his men found a secret way in through the water tunnels, and they conquered the city! David made Jerusalem his capital city and it became known as the "City of David." This was a brilliant move because Jerusalem was right between the northern and southern tribes, so it helped unite the whole nation. Jerusalem became the most important city in Israel and is still considered holy today!'
         },
         {
           title: 'Bringing God\'s Special Box to Jerusalem',
           when: 'Around 1000 BC',
-          bibleStory: '2 Samuel 6:12-19',
+          bibleStory: '2 Samuel 6:12 to 19',
           characters: 'David, priests, and a man named Uzzah',
           story: 'David wanted Jerusalem to be not just the political capital but also the religious center, so he decided to bring the Ark of the Covenant there. The Ark was a special golden box that contained the stone tablets with the Ten Commandments - it represented God\'s presence with His people. At first, things went terribly wrong when a man named Uzzah touched the Ark (which was forbidden) and died instantly. David was scared and left the Ark at someone else\'s house for three months. When he saw that God blessed that family, David tried again - but this time he followed God\'s rules exactly. The priests carried the Ark properly, and David was so happy he danced with all his might in front of the whole parade! When the Ark reached Jerusalem, it meant God\'s presence was now in the capital city.'
         },
         {
           title: 'God\'s Great Promise to David',
           when: 'Around 1000 BC',
-          bibleStory: '2 Samuel 7:8-16 and 1 Chronicles 17',
+          bibleStory: '2 Samuel 7:8 to 16 and 1 Chronicles 17',
           characters: 'David, the prophet Nathan, and God',
           story: 'David wanted to build a beautiful temple for God since the Ark was still in a tent. He told the prophet Nathan about his idea, and at first Nathan said, "Great idea!" But that night, God spoke to Nathan and said, "Tell David that HE won\'t build a house for me - instead, I\'M going to build a house (meaning a family dynasty) for HIM!" God made a wonderful promise: "David\'s descendants will rule Israel forever, and one of them will have a kingdom that never ends!" This was called the Davidic Covenant, and it was pointing ahead to Jesus, who would be called the "Son of David" and whose kingdom really would last forever. David was so amazed and grateful that he sat down and prayed one of the most beautiful thank-you prayers in the Bible.'
         },
@@ -506,7 +506,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Solomon Becomes the Wisest King Ever',
           when: '970 BC',
-          bibleStory: '1 Kings 1:28-40 and 2:12',
+          bibleStory: '1 Kings 1:28 to 40 and 2:12',
           characters: 'Solomon, David, Bathsheba, and the prophet Nathan',
           story: 'When David got old, there was a fight about who would be the next king. David\'s son Adonijah tried to make himself king, but the prophet Nathan and Bathsheba reminded David that he had promised the throne to Solomon (who was David and Bathsheba\'s son). So David officially announced that Solomon would be king. Solomon was anointed and the people shouted, "Long live King Solomon!" Early in his reign, God appeared to Solomon in a dream and said, "Ask for whatever you want, and I\'ll give it to you." Solomon could have asked for money, power, or a long life, but instead he said, "Please give me wisdom to rule your people well." God was so pleased with this answer that He gave Solomon not only great wisdom but also riches and honor. Solomon became the wisest and richest king who ever lived!'
         },
@@ -520,14 +520,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Solomon\'s Success and Sad Ending',
           when: '970-931 BC (his whole reign)',
-          bibleStory: '1 Kings 4:20-34 and 10:23-29, but also 1 Kings 11',
+          bibleStory: '1 Kings 4:20 to 34 and 10:23 to 29, but also 1 Kings 11',
           characters: 'Solomon and the Queen of Sheba',
           story: 'Under Solomon, Israel reached its peak of power and prosperity. People lived safely "each under their own vine and fig tree." Solomon\'s wisdom was legendary - he could answer any question and knew about plants, animals, and many subjects. The famous Queen of Sheba traveled from far away just to test his wisdom, and she left amazed, saying, "I didn\'t believe the reports about you until I saw it with my own eyes!" Solomon also built many other impressive buildings besides the Temple. BUT sadly, Solomon\'s success went to his head. He married hundreds of foreign wives to make political alliances, and these wives brought their idol worship into Israel. In his old age, Solomon started worshipping false gods too! God was angry and told Solomon, "Because you\'ve done this, I\'m going to tear the kingdom away from your family. But for David\'s sake, I won\'t do it during your lifetime - it will happen to your son." So Solomon\'s reign ended with the promise of coming judgment.'
         },
         {
           title: 'The Kingdom Splits in Half',
           when: '931 BC',
-          bibleStory: '1 Kings 12:1-20',
+          bibleStory: '1 Kings 12:1 to 20',
           characters: 'Rehoboam (Solomon\'s son) and Jeroboam',
           story: 'When Solomon died, his son Rehoboam became king. The people came to him and said, "Your father Solomon made us work too hard and pay too many taxes. If you\'ll be easier on us, we\'ll serve you faithfully." Rehoboam asked his advisors what to do. The older, wiser men said, "Be kind to them and they\'ll serve you forever." But the young men said, "Show them who\'s boss! Tell them you\'ll be even harder on them than your father was!" Foolishly, Rehoboam listened to the young men and said, "My father made you work hard, but I\'ll make you work harder! My father punished you with whips, but I\'ll punish you with scorpions!" The northern tribes were so angry they said, "We don\'t want David\'s family ruling us anymore!" and they made Jeroboam their king instead. So the kingdom split into two parts: the northern kingdom called "Israel" (10 tribes under Jeroboam) and the southern kingdom called "Judah" (2 tribes under Rehoboam). This division was God\'s punishment for Solomon\'s idolatry, and it would lead to centuries of conflict and trouble.'
         }
@@ -549,7 +549,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Jeroboam Makes Golden Calves Again',
           when: '931 BC',
-          bibleStory: '1 Kings 12:26-33',
+          bibleStory: '1 Kings 12:26 to 33',
           characters: 'Jeroboam (king of northern Israel)',
           story: 'Remember how the kingdom split in two? Well, Jeroboam became king of the northern part (called Israel), but he had a big problem. All the people were supposed to go to Jerusalem (which was now in the southern kingdom of Judah) to worship God at the Temple. Jeroboam thought, "If my people keep going to Jerusalem, they might decide they want David\'s family to rule them again!" So he came up with a terrible solution - he made two golden calf statues and put one in the city of Bethel and one in Dan. Then he told the people, "It\'s too hard for you to go to Jerusalem. Here are your gods who brought you out of Egypt!" Sound familiar? It was just like what the Israelites did in the desert with Aaron! This was a huge sin that led the northern kingdom away from God right from the very beginning, and every single king who came after Jeroboam continued worshipping these fake gods.'
         },
@@ -563,14 +563,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Elijah Goes to Heaven in a Whirlwind',
           when: 'Around 850 BC',
-          bibleStory: '2 Kings 2:1-15',
+          bibleStory: '2 Kings 2:1 to 15',
           characters: 'Elijah and his student Elisha',
           story: 'Elijah had trained a younger prophet named Elisha to carry on his work. When it was time for Elijah to leave this world, something truly remarkable happened - something that had only happened to one other person (Enoch) in all of history. Elijah and Elisha were walking together when suddenly a chariot made of fire with horses of fire appeared between them! A whirlwind came down from heaven and took Elijah up into the sky without him dying! As he was going up, his prophet\'s cloak fell down to Elisha. When Elisha picked up the cloak, he received a double portion of Elijah\'s power and became the new main prophet in Israel. Elijah going straight to heaven showed how special he was to God, and the Bible says he\'ll come back someday before Jesus returns!'
         },
         {
           title: 'Ahab and Jezebel - The Worst Royal Couple Ever',
           when: 'Around 874-850 BC',
-          bibleStory: '1 Kings 16:29-33 and 21:25',
+          bibleStory: '1 Kings 16:29 to 33 and 21:25',
           characters: 'King Ahab, Queen Jezebel, and Elijah',
           story: 'King Ahab was already bad enough, but when he married Jezebel (a princess from another country), things got much, much worse! Jezebel worshipped Baal and convinced Ahab to build a temple for Baal right in Israel\'s capital city of Samaria. She also tried to kill all of God\'s prophets! Jezebel was so evil that she had an innocent man named Naboth murdered just so Ahab could steal his vineyard. When Elijah heard about this, he told Ahab, "Dogs will lick up your blood, and dogs will eat Jezebel by the city wall!" This all came true later - Ahab died in battle and his blood was licked up by dogs, and Jezebel was thrown out of a window and eaten by dogs, just as Elijah had predicted. Ahab and Jezebel represent the lowest point of evil in Israel\'s history.'
         },
@@ -584,7 +584,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'The Northern Kingdom Gets Destroyed',
           when: '722 BC',
-          bibleStory: '2 Kings 17:5-18',
+          bibleStory: '2 Kings 17:5 to 18',
           characters: 'King Hoshea (last king of Israel) and the Assyrian kings',
           story: 'For about 200 years, the northern kingdom of Israel had mostly wicked kings who led the people to worship idols instead of God. God sent prophet after prophet to warn them, but they wouldn\'t listen. Finally, God\'s patience ran out. The powerful Assyrian Empire attacked Israel and surrounded their capital city, Samaria, for three whole years! In 722 BC, the city finally fell. The Assyrians took most of the Israelites far away to other countries as prisoners and brought foreigners to live in their land (these foreigners mixed with the remaining Israelites and became known as Samaritans). The ten tribes of the northern kingdom were scattered and essentially disappeared from history. This was exactly what God had warned would happen if they didn\'t stop worshipping idols. Now only the southern kingdom of Judah was left, and they had better learn from Israel\'s terrible example!'
         },
@@ -605,7 +605,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'Judah Goes into Exile in Babylon',
           when: '605-586 BC',
-          bibleStory: '2 Kings 24:10-16 and Daniel 1:1-6',
+          bibleStory: '2 Kings 24:10 to 16 and Daniel 1:1 to 6',
           characters: 'King Nebuchadnezzar of Babylon, Daniel, Ezekiel, and many others',
           story: 'Even after good King Josiah\'s reforms, the people of Judah went back to their old evil ways. So God allowed the Babylonian Empire (led by King Nebuchadnezzar) to conquer them, but it happened in stages over about 20 years. First, in 605 BC, Nebuchadnezzar took some of the smartest young people (including Daniel and his three friends) to Babylon to serve in his palace. Then in 597 BC, after Judah rebelled, he took more people away, including the prophet Ezekiel. Finally, in 586 BC, Nebuchadnezzar got so angry with Judah\'s constant rebellions that he completely destroyed Jerusalem and Solomon\'s beautiful Temple, and took most of the remaining people to Babylon as prisoners. It was absolutely heartbreaking - the holy city was in ruins, the Temple was gone, and God\'s people were living in a foreign land. But this wasn\'t the end of the story! The prophets had warned this would happen if the people didn\'t repent, but they had also promised that after 70 years, God would bring His people back home. Even in judgment, God had a plan for restoration.'
         }
@@ -615,7 +615,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'exile',
       title: 'EXILE - FAR FROM HOME',
-      subtitle: '605–538 BC',
+      subtitle: '605 to 538 BC',
       emoji: '🏛️',
       bgEmoji: '💔',
       color: '#795548',
@@ -626,8 +626,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       stories: [
         {
           title: 'Kicked Out of Home',
-          when: '586–538 BC',
-          bibleStory: 'Psalm 137; Jeremiah 29:4–7',
+          when: '586 to 538 BC',
+          bibleStory: 'Psalm 137; Jeremiah 29:4 to 7',
           characters: 'The people of Judah (like Ezekiel and Daniel)',
           story: 'The Jewish people got kicked out of their homeland and had to live in Babylon. They sat by the rivers feeling super sad about losing Jerusalem - you can read about how heartbroken they were in Psalm 137. But the prophet Jeremiah gave them some tough-love advice: "Don\'t just sit around being miserable. Build houses, plant gardens, and try to make your new city better while you wait." He said God promised they\'d go home after 70 years. Since their temple was destroyed, they started meeting in new places called synagogues to pray and learn together. This really hard time actually helped them get rid of fake gods and focus on the real God, and they worked super hard to save and write down all their holy books.'
         },
@@ -672,7 +672,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'return',
       title: 'RETURN FROM EXILE - COMING HOME',
-      subtitle: '538–430 BC',
+      subtitle: '538 to 430 BC',
       emoji: '🏠',
       bgEmoji: '🎉',
       color: '#4CAF50',
@@ -736,7 +736,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'intertestamental',
       title: 'INTERTESTAMENTAL PERIOD - BETWEEN THE TESTAMENTS',
-      subtitle: '430–5 BC',
+      subtitle: '430 to 5 BC',
       emoji: '🏛️',
       bgEmoji: '⚡',
       color: '#9C27B0',
@@ -776,7 +776,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {
           title: 'The Hasmonean Dynasty',
           when: '141–63 BC',
-          bibleStory: '(Foretold generally in Daniel 11:34-35)',
+          bibleStory: '(Foretold generally in Daniel 11:34 to 35)',
           characters: 'Simon Thassi (founder), John Hyrcanus, others',
           story: 'After winning their independence, the Maccabee family (now called the Hasmoneans) became the rulers of Judea. Simon Maccabeus became both the high priest and the king in 141 BC - for the first time in centuries, the Jews had their own country again! They expanded their territory and things looked great. But over time, power went to their heads. The Hasmonean kings started acting more like Greek rulers than Jewish priests. Different religious groups (like the Pharisees and Sadducees) began fighting with each other about how to run things. The royal family members even started killing each other to grab power! All this fighting made the country weak and invited trouble from outside.'
         },
@@ -800,7 +800,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'jesus',
       title: 'LIFE OF JESUS',
-      subtitle: 'c. 5 BC – AD 30',
+      subtitle: 'c. 5 BC to AD 30',
       emoji: '✝️',
       bgEmoji: '🌟',
       color: '#2196F3',
@@ -885,7 +885,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'early-church',
       title: 'EARLY CHURCH',
-      subtitle: 'AD 30–35',
+      subtitle: 'AD 30 to 35',
       emoji: '⛪',
       bgEmoji: '🔥',
       color: '#FF5722',
@@ -956,7 +956,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     {
       id: 'apostolic-age',
       title: 'APOSTOLIC AGE',
-      subtitle: 'AD 33–100',
+      subtitle: 'AD 33 to 100',
       emoji: '📜',
       bgEmoji: '🌍',
       color: '#9C27B0',
@@ -1929,8 +1929,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Bible Story:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a', fontWeight: '600' }]}>{storyItem.bibleStory}</Text>
-                      </View>
-                      
+            </View>
+
                       <View style={styles.storyDetailRow}>
                         <Text style={[styles.storyLabel, { color: '#1a1a1a' }]}>Characters:</Text>
                         <Text style={[styles.storyValue, { color: '#1a1a1a' }]}>{storyItem.characters}</Text>
@@ -2005,20 +2005,22 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   });
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}} transparent={false}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SafeAreaView style={{ backgroundColor: theme.background }}>
-          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Timeline</Text>
-            <View style={{ width: 24 }} />
-        </View>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+        <View style={{ height: 60, backgroundColor: theme.surface }} />
+        <SafeAreaView style={{ backgroundColor: theme.surface }} edges={['top']}>
+          <View style={[styles.solidHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+          <TouchableOpacity onPress={onClose} style={styles.solidHeaderButton}>
+            <MaterialIcons name="close" size={24} color={theme.text} />
+          </TouchableOpacity>
+            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>Bible Timeline</Text>
+            <View style={{ width: 48 }} />
+          </View>
         </SafeAreaView>
+        <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
         
-        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.container, { backgroundColor: 'transparent' }]}>
 
       {/* Interactive Mindmap with Smooth Scrolling */}
       <ScrollView
@@ -2071,7 +2073,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       {/* Era Detail Panel */}
       {renderSelectedEraDetail()}
       </View>
-    </View>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -2513,6 +2516,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'left',
+  },
+  glassyHeader: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  glassyHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  glassyCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  solidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+  },
+  solidHeaderButton: {
+    padding: 4,
+    width: 48,
+    alignItems: 'center',
+  },
+  solidHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   
 });

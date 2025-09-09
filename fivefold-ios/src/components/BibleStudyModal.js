@@ -6,16 +6,18 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Platform,
   Image,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import BibleTimeline from './BibleTimeline';
+import InteractiveBibleMaps from './InteractiveBibleMaps';
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -35,13 +37,41 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const [showParallelsModal, setShowParallelsModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
 
+  // Generate theme-appropriate colors for study sections
+  const getThemeColors = () => {
+    const baseColors = [
+      theme.primary,
+      theme.primaryLight,
+      theme.primaryDark,
+      theme.success,
+      theme.warning,
+      theme.info,
+      theme.error,
+    ];
+    
+    // Create variations of theme colors for different sections
+    const variations = [];
+    baseColors.forEach(color => {
+      variations.push(color);
+      // Add slight variations by adjusting opacity or mixing
+      if (color.includes('#')) {
+        variations.push(color + 'CC'); // Add transparency
+        variations.push(color + '99'); // More transparency
+      }
+    });
+    
+    return variations;
+  };
+
+  const themeColors = getThemeColors();
+
   const studySections = [
     {
       id: 'characters',
       title: 'Bible Characters',
       icon: 'people',
       description: 'Explore profiles of key Bible figures',
-      color: '#FF6B6B',
+      color: theme.primary,
       features: ['Character profiles', 'Family trees', 'Key events', 'Life lessons']
     },
     {
@@ -49,7 +79,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Bible Timeline',
       icon: 'timeline',
       description: 'Journey through Biblical history',
-      color: '#4ECDC4',
+      color: theme.primaryLight,
       features: ['Chronological events', 'Historical dates', 'Quick verse links', 'Era overview']
     },
     {
@@ -57,7 +87,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Interactive Maps',
       icon: 'map',
       description: 'Discover Biblical locations',
-      color: '#45B7D1',
+      color: theme.info,
       features: ['Key locations', 'Journey routes', 'Historical context', 'Character connections']
     },
     {
@@ -65,7 +95,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Thematic Guides',
       icon: 'category',
       description: 'Study by topics and themes',
-      color: '#96CEB4',
+      color: theme.success,
       features: ['Faith stories', 'Leadership lessons', 'Miracles', 'Prophecies']
     },
     {
@@ -73,7 +103,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Key Verses',
       icon: 'book',
       description: 'Essential verses by topic',
-      color: '#FECA57',
+      color: theme.warning,
       features: ['Topical verses', 'Memory verses', 'Life guidance', 'Inspirational quotes']
     },
     {
@@ -81,7 +111,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Fast Facts',
       icon: 'lightbulb',
       description: 'Did you know? Bible trivia',
-      color: '#FF9FF3',
+      color: theme.primaryDark,
       features: ['Amazing facts', 'Quick summaries', 'Fun trivia', 'Historical insights']
     },
     {
@@ -89,7 +119,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Reading Plans',
       icon: 'schedule',
       description: 'Chronological Bible reading',
-      color: '#54A0FF',
+      color: themeColors[6] || theme.primary,
       features: ['Historical order', 'Daily readings', 'Progress tracking', 'Guided study']
     },
     {
@@ -97,7 +127,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Parallel Stories',
       icon: 'link',
       description: 'Connected Old & New Testament',
-      color: '#5F27CD',
+      color: themeColors[7] || theme.primaryLight,
       features: ['Story connections', 'Prophecy fulfillment', 'Type & antitype', 'Cross-references']
     },
     {
@@ -105,7 +135,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Audio Learning',
       icon: 'headset',
       description: 'Listen and learn',
-      color: '#00D2D3',
+      color: themeColors[8] || theme.info,
       features: ['Name pronunciation', 'Story summaries', 'Audio guides', 'Listening plans']
     },
     {
@@ -113,7 +143,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Quiz & Games',
       icon: 'quiz',
       description: 'Test your Bible knowledge',
-      color: '#FF7675',
+      color: theme.error,
       features: ['Interactive quizzes', 'Memory games', 'Progress tracking', 'Achievement badges']
     },
     {
@@ -121,7 +151,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Daily Life Context',
       icon: 'home',
       description: 'Life in Biblical times',
-      color: '#A29BFE',
+      color: themeColors[10] || theme.primaryDark,
       features: ['Ancient customs', 'Food & clothing', 'Social structure', 'Historical context']
     }
   ];
@@ -531,14 +561,19 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => setShowModal(false)} style={styles.closeButton}>
-              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+          <View style={{ height: 60, backgroundColor: theme.surface }} />
+          <SafeAreaView style={{ backgroundColor: theme.surface }} edges={['top']}>
+            <View style={[styles.solidHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+              <TouchableOpacity onPress={() => setShowModal(false)} style={styles.solidHeaderButton}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>{section.title}</Text>
-            <View style={{ width: 24 }} />
+              <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>{section.title}</Text>
+              <View style={{ width: 48 }} />
           </View>
+          </SafeAreaView>
+          <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
 
           {/* Special handling for characters section */}
           {sectionId === 'characters' && renderCharactersSection(section)}
@@ -546,20 +581,6 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           {/* For all other sections, show the existing "Coming Soon" content */}
           {sectionId !== 'characters' && (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.detailHeader}>
-                <View style={styles.detailTitleContainer}>
-                  <View style={[styles.detailIcon, { backgroundColor: `${section.color}20` }]}>
-                    <MaterialIcons name={section.icon} size={32} color={section.color} />
-                  </View>
-                  <Text style={[styles.detailTitle, { color: theme.text }]}>
-                    {section.title}
-                  </Text>
-                  <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
-                    {section.description}
-                  </Text>
-                </View>
-              </View>
-
               <View style={styles.comingSoonContainer}>
                 <BlurView intensity={20} style={styles.comingSoonCard}>
                   <MaterialIcons name="build" size={32} color={section.color} />
@@ -584,7 +605,8 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               </View>
             </ScrollView>
           )}
-        </SafeAreaView>
+          </View>
+        </View>
       </Modal>
     );
   };
@@ -675,53 +697,97 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.detailHeader}>
-          
-          <View style={styles.detailTitleContainer}>
-            <View style={[styles.detailIcon, { backgroundColor: `${section.color}20` }]}>
-              <MaterialIcons name={section.icon} size={32} color={section.color} />
-            </View>
-            <Text style={[styles.detailTitle, { color: theme.text }]}>
-              Bible Characters
+        {/* Hero Header */}
+        <View style={styles.heroHeader}>
+          <LinearGradient
+            colors={[`${section.color}20`, `${section.color}05`, 'transparent']}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <Text style={[styles.heroTitle, { color: theme.text }]}>
+                Biblical Characters
             </Text>
-            <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
-              Explore Biblical figures organized by historical periods and relationships
+              <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
+                Discover the lives and stories of key figures in the Bible
             </Text>
           </View>
+          </LinearGradient>
         </View>
 
-        <View style={styles.characterGroupsContainer}>
-          {characterGroups.map((group, index) => (
+        {/* Alternating Character Group Cards */}
+        <View style={styles.alternatingCharacterGroupsContainer}>
+          {characterGroups.map((group, index) => {
+            const isEven = index % 2 === 0;
+            const gradientColors = isDark ? 
+              [`${section.color}20`, `${section.color}12`, `${section.color}05`] :
+              [`${section.color}30`, `${section.color}20`, `${section.color}10`];
+            
+            return (
             <TouchableOpacity
               key={group.id}
-              style={[styles.characterGroupCard, { backgroundColor: theme.card }]}
+                style={[styles.alternatingCharacterGroupCard, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : theme.card,
+                  shadowColor: section.color,
+                  alignSelf: isEven ? 'flex-start' : 'flex-end',
+                  marginLeft: isEven ? 0 : 40,
+                  marginRight: isEven ? 40 : 0,
+                }]}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-              activeOpacity={0.7}
+                activeOpacity={0.8}
             >
               <LinearGradient
-                colors={[`${section.color}15`, `${section.color}05`]}
-                style={styles.characterGroupGradient}
-              >
-                <Text style={styles.characterGroupIcon}>{group.icon}</Text>
-                <View style={styles.characterGroupContent}>
-                  <Text style={[styles.characterGroupTitle, { color: theme.text }]}>
+                  colors={gradientColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.alternatingCardGradient}
+                >
+                  {/* Floating Icon */}
+                  <View style={[styles.alternatingIconContainer, { 
+                    backgroundColor: isDark ? `${section.color}25` : `${section.color}20`,
+                    borderColor: isDark ? `${section.color}40` : `${section.color}35`
+                  }]}>
+                    <Text style={styles.alternatingCharacterGroupIcon}>{group.icon}</Text>
+                  </View>
+
+                  {/* Content */}
+                  <View style={styles.alternatingCardContent}>
+                    <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
                     {group.title}
                   </Text>
-                  <Text style={[styles.characterGroupCount, { color: theme.textSecondary }]}>
-                    {group.characters.length} characters
+                    
+                    <View style={styles.alternatingStatsRow}>
+                      <View style={[styles.alternatingCountBadge, { 
+                        backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+                      }]}>
+                        <MaterialIcons name="people" size={12} color={section.color} />
+                        <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                          {group.characters.length}
                   </Text>
-                  <Text style={[styles.characterGroupPreview, { color: theme.textTertiary }]}>
-                    {group.characters.slice(0, 3).join(', ')}
-                    {group.characters.length > 3 && '...'}
+                      </View>
+                    </View>
+                    
+                    <Text style={[styles.alternatingCharacterPreview, { color: theme.textSecondary }]}>
+                      {group.characters.slice(0, 3).join(', ')}...
                   </Text>
                 </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+
+                  {/* Arrow with glow effect */}
+                  <View style={[styles.alternatingArrowContainer, { 
+                    backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+                  }]}>
+                    <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+                  </View>
+
+                  {/* Decorative elements */}
+                  <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+                  <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
               </LinearGradient>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -733,98 +799,141 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.detailHeader}>
+        {/* Modern Header with Back Button */}
+        <View style={styles.modernGroupHeader}>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={styles.modernGroupBackButton}
             onPress={() => {
               hapticFeedback.light();
               setSelectedCharacterGroup(null);
             }}
           >
-            <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            <View style={[styles.backButtonCircle, { backgroundColor: `${section.color}15` }]}>
+              <MaterialIcons name="arrow-back" size={20} color={section.color} />
+            </View>
           </TouchableOpacity>
-          
-          <View style={styles.detailTitleContainer}>
-            <Text style={styles.characterGroupDetailIcon}>{group.icon}</Text>
-            <Text style={[styles.detailTitle, { color: theme.text }]}>
+        </View>
+
+        {/* Modern Hero Section for Group */}
+        <View style={styles.modernGroupHeroSection}>
+          <View style={[styles.groupHeroCard, { 
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)',
+            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            shadowColor: isDark ? '#000' : section.color,
+          }]}>
+            <LinearGradient
+              colors={[
+                `${section.color}15`, 
+                `${section.color}08`, 
+                'transparent'
+              ]}
+              style={styles.groupHeroGradient}
+            >
+              {/* Group Icon */}
+              <View style={[styles.modernGroupIconContainer, { backgroundColor: `${section.color}20` }]}>
+                <Text style={styles.modernGroupIcon}>{group.icon}</Text>
+              </View>
+              
+              {/* Group Title and Description */}
+              <View style={styles.modernGroupTitleContainer}>
+                <Text style={[styles.modernGroupTitle, { 
+                  color: theme.text,
+                  fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System'
+                }]}>
               {group.title}
             </Text>
-            <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
-              {group.characters.length} Biblical characters in this section
+                <View style={[styles.groupSubtitleContainer, { backgroundColor: `${section.color}12` }]}>
+                  <MaterialIcons name="people" size={16} color={section.color} />
+                  <Text style={[styles.modernGroupSubtitle, { 
+                    color: section.color,
+                    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System'
+                  }]}>
+                    {group.characters.length} Biblical Characters
             </Text>
+                </View>
+              </View>
+            </LinearGradient>
           </View>
         </View>
 
-        <View style={styles.charactersGrid}>
-          {group.characters.map((character, index) => (
+        {/* Alternating Character List */}
+        <View style={styles.alternatingCharacterListContainer}>
+          {group.characters.map((character, index) => {
+            const isAvailable = characterProfiles[character];
+            const isEven = index % 2 === 0;
+            
+            return (
             <TouchableOpacity
               key={index}
-              style={[styles.characterCard, { backgroundColor: theme.card }]}
+                style={[styles.alternatingCharacterCard, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : theme.card,
+                  shadowColor: isAvailable ? section.color : theme.textTertiary,
+                  alignSelf: isEven ? 'flex-start' : 'flex-end',
+                  marginLeft: isEven ? 0 : 60,
+                  marginRight: isEven ? 60 : 0,
+                }]}
               onPress={() => {
                 hapticFeedback.light();
-                if (characterProfiles[character]) {
+                  if (isAvailable) {
                   setSelectedCharacter(character);
                 }
               }}
-              activeOpacity={0.7}
+                activeOpacity={0.8}
             >
               <LinearGradient
-                colors={[`${section.color}10`, 'transparent']}
-                style={styles.characterCardGradient}
-              >
-                <Text style={[styles.characterName, { color: theme.text }]}>
+                  colors={isAvailable ? 
+                    [`${section.color}18`, `${section.color}10`, 'transparent'] :
+                    [isDark ? 'rgba(255,255,255,0.08)' : 'rgba(128,128,128,0.08)', 'transparent', 'transparent']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.alternatingCharacterCardGradient}
+                >
+                  {/* Character Avatar */}
+                  <View style={[styles.alternatingCharacterAvatarContainer, { 
+                    backgroundColor: isAvailable ? `${section.color}20` : `${theme.textTertiary}15`,
+                    borderColor: isAvailable ? `${section.color}30` : `${theme.textTertiary}25`,
+                  }]}>
+                    {isAvailable ? (
+                      <MaterialIcons name="person" size={16} color={section.color} />
+                    ) : (
+                      <MaterialIcons name="person-outline" size={16} color={theme.textTertiary} />
+                    )}
+                  </View>
+
+                  {/* Character Info */}
+                  <Text style={[styles.alternatingCharacterName, { 
+                    color: theme.text,
+                    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+                  }]}>
                   {character}
                 </Text>
-                <MaterialIcons 
-                  name={characterProfiles[character] ? "info" : "person"} 
-                  size={16} 
-                  color={section.color} 
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
+                  
+                  {/* Compact Status Badge */}
+                  <View style={[styles.alternatingCharacterStatusBadge, { 
+                    backgroundColor: isAvailable ? `${section.color}15` : `${theme.textTertiary}12`
+                  }]}>
+                    {isAvailable ? (
+                      <View style={[styles.alternatingCharacterPulseDot, { backgroundColor: section.color }]} />
+                    ) : (
+                      <MaterialIcons name="schedule" size={8} color={theme.textTertiary} />
+                    )}
         </View>
 
-        {/* Show available profiles */}
-        <View style={styles.availableProfilesContainer}>
-          <Text style={[styles.availableProfilesTitle, { color: theme.text }]}>
-            📚 Detailed Profiles Available
-          </Text>
-          {group.characters.filter(char => characterProfiles[char]).map((character, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.profilePreviewCard, { backgroundColor: theme.card }]}
-              onPress={() => {
-                hapticFeedback.light();
-                setSelectedCharacter(character);
-              }}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={[`${section.color}15`, `${section.color}05`]}
-                style={styles.profilePreviewGradient}
-              >
-                <MaterialIcons name="info" size={20} color={section.color} />
-                <Text style={[styles.profilePreviewName, { color: theme.text }]}>
-                  {characterProfiles[character].name}
-                </Text>
-                <MaterialIcons name="chevron-right" size={16} color={theme.textTertiary} />
+                  {/* Interactive Arrow */}
+                  {isAvailable && (
+                    <View style={styles.alternatingCharacterArrowContainer}>
+                      <MaterialIcons name="chevron-right" size={14} color={section.color} />
+                    </View>
+                  )}
               </LinearGradient>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
 
-        <View style={styles.comingSoonContainer}>
-          <BlurView intensity={20} style={styles.comingSoonCard}>
-            <MaterialIcons name="construction" size={24} color={section.color} />
-            <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-              More Profiles Coming Soon!
-            </Text>
-            <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-              Detailed profiles for all characters are being prepared with life stories, key events, family trees, and Bible references.
-            </Text>
-          </BlurView>
-        </View>
+        {/* Bottom Spacing */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     );
   };
@@ -850,38 +959,74 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           </TouchableOpacity>
         </View>
 
-        {/* Stunning Hero Section */}
-        <View style={[styles.heroSection, { backgroundColor: `${section.color}08` }]}>
+        {/* Epic Hero Section with Dynamic Background */}
+        <View style={[styles.epicHeroSection, { backgroundColor: `${section.color}05` }]}>
           <LinearGradient
-            colors={[`${section.color}15`, `${section.color}05`, 'transparent']}
-            style={styles.heroGradient}
+            colors={[
+              `${section.color}25`, 
+              `${section.color}15`, 
+              `${section.color}08`,
+              'transparent'
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.epicHeroGradient}
           >
-            {/* Enhanced Profile Image */}
+            {/* Floating Background Elements */}
+            <View style={[styles.floatingElement1, { backgroundColor: `${section.color}08` }]} />
+            <View style={[styles.floatingElement2, { backgroundColor: `${section.color}05` }]} />
+            <View style={[styles.floatingElement3, { backgroundColor: `${section.color}03` }]} />
+            
+            {/* Stunning Profile Image with Glow */}
             {character.image && (
-              <View style={styles.heroImageContainer}>
-                <View style={[styles.imageRing, { borderColor: `${section.color}40` }]}>
-                  <View style={[styles.imageRingInner, { borderColor: `${section.color}60` }]}>
+              <View style={styles.epicImageContainer}>
+                <View style={[styles.imageGlowRing, { 
+                  backgroundColor: `${section.color}15`,
+                  shadowColor: section.color,
+                }]}>
+                  <View style={[styles.imageOuterRing, { borderColor: `${section.color}30` }]}>
+                    <View style={[styles.imageInnerRing, { borderColor: `${section.color}50` }]}>
                     <Image
                       source={character.image}
-                      style={styles.heroImage}
+                        style={styles.epicHeroImage}
                       resizeMode="cover"
                     />
-                    <View style={[styles.imageGlow, { backgroundColor: `${section.color}20` }]} />
+                      <View style={[styles.imageOverlay, { backgroundColor: `${section.color}10` }]} />
+                    </View>
                   </View>
                 </View>
               </View>
             )}
             
-            {/* Beautiful Typography */}
-            <View style={styles.nameContainer}>
-              <View style={[styles.decorativeLine, { backgroundColor: section.color }]} />
-              <Text style={[styles.characterHeroTitle, { color: theme.text }]}>
+            {/* Dynamic Typography with Animations */}
+            <View style={styles.epicNameContainer}>
+              <View style={[styles.titleAccent, { backgroundColor: section.color }]} />
+              <Text style={[styles.epicCharacterTitle, { 
+                color: theme.text,
+                fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+                fontWeight: '700'
+              }]}>
                 {character.name.split(' - ')[0]}
               </Text>
-              <Text style={[styles.characterSubtitle, { color: section.color }]}>
+              <Text style={[styles.epicCharacterSubtitle, { 
+                color: section.color,
+                fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+                fontWeight: '500'
+              }]}>
                 {character.name.split(' - ')[1]}
               </Text>
-              <View style={[styles.decorativeLine, { backgroundColor: section.color }]} />
+              <View style={[styles.titleAccent, { backgroundColor: section.color }]} />
+            </View>
+
+            {/* Floating Info Badges */}
+            <View style={styles.infoBadgesContainer}>
+              <View style={[styles.infoBadge, { 
+                backgroundColor: `${section.color}15`,
+                borderColor: `${section.color}25`
+              }]}>
+                <MaterialIcons name="auto-stories" size={16} color={section.color} />
+                <Text style={[styles.badgeText, { color: section.color }]}>Biblical Figure</Text>
+              </View>
             </View>
           </LinearGradient>
         </View>
@@ -1031,18 +1176,22 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       presentationStyle="pageSheet"
       onRequestClose={() => {}} // Disable pull-down-to-close gesture
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
-          <View style={{ width: 24 }} />
-        </View>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={{ backgroundColor: theme.background }} edges={['top']}>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
+            <View style={{ width: 24 }} />
+          </View>
+        </SafeAreaView>
 
-        {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
-      </SafeAreaView>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
+        </View>
+      </View>
 
       {/* Timeline Modal Overlay */}
       <BibleTimeline
@@ -1053,9 +1202,14 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         }}
       />
 
+      {/* Interactive Bible Maps */}
+      <InteractiveBibleMaps
+        visible={showMapsModal}
+        onClose={() => setShowMapsModal(false)}
+      />
+
       {/* All Other Section Modal Overlays */}
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
-      {renderSectionModalOverlay('maps', showMapsModal, setShowMapsModal)}
       {renderSectionModalOverlay('verses', showVersesModal, setShowVersesModal)}
       {renderSectionModalOverlay('facts', showFactsModal, setShowFactsModal)}
       {renderSectionModalOverlay('themes', showThemesModal, setShowThemesModal)}
@@ -1085,6 +1239,25 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  solidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+  },
+  solidHeaderButton: {
+    padding: 4,
+    width: 48,
+    alignItems: 'center',
+  },
+  solidHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -1588,6 +1761,490 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+
+  // ===== MODERN CHARACTER GROUP STYLES =====
+  
+  // Modern Group Header
+  modernGroupHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  modernGroupBackButton: {
+    alignSelf: 'flex-start',
+  },
+  
+  // Modern Group Hero Section
+  modernGroupHeroSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 25,
+  },
+  groupHeroCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  groupHeroGradient: {
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  modernGroupIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  modernGroupIcon: {
+    fontSize: 36,
+  },
+  modernGroupTitleContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  modernGroupTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: -0.3,
+    lineHeight: 30,
+  },
+  groupSubtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  modernGroupSubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+
+  // Modern Character List
+  modernCharacterListContainer: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  modernCharacterItem: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  characterItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  modernCharacterName: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+    flex: 1,
+  },
+  characterStatusContainer: {
+    marginLeft: 12,
+  },
+  modernAvailableBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  availableDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  modernComingSoonBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassyHeader: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  glassyHeaderContent: {
+    alignItems: 'center',
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+  },
+  glassyHeaderContentHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  glassyCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ===== NEW MODERN UI STYLES =====
+  
+  // Hero Header Styles
+  heroHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+
+  // Alternating Character Group Cards
+  alternatingCharacterGroupsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  alternatingCharacterGroupCard: {
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    width: '75%',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  alternatingCardGradient: {
+    padding: 20,
+    minHeight: 120,
+    position: 'relative',
+  },
+  alternatingIconContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  alternatingCharacterGroupIcon: {
+    fontSize: 20,
+  },
+  alternatingCardContent: {
+    flex: 1,
+    paddingRight: 60,
+  },
+  alternatingCharacterGroupTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+  },
+  alternatingStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  alternatingCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  alternatingCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  alternatingCharacterPreview: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  alternatingArrowContainer: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alternatingDecorativeCircle1: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  alternatingDecorativeCircle2: {
+    position: 'absolute',
+    bottom: -12,
+    left: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+
+  // Alternating Character List
+  alternatingCharacterListContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  alternatingCharacterCard: {
+    width: '70%',
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  alternatingCharacterCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    minHeight: 70,
+    position: 'relative',
+  },
+  alternatingCharacterAvatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    marginRight: 12,
+  },
+  alternatingCharacterName: {
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+  },
+  alternatingCharacterStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 16,
+    marginRight: 8,
+  },
+  alternatingCharacterPulseDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  alternatingCharacterArrowContainer: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Epic Character Profile Hero
+  epicHeroSection: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+    borderRadius: 30,
+    overflow: 'hidden',
+    minHeight: 350,
+  },
+  epicHeroGradient: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 350,
+    position: 'relative',
+  },
+  floatingElement1: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.3,
+  },
+  floatingElement2: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    opacity: 0.2,
+  },
+  floatingElement3: {
+    position: 'absolute',
+    top: 60,
+    right: 60,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    opacity: 0.15,
+  },
+  epicImageContainer: {
+    marginBottom: 30,
+  },
+  imageGlowRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 25,
+      },
+      android: {
+        elevation: 15,
+      },
+    }),
+  },
+  imageOuterRing: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageInnerRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  epicHeroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  epicNameContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  titleAccent: {
+    width: 40,
+    height: 3,
+    borderRadius: 1.5,
+    marginVertical: 10,
+  },
+  epicCharacterTitle: {
+    fontSize: 32,
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  epicCharacterSubtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  infoBadgesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  infoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
 });
 

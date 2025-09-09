@@ -693,7 +693,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent={false} hidden={false} />
       
       {/* Progress Bar */}
       <View style={styles.progressContainer}>

@@ -667,7 +667,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent={false} hidden={false} />
       <ScrollView
         ref={scrollViewRef}
         horizontal

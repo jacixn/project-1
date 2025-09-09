@@ -3,6 +3,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // Always use the cloud proxy (Railway)
 const getProxyUrl = () => {
@@ -24,37 +25,57 @@ class ProductionAIService {
   // Initialize the service and get auth token
   async initialize() {
     try {
-      // Check if we have a stored token
-      authToken = await AsyncStorage.getItem('proxy_auth_token');
+      console.log('🔄 Initializing AI service...');
+      console.log('📍 Proxy URL:', PROXY_BASE_URL);
       
-      if (!authToken) {
-        // Get a new token from the proxy server
-        const response = await fetch(`${PROXY_BASE_URL}/auth/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            app: 'fivefold',
-            timestamp: Date.now()
-          })
-        });
+      // Clear any existing token first to force refresh
+      await AsyncStorage.removeItem('proxy_auth_token');
+      authToken = null;
+      
+      console.log('🔑 Getting new auth token...');
+      // Get a new token from the proxy server
+      const tokenResponse = await fetch(`${PROXY_BASE_URL}/auth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          app: 'fivefold',
+          timestamp: Date.now(),
+          platform: Platform.OS,
+          version: Constants.expoConfig?.version || '1.0.0'
+        }),
+        timeout: 10000 // 10 second timeout
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to get auth token: ${response.status}`);
-        }
+      console.log('📡 Token response status:', tokenResponse.status);
 
-        const data = await response.json();
-        authToken = data.token;
-        
-        // Store the token
-        await AsyncStorage.setItem('proxy_auth_token', authToken);
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error('Token error details:', errorText);
+        throw new Error(`Failed to get auth token: ${tokenResponse.status}`);
       }
 
+      const tokenData = await tokenResponse.json();
+      authToken = tokenData.token;
+      
+      if (!authToken) {
+        throw new Error('No token received from server');
+      }
+      
+      console.log('✅ Auth token received');
+      
+      // Store the token
+      await AsyncStorage.setItem('proxy_auth_token', authToken);
+
       // Verify the proxy server is healthy
-      const healthResponse = await fetch(`${PROXY_BASE_URL}/health`);
+      console.log('🏥 Checking server health...');
+      const healthResponse = await fetch(`${PROXY_BASE_URL}/health`, {
+        timeout: 5000
+      });
+      
       if (!healthResponse.ok) {
-        throw new Error('Proxy server is not healthy');
+        throw new Error(`Proxy server health check failed: ${healthResponse.status}`);
       }
 
       this.isInitialized = true;
@@ -231,15 +252,18 @@ class ProductionAIService {
   }
 
   // Simple AI chat - NO SCORING, just AI response
-  async simpleAIChat(prompt) {
+  async simpleAIChat(prompt, retryCount = 0) {
     try {
       if (!this.isInitialized) {
+        console.log('🔄 Initializing AI service...');
         await this.initialize();
       }
 
       if (!authToken || !this.isInitialized) {
         throw new Error('AI service not available');
       }
+
+      console.log('🚀 Making chat request to:', PROXY_BASE_URL);
 
       // Use the proper chat endpoint with messages format
       const response = await fetch(`${PROXY_BASE_URL}/api/chat`, {
@@ -257,8 +281,25 @@ class ProductionAIService {
           ],
           stream: false,  // Don't stream for simplicity
           model: 'deepseek-chat'
-        })
+        }),
+        timeout: 15000 // 15 second timeout
       });
+
+      console.log('📡 Chat response status:', response.status);
+
+      if (response.status === 401) {
+        console.log('🔄 Token expired, clearing and retrying...');
+        // Token expired, clear it and retry once
+        await AsyncStorage.removeItem('proxy_auth_token');
+        authToken = null;
+        this.isInitialized = false;
+        
+        if (retryCount < 1) {
+          return await this.simpleAIChat(prompt, retryCount + 1);
+        } else {
+          throw new Error('Authentication failed after retry');
+        }
+      }
 
       if (!response.ok) {
         console.error(`Chat API error: ${response.status}`);
@@ -268,6 +309,7 @@ class ProductionAIService {
       }
 
       const result = await response.json();
+      console.log('✅ Chat response received');
       
       // Extract the AI's response
       if (result.choices && result.choices[0] && result.choices[0].message) {

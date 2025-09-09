@@ -42,8 +42,9 @@ const ThemedApp = () => {
     <>
       <StatusBar 
         barStyle={isDark ? "light-content" : "dark-content"} 
-        backgroundColor="transparent"
-        translucent={true}
+        backgroundColor={theme.background}
+        translucent={false}
+        hidden={false}
       />
       <OnboardingWrapper>
         <NavigationContainer>
