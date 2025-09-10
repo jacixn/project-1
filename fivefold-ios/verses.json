@@ -3797,7 +3797,7 @@
         ]
       },
       {
-        "id": "colossians-3-15",
+        "id": "colossians-3-15-gratitude",
         "text": "Let the peace of Christ rule in your hearts, since as members of one body you were called to peace. And be thankful.",
         "reference": "Colossians 3:15",
         "category": "gratitude",
@@ -4284,7 +4284,7 @@
         ]
       },
       {
-        "id": "1-corinthians-15-58",
+        "id": "1-corinthians-15-58-work",
         "text": "Therefore, my dear brothers and sisters, stand firm. Let nothing move you. Always give yourselves fully to the work of the Lord, because you know that your labor in the Lord is not in vain.",
         "reference": "1 Corinthians 15:58",
         "category": "work",
@@ -5063,7 +5063,7 @@
     ],
     "justice": [
       {
-        "id": "micah-6-8",
+        "id": "micah-6-8-justice",
         "text": "He has shown you, O mortal, what is good. And what does the Lord require of you? To act justly and to love mercy and to walk humbly with your God.",
         "reference": "Micah 6:8",
         "category": "justice",
@@ -5496,7 +5496,7 @@
     ],
     "eternal-life": [
       {
-        "id": "john-3-16",
+        "id": "john-3-16-eternal-life",
         "text": "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
         "reference": "John 3:16",
         "category": "eternal-life",
@@ -5550,7 +5550,7 @@
         ]
       },
       {
-        "id": "romans-6-23",
+        "id": "romans-6-23-eternal-life",
         "text": "For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord.",
         "reference": "Romans 6:23",
         "category": "eternal-life",
@@ -6181,7 +6181,7 @@
         ]
       },
       {
-        "id": "romans-1-16",
+        "id": "romans-1-16-evangelism",
         "text": "For I am not ashamed of the gospel, because it is the power of God that brings salvation to everyone who believes: first to the Jew, then to the Gentile.",
         "reference": "Romans 1:16",
         "category": "evangelism",
