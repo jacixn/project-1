@@ -271,12 +271,25 @@ const KeyVerses = ({ visible, onClose }) => {
       // Load verses from remote/cache
       await loadVerses();
       
-      // Load favorites
+      // Load favorites and sync with Profile saved verses
       try {
-        const savedFavorites = await getStoredData('favoriteVerses');
-        if (savedFavorites) {
-          setFavoriteVerses(savedFavorites);
-        }
+        // Load from Profile's saved verses system
+        const savedBibleVerses = await getStoredData('savedBibleVerses') || [];
+        
+        // Filter Key Verses from saved verses
+        const keyVerseIds = savedBibleVerses
+          .filter(v => v.version === 'KEY_VERSES' || v.category) // Key Verses have category or version 'KEY_VERSES'
+          .map(v => v.id);
+        
+        // Also load local favorites for backward compatibility
+        const savedFavorites = await getStoredData('favoriteVerses') || [];
+        
+        // Merge both sources and remove duplicates
+        const allFavorites = [...new Set([...keyVerseIds, ...savedFavorites])];
+        
+        setFavoriteVerses(allFavorites);
+        
+        console.log(`📖 Loaded ${allFavorites.length} favorite Key Verses (${keyVerseIds.length} from Profile, ${savedFavorites.length} local)`);
       } catch (error) {
         console.error('Error loading favorite verses:', error);
       }
@@ -337,19 +350,63 @@ const KeyVerses = ({ visible, onClose }) => {
   };
 
   const toggleFavorite = async (verseId) => {
-    const newFavorites = favoriteVerses.includes(verseId)
-      ? favoriteVerses.filter(id => id !== verseId)
-      : [...favoriteVerses, verseId];
-    
-    setFavoriteVerses(newFavorites);
-    
     try {
-      await saveData('favoriteVerses', newFavorites);
+      // Find the verse data
+      const verse = keyVerses.find(v => v.id === verseId);
+      if (!verse) return;
+
+      // Load existing saved verses from Profile system
+      const existingSavedVerses = await getStoredData('savedBibleVerses') || [];
+      
+      // Check if verse is already saved
+      const existingIndex = existingSavedVerses.findIndex(v => v.id === verseId);
+      
+      let newFavorites;
+      
+      if (existingIndex !== -1) {
+        // Remove from saved verses (Profile system)
+        existingSavedVerses.splice(existingIndex, 1);
+        newFavorites = favoriteVerses.filter(id => id !== verseId);
+        
+        console.log('📖 Key Verse removed from saved:', verse.reference);
+        hapticFeedback.success();
+      } else {
+        // Add to saved verses (Profile system)
+        const newSavedVerse = {
+          id: verseId,
+          reference: verse.reference,
+          content: verse.text,
+          version: 'KEY_VERSES', // Special identifier for Key Verses
+          savedAt: new Date().toISOString(),
+          category: verse.category,
+          theme: verse.theme,
+          keywords: verse.keywords,
+          context: verse.context
+        };
+        
+        existingSavedVerses.push(newSavedVerse);
+        newFavorites = [...favoriteVerses, verseId];
+        
+        console.log('📖 Key Verse saved to Profile:', verse.reference);
+        hapticFeedback.success();
+      }
+      
+      // Update local state
+      setFavoriteVerses(newFavorites);
+      
+      // Save to both storage systems
+      await saveData('favoriteVerses', newFavorites); // Key Verses favorites
+      await saveData('savedBibleVerses', existingSavedVerses); // Profile saved verses
+      
+      // Update user stats
+      const stats = await getStoredData('userStats') || {};
+      stats.savedVerses = existingSavedVerses.length;
+      await saveData('userStats', stats);
+      
     } catch (error) {
-      console.error('Error saving favorite verses:', error);
+      console.error('Error saving/unsaving Key Verse:', error);
+      hapticFeedback.error();
     }
-    
-    hapticFeedback.light();
   };
 
   const shareVerse = async (verse) => {
@@ -653,37 +710,6 @@ const KeyVerses = ({ visible, onClose }) => {
                 </Text>
               </View>
             </View>
-            
-            {/* Related Verses */}
-            {selectedVerse.relatedVerses && selectedVerse.relatedVerses.length > 0 && (
-              <View style={styles.contextSection}>
-                <View style={styles.sectionHeader}>
-                  <MaterialIcons name="link" size={24} color={category?.color || theme.primary} />
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Related Verses</Text>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relatedVerses}>
-                  {selectedVerse.relatedVerses.map(relatedId => {
-                    const relatedVerse = keyVerses.find(v => v.id === relatedId);
-                    if (!relatedVerse) return null;
-                    
-                    return (
-                      <TouchableOpacity
-                        key={relatedId}
-                        onPress={() => setSelectedVerse(relatedVerse)}
-                        style={[styles.relatedVerseCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      >
-                        <Text style={[styles.relatedVerseText, { color: theme.text }]} numberOfLines={2}>
-                          "{relatedVerse.text.substring(0, 80)}..."
-                        </Text>
-                        <Text style={[styles.relatedVerseRef, { color: category?.color || theme.primary }]}>
-                          {relatedVerse.reference}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            )}
             
             <View style={{ height: 40 }} />
           </ScrollView>
@@ -1174,25 +1200,6 @@ const styles = StyleSheet.create({
   },
   themeTagText: {
     fontSize: 14,
-    fontWeight: '600',
-  },
-  relatedVerses: {
-    marginTop: 8,
-  },
-  relatedVerseCard: {
-    width: 200,
-    padding: 16,
-    marginRight: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  relatedVerseText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  relatedVerseRef: {
-    fontSize: 12,
     fontWeight: '600',
   },
   emptyState: {
