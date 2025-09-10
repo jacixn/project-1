@@ -29,9 +29,9 @@ const { width, height } = Dimensions.get('window');
 const VERSES_CONFIG = {
   // Replace with your GitHub username and repository name
   GITHUB_USERNAME: 'jacixn',
-  REPO_NAME: 'fivefold-bible-verses',
+  REPO_NAME: 'project-1',
   BRANCH: 'main',
-  FILE_PATH: 'verses.json',
+  FILE_PATH: 'fivefold-ios/verses.json',
   
   // Remote URL - will be null if not configured yet
   get URL() {
@@ -42,8 +42,8 @@ const VERSES_CONFIG = {
   },
   
   // Cache settings
-  CACHE_KEY: 'cached_verses_data_v6', // Changed key to force cache refresh with 360 verses
-  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v6', // Changed key to force cache refresh with 360 verses
+  CACHE_KEY: 'cached_verses_data_v7', // Fixed GitHub URL - force cache refresh with 360 verses
+  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v7', // Fixed GitHub URL - force cache refresh with 360 verses
   CACHE_DURATION: 0, // Temporarily disable cache to force fresh fetch of 360 verses
 };
 
