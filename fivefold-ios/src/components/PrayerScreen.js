@@ -42,9 +42,22 @@ const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistor
 
   useEffect(() => {
     if (visible && prayer) {
-      // Get two verses for this prayer session
-      const verses = getTwoVerses(prayer.slot);
-      setCurrentVerses(verses);
+      // Get two verses for this prayer session (now async)
+      const loadVerses = async () => {
+        try {
+          const verses = await getTwoVerses(prayer.slot);
+          setCurrentVerses(verses);
+        } catch (error) {
+          console.error('Error loading prayer verses:', error);
+          // Set fallback verses
+          setCurrentVerses([
+            { text: "Be still, and know that I am God.", reference: "Psalm 46:10" },
+            { text: "Cast all your anxiety on him because he cares for you.", reference: "1 Peter 5:7" }
+          ]);
+        }
+      };
+      
+      loadVerses();
 
       // Get prayer status
       const status = getPrayerStatus(prayer.time, false, prayerHistory, prayer.slot);

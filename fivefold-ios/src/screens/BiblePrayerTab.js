@@ -63,7 +63,7 @@ const BiblePrayerTab = () => {
   const [prayerHistory, setPrayerHistory] = useState([]);
   const [location, setLocation] = useState(null);
   const [nextPrayer, setNextPrayer] = useState(null);
-  const [dailyVerse, setDailyVerse] = useState(getDailyVerse());
+  const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
 
   useEffect(() => {
     initializePrayerData();
@@ -71,18 +71,31 @@ const BiblePrayerTab = () => {
 
   // Update daily verse at midnight
   useEffect(() => {
-    const updateDailyVerse = () => {
-      setDailyVerse(getDailyVerse());
+    const updateDailyVerse = async () => {
+      try {
+        const verse = await getDailyVerse();
+        setDailyVerse(verse);
+      } catch (error) {
+        console.error('Error loading daily verse:', error);
+        setDailyVerse({ 
+          text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, to give you hope and a future.", 
+          reference: "Jeremiah 29:11" 
+        });
+      }
     };
 
     // Update verse immediately
     updateDailyVerse();
 
     // Set up interval to check for date change every minute
-    const interval = setInterval(() => {
-      const currentVerse = getDailyVerse();
-      if (currentVerse.reference !== dailyVerse.reference) {
-        updateDailyVerse();
+    const interval = setInterval(async () => {
+      try {
+        const currentVerse = await getDailyVerse();
+        if (currentVerse.reference !== dailyVerse.reference) {
+          updateDailyVerse();
+        }
+      } catch (error) {
+        console.error('Error checking daily verse update:', error);
       }
     }, 60000); // Check every minute
 
