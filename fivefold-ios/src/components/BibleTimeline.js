@@ -21,6 +21,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SpiritualLoadingAnimation from './SpiritualLoadingAnimation';
 
 const { width, height } = Dimensions.get('window');
 const screenHeight = Dimensions.get('screen').height;
@@ -969,15 +970,12 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
         <View style={{ height: 60, backgroundColor: theme.surface }} />
 
-        {/* Loading State */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingText, { color: theme.text }]}>
-              Loading Bible timeline...
-            </Text>
-          </View>
-        )}
+        {/* Spiritual Loading Animation */}
+        <SpiritualLoadingAnimation 
+          isVisible={loading}
+          loadingText="Loading Bible timeline..."
+          onComplete={() => setLoading(false)}
+        />
 
         {/* Error State */}
         {error && !loading && (
