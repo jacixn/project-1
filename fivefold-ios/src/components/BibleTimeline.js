@@ -968,7 +968,21 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+        
+        {/* Header */}
         <View style={{ height: 60, backgroundColor: theme.surface }} />
+        <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.solidHeaderButton}
+          >
+            <MaterialIcons name="close" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+            Bible Timeline
+          </Text>
+          <View style={styles.solidHeaderButton} />
+        </SafeAreaView>
 
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
@@ -998,20 +1012,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {/* Main Content */}
         {!loading && !error && (
           <>
-        {/* Header */}
-        <View style={{ height: 60, backgroundColor: theme.surface }} />
-        <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.solidHeaderButton}
-          >
-            <MaterialIcons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-            Bible Timeline
-          </Text>
-          <View style={styles.solidHeaderButton} />
-        </SafeAreaView>
         <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
         
         <View style={[styles.container, { backgroundColor: 'transparent' }]}>
