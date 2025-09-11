@@ -998,15 +998,19 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {/* Main Content */}
         {!loading && !error && (
           <>
-            <View style={{ height: 60, backgroundColor: theme.surface }} />
-        <SafeAreaView style={{ backgroundColor: theme.surface }} edges={['top']}>
-          <View style={[styles.solidHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.solidHeaderButton}>
+        {/* Header */}
+        <View style={{ height: 60, backgroundColor: theme.surface }} />
+        <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.solidHeaderButton}
+          >
             <MaterialIcons name="close" size={24} color={theme.text} />
-        </TouchableOpacity>
-            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>Bible Timeline</Text>
-            <View style={{ width: 48 }} />
-        </View>
+          </TouchableOpacity>
+          <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+            Bible Timeline
+          </Text>
+          <View style={styles.solidHeaderButton} />
         </SafeAreaView>
         <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
         
@@ -1535,12 +1539,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   solidHeaderButton: {
-    padding: 4,
     width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   solidHeaderTitle: {
