@@ -74,7 +74,7 @@ const TodosTab = () => {
           setUserStats(stats);
         }
       } catch (error) {
-        console.error('Failed to refresh user stats:', error);
+        // Failed to refresh user stats - continue with cached data
       }
     };
 
@@ -100,7 +100,7 @@ const TodosTab = () => {
       setUserStats(storedStats);
       setLoading(false);
     } catch (error) {
-      console.error('Failed to initialize todo data:', error);
+      // Failed to initialize todo data - handle gracefully
       setLoading(false);
     }
   };
@@ -125,7 +125,7 @@ const TodosTab = () => {
         todo.completed && todo.completedAt && new Date(todo.completedAt).toDateString() === today
       ).length;
       
-      console.log('🏆 Tasks completed today:', todayCompletedTodos);
+      // Achievement tracking: tasks completed today
 
       // Check specific daily achievements
       const dailyAchievements = [

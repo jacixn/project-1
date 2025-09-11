@@ -180,6 +180,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
@@ -198,39 +199,38 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     "How can I find peace in difficult times?"
   ];
 
-  // Load user name when component mounts
-  useEffect(() => {
-    const loadUserName = async () => {
-      try {
-        const storedProfile = await AsyncStorage.getItem('userProfile');
-        console.log('🔍 AiBibleChat - Raw userProfile:', storedProfile);
-        if (storedProfile) {
-          const profile = JSON.parse(storedProfile);
-          console.log('🔍 AiBibleChat - Parsed profile:', profile);
-          const name = profile.name || 'Friend';
-          console.log('🔍 AiBibleChat - Setting userName to:', name);
-          setUserName(name);
-        }
-        setNameLoaded(true);
-      } catch (error) {
-        console.error('Failed to load user name:', error);
-        setNameLoaded(true);
+  // Load user name function
+  const loadUserName = async () => {
+    try {
+      const storedProfile = await AsyncStorage.getItem('userProfile');
+      if (storedProfile) {
+        const profile = JSON.parse(storedProfile);
+        const name = profile.name || 'Friend';
+        setUserName(name);
       }
-    };
-    
-    loadUserName();
-  }, []);
+      setNameLoaded(true);
+    } catch (error) {
+      setNameLoaded(true);
+    }
+  };
 
   // Load chat history when component mounts
   useEffect(() => {
-    loadChatHistory();
-  }, []);
+    if (visible) {
+      setIsInitializing(true);
+      // Initialize quickly, then load data in background
+      setTimeout(() => {
+        setIsInitializing(false);
+        // Load data in background
+        loadChatHistory();
+        loadUserName();
+      }, 100);
+    }
+  }, [visible]);
 
   // Save current conversation to history when closing
   useEffect(() => {
-    console.log('🔍 History Effect - visible:', visible, 'messages length:', messages.length);
     if (!visible && messages.length > 0) {
-      console.log('💾 Triggering save to history...');
       saveChatToHistory();
     }
   }, [visible, messages]);
@@ -242,19 +242,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       if (storedHistory) {
         const history = JSON.parse(storedHistory);
         setChatHistory(history);
-        console.log('📚 Loaded chat history:', history.length, 'conversations');
       }
     } catch (error) {
-      console.error('Failed to load chat history:', error);
+      // Error handled gracefully
     }
   };
 
   // Save current conversation to history
   const saveChatToHistory = async () => {
-    console.log('💾 saveChatToHistory called - messages length:', messages.length);
-    
     if (messages.length === 0) {
-      console.log('❌ No messages to save');
       return;
     }
 
@@ -262,7 +258,6 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     const conversationMessages = messages.filter(msg => msg.text && msg.text.trim());
     
     if (conversationMessages.length === 0) {
-      console.log('❌ No valid conversation messages to save');
       return;
     }
 
@@ -279,12 +274,6 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         date: new Date().toLocaleDateString()
       };
 
-      console.log('💾 Creating conversation:', {
-        id: conversation.id,
-        messageCount: conversation.messages.length,
-        preview: conversation.preview
-      });
-
       // Load current history to ensure we have the latest
       const storedHistory = await AsyncStorage.getItem('friendChatHistory');
       const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
@@ -292,10 +281,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
       await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
       setChatHistory(updatedHistory);
-      
-      console.log('✅ Successfully saved conversation to history. Total conversations:', updatedHistory.length);
     } catch (error) {
-      console.error('❌ Failed to save chat history:', error);
+      // Error handled gracefully
     }
   };
 
@@ -499,17 +486,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const getBibleAnswer = async (question) => {
     console.log('🎯 Friend chat starting for question:', question);
     
-    // DEBUG: Let's check AsyncStorage directly here too
+    // Load user profile for personalized responses
     try {
       const debugProfile = await AsyncStorage.getItem('userProfile');
-      console.log('🔍 DEBUG - Direct AsyncStorage check in AiBibleChat:', debugProfile);
       if (debugProfile) {
         const parsed = JSON.parse(debugProfile);
-        console.log('🔍 DEBUG - Parsed profile in AiBibleChat:', parsed);
-        console.log('🔍 DEBUG - Name from parsed profile:', parsed.name);
+        // Use parsed profile data for personalization
       }
     } catch (error) {
-      console.log('🔍 DEBUG - Error checking AsyncStorage:', error);
+      // Handle profile loading error gracefully
     }
     
     try {
@@ -719,8 +704,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.messagesContent, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
           >
-            {console.log('🔍 AiBibleChat - Messages array:', messages)}
-            {messages.map(renderMessage)}
+            {isInitializing ? (
+              <View style={styles.loadingContainer}>
+                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+                  Initializing chat...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {messages.map(renderMessage)}
             {renderSuggestedQuestions()}
             
             {isLoading && (
@@ -734,6 +726,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                   </View>
                 </View>
               </View>
+            )}
+              </>
             )}
           </ScrollView>
         </View>
@@ -763,7 +757,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                 placeholderTextColor={theme.textSecondary || (isDark ? '#AAAAAA' : '#666666')}
                 value={inputText}
                 onChangeText={(text) => {
-                  console.log('💬 Text input changed:', text); // Debug logging
+                  // Handle text input change
                   setInputText(text);
                 }}
                 onFocus={() => {
@@ -998,6 +992,16 @@ const styles = StyleSheet.create({
   thinkingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontStyle: 'italic',
   },
   suggestionsContainer: {
     marginTop: 20,

@@ -21,7 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SpiritualLoadingAnimation from './SpiritualLoadingAnimation';
+import SimplePercentageLoader from './SimplePercentageLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -582,8 +582,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
           <View style={styles.solidHeaderButton} />
         </SafeAreaView>
 
-        {/* Spiritual Loading Animation */}
-        <SpiritualLoadingAnimation 
+        {/* Simple Loading with Percentage */}
+        <SimplePercentageLoader 
           isVisible={loading}
           loadingText="Loading thematic guides..."
           onComplete={() => setLoading(false)}

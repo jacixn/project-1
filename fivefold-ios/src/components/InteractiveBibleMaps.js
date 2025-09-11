@@ -46,6 +46,15 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     journeyTimeouts.current = [];
   };
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all timeouts when component unmounts
+      journeyTimeouts.current.forEach(timeoutId => clearTimeout(timeoutId));
+      journeyTimeouts.current = [];
+    };
+  }, []);
+
   // Comprehensive Biblical Locations Data - From Abraham to Paul
   const biblicalLocations = [
     // ABRAHAM'S JOURNEY LOCATIONS
@@ -1857,11 +1866,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                     size={selectedLocation?.id === location.id ? 24 : 20} 
                     color="white" 
                   />
-                  {bookmarkedLocations.includes(location.id) && (
-                    <View style={styles.bookmarkIndicator}>
-                      <MaterialIcons name="bookmark" size={12} color="#FFD700" />
-                    </View>
-                  )}
+                  {/* Bookmark indicator removed */}
                   {location.miracleCount && location.miracleCount > 0 && (
                     <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
                       <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
@@ -1899,16 +1904,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                 }]}>
                   Interactive Bible Maps
                 </Text>
-                <TouchableOpacity 
-                  onPress={() => toggleBookmark(selectedLocation?.id)} 
-                  style={styles.bookmarkButton}
-                >
-                  <MaterialIcons 
-                    name={bookmarkedLocations.includes(selectedLocation?.id) ? "bookmark" : "bookmark-border"} 
-                    size={24} 
-                    color="#FFFFFF" 
-                  />
-                </TouchableOpacity>
+                {/* Bookmark removed */}
+                <View style={styles.bookmarkButton} />
               </View>
             </BlurView>
 
@@ -2113,16 +2110,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                 <Text style={[styles.detailTitle, { color: theme.text }]}>
                   {selectedLocation.name}
                 </Text>
-                <TouchableOpacity 
-                  onPress={() => toggleBookmark(selectedLocation.id)} 
-                  style={styles.detailBookmarkButton}
-                >
-                  <MaterialIcons 
-                    name={bookmarkedLocations.includes(selectedLocation.id) ? "bookmark" : "bookmark-border"} 
-                    size={24} 
-                    color={theme.primary} 
-                  />
-                </TouchableOpacity>
+                {/* Bookmark removed */}
+                <View style={styles.detailBookmarkButton} />
               </View>
 
               <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>

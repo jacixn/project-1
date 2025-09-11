@@ -8,7 +8,7 @@ import TabNavigator from './src/navigation/TabNavigator';
 import notificationService from './src/services/notificationService';
 import OnboardingWrapper from './src/components/OnboardingWrapper';
 import { initializeApiSecurity } from './src/utils/secureApiKey';
-// import ErrorBoundary from './src/components/ErrorBoundary';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 // App component wrapped with theme
 const ThemedApp = () => {
@@ -46,11 +46,13 @@ const ThemedApp = () => {
         translucent={false}
         hidden={false}
       />
-      <OnboardingWrapper>
-        <NavigationContainer>
-          <TabNavigator />
-        </NavigationContainer>
-      </OnboardingWrapper>
+      <ErrorBoundary>
+        <OnboardingWrapper>
+          <NavigationContainer>
+            <TabNavigator />
+          </NavigationContainer>
+        </OnboardingWrapper>
+      </ErrorBoundary>
     </>
   );
 };

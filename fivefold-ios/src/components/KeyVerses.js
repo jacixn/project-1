@@ -22,6 +22,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import SpiritualLoadingAnimation from './SpiritualLoadingAnimation';
 
 const { width, height } = Dimensions.get('window');
 

@@ -1,0 +1,588 @@
+{
+  "categories": [
+    {
+      "id": "faith",
+      "name": "Faith & Trust",
+      "color": "#4A90E2",
+      "icon": "favorite",
+      "gradient": ["#4A90E2", "#357ABD"]
+    },
+    {
+      "id": "hope",
+      "name": "Hope & Encouragement",
+      "color": "#50C878",
+      "icon": "star",
+      "gradient": ["#50C878", "#3A9B5C"]
+    },
+    {
+      "id": "love",
+      "name": "Love & Relationships",
+      "color": "#FF6B6B",
+      "icon": "favorite",
+      "gradient": ["#FF6B6B", "#E55555"]
+    },
+    {
+      "id": "peace",
+      "name": "Peace & Comfort",
+      "color": "#9B59B6",
+      "icon": "spa",
+      "gradient": ["#9B59B6", "#8E44AD"]
+    },
+    {
+      "id": "strength",
+      "name": "Strength & Courage",
+      "color": "#E67E22",
+      "icon": "star",
+      "gradient": ["#E67E22", "#D35400"]
+    },
+    {
+      "id": "wisdom",
+      "name": "Wisdom & Guidance",
+      "color": "#F39C12",
+      "icon": "star",
+      "gradient": ["#F39C12", "#E67E22"]
+    },
+    {
+      "id": "forgiveness",
+      "name": "Forgiveness & Grace",
+      "color": "#3498DB",
+      "icon": "healing",
+      "gradient": ["#3498DB", "#2980B9"]
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer & Worship",
+      "color": "#9C27B0",
+      "icon": "place",
+      "gradient": ["#9C27B0", "#7B1FA2"]
+    },
+    {
+      "id": "salvation",
+      "name": "Salvation & Redemption",
+      "color": "#FF5722",
+      "icon": "add",
+      "gradient": ["#FF5722", "#E64A19"]
+    },
+    {
+      "id": "joy",
+      "name": "Joy & Celebration",
+      "color": "#FFEB3B",
+      "icon": "celebration",
+      "gradient": ["#FFEB3B", "#FBC02D"]
+    },
+    {
+      "id": "protection",
+      "name": "Protection & Safety",
+      "color": "#607D8B",
+      "icon": "security",
+      "gradient": ["607D8B", "#455A64"]
+    },
+    {
+      "id": "provision",
+      "name": "God's Provision",
+      "color": "#4CAF50",
+      "icon": "nature",
+      "gradient": ["#4CAF50", "#388E3C"]
+    },
+    {
+      "id": "healing",
+      "name": "Healing & Restoration",
+      "color": "#00BCD4",
+      "icon": "healing",
+      "gradient": ["#00BCD4", "#0097A7"]
+    },
+    {
+      "id": "obedience",
+      "name": "Obedience & Discipleship",
+      "color": "#795548",
+      "icon": "directions",
+      "gradient": ["#795548", "#5D4037"]
+    },
+    {
+      "id": "perseverance",
+      "name": "Perseverance & Endurance",
+      "color": "#FF9800",
+      "icon": "trending-up",
+      "gradient": ["#FF9800", "#F57C00"]
+    },
+    {
+      "id": "humility",
+      "name": "Humility & Service",
+      "color": "#8BC34A",
+      "icon": "volunteer-activism",
+      "gradient": ["#8BC34A", "#689F38"]
+    },
+    {
+      "id": "gratitude",
+      "name": "Gratitude & Thanksgiving",
+      "color": "#FFC107",
+      "icon": "thumb-up",
+      "gradient": ["#FFC107", "#FF8F00"]
+    },
+    {
+      "id": "family",
+      "name": "Family & Marriage",
+      "color": "#E91E63",
+      "icon": "family-restroom",
+      "gradient": ["#E91E63", "#C2185B"]
+    },
+    {
+      "id": "work",
+      "name": "Work & Purpose",
+      "color": "#673AB7",
+      "icon": "work",
+      "gradient": ["#673AB7", "#512DA8"]
+    },
+    {
+      "id": "money",
+      "name": "Money & Generosity",
+      "color": "#009688",
+      "icon": "attach-money",
+      "gradient": ["#009688", "#00695C"]
+    },
+    {
+      "id": "temptation",
+      "name": "Temptation & Sin",
+      "color": "#F44336",
+      "icon": "warning",
+      "gradient": ["#F44336", "#D32F2F"]
+    },
+    {
+      "id": "leadership",
+      "name": "Leadership & Authority",
+      "color": "#2196F3",
+      "icon": "group",
+      "gradient": ["#2196F3", "#1976D2"]
+    },
+    {
+      "id": "justice",
+      "name": "Justice & Righteousness",
+      "color": "#FF7043",
+      "icon": "balance",
+      "gradient": ["#FF7043", "#F4511E"]
+    },
+    {
+      "id": "creation",
+      "name": "Creation & Nature",
+      "color": "#66BB6A",
+      "icon": "eco",
+      "gradient": ["#66BB6A", "#4CAF50"]
+    },
+    {
+      "id": "eternal-life",
+      "name": "Eternal Life & Heaven",
+      "color": "#AB47BC",
+      "icon": "star",
+      "gradient": ["#AB47BC", "#8E24AA"]
+    },
+    {
+      "id": "suffering",
+      "name": "Suffering & Trials",
+      "color": "#78909C",
+      "icon": "support",
+      "gradient": ["#78909C", "#607D8B"]
+    },
+    {
+      "id": "unity",
+      "name": "Unity & Fellowship",
+      "color": "#26A69A",
+      "icon": "people",
+      "gradient": ["#26A69A", "#00695C"]
+    },
+    {
+      "id": "evangelism",
+      "name": "Evangelism & Missions",
+      "color": "#EF5350",
+      "icon": "campaign",
+      "gradient": ["#EF5350", "#E53935"]
+    },
+    {
+      "id": "prophecy",
+      "name": "Prophecy & Future",
+      "color": "#5C6BC0",
+      "icon": "visibility",
+      "gradient": ["#5C6BC0", "#3F51B5"]
+    },
+    {
+      "id": "character",
+      "name": "Character & Integrity",
+      "color": "#8D6E63",
+      "icon": "verified",
+      "gradient": ["#8D6E63", "#6D4C41"]
+    }
+  ],
+  "verses": {
+    "faith": [
+      {
+        "id": "hebrews-11-1",
+        "text": "Now faith is confidence in what we hope for and assurance about what we do not see.",
+        "reference": "Hebrews 11:1",
+        "category": "faith",
+        "theme": "Definition of Faith",
+        "keywords": ["faith", "confidence", "hope", "assurance"],
+        "context": "The great chapter on faith",
+        "relatedVerses": ["Hebrews 11:6", "2 Corinthians 5:7"]
+      },
+      {
+        "id": "hebrews-11-6",
+        "text": "And without faith it is impossible to please God, because anyone who comes to him must believe that he exists and that he rewards those who earnestly seek him.",
+        "reference": "Hebrews 11:6",
+        "category": "faith",
+        "theme": "Faith Pleases God",
+        "keywords": ["faith", "please God", "believe", "rewards"],
+        "context": "Requirements for approaching God",
+        "relatedVerses": ["Hebrews 11:1", "James 1:6"]
+      },
+      {
+        "id": "romans-10-17",
+        "text": "Consequently, faith comes from hearing the message, and the message is heard through the word about Christ.",
+        "reference": "Romans 10:17",
+        "category": "faith",
+        "theme": "Faith Through God's Word",
+        "keywords": ["faith", "hearing", "word", "Christ"],
+        "context": "Paul explaining salvation by faith",
+        "relatedVerses": ["Romans 1:17", "Galatians 3:2"]
+      },
+      {
+        "id": "mark-11-22",
+        "text": "Have faith in God, Jesus answered.",
+        "reference": "Mark 11:22",
+        "category": "faith",
+        "theme": "Jesus Commands Faith",
+        "keywords": ["faith", "God", "Jesus", "command"],
+        "context": "After cursing the fig tree",
+        "relatedVerses": ["Matthew 17:20", "Mark 11:23"]
+      },
+      {
+        "id": "2-corinthians-5-7",
+        "text": "For we live by faith, not by sight.",
+        "reference": "2 Corinthians 5:7",
+        "category": "faith",
+        "theme": "Living by Faith",
+        "keywords": ["live", "faith", "sight", "walk"],
+        "context": "Paul on earthly vs heavenly perspective",
+        "relatedVerses": ["Hebrews 11:1", "Romans 1:17"]
+      },
+      {
+        "id": "ephesians-2-8",
+        "text": "For it is by grace you have been saved, through faith—and this is not from yourselves, it is the gift of God.",
+        "reference": "Ephesians 2:8",
+        "category": "faith",
+        "theme": "Salvation by Faith",
+        "keywords": ["grace", "saved", "faith", "gift"],
+        "context": "Paul explaining salvation",
+        "relatedVerses": ["Romans 3:28", "Galatians 2:16"]
+      },
+      {
+        "id": "romans-1-17",
+        "text": "For in the gospel the righteousness of God is revealed—a righteousness that is by faith from first to last, just as it is written: 'The righteous will live by faith.'",
+        "reference": "Romans 1:17",
+        "category": "faith",
+        "theme": "Righteousness by Faith",
+        "keywords": ["righteousness", "faith", "gospel", "live"],
+        "context": "Paul's thesis on the gospel",
+        "relatedVerses": ["Habakkuk 2:4", "Galatians 3:11"]
+      },
+      {
+        "id": "james-1-6",
+        "text": "But when you ask, you must believe and not doubt, because the one who doubts is like a wave of the sea, blown and tossed by the wind.",
+        "reference": "James 1:6",
+        "category": "faith",
+        "theme": "Faith Without Doubt",
+        "keywords": ["believe", "doubt", "ask", "prayer"],
+        "context": "James on asking for wisdom",
+        "relatedVerses": ["Matthew 21:21", "Mark 11:23"]
+      },
+      {
+        "id": "matthew-17-20",
+        "text": "Truly I tell you, if you have faith as small as a mustard seed, you can say to this mountain, 'Move from here to there,' and it will move. Nothing will be impossible for you.",
+        "reference": "Matthew 17:20",
+        "category": "faith",
+        "theme": "Mountain-Moving Faith",
+        "keywords": ["faith", "mustard seed", "mountain", "impossible"],
+        "context": "Jesus explaining power of faith",
+        "relatedVerses": ["Luke 17:6", "Mark 11:23"]
+      },
+      {
+        "id": "galatians-2-20",
+        "text": "I have been crucified with Christ and I no longer live, but Christ lives in me. The life I now live in the body, I live by faith in the Son of God, who loved me and gave himself for me.",
+        "reference": "Galatians 2:20",
+        "category": "faith",
+        "theme": "Living by Faith in Christ",
+        "keywords": ["crucified", "Christ lives", "faith", "love"],
+        "context": "Paul's testimony of faith",
+        "relatedVerses": ["Romans 6:6", "2 Corinthians 5:15"]
+      },
+      {
+        "id": "1-peter-1-7",
+        "text": "These have come so that the proven genuineness of your faith—of greater worth than gold, which perishes even though refined by fire—may result in praise, glory and honor when Jesus Christ is revealed.",
+        "reference": "1 Peter 1:7",
+        "category": "faith",
+        "theme": "Tested Faith",
+        "keywords": ["faith", "tested", "gold", "refined"],
+        "context": "Peter on trials and faith",
+        "relatedVerses": ["James 1:3", "1 Peter 1:6"]
+      },
+      {
+        "id": "romans-4-16",
+        "text": "Therefore, the promise comes by faith, so that it may be by grace and may be guaranteed to all Abraham's offspring—not only to those who are of the law but also to those who have the faith of Abraham. He is the father of us all.",
+        "reference": "Romans 4:16",
+        "category": "faith",
+        "theme": "Abraham's Faith",
+        "keywords": ["promise", "faith", "grace", "Abraham"],
+        "context": "Paul on Abraham's example",
+        "relatedVerses": ["Romans 4:3", "Galatians 3:7"]
+      }
+    ],
+    "hope": [
+      {
+        "id": "romans-8-28",
+        "text": "And we know that in all things God works for the good of those who love him, who have been called according to his purpose.",
+        "reference": "Romans 8:28",
+        "category": "hope",
+        "theme": "God's Sovereignty",
+        "keywords": ["good", "purpose", "called", "love God"],
+        "context": "Paul's teaching on life in the Spirit",
+        "relatedVerses": ["Jeremiah 29:11", "Romans 8:31-39"]
+      },
+      {
+        "id": "jeremiah-29-11",
+        "text": "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.",
+        "reference": "Jeremiah 29:11",
+        "category": "hope",
+        "theme": "God's Plans",
+        "keywords": ["plans", "prosper", "hope", "future"],
+        "context": "God's promise to exiled Israel",
+        "relatedVerses": ["Romans 8:28", "Proverbs 3:5-6"]
+      },
+      {
+        "id": "romans-15-13",
+        "text": "May the God of hope fill you with all joy and peace as you trust in him, so that you may overflow with hope by the power of the Holy Spirit.",
+        "reference": "Romans 15:13",
+        "category": "hope",
+        "theme": "God of Hope",
+        "keywords": ["hope", "joy", "peace", "Holy Spirit"],
+        "context": "Paul's blessing to the Romans",
+        "relatedVerses": ["Romans 5:5", "Galatians 5:22"]
+      },
+      {
+        "id": "psalm-42-5",
+        "text": "Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God, for I will yet praise him, my Savior and my God.",
+        "reference": "Psalm 42:5",
+        "category": "hope",
+        "theme": "Hope in Depression",
+        "keywords": ["soul", "downcast", "hope", "praise"],
+        "context": "Psalmist battling discouragement",
+        "relatedVerses": ["Psalm 42:11", "Psalm 43:5"]
+      },
+      {
+        "id": "lamentations-3-22-23",
+        "text": "Because of the Lord's great love we are not consumed, for his compassions never fail. They are new every morning; great is your faithfulness.",
+        "reference": "Lamentations 3:22-23",
+        "category": "hope",
+        "theme": "New Mercies Daily",
+        "keywords": ["love", "compassions", "new", "faithfulness"],
+        "context": "Hope in the midst of Jerusalem's destruction",
+        "relatedVerses": ["Psalm 30:5", "Isaiah 40:31"]
+      },
+      {
+        "id": "isaiah-40-31",
+        "text": "But those who hope in the Lord will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint.",
+        "reference": "Isaiah 40:31",
+        "category": "hope",
+        "theme": "Renewed Strength",
+        "keywords": ["hope", "strength", "eagles", "weary"],
+        "context": "Isaiah's comfort to exiled Israel",
+        "relatedVerses": ["Psalm 103:5", "2 Corinthians 4:16"]
+      },
+      {
+        "id": "romans-5-3-5",
+        "text": "Not only so, but we also glory in our sufferings, because we know that suffering produces perseverance; perseverance, character; and character, hope. And hope does not put us to shame, because God's love has been poured out into our hearts through the Holy Spirit, who has been given to us.",
+        "reference": "Romans 5:3-5",
+        "category": "hope",
+        "theme": "Hope Through Suffering",
+        "keywords": ["suffering", "perseverance", "character", "hope"],
+        "context": "Paul on the benefits of suffering",
+        "relatedVerses": ["James 1:2-4", "1 Peter 1:6-7"]
+      },
+      {
+        "id": "hebrews-6-19",
+        "text": "We have this hope as an anchor for the soul, firm and secure. It enters the inner sanctuary behind the curtain.",
+        "reference": "Hebrews 6:19",
+        "category": "hope",
+        "theme": "Hope as Anchor",
+        "keywords": ["hope", "anchor", "soul", "secure"],
+        "context": "The certainty of God's promise",
+        "relatedVerses": ["Hebrews 6:18", "Hebrews 10:23"]
+      },
+      {
+        "id": "1-peter-1-3",
+        "text": "Praise be to the God and Father of our Lord Jesus Christ! In his great mercy he has given us new birth into a living hope through the resurrection of Jesus Christ from the dead.",
+        "reference": "1 Peter 1:3",
+        "category": "hope",
+        "theme": "Living Hope",
+        "keywords": ["mercy", "new birth", "living hope", "resurrection"],
+        "context": "Peter's opening blessing",
+        "relatedVerses": ["1 Peter 1:23", "Ephesians 2:4-5"]
+      },
+      {
+        "id": "psalm-130-7",
+        "text": "Israel, put your hope in the Lord, for with the Lord is unfailing love and with him is full redemption.",
+        "reference": "Psalm 130:7",
+        "category": "hope",
+        "theme": "Hope in God's Love",
+        "keywords": ["hope", "unfailing love", "redemption"],
+        "context": "A song of ascents",
+        "relatedVerses": ["Psalm 130:5", "Psalm 147:11"]
+      },
+      {
+        "id": "titus-2-13",
+        "text": "While we wait for the blessed hope—the appearing of the glory of our great God and Savior, Jesus Christ.",
+        "reference": "Titus 2:13",
+        "category": "hope",
+        "theme": "Hope of Christ's Return",
+        "keywords": ["blessed hope", "appearing", "glory", "Savior"],
+        "context": "Paul's instruction to Titus",
+        "relatedVerses": ["1 Thessalonians 4:16-17", "Revelation 22:20"]
+      },
+      {
+        "id": "colossians-1-27",
+        "text": "To them God has chosen to make known among the Gentiles the glorious riches of this mystery, which is Christ in you, the hope of glory.",
+        "reference": "Colossians 1:27",
+        "category": "hope",
+        "theme": "Christ Our Hope",
+        "keywords": ["mystery", "Christ in you", "hope of glory"],
+        "context": "Paul explaining the gospel mystery",
+        "relatedVerses": ["1 Timothy 1:1", "Galatians 2:20"]
+      }
+    ],
+    "love": [
+      {
+        "id": "john-3-16",
+        "text": "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
+        "reference": "John 3:16",
+        "category": "love",
+        "theme": "God's Love",
+        "keywords": ["love", "eternal life", "salvation", "believe"],
+        "context": "Jesus explaining God's love to Nicodemus",
+        "relatedVerses": ["Romans 5:8", "1 John 4:9-10"]
+      },
+      {
+        "id": "1-john-4-8",
+        "text": "Whoever does not love does not know God, because God is love.",
+        "reference": "1 John 4:8",
+        "category": "love",
+        "theme": "God Is Love",
+        "keywords": ["love", "God is love", "know God"],
+        "context": "John's teaching on love",
+        "relatedVerses": ["1 John 4:16", "John 3:16"]
+      },
+      {
+        "id": "1-corinthians-13-4-7",
+        "text": "Love is patient, love is kind. It does not envy, it does not boast, it is not proud. It does not dishonor others, it is not self-seeking, it is not easily angered, it keeps no record of wrongs. Love does not delight in evil but rejoices with the truth. It always protects, always trusts, always hopes, always perseveres.",
+        "reference": "1 Corinthians 13:4-7",
+        "category": "love",
+        "theme": "Love's Characteristics",
+        "keywords": ["patient", "kind", "protects", "perseveres"],
+        "context": "Paul's famous love chapter",
+        "relatedVerses": ["1 Corinthians 13:13", "Galatians 5:22"]
+      },
+      {
+        "id": "romans-5-8",
+        "text": "But God demonstrates his own love for us in this: While we were still sinners, Christ died for us.",
+        "reference": "Romans 5:8",
+        "category": "love",
+        "theme": "Love for Sinners",
+        "keywords": ["demonstrates", "love", "sinners", "died"],
+        "context": "Paul explaining justification",
+        "relatedVerses": ["John 3:16", "1 John 4:10"]
+      },
+      {
+        "id": "john-13-34-35",
+        "text": "A new command I give you: Love one another. As I have loved you, so you must love one another. By this everyone will know that you are my disciples, if you love one another.",
+        "reference": "John 13:34-35",
+        "category": "love",
+        "theme": "Love One Another",
+        "keywords": ["command", "love one another", "disciples"],
+        "context": "Jesus' final instructions to disciples",
+        "relatedVerses": ["John 15:12", "1 John 3:16"]
+      },
+      {
+        "id": "1-john-4-19",
+        "text": "We love because he first loved us.",
+        "reference": "1 John 4:19",
+        "category": "love",
+        "theme": "God's Love First",
+        "keywords": ["love", "first loved", "response"],
+        "context": "The source of our love",
+        "relatedVerses": ["1 John 4:10", "Romans 5:8"]
+      },
+      {
+        "id": "ephesians-3-17-19",
+        "text": "So that Christ may dwell in your hearts through faith. And I pray that you, being rooted and established in love, may have power, together with all the Lord's holy people, to grasp how wide and long and high and deep is the love of Christ, and to know this love that surpasses knowledge—that you may be filled to the measure of all the fullness of God.",
+        "reference": "Ephesians 3:17-19",
+        "category": "love",
+        "theme": "Christ's Immeasurable Love",
+        "keywords": ["rooted", "established", "wide", "deep"],
+        "context": "Paul's prayer for the Ephesians",
+        "relatedVerses": ["Romans 8:35-39", "John 15:9"]
+      },
+      {
+        "id": "1-john-3-16",
+        "text": "This is how we know what love is: Jesus Christ laid down his life for us. And we ought to lay down our lives for our brothers and sisters.",
+        "reference": "1 John 3:16",
+        "category": "love",
+        "theme": "Sacrificial Love",
+        "keywords": ["laid down", "life", "brothers", "sisters"],
+        "context": "John defining true love",
+        "relatedVerses": ["John 15:13", "Romans 5:8"]
+      },
+      {
+        "id": "song-of-songs-8-7",
+        "text": "Many waters cannot quench love; rivers cannot sweep it away. If one were to give all the wealth of one's house for love, it would be utterly scorned.",
+        "reference": "Song of Songs 8:7",
+        "category": "love",
+        "theme": "Love's Power",
+        "keywords": ["waters", "quench", "wealth", "scorned"],
+        "context": "The strength of true love",
+        "relatedVerses": ["1 Corinthians 13:8", "Romans 8:35"]
+      },
+      {
+        "id": "matthew-22-37-39",
+        "text": "Jesus replied: 'Love the Lord your God with all your heart and with all your soul and with all your mind.' This is the first and greatest commandment. And the second is like it: 'Love your neighbor as yourself.'",
+        "reference": "Matthew 22:37-39",
+        "category": "love",
+        "theme": "Greatest Commandments",
+        "keywords": ["heart", "soul", "mind", "neighbor"],
+        "context": "Jesus summarizing the law",
+        "relatedVerses": ["Mark 12:30-31", "Deuteronomy 6:5"]
+      },
+      {
+        "id": "romans-8-38-39",
+        "text": "For I am convinced that neither death nor life, neither angels nor demons, neither the present nor the future, nor any powers, neither height nor depth, nor anything else in all creation, will be able to separate us from the love of God that is in Christ Jesus our Lord.",
+        "reference": "Romans 8:38-39",
+        "category": "love",
+        "theme": "Inseparable Love",
+        "keywords": ["death", "life", "separate", "creation"],
+        "context": "Paul's confidence in God's love",
+        "relatedVerses": ["Romans 8:35", "John 10:28-29"]
+      },
+      {
+        "id": "1-corinthians-13-13",
+        "text": "And now these three remain: faith, hope and love. But the greatest of these is love.",
+        "reference": "1 Corinthians 13:13",
+        "category": "love",
+        "theme": "Love Is Greatest",
+        "keywords": ["faith", "hope", "love", "greatest"],
+        "context": "Conclusion of love chapter",
+        "relatedVerses": ["1 Corinthians 13:4-7", "Colossians 3:14"]
+      }
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2024-09-10T23:55:00Z",
+    "totalCategories": 30,
+    "totalVerses": 36
+  }
+}

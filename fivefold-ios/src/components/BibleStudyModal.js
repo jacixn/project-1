@@ -18,6 +18,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import BibleTimeline from './BibleTimeline';
 import InteractiveBibleMaps from './InteractiveBibleMaps';
+import ThematicGuides from './ThematicGuides';
+import KeyVerses from './KeyVerses';
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -31,6 +33,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const [showCharactersModal, setShowCharactersModal] = useState(false);
   const [showMapsModal, setShowMapsModal] = useState(false);
   const [showVersesModal, setShowVersesModal] = useState(false);
+  const [showKeyVersesModal, setShowKeyVersesModal] = useState(false);
   const [showFactsModal, setShowFactsModal] = useState(false);
   const [showThemesModal, setShowThemesModal] = useState(false);
   const [showReadingModal, setShowReadingModal] = useState(false);
@@ -466,7 +469,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         setShowMapsModal(true);
         break;
       case 'verses':
-        setShowVersesModal(true);
+        setShowKeyVersesModal(true);
         break;
       case 'facts':
         setShowFactsModal(true);
@@ -1178,18 +1181,18 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={{ backgroundColor: theme.background }} edges={['top']}>
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
-            <View style={{ width: 24 }} />
-          </View>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <MaterialIcons name="close" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
+          <View style={{ width: 24 }} />
+        </View>
         </SafeAreaView>
 
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-          {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
+        {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
         </View>
       </View>
 
@@ -1208,11 +1211,25 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         onClose={() => setShowMapsModal(false)}
       />
 
+      {/* Thematic Guides - Custom Component */}
+      <ThematicGuides
+        visible={showThemesModal}
+        onClose={() => setShowThemesModal(false)}
+        onNavigateToVerse={(verse) => {
+          // Handle verse navigation if needed
+          console.log('Navigate to verse:', verse);
+        }}
+      />
+
+      {/* Key Verses - Custom Component */}
+      <KeyVerses
+        visible={showKeyVersesModal}
+        onClose={() => setShowKeyVersesModal(false)}
+      />
+
       {/* All Other Section Modal Overlays */}
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
-      {renderSectionModalOverlay('verses', showVersesModal, setShowVersesModal)}
       {renderSectionModalOverlay('facts', showFactsModal, setShowFactsModal)}
-      {renderSectionModalOverlay('themes', showThemesModal, setShowThemesModal)}
       {renderSectionModalOverlay('reading', showReadingModal, setShowReadingModal)}
       {renderSectionModalOverlay('parallels', showParallelsModal, setShowParallelsModal)}
       {renderSectionModalOverlay('audio', showAudioModal, setShowAudioModal)}
