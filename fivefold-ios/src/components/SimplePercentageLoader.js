@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,14 @@ const SimplePercentageLoader = ({
 }) => {
   const { theme } = useTheme();
   const [progress, setProgress] = useState(0);
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (isVisible) {
+      // Reset progress when becoming visible
+      setProgress(0);
+      
       // Fade in
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -27,21 +31,36 @@ const SimplePercentageLoader = ({
 
       // Start progress counter
       startProgressCounter();
+    } else {
+      // Clean up when not visible
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [isVisible]);
 
   const startProgressCounter = () => {
-    const duration = 2000; // 2 seconds to complete
+    const duration = 2500; // 2.5 seconds to complete
     const steps = 100;
     const stepDuration = duration / steps;
     
     let currentProgress = 0;
-    const interval = setInterval(() => {
+    
+    intervalRef.current = setInterval(() => {
       currentProgress += 1;
       setProgress(currentProgress);
       
       if (currentProgress >= 100) {
-        clearInterval(interval);
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setTimeout(() => {
           onComplete();
         }, 300);
