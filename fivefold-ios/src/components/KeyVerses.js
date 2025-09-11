@@ -22,7 +22,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
-import SpiritualLoadingAnimation from './SpiritualLoadingAnimation';
+import SimplePercentageLoader from './SimplePercentageLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -731,8 +731,11 @@ const KeyVerses = ({ visible, onClose }) => {
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent={false}>
         <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} />
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>Loading verses...</Text>
+          <SimplePercentageLoader 
+            isVisible={true}
+            loadingText="Loading key verses..."
+            onComplete={() => setLoading(false)}
+          />
         </View>
       </Modal>
     );
