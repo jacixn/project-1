@@ -26,7 +26,7 @@ const { width, height } = Dimensions.get('window');
 
 // Remote Thematic Guides Configuration
 const GUIDES_CONFIG = {
-  GITHUB_USERNAME: 'jz',
+  GITHUB_USERNAME: 'jacixn',
   REPO_NAME: 'project-1',
   BRANCH: 'main',
   FILE_PATH: 'fivefold-ios/thematic-guides.json',

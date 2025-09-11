@@ -27,7 +27,7 @@ const screenHeight = Dimensions.get('screen').height;
 
 // Remote Bible Timeline Configuration
 const TIMELINE_CONFIG = {
-  GITHUB_USERNAME: 'jz',
+  GITHUB_USERNAME: 'jacixn',
   REPO_NAME: 'project-1',
   BRANCH: 'main',
   FILE_PATH: 'fivefold-ios/bible-timeline.json',
