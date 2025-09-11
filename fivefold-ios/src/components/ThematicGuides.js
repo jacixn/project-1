@@ -235,7 +235,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
   // Dynamic theme categories from loaded data
   const themeCategories = [
     { id: 'all', name: 'All Themes', color: theme.primary, icon: 'auto_awesome' },
-    ...(guidesData?.themeCategories || [])
+    ...(guidesData?.themeCategories?.filter(cat => cat.id !== 'all') || [])
   ];
 
   // Dynamic thematic guides from loaded data
