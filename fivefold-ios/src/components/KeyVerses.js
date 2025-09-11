@@ -331,7 +331,11 @@ const KeyVerses = ({ visible, onClose }) => {
     let filtered = keyVerses;
     
     // Filter by category
-    if (selectedCategory !== 'all') {
+    if (selectedCategory === 'favorites') {
+      // Show only favorited verses
+      filtered = filtered.filter(verse => favoriteVerses.includes(verse.id));
+    } else if (selectedCategory !== 'all') {
+      // Show verses from specific category
       filtered = filtered.filter(verse => verse.category === selectedCategory);
     }
     
@@ -839,7 +843,8 @@ const KeyVerses = ({ visible, onClose }) => {
           <View style={styles.resultsHeader}>
             <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
               {filteredVerses.length} {filteredVerses.length === 1 ? 'verse' : 'verses'}
-              {selectedCategory !== 'all' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
+              {selectedCategory === 'favorites' && ' in Favorites'}
+              {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
             </Text>
             
             {favoriteVerses.length > 0 && (
