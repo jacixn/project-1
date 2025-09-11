@@ -10,7 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 const SimplePercentageLoader = ({ 
   isVisible = true, 
   loadingText = "Loading...",
-  onComplete = () => {}
+  onComplete
 }) => {
   const { theme } = useTheme();
   const [progress, setProgress] = useState(0);
@@ -61,9 +61,11 @@ const SimplePercentageLoader = ({
       if (currentProgress >= 100) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-        setTimeout(() => {
-          onComplete();
-        }, 300);
+        if (onComplete) {
+          setTimeout(() => {
+            onComplete();
+          }, 300);
+        }
       }
     }, stepDuration);
   };

@@ -988,7 +988,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <SimplePercentageLoader 
           isVisible={loading}
           loadingText="Loading Bible timeline..."
-          onComplete={() => setLoading(false)}
         />
 
         {/* Error State */}

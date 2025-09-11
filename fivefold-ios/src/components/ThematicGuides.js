@@ -586,7 +586,6 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
         <SimplePercentageLoader 
           isVisible={loading}
           loadingText="Loading thematic guides..."
-          onComplete={() => setLoading(false)}
         />
 
         {/* Error State */}
