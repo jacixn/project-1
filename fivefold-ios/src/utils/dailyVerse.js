@@ -9,8 +9,8 @@ const DAILY_VERSES_CONFIG = {
   REPO_NAME: 'project-1',
   BRANCH: 'main',
   FILE_PATH: 'fivefold-ios/daily-verses.json',
-  CACHE_KEY: 'daily_verses_cache',
-  CACHE_TIMESTAMP_KEY: 'daily_verses_cache_timestamp',
+  CACHE_KEY: 'daily_verses_cache_v2',
+  CACHE_TIMESTAMP_KEY: 'daily_verses_cache_timestamp_v2',
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 };
 
