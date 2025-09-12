@@ -35,8 +35,8 @@ const GUIDES_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'thematic_guides_data_v1',
-  CACHE_TIMESTAMP_KEY: 'thematic_guides_timestamp_v1',
+  CACHE_KEY: 'thematic_guides_data_v2',
+  CACHE_TIMESTAMP_KEY: 'thematic_guides_timestamp_v2',
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 };
 
