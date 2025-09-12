@@ -761,6 +761,1350 @@
       "reference": "Psalm 37:5",
       "category": "trust",
       "book": "psalms"
+    },
+    {
+      "text": "Be still before the Lord and wait patiently for him; do not fret when people succeed in their ways, when they carry out their wicked schemes.",
+      "reference": "Psalm 37:7",
+      "category": "patience",
+      "book": "psalms"
+    },
+    {
+      "text": "Refrain from anger and turn from wrath; do not fret—it leads only to evil.",
+      "reference": "Psalm 37:8",
+      "category": "wisdom",
+      "book": "psalms"
+    },
+    {
+      "text": "The meek will inherit the land and enjoy peace and prosperity.",
+      "reference": "Psalm 37:11",
+      "category": "blessing",
+      "book": "psalms"
+    },
+    {
+      "text": "The steps of a good man are ordered by the Lord, and He delights in his way.",
+      "reference": "Psalm 37:23",
+      "category": "guidance",
+      "book": "psalms"
+    },
+    {
+      "text": "I was young and now I am old, yet I have never seen the righteous forsaken or their children begging bread.",
+      "reference": "Psalm 37:25",
+      "category": "provision",
+      "book": "psalms"
+    },
+    {
+      "text": "Turn from evil and do good; then you will dwell in the land forever.",
+      "reference": "Psalm 37:27",
+      "category": "righteousness",
+      "book": "psalms"
+    },
+    {
+      "text": "The salvation of the righteous comes from the Lord; he is their stronghold in time of trouble.",
+      "reference": "Psalm 37:39",
+      "category": "salvation",
+      "book": "psalms"
+    },
+    {
+      "text": "As the deer pants for streams of water, so my soul pants for you, my God.",
+      "reference": "Psalm 42:1",
+      "category": "longing",
+      "book": "psalms"
+    },
+    {
+      "text": "Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God, for I will yet praise him, my Savior and my God.",
+      "reference": "Psalm 42:5",
+      "category": "hope",
+      "book": "psalms"
+    },
+    {
+      "text": "Deep calls to deep in the roar of your waterfalls; all your waves and breakers have swept over me.",
+      "reference": "Psalm 42:7",
+      "category": "depth",
+      "book": "psalms"
+    },
+    {
+      "text": "By day the Lord directs his love, at night his song is with me—a prayer to the God of my life.",
+      "reference": "Psalm 42:8",
+      "category": "love",
+      "book": "psalms"
+    },
+    {
+      "text": "Vindicate me, my God, and plead my cause against an unfaithful nation. Rescue me from those who are deceitful and wicked.",
+      "reference": "Psalm 43:1",
+      "category": "justice",
+      "book": "psalms"
+    },
+    {
+      "text": "Send me your light and your faithful care, let them lead me; let them bring me to your holy mountain, to the place where you dwell.",
+      "reference": "Psalm 43:3",
+      "category": "guidance",
+      "book": "psalms"
+    },
+    {
+      "text": "God is our refuge and strength, an ever-present help in trouble.",
+      "reference": "Psalm 46:1",
+      "category": "refuge",
+      "book": "psalms"
+    },
+    {
+      "text": "Therefore we will not fear, though the earth give way and the mountains fall into the heart of the sea.",
+      "reference": "Psalm 46:2",
+      "category": "courage",
+      "book": "psalms"
+    },
+    {
+      "text": "There is a river whose streams make glad the city of God, the holy place where the Most High dwells.",
+      "reference": "Psalm 46:4",
+      "category": "joy",
+      "book": "psalms"
+    },
+    {
+      "text": "God is within her, she will not fall; God will help her at break of day.",
+      "reference": "Psalm 46:5",
+      "category": "protection",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord Almighty is with us; the God of Jacob is our fortress.",
+      "reference": "Psalm 46:7",
+      "category": "protection",
+      "book": "psalms"
+    },
+    {
+      "text": "Come and see what the Lord has done, the desolations he has brought on the earth.",
+      "reference": "Psalm 46:8",
+      "category": "power",
+      "book": "psalms"
+    },
+    {
+      "text": "He makes wars cease to the ends of the earth. He breaks the bow and shatters the spear; he burns the shields with fire.",
+      "reference": "Psalm 46:9",
+      "category": "peace",
+      "book": "psalms"
+    },
+    {
+      "text": "Clap your hands, all you nations; shout to God with cries of joy.",
+      "reference": "Psalm 47:1",
+      "category": "worship",
+      "book": "psalms"
+    },
+    {
+      "text": "For the Lord Most High is awesome, the great King over all the earth.",
+      "reference": "Psalm 47:2",
+      "category": "majesty",
+      "book": "psalms"
+    },
+    {
+      "text": "God has ascended amid shouts of joy, the Lord amid the sounding of trumpets.",
+      "reference": "Psalm 47:5",
+      "category": "celebration",
+      "book": "psalms"
+    },
+    {
+      "text": "Sing praises to God, sing praises; sing praises to our King, sing praises.",
+      "reference": "Psalm 47:6",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "Great is the Lord and most worthy of praise; his greatness no one can fathom.",
+      "reference": "Psalm 145:3",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord is gracious and compassionate, slow to anger and rich in love.",
+      "reference": "Psalm 145:8",
+      "category": "character",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord is trustworthy in all he promises and faithful in all he does.",
+      "reference": "Psalm 145:13",
+      "category": "faithfulness",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord upholds all who fall and lifts up all who are bowed down.",
+      "reference": "Psalm 145:14",
+      "category": "support",
+      "book": "psalms"
+    },
+    {
+      "text": "You open your hand and satisfy the desires of every living thing.",
+      "reference": "Psalm 145:16",
+      "category": "provision",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord is near to all who call on him, to all who call on him in truth.",
+      "reference": "Psalm 145:18",
+      "category": "presence",
+      "book": "psalms"
+    },
+    {
+      "text": "My mouth will speak in praise of the Lord. Let every creature praise his holy name for ever and ever.",
+      "reference": "Psalm 145:21",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "Praise the Lord. Praise the Lord, my soul.",
+      "reference": "Psalm 146:1",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "I will praise the Lord all my life; I will sing praise to my God as long as I live.",
+      "reference": "Psalm 146:2",
+      "category": "worship",
+      "book": "psalms"
+    },
+    {
+      "text": "Do not put your trust in princes, in human beings, who cannot save.",
+      "reference": "Psalm 146:3",
+      "category": "trust",
+      "book": "psalms"
+    },
+    {
+      "text": "Blessed are those whose help is the God of Jacob, whose hope is in the Lord their God.",
+      "reference": "Psalm 146:5",
+      "category": "blessing",
+      "book": "psalms"
+    },
+    {
+      "text": "He is the Maker of heaven and earth, the sea, and everything in them—he remains faithful forever.",
+      "reference": "Psalm 146:6",
+      "category": "creation",
+      "book": "psalms"
+    },
+    {
+      "text": "He upholds the cause of the oppressed and gives food to the hungry. The Lord sets prisoners free.",
+      "reference": "Psalm 146:7",
+      "category": "justice",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord gives sight to the blind, the Lord lifts up those who are bowed down, the Lord loves the righteous.",
+      "reference": "Psalm 146:8",
+      "category": "healing",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord watches over the foreigner and sustains the fatherless and the widow, but he frustrates the ways of the wicked.",
+      "reference": "Psalm 146:9",
+      "category": "protection",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord reigns forever, your God, O Zion, for all generations. Praise the Lord.",
+      "reference": "Psalm 146:10",
+      "category": "sovereignty",
+      "book": "psalms"
+    },
+    {
+      "text": "How good it is to sing praises to our God, how pleasant and fitting to praise him!",
+      "reference": "Psalm 147:1",
+      "category": "worship",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord builds up Jerusalem; he gathers the exiles of Israel.",
+      "reference": "Psalm 147:2",
+      "category": "restoration",
+      "book": "psalms"
+    },
+    {
+      "text": "He heals the brokenhearted and binds up their wounds.",
+      "reference": "Psalm 147:3",
+      "category": "healing",
+      "book": "psalms"
+    },
+    {
+      "text": "He determines the number of the stars and calls them each by name.",
+      "reference": "Psalm 147:4",
+      "category": "creation",
+      "book": "psalms"
+    },
+    {
+      "text": "Great is our Lord and mighty in power; his understanding has no limit.",
+      "reference": "Psalm 147:5",
+      "category": "power",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord sustains the humble but casts the wicked to the ground.",
+      "reference": "Psalm 147:6",
+      "category": "justice",
+      "book": "psalms"
+    },
+    {
+      "text": "Sing to the Lord with grateful praise; make music to our God on the harp.",
+      "reference": "Psalm 147:7",
+      "category": "gratitude",
+      "book": "psalms"
+    },
+    {
+      "text": "He covers the sky with clouds; he supplies the earth with rain and makes grass grow on the hills.",
+      "reference": "Psalm 147:8",
+      "category": "provision",
+      "book": "psalms"
+    },
+    {
+      "text": "He provides food for the cattle and for the young ravens when they call.",
+      "reference": "Psalm 147:9",
+      "category": "care",
+      "book": "psalms"
+    },
+    {
+      "text": "The fear of the Lord is the beginning of knowledge, but fools despise wisdom and instruction.",
+      "reference": "Proverbs 1:7",
+      "category": "wisdom",
+      "book": "proverbs"
+    },
+    {
+      "text": "My son, if sinful men entice you, do not give in to them.",
+      "reference": "Proverbs 1:10",
+      "category": "temptation",
+      "book": "proverbs"
+    },
+    {
+      "text": "But whoever listens to me will live in safety and be at ease, without fear of harm.",
+      "reference": "Proverbs 1:33",
+      "category": "safety",
+      "book": "proverbs"
+    },
+    {
+      "text": "For the Lord gives wisdom; from his mouth come knowledge and understanding.",
+      "reference": "Proverbs 2:6",
+      "category": "wisdom",
+      "book": "proverbs"
+    },
+    {
+      "text": "He holds success in store for the upright, he is a shield to those whose walk is blameless.",
+      "reference": "Proverbs 2:7",
+      "category": "protection",
+      "book": "proverbs"
+    },
+    {
+      "text": "Then you will understand what is right and just and fair—every good path.",
+      "reference": "Proverbs 2:9",
+      "category": "understanding",
+      "book": "proverbs"
+    },
+    {
+      "text": "Wisdom will save you from the ways of wicked men, from men whose words are perverse.",
+      "reference": "Proverbs 2:12",
+      "category": "protection",
+      "book": "proverbs"
+    },
+    {
+      "text": "Let love and faithfulness never leave you; bind them around your neck, write them on the tablet of your heart.",
+      "reference": "Proverbs 3:3",
+      "category": "character",
+      "book": "proverbs"
+    },
+    {
+      "text": "Then you will win favor and a good name in the sight of God and man.",
+      "reference": "Proverbs 3:4",
+      "category": "favor",
+      "book": "proverbs"
+    },
+    {
+      "text": "In all your ways submit to him, and he will make your paths straight.",
+      "reference": "Proverbs 3:6",
+      "category": "guidance",
+      "book": "proverbs"
+    },
+    {
+      "text": "Do not be wise in your own eyes; fear the Lord and shun evil.",
+      "reference": "Proverbs 3:7",
+      "category": "humility",
+      "book": "proverbs"
+    },
+    {
+      "text": "This will bring health to your body and nourishment to your bones.",
+      "reference": "Proverbs 3:8",
+      "category": "health",
+      "book": "proverbs"
+    },
+    {
+      "text": "Honor the Lord with your wealth, with the firstfruits of all your crops.",
+      "reference": "Proverbs 3:9",
+      "category": "generosity",
+      "book": "proverbs"
+    },
+    {
+      "text": "Then your barns will be filled to overflowing, and your vats will brim over with new wine.",
+      "reference": "Proverbs 3:10",
+      "category": "blessing",
+      "book": "proverbs"
+    },
+    {
+      "text": "My son, do not despise the Lord's discipline, and do not resent his rebuke.",
+      "reference": "Proverbs 3:11",
+      "category": "discipline",
+      "book": "proverbs"
+    },
+    {
+      "text": "Because the Lord disciplines those he loves, as a father the son he delights in.",
+      "reference": "Proverbs 3:12",
+      "category": "love",
+      "book": "proverbs"
+    },
+    {
+      "text": "Blessed are those who find wisdom, those who gain understanding.",
+      "reference": "Proverbs 3:13",
+      "category": "wisdom",
+      "book": "proverbs"
+    },
+    {
+      "text": "For she is more profitable than silver and yields better returns than gold.",
+      "reference": "Proverbs 3:14",
+      "category": "value",
+      "book": "proverbs"
+    },
+    {
+      "text": "She is more precious than rubies; nothing you desire can compare with her.",
+      "reference": "Proverbs 3:15",
+      "category": "treasure",
+      "book": "proverbs"
+    },
+    {
+      "text": "Long life is in her right hand; in her left hand are riches and honor.",
+      "reference": "Proverbs 3:16",
+      "category": "blessing",
+      "book": "proverbs"
+    },
+    {
+      "text": "Her ways are pleasant ways, and all her paths are peace.",
+      "reference": "Proverbs 3:17",
+      "category": "peace",
+      "book": "proverbs"
+    },
+    {
+      "text": "She is a tree of life to those who take hold of her; those who hold her fast will be blessed.",
+      "reference": "Proverbs 3:18",
+      "category": "life",
+      "book": "proverbs"
+    },
+    {
+      "text": "By wisdom the Lord laid the earth's foundations, by understanding he set the heavens in place.",
+      "reference": "Proverbs 3:19",
+      "category": "creation",
+      "book": "proverbs"
+    },
+    {
+      "text": "My son, do not let wisdom and understanding out of your sight, preserve sound judgment and discretion.",
+      "reference": "Proverbs 3:21",
+      "category": "wisdom",
+      "book": "proverbs"
+    },
+    {
+      "text": "They will be life for you, an ornament to grace your neck.",
+      "reference": "Proverbs 3:22",
+      "category": "beauty",
+      "book": "proverbs"
+    },
+    {
+      "text": "Blessed are the poor in spirit, for theirs is the kingdom of heaven.",
+      "reference": "Matthew 5:3",
+      "category": "blessing",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are those who mourn, for they will be comforted.",
+      "reference": "Matthew 5:4",
+      "category": "comfort",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are the meek, for they will inherit the earth.",
+      "reference": "Matthew 5:5",
+      "category": "humility",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are those who hunger and thirst for righteousness, for they will be filled.",
+      "reference": "Matthew 5:6",
+      "category": "righteousness",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are the merciful, for they will be shown mercy.",
+      "reference": "Matthew 5:7",
+      "category": "mercy",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are the pure in heart, for they will see God.",
+      "reference": "Matthew 5:8",
+      "category": "purity",
+      "book": "matthew"
+    },
+    {
+      "text": "Blessed are those who are persecuted because of righteousness, for theirs is the kingdom of heaven.",
+      "reference": "Matthew 5:10",
+      "category": "persecution",
+      "book": "matthew"
+    },
+    {
+      "text": "You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?",
+      "reference": "Matthew 5:13",
+      "category": "identity",
+      "book": "matthew"
+    },
+    {
+      "text": "You are the light of the world. A town built on a hill cannot be hidden.",
+      "reference": "Matthew 5:14",
+      "category": "witness",
+      "book": "matthew"
+    },
+    {
+      "text": "In the same way, let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
+      "reference": "Matthew 5:16",
+      "category": "witness",
+      "book": "matthew"
+    },
+    {
+      "text": "But I tell you, love your enemies and pray for those who persecute you.",
+      "reference": "Matthew 5:44",
+      "category": "love",
+      "book": "matthew"
+    },
+    {
+      "text": "Be perfect, therefore, as your heavenly Father is perfect.",
+      "reference": "Matthew 5:48",
+      "category": "perfection",
+      "book": "matthew"
+    },
+    {
+      "text": "But when you give to the needy, do not let your left hand know what your right hand is doing.",
+      "reference": "Matthew 6:3",
+      "category": "generosity",
+      "book": "matthew"
+    },
+    {
+      "text": "So that your giving may be in secret. Then your Father, who sees what is done in secret, will reward you.",
+      "reference": "Matthew 6:4",
+      "category": "reward",
+      "book": "matthew"
+    },
+    {
+      "text": "And when you pray, do not be like the hypocrites, for they love to pray standing in the synagogues and on the street corners to be seen by others.",
+      "reference": "Matthew 6:5",
+      "category": "prayer",
+      "book": "matthew"
+    },
+    {
+      "text": "But when you pray, go into your room, close the door and pray to your Father, who is unseen.",
+      "reference": "Matthew 6:6",
+      "category": "prayer",
+      "book": "matthew"
+    },
+    {
+      "text": "This, then, is how you should pray: 'Our Father in heaven, hallowed be your name.'",
+      "reference": "Matthew 6:9",
+      "category": "prayer",
+      "book": "matthew"
+    },
+    {
+      "text": "Your kingdom come, your will be done, on earth as it is in heaven.",
+      "reference": "Matthew 6:10",
+      "category": "surrender",
+      "book": "matthew"
+    },
+    {
+      "text": "Give us today our daily bread.",
+      "reference": "Matthew 6:11",
+      "category": "provision",
+      "book": "matthew"
+    },
+    {
+      "text": "And forgive us our debts, as we also have forgiven our debtors.",
+      "reference": "Matthew 6:12",
+      "category": "forgiveness",
+      "book": "matthew"
+    },
+    {
+      "text": "And lead us not into temptation, but deliver us from the evil one.",
+      "reference": "Matthew 6:13",
+      "category": "protection",
+      "book": "matthew"
+    },
+    {
+      "text": "For if you forgive other people when they sin against you, your heavenly Father will also forgive you.",
+      "reference": "Matthew 6:14",
+      "category": "forgiveness",
+      "book": "matthew"
+    },
+    {
+      "text": "But if you do not forgive others their sins, your Father will not forgive your sins.",
+      "reference": "Matthew 6:15",
+      "category": "forgiveness",
+      "book": "matthew"
+    },
+    {
+      "text": "But store up for yourselves treasures in heaven, where moths and vermin do not destroy, and where thieves do not break in and steal.",
+      "reference": "Matthew 6:20",
+      "category": "treasure",
+      "book": "matthew"
+    },
+    {
+      "text": "For where your treasure is, there your heart will be also.",
+      "reference": "Matthew 6:21",
+      "category": "heart",
+      "book": "matthew"
+    },
+    {
+      "text": "Then God said, 'Let us make mankind in our image, in our likeness, so that they may rule over the fish in the sea and the birds in the sky.'",
+      "reference": "Genesis 1:26",
+      "category": "creation",
+      "book": "genesis"
+    },
+    {
+      "text": "God blessed them and said to them, 'Be fruitful and increase in number; fill the earth and subdue it.'",
+      "reference": "Genesis 1:28",
+      "category": "blessing",
+      "book": "genesis"
+    },
+    {
+      "text": "God saw all that he had made, and it was very good. And there was evening, and there was morning—the sixth day.",
+      "reference": "Genesis 1:31",
+      "category": "goodness",
+      "book": "genesis"
+    },
+    {
+      "text": "Then the Lord God formed a man from the dust of the ground and breathed into his nostrils the breath of life, and the man became a living being.",
+      "reference": "Genesis 2:7",
+      "category": "life",
+      "book": "genesis"
+    },
+    {
+      "text": "The Lord God said, 'It is not good for the man to be alone. I will make a helper suitable for him.'",
+      "reference": "Genesis 2:18",
+      "category": "companionship",
+      "book": "genesis"
+    },
+    {
+      "text": "That is why a man leaves his father and mother and is united to his wife, and they become one flesh.",
+      "reference": "Genesis 2:24",
+      "category": "marriage",
+      "book": "genesis"
+    },
+    {
+      "text": "Now the Lord had said to Abram, 'Go from your country, your people and your father's household to the land I will show you.'",
+      "reference": "Genesis 12:1",
+      "category": "calling",
+      "book": "genesis"
+    },
+    {
+      "text": "I will make you into a great nation, and I will bless you; I will make your name great, and you will be a blessing.",
+      "reference": "Genesis 12:2",
+      "category": "blessing",
+      "book": "genesis"
+    },
+    {
+      "text": "I will bless those who bless you, and whoever curses you I will curse; and all peoples on earth will be blessed through you.",
+      "reference": "Genesis 12:3",
+      "category": "blessing",
+      "book": "genesis"
+    },
+    {
+      "text": "Abram believed the Lord, and he credited it to him as righteousness.",
+      "reference": "Genesis 15:6",
+      "category": "faith",
+      "book": "genesis"
+    },
+    {
+      "text": "Is anything too hard for the Lord? I will return to you at the appointed time next year, and Sarah will have a son.",
+      "reference": "Genesis 18:14",
+      "category": "power",
+      "book": "genesis"
+    },
+    {
+      "text": "But Joseph said to them, 'Don't be afraid. Am I in the place of God? You intended to harm me, but God intended it for good to accomplish what is now being done, the saving of many lives.'",
+      "reference": "Genesis 50:19-20",
+      "category": "providence",
+      "book": "genesis"
+    },
+    {
+      "text": "Moses said to the people, 'Do not be afraid. Stand firm and you will see the deliverance the Lord will bring you today.'",
+      "reference": "Exodus 14:13",
+      "category": "courage",
+      "book": "exodus"
+    },
+    {
+      "text": "The Lord will fight for you; you need only to be still.",
+      "reference": "Exodus 14:14",
+      "category": "trust",
+      "book": "exodus"
+    },
+    {
+      "text": "Then Moses and the Israelites sang this song to the Lord: 'I will sing to the Lord, for he is highly exalted. Both horse and driver he has hurled into the sea.'",
+      "reference": "Exodus 15:1",
+      "category": "victory",
+      "book": "exodus"
+    },
+    {
+      "text": "The Lord is my strength and my defense; he has become my salvation. He is my God, and I will praise him, my father's God, and I will exalt him.",
+      "reference": "Exodus 15:2",
+      "category": "strength",
+      "book": "exodus"
+    },
+    {
+      "text": "Who among the gods is like you, Lord? Who is like you—majestic in holiness, awesome in glory, working wonders?",
+      "reference": "Exodus 15:11",
+      "category": "uniqueness",
+      "book": "exodus"
+    },
+    {
+      "text": "In your unfailing love you will lead the people you have redeemed. In your strength you will guide them to your holy dwelling.",
+      "reference": "Exodus 15:13",
+      "category": "guidance",
+      "book": "exodus"
+    },
+    {
+      "text": "And God spoke all these words: 'I am the Lord your God, who brought you out of Egypt, out of the land of slavery.'",
+      "reference": "Exodus 20:1-2",
+      "category": "identity",
+      "book": "exodus"
+    },
+    {
+      "text": "You shall have no other gods before me.",
+      "reference": "Exodus 20:3",
+      "category": "worship",
+      "book": "exodus"
+    },
+    {
+      "text": "You shall not make idols.",
+      "reference": "Exodus 20:4",
+      "category": "worship",
+      "book": "exodus"
+    },
+    {
+      "text": "You shall not misuse the name of the Lord your God, for the Lord will not hold anyone guiltless who misuses his name.",
+      "reference": "Exodus 20:7",
+      "category": "reverence",
+      "book": "exodus"
+    },
+    {
+      "text": "Six days you shall labor and do all your work, but the seventh day is a sabbath to the Lord your God.",
+      "reference": "Exodus 20:9-10",
+      "category": "rest",
+      "book": "exodus"
+    },
+    {
+      "text": "You shall not covet your neighbor's house. You shall not covet your neighbor's wife, or his male or female servant, his ox or donkey, or anything that belongs to your neighbor.",
+      "reference": "Exodus 20:17",
+      "category": "contentment",
+      "book": "exodus"
+    },
+    {
+      "text": "The Lord, the Lord, the compassionate and gracious God, slow to anger, abounding in love and faithfulness.",
+      "reference": "Exodus 34:6",
+      "category": "character",
+      "book": "exodus"
+    },
+    {
+      "text": "Praise the Lord. Praise God in his sanctuary; praise him in his mighty heavens.",
+      "reference": "Psalm 150:1",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "Praise him for his acts of power; praise him for his surpassing greatness.",
+      "reference": "Psalm 150:2",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "Praise him with the sounding of the trumpet, praise him with the harp and lyre.",
+      "reference": "Psalm 150:3",
+      "category": "worship",
+      "book": "psalms"
+    },
+    {
+      "text": "Praise him with timbrel and dancing, praise him with the strings and pipe.",
+      "reference": "Psalm 150:4",
+      "category": "celebration",
+      "book": "psalms"
+    },
+    {
+      "text": "Praise him with the clash of cymbals, praise him with resounding cymbals.",
+      "reference": "Psalm 150:5",
+      "category": "worship",
+      "book": "psalms"
+    },
+    {
+      "text": "Let everything that has breath praise the Lord. Praise the Lord.",
+      "reference": "Psalm 150:6",
+      "category": "praise",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord is my shepherd, I lack nothing.",
+      "reference": "Psalm 23:1",
+      "category": "provision",
+      "book": "psalms"
+    },
+    {
+      "text": "He makes me lie down in green pastures, he leads me beside quiet waters.",
+      "reference": "Psalm 23:2",
+      "category": "rest",
+      "book": "psalms"
+    },
+    {
+      "text": "He refreshes my soul. He guides me along the right paths for his name's sake.",
+      "reference": "Psalm 23:3",
+      "category": "guidance",
+      "book": "psalms"
+    },
+    {
+      "text": "You prepare a table before me in the presence of my enemies. You anoint my head with oil; my cup overflows.",
+      "reference": "Psalm 23:5",
+      "category": "blessing",
+      "book": "psalms"
+    },
+    {
+      "text": "Surely your goodness and love will follow me all the days of my life, and I will dwell in the house of the Lord forever.",
+      "reference": "Psalm 23:6",
+      "category": "eternity",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord is my strength and my song; he has given me victory. This is my God, and I will praise him—my father's God, and I will exalt him!",
+      "reference": "Psalm 118:14",
+      "category": "victory",
+      "book": "psalms"
+    },
+    {
+      "text": "Open for me the gates of the righteous; I will enter and give thanks to the Lord.",
+      "reference": "Psalm 118:19",
+      "category": "thanksgiving",
+      "book": "psalms"
+    },
+    {
+      "text": "This is the gate of the Lord through which the righteous may enter.",
+      "reference": "Psalm 118:20",
+      "category": "righteousness",
+      "book": "psalms"
+    },
+    {
+      "text": "I will give you thanks, for you answered me; you have become my salvation.",
+      "reference": "Psalm 118:21",
+      "category": "gratitude",
+      "book": "psalms"
+    },
+    {
+      "text": "The stone the builders rejected has become the cornerstone.",
+      "reference": "Psalm 118:22",
+      "category": "redemption",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord has done this, and it is marvelous in our eyes.",
+      "reference": "Psalm 118:23",
+      "category": "wonder",
+      "book": "psalms"
+    },
+    {
+      "text": "The Lord bless you from Zion; may you see the prosperity of Jerusalem all the days of your life.",
+      "reference": "Psalm 128:5",
+      "category": "blessing",
+      "book": "psalms"
+    },
+    {
+      "text": "May you live to see your children's children—peace be on Israel.",
+      "reference": "Psalm 128:6",
+      "category": "generations",
+      "book": "psalms"
+    },
+    {
+      "text": "Out of the depths I cry to you, Lord; Lord, hear my voice.",
+      "reference": "Psalm 130:1-2",
+      "category": "desperation",
+      "book": "psalms"
+    },
+    {
+      "text": "Come now, let us settle the matter,' says the Lord. 'Though your sins are like scarlet, they shall be as white as snow; though they are red as crimson, they shall be like wool.'",
+      "reference": "Isaiah 1:18",
+      "category": "forgiveness",
+      "book": "isaiah"
+    },
+    {
+      "text": "Therefore the Lord himself will give you a sign: The virgin will conceive and give birth to a son, and will call him Immanuel.",
+      "reference": "Isaiah 7:14",
+      "category": "prophecy",
+      "book": "isaiah"
+    },
+    {
+      "text": "For to us a child is born, to us a son is given, and the government will be on his shoulders.",
+      "reference": "Isaiah 9:6",
+      "category": "messiah",
+      "book": "isaiah"
+    },
+    {
+      "text": "And he will be called Wonderful Counselor, Mighty God, Everlasting Father, Prince of Peace.",
+      "reference": "Isaiah 9:6",
+      "category": "names",
+      "book": "isaiah"
+    },
+    {
+      "text": "Of the greatness of his government and peace there will be no end.",
+      "reference": "Isaiah 9:7",
+      "category": "kingdom",
+      "book": "isaiah"
+    },
+    {
+      "text": "A shoot will come up from the stump of Jesse; from his roots a Branch will bear fruit.",
+      "reference": "Isaiah 11:1",
+      "category": "hope",
+      "book": "isaiah"
+    },
+    {
+      "text": "The Spirit of the Lord will rest on him—the Spirit of wisdom and of understanding, the Spirit of counsel and of might, the Spirit of the knowledge and fear of the Lord.",
+      "reference": "Isaiah 11:2",
+      "category": "spirit",
+      "book": "isaiah"
+    },
+    {
+      "text": "The wolf will live with the lamb, the leopard will lie down with the goat, the calf and the lion and the yearling together; and a little child will lead them.",
+      "reference": "Isaiah 11:6",
+      "category": "peace",
+      "book": "isaiah"
+    },
+    {
+      "text": "They will neither harm nor destroy on all my holy mountain, for the earth will be filled with the knowledge of the Lord as the waters cover the sea.",
+      "reference": "Isaiah 11:9",
+      "category": "knowledge",
+      "book": "isaiah"
+    },
+    {
+      "text": "Surely God is my salvation; I will trust and not be afraid. The Lord, the Lord himself, is my strength and my defense; he has become my salvation.",
+      "reference": "Isaiah 12:2",
+      "category": "salvation",
+      "book": "isaiah"
+    },
+    {
+      "text": "With joy you will draw water from the wells of salvation.",
+      "reference": "Isaiah 12:3",
+      "category": "joy",
+      "book": "isaiah"
+    },
+    {
+      "text": "Give praise to the Lord, proclaim his name; make known among the nations what he has done, and proclaim that his name is exalted.",
+      "reference": "Isaiah 12:4",
+      "category": "proclamation",
+      "book": "isaiah"
+    },
+    {
+      "text": "Sing to the Lord, for he has done glorious things; let this be known to all the world.",
+      "reference": "Isaiah 12:5",
+      "category": "glory",
+      "book": "isaiah"
+    },
+    {
+      "text": "Shout aloud and sing for joy, people of Zion, for great is the Holy One of Israel among you.",
+      "reference": "Isaiah 12:6",
+      "category": "joy",
+      "book": "isaiah"
+    },
+    {
+      "text": "You will keep in perfect peace those whose minds are steadfast, because they trust in you.",
+      "reference": "Isaiah 26:3",
+      "category": "peace",
+      "book": "isaiah"
+    },
+    {
+      "text": "Trust in the Lord forever, for the Lord, the Lord himself, is the Rock eternal.",
+      "reference": "Isaiah 26:4",
+      "category": "trust",
+      "book": "isaiah"
+    },
+    {
+      "text": "Lord, you establish peace for us; all that we have accomplished you have done for us.",
+      "reference": "Isaiah 26:12",
+      "category": "peace",
+      "book": "isaiah"
+    },
+    {
+      "text": "You will keep in perfect peace those whose minds are steadfast, because they trust in you.",
+      "reference": "Isaiah 26:3",
+      "category": "peace",
+      "book": "isaiah"
+    },
+    {
+      "text": "He gives strength to the weary and increases the power of the weak.",
+      "reference": "Isaiah 40:29",
+      "category": "strength",
+      "book": "isaiah"
+    },
+    {
+      "text": "Even youths grow tired and weary, and young men stumble and fall; but those who hope in the Lord will renew their strength.",
+      "reference": "Isaiah 40:30-31",
+      "category": "renewal",
+      "book": "isaiah"
+    },
+    {
+      "text": "I am not ashamed of the gospel, because it is the power of God that brings salvation to everyone who believes: first to the Jew, then to the Gentile.",
+      "reference": "Romans 1:16",
+      "category": "gospel",
+      "book": "romans"
+    },
+    {
+      "text": "For in the gospel the righteousness of God is revealed—a righteousness that is by faith from first to last, just as it is written: 'The righteous will live by faith.'",
+      "reference": "Romans 1:17",
+      "category": "righteousness",
+      "book": "romans"
+    },
+    {
+      "text": "All have sinned and fall short of the glory of God.",
+      "reference": "Romans 3:23",
+      "category": "sin",
+      "book": "romans"
+    },
+    {
+      "text": "And all are justified freely by his grace through the redemption that came by Christ Jesus.",
+      "reference": "Romans 3:24",
+      "category": "grace",
+      "book": "romans"
+    },
+    {
+      "text": "Therefore, since we have been justified through faith, we have peace with God through our Lord Jesus Christ.",
+      "reference": "Romans 5:1",
+      "category": "peace",
+      "book": "romans"
+    },
+    {
+      "text": "Through whom we have gained access by faith into this grace in which we now stand. And we boast in the hope of the glory of God.",
+      "reference": "Romans 5:2",
+      "category": "access",
+      "book": "romans"
+    },
+    {
+      "text": "Not only so, but we also glory in our sufferings, because we know that suffering produces perseverance.",
+      "reference": "Romans 5:3",
+      "category": "perseverance",
+      "book": "romans"
+    },
+    {
+      "text": "Perseverance produces character; and character, hope.",
+      "reference": "Romans 5:4",
+      "category": "character",
+      "book": "romans"
+    },
+    {
+      "text": "And hope does not put us to shame, because God's love has been poured out into our hearts through the Holy Spirit, who has been given to us.",
+      "reference": "Romans 5:5",
+      "category": "hope",
+      "book": "romans"
+    },
+    {
+      "text": "But God demonstrates his own love for us in this: While we were still sinners, Christ died for us.",
+      "reference": "Romans 5:8",
+      "category": "love",
+      "book": "romans"
+    },
+    {
+      "text": "Since we have now been justified by his blood, how much more shall we be saved from God's wrath through him!",
+      "reference": "Romans 5:9",
+      "category": "salvation",
+      "book": "romans"
+    },
+    {
+      "text": "For if, while we were God's enemies, we were reconciled to him through the death of his Son, how much more, having been reconciled, shall we be saved through his life!",
+      "reference": "Romans 5:10",
+      "category": "reconciliation",
+      "book": "romans"
+    },
+    {
+      "text": "What shall we say, then? Shall we go on sinning so that grace may increase? By no means! We are those who have died to sin; how can we live in it any longer?",
+      "reference": "Romans 6:1-2",
+      "category": "holiness",
+      "book": "romans"
+    },
+    {
+      "text": "Or don't you know that all of us who were baptized into Christ Jesus were baptized into his death?",
+      "reference": "Romans 6:3",
+      "category": "baptism",
+      "book": "romans"
+    },
+    {
+      "text": "We were therefore buried with him through baptism into death in order that, just as Christ was raised from the dead through the glory of the Father, we too may live a new life.",
+      "reference": "Romans 6:4",
+      "category": "newness",
+      "book": "romans"
+    },
+    {
+      "text": "For we know that our old self was crucified with him so that the body ruled by sin might be done away with, that we should no longer be slaves to sin.",
+      "reference": "Romans 6:6",
+      "category": "freedom",
+      "book": "romans"
+    },
+    {
+      "text": "Because anyone who has died has been set free from sin.",
+      "reference": "Romans 6:7",
+      "category": "freedom",
+      "book": "romans"
+    },
+    {
+      "text": "Now if we died with Christ, we believe that we will also live with him.",
+      "reference": "Romans 6:8",
+      "category": "life",
+      "book": "romans"
+    },
+    {
+      "text": "For we know that since Christ was raised from the dead, he cannot die again; death no longer has mastery over him.",
+      "reference": "Romans 6:9",
+      "category": "victory",
+      "book": "romans"
+    },
+    {
+      "text": "The death he died, he died to sin once for all; but the life he lives, he lives to God.",
+      "reference": "Romans 6:10",
+      "category": "sacrifice",
+      "book": "romans"
+    },
+    {
+      "text": "For the message of the cross is foolishness to those who are perishing, but to us who are being saved it is the power of God.",
+      "reference": "1 Corinthians 1:18",
+      "category": "cross",
+      "book": "1corinthians"
+    },
+    {
+      "text": "For the foolishness of God is wiser than human wisdom, and the weakness of God is stronger than human strength.",
+      "reference": "1 Corinthians 1:25",
+      "category": "wisdom",
+      "book": "1corinthians"
+    },
+    {
+      "text": "Brothers and sisters, think of what you were when you were called. Not many of you were wise by human standards; not many were influential; not many were of noble birth.",
+      "reference": "1 Corinthians 1:26",
+      "category": "calling",
+      "book": "1corinthians"
+    },
+    {
+      "text": "But God chose the foolish things of the world to shame the wise; God chose the weak things of the world to shame the strong.",
+      "reference": "1 Corinthians 1:27",
+      "category": "choice",
+      "book": "1corinthians"
+    },
+    {
+      "text": "God chose the lowly things of this world and the despised things—and the things that are not—to nullify the things that are.",
+      "reference": "1 Corinthians 1:28",
+      "category": "reversal",
+      "book": "1corinthians"
+    },
+    {
+      "text": "So that no one may boast before him.",
+      "reference": "1 Corinthians 1:29",
+      "category": "humility",
+      "book": "1corinthians"
+    },
+    {
+      "text": "It is because of him that you are in Christ Jesus, who has become for us wisdom from God—that is, our righteousness, holiness and redemption.",
+      "reference": "1 Corinthians 1:30",
+      "category": "identity",
+      "book": "1corinthians"
+    },
+    {
+      "text": "Therefore, as it is written: 'Let the one who boasts boast in the Lord.'",
+      "reference": "1 Corinthians 1:31",
+      "category": "boasting",
+      "book": "1corinthians"
+    },
+    {
+      "text": "And so it was with me, brothers and sisters. When I came to you, I did not come with eloquence or human wisdom as I proclaimed to you the testimony about God.",
+      "reference": "1 Corinthians 2:1",
+      "category": "simplicity",
+      "book": "1corinthians"
+    },
+    {
+      "text": "For I resolved to know nothing while I was with you except Jesus Christ and him crucified.",
+      "reference": "1 Corinthians 2:2",
+      "category": "focus",
+      "book": "1corinthians"
+    },
+    {
+      "text": "I came to you in weakness with great fear and trembling.",
+      "reference": "1 Corinthians 2:3",
+      "category": "weakness",
+      "book": "1corinthians"
+    },
+    {
+      "text": "My message and my preaching were not with wise and persuasive words, but with a demonstration of the Spirit's power.",
+      "reference": "1 Corinthians 2:4",
+      "category": "power",
+      "book": "1corinthians"
+    },
+    {
+      "text": "So that your faith might not rest on human wisdom, but on God's power.",
+      "reference": "1 Corinthians 2:5",
+      "category": "faith",
+      "book": "1corinthians"
+    },
+    {
+      "text": "We do, however, speak a message of wisdom among the mature, but not the wisdom of this age or of the rulers of this age, who are coming to nothing.",
+      "reference": "1 Corinthians 2:6",
+      "category": "maturity",
+      "book": "1corinthians"
+    },
+    {
+      "text": "No, we declare God's wisdom, a mystery that has been hidden and that God destined for our glory before time began.",
+      "reference": "1 Corinthians 2:7",
+      "category": "mystery",
+      "book": "1corinthians"
+    },
+    {
+      "text": "None of the rulers of this age understood it, for if they had, they would not have crucified the Lord of glory.",
+      "reference": "1 Corinthians 2:8",
+      "category": "understanding",
+      "book": "1corinthians"
+    },
+    {
+      "text": "However, as it is written: 'What no eye has seen, what no ear has heard, and what no human mind has conceived'—the things God has prepared for those who love him.",
+      "reference": "1 Corinthians 2:9",
+      "category": "preparation",
+      "book": "1corinthians"
+    },
+    {
+      "text": "These are the things God has revealed to us by his Spirit. The Spirit searches all things, even the deep things of God.",
+      "reference": "1 Corinthians 2:10",
+      "category": "revelation",
+      "book": "1corinthians"
+    },
+    {
+      "text": "For who knows a person's thoughts except their own spirit within them? In the same way no one knows the thoughts of God except the Spirit of God.",
+      "reference": "1 Corinthians 2:11",
+      "category": "knowledge",
+      "book": "1corinthians"
+    },
+    {
+      "text": "What we have received is not the spirit of the world, but the Spirit who is from God, so that we may understand what God has freely given us.",
+      "reference": "1 Corinthians 2:12",
+      "category": "understanding",
+      "book": "1corinthians"
+    },
+    {
+      "text": "Praise be to the God and Father of our Lord Jesus Christ, who has blessed us in the heavenly realms with every spiritual blessing in Christ.",
+      "reference": "Ephesians 1:3",
+      "category": "blessing",
+      "book": "ephesians"
+    },
+    {
+      "text": "For he chose us in him before the creation of the world to be holy and blameless in his sight.",
+      "reference": "Ephesians 1:4",
+      "category": "election",
+      "book": "ephesians"
+    },
+    {
+      "text": "In love he predestined us for adoption to sonship through Jesus Christ, in accordance with his pleasure and will.",
+      "reference": "Ephesians 1:5",
+      "category": "adoption",
+      "book": "ephesians"
+    },
+    {
+      "text": "To the praise of his glorious grace, which he has freely given us in the One he loves.",
+      "reference": "Ephesians 1:6",
+      "category": "grace",
+      "book": "ephesians"
+    },
+    {
+      "text": "In him we have redemption through his blood, the forgiveness of sins, in accordance with the riches of God's grace.",
+      "reference": "Ephesians 1:7",
+      "category": "redemption",
+      "book": "ephesians"
+    },
+    {
+      "text": "That he lavished on us. With all wisdom and understanding.",
+      "reference": "Ephesians 1:8",
+      "category": "wisdom",
+      "book": "ephesians"
+    },
+    {
+      "text": "He made known to us the mystery of his will according to his good pleasure, which he purposed in Christ.",
+      "reference": "Ephesians 1:9",
+      "category": "mystery",
+      "book": "ephesians"
+    },
+    {
+      "text": "To be put into effect when the times reach their fulfillment—to bring unity to all things in heaven and on earth under Christ.",
+      "reference": "Ephesians 1:10",
+      "category": "unity",
+      "book": "ephesians"
+    },
+    {
+      "text": "In him we were also chosen, having been predestined according to the plan of him who works out everything in conformity with the purpose of his will.",
+      "reference": "Ephesians 1:11",
+      "category": "purpose",
+      "book": "ephesians"
+    },
+    {
+      "text": "In order that we, who were the first to put our hope in Christ, might be for the praise of his glory.",
+      "reference": "Ephesians 1:12",
+      "category": "hope",
+      "book": "ephesians"
+    },
+    {
+      "text": "And you also were included in Christ when you heard the message of truth, the gospel of your salvation.",
+      "reference": "Ephesians 1:13",
+      "category": "inclusion",
+      "book": "ephesians"
+    },
+    {
+      "text": "When you believed, you were marked in him with a seal, the promised Holy Spirit.",
+      "reference": "Ephesians 1:13",
+      "category": "sealing",
+      "book": "ephesians"
+    },
+    {
+      "text": "Who is a deposit guaranteeing our inheritance until the redemption of those who are God's possession—to the praise of his glory.",
+      "reference": "Ephesians 1:14",
+      "category": "inheritance",
+      "book": "ephesians"
+    },
+    {
+      "text": "I keep asking that the God of our Lord Jesus Christ, the glorious Father, may give you the Spirit of wisdom and revelation, so that you may know him better.",
+      "reference": "Ephesians 1:17",
+      "category": "prayer",
+      "book": "ephesians"
+    },
+    {
+      "text": "I pray that the eyes of your heart may be enlightened in order that you may know the hope to which he has called you, the riches of his glorious inheritance in his holy people.",
+      "reference": "Ephesians 1:18",
+      "category": "enlightenment",
+      "book": "ephesians"
+    },
+    {
+      "text": "And his incomparably great power for us who believe. That power is the same as the mighty strength.",
+      "reference": "Ephesians 1:19",
+      "category": "power",
+      "book": "ephesians"
+    },
+    {
+      "text": "He exerted when he raised Christ from the dead and seated him at his right hand in the heavenly realms.",
+      "reference": "Ephesians 1:20",
+      "category": "resurrection",
+      "book": "ephesians"
+    },
+    {
+      "text": "Far above all rule and authority, power and dominion, and every name that is invoked, not only in the present age but also in the one to come.",
+      "reference": "Ephesians 1:21",
+      "category": "supremacy",
+      "book": "ephesians"
+    },
+    {
+      "text": "And God placed all things under his feet and appointed him to be head over everything for the church.",
+      "reference": "Ephesians 1:22",
+      "category": "headship",
+      "book": "ephesians"
+    },
+    {
+      "text": "Which is his body, the fullness of him who fills everything in every way.",
+      "reference": "Ephesians 1:23",
+      "category": "church",
+      "book": "ephesians"
     }
   ]
 }
