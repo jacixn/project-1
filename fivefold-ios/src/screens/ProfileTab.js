@@ -1475,7 +1475,7 @@ const styles = StyleSheet.create({
   },
   twitterScrollContent: {
     paddingTop: 0, // No padding - content starts right after header
-    paddingBottom: 90, // Space for floating tab bar
+    paddingBottom: 20, // Space for floating tab bar
   },
   headerContent: {
     flexDirection: 'row',
@@ -1504,7 +1504,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 110, // Adjusted for lower header position
-    paddingBottom: 90, // Space for floating tab bar
+    paddingBottom: 20, // Space for floating tab bar
   },
   profileCard: {
     borderRadius: 16,

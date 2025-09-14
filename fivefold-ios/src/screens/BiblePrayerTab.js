@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   twitterScrollContent: {
     paddingTop: 0, // No padding - content starts right after header
-    paddingBottom: 90, // Reduced space for floating tab bar
+    paddingBottom: 20, // Reduced space for floating tab bar
   },
   headerSpacer: {
     height: 125, // Adjusted for lower header position
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 105, // Reference gap for all tabs
-    paddingBottom: 90, // Reduced space for floating tab bar
+    paddingBottom: 20, // Reduced space for floating tab bar
   },
 
   sectionTitle: {
