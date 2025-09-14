@@ -10,10 +10,10 @@ import {
   PlatformColor,
 } from 'react-native';
 import { 
-  LiquidGlassView, 
-  LiquidGlassContainerView, 
-  isLiquidGlassSupported 
-} from '@callstack/liquid-glass';
+  SafeLiquidGlassView as LiquidGlassView, 
+  SafeLiquidGlassContainerView as LiquidGlassContainerView, 
+  safeIsLiquidGlassSupported as isLiquidGlassSupported 
+} from './SafeLiquidGlass';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
