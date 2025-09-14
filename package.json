@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@playwright/mcp": "^0.0.37",
+    "playwright": "^1.55.0"
+  }
+}
