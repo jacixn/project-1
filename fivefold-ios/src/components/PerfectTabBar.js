@@ -16,7 +16,7 @@ import { hapticFeedback } from '../utils/haptics';
 const { width: screenWidth } = Dimensions.get('window');
 
 const PerfectTabBar = ({ state, descriptors, navigation }) => {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, currentTheme } = useTheme();
   const isBlushTheme = theme === 'blush';
   const isCresviaTheme = theme === 'cresvia';
   const isEternaTheme = theme === 'eterna';
@@ -90,9 +90,7 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
               {
                 width: tabWidth,
                 transform: [{ translateX: slideAnimation }],
-                backgroundColor: theme.primary || (isDark
-                  ? 'rgba(255, 255, 255, 0.2)'
-                  : 'rgba(0, 0, 0, 0.1)'),
+                backgroundColor: theme.primary,
               },
             ]}
           >
