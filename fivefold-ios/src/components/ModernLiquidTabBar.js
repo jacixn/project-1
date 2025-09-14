@@ -23,7 +23,11 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   const isEternaTheme = theme === 'eterna';
 
   // Advanced Animation References
-  const morphAnimation = useRef(new Animated.Value(0)).current;
+  const containerWidth = screenWidth * 0.85; // 85% of screen width
+  const maxWidth = Math.min(containerWidth, 320); // Max 320px
+  const tabWidth = (maxWidth - 24) / state.routes.length; // Account for container padding
+  const initialPosition = state.index * tabWidth + (tabWidth * 0.05);
+  const morphAnimation = useRef(new Animated.Value(initialPosition)).current;
   const glowAnimation = useRef(new Animated.Value(0)).current;
   const floatAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimations = useRef(
@@ -36,7 +40,9 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   const [activeIndex, setActiveIndex] = useState(state.index);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const tabWidth = (screenWidth - 60) / state.routes.length; // Account for margins
+  const containerWidth = screenWidth * 0.85; // 85% of screen width
+  const maxWidth = Math.min(containerWidth, 320); // Max 320px
+  const tabWidth = (maxWidth - 24) / state.routes.length; // Account for container padding
 
   useEffect(() => {
     // Floating animation - continuous subtle movement
@@ -73,12 +79,15 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   }, []);
 
   useEffect(() => {
-    if (activeIndex !== state.index) {
+    // Always animate to current position, even on first load
+    const targetPosition = state.index * tabWidth + (tabWidth * 0.05);
+    
+    if (activeIndex !== state.index || morphAnimation._value !== targetPosition) {
       setIsTransitioning(true);
       
       // Dynamic Island morphing animation
       Animated.spring(morphAnimation, {
-        toValue: state.index * tabWidth,
+        toValue: state.index * tabWidth + (tabWidth * 0.05), // Add small offset for centering
         tension: 300,
         friction: 30,
         useNativeDriver: true,
@@ -128,7 +137,7 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
 
       setActiveIndex(state.index);
     }
-  }, [state.index, tabWidth, activeIndex]);
+  }, [state.index, tabWidth, activeIndex, morphAnimation]);
 
   const getTabIcon = (routeName) => {
     switch (routeName) {
