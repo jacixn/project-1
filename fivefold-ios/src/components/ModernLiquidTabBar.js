@@ -309,7 +309,7 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
                     >
                       <MaterialIcons
                         name={getTabIcon(route.name)}
-                        size={isFocused ? 28 : 24}
+                        size={isFocused ? 24 : 22}
                         color={
                           isFocused
                             ? isDark
@@ -346,7 +346,7 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
                         >
                           <MaterialIcons
                             name={getTabIcon(route.name)}
-                            size={28}
+                            size={24}
                             color={isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'}
                           />
                         </Animated.View>
@@ -366,7 +366,7 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
                             ? 'rgba(255, 255, 255, 0.35)'
                             : 'rgba(0, 0, 0, 0.35)',
                           fontWeight: isFocused ? '800' : '500',
-                          fontSize: isFocused ? 14 : 12,
+                          fontSize: isFocused ? 13 : 11,
                           letterSpacing: isFocused ? 0.5 : 0,
                           textShadowColor: isFocused 
                             ? (isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)')
@@ -396,23 +396,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 40,
     paddingTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   floatingContainer: {
-    borderRadius: 32,
+    borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 10,
+    width: '85%',
+    maxWidth: 320,
   },
   blurBackground: {
     flex: 1,
-    borderRadius: 32,
+    borderRadius: 28,
     overflow: 'hidden',
-    minHeight: 80,
+    minHeight: 70,
     position: 'relative',
   },
   shimmerOverlay: {
@@ -421,49 +425,49 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 32,
+    borderRadius: 28,
   },
   dynamicIsland: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
-    bottom: 8,
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: 6,
     width: `${100 / 3}%`,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   islandCore: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   glowRing: {
     position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 28,
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    borderRadius: 23,
     overflow: 'hidden',
   },
   gradientRing: {
     flex: 1,
-    borderRadius: 28,
+    borderRadius: 23,
   },
   tabsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 80,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 70,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   tabContent: {
     alignItems: 'center',
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'relative',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   tabIcon: {
     marginBottom: 2,
