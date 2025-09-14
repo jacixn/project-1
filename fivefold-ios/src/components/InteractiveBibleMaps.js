@@ -1891,7 +1891,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
 
         {/* Overlay UI Elements */}
         <View style={styles.overlayContainer} pointerEvents="box-none">
-          <SafeAreaView style={styles.safeAreaContainer} pointerEvents="box-none">
+          <SafeAreaView style={styles.safeAreaContainer} edges={['top']} pointerEvents="box-none">
             {/* Header */}
             <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
               <View style={styles.headerContent}>
@@ -2243,7 +2243,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     marginHorizontal: 15,
-    marginTop: 10,
+    marginTop: 5,
   },
   headerContent: {
     flexDirection: 'row',
