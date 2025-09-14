@@ -12,7 +12,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-// SafeAreaView removed - using pure full screen
+// SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -583,14 +583,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    paddingTop: 0, // ZERO padding - content goes to absolute top
+    paddingTop: Platform.OS === 'ios' ? 65 : 40,
     paddingBottom: 12,
     paddingHorizontal: 0,
     alignItems: 'center',
   },
   twitterContent: {
     flex: 1,
-    marginTop: 0, // ZERO margin - content flows to absolute top
+    marginTop: 0, // Removed safe area - content flows to top
   },
   twitterScrollContent: {
     paddingTop: 0, // No padding - content starts right after header
