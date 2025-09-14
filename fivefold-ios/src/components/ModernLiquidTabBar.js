@@ -22,12 +22,15 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   const isCresviaTheme = theme === 'cresvia';
   const isEternaTheme = theme === 'eterna';
 
-  // Advanced Animation References
+  // Calculate dimensions
   const containerWidth = screenWidth * 0.85; // 85% of screen width
   const maxWidth = Math.min(containerWidth, 320); // Max 320px
-  const tabWidth = (maxWidth - 24) / state.routes.length; // Account for container padding
-  const initialPosition = state.index * tabWidth + (tabWidth * 0.05);
-  const morphAnimation = useRef(new Animated.Value(initialPosition)).current;
+  const tabsContainerPadding = 24; // 12px on each side
+  const availableWidth = maxWidth - tabsContainerPadding;
+  const tabWidth = availableWidth / state.routes.length;
+  
+  // Advanced Animation References
+  const morphAnimation = useRef(new Animated.Value(0)).current;
   const glowAnimation = useRef(new Animated.Value(0)).current;
   const floatAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimations = useRef(
@@ -39,10 +42,6 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   // Dynamic Island State
   const [activeIndex, setActiveIndex] = useState(state.index);
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  const containerWidth = screenWidth * 0.85; // 85% of screen width
-  const maxWidth = Math.min(containerWidth, 320); // Max 320px
-  const tabWidth = (maxWidth - 24) / state.routes.length; // Account for container padding
 
   useEffect(() => {
     // Floating animation - continuous subtle movement
@@ -79,21 +78,21 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
   }, []);
 
   useEffect(() => {
-    // Always animate to current position, even on first load
-    const targetPosition = state.index * tabWidth + (tabWidth * 0.05);
+    // Calculate exact position for the morphing background
+    const targetPosition = state.index * tabWidth;
     
-    if (activeIndex !== state.index || morphAnimation._value !== targetPosition) {
-      setIsTransitioning(true);
-      
-      // Dynamic Island morphing animation
-      Animated.spring(morphAnimation, {
-        toValue: state.index * tabWidth + (tabWidth * 0.05), // Add small offset for centering
-        tension: 300,
-        friction: 30,
-        useNativeDriver: true,
-      }).start(() => {
-        setIsTransitioning(false);
-      });
+    // Always animate to current position
+    setIsTransitioning(true);
+    
+    // Dynamic Island morphing animation
+    Animated.spring(morphAnimation, {
+      toValue: targetPosition,
+      tension: 300,
+      friction: 30,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsTransitioning(false);
+    });
 
       // Glow pulse effect
       Animated.sequence([
@@ -135,9 +134,8 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
         ]).start();
       }
 
-      setActiveIndex(state.index);
-    }
-  }, [state.index, tabWidth, activeIndex, morphAnimation]);
+    setActiveIndex(state.index);
+  }, [state.index, tabWidth, morphAnimation]);
 
   const getTabIcon = (routeName) => {
     switch (routeName) {
@@ -439,8 +437,7 @@ const styles = StyleSheet.create({
   dynamicIsland: {
     position: 'absolute',
     top: 6,
-    left: 6,
-    right: 6,
+    left: 12, // Match tabsContainer paddingHorizontal
     bottom: 6,
     width: `${100 / 3}%`,
     borderRadius: 20,
