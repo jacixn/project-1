@@ -6,12 +6,12 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Platform,
   Dimensions,
   Alert,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  SafeAreaView,
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import {
   Keyboard,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
