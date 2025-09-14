@@ -138,19 +138,17 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
                     size={isFocused ? 24 : 22}
                     color={
                       isFocused
-                        ? isDark
-                          ? '#FFFFFF'
-                          : '#000000'
+                        ? theme.primary || (isDark ? '#FFFFFF' : '#6366F1')
                         : isDark
-                        ? 'rgba(255, 255, 255, 0.4)'
-                        : 'rgba(0, 0, 0, 0.4)'
+                        ? 'rgba(255, 255, 255, 0.5)'
+                        : 'rgba(100, 116, 139, 0.6)'
                     }
                     style={[
                       styles.tabIcon,
                       isFocused && {
                         textShadowColor: isDark 
-                          ? 'rgba(255, 255, 255, 0.4)' 
-                          : 'rgba(0, 0, 0, 0.3)',
+                          ? 'rgba(255, 255, 255, 0.3)' 
+                          : 'rgba(99, 102, 241, 0.2)',
                         textShadowOffset: { width: 0, height: 1 },
                         textShadowRadius: 3,
                       },
@@ -162,16 +160,14 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
                       styles.tabLabel,
                       {
                         color: isFocused
-                          ? isDark
-                            ? '#FFFFFF'
-                            : '#000000'
+                          ? theme.primary || (isDark ? '#FFFFFF' : '#6366F1')
                           : isDark
-                          ? 'rgba(255, 255, 255, 0.4)'
-                          : 'rgba(0, 0, 0, 0.4)',
+                          ? 'rgba(255, 255, 255, 0.5)'
+                          : 'rgba(100, 116, 139, 0.6)',
                         fontWeight: isFocused ? '700' : '500',
                         fontSize: isFocused ? 13 : 11,
                         textShadowColor: isFocused 
-                          ? (isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)')
+                          ? (isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(99, 102, 241, 0.2)')
                           : 'transparent',
                         textShadowOffset: { width: 0, height: 1 },
                         textShadowRadius: 2,
