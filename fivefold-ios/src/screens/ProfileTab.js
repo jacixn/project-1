@@ -16,7 +16,6 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -670,7 +669,7 @@ const ProfileTab = () => {
 
       {/* Edit Profile Modal */}
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => {
               console.log('Canceling profile edit...');
@@ -766,7 +765,7 @@ const ProfileTab = () => {
               setShowCountryPicker(false);
             }}
           >
-            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ flex: 1, backgroundColor: '#fff' }}>
               <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#ccc' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <TouchableOpacity onPress={() => {
@@ -873,7 +872,7 @@ const ProfileTab = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowBibleVersionModal(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => setShowBibleVersionModal(false)}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
@@ -956,7 +955,7 @@ const ProfileTab = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowLanguageModal(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
@@ -1044,7 +1043,7 @@ const ProfileTab = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSavedVerses(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
             {/* Pull indicator */}
             <View style={styles.pullIndicatorContainer}>
@@ -1205,7 +1204,7 @@ const ProfileTab = () => {
 
       {/* Settings Modal */}
       <Modal visible={showSettingsModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Done</Text>
@@ -1434,7 +1433,7 @@ const ProfileTab = () => {
           initialVerse={verseToInterpret}
         />
       )}
-    </SafeAreaView>
+    </View>
     </AnimatedWallpaper>
 
 
