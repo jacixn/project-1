@@ -93,15 +93,15 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
     <View style={styles.container}>
       {/* Main Glass Container */}
       <BlurView
-        intensity={isDark ? 80 : 60}
+        intensity={isDark ? 40 : 30}
         style={[
           styles.tabBarContainer,
           {
             backgroundColor: isBlushTheme || isCresviaTheme || isEternaTheme
-              ? 'rgba(255, 255, 255, 0.1)'
+              ? 'rgba(255, 255, 255, 0.05)'
               : isDark
-              ? 'rgba(0, 0, 0, 0.3)'
-              : 'rgba(255, 255, 255, 0.8)',
+              ? 'rgba(0, 0, 0, 0.1)'
+              : 'rgba(255, 255, 255, 0.15)',
           },
         ]}
       >
@@ -118,13 +118,13 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
         >
           {/* Subtle Inner Glow Effect */}
           <BlurView
-            intensity={30}
+            intensity={20}
             style={[
               styles.pillInner,
               {
                 backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'rgba(0, 0, 0, 0.03)',
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : 'rgba(0, 0, 0, 0.02)',
               },
             ]}
           />
@@ -244,10 +244,10 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     // iOS specific blur backdrop
     ...(Platform.OS === 'ios' && {
       backdropFilter: 'blur(20px)',
