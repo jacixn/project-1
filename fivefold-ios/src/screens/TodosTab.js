@@ -433,7 +433,7 @@ const TodosTab = () => {
   // Show loading screen with beautiful animation
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}

@@ -602,7 +602,7 @@ const ProfileTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
