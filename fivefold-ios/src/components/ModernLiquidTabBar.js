@@ -132,11 +132,11 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
 
   const getTabIcon = (routeName) => {
     switch (routeName) {
-      case 'BiblePrayerTab':
+      case 'BiblePrayer':
         return 'menu-book';
-      case 'TodosTab':
+      case 'Todos':
         return 'check-circle';
-      case 'ProfileTab':
+      case 'Profile':
         return 'person';
       default:
         return 'home';
@@ -145,11 +145,11 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
 
   const getTabLabel = (routeName) => {
     switch (routeName) {
-      case 'BiblePrayerTab':
-        return 'Feed';
-      case 'TodosTab':
+      case 'BiblePrayer':
+        return 'Bible';
+      case 'Todos':
         return 'Tasks';
-      case 'ProfileTab':
+      case 'Profile':
         return 'Profile';
       default:
         return routeName;
