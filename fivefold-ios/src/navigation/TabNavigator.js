@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
 // Custom Liquid Glass Tab Bar
-import UltraModernLiquidTabBar from '../components/UltraModernLiquidTabBar';
+import PerfectTabBar from '../components/PerfectTabBar';
 
 // Tab screens
 import BiblePrayerTab from '../screens/BiblePrayerTab';
@@ -23,7 +23,7 @@ const TabNavigator = () => {
       screenOptions={{
         headerShown: false,
       }}
-      tabBar={(props) => <UltraModernLiquidTabBar {...props} />}
+      tabBar={(props) => <PerfectTabBar {...props} />}
     >
       <Tab.Screen 
         name="BiblePrayer" 
