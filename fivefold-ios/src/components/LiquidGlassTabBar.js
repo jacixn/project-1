@@ -116,28 +116,32 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
             },
           ]}
         >
-          {/* Subtle Inner Glow Effect */}
+          {/* Strong Inner Glow Effect for Active Tab */}
           <BlurView
-            intensity={20}
+            intensity={30}
             style={[
               styles.pillInner,
               {
                 backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : 'rgba(0, 0, 0, 0.02)',
+                  ? 'rgba(255, 255, 255, 0.25)'
+                  : 'rgba(0, 0, 0, 0.15)',
               },
             ]}
           />
           
-          {/* Very Subtle Border Glow - Only on Active */}
+          {/* Prominent Border Glow - Only on Active */}
           <Animated.View
             style={[
               styles.subtleGlow,
               {
                 opacity: glowAnimation.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, 0.3],
+                  outputRange: [0, 0.8],
                 }),
+                borderColor: isDark 
+                  ? 'rgba(255, 255, 255, 0.5)' 
+                  : 'rgba(0, 0, 0, 0.4)',
+                borderWidth: 1.5,
               },
             ]}
           />
@@ -184,19 +188,24 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                 >
                   <MaterialIcons
                     name={getTabIcon(route.name)}
-                    size={24}
+                    size={isFocused ? 26 : 24}
                     color={
                       isFocused
                         ? isDark
                           ? '#FFFFFF'
                           : '#000000'
                         : isDark
-                        ? 'rgba(255, 255, 255, 0.6)'
-                        : 'rgba(0, 0, 0, 0.6)'
+                        ? 'rgba(255, 255, 255, 0.4)'
+                        : 'rgba(0, 0, 0, 0.4)'
                     }
                     style={[
                       styles.tabIcon,
                       isFocused && styles.activeTabIcon,
+                      isFocused && {
+                        textShadowColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 3,
+                      },
                     ]}
                   />
                   
@@ -210,10 +219,16 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                             ? '#FFFFFF'
                             : '#000000'
                           : isDark
-                          ? 'rgba(255, 255, 255, 0.6)'
-                          : 'rgba(0, 0, 0, 0.6)',
-                        opacity: isFocused ? 1 : 0.8,
-                        fontWeight: isFocused ? '600' : '500',
+                          ? 'rgba(255, 255, 255, 0.4)'
+                          : 'rgba(0, 0, 0, 0.4)',
+                        opacity: isFocused ? 1 : 0.7,
+                        fontWeight: isFocused ? '700' : '500',
+                        fontSize: isFocused ? 13 : 12,
+                        textShadowColor: isFocused 
+                          ? (isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)')
+                          : 'transparent',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 3,
                       },
                     ]}
                   >
