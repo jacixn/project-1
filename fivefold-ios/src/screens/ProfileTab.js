@@ -1452,7 +1452,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000, // Higher z-index to stay on top
-    paddingTop: Platform.OS === 'ios' ? 70 : 35,
+    paddingTop: 0, // ZERO padding - content goes to absolute top
     paddingBottom: 15,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -1463,14 +1463,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    paddingTop: Platform.OS === 'ios' ? 65 : 40,
+    paddingTop: 0, // ZERO padding - content goes to absolute top
     paddingBottom: 12,
     paddingHorizontal: 0,
     alignItems: 'center',
   },
   twitterContent: {
     flex: 1,
-    marginTop: Platform.OS === 'ios' ? 67 : 42, // No gap after header line
+    marginTop: 0, // ZERO margin - content flows to absolute top
   },
   twitterScrollContent: {
     paddingTop: 0, // No padding - content starts right after header
