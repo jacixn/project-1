@@ -3,16 +3,11 @@
     "name": "Biblely",
     "slug": "fivefold-ios",
     "version": "1.0.0",
-    "sdkVersion": "53.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "statusBar": {
-      "style": "auto",
-      "hidden": false,
-      "translucent": false
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -21,10 +16,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fivefold.app",
-      "statusBar": {
-        "style": "auto",
-        "hidden": false
-      },
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
         "UIBackgroundModes": [
@@ -53,7 +44,6 @@
       "favicon": "./assets/favicon.png"
     },
     "description": "Faith & Focus Daily - Combine prayer with productivity in a beautiful spiritual companion app",
-    "privacy": "public",
     "plugins": [
       [
         "expo-notifications",
@@ -62,7 +52,9 @@
           "color": "#667eea",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-font"
     ],
     "extra": {
       "eas": {
