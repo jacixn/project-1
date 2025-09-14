@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
     marginTop: 0, // Removed safe area - content flows to top
   },
   twitterScrollContent: {
-    paddingTop: 0, // No padding - content starts right after header
+    paddingTop: 120, // Content starts after header - no overlap
     paddingBottom: 20, // Space for floating tab bar
   },
   headerContent: {
