@@ -110,47 +110,34 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
           style={[
             styles.morphingPill,
             {
-              width: tabWidth * 0.85,
+              width: tabWidth * 0.9,
               transform: [{ translateX: morphAnimation }],
-              marginLeft: tabWidth * 0.075,
+              marginLeft: tabWidth * 0.05,
             },
           ]}
         >
-          {/* Rainbow/Iridescent Border Effect */}
-          <Animated.View
-            style={[
-              styles.glowBorder,
-              {
-                opacity: glowAnimation,
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={[
-                '#FF6B9D',
-                '#C44CF1',
-                '#4FACFE',
-                '#00F2FE',
-                '#43E97B',
-                '#38F9D7',
-                '#FEE140',
-                '#FA709A',
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientBorder}
-            />
-          </Animated.View>
-          
-          {/* Inner Glass Effect */}
+          {/* Subtle Inner Glow Effect */}
           <BlurView
-            intensity={40}
+            intensity={30}
             style={[
               styles.pillInner,
               {
                 backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.15)'
-                  : 'rgba(0, 0, 0, 0.05)',
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : 'rgba(0, 0, 0, 0.03)',
+              },
+            ]}
+          />
+          
+          {/* Very Subtle Border Glow - Only on Active */}
+          <Animated.View
+            style={[
+              styles.subtleGlow,
+              {
+                opacity: glowAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.3],
+                }),
               },
             ]}
           />
@@ -274,27 +261,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 1,
   },
-  glowBorder: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderRadius: 22,
-    zIndex: 1,
-  },
-  gradientBorder: {
-    flex: 1,
-    borderRadius: 22,
-  },
   pillInner: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    right: 2,
-    bottom: 2,
+    flex: 1,
     borderRadius: 18,
-    zIndex: 2,
+    overflow: 'hidden',
+  },
+  subtleGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'transparent',
   },
   tabsContainer: {
     flex: 1,
