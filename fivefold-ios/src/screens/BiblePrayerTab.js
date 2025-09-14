@@ -16,8 +16,6 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
 import { GlassCard, GlassHeader } from '../components/GlassEffect';
-import { LiquidGlassCard, LiquidVerseCard } from '../components/LiquidGlass';
-import LiquidGlassDemo from '../components/LiquidGlassDemo';
 import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
@@ -64,7 +62,6 @@ const BiblePrayerTab = () => {
   const [prayerTimes, setPrayerTimes] = useState({});
   const [prayerHistory, setPrayerHistory] = useState([]);
   const [location, setLocation] = useState(null);
-  const [showLiquidDemo, setShowLiquidDemo] = useState(false);
   const [nextPrayer, setNextPrayer] = useState(null);
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
 
@@ -215,40 +212,30 @@ const BiblePrayerTab = () => {
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
       </TouchableOpacity>
       
-      {/* Liquid Glass Verse of the Day */}
-      <LiquidVerseCard
-        verse={{
-          text: dailyVerse.text,
-          reference: dailyVerse.reference,
-          category: "Daily Inspiration"
-        }}
-        onPress={() => {
-          hapticFeedback('light');
-          setVerseToInterpret(dailyVerse.text);
-          setVerseReference(dailyVerse.reference);
-          setShowFriendChat(true);
-        }}
-        style={styles.liquidVerseCard}
-      />
-      
-      {/* Liquid Glass Demo Button */}
-      <TouchableOpacity
-        style={styles.liquidDemoButton}
-        onPress={() => {
-          hapticFeedback('medium');
-          setShowLiquidDemo(true);
-        }}
-      >
-        <LiquidGlassCard style={styles.demoCard}>
-          <View style={styles.demoContent}>
-            <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
-            <Text style={[styles.demoText, { color: theme.text }]}>
-              ✨ Experience iOS 26 Liquid Glass
-            </Text>
-            <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-          </View>
-        </LiquidGlassCard>
-      </TouchableOpacity>
+      {/* Verse of the day */}
+      <BlurView intensity={30} tint="light" style={styles.verseOfDay}>
+        <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
+          💫 Verse of the Day
+        </Text>
+        <Text 
+          style={[styles.verseText, { color: theme.text }]}
+          selectable={true}
+          selectTextOnFocus={false}
+          dataDetectorType="none"
+          allowFontScaling={true}
+        >
+          "{dailyVerse.text}"
+        </Text>
+        <Text 
+          style={[styles.verseReference, { color: theme.textSecondary }]}
+          selectable={true}
+          selectTextOnFocus={false}
+          dataDetectorType="none"
+          allowFontScaling={true}
+        >
+          {dailyVerse.reference}
+        </Text>
+      </BlurView>
     </BlurView>
   );
 
@@ -448,12 +435,6 @@ const BiblePrayerTab = () => {
           onNavigateToBible={handleNavigateToVerse}
         />
       )}
-
-      {/* Liquid Glass Demo Modal */}
-      <LiquidGlassDemo
-        visible={showLiquidDemo}
-        onClose={() => setShowLiquidDemo(false)}
-      />
     </SafeAreaView>
     </AnimatedWallpaper>
   );
@@ -615,30 +596,6 @@ const styles = StyleSheet.create({
   quickAccessText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  
-  // Liquid Glass Styles
-  liquidVerseCard: {
-    marginVertical: 8,
-    marginHorizontal: 0,
-  },
-  liquidDemoButton: {
-    marginTop: 16,
-  },
-  demoCard: {
-    marginHorizontal: 0,
-  },
-  demoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  demoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-    marginLeft: 12,
   },
 });
 
