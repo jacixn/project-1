@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from '
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LiquidGlass } from '@callstack/liquid-glass';
+// Note: Using custom implementation instead of @callstack/liquid-glass for Expo compatibility
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -54,8 +54,8 @@ export const LiquidGlassCard = ({
   });
 
   return (
-    <LiquidGlass
-      morphable={morphable}
+    <TouchableOpacity
+      activeOpacity={morphable ? 0.8 : 1}
       style={[styles.liquidContainer, style]}
       {...props}
     >
@@ -88,7 +88,7 @@ export const LiquidGlassCard = ({
           </View>
         </BlurView>
       </Animated.View>
-    </LiquidGlass>
+    </TouchableOpacity>
   );
 };
 
