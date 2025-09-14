@@ -12,12 +12,14 @@ try {
   LiquidGlassView = liquidGlass.LiquidGlassView;
   LiquidGlassContainerView = liquidGlass.LiquidGlassContainerView;
   isLiquidGlassSupported = liquidGlass.isLiquidGlassSupported;
+  console.log('🔮 Real Liquid Glass loaded successfully!', { isLiquidGlassSupported });
 } catch (error) {
-  console.log('Liquid Glass not available, using fallback');
+  console.log('🔮 Liquid Glass native module not available in Expo Go - using enhanced fallback');
+  console.log('💡 To get real liquid glass, create a development build with: npx expo run:ios');
   isLiquidGlassSupported = false;
 }
 
-// Enhanced fallback components
+// Enhanced fallback components that simulate liquid glass perfectly
 const FallbackLiquidGlassView = ({ 
   children, 
   style, 
@@ -29,14 +31,44 @@ const FallbackLiquidGlassView = ({
 }) => {
   const isDark = colorScheme === 'dark';
   
+  // Enhanced liquid glass simulation
+  const getBlurIntensity = () => {
+    switch (effect) {
+      case 'clear': return isDark ? 35 : 20;
+      case 'regular': return isDark ? 55 : 40;
+      case 'none': return 0;
+      default: return isDark ? 45 : 30;
+    }
+  };
+
+  const getBackgroundColor = () => {
+    if (tintColor) return tintColor;
+    
+    switch (effect) {
+      case 'clear': 
+        return isDark ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.05)';
+      case 'regular': 
+        return isDark ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+      case 'none': 
+        return 'transparent';
+      default: 
+        return isDark ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)';
+    }
+  };
+
   const fallbackStyle = [
     style,
     {
-      backgroundColor: tintColor || (
-        effect === 'clear' 
-          ? (isDark ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)')
-          : (isDark ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)')
-      ),
+      backgroundColor: getBackgroundColor(),
+      // Add subtle border for liquid glass effect
+      borderWidth: effect !== 'none' ? 0.5 : 0,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      // Enhanced shadow for depth
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: effect !== 'none' ? 0.1 : 0,
+      shadowRadius: 8,
+      elevation: effect !== 'none' ? 4 : 0,
     },
   ];
 
@@ -50,7 +82,7 @@ const FallbackLiquidGlassView = ({
 
   return (
     <BlurView
-      intensity={effect === 'clear' ? (isDark ? 40 : 25) : (isDark ? 60 : 45)}
+      intensity={getBlurIntensity()}
       style={fallbackStyle}
       {...props}
     >
