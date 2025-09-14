@@ -843,7 +843,6 @@ const ProfileTab = () => {
               </ScrollView>
             </View>
           </Modal>
-      </Modal>
 
       {/* Achievements Modal */}
       <AchievementsModal 
