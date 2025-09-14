@@ -433,7 +433,7 @@ const TodosTab = () => {
   // Show loading screen with beautiful animation
   if (loading) {
     return (
-      <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -444,7 +444,7 @@ const TodosTab = () => {
             Loading your tasks...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -456,7 +456,7 @@ const TodosTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -547,7 +547,7 @@ const TodosTab = () => {
           />
         )}
       </Animated.ScrollView>
-    </SafeAreaView>
+    </View>
     </AnimatedWallpaper>
   );
 };

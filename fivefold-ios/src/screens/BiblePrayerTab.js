@@ -315,7 +315,7 @@ const BiblePrayerTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -435,7 +435,7 @@ const BiblePrayerTab = () => {
           onNavigateToBible={handleNavigateToVerse}
         />
       )}
-    </SafeAreaView>
+    </View>
     </AnimatedWallpaper>
   );
 };

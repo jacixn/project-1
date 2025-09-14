@@ -602,7 +602,7 @@ const ProfileTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -842,9 +842,9 @@ const ProfileTab = () => {
                   <Text style={{ padding: 16, color: 'red' }}>ERROR: Countries not loaded!</Text>
                 )}
               </ScrollView>
-            </SafeAreaView>
+            </View>
           </Modal>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* Achievements Modal */}
@@ -947,7 +947,7 @@ const ProfileTab = () => {
               );
             })}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
       
       {/* Language Selection Modal */}
@@ -1023,7 +1023,7 @@ const ProfileTab = () => {
               );
             })}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
       
       {/* Loading Overlay for Language Change */}
@@ -1201,7 +1201,7 @@ const ProfileTab = () => {
               )}
             </ScrollView>
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* Settings Modal */}
@@ -1421,7 +1421,7 @@ const ProfileTab = () => {
               <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
             </TouchableOpacity>
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* AI Bible Chat Modal */}
