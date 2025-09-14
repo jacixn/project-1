@@ -79,7 +79,10 @@ const ModernLiquidTabBar = ({ state, descriptors, navigation }) => {
 
   useEffect(() => {
     // Calculate exact position for the morphing background
-    const targetPosition = state.index * tabWidth;
+    // Center the background within each tab by adding half the difference
+    const backgroundWidth = availableWidth / 3; // Dynamic island width (33.33%)
+    const tabCenter = state.index * tabWidth + (tabWidth / 2); // Center of the tab
+    const targetPosition = tabCenter - (backgroundWidth / 2); // Center the background
     
     // Always animate to current position
     setIsTransitioning(true);
