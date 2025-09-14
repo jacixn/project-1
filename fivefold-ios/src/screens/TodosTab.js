@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   },
   twitterScrollContent: {
     paddingTop: 0, // No padding - content starts right after header
-    paddingBottom: 120, // Space for floating tab bar
+    paddingBottom: 90, // Space for floating tab bar
   },
 
   headerContent: {
