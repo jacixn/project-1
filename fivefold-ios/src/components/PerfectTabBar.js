@@ -16,7 +16,7 @@ import { hapticFeedback } from '../utils/haptics';
 const { width: screenWidth } = Dimensions.get('window');
 
 const PerfectTabBar = ({ state, descriptors, navigation }) => {
-  const { theme, isDark, currentTheme } = useTheme();
+  const { theme, isDark } = useTheme();
   const isBlushTheme = theme === 'blush';
   const isCresviaTheme = theme === 'cresvia';
   const isEternaTheme = theme === 'eterna';
@@ -71,15 +71,15 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
       <View style={[styles.tabBarContainer, { width: maxWidth }]}>
         {/* Main blur background */}
         <BlurView
-          intensity={isDark ? 50 : 35}
+          intensity={isDark ? 25 : 20}
           style={[
             styles.blurBackground,
             {
               backgroundColor: isBlushTheme || isCresviaTheme || isEternaTheme
-                ? 'rgba(255, 255, 255, 0.05)'
+                ? 'rgba(255, 255, 255, 0.02)'
                 : isDark
-                ? 'rgba(0, 0, 0, 0.1)'
-                : 'rgba(255, 255, 255, 0.15)',
+                ? 'rgba(255, 255, 255, 0.03)'
+                : 'rgba(255, 255, 255, 0.08)',
             },
           ]}
         >
@@ -90,12 +90,14 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
               {
                 width: tabWidth,
                 transform: [{ translateX: slideAnimation }],
-                backgroundColor: theme.primary,
+                backgroundColor: isDark
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : 'rgba(0, 0, 0, 0.05)',
               },
             ]}
           >
             <BlurView
-              intensity={25}
+              intensity={15}
               style={styles.activeBackgroundBlur}
             />
           </Animated.View>
@@ -204,10 +206,10 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
   blurBackground: {
     borderRadius: 28,
