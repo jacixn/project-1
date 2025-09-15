@@ -2031,7 +2031,8 @@ const styles = StyleSheet.create({
     borderRadius: 28, // Extra rounded for premium feel
     overflow: 'hidden',
     width: '48%',
-    minHeight: 130,
+    minHeight: 120, // Reduced height for better proportions
+    maxHeight: 140, // Prevent cards from getting too tall
     // Premium shadows with incredible depth
     ...Platform.select({
       ios: {
@@ -2085,19 +2086,21 @@ const styles = StyleSheet.create({
 
   premiumCardContent: {
     flex: 1,
-    padding: 24,
+    padding: 20, // Reduced padding for better fit
     justifyContent: 'space-between',
-    minHeight: 130,
+    minHeight: 120,
+    maxHeight: 140, // Match card max height
     zIndex: 10, // Above all gradients
   },
 
   premiumCardTitle: {
-    fontSize: 18,
-    fontWeight: '900', // Ultra bold for premium feel
-    lineHeight: 24,
-    marginBottom: 16,
+    fontSize: 16, // Slightly smaller to fit better
+    fontWeight: '800', // Still bold but not ultra-bold
+    lineHeight: 20,
+    marginBottom: 12, // Less margin for better spacing
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-    letterSpacing: -0.4, // Tighter for modern look
+    letterSpacing: -0.3, // Slightly less tight
+    flex: 1, // Allow text to take available space
   },
 
   premiumStatsRow: {
@@ -2109,10 +2112,10 @@ const styles = StyleSheet.create({
   premiumCountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    gap: 8,
+    paddingHorizontal: 10, // Slightly smaller
+    paddingVertical: 6,
+    borderRadius: 12, // Slightly smaller
+    gap: 6,
     // Premium inner shadow
     ...Platform.select({
       ios: {
@@ -2133,9 +2136,9 @@ const styles = StyleSheet.create({
   },
 
   premiumArrowContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36, // Slightly smaller for better fit
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     // Premium shadow for depth
