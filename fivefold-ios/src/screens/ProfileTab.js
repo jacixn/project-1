@@ -104,13 +104,7 @@ const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={1}
-          style={{ 
-            flex: 1, 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            padding: 20
-          }}
+          style={{ flex: 1 }}
           {...props}
         >
           {children}
@@ -619,11 +613,9 @@ const ProfileTab = () => {
           hapticFeedback.achievement();
         }}
       >
-          <View style={styles.achievementHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 Achievements</Text>
-          <View style={styles.achievementInfo}>
-            <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
-          </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 Achievements</Text>
+          <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
         </View>
         
         <View style={styles.badgesGrid}>
@@ -669,6 +661,7 @@ const ProfileTab = () => {
         setShowSettingsModal(true);
       }}
     >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
           <MaterialIcons name="settings" size={24} color={theme.primary} />
           <Text style={[styles.settingsButtonText, { color: theme.text }]}>
@@ -676,6 +669,7 @@ const ProfileTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+      </View>
     </AnimatedSettingsCard>
   );
 
@@ -691,6 +685,7 @@ const ProfileTab = () => {
           );
         }}
     >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
           <MaterialIcons name="info" size={24} color={theme.primary} />
           <Text style={[styles.aboutButtonText, { color: theme.text }]}>
@@ -698,6 +693,7 @@ const ProfileTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+      </View>
     </AnimatedSettingsCard>
   );
 
