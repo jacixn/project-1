@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,16 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withDelay,
+  interpolate,
+  Extrapolate,
+  runOnJS,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -21,6 +31,131 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
+// PREMIUM Animated Card Component
+const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) => {
+  // Animation values
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(50);
+  const rotateY = useSharedValue(10);
+  const pressScale = useSharedValue(1);
+  const gradientOpacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    // Staggered entrance animation with premium spring physics
+    const delay = index * 200;
+    
+    scale.value = withDelay(delay, withSpring(1, {
+      damping: 15,
+      stiffness: 150,
+      mass: 1,
+    }));
+    
+    opacity.value = withDelay(delay, withTiming(1, { duration: 800 }));
+    
+    translateY.value = withDelay(delay, withSpring(0, {
+      damping: 20,
+      stiffness: 100,
+    }));
+    
+    rotateY.value = withDelay(delay, withSpring(0, {
+      damping: 25,
+      stiffness: 120,
+    }));
+    
+    gradientOpacity.value = withDelay(delay + 300, withTiming(0.6, { duration: 600 }));
+  }, []);
+
+  // Press animation handlers
+  const handlePressIn = () => {
+    pressScale.value = withSpring(0.95, {
+      damping: 15,
+      stiffness: 300,
+    });
+    gradientOpacity.value = withTiming(0.8, { duration: 150 });
+  };
+
+  const handlePressOut = () => {
+    pressScale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 300,
+    });
+    gradientOpacity.value = withTiming(0.6, { duration: 200 });
+  };
+
+  // Animated styles
+  const cardAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      transform: [
+        { scale: scale.value * pressScale.value },
+        { translateY: translateY.value },
+        { perspective: 1000 },
+        { rotateY: `${rotateY.value}deg` },
+      ],
+    };
+  });
+
+  const gradientAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: gradientOpacity.value,
+    };
+  });
+
+  return (
+    <Animated.View style={[cardAnimatedStyle]}>
+      <TouchableOpacity
+        style={[styles.premiumCard, { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+          shadowColor: section.color,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+        }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        {/* Animated gradient overlay */}
+        <Animated.View style={[styles.cardGradientBackground, gradientAnimatedStyle]}>
+          <LinearGradient
+            colors={isDark ? 
+              [`${section.color}15`, `${section.color}08`, 'transparent'] :
+              [`${section.color}12`, `${section.color}06`, 'transparent']
+            }
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+        
+        <View style={styles.premiumCardContent}>
+          <Text style={[styles.premiumCardTitle, { color: theme.text }]}>
+            {group.title}
+          </Text>
+          
+          <View style={styles.premiumStatsRow}>
+            <View style={[styles.premiumCountBadge, { 
+              backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
+            }]}>
+              <MaterialIcons name="people" size={14} color={section.color} />
+              <Text style={[styles.premiumCountText, { color: section.color }]}>
+                {group.characters.length}
+              </Text>
+            </View>
+            
+            <View style={[styles.premiumArrowContainer, { 
+              backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
+            }]}>
+              <MaterialIcons name="arrow-forward-ios" size={16} color={section.color} />
+            </View>
+          </View>
+        </View>
+        
+        {/* Premium shine effect */}
+        <View style={[styles.shineEffect, { backgroundColor: `${section.color}10` }]} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -688,70 +823,22 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Character Group Cards - 2 per row */}
+        {/* PREMIUM Animated Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
-          {characterGroups.map((group, index) => {
-            return (
-            <TouchableOpacity
+          {characterGroups.map((group, index) => (
+            <PremiumAnimatedCard
               key={group.id}
-                style={[styles.characterGroupCard, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-                  shadowColor: section.color,
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-                }]}
+              group={group}
+              section={section}
+              index={index}
+              isDark={isDark}
+              theme={theme}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-                activeOpacity={0.7} // Better press feedback
-            >
-              {/* Subtle gradient overlay for visual interest */}
-              <LinearGradient
-                colors={isDark ? 
-                  [`${section.color}12`, `${section.color}06`, 'transparent'] :
-                  [`${section.color}08`, `${section.color}04`, 'transparent']
-                }
-                style={styles.cardGradientBackground}
-              />
-              
-              <View style={styles.alternatingCardGradient}>
-                  {/* Icon removed for cleaner look */}
-
-                  {/* Content */}
-                  <View style={styles.alternatingCardContent}>
-                    <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
-                    {group.title}
-                  </Text>
-                    
-                    <View style={styles.alternatingStatsRow}>
-                      <View style={[styles.alternatingCountBadge, { 
-                        backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
-                      }]}>
-                        <MaterialIcons name="people" size={12} color={section.color} />
-                        <Text style={[styles.alternatingCountText, { color: section.color }]}>
-                          {group.characters.length}
-                  </Text>
-                </View>
-                    </View>
-                    
-                    {/* Character names removed for cleaner interface */}
-                </View>
-
-                  {/* Arrow with glow effect */}
-                  <View style={[styles.alternatingArrowContainer, { 
-                    backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
-                  }]}>
-                    <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
-                  </View>
-
-                  {/* Decorative elements */}
-                  <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
-                  <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
-              </View>
-            </TouchableOpacity>
-            );
-          })}
+            />
+          ))}
         </View>
       </ScrollView>
     );
@@ -1942,6 +2029,104 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 30,
     justifyContent: 'space-between',
+  },
+  
+  // PREMIUM Card Styles
+  premiumCard: {
+    marginBottom: 24,
+    borderRadius: 28, // Extra rounded for premium feel
+    overflow: 'hidden',
+    width: '48%',
+    minHeight: 120,
+    // Premium shadows with more depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.2,
+        shadowRadius: 25,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+  
+  premiumCardContent: {
+    flex: 1,
+    padding: 24, // More generous padding
+    justifyContent: 'space-between',
+    minHeight: 120,
+    zIndex: 2, // Above gradient
+  },
+  
+  premiumCardTitle: {
+    fontSize: 18,
+    fontWeight: '900', // Ultra bold for premium feel
+    lineHeight: 24,
+    marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+    letterSpacing: -0.4, // Tighter for modern look
+  },
+  
+  premiumStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  
+  premiumCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16, // More rounded
+    gap: 8,
+    // Subtle inner shadow effect
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  
+  premiumCountText: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  
+  premiumArrowContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Enhanced shadow for depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  
+  // Premium shine effect
+  shineEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    opacity: 0.6,
   },
   
   characterGroupCard: {
