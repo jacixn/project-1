@@ -38,6 +38,117 @@ import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } fr
 import AiBibleChat from '../components/AiBibleChat';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
 
+// Animated Profile Card Components (follows Rules of Hooks)
+const AnimatedStatCard = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <BlurView intensity={18} tint="light" style={style}>
+        <TouchableOpacity
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={1}
+          {...props}
+        >
+          {children}
+        </TouchableOpacity>
+      </BlurView>
+    </Animated.View>
+  );
+};
+
+const AnimatedModalButton = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 const ProfileTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, toggleTheme, changeTheme, availableThemes, currentTheme } = useTheme();
@@ -449,7 +560,7 @@ const ProfileTab = () => {
           </Text>
         </View>
         
-        <TouchableOpacity 
+        <AnimatedStatCard 
           style={[styles.statBox, { backgroundColor: theme.surface }]}
           onPress={() => {
             hapticFeedback.light();
@@ -465,7 +576,7 @@ const ProfileTab = () => {
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.savedVerses || 'Saved Verses'}
           </Text>
-        </TouchableOpacity>
+        </AnimatedStatCard>
         
         <View style={[styles.statBox, { backgroundColor: theme.surface }]}>
           <MaterialIcons name="favorite" size={24} color={theme.error} />
@@ -494,15 +605,13 @@ const ProfileTab = () => {
     ];
 
     return (
-      <BlurView intensity={18} tint="light" style={styles.badgesCard}>
-        <TouchableOpacity 
-          style={{ flex: 1 }}
-          activeOpacity={0.7}
-          onPress={() => {
-            setShowAchievements(true);
-            hapticFeedback.achievement();
-          }}
-        >
+      <AnimatedSettingsCard 
+        style={styles.badgesCard}
+        onPress={() => {
+          setShowAchievements(true);
+          hapticFeedback.achievement();
+        }}
+      >
           <View style={styles.achievementHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 Achievements</Text>
           <View style={styles.achievementInfo}>
@@ -540,21 +649,18 @@ const ProfileTab = () => {
               View All Achievements
             </Text>
           </View>
-        </TouchableOpacity>
-      </BlurView>
+      </AnimatedSettingsCard>
     );
   };
 
   // Settings Button - Single button that opens modal
   const SettingsButton = () => (
-    <BlurView intensity={18} tint="light" style={styles.settingsCard}>
-      <TouchableOpacity 
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        onPress={() => {
-          hapticFeedback.buttonPress();
-          setShowSettingsModal(true);
-        }}
-      activeOpacity={0.7}
+    <AnimatedSettingsCard 
+      style={styles.settingsCard}
+      onPress={() => {
+        hapticFeedback.buttonPress();
+        setShowSettingsModal(true);
+      }}
     >
         <View style={styles.settingLeft}>
           <MaterialIcons name="settings" size={24} color={theme.primary} />
@@ -563,19 +669,16 @@ const ProfileTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
-      </TouchableOpacity>
-    </BlurView>
+    </AnimatedSettingsCard>
   );
 
   // About Section - Separate card
   const AboutSection = () => (
-    <BlurView intensity={18} tint="light" style={styles.aboutCard}>
-      <TouchableOpacity 
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        activeOpacity={0.7}
-        onPress={() => {
-          hapticFeedback.buttonPress();
-          Alert.alert(
+    <AnimatedSettingsCard 
+      style={styles.aboutCard}
+      onPress={() => {
+        hapticFeedback.buttonPress();
+        Alert.alert(
             'About Biblely', 
             'A Christian productivity app for faith and focus.\n\nVersion 1.0.0\n\nMade with ❤️ for believers worldwide.'
           );
@@ -588,8 +691,7 @@ const ProfileTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
-      </TouchableOpacity>
-    </BlurView>
+    </AnimatedSettingsCard>
   );
 
   return (

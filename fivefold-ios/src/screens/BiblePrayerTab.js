@@ -49,6 +49,81 @@ const getNextPrayerTime = (times) => {
   return timeKeys[0]; // Simple fallback
 };
 
+// Animated Bible Components (follows Rules of Hooks)
+const AnimatedBibleButton = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.94,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 const BiblePrayerTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
   const [showBible, setShowBible] = useState(false);

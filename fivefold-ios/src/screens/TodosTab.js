@@ -31,6 +31,81 @@ import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 
+// Animated Todo Components (follows Rules of Hooks)
+const AnimatedTodoButton = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.92,
+      useNativeDriver: true,
+      tension: 500,
+      friction: 6,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 500,
+      friction: 6,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 const TodosTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
   const { language, t } = useLanguage();
@@ -266,13 +341,13 @@ const TodosTab = () => {
       <BlurView intensity={20} tint="light" style={styles.calendarCard}>
         {/* Today Banner */}
         <View style={styles.todayBanner}>
-          <TouchableOpacity style={[styles.todayButton, { backgroundColor: theme.primary }]}>
+          <AnimatedTodoButton style={[styles.todayButton, { backgroundColor: theme.primary }]}>
             <Text style={styles.todayButtonText}>Today</Text>
-          </TouchableOpacity>
+          </AnimatedTodoButton>
           <Text style={[styles.monthYear, { color: theme.text }]}>{currentMonth}</Text>
-          <TouchableOpacity style={styles.moreButton}>
+          <AnimatedTodoButton style={styles.moreButton}>
             <MaterialIcons name="more-horiz" size={24} color={theme.textSecondary} />
-          </TouchableOpacity>
+          </AnimatedTodoButton>
         </View>
 
         {/* Days of Week Header */}
@@ -487,7 +562,7 @@ const TodosTab = () => {
           </View>
           
           {/* View Toggle Button */}
-          <TouchableOpacity
+          <AnimatedTodoButton
             style={[styles.viewToggle, { backgroundColor: theme.primary + '20' }]}
             onPress={() => {
               hapticFeedback.light();
@@ -499,7 +574,7 @@ const TodosTab = () => {
               size={20} 
               color={theme.primary} 
             />
-          </TouchableOpacity>
+          </AnimatedTodoButton>
         </View>
       </GlassHeader>
 
