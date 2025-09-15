@@ -78,13 +78,13 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
       <TouchableOpacity
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
-        style={style}
+        style={{ flex: 1 }}
         {...props}
       >
         {children}
