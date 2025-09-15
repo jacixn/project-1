@@ -494,9 +494,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
   const renderMainMenu = () => (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerContainer}>
+      <View style={styles.headerContainer}>
           {/* Title text removed but container kept for spacing */}
-        </View>
+      </View>
 
       <View style={styles.sectionsGrid}>
         {studySections.map((section, index) => (
@@ -689,14 +689,13 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           >
             <View style={styles.heroContent}>
               {/* Hero title and subtitle removed for cleaner interface */}
-          </View>
+            </View>
           </LinearGradient>
         </View>
 
-        {/* Alternating Character Group Cards */}
-        <View style={styles.alternatingCharacterGroupsContainer}>
+        {/* Character Group Cards - 2 per row */}
+        <View style={styles.characterGroupsGrid}>
           {characterGroups.map((group, index) => {
-            const isEven = index % 2 === 0;
             const gradientColors = isDark ? 
               [`${section.color}20`, `${section.color}12`, `${section.color}05`] :
               [`${section.color}30`, `${section.color}20`, `${section.color}10`];
@@ -704,12 +703,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
             return (
             <TouchableOpacity
               key={group.id}
-                style={[styles.alternatingCharacterGroupCard, { 
+                style={[styles.characterGroupCard, { 
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : theme.card,
                   shadowColor: section.color,
-                  alignSelf: isEven ? 'flex-start' : 'flex-end',
-                  marginLeft: isEven ? 0 : 40,
-                  marginRight: isEven ? 40 : 0,
                 }]}
               onPress={() => {
                 hapticFeedback.light();
@@ -1946,16 +1942,19 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
 
-  // Alternating Character Group Cards
-  alternatingCharacterGroupsContainer: {
+  // Character Group Cards - 2 per row
+  characterGroupsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 20,
     paddingBottom: 30,
+    justifyContent: 'space-between',
   },
-  alternatingCharacterGroupCard: {
+  characterGroupCard: {
     marginBottom: 20,
     borderRadius: 20,
     overflow: 'hidden',
-    width: '75%',
+    width: '48%',
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 6 },
