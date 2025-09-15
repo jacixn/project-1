@@ -1,10 +1,11 @@
 import React, { useRef } from 'react';
-import { Animated, TouchableOpacity, PlatformColor } from 'react-native';
+import { Animated, TouchableOpacity, PlatformColor, Text, View, Platform } from 'react-native';
 import {
   LiquidGlassView,
   LiquidGlassContainerView,
   isLiquidGlassSupported,
 } from '@callstack/liquid-glass';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Enhanced Liquid Glass Card with micro-animations

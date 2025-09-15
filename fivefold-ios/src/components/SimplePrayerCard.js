@@ -921,7 +921,7 @@ In simple words: God is telling us something important here that we can understa
           title="Discuss This Verse"
         />
       )}
-    </BlurView>
+    </AnimatedLiquidGlassCard>
   );
 };
 
