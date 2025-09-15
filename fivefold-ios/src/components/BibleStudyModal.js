@@ -713,12 +713,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               }}
                 activeOpacity={0.8}
             >
-              <LinearGradient
-                  colors={gradientColors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.alternatingCardGradient}
-                >
+              <View style={styles.alternatingCardGradient}>
                   {/* Icon removed for cleaner look */}
 
                   {/* Content */}
@@ -751,7 +746,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                   {/* Decorative elements */}
                   <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
                   <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
             );
           })}
