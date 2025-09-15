@@ -63,11 +63,20 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
         activeOpacity={1}
       >
         <LinearGradient
-          colors={[`${section.color}20`, `${section.color}10`]}
+          colors={[`${section.color}25`, `${section.color}15`]}
           style={styles.sectionGradient}
         >
-          <View style={[styles.sectionIconContainer, { backgroundColor: `${section.color}20` }]}>
-            <MaterialIcons name={section.icon} size={28} color={section.color} />
+          <View style={[styles.sectionIconContainer, { 
+            backgroundColor: isDark ? `${section.color}40` : `${section.color}35`,
+            borderWidth: 2,
+            borderColor: isDark ? `${section.color}60` : `${section.color}50`,
+          }]}>
+            <MaterialIcons 
+              name={section.icon} 
+              size={28} 
+              color={isDark ? section.color : section.color} 
+              style={{ fontWeight: 'bold' }}
+            />
           </View>
           
           <View style={styles.sectionContent}>
@@ -80,8 +89,15 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
             
             <View style={styles.featuresContainer}>
               {section.features.slice(0, 2).map((feature, idx) => (
-                <View key={idx} style={styles.featureTag}>
-                  <Text style={[styles.featureText, { color: section.color }]}>
+                <View key={idx} style={[styles.featureTag, {
+                  backgroundColor: isDark ? `${section.color}30` : `${section.color}25`,
+                  borderWidth: 1,
+                  borderColor: isDark ? `${section.color}50` : `${section.color}40`,
+                }]}>
+                  <Text style={[styles.featureText, { 
+                    color: isDark ? section.color : section.color,
+                    fontWeight: '600'
+                  }]}>
                     {feature}
                   </Text>
                 </View>
@@ -89,7 +105,16 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
             </View>
           </View>
 
-          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+          <View style={[styles.sectionArrowContainer, {
+            backgroundColor: isDark ? `${section.color}25` : `${section.color}20`,
+          }]}>
+            <MaterialIcons 
+              name="chevron-right" 
+              size={22} 
+              color={section.color}
+              style={{ fontWeight: 'bold' }}
+            />
+          </View>
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -2381,6 +2406,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  
+  // Section Arrow Container
+  sectionArrowContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
 });
 
