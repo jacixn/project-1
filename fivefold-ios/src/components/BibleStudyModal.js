@@ -22,46 +22,26 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// Micro-Interaction Card Component - Simple & Reliable
+// Simple Micro-Interaction Card Component
 const MicroInteractionCard = ({ group, section, onPress, isDark, theme }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const shadowAnim = useRef(new Animated.Value(0.15)).current;
 
   const handlePressIn = () => {
-    // Trigger haptic feedback immediately for better feel
-    hapticFeedback.light();
-    
-    // Smooth scale down with shadow increase
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 0.96,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.25,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    Animated.spring(scaleAnim, {
+      toValue: 0.96, // Very subtle scale down
+      useNativeDriver: true,
+      tension: 400,
+      friction: 10,
+    }).start();
   };
 
   const handlePressOut = () => {
-    // Smooth scale back up with shadow decrease
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.15,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 10,
+    }).start();
   };
 
   return (
@@ -70,66 +50,62 @@ const MicroInteractionCard = ({ group, section, onPress, isDark, theme }) => {
         transform: [{ scale: scaleAnim }],
       }}
     >
-      <Animated.View
-        style={[
-          styles.characterGroupCard,
-          {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-            shadowColor: section.color,
-            borderWidth: isDark ? 0 : 1,
-            borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-            shadowOpacity: shadowAnim,
-          }
-        ]}
+      <TouchableOpacity
+        style={[styles.characterGroupCard, { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+          shadowColor: section.color,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+        }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9} // Slightly less opacity change for smoother feel
       >
-        <TouchableOpacity
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          activeOpacity={1} // We handle the animation ourselves
-          style={styles.cardTouchable}
-        >
-          {/* Subtle gradient overlay for visual interest */}
-          <LinearGradient
-            colors={isDark ? 
-              [`${section.color}12`, `${section.color}06`, 'transparent'] :
-              [`${section.color}08`, `${section.color}04`, 'transparent']
-            }
-            style={styles.cardGradientBackground}
-          />
-          
-          <View style={styles.alternatingCardGradient}>
-            {/* Content */}
-            <View style={styles.alternatingCardContent}>
-              <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
-                {group.title}
-              </Text>
-              
-              <View style={styles.alternatingStatsRow}>
-                <View style={[styles.alternatingCountBadge, { 
-                  backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
-                }]}>
-                  <MaterialIcons name="people" size={12} color={section.color} />
-                  <Text style={[styles.alternatingCountText, { color: section.color }]}>
-                    {group.characters.length}
-                  </Text>
-                </View>
+        {/* Subtle gradient overlay for visual interest */}
+        <LinearGradient
+          colors={isDark ? 
+            [`${section.color}12`, `${section.color}06`, 'transparent'] :
+            [`${section.color}08`, `${section.color}04`, 'transparent']
+          }
+          style={styles.cardGradientBackground}
+        />
+        
+        <View style={styles.alternatingCardGradient}>
+          {/* Icon removed for cleaner look */}
+
+          {/* Content */}
+          <View style={styles.alternatingCardContent}>
+            <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+              {group.title}
+            </Text>
+            
+            <View style={styles.alternatingStatsRow}>
+              <View style={[styles.alternatingCountBadge, { 
+                backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+              }]}>
+                <MaterialIcons name="people" size={12} color={section.color} />
+                <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                  {group.characters.length}
+                </Text>
               </View>
             </View>
-
-            {/* Arrow with glow effect */}
-            <View style={[styles.alternatingArrowContainer, { 
-              backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
-            }]}>
-              <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
-            </View>
-
-            {/* Decorative elements */}
-            <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
-            <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+            
+            {/* Character names removed for cleaner interface */}
           </View>
-        </TouchableOpacity>
-      </Animated.View>
+
+          {/* Arrow with glow effect */}
+          <View style={[styles.alternatingArrowContainer, { 
+            backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+          }]}>
+            <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+          </View>
+
+          {/* Decorative elements */}
+          <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+          <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+        </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -801,7 +777,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Micro-Interaction Character Group Cards - 2 per row */}
+        {/* Character Group Cards with Micro-Interactions - 2 per row */}
         <View style={styles.characterGroupsGrid}>
           {characterGroups.map((group, index) => (
             <MicroInteractionCard
@@ -811,6 +787,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
               isDark={isDark}
               theme={theme}
               onPress={() => {
+                hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
             />
@@ -2031,12 +2008,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 24,
-  },
-  
-  // Touchable area for micro-interactions
-  cardTouchable: {
-    flex: 1,
     borderRadius: 24,
   },
   

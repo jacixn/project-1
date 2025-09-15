@@ -102,25 +102,25 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       timelineData: [
         {
           id: 'creation-sample',
-          title: 'CREATION & EARLY WORLD',
-          subtitle: 'Genesis 1 to 11',
-          emoji: '🌍',
-          bgEmoji: '✨',
-          color: '#E91E63',
-          gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
-          position: { x: width * 0.25, y: 40 },
-          size: 120,
+      title: 'CREATION & EARLY WORLD',
+      subtitle: 'Genesis 1 to 11',
+      emoji: '🌍',
+      bgEmoji: '✨',
+      color: '#E91E63',
+      gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
+      position: { x: width * 0.25, y: 40 },
+      size: 120,
           description: 'Bible timeline is loading from remote source...',
-          stories: [
-            {
+      stories: [
+        {
               title: 'Loading Timeline...',
               when: 'Please wait',
               bibleStory: 'Loading...',
               characters: 'Loading...',
               story: 'Please check your internet connection and try refreshing.'
-            }
-          ],
-          connections: []
+        }
+      ],
+      connections: []
         }
       ]
     };
@@ -996,16 +996,16 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
             <Text style={[styles.errorText, { color: theme.text }]}>
               {error}
-            </Text>
-            <TouchableOpacity 
+                </Text>
+                    <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: theme.primary }]}
               onPress={refreshTimeline}
             >
               <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
                 Try Again
               </Text>
-            </TouchableOpacity>
-          </View>
+                    </TouchableOpacity>
+                </View>
         )}
 
         {/* Main Content */}
@@ -1066,10 +1066,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       {/* Era Detail Panel */}
       {renderSelectedEraDetail()}
       </View>
-      </View>
+    </View>
           </>
         )}
-      </View>
+    </View>
     </Modal>
   );
 };
