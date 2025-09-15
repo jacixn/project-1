@@ -1924,6 +1924,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 30,
     justifyContent: 'space-between',
   },
