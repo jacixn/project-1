@@ -88,41 +88,38 @@ const AnimatedCharacterCard = ({ group, section, onPress, index, isDark, theme }
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        {/* Glassmorphism Background */}
-        <BlurView intensity={isDark ? 20 : 40} style={styles.cardBlurBackground}>
-          {/* Subtle Gradient Overlay */}
-          <LinearGradient
-            colors={isDark ? 
-              [`${section.color}15`, `${section.color}08`, 'transparent'] :
-              [`${section.color}12`, `${section.color}06`, 'transparent']
-            }
-            style={styles.cardGradientOverlay}
-          />
+        {/* Subtle Gradient Background */}
+        <LinearGradient
+          colors={isDark ? 
+            [`${section.color}15`, `${section.color}08`, 'transparent'] :
+            [`${section.color}12`, `${section.color}06`, 'transparent']
+          }
+          style={styles.cardGradientOverlay}
+        />
+        
+        {/* Card Content */}
+        <View style={styles.cardContent}>
+          <Text style={[styles.modernCardTitle, { color: theme.text }]}>
+            {group.title}
+          </Text>
           
-          {/* Card Content */}
-          <View style={styles.cardContent}>
-            <Text style={[styles.modernCardTitle, { color: theme.text }]}>
-              {group.title}
-            </Text>
+          <View style={styles.modernStatsRow}>
+            <View style={[styles.modernCountBadge, { 
+              backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
+            }]}>
+              <MaterialIcons name="people" size={14} color={section.color} />
+              <Text style={[styles.modernCountText, { color: section.color }]}>
+                {group.characters.length}
+              </Text>
+            </View>
             
-            <View style={styles.modernStatsRow}>
-              <View style={[styles.modernCountBadge, { 
-                backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
-              }]}>
-                <MaterialIcons name="people" size={14} color={section.color} />
-                <Text style={[styles.modernCountText, { color: section.color }]}>
-                  {group.characters.length}
-                </Text>
-              </View>
-              
-              <View style={[styles.modernArrowContainer, { 
-                backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
-              }]}>
-                <MaterialIcons name="arrow-forward-ios" size={16} color={section.color} />
-              </View>
+            <View style={[styles.modernArrowContainer, { 
+              backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
+            }]}>
+              <MaterialIcons name="arrow-forward-ios" size={16} color={section.color} />
             </View>
           </View>
-        </BlurView>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -2021,12 +2018,6 @@ const styles = StyleSheet.create({
     }),
   },
   
-  cardBlurBackground: {
-    flex: 1,
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  
   cardGradientOverlay: {
     position: 'absolute',
     top: 0,
@@ -2040,6 +2031,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'space-between',
+    minHeight: 120,
   },
   
   modernCardTitle: {
