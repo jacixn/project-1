@@ -719,13 +719,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                   end={{ x: 1, y: 1 }}
                   style={styles.alternatingCardGradient}
                 >
-                  {/* Floating Icon */}
-                  <View style={[styles.alternatingIconContainer, { 
-                    backgroundColor: isDark ? `${section.color}25` : `${section.color}20`,
-                    borderColor: isDark ? `${section.color}40` : `${section.color}35`
-                  }]}>
-                    <Text style={styles.alternatingCharacterGroupIcon}>{group.icon}</Text>
-                  </View>
+                  {/* Icon removed for cleaner look */}
 
                   {/* Content */}
                   <View style={styles.alternatingCardContent}>
@@ -744,9 +738,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                       </View>
                     </View>
                     
-                    <Text style={[styles.alternatingCharacterPreview, { color: theme.textSecondary }]}>
-                      {group.characters.slice(0, 3).join(', ')}...
-                  </Text>
+                    {/* Character names removed for cleaner interface */}
                 </View>
 
                   {/* Arrow with glow effect */}
@@ -1967,8 +1959,8 @@ const styles = StyleSheet.create({
     }),
   },
   alternatingCardGradient: {
-    padding: 20,
-    minHeight: 120,
+    padding: 16,
+    minHeight: 80,
     position: 'relative',
   },
   alternatingIconContainer: {
