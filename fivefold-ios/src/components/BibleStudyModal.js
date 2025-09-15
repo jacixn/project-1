@@ -704,8 +704,17 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-                activeOpacity={0.8}
+                activeOpacity={0.7} // Better press feedback
             >
+              {/* Subtle gradient overlay for visual interest */}
+              <LinearGradient
+                colors={isDark ? 
+                  [`${section.color}12`, `${section.color}06`, 'transparent'] :
+                  [`${section.color}08`, `${section.color}04`, 'transparent']
+                }
+                style={styles.cardGradientBackground}
+              />
+              
               <View style={styles.alternatingCardGradient}>
                   {/* Icon removed for cleaner look */}
 
@@ -1937,24 +1946,36 @@ const styles = StyleSheet.create({
   
   characterGroupCard: {
     marginBottom: 20,
-    borderRadius: 20,
+    borderRadius: 24, // More modern rounded corners
     overflow: 'hidden',
     width: '48%',
+    // Enhanced shadows for more depth
     ...Platform.select({
       ios: {
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 15,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
       },
       android: {
-        elevation: 8,
+        elevation: 12,
       },
     }),
   },
+  // Gradient background for visual interest
+  cardGradientBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 24,
+  },
+  
   alternatingCardGradient: {
-    padding: 16,
-    minHeight: 80,
+    padding: 20, // More generous padding
+    minHeight: 100, // Slightly taller for better proportions
     position: 'relative',
+    justifyContent: 'space-between',
   },
   alternatingIconContainer: {
     position: 'absolute',
@@ -1976,10 +1997,11 @@ const styles = StyleSheet.create({
   },
   alternatingCharacterGroupTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontWeight: '800', // Bolder for more impact
+    marginBottom: 12, // More space below title
     lineHeight: 24,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+    letterSpacing: -0.3, // Tighter letter spacing for modern look
   },
   alternatingStatsRow: {
     flexDirection: 'row',
@@ -1990,8 +2012,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6, // More padding for better proportions
     borderRadius: 12,
+    gap: 6, // Space between icon and text
   },
   alternatingCountText: {
     fontSize: 12,
@@ -2006,13 +2029,24 @@ const styles = StyleSheet.create({
   },
   alternatingArrowContainer: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    bottom: 20, // Adjusted for new padding
+    right: 20,
+    width: 34, // Slightly larger for better touch target
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+    // Add subtle shadow for depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   alternatingDecorativeCircle1: {
     position: 'absolute',
