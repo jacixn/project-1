@@ -100,11 +100,17 @@ const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <BlurView intensity={18} tint="light" style={style}>
         <TouchableOpacity
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={1}
+          style={{ 
+            flex: 1, 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: 20
+          }}
           {...props}
         >
           {children}
