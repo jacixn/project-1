@@ -7,8 +7,8 @@ export const eternaTheme = {
   light: {
     // Background colors - Heavenly soft blues and purples
     background: '#E8F4FD', // Soft heavenly blue
-    surface: 'rgba(230, 240, 255, 0.8)', // Ethereal blue surface
-    card: 'rgba(255, 255, 255, 0.25)', // Glassy divine white
+    surface: 'rgba(230, 240, 255, 0.9)', // More opaque ethereal blue surface
+    card: 'rgba(255, 255, 255, 0.85)', // More opaque divine white for better contrast
     
     // Text colors - Divine and serene
     text: '#2C3E50', // Deep serene blue-gray

@@ -502,7 +502,11 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         {studySections.map((section, index) => (
           <TouchableOpacity
             key={section.id}
-            style={[styles.sectionCard, { backgroundColor: theme.card }]}
+            style={[styles.sectionCard, { 
+              backgroundColor: isDark ? theme.card : (theme.surface || 'rgba(255,255,255,0.9)'),
+              borderWidth: isDark ? 0 : 1,
+              borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+            }]}
             onPress={() => handleSectionPress(section.id)}
             activeOpacity={0.7}
           >
@@ -694,8 +698,10 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
             <TouchableOpacity
               key={group.id}
                 style={[styles.characterGroupCard, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : theme.card,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
                   shadowColor: section.color,
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
                 }]}
               onPress={() => {
                 hapticFeedback.light();
@@ -769,9 +775,10 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         {/* Modern Hero Section for Group */}
         <View style={styles.modernGroupHeroSection}>
           <View style={[styles.groupHeroCard, { 
-            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : (theme.surface || 'rgba(255,255,255,0.9)'),
+            borderColor: isDark ? 'rgba(255,255,255,0.1)' : (theme.border || 'rgba(0,0,0,0.08)'),
             shadowColor: isDark ? '#000' : section.color,
+            borderWidth: 1,
           }]}>
             <LinearGradient
               colors={[
@@ -818,10 +825,12 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
             <TouchableOpacity
               key={index}
                 style={[styles.alternatingCharacterCard, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : theme.card,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : (theme.surface || 'rgba(0,0,0,0.04)'),
                   shadowColor: isAvailable ? section.color : theme.textTertiary,
                   alignSelf: isEven ? 'flex-start' : 'flex-end',
                   marginLeft: isEven ? 0 : 60,
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
                   marginRight: isEven ? 60 : 0,
                 }]}
               onPress={() => {

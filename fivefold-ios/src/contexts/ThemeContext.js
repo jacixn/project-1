@@ -10,7 +10,7 @@ const themes = {
     // Background colors
     background: '#FFFFFF',
     surface: '#F8F9FA',
-    card: '#FFFFFF',
+    card: '#FAFBFC',
     
     // Text colors
     text: '#1A1A1A',

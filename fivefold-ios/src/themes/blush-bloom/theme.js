@@ -7,8 +7,8 @@ export const blushBloomTheme = {
   light: {
     // Background colors - Soft pink gradients
     background: '#FDF2F8', // Very light pink
-    surface: 'rgba(252, 231, 243, 0.7)', // Transparent pink surface
-    card: 'rgba(255, 255, 255, 0.15)', // Glassy transparent white
+    surface: 'rgba(252, 231, 243, 0.8)', // More opaque pink surface
+    card: 'rgba(255, 255, 255, 0.85)', // More opaque white for better contrast
     
     // Text colors - Elegant contrast
     text: '#831843', // Deep rose
