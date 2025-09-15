@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,6 @@ import {
   Platform,
   Image,
   StatusBar,
-  Animated,
-  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,107 +21,6 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// Animated Card Component with Cool Effects
-const AnimatedCharacterCard = ({ group, section, onPress, index, isDark, theme }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateYAnim = useRef(new Animated.Value(30)).current;
-
-  useEffect(() => {
-    // Staggered entrance animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      delay: index * 150, // Stagger by 150ms
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-
-    Animated.timing(translateYAnim, {
-      toValue: 0,
-      duration: 600,
-      delay: index * 150,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
-  return (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [
-          { scale: scaleAnim },
-          { translateY: translateYAnim }
-        ],
-      }}
-    >
-      <TouchableOpacity
-        style={[styles.modernCharacterCard, { 
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-          shadowColor: section.color,
-          borderWidth: isDark ? 0 : 1,
-          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-        }]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
-      >
-        {/* Subtle Gradient Background */}
-        <LinearGradient
-          colors={isDark ? 
-            [`${section.color}15`, `${section.color}08`, 'transparent'] :
-            [`${section.color}12`, `${section.color}06`, 'transparent']
-          }
-          style={styles.cardGradientOverlay}
-        />
-        
-        {/* Card Content */}
-        <View style={styles.cardContent}>
-          <Text style={[styles.modernCardTitle, { color: theme.text }]}>
-            {group.title}
-          </Text>
-          
-          <View style={styles.modernStatsRow}>
-            <View style={[styles.modernCountBadge, { 
-              backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
-            }]}>
-              <MaterialIcons name="people" size={14} color={section.color} />
-              <Text style={[styles.modernCountText, { color: section.color }]}>
-                {group.characters.length}
-              </Text>
-            </View>
-            
-            <View style={[styles.modernArrowContainer, { 
-              backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
-            }]}>
-              <MaterialIcons name="arrow-forward-ios" size={16} color={section.color} />
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -791,22 +688,61 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Modern Animated Character Group Cards - 2 per row */}
+        {/* Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
-          {characterGroups.map((group, index) => (
-            <AnimatedCharacterCard
+          {characterGroups.map((group, index) => {
+            return (
+            <TouchableOpacity
               key={group.id}
-              group={group}
-              section={section}
-              index={index}
-              isDark={isDark}
-              theme={theme}
+                style={[styles.characterGroupCard, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+                  shadowColor: section.color,
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+                }]}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-            />
-          ))}
+                activeOpacity={0.8}
+            >
+              <View style={styles.alternatingCardGradient}>
+                  {/* Icon removed for cleaner look */}
+
+                  {/* Content */}
+                  <View style={styles.alternatingCardContent}>
+                    <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+                    {group.title}
+                  </Text>
+                    
+                    <View style={styles.alternatingStatsRow}>
+                      <View style={[styles.alternatingCountBadge, { 
+                        backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+                      }]}>
+                        <MaterialIcons name="people" size={12} color={section.color} />
+                        <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                          {group.characters.length}
+                  </Text>
+                </View>
+                    </View>
+                    
+                    {/* Character names removed for cleaner interface */}
+                </View>
+
+                  {/* Arrow with glow effect */}
+                  <View style={[styles.alternatingArrowContainer, { 
+                    backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+                  }]}>
+                    <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+                  </View>
+
+                  {/* Decorative elements */}
+                  <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+                  <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+              </View>
+            </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -1999,79 +1935,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   
-  // Modern Animated Character Cards
-  modernCharacterCard: {
-    marginBottom: 20,
-    borderRadius: 24,
-    overflow: 'hidden',
-    width: '48%',
-    minHeight: 120,
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
-  },
-  
-  cardGradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 24,
-  },
-  
-  cardContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-    minHeight: 120,
-  },
-  
-  modernCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 22,
-    marginBottom: 12,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-  },
-  
-  modernStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  
-  modernCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 6,
-  },
-  
-  modernCountText: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
-  },
-  
-  modernArrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  // Legacy styles (keeping for compatibility)
   characterGroupCard: {
     marginBottom: 20,
     borderRadius: 20,
