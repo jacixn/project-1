@@ -65,36 +65,32 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
         <LinearGradient
           colors={[`${section.color}20`, `${section.color}10`]}
           style={styles.sectionGradient}
-        />
-        
-        <View style={styles.sectionContent}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: `${section.color}20` }]}>
-              <MaterialIcons name={section.icon} size={24} color={section.color} />
-            </View>
-            <View style={styles.sectionTextContainer}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                {section.title}
-              </Text>
-              <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
-                {section.description}
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={20} color={section.color} />
+        >
+          <View style={[styles.sectionIconContainer, { backgroundColor: `${section.color}20` }]}>
+            <MaterialIcons name={section.icon} size={28} color={section.color} />
           </View>
           
-          {section.features && (
-            <View style={styles.sectionFeatures}>
+          <View style={styles.sectionContent}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {section.title}
+            </Text>
+            <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+              {section.description}
+            </Text>
+            
+            <View style={styles.featuresContainer}>
               {section.features.slice(0, 2).map((feature, idx) => (
-                <View key={idx} style={[styles.featureTag, { backgroundColor: `${section.color}15` }]}>
+                <View key={idx} style={styles.featureTag}>
                   <Text style={[styles.featureText, { color: section.color }]}>
                     {feature}
                   </Text>
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          </View>
+
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+        </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
   );
