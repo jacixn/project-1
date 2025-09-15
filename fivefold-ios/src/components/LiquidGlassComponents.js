@@ -284,5 +284,3 @@ export const LiquidGlassNavBar = ({
     </BlurView>
   );
 };
-
-export { isLiquidGlassSupported };
