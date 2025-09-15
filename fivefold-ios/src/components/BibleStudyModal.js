@@ -2031,7 +2031,7 @@ const styles = StyleSheet.create({
     borderRadius: 28, // Extra rounded for premium feel
     overflow: 'hidden',
     width: '48%',
-    minHeight: 130, // Allow more height for text
+    minHeight: 115, // Reduced for better proportions while allowing text space
     // Remove maxHeight to let cards grow with content
     // Premium shadows with incredible depth
     ...Platform.select({
@@ -2088,7 +2088,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'space-between',
-    minHeight: 130, // Match card min height
+    minHeight: 75, // Adjusted for 115px card - 40px padding = 75px
     // Remove maxHeight to allow text to display fully
     zIndex: 10, // Above all gradients
   },
