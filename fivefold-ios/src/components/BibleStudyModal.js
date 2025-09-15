@@ -22,12 +22,16 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// Premium Animated Card Component (SIMPLE & RELIABLE)
-const PremiumCard = ({ group, section, onPress, isDark, theme }) => {
+// Micro-Interaction Card Component - Simple & Reliable
+const MicroInteractionCard = ({ group, section, onPress, isDark, theme }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const shadowAnim = useRef(new Animated.Value(0.15)).current;
 
   const handlePressIn = () => {
+    // Trigger haptic feedback immediately for better feel
+    hapticFeedback.light();
+    
+    // Smooth scale down with shadow increase
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 0.96,
@@ -44,6 +48,7 @@ const PremiumCard = ({ group, section, onPress, isDark, theme }) => {
   };
 
   const handlePressOut = () => {
+    // Smooth scale back up with shadow decrease
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -65,71 +70,66 @@ const PremiumCard = ({ group, section, onPress, isDark, theme }) => {
         transform: [{ scale: scaleAnim }],
       }}
     >
-      <TouchableOpacity
-        style={[styles.premiumCharacterCard, { 
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-          borderWidth: isDark ? 0 : 1,
-          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-        }]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1} // We handle opacity with our animations
+      <Animated.View
+        style={[
+          styles.characterGroupCard,
+          {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+            shadowColor: section.color,
+            borderWidth: isDark ? 0 : 1,
+            borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+            shadowOpacity: shadowAnim,
+          }
+        ]}
       >
-        {/* Multi-layer Premium Gradients */}
-        <LinearGradient
-          colors={isDark ? 
-            [`${section.color}15`, `${section.color}08`, 'transparent'] :
-            [`${section.color}12`, `${section.color}06`, 'transparent']
-          }
-          style={styles.premiumGradientLayer1}
-        />
-        
-        <LinearGradient
-          colors={isDark ? 
-            ['transparent', `${section.color}05`, `${section.color}10`] :
-            ['transparent', `${section.color}03`, `${section.color}08`]
-          }
-          style={styles.premiumGradientLayer2}
-        />
-
-        {/* Premium Glow Effect */}
-        <Animated.View 
-          style={[
-            styles.premiumGlow, 
-            { 
-              shadowColor: section.color,
-              shadowOpacity: shadowAnim,
+        <TouchableOpacity
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={1} // We handle the animation ourselves
+          style={styles.cardTouchable}
+        >
+          {/* Subtle gradient overlay for visual interest */}
+          <LinearGradient
+            colors={isDark ? 
+              [`${section.color}12`, `${section.color}06`, 'transparent'] :
+              [`${section.color}08`, `${section.color}04`, 'transparent']
             }
-          ]} 
-        />
-        
-        <View style={styles.premiumCardContent}>
-          <Text style={[styles.premiumCardTitle, { color: theme.text }]}>
-            {group.title}
-          </Text>
+            style={styles.cardGradientBackground}
+          />
           
-          <View style={styles.premiumStatsRow}>
-            <View style={[styles.premiumCountBadge, { 
-              backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
-            }]}>
-              <MaterialIcons name="people" size={13} color={section.color} />
-              <Text style={[styles.premiumCountText, { color: section.color }]}>
-                {group.characters.length}
+          <View style={styles.alternatingCardGradient}>
+            {/* Content */}
+            <View style={styles.alternatingCardContent}>
+              <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+                {group.title}
               </Text>
+              
+              <View style={styles.alternatingStatsRow}>
+                <View style={[styles.alternatingCountBadge, { 
+                  backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+                }]}>
+                  <MaterialIcons name="people" size={12} color={section.color} />
+                  <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                    {group.characters.length}
+                  </Text>
+                </View>
+              </View>
             </View>
-            
-            <View style={[styles.premiumArrowContainer, { 
-              backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
-            }]}>
-              <MaterialIcons name="arrow-forward-ios" size={15} color={section.color} />
-            </View>
-          </View>
-        </View>
 
-        {/* Premium Shine Effect */}
-        <View style={[styles.premiumShine, { backgroundColor: `${section.color}08` }]} />
-      </TouchableOpacity>
+            {/* Arrow with glow effect */}
+            <View style={[styles.alternatingArrowContainer, { 
+              backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+            }]}>
+              <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+            </View>
+
+            {/* Decorative elements */}
+            <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+            <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     </Animated.View>
   );
 };
@@ -801,17 +801,16 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Premium Animated Character Group Cards - 2 per row */}
+        {/* Micro-Interaction Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
           {characterGroups.map((group, index) => (
-            <PremiumCard
+            <MicroInteractionCard
               key={group.id}
               group={group}
               section={section}
               isDark={isDark}
               theme={theme}
               onPress={() => {
-                hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
             />
@@ -2025,155 +2024,19 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // PREMIUM CARD STYLES
-  premiumCharacterCard: {
-    marginBottom: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    width: '47%', // Slightly wider to use more space
-    minHeight: 140, // Taller for better content display
-    maxHeight: 180, // Allow more height for longer titles
-    // Premium shadows with incredible depth
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
-  },
-
-  // Multi-layer gradients for incredible depth
-  premiumGradientLayer1: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 28,
-  },
-
-  premiumGradientLayer2: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 28,
-  },
-
-  // Premium glow effect
-  premiumGlow: {
-    position: 'absolute',
-    top: -5,
-    left: -5,
-    right: -5,
-    bottom: -5,
-    borderRadius: 33,
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 0 },
-        shadowRadius: 15,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-
-  premiumCardContent: {
-    flex: 1,
-    padding: 20, // Back to generous padding for premium feel
-    justifyContent: 'space-between',
-    minHeight: 100, // More space for content
-    maxHeight: 140, // Allow more space for text
-    zIndex: 10, // Above all gradients
-  },
-
-  premiumCardTitle: {
-    fontSize: 16, // Back to readable size
-    fontWeight: '800',
-    lineHeight: 22, // Better line height for readability
-    marginBottom: 16, // More space for premium feel
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-    letterSpacing: -0.3,
-    flexShrink: 1, // Allow text to shrink but still wrap properly
-    flexGrow: 1, // Allow text to grow and take available space
-  },
-
-  premiumStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  premiumCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10, // Back to better size
-    paddingVertical: 6,
-    borderRadius: 12, // Better proportions
-    gap: 6,
-    // Premium inner shadow
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-
-  premiumCountText: {
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
-  },
-
-  premiumArrowContainer: {
-    width: 36, // Back to better size
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Premium shadow for depth
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-
-  // Premium shine effect at top
-  premiumShine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    opacity: 0.7,
-  },
-
-  // Legacy gradient background for visual interest
+  // Gradient background for visual interest
   cardGradientBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    borderRadius: 24,
+  },
+  
+  // Touchable area for micro-interactions
+  cardTouchable: {
+    flex: 1,
     borderRadius: 24,
   },
   
