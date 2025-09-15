@@ -688,12 +688,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
             style={styles.heroGradient}
           >
             <View style={styles.heroContent}>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>
-                Biblical Characters
-            </Text>
-              <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
-                Discover the lives and stories of key figures in the Bible
-            </Text>
+              {/* Hero title and subtitle removed for cleaner interface */}
           </View>
           </LinearGradient>
         </View>
