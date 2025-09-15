@@ -2031,8 +2031,8 @@ const styles = StyleSheet.create({
     borderRadius: 28, // Extra rounded for premium feel
     overflow: 'hidden',
     width: '48%',
-    minHeight: 120, // Reduced height for better proportions
-    maxHeight: 140, // Prevent cards from getting too tall
+    minHeight: 130, // Allow more height for text
+    // Remove maxHeight to let cards grow with content
     // Premium shadows with incredible depth
     ...Platform.select({
       ios: {
@@ -2086,21 +2086,22 @@ const styles = StyleSheet.create({
 
   premiumCardContent: {
     flex: 1,
-    padding: 20, // Reduced padding for better fit
+    padding: 20,
     justifyContent: 'space-between',
-    minHeight: 120,
-    maxHeight: 140, // Match card max height
+    minHeight: 130, // Match card min height
+    // Remove maxHeight to allow text to display fully
     zIndex: 10, // Above all gradients
   },
 
   premiumCardTitle: {
-    fontSize: 16, // Slightly smaller to fit better
-    fontWeight: '800', // Still bold but not ultra-bold
-    lineHeight: 20,
-    marginBottom: 12, // Less margin for better spacing
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 22, // Increased line height for better readability
+    marginBottom: 16, // More space for better layout
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-    letterSpacing: -0.3, // Slightly less tight
-    flex: 1, // Allow text to take available space
+    letterSpacing: -0.3,
+    flexShrink: 1, // Allow text to shrink but still wrap properly
+    flexGrow: 1, // Allow text to grow and take available space
   },
 
   premiumStatsRow: {
