@@ -22,6 +22,84 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
+// Animated Study Section Card Component (follows Rules of Hooks)
+const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }],
+        marginBottom: 16,
+      }}
+    >
+      <TouchableOpacity
+        style={[styles.sectionCard, { 
+          backgroundColor: isDark ? theme.card : (theme.surface || 'rgba(255,255,255,0.9)'),
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+        }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <LinearGradient
+          colors={[`${section.color}20`, `${section.color}10`]}
+          style={styles.sectionGradient}
+        />
+        
+        <View style={styles.sectionContent}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: `${section.color}20` }]}>
+              <MaterialIcons name={section.icon} size={24} color={section.color} />
+            </View>
+            <View style={styles.sectionTextContainer}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                {section.title}
+              </Text>
+              <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+                {section.description}
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={section.color} />
+          </View>
+          
+          {section.features && (
+            <View style={styles.sectionFeatures}>
+              {section.features.slice(0, 2).map((feature, idx) => (
+                <View key={idx} style={[styles.featureTag, { backgroundColor: `${section.color}15` }]}>
+                  <Text style={[styles.featureText, { color: section.color }]}>
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 // Animated Individual Character Card Component (follows Rules of Hooks)
 const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, theme, index }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -689,46 +767,14 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
       <View style={styles.sectionsGrid}>
         {studySections.map((section, index) => (
-          <TouchableOpacity
+          <AnimatedStudySectionCard
             key={section.id}
-            style={[styles.sectionCard, { 
-              backgroundColor: isDark ? theme.card : (theme.surface || 'rgba(255,255,255,0.9)'),
-              borderWidth: isDark ? 0 : 1,
-              borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-            }]}
+            section={section}
+            index={index}
+            isDark={isDark}
+            theme={theme}
             onPress={() => handleSectionPress(section.id)}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={[`${section.color}20`, `${section.color}10`]}
-              style={styles.sectionGradient}
-            >
-              <View style={[styles.sectionIconContainer, { backgroundColor: `${section.color}20` }]}>
-                <MaterialIcons name={section.icon} size={28} color={section.color} />
-              </View>
-              
-              <View style={styles.sectionContent}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                  {section.title}
-                </Text>
-                <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
-                  {section.description}
-                </Text>
-                
-                <View style={styles.featuresContainer}>
-                  {section.features.slice(0, 2).map((feature, idx) => (
-                    <View key={idx} style={styles.featureTag}>
-                      <Text style={[styles.featureText, { color: section.color }]}>
-                        {feature}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-            </LinearGradient>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
