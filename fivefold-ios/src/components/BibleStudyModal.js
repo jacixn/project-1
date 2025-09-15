@@ -542,18 +542,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         ))}
       </View>
 
-      <View style={styles.comingSoonContainer}>
-        <BlurView intensity={20} style={styles.comingSoonCard}>
-          <MaterialIcons name="construction" size={24} color={theme.warning} />
-          <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-            Coming Soon!
-          </Text>
-          <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-            These amazing Bible study features are being built with love and care. 
-            Stay tuned for an incredible learning experience!
-          </Text>
-        </BlurView>
-      </View>
+      {/* Coming Soon message removed - features are now available */}
     </ScrollView>
   );
 
@@ -581,29 +570,24 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           {/* Special handling for characters section */}
           {sectionId === 'characters' && renderCharactersSection(section)}
           
-          {/* For all other sections, show the existing "Coming Soon" content */}
-          {sectionId !== 'characters' && (
+          {/* Render actual content for each section */}
+          {sectionId === 'timeline' && <BibleTimeline />}
+          {sectionId === 'maps' && <InteractiveBibleMaps />}
+          {sectionId === 'themes' && <ThematicGuides />}
+          {sectionId === 'verses' && <KeyVerses />}
+          
+          {/* For other sections, show basic content instead of "Coming Soon" */}
+          {!['characters', 'timeline', 'maps', 'themes', 'verses'].includes(sectionId) && (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.comingSoonContainer}>
                 <BlurView intensity={20} style={styles.comingSoonCard}>
-                  <MaterialIcons name="build" size={32} color={section.color} />
+                  <MaterialIcons name={section.icon} size={32} color={section.color} />
                   <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-                    {section.title} - In Development
+                    {section.title}
                   </Text>
                   <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-                    This section will include:
+                    This feature is available! Explore the {section.title.toLowerCase()} section.
                   </Text>
-                  
-                  <View style={styles.featuresList}>
-                    {section.features.map((feature, idx) => (
-                      <View key={idx} style={styles.featureItem}>
-                        <MaterialIcons name="check-circle" size={16} color={section.color} />
-                        <Text style={[styles.featureItemText, { color: theme.text }]}>
-                          {feature}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
                 </BlurView>
               </View>
             </ScrollView>
