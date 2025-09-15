@@ -1,12 +1,11 @@
 import React, { useRef } from 'react';
 import { Animated, TouchableOpacity, PlatformColor, Text, View, Platform } from 'react-native';
-import {
-  LiquidGlassView,
-  LiquidGlassContainerView,
-  isLiquidGlassSupported,
-} from '@callstack/liquid-glass';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
+
+// Expo Go compatible liquid glass simulation
+export const isLiquidGlassSupported = false; // Always false in Expo Go
 
 // Enhanced Liquid Glass Card with micro-animations
 export const AnimatedLiquidGlassCard = ({ 
@@ -59,42 +58,51 @@ export const AnimatedLiquidGlassCard = ({
 
   const defaultTintColor = tintColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)');
 
-  if (onPress) {
-    return (
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <LiquidGlassView
-          style={glassStyle}
-          effect={effect}
-          interactive={interactive}
-          tintColor={defaultTintColor}
-          colorScheme="system"
-          {...props}
-        >
+  // Enhanced Expo Go liquid glass simulation
+  return (
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
+      <BlurView
+        intensity={isDark ? 28 : 22}
+        tint={isDark ? 'dark' : 'light'}
+        style={glassStyle}
+      >
+        {/* Liquid glass gradient overlay */}
+        <LinearGradient
+          colors={
+            isDark
+              ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0.08)']
+              : ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0.6)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 16,
+          }}
+        />
+        
+        {onPress ? (
           <TouchableOpacity
             onPress={onPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             activeOpacity={1}
             style={{ flex: 1 }}
+            {...props}
           >
             {children}
           </TouchableOpacity>
-        </LiquidGlassView>
-      </Animated.View>
-    );
-  }
-
-  return (
-    <LiquidGlassView
-      style={glassStyle}
-      effect={effect}
-      interactive={interactive}
-      tintColor={defaultTintColor}
-      colorScheme="system"
-      {...props}
-    >
-      {children}
-    </LiquidGlassView>
+        ) : (
+          <View style={{ flex: 1 }}>
+            {children}
+          </View>
+        )}
+      </BlurView>
+    </Animated.View>
   );
 };
 
@@ -149,29 +157,46 @@ export const LiquidGlassButton = ({
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <LiquidGlassView
+      <BlurView
+        intensity={isDark ? 20 : 15}
+        tint={isDark ? 'dark' : 'light'}
         style={buttonStyle}
-        effect={effect}
-        interactive={true}
-        tintColor={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
-        colorScheme="system"
-        {...props}
       >
+        {/* Button gradient overlay */}
+        <LinearGradient
+          colors={
+            isDark
+              ? ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.1)']
+              : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 20,
+          }}
+        />
+        
         <TouchableOpacity
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={1}
           style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+          {...props}
         >
           {children}
         </TouchableOpacity>
-      </LiquidGlassView>
+      </BlurView>
     </Animated.View>
   );
 };
 
-// Liquid Glass Container for merging effects
+// Liquid Glass Container for merging effects (Expo Go fallback)
 export const LiquidGlassMergeContainer = ({ 
   children, 
   spacing = 20, 
@@ -179,23 +204,24 @@ export const LiquidGlassMergeContainer = ({
   ...props 
 }) => {
   return (
-    <LiquidGlassContainerView 
-      spacing={spacing} 
-      style={style}
+    <View 
+      style={[{ gap: spacing }, style]}
       {...props}
     >
       {children}
-    </LiquidGlassContainerView>
+    </View>
   );
 };
 
 // Auto-adapting text component for glass backgrounds
 export const GlassText = ({ children, style, ...props }) => {
+  const { theme, isDark } = useTheme();
+  
   return (
-    <Animated.Text
+    <Text
       style={[
         {
-          color: PlatformColor('labelColor'), // Auto-adapts to background
+          color: Platform.OS === 'ios' ? PlatformColor('labelColor') : (style?.color || theme.text),
           fontSize: 16,
           fontWeight: '600',
         },
@@ -204,7 +230,7 @@ export const GlassText = ({ children, style, ...props }) => {
       {...props}
     >
       {children}
-    </Animated.Text>
+    </Text>
   );
 };
 
@@ -218,38 +244,44 @@ export const LiquidGlassNavBar = ({
   const { isDark } = useTheme();
 
   return (
-    <LiquidGlassView
+    <BlurView
+      intensity={isDark ? 30 : 25}
+      tint={isDark ? 'dark' : 'light'}
       style={[
         {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingBottom: 34, // Safe area
-          paddingTop: 10,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
+          borderRadius: 28,
+          overflow: 'hidden',
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 20,
-          elevation: 10,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 6,
         },
         style,
-        // Fallback for unsupported devices
-        !isLiquidGlassSupported && {
-          backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
-          backdropFilter: 'blur(20px)',
-        },
       ]}
-      effect={effect}
-      interactive={false}
-      tintColor={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'}
-      colorScheme="system"
       {...props}
     >
+      {/* Navigation glass gradient overlay */}
+      <LinearGradient
+        colors={
+          isDark
+            ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.05)']
+            : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0.7)']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: 28,
+        }}
+      />
+      
       {children}
-    </LiquidGlassView>
+    </BlurView>
   );
 };
 
