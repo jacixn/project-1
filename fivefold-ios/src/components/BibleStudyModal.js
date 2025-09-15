@@ -99,23 +99,22 @@ const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, 
             {character.name}
           </Text>
 
-          {/* Availability Indicator */}
-          <View style={[styles.alternatingCharacterStatus, {
-            backgroundColor: isAvailable ? `${section.color}25` : `${theme.textTertiary}20`
+          {/* Compact Status Badge */}
+          <View style={[styles.alternatingCharacterStatusBadge, { 
+            backgroundColor: isAvailable ? `${section.color}15` : `${theme.textTertiary}12`
           }]}>
-            <View style={[styles.alternatingStatusDot, {
-              backgroundColor: isAvailable ? section.color : theme.textTertiary
-            }]} />
+            {isAvailable ? (
+              <View style={[styles.alternatingCharacterPulseDot, { backgroundColor: section.color }]} />
+            ) : (
+              <MaterialIcons name="schedule" size={8} color={theme.textTertiary} />
+            )}
           </View>
 
-          {/* Arrow */}
+          {/* Interactive Arrow */}
           {isAvailable && (
-            <MaterialIcons 
-              name="arrow-forward-ios" 
-              size={14} 
-              color={section.color}
-              style={{ marginLeft: 8 }}
-            />
+            <View style={styles.alternatingCharacterArrowContainer}>
+              <MaterialIcons name="chevron-right" size={14} color={section.color} />
+            </View>
           )}
         </LinearGradient>
       </TouchableOpacity>
