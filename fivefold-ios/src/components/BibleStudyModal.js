@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   Image,
   StatusBar,
   Animated,
-  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,94 +22,87 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// PREMIUM Animated Card Component (Using Reliable Built-in Animated API)
-const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) => {
-  // Animation values using reliable Animated API
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const translateYAnim = useRef(new Animated.Value(30)).current;
-  const pressScaleAnim = useRef(new Animated.Value(1)).current;
+// Premium Animated Card Component (SIMPLE & RELIABLE)
+const PremiumCard = ({ group, section, onPress, isDark, theme }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shadowAnim = useRef(new Animated.Value(0.15)).current;
 
-  useEffect(() => {
-    // Staggered entrance animation with smooth timing
-    const delay = index * 150;
-    
+  const handlePressIn = () => {
     Animated.parallel([
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 600,
-        delay,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
       Animated.spring(scaleAnim, {
-        toValue: 1,
-        delay,
-        tension: 100,
-        friction: 8,
+        toValue: 0.96,
         useNativeDriver: true,
+        tension: 300,
+        friction: 10,
       }),
-      Animated.spring(translateYAnim, {
-        toValue: 0,
-        delay,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
+      Animated.timing(shadowAnim, {
+        toValue: 0.25,
+        duration: 150,
+        useNativeDriver: false,
       }),
     ]).start();
-  }, [index]);
-
-  // Press animation handlers
-  const handlePressIn = () => {
-    Animated.spring(pressScaleAnim, {
-      toValue: 0.95,
-      tension: 300,
-      friction: 10,
-      useNativeDriver: true,
-    }).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(pressScaleAnim, {
-      toValue: 1,
-      tension: 300,
-      friction: 10,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+      Animated.timing(shadowAnim, {
+        toValue: 0.15,
+        duration: 150,
+        useNativeDriver: false,
+      }),
+    ]).start();
   };
 
   return (
-    <Animated.View style={[
-      {
-        opacity: opacityAnim,
-        transform: [
-          { scale: Animated.multiply(scaleAnim, pressScaleAnim) },
-          { translateY: translateYAnim },
-        ],
-      }
-    ]}>
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }],
+      }}
+    >
       <TouchableOpacity
-        style={[styles.premiumCard, { 
+        style={[styles.premiumCharacterCard, { 
           backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-          shadowColor: section.color,
           borderWidth: isDark ? 0 : 1,
           borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
         }]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.9}
+        activeOpacity={1} // We handle opacity with our animations
       >
-        {/* Gradient overlay */}
-        <View style={styles.cardGradientBackground}>
-          <LinearGradient
-            colors={isDark ? 
-              [`${section.color}15`, `${section.color}08`, 'transparent'] :
-              [`${section.color}12`, `${section.color}06`, 'transparent']
+        {/* Multi-layer Premium Gradients */}
+        <LinearGradient
+          colors={isDark ? 
+            [`${section.color}15`, `${section.color}08`, 'transparent'] :
+            [`${section.color}12`, `${section.color}06`, 'transparent']
+          }
+          style={styles.premiumGradientLayer1}
+        />
+        
+        <LinearGradient
+          colors={isDark ? 
+            ['transparent', `${section.color}05`, `${section.color}10`] :
+            ['transparent', `${section.color}03`, `${section.color}08`]
+          }
+          style={styles.premiumGradientLayer2}
+        />
+
+        {/* Premium Glow Effect */}
+        <Animated.View 
+          style={[
+            styles.premiumGlow, 
+            { 
+              shadowColor: section.color,
+              shadowOpacity: shadowAnim,
             }
-            style={StyleSheet.absoluteFillObject}
-          />
-        </View>
+          ]} 
+        />
         
         <View style={styles.premiumCardContent}>
           <Text style={[styles.premiumCardTitle, { color: theme.text }]}>
@@ -121,7 +113,7 @@ const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) 
             <View style={[styles.premiumCountBadge, { 
               backgroundColor: isDark ? `${section.color}25` : `${section.color}20`
             }]}>
-              <MaterialIcons name="people" size={14} color={section.color} />
+              <MaterialIcons name="people" size={13} color={section.color} />
               <Text style={[styles.premiumCountText, { color: section.color }]}>
                 {group.characters.length}
               </Text>
@@ -130,17 +122,18 @@ const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) 
             <View style={[styles.premiumArrowContainer, { 
               backgroundColor: isDark ? `${section.color}20` : `${section.color}15`
             }]}>
-              <MaterialIcons name="arrow-forward-ios" size={16} color={section.color} />
+              <MaterialIcons name="arrow-forward-ios" size={15} color={section.color} />
             </View>
           </View>
         </View>
-        
-        {/* Premium shine effect */}
-        <View style={[styles.shineEffect, { backgroundColor: `${section.color}10` }]} />
+
+        {/* Premium Shine Effect */}
+        <View style={[styles.premiumShine, { backgroundColor: `${section.color}08` }]} />
       </TouchableOpacity>
     </Animated.View>
   );
 };
+
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -808,14 +801,13 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* PREMIUM Animated Character Group Cards - 2 per row */}
+        {/* Premium Animated Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
           {characterGroups.map((group, index) => (
-            <PremiumAnimatedCard
+            <PremiumCard
               key={group.id}
               group={group}
               section={section}
-              index={index}
               isDark={isDark}
               theme={theme}
               onPress={() => {
@@ -2016,104 +2008,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   
-  // PREMIUM Card Styles
-  premiumCard: {
-    marginBottom: 24,
-    borderRadius: 28, // Extra rounded for premium feel
-    overflow: 'hidden',
-    width: '48%',
-    minHeight: 120,
-    // Premium shadows with more depth
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.2,
-        shadowRadius: 25,
-      },
-      android: {
-        elevation: 16,
-      },
-    }),
-  },
-  
-  premiumCardContent: {
-    flex: 1,
-    padding: 24, // More generous padding
-    justifyContent: 'space-between',
-    minHeight: 120,
-    zIndex: 2, // Above gradient
-  },
-  
-  premiumCardTitle: {
-    fontSize: 18,
-    fontWeight: '900', // Ultra bold for premium feel
-    lineHeight: 24,
-    marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-    letterSpacing: -0.4, // Tighter for modern look
-  },
-  
-  premiumStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  
-  premiumCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16, // More rounded
-    gap: 8,
-    // Subtle inner shadow effect
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  
-  premiumCountText: {
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
-  },
-  
-  premiumArrowContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Enhanced shadow for depth
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  
-  // Premium shine effect
-  shineEffect: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    opacity: 0.6,
-  },
-  
   characterGroupCard: {
     marginBottom: 20,
     borderRadius: 24, // More modern rounded corners
@@ -2131,7 +2025,145 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // Gradient background for visual interest
+  // PREMIUM CARD STYLES
+  premiumCharacterCard: {
+    marginBottom: 24,
+    borderRadius: 28, // Extra rounded for premium feel
+    overflow: 'hidden',
+    width: '48%',
+    minHeight: 130,
+    // Premium shadows with incredible depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 25,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+
+  // Multi-layer gradients for incredible depth
+  premiumGradientLayer1: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
+  },
+
+  premiumGradientLayer2: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
+  },
+
+  // Premium glow effect
+  premiumGlow: {
+    position: 'absolute',
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: 33,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 0 },
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+
+  premiumCardContent: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'space-between',
+    minHeight: 130,
+    zIndex: 10, // Above all gradients
+  },
+
+  premiumCardTitle: {
+    fontSize: 18,
+    fontWeight: '900', // Ultra bold for premium feel
+    lineHeight: 24,
+    marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+    letterSpacing: -0.4, // Tighter for modern look
+  },
+
+  premiumStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  premiumCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 8,
+    // Premium inner shadow
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+
+  premiumCountText: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+
+  premiumArrowContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Premium shadow for depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+
+  // Premium shine effect at top
+  premiumShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    opacity: 0.7,
+  },
+
+  // Legacy gradient background for visual interest
   cardGradientBackground: {
     position: 'absolute',
     top: 0,
