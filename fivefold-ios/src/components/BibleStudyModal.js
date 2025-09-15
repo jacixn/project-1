@@ -22,94 +22,6 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// Simple Micro-Interaction Card Component
-const MicroInteractionCard = ({ group, section, onPress, isDark, theme }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.96, // Very subtle scale down
-      useNativeDriver: true,
-      tension: 400,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 400,
-      friction: 10,
-    }).start();
-  };
-
-  return (
-    <Animated.View
-      style={{
-        transform: [{ scale: scaleAnim }],
-      }}
-    >
-      <TouchableOpacity
-        style={[styles.characterGroupCard, { 
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-          shadowColor: section.color,
-          borderWidth: isDark ? 0 : 1,
-          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-        }]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9} // Slightly less opacity change for smoother feel
-      >
-        {/* Subtle gradient overlay for visual interest */}
-        <LinearGradient
-          colors={isDark ? 
-            [`${section.color}12`, `${section.color}06`, 'transparent'] :
-            [`${section.color}08`, `${section.color}04`, 'transparent']
-          }
-          style={styles.cardGradientBackground}
-        />
-        
-        <View style={styles.alternatingCardGradient}>
-          {/* Icon removed for cleaner look */}
-
-          {/* Content */}
-          <View style={styles.alternatingCardContent}>
-            <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
-              {group.title}
-            </Text>
-            
-            <View style={styles.alternatingStatsRow}>
-              <View style={[styles.alternatingCountBadge, { 
-                backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
-              }]}>
-                <MaterialIcons name="people" size={12} color={section.color} />
-                <Text style={[styles.alternatingCountText, { color: section.color }]}>
-                  {group.characters.length}
-                </Text>
-              </View>
-            </View>
-            
-            {/* Character names removed for cleaner interface */}
-          </View>
-
-          {/* Arrow with glow effect */}
-          <View style={[styles.alternatingArrowContainer, { 
-            backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
-          }]}>
-            <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
-          </View>
-
-          {/* Decorative elements */}
-          <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
-          <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
 
 const BibleStudyModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -777,21 +689,101 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Character Group Cards with Micro-Interactions - 2 per row */}
+        {/* Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
-          {characterGroups.map((group, index) => (
-            <MicroInteractionCard
+          {characterGroups.map((group, index) => {
+            // Create animated value for each card
+            const scaleAnim = useRef(new Animated.Value(1)).current;
+            
+            const handlePressIn = () => {
+              Animated.spring(scaleAnim, {
+                toValue: 0.96, // Subtle scale down
+                useNativeDriver: true,
+                tension: 300,
+                friction: 10,
+              }).start();
+            };
+
+            const handlePressOut = () => {
+              Animated.spring(scaleAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 300,
+                friction: 10,
+              }).start();
+            };
+
+            return (
+            <Animated.View
               key={group.id}
-              group={group}
-              section={section}
-              isDark={isDark}
-              theme={theme}
+              style={{
+                transform: [{ scale: scaleAnim }],
+                width: '48%', // Maintain exact width from your image
+              }}
+            >
+              <TouchableOpacity
+                style={[styles.characterGroupCard, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+                  shadowColor: section.color,
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+                  width: '100%', // Fill the animated container
+                }]}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-            />
-          ))}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={1} // Disable default opacity since we have scale animation
+            >
+              {/* Subtle gradient overlay for visual interest */}
+              <LinearGradient
+                colors={isDark ? 
+                  [`${section.color}12`, `${section.color}06`, 'transparent'] :
+                  [`${section.color}08`, `${section.color}04`, 'transparent']
+                }
+                style={styles.cardGradientBackground}
+              />
+              
+              <View style={styles.alternatingCardGradient}>
+                  {/* Icon removed for cleaner look */}
+
+                  {/* Content */}
+                  <View style={styles.alternatingCardContent}>
+                    <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+                    {group.title}
+                  </Text>
+                    
+                    <View style={styles.alternatingStatsRow}>
+                      <View style={[styles.alternatingCountBadge, { 
+                        backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+                      }]}>
+                        <MaterialIcons name="people" size={12} color={section.color} />
+                        <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                          {group.characters.length}
+                  </Text>
+                </View>
+                    </View>
+                    
+                    {/* Character names removed for cleaner interface */}
+                </View>
+
+                  {/* Arrow with glow effect */}
+                  <View style={[styles.alternatingArrowContainer, { 
+                    backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+                  }]}>
+                    <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+                  </View>
+
+                  {/* Decorative elements */}
+                  <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+                  <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+              </View>
+            </TouchableOpacity>
+            </Animated.View>
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -1988,7 +1980,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 24, // More modern rounded corners
     overflow: 'hidden',
-    width: '48%',
+    // Width now controlled by Animated.View parent
     // Enhanced shadows for more depth
     ...Platform.select({
       ios: {
@@ -2012,8 +2004,8 @@ const styles = StyleSheet.create({
   },
   
   alternatingCardGradient: {
-    padding: 16, // Original padding
-    minHeight: 140, // Restored to proper height for full content
+    padding: 16, // Back to original compact size
+    minHeight: 80, // Back to original height to match your image
     position: 'relative',
     justifyContent: 'space-between',
   },
@@ -2036,11 +2028,12 @@ const styles = StyleSheet.create({
     paddingRight: 60,
   },
   alternatingCharacterGroupTitle: {
-    fontSize: 16, // Original size
-    fontWeight: '700', // Original weight
-    marginBottom: 8, // Original spacing
-    lineHeight: 20,
+    fontSize: 18,
+    fontWeight: '800', // Bolder for more impact
+    marginBottom: 12, // More space below title
+    lineHeight: 24,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
+    letterSpacing: -0.3, // Tighter letter spacing for modern look
   },
   alternatingStatsRow: {
     flexDirection: 'row',
@@ -2051,8 +2044,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4, // Original padding
+    paddingVertical: 6, // More padding for better proportions
     borderRadius: 12,
+    gap: 6, // Space between icon and text
   },
   alternatingCountText: {
     fontSize: 12,
@@ -2067,13 +2061,24 @@ const styles = StyleSheet.create({
   },
   alternatingArrowContainer: {
     position: 'absolute',
-    bottom: 16, // Original positioning
+    bottom: 16, // Back to original position to match your image
     right: 16,
-    width: 30, // Original size
+    width: 30, // Back to original size to match your image
     height: 30,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    // Keep subtle shadow for depth
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   alternatingDecorativeCircle1: {
     position: 'absolute',
