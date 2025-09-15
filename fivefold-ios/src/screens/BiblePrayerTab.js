@@ -268,7 +268,7 @@ const BiblePrayerTab = () => {
         Read, study, and grow in faith
       </Text>
       
-      <TouchableOpacity 
+      <AnimatedBibleButton 
         style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
         onPress={() => {
           hapticFeedback.medium(); // Medium feedback when opening Bible
@@ -285,7 +285,7 @@ const BiblePrayerTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-      </TouchableOpacity>
+      </AnimatedBibleButton>
       
       {/* Verse of the day */}
       <BlurView intensity={30} tint="light" style={styles.verseOfDay}>
@@ -322,7 +322,7 @@ const BiblePrayerTab = () => {
         Explore characters, timeline, maps & more
       </Text>
       
-      <TouchableOpacity 
+      <AnimatedBibleButton 
         style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
         onPress={() => {
           hapticFeedback.medium();
@@ -339,11 +339,11 @@ const BiblePrayerTab = () => {
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-      </TouchableOpacity>
+      </AnimatedBibleButton>
 
       {/* Quick access features */}
       <View style={styles.quickAccessContainer}>
-        <TouchableOpacity 
+        <AnimatedQuickAccessButton 
           style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
           onPress={() => {
             hapticFeedback.light();
@@ -353,9 +353,9 @@ const BiblePrayerTab = () => {
         >
           <MaterialIcons name="people" size={18} color={theme.primary} />
           <Text style={[styles.quickAccessText, { color: theme.primary }]}>Characters</Text>
-        </TouchableOpacity>
+        </AnimatedQuickAccessButton>
 
-        <TouchableOpacity 
+        <AnimatedQuickAccessButton 
           style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
           onPress={() => {
             hapticFeedback.light();
@@ -365,9 +365,9 @@ const BiblePrayerTab = () => {
         >
           <MaterialIcons name="timeline" size={18} color={theme.primary} />
           <Text style={[styles.quickAccessText, { color: theme.primary }]}>Timeline</Text>
-        </TouchableOpacity>
+        </AnimatedQuickAccessButton>
 
-        <TouchableOpacity 
+        <AnimatedQuickAccessButton 
           style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
           onPress={() => {
             hapticFeedback.light();
@@ -377,7 +377,7 @@ const BiblePrayerTab = () => {
         >
           <MaterialIcons name="map" size={18} color={theme.primary} />
           <Text style={[styles.quickAccessText, { color: theme.primary }]}>Maps</Text>
-        </TouchableOpacity>
+        </AnimatedQuickAccessButton>
       </View>
     </BlurView>
   );

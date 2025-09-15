@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -16,6 +17,81 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AiBibleChat from './AiBibleChat';
+
+// Animated Prayer Components (follows Rules of Hooks)
+const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 400,
+      friction: 8,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+        style={style}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 // Simple verse pool
 const VERSES = [
@@ -446,7 +522,7 @@ In simple words: God is telling us something important here that we can understa
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>🙏 My Prayers</Text>
-        <TouchableOpacity
+        <AnimatedPrayerButton
           style={[styles.addButton, { backgroundColor: theme.primary }]}
           onPress={() => {
             setShowAddModal(true);
@@ -454,7 +530,7 @@ In simple words: God is telling us something important here that we can understa
           }}
         >
           <MaterialIcons name="add" size={24} color="#ffffff" />
-        </TouchableOpacity>
+        </AnimatedPrayerButton>
       </View>
 
       {/* Prayer List */}
@@ -477,7 +553,7 @@ In simple words: God is telling us something important here that we can understa
                 backgroundColor: theme.card + 'CC',
                 opacity: canComplete ? 1 : 0.7
               }]}>
-                <TouchableOpacity
+                <AnimatedPrayerCard
                   style={styles.prayerContent}
                   onPress={() => {
                     setSelectedPrayer(prayer);
@@ -503,14 +579,14 @@ In simple words: God is telling us something important here that we can understa
                     </View>
                   </View>
                   <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                </TouchableOpacity>
+                </AnimatedPrayerCard>
                 
-                <TouchableOpacity
+                <AnimatedPrayerButton
                   style={[styles.editButton, { backgroundColor: theme.primary + '20' }]}
                   onPress={() => editPrayer(prayer)}
                 >
                   <MaterialIcons name="edit" size={16} color={theme.primary} />
-                </TouchableOpacity>
+                </AnimatedPrayerButton>
               </View>
             );
           })
