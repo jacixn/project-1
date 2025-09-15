@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   Image,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,6 +21,93 @@ import BibleTimeline from './BibleTimeline';
 import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
+
+// Animated Character Card Component (follows Rules of Hooks)
+const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }],
+        width: '48%',
+        marginBottom: 20,
+      }}
+    >
+      <TouchableOpacity
+        style={[styles.characterGroupCard, { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+          shadowColor: section.color,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+          width: '100%',
+        }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        {/* Subtle gradient overlay for visual interest */}
+        <LinearGradient
+          colors={isDark ? 
+            [`${section.color}12`, `${section.color}06`, 'transparent'] :
+            [`${section.color}08`, `${section.color}04`, 'transparent']
+          }
+          style={styles.cardGradientBackground}
+        />
+        
+        <View style={styles.alternatingCardGradient}>
+          {/* Content */}
+          <View style={styles.alternatingCardContent}>
+            <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+              {group.title}
+            </Text>
+            
+            <View style={styles.alternatingStatsRow}>
+              <View style={[styles.alternatingCountBadge, { 
+                backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
+              }]}>
+                <MaterialIcons name="people" size={12} color={section.color} />
+                <Text style={[styles.alternatingCountText, { color: section.color }]}>
+                  {group.characters.length}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Arrow with glow effect */}
+          <View style={[styles.alternatingArrowContainer, { 
+            backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
+          }]}>
+            <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+          </View>
+
+          {/* Decorative elements */}
+          <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
+          <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 
 const BibleStudyModal = ({ visible, onClose }) => {
@@ -688,71 +776,21 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero Header - gradient removed */}
 
-        {/* Character Group Cards - 2 per row */}
+        {/* Character Group Cards - 2 per row with Micro-Interactions */}
         <View style={styles.characterGroupsGrid}>
-          {characterGroups.map((group, index) => {
-            return (
-            <TouchableOpacity
+          {characterGroups.map((group, index) => (
+            <AnimatedCharacterCard
               key={group.id}
-              style={[styles.characterGroupCard, { 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-                shadowColor: section.color,
-                borderWidth: isDark ? 0 : 1,
-                borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-                width: '48%', // Maintain exact width from your image
-              }]}
+              group={group}
+              section={section}
+              isDark={isDark}
+              theme={theme}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-              activeOpacity={0.85} // Simple, reliable press feedback
-            >
-              {/* Subtle gradient overlay for visual interest */}
-              <LinearGradient
-                colors={isDark ? 
-                  [`${section.color}12`, `${section.color}06`, 'transparent'] :
-                  [`${section.color}08`, `${section.color}04`, 'transparent']
-                }
-                style={styles.cardGradientBackground}
-              />
-              
-              <View style={styles.alternatingCardGradient}>
-                  {/* Icon removed for cleaner look */}
-
-                  {/* Content */}
-                  <View style={styles.alternatingCardContent}>
-                    <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
-                    {group.title}
-                  </Text>
-                    
-                    <View style={styles.alternatingStatsRow}>
-                      <View style={[styles.alternatingCountBadge, { 
-                        backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
-                      }]}>
-                        <MaterialIcons name="people" size={12} color={section.color} />
-                        <Text style={[styles.alternatingCountText, { color: section.color }]}>
-                          {group.characters.length}
-                  </Text>
-                </View>
-                    </View>
-                    
-                    {/* Character names removed for cleaner interface */}
-                </View>
-
-                  {/* Arrow with glow effect */}
-                  <View style={[styles.alternatingArrowContainer, { 
-                    backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
-                  }]}>
-                    <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
-                  </View>
-
-                  {/* Decorative elements */}
-                  <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
-                  <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
-              </View>
-            </TouchableOpacity>
-            );
-          })}
+            />
+          ))}
         </View>
       </ScrollView>
     );
@@ -1946,10 +1984,9 @@ const styles = StyleSheet.create({
   },
   
   characterGroupCard: {
-    marginBottom: 20,
     borderRadius: 24, // More modern rounded corners
     overflow: 'hidden',
-    // Width now controlled by Animated.View parent
+    // Width and marginBottom now controlled by AnimatedCharacterCard
     // Enhanced shadows for more depth
     ...Platform.select({
       ios: {
