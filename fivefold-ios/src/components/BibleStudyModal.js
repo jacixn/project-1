@@ -494,7 +494,9 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
   const renderMainMenu = () => (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header container completely removed - no spacing */}
+        <View style={styles.headerContainer}>
+          {/* Title text removed but container kept for spacing */}
+        </View>
 
       <View style={styles.sectionsGrid}>
         {studySections.map((section, index) => (
@@ -1259,7 +1261,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    padding: 20,
+    padding: 12,
     alignItems: 'center',
   },
   modalTitle: {
