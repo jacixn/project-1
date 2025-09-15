@@ -2027,12 +2027,12 @@ const styles = StyleSheet.create({
   },
   // PREMIUM CARD STYLES
   premiumCharacterCard: {
-    marginBottom: 20,
-    borderRadius: 24, // Slightly less rounded for better proportions
+    marginBottom: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    width: '48%',
-    minHeight: 100, // Reduced height for more square proportions
-    maxHeight: 120, // Add max height to prevent cards from getting too tall
+    width: '47%', // Slightly wider to use more space
+    minHeight: 140, // Taller for better content display
+    maxHeight: 180, // Allow more height for longer titles
     // Premium shadows with incredible depth
     ...Platform.select({
       ios: {
@@ -2086,18 +2086,18 @@ const styles = StyleSheet.create({
 
   premiumCardContent: {
     flex: 1,
-    padding: 16, // Reduced padding for better text space
+    padding: 20, // Back to generous padding for premium feel
     justifyContent: 'space-between',
-    minHeight: 68, // Adjusted for 100px card - 32px padding = 68px
-    maxHeight: 88, // Match card maxHeight - padding
+    minHeight: 100, // More space for content
+    maxHeight: 140, // Allow more space for text
     zIndex: 10, // Above all gradients
   },
 
   premiumCardTitle: {
-    fontSize: 15, // Slightly smaller for better fit
+    fontSize: 16, // Back to readable size
     fontWeight: '800',
-    lineHeight: 19, // Tighter line height for more compact text
-    marginBottom: 12, // Less margin for better space usage
+    lineHeight: 22, // Better line height for readability
+    marginBottom: 16, // More space for premium feel
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
     letterSpacing: -0.3,
     flexShrink: 1, // Allow text to shrink but still wrap properly
@@ -2113,10 +2113,10 @@ const styles = StyleSheet.create({
   premiumCountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8, // More compact
-    paddingVertical: 4,
-    borderRadius: 10, // More compact
-    gap: 4,
+    paddingHorizontal: 10, // Back to better size
+    paddingVertical: 6,
+    borderRadius: 12, // Better proportions
+    gap: 6,
     // Premium inner shadow
     ...Platform.select({
       ios: {
@@ -2137,20 +2137,20 @@ const styles = StyleSheet.create({
   },
 
   premiumArrowContainer: {
-    width: 32, // More compact for square cards
-    height: 32,
-    borderRadius: 16,
+    width: 36, // Back to better size
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     // Premium shadow for depth
     ...Platform.select({
       ios: {
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
-        shadowRadius: 6,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
