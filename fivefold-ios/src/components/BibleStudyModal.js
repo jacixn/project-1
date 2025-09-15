@@ -63,27 +63,52 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
         activeOpacity={1}
       >
         <LinearGradient
-          colors={[`${section.color}25`, `${section.color}15`]}
+          colors={isDark ? 
+            [`${section.color}40`, `${section.color}25`, `${section.color}15`] :
+            [`${section.color}35`, `${section.color}20`, `${section.color}10`]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.sectionGradient}
         >
           <View style={[styles.sectionIconContainer, { 
-            backgroundColor: isDark ? `${section.color}40` : `${section.color}35`,
+            backgroundColor: isDark ? `${section.color}50` : `${section.color}45`,
             borderWidth: 2,
-            borderColor: isDark ? `${section.color}60` : `${section.color}50`,
+            borderColor: isDark ? `${section.color}70` : `${section.color}60`,
+            shadowColor: section.color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 4,
           }]}>
             <MaterialIcons 
               name={section.icon} 
-              size={28} 
-              color={isDark ? section.color : section.color} 
-              style={{ fontWeight: 'bold' }}
+              size={30} 
+              color={section.color}
+              style={{ 
+                fontWeight: 'bold',
+                textShadowColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2
+              }}
             />
           </View>
           
           <View style={styles.sectionContent}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { 
+              color: isDark ? '#FFFFFF' : '#1A1A1A',
+              fontWeight: '800',
+              fontSize: 18,
+              letterSpacing: -0.3
+            }]}>
               {section.title}
             </Text>
-            <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+            <Text style={[styles.sectionDescription, { 
+              color: isDark ? '#E0E0E0' : '#4A4A4A',
+              fontWeight: '500',
+              fontSize: 14,
+              lineHeight: 20
+            }]}>
               {section.description}
             </Text>
             
@@ -95,8 +120,10 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
                   borderColor: isDark ? `${section.color}50` : `${section.color}40`,
                 }]}>
                   <Text style={[styles.featureText, { 
-                    color: isDark ? section.color : section.color,
-                    fontWeight: '600'
+                    color: section.color,
+                    fontWeight: '700',
+                    fontSize: 12,
+                    letterSpacing: 0.2
                   }]}>
                     {feature}
                   </Text>
@@ -106,13 +133,25 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
           </View>
 
           <View style={[styles.sectionArrowContainer, {
-            backgroundColor: isDark ? `${section.color}25` : `${section.color}20`,
+            backgroundColor: isDark ? `${section.color}40` : `${section.color}35`,
+            borderWidth: 1,
+            borderColor: isDark ? `${section.color}60` : `${section.color}50`,
+            shadowColor: section.color,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.2,
+            shadowRadius: 2,
+            elevation: 2,
           }]}>
             <MaterialIcons 
               name="chevron-right" 
-              size={22} 
+              size={24} 
               color={section.color}
-              style={{ fontWeight: 'bold' }}
+              style={{ 
+                fontWeight: 'bold',
+                textShadowColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.6)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 1
+              }}
             />
           </View>
         </LinearGradient>
@@ -362,7 +401,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Bible Characters',
       icon: 'people',
       description: 'Explore profiles of key Bible figures',
-      color: theme.primary,
+      color: '#E91E63', // Vibrant Pink
       features: ['Character profiles', 'Family trees', 'Key events', 'Life lessons']
     },
     {
@@ -370,7 +409,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Bible Timeline',
       icon: 'timeline',
       description: 'Journey through Biblical history',
-      color: theme.primaryLight,
+      color: '#2196F3', // Vibrant Blue
       features: ['Chronological events', 'Historical dates', 'Quick verse links', 'Era overview']
     },
     {
@@ -378,7 +417,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Interactive Maps',
       icon: 'map',
       description: 'Discover Biblical locations',
-      color: theme.info,
+      color: '#4CAF50', // Vibrant Green
       features: ['Key locations', 'Journey routes', 'Historical context', 'Character connections']
     },
     {
@@ -386,7 +425,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Thematic Guides',
       icon: 'category',
       description: 'Study by topics and themes',
-      color: theme.success,
+      color: '#9C27B0', // Vibrant Purple
       features: ['Faith stories', 'Leadership lessons', 'Miracles', 'Prophecies']
     },
     {
@@ -394,7 +433,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Key Verses',
       icon: 'book',
       description: 'Essential verses by topic',
-      color: theme.warning,
+      color: '#FF9800', // Vibrant Orange
       features: ['Topical verses', 'Memory verses', 'Life guidance', 'Inspirational quotes']
     },
     {
@@ -402,7 +441,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Fast Facts',
       icon: 'lightbulb',
       description: 'Did you know? Bible trivia',
-      color: theme.primaryDark,
+      color: '#795548', // Rich Brown
       features: ['Amazing facts', 'Quick summaries', 'Fun trivia', 'Historical insights']
     },
     {
@@ -410,7 +449,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Reading Plans',
       icon: 'schedule',
       description: 'Chronological Bible reading',
-      color: themeColors[6] || theme.primary,
+      color: '#F44336', // Vibrant Red
       features: ['Historical order', 'Daily readings', 'Progress tracking', 'Guided study']
     },
     {
@@ -418,7 +457,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Parallel Stories',
       icon: 'link',
       description: 'Connected Old & New Testament',
-      color: themeColors[7] || theme.primaryLight,
+      color: '#607D8B', // Blue Grey
       features: ['Story connections', 'Prophecy fulfillment', 'Type & antitype', 'Cross-references']
     },
     {
@@ -426,7 +465,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Audio Learning',
       icon: 'headset',
       description: 'Listen and learn',
-      color: themeColors[8] || theme.info,
+      color: '#FF5722', // Deep Orange
       features: ['Name pronunciation', 'Story summaries', 'Audio guides', 'Listening plans']
     },
     {
@@ -434,7 +473,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Quiz & Games',
       icon: 'quiz',
       description: 'Test your Bible knowledge',
-      color: theme.error,
+      color: '#673AB7', // Deep Purple
       features: ['Interactive quizzes', 'Memory games', 'Progress tracking', 'Achievement badges']
     },
     {
@@ -442,7 +481,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Daily Life Context',
       icon: 'home',
       description: 'Life in Biblical times',
-      color: themeColors[10] || theme.primaryDark,
+      color: '#009688', // Teal
       features: ['Ancient customs', 'Food & clothing', 'Social structure', 'Historical context']
     }
   ];
