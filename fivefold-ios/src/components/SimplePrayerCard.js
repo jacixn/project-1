@@ -17,6 +17,12 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AiBibleChat from './AiBibleChat';
+import { 
+  AnimatedLiquidGlassCard, 
+  LiquidGlassButton, 
+  GlassText,
+  isLiquidGlassSupported 
+} from './LiquidGlassComponents';
 
 // Animated Prayer Components (follows Rules of Hooks)
 const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
@@ -518,19 +524,24 @@ In simple words: God is telling us something important here that we can understa
   };
 
   return (
-    <BlurView intensity={18} tint="light" style={styles.container}>
+    <AnimatedLiquidGlassCard 
+      style={styles.container}
+      effect="regular"
+      interactive={false}
+    >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>🙏 My Prayers</Text>
-        <AnimatedPrayerButton
-          style={[styles.addButton, { backgroundColor: theme.primary }]}
+        <GlassText style={[styles.title]}>🙏 My Prayers</GlassText>
+        <LiquidGlassButton
+          style={[styles.addButton]}
+          effect="clear"
           onPress={() => {
             setShowAddModal(true);
             hapticFeedback.light();
           }}
         >
-          <MaterialIcons name="add" size={24} color="#ffffff" />
-        </AnimatedPrayerButton>
+          <MaterialIcons name="add" size={24} color={theme.primary} />
+        </LiquidGlassButton>
       </View>
 
       {/* Prayer List */}

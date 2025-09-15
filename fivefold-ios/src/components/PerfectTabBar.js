@@ -12,6 +12,11 @@ import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { 
+  LiquidGlassNavBar, 
+  GlassText,
+  isLiquidGlassSupported 
+} from './LiquidGlassComponents';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -69,37 +74,59 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={[styles.tabBarContainer, { width: maxWidth }]}>
-        {/* Main blur background */}
-        <BlurView
-          intensity={isDark ? 25 : 20}
+        {/* Liquid Glass Background */}
+        <LiquidGlassNavBar
+          effect="regular"
           style={[
             styles.blurBackground,
             {
-              backgroundColor: isBlushTheme || isCresviaTheme || isEternaTheme
-                ? 'rgba(255, 255, 255, 0.02)'
-                : isDark
-                ? 'rgba(255, 255, 255, 0.03)'
-                : 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'transparent', // Let liquid glass handle this
             },
           ]}
         >
-          {/* Sliding active background */}
+          {/* Liquid Glass Sliding Active Background */}
           <Animated.View
             style={[
               styles.activeBackground,
               {
                 width: tabWidth,
                 transform: [{ translateX: slideAnimation }],
-                backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'rgba(0, 0, 0, 0.05)',
+                backgroundColor: 'transparent', // Let liquid glass handle this
+                borderRadius: 20,
+                overflow: 'hidden',
+                shadowColor: theme.primary || '#6366F1',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                elevation: 4,
               },
             ]}
           >
-            <BlurView
-              intensity={15}
-              style={styles.activeBackgroundBlur}
-            />
+            {isLiquidGlassSupported ? (
+              <View
+                style={[
+                  styles.activeBackgroundBlur,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.12)'
+                      : 'rgba(0, 0, 0, 0.08)',
+                    borderRadius: 20,
+                  },
+                ]}
+              />
+            ) : (
+              <BlurView
+                intensity={15}
+                style={[
+                  styles.activeBackgroundBlur,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.08)'
+                      : 'rgba(0, 0, 0, 0.05)',
+                  },
+                ]}
+              />
+            )}
           </Animated.View>
 
           {/* Tab buttons */}
@@ -155,7 +182,7 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
                     ]}
                   />
                   
-                  <Text
+                  <GlassText
                     style={[
                       styles.tabLabel,
                       {
@@ -175,12 +202,12 @@ const PerfectTabBar = ({ state, descriptors, navigation }) => {
                     ]}
                   >
                     {getTabLabel(route.name)}
-                  </Text>
+                  </GlassText>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </BlurView>
+        </LiquidGlassNavBar>
       </View>
     </View>
   );
