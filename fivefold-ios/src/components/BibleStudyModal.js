@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   Platform,
   Image,
   StatusBar,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -692,50 +691,21 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         {/* Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
           {characterGroups.map((group, index) => {
-            // Create animated value for each card
-            const scaleAnim = useRef(new Animated.Value(1)).current;
-            
-            const handlePressIn = () => {
-              Animated.spring(scaleAnim, {
-                toValue: 0.96, // Subtle scale down
-                useNativeDriver: true,
-                tension: 300,
-                friction: 10,
-              }).start();
-            };
-
-            const handlePressOut = () => {
-              Animated.spring(scaleAnim, {
-                toValue: 1,
-                useNativeDriver: true,
-                tension: 300,
-                friction: 10,
-              }).start();
-            };
-
             return (
-            <Animated.View
+            <TouchableOpacity
               key={group.id}
-              style={{
-                transform: [{ scale: scaleAnim }],
+              style={[styles.characterGroupCard, { 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+                shadowColor: section.color,
+                borderWidth: isDark ? 0 : 1,
+                borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
                 width: '48%', // Maintain exact width from your image
-              }}
-            >
-              <TouchableOpacity
-                style={[styles.characterGroupCard, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-                  shadowColor: section.color,
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-                  width: '100%', // Fill the animated container
-                }]}
+              }]}
               onPress={() => {
                 hapticFeedback.light();
                 setSelectedCharacterGroup(group);
               }}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                activeOpacity={1} // Disable default opacity since we have scale animation
+              activeOpacity={0.85} // Simple, reliable press feedback
             >
               {/* Subtle gradient overlay for visual interest */}
               <LinearGradient
@@ -781,7 +751,6 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                   <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
               </View>
             </TouchableOpacity>
-            </Animated.View>
             );
           })}
         </View>
