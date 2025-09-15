@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,9 @@ import {
   Platform,
   Image,
   StatusBar,
+  Animated,
+  Easing,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
-  interpolate,
-  Extrapolate,
-  runOnJS,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -31,79 +23,72 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
-// PREMIUM Animated Card Component
+// PREMIUM Animated Card Component (Using Reliable Built-in Animated API)
 const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) => {
-  // Animation values
-  const scale = useSharedValue(0);
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(50);
-  const rotateY = useSharedValue(10);
-  const pressScale = useSharedValue(1);
-  const gradientOpacity = useSharedValue(0.3);
+  // Animation values using reliable Animated API
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(30)).current;
+  const pressScaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Staggered entrance animation with premium spring physics
-    const delay = index * 200;
+    // Staggered entrance animation with smooth timing
+    const delay = index * 150;
     
-    scale.value = withDelay(delay, withSpring(1, {
-      damping: 15,
-      stiffness: 150,
-      mass: 1,
-    }));
-    
-    opacity.value = withDelay(delay, withTiming(1, { duration: 800 }));
-    
-    translateY.value = withDelay(delay, withSpring(0, {
-      damping: 20,
-      stiffness: 100,
-    }));
-    
-    rotateY.value = withDelay(delay, withSpring(0, {
-      damping: 25,
-      stiffness: 120,
-    }));
-    
-    gradientOpacity.value = withDelay(delay + 300, withTiming(0.6, { duration: 600 }));
-  }, []);
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 600,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        delay,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateYAnim, {
+        toValue: 0,
+        delay,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index]);
 
   // Press animation handlers
   const handlePressIn = () => {
-    pressScale.value = withSpring(0.95, {
-      damping: 15,
-      stiffness: 300,
-    });
-    gradientOpacity.value = withTiming(0.8, { duration: 150 });
+    Animated.spring(pressScaleAnim, {
+      toValue: 0.95,
+      tension: 300,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePressOut = () => {
-    pressScale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 300,
-    });
-    gradientOpacity.value = withTiming(0.6, { duration: 200 });
+    Animated.spring(pressScaleAnim, {
+      toValue: 1,
+      tension: 300,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
   };
 
-  // Animated styles
-  const cardAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-      transform: [
-        { scale: scale.value * pressScale.value },
-        { translateY: translateY.value },
-        { perspective: 1000 },
-        { rotateY: `${rotateY.value}deg` },
-      ],
-    };
-  });
-
-  const gradientAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: gradientOpacity.value,
-    };
-  });
-
   return (
-    <Animated.View style={[cardAnimatedStyle]}>
+    <Animated.View style={[
+      {
+        opacity: opacityAnim,
+        transform: [
+          { scale: Animated.multiply(scaleAnim, pressScaleAnim) },
+          { translateY: translateYAnim },
+        ],
+      }
+    ]}>
       <TouchableOpacity
         style={[styles.premiumCard, { 
           backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
@@ -114,10 +99,10 @@ const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) 
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.9}
       >
-        {/* Animated gradient overlay */}
-        <Animated.View style={[styles.cardGradientBackground, gradientAnimatedStyle]}>
+        {/* Gradient overlay */}
+        <View style={styles.cardGradientBackground}>
           <LinearGradient
             colors={isDark ? 
               [`${section.color}15`, `${section.color}08`, 'transparent'] :
@@ -125,7 +110,7 @@ const PremiumAnimatedCard = ({ group, section, onPress, index, isDark, theme }) 
             }
             style={StyleSheet.absoluteFillObject}
           />
-        </Animated.View>
+        </View>
         
         <View style={styles.premiumCardContent}>
           <Text style={[styles.premiumCardTitle, { color: theme.text }]}>

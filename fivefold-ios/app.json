@@ -54,7 +54,8 @@
         }
       ],
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      "react-native-worklets/plugin"
     ],
     "extra": {
       "eas": {
