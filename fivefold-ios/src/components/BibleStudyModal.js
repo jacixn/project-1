@@ -494,10 +494,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
   const renderMainMenu = () => (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerContainer}>
-        <Text style={[styles.modalTitle, { color: theme.text }]}>📚 Bible Study</Text>
-        {/* Subtitle removed for cleaner interface */}
-      </View>
+      {/* Header completely removed for minimal interface */}
 
       <View style={styles.sectionsGrid}>
         {studySections.map((section, index) => (
