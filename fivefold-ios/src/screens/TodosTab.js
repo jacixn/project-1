@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   },
   twitterScrollContent: {
     paddingTop: 145, // Content starts after header - no overlap
-    paddingBottom: 140, // Space for floating tab bar - no content hidden
+    paddingBottom: 80, // Space for floating tab bar - no content hidden
   },
 
   headerContent: {
