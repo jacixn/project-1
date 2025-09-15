@@ -681,17 +681,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Hero Header */}
-        <View style={styles.heroHeader}>
-          <LinearGradient
-            colors={[`${section.color}20`, `${section.color}05`, 'transparent']}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroContent}>
-              {/* Hero title and subtitle removed for cleaner interface */}
-            </View>
-          </LinearGradient>
-        </View>
+        {/* Hero Header - gradient removed */}
 
         {/* Character Group Cards - 2 per row */}
         <View style={styles.characterGroupsGrid}>
@@ -730,7 +720,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                         <Text style={[styles.alternatingCountText, { color: section.color }]}>
                           {group.characters.length}
                   </Text>
-                      </View>
+                </View>
                     </View>
                     
                     {/* Character names removed for cleaner interface */}
