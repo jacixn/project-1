@@ -2012,8 +2012,8 @@ const styles = StyleSheet.create({
   },
   
   alternatingCardGradient: {
-    padding: 20, // More generous padding
-    minHeight: 100, // Slightly taller for better proportions
+    padding: 16, // Original padding
+    minHeight: 140, // Restored to proper height for full content
     position: 'relative',
     justifyContent: 'space-between',
   },
@@ -2036,12 +2036,11 @@ const styles = StyleSheet.create({
     paddingRight: 60,
   },
   alternatingCharacterGroupTitle: {
-    fontSize: 18,
-    fontWeight: '800', // Bolder for more impact
-    marginBottom: 12, // More space below title
-    lineHeight: 24,
+    fontSize: 16, // Original size
+    fontWeight: '700', // Original weight
+    marginBottom: 8, // Original spacing
+    lineHeight: 20,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-    letterSpacing: -0.3, // Tighter letter spacing for modern look
   },
   alternatingStatsRow: {
     flexDirection: 'row',
@@ -2052,9 +2051,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 6, // More padding for better proportions
+    paddingVertical: 4, // Original padding
     borderRadius: 12,
-    gap: 6, // Space between icon and text
   },
   alternatingCountText: {
     fontSize: 12,
@@ -2069,24 +2067,13 @@ const styles = StyleSheet.create({
   },
   alternatingArrowContainer: {
     position: 'absolute',
-    bottom: 20, // Adjusted for new padding
-    right: 20,
-    width: 34, // Slightly larger for better touch target
-    height: 34,
-    borderRadius: 17,
+    bottom: 16, // Original positioning
+    right: 16,
+    width: 30, // Original size
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    // Add subtle shadow for depth
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   alternatingDecorativeCircle1: {
     position: 'absolute',
