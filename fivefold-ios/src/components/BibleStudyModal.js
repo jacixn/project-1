@@ -22,6 +22,107 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 
+// Animated Individual Character Card Component (follows Rules of Hooks)
+const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, theme, index }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const isAvailable = character.available !== false;
+  const isEven = index % 2 === 0;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }],
+        width: '70%',
+        marginBottom: 12,
+        alignSelf: isEven ? 'flex-start' : 'flex-end',
+        marginLeft: isEven ? 0 : 60,
+        marginRight: isEven ? 60 : 0,
+      }}
+    >
+      <TouchableOpacity
+        style={[styles.alternatingCharacterCard, { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+          shadowColor: isAvailable ? section.color : theme.textTertiary,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+          width: '100%',
+        }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <LinearGradient
+          colors={isAvailable ? 
+            [`${section.color}18`, `${section.color}10`, 'transparent'] :
+            [isDark ? 'rgba(255,255,255,0.08)' : 'rgba(128,128,128,0.08)', 'transparent', 'transparent']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.alternatingCharacterCardGradient}
+        >
+          {/* Character Avatar */}
+          <View style={[styles.alternatingCharacterAvatarContainer, { 
+            backgroundColor: isAvailable ? `${section.color}20` : `${theme.textTertiary}15`,
+            borderColor: isAvailable ? `${section.color}30` : `${theme.textTertiary}25`,
+          }]}>
+            {isAvailable ? (
+              <MaterialIcons name="person" size={16} color={section.color} />
+            ) : (
+              <MaterialIcons name="person-outline" size={16} color={theme.textTertiary} />
+            )}
+          </View>
+
+          {/* Character Info */}
+          <Text style={[styles.alternatingCharacterName, { 
+            color: isAvailable ? theme.text : theme.textTertiary,
+            flex: 1,
+          }]}>
+            {character.name}
+          </Text>
+
+          {/* Availability Indicator */}
+          <View style={[styles.alternatingCharacterStatus, {
+            backgroundColor: isAvailable ? `${section.color}25` : `${theme.textTertiary}20`
+          }]}>
+            <View style={[styles.alternatingStatusDot, {
+              backgroundColor: isAvailable ? section.color : theme.textTertiary
+            }]} />
+          </View>
+
+          {/* Arrow */}
+          {isAvailable && (
+            <MaterialIcons 
+              name="arrow-forward-ios" 
+              size={14} 
+              color={section.color}
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 // Animated Character Card Component (follows Rules of Hooks)
 const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -860,80 +961,26 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           </View>
         </View>
 
-        {/* Alternating Character List */}
+        {/* Alternating Character List with Micro-Interactions */}
         <View style={styles.alternatingCharacterListContainer}>
           {group.characters.map((character, index) => {
             const isAvailable = characterProfiles[character];
-            const isEven = index % 2 === 0;
             
             return (
-            <TouchableOpacity
-              key={index}
-                style={[styles.alternatingCharacterCard, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-                  shadowColor: isAvailable ? section.color : theme.textTertiary,
-                  alignSelf: isEven ? 'flex-start' : 'flex-end',
-                  marginLeft: isEven ? 0 : 60,
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
-                  marginRight: isEven ? 60 : 0,
-                }]}
-              onPress={() => {
-                hapticFeedback.light();
+              <AnimatedIndividualCharacterCard
+                key={index}
+                character={{ name: character, available: isAvailable }}
+                section={section}
+                index={index}
+                isDark={isDark}
+                theme={theme}
+                onPress={() => {
+                  hapticFeedback.light();
                   if (isAvailable) {
-                  setSelectedCharacter(character);
-                }
-              }}
-                activeOpacity={0.8}
-            >
-              <LinearGradient
-                  colors={isAvailable ? 
-                    [`${section.color}18`, `${section.color}10`, 'transparent'] :
-                    [isDark ? 'rgba(255,255,255,0.08)' : 'rgba(128,128,128,0.08)', 'transparent', 'transparent']
+                    setSelectedCharacter(character);
                   }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.alternatingCharacterCardGradient}
-                >
-                  {/* Character Avatar */}
-                  <View style={[styles.alternatingCharacterAvatarContainer, { 
-                    backgroundColor: isAvailable ? `${section.color}20` : `${theme.textTertiary}15`,
-                    borderColor: isAvailable ? `${section.color}30` : `${theme.textTertiary}25`,
-                  }]}>
-                    {isAvailable ? (
-                      <MaterialIcons name="person" size={16} color={section.color} />
-                    ) : (
-                      <MaterialIcons name="person-outline" size={16} color={theme.textTertiary} />
-                    )}
-                  </View>
-
-                  {/* Character Info */}
-                  <Text style={[styles.alternatingCharacterName, { 
-                    color: theme.text,
-                    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
-                  }]}>
-                  {character}
-                </Text>
-                  
-                  {/* Compact Status Badge */}
-                  <View style={[styles.alternatingCharacterStatusBadge, { 
-                    backgroundColor: isAvailable ? `${section.color}15` : `${theme.textTertiary}12`
-                  }]}>
-                    {isAvailable ? (
-                      <View style={[styles.alternatingCharacterPulseDot, { backgroundColor: section.color }]} />
-                    ) : (
-                      <MaterialIcons name="schedule" size={8} color={theme.textTertiary} />
-                    )}
-        </View>
-
-                  {/* Interactive Arrow */}
-                  {isAvailable && (
-                    <View style={styles.alternatingCharacterArrowContainer}>
-                      <MaterialIcons name="chevron-right" size={14} color={section.color} />
-                    </View>
-                  )}
-              </LinearGradient>
-            </TouchableOpacity>
+                }}
+              />
             );
           })}
         </View>
@@ -2109,10 +2156,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   alternatingCharacterCard: {
-    width: '70%',
-    marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
+    // Width, marginBottom, and positioning now controlled by AnimatedIndividualCharacterCard
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 3 },
