@@ -876,13 +876,13 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <BlurView intensity={40} tint="systemMaterialDark" style={[styles.eraDetailCard, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
           {/* Close Button - Top Right */}
           <TouchableOpacity
-            style={[styles.closeButtonTopRight, { backgroundColor: `${selectedEra.color}20` }]}
+            style={[styles.closeButtonTopRight, { backgroundColor: `${selectedEra.color}20`, minWidth: 50, alignItems: 'center' }]}
             onPress={() => {
               hapticFeedback.light();
               setSelectedEra(null);
             }}
           >
-            <MaterialIcons name="close" size={20} color={selectedEra.color} />
+            <Text style={[{ color: selectedEra.color, fontSize: 14, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
           </TouchableOpacity>
           
           <LinearGradient
@@ -974,9 +974,9 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
           <TouchableOpacity
             onPress={onClose}
-            style={styles.solidHeaderButton}
+            style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
           >
-            <MaterialIcons name="close" size={24} color={theme.text} />
+            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
             Bible Timeline

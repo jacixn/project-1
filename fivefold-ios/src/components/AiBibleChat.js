@@ -855,10 +855,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           {/* History Header */}
           <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity
-              style={styles.historyCloseButton}
+              style={[styles.historyCloseButton, { minWidth: 60, alignItems: 'center' }]}
               onPress={() => setShowHistory(false)}
             >
-              <MaterialIcons name="close" size={24} color={theme.text} />
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
             </TouchableOpacity>
             <Text style={[styles.historyTitle, { color: theme.text }]}>Chat History</Text>
             <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,60 +8,64 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import {
+  LiquidGlassView,
+  LiquidGlassContainerView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
-const { width } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
-  const [dimensions, setDimensions] = useState({ width: width - 40 });
-  const morphAnimation = useRef(new Animated.Value(0)).current;
-  const scaleAnimations = useRef(
-    state.routes.map(() => new Animated.Value(1))
-  ).current;
-  const glowAnimation = useRef(new Animated.Value(0)).current;
-
-  // Calculate tab width and position
-  const tabWidth = dimensions.width / state.routes.length;
-  const activeTabIndex = state.index;
-
+  
+  // Calculate dimensions - EXACTLY like native iOS from your image
+  const tabBarWidth = screenWidth * 0.75; // Bigger like the native iOS in your image
+  const maxWidth = Math.min(tabBarWidth, 294); // Reduced by 6px (was 300, now 294)
+  const numberOfTabs = state.routes.length;
+  const tabWidth = maxWidth / numberOfTabs;
+  
+  // Animations for morphing bubble
+  const slideAnimation = useRef(new Animated.Value(state.index * tabWidth)).current;
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+  
   useEffect(() => {
-    // Animate the morphing pill to the active tab
-    Animated.spring(morphAnimation, {
-      toValue: activeTabIndex * tabWidth,
-      useNativeDriver: false,
-      tension: 300,
-      friction: 30,
-    }).start();
-
-    // Animate glow effect
+    // Morphing animation sequence
     Animated.sequence([
-      Animated.timing(glowAnimation, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-      Animated.timing(glowAnimation, {
-        toValue: 0.3,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-    ]).start();
-
-    // Scale animations for active/inactive states
-    scaleAnimations.forEach((anim, index) => {
-      Animated.spring(anim, {
-        toValue: index === activeTabIndex ? 1.1 : 1,
+      // First, scale down slightly
+      Animated.timing(scaleAnimation, {
+        toValue: 0.9,
+        duration: 100,
         useNativeDriver: true,
+      }),
+      // Then slide to new position while scaling back up
+      Animated.parallel([
+        Animated.spring(slideAnimation, {
+          toValue: state.index * tabWidth,
+          tension: 400,
+          friction: 25,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnimation, {
+          toValue: 1.1, // Slightly larger for bubble effect
+          tension: 400,
+          friction: 25,
+          useNativeDriver: true,
+        }),
+      ]),
+      // Finally, settle to normal size
+      Animated.spring(scaleAnimation, {
+        toValue: 1,
         tension: 300,
         friction: 20,
-      }).start();
-    });
-  }, [activeTabIndex, tabWidth]);
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [state.index, tabWidth]);
 
   const getTabIcon = (routeName) => {
     switch (routeName) {
@@ -72,14 +76,14 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
       case 'Profile':
         return 'person';
       default:
-        return 'circle';
+        return 'home';
     }
   };
 
   const getTabLabel = (routeName) => {
     switch (routeName) {
       case 'BiblePrayer':
-        return 'Feed';
+        return 'Bible';
       case 'Todos':
         return 'Tasks';
       case 'Profile':
@@ -89,157 +93,185 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Main Glass Container */}
-      <BlurView
-        intensity={isDark ? 40 : 30}
-        style={[
-          styles.tabBarContainer,
-          {
-            backgroundColor: isBlushTheme || isCresviaTheme || isEternaTheme
-              ? 'rgba(255, 255, 255, 0.05)'
-              : isDark
-              ? 'rgba(0, 0, 0, 0.1)'
-              : 'rgba(255, 255, 255, 0.15)',
-          },
-        ]}
-      >
-        {/* Animated Morphing Pill Background */}
-        <Animated.View
-          style={[
-            styles.morphingPill,
-            {
-              width: tabWidth * 0.9,
-              transform: [{ translateX: morphAnimation }],
-              marginLeft: tabWidth * 0.05,
-            },
-          ]}
-        >
-          {/* Strong Inner Glow Effect for Active Tab */}
-          <BlurView
-            intensity={30}
+  if (!isLiquidGlassSupported) {
+    // Fallback for unsupported devices - maintains current blur appearance
+    return (
+      <View style={styles.container}>
+        <View style={[styles.fallbackTabBar, { width: maxWidth }]}>
+          {/* Fallback active indicator */}
+          <Animated.View
             style={[
-              styles.pillInner,
+              styles.fallbackActiveIndicator,
               {
-                backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.25)'
-                  : 'rgba(0, 0, 0, 0.15)',
+                width: tabWidth - 16,
+                transform: [{ translateX: Animated.add(slideAnimation, new Animated.Value(8)) }],
               },
             ]}
           />
           
-          {/* Prominent Border Glow - Only on Active */}
-          <Animated.View
-            style={[
-              styles.subtleGlow,
-              {
-                opacity: glowAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 0.8],
-                }),
-                borderColor: isDark 
-                  ? 'rgba(255, 255, 255, 0.5)' 
-                  : 'rgba(0, 0, 0, 0.4)',
-                borderWidth: 1.5,
-              },
-            ]}
-          />
-        </Animated.View>
+          <View style={styles.tabsRow}>
+            {state.routes.map((route, index) => {
+              const { options } = descriptors[route.key];
+              const isFocused = state.index === index;
 
-        {/* Tab Buttons */}
-        <View style={styles.tabsContainer}>
-          {state.routes.map((route, index) => {
-            const { options } = descriptors[route.key];
-            const isFocused = state.index === index;
+              const onPress = () => {
+                hapticFeedback.selection();
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
 
-            const onPress = () => {
-              hapticFeedback.selection();
-              
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+                if (!isFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              };
 
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            return (
-              <TouchableOpacity
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={options.tabBarAccessibilityLabel}
-                testID={options.tabBarTestID}
-                onPress={onPress}
-                style={styles.tabButton}
-                activeOpacity={0.7}
-              >
-                <Animated.View
-                  style={[
-                    styles.tabContent,
-                    {
-                      transform: [{ scale: scaleAnimations[index] }],
-                    },
-                  ]}
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  accessibilityRole="button"
+                  accessibilityState={isFocused ? { selected: true } : {}}
+                  accessibilityLabel={options.tabBarAccessibilityLabel}
+                  testID={options.tabBarTestID}
+                  onPress={onPress}
+                  style={[styles.tabButton, { width: tabWidth }]}
+                  activeOpacity={0.8}
                 >
                   <MaterialIcons
                     name={getTabIcon(route.name)}
-                    size={isFocused ? 26 : 24}
+                    size={isFocused ? 24 : 22}
                     color={
                       isFocused
-                        ? isDark
-                          ? '#FFFFFF'
-                          : '#000000'
-                        : isDark
-                        ? 'rgba(255, 255, 255, 0.4)'
-                        : 'rgba(0, 0, 0, 0.4)'
+                        ? theme.tabActive || theme.primary
+                        : theme.textSecondary || `${theme.tabActive || theme.primary}99`
                     }
-                    style={[
-                      styles.tabIcon,
-                      isFocused && styles.activeTabIcon,
-                      isFocused && {
-                        textShadowColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 3,
-                      },
-                    ]}
+                  />
+                  <Text style={[
+                    styles.tabLabel,
+                    { 
+                      color: isFocused
+                        ? theme.tabActive || theme.primary
+                        : theme.textSecondary || `${theme.tabActive || theme.primary}99`,
+                      fontWeight: isFocused ? '600' : '500',
+                      fontSize: isFocused ? 12 : 11,
+                    }
+                  ]}>
+                    {getTabLabel(route.name)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+      return (
+        <View style={styles.container}>
+          <LiquidGlassContainerView spacing={8} style={styles.glassContainer}>
+
+            {/* Main liquid glass background - native iOS style */}
+            <LiquidGlassView
+              interactive={false}
+              effect="clear"
+              colorScheme="system"
+              tintColor="rgba(255, 255, 255, 0.02)" // Very subtle tint like native
+              style={[styles.tabBarContainer, { width: maxWidth }]}
+            >
+
+              {/* Active tab indicator - smaller and more subtle */}
+              <Animated.View
+                style={[
+                  styles.activeIndicator,
+                  {
+                    width: tabWidth - 10, // Reduced by 2px (was -8, now -10)
+                    height: 58, // Reduced by 6px (was 64, now 58)
+                    transform: [
+                      { translateX: Animated.add(slideAnimation, new Animated.Value(8)) },
+                      { scale: scaleAnimation },
+                    ],
+                  },
+                ]}
+              >
+                <LiquidGlassView
+                  interactive={true}
+                  effect="regular"
+                  colorScheme="system"
+                  tintColor={
+                    isBlushTheme ? 'rgba(255, 105, 180, 0.4)' : // Beautiful hot pink for Blush
+                    isCresviaTheme ? 'rgba(138, 43, 226, 0.35)' : // More vibrant purple for Cresvia
+                    isEternaTheme ? 'rgba(75, 0, 130, 0.35)' : // More vibrant indigo for Eterna
+                    isDark ? 'rgba(255, 255, 255, 0.25)' : // Brighter white for dark mode
+                    'rgba(59, 130, 246, 0.35)' // More vibrant blue for default
+                  }
+                  style={styles.indicatorGlass}
+                />
+              </Animated.View>
+
+          {/* Tab buttons */}
+          <View style={styles.tabsRow}>
+            {state.routes.map((route, index) => {
+              const { options } = descriptors[route.key];
+              const isFocused = state.index === index;
+
+              const onPress = () => {
+                hapticFeedback.selection();
+                
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!isFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              };
+
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  accessibilityRole="button"
+                  accessibilityState={isFocused ? { selected: true } : {}}
+                  accessibilityLabel={options.tabBarAccessibilityLabel}
+                  testID={options.tabBarTestID}
+                  onPress={onPress}
+                  style={[styles.tabButton, { width: tabWidth }]}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons
+                    name={getTabIcon(route.name)}
+                    size={isFocused ? 27 : 25} // Increased by 5 as requested
+                    color={
+                      isFocused
+                        ? theme.tabActive || theme.primary
+                        : theme.textSecondary || `${theme.tabActive || theme.primary}99`
+                    }
+                    style={styles.tabIcon}
                   />
                   
-                  {/* Tab Label */}
                   <Text
                     style={[
                       styles.tabLabel,
                       {
                         color: isFocused
-                          ? isDark
-                            ? '#FFFFFF'
-                            : '#000000'
-                          : isDark
-                          ? 'rgba(255, 255, 255, 0.4)'
-                          : 'rgba(0, 0, 0, 0.4)',
-                        opacity: isFocused ? 1 : 0.7,
-                        fontWeight: isFocused ? '700' : '500',
-                        fontSize: isFocused ? 13 : 12,
-                        textShadowColor: isFocused 
-                          ? (isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)')
-                          : 'transparent',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 3,
+                          ? theme.tabActive || theme.primary
+                          : theme.textSecondary || `${theme.tabActive || theme.primary}99`,
+                        fontWeight: isFocused ? '600' : '500',
+                        fontSize: isFocused ? 16 : 15, // Increased by 5 as requested
                       },
                     ]}
                   >
                     {getTabLabel(route.name)}
                   </Text>
-                </Animated.View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </BlurView>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </LiquidGlassView>
+      </LiquidGlassContainerView>
     </View>
   );
 };
@@ -247,78 +279,79 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 25,
-    left: 20,
-    right: 20,
-    height: 80,
-    justifyContent: 'center',
-  },
-  tabBarContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    borderRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    // iOS specific blur backdrop
-    ...(Platform.OS === 'ios' && {
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-    }),
-  },
-  morphingPill: {
-    position: 'absolute',
-    top: 8,
-    height: 64,
-    borderRadius: 20,
-    zIndex: 1,
-  },
-  pillInner: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  subtleGlow: {
-    position: 'absolute',
-    top: 0,
+    bottom: Platform.OS === 'ios' ? 20 : 0, // Moved down by 20px (was 40, now 20)
     left: 0,
     right: 0,
-    bottom: 0,
-    borderRadius: 18,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 50, // Increased for more equal spacing
   },
-  tabsContainer: {
+  glassContainer: {
+    alignItems: 'center',
+  },
+  fallbackTabBar: {
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fallbackActiveIndicator: {
+    position: 'absolute',
+    top: 8,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    zIndex: 1,
+  },
+  tabBarContainer: {
+    height: 64, // Reduced by 6px (was 70, now 64)
+    borderRadius: 32, // Adjusted for new height
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02, // Almost no shadow like native
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: 3, // Centered for 64px height with 58px pill
+    borderRadius: 29, // Rounded pill shape (adjusted for new height)
+    overflow: 'hidden',
+    zIndex: 1,
+  },
+  indicatorGlass: {
     flex: 1,
+    borderRadius: 29, // Rounded pill to match (adjusted for new height)
+  },
+  tabsRow: {
     flexDirection: 'row',
-    zIndex: 3,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    height: '100%',
+    paddingHorizontal: 8,
+    zIndex: 2,
   },
   tabButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   tabIcon: {
-    marginBottom: 4,
-  },
-  activeTabIcon: {
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    marginBottom: 2,
   },
   tabLabel: {
-    fontSize: 11,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    fontSize: 11,
   },
 });
 

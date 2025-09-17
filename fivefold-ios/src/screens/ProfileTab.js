@@ -18,6 +18,10 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -76,11 +80,12 @@ const AnimatedStatCard = ({ children, onPress, style, ...props }) => {
 };
 
 const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
+  const { theme, isDark } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.98, // Reduced by 50% - more subtle press effect (was 0.96, now 0.98)
       useNativeDriver: true,
       tension: 300,
       friction: 10,
@@ -96,20 +101,51 @@ const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
     }).start();
   };
 
+  // Liquid Glass Container for Settings Cards
+  const LiquidGlassSettingsContainer = ({ children, style }) => {
+    if (!isLiquidGlassSupported) {
+      return (
+        <BlurView 
+          intensity={18} 
+          tint={isDark ? "dark" : "light"} 
+          style={[style, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}10` // Added 4 to opacity (06 -> 10)
+          }]}
+        >
+          {children}
+        </BlurView>
+      );
+    }
+
+    return (
+      <LiquidGlassView
+        interactive={true}
+        effect="clear"
+        colorScheme="system"
+        tintColor="rgba(255, 255, 255, 0.08)"
+        style={[style, styles.liquidGlassSettingsCard]}
+      >
+        {children}
+      </LiquidGlassView>
+    );
+  };
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <BlurView intensity={18} tint="light" style={style}>
+      <LiquidGlassSettingsContainer style={style}>
         <TouchableOpacity
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          activeOpacity={1}
+          activeOpacity={0.4} // Reduced brightness by 50% (was 0.8, now 0.4)
           style={{ flex: 1 }}
           {...props}
         >
           {children}
         </TouchableOpacity>
-      </BlurView>
+      </LiquidGlassSettingsContainer>
     </Animated.View>
   );
 };
@@ -488,8 +524,40 @@ const ProfileTab = () => {
   const progress = Math.min((userStats.points - currentLevelPoints) / 1000, 1);
 
   // Profile Header Component
-  const ProfileHeader = () => (
-    <BlurView intensity={18} tint="light" style={styles.profileCard}>
+  const ProfileHeader = () => {
+    // Liquid Glass Container for Profile Header
+    const LiquidGlassProfileContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.profileCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassProfileCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassProfileContainer>
       {/* Edit Button with Fluid Animation */}
       <FluidButton
         style={styles.editButton}
@@ -545,24 +613,112 @@ const ProfileTab = () => {
           />
         </View>
       </View>
-    </BlurView>
-  );
+      </LiquidGlassProfileContainer>
+    );
+  };
 
   // Stats Grid Component
-  const StatsGrid = () => (
-    <BlurView intensity={18} tint="light" style={styles.statsCard}>
+  const StatsGrid = () => {
+    // Liquid Glass Container for Stats Grid
+    const LiquidGlassStatsContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.statsCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassStatsCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassStatsContainer>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>📊 {t.yourJourney || 'Your Journey'}</Text>
       
       <View style={styles.statsGrid}>
-        <View style={[styles.statBox, { backgroundColor: theme.surface }]}>
+        <View style={[styles.statBox, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderColor: `${theme.primary}15`, // Very subtle border color
+          borderWidth: 0.8, // Very subtle border
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+          shadowOpacity: 0.06, // Very subtle shadow
+          shadowRadius: 3, // Small shadow radius
+          elevation: 1, // Minimal elevation
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4',
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)',
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2',
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082',
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+          }),
+        }]}>
           <MaterialIcons name="check-circle" size={24} color={theme.success} />
+          <Text style={[styles.statValue, { color: theme.text }]}>
+            {userStats.completedTasks || 0}
+          </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.tasksDone || 'Tasks Done'}
           </Text>
         </View>
         
         <AnimatedStatCard 
-          style={[styles.statBox, { backgroundColor: theme.surface }]}
+          style={[styles.statBox, { 
+            backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+            borderColor: `${theme.primary}15`, // Very subtle border color
+            borderWidth: 0.8, // Very subtle border
+            borderRadius: 16, // Smooth rounded corners - no sharp edges!
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+            shadowOpacity: 0.06, // Very subtle shadow
+            shadowRadius: 3, // Small shadow radius
+            elevation: 1, // Minimal elevation
+            // Add glow effect for different themes
+            ...(isBlushTheme && {
+              shadowColor: '#FF69B4',
+              backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+              borderColor: 'rgba(255, 105, 180, 0.4)',
+            }),
+            ...(isCresviaTheme && {
+              shadowColor: '#8A2BE2',
+              backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+              borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+            }),
+            ...(isEternaTheme && {
+              shadowColor: '#4B0082',
+              backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+              borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+            }),
+          }]}
           onPress={() => {
             hapticFeedback.light();
             // Refresh saved verses before showing modal
@@ -579,22 +735,81 @@ const ProfileTab = () => {
           </Text>
         </AnimatedStatCard>
         
-        <View style={[styles.statBox, { backgroundColor: theme.surface }]}>
+        <View style={[styles.statBox, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderColor: `${theme.primary}15`, // Very subtle border color
+          borderWidth: 0.8, // Very subtle border
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+          shadowOpacity: 0.06, // Very subtle shadow
+          shadowRadius: 3, // Small shadow radius
+          elevation: 1, // Minimal elevation
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4',
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)',
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2',
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082',
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+          }),
+        }]}>
           <MaterialIcons name="favorite" size={24} color={theme.error} />
+          <Text style={[styles.statValue, { color: theme.text }]}>
+            {userStats.prayersCompleted || 0}
+          </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.prayers || 'Prayers'}
           </Text>
         </View>
         
-        <View style={[styles.statBox, { backgroundColor: theme.surface }]}>
+        <View style={[styles.statBox, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderColor: `${theme.primary}15`, // Very subtle border color
+          borderWidth: 0.8, // Very subtle border
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+          shadowOpacity: 0.06, // Very subtle shadow
+          shadowRadius: 3, // Small shadow radius
+          elevation: 1, // Minimal elevation
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4',
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)',
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2',
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082',
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+          }),
+        }]}>
           <MaterialIcons name="local-fire-department" size={24} color={theme.warning} />
+          <Text style={[styles.statValue, { color: theme.text }]}>
+            {userStats.streak || 0}
+          </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.dayStreak || 'Day Streak'}
           </Text>
         </View>
       </View>
-    </BlurView>
-  );
+      </LiquidGlassStatsContainer>
+    );
+  };
 
   // Badges Section
   const BadgesSection = () => {
@@ -624,7 +839,33 @@ const ProfileTab = () => {
               key={badge.id} 
               style={[
                 styles.badgeItem, 
-                { backgroundColor: theme.surface },
+                { 
+                  backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+                  borderWidth: 0.8, // Very subtle border
+                  borderColor: `${theme.primary}15`, // Very subtle border color
+                  borderRadius: 16, // Smooth rounded corners - no sharp edges!
+                  shadowColor: theme.primary,
+                  shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+                  shadowOpacity: 0.06, // Very subtle shadow
+                  shadowRadius: 3, // Small shadow radius
+                  elevation: 1, // Minimal elevation
+                  // Add glow effect for different themes
+                  ...(isBlushTheme && {
+                    shadowColor: '#FF69B4',
+                    backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+                    borderColor: 'rgba(255, 105, 180, 0.4)',
+                  }),
+                  ...(isCresviaTheme && {
+                    shadowColor: '#8A2BE2',
+                    backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                    borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+                  }),
+                  ...(isEternaTheme && {
+                    shadowColor: '#4B0082',
+                    backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                    borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+                  }),
+                },
                 !badge.earned && { opacity: 0.5 }
               ]}
             >
@@ -643,7 +884,16 @@ const ProfileTab = () => {
           ))}
         </View>
         
-          <View style={[styles.viewAllButton, { backgroundColor: theme.primary + '20' }]}>
+          <View style={[styles.viewAllButton, { 
+            backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+            borderWidth: 0.8, // Very subtle border
+            borderColor: `${theme.primary}15`, // Very subtle border color
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+            shadowOpacity: 0.06, // Very subtle shadow
+            shadowRadius: 3, // Small shadow radius
+            elevation: 1, // Minimal elevation
+          }]}>
             <Text style={[styles.viewAllText, { color: theme.primary }]}>
               View All Achievements
             </Text>
@@ -715,9 +965,11 @@ const ProfileTab = () => {
       {/* Fixed Header - Always Visible - Glassy */}
       <GlassHeader 
         style={[styles.fixedHeader, { 
-          backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'rgba(255, 255, 255, 0.1)' : (isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)')
+          backgroundColor: isDark 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : `${theme.primary}15` // Same as cards - use theme primary color with 15% opacity
         }]}
-        intensity={(isBlushTheme || isCresviaTheme || isEternaTheme) ? 15 : 25}
+        intensity={15}
         absolute={false}
       >
         <View style={styles.headerContent}>
@@ -1158,8 +1410,8 @@ const ProfileTab = () => {
             
             <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16 }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>{t.savedVersesTitle || 'Saved Verses'}</Text>
-              <TouchableOpacity onPress={() => setShowSavedVerses(false)}>
-                <MaterialIcons name="close" size={24} color={theme.textSecondary} />
+              <TouchableOpacity onPress={() => setShowSavedVerses(false)} style={{ minWidth: 60, alignItems: 'center' }}>
+                <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
               </TouchableOpacity>
             </View>
             
@@ -1622,6 +1874,40 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowRadius: 8,
     elevation: 2,
+  },
+  // Liquid Glass Styles
+  liquidGlassProfileCard: {
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassStatsCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassSettingsCard: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   avatarContainer: {
     width: 80,

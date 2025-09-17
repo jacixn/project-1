@@ -170,7 +170,16 @@ const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistor
 
           {/* Bible Verses */}
           {currentVerses.map((verse, index) => (
-            <BlurView key={index} intensity={18} style={styles.verseCard}>
+            <BlurView 
+              key={index} 
+              intensity={18} 
+              tint={isDark ? "dark" : "light"} 
+              style={[styles.verseCard, { 
+                backgroundColor: isDark 
+                  ? 'rgba(255, 255, 255, 0.08)' 
+                  : `${theme.primary}25` // Deeper color for individual items
+              }]}
+            >
               <LinearGradient
                 colors={isDark ? ['#4F46E5', '#7C3AED'] : ['#6366F1', '#8B5CF6']}
                 style={styles.verseGradient}
@@ -215,7 +224,15 @@ const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistor
           ))}
 
           {/* Prayer Actions */}
-          <BlurView intensity={18} style={styles.actionsCard}>
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.actionsCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
+            }]}
+          >
             <Text style={[styles.actionsTitle, { color: theme.text }]}>
               🙏 Prayer Time
             </Text>

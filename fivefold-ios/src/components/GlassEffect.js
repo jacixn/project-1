@@ -5,6 +5,10 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const GlassCard = ({ 
@@ -73,7 +77,7 @@ export const GlassHeader = ({
   intensity = 30,
   absolute = true,
 }) => {
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   
   const headerStyle = {
     backgroundColor: isDark ? 'rgba(17, 24, 39, 0.65)' : 'rgba(255, 255, 255, 0.65)', // MORE TRANSPARENT: 65% opacity
@@ -87,6 +91,33 @@ export const GlassHeader = ({
       zIndex: 1000,
     }),
   };
+
+  const liquidGlassHeaderStyle = {
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)', // Subtle border line
+    ...(absolute && {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+    }),
+  };
+
+  // Use liquid glass if supported, otherwise fallback to BlurView
+  if (Platform.OS === 'ios' && isLiquidGlassSupported) {
+    return (
+      <LiquidGlassView
+        interactive={false}
+        effect="clear"
+        colorScheme="system"
+        tintColor="rgba(255, 255, 255, 0.08)"
+        style={[liquidGlassHeaderStyle, style]}
+      >
+        {children}
+      </LiquidGlassView>
+    );
+  }
 
   if (Platform.OS === 'ios') {
     return (

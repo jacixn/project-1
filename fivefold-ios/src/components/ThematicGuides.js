@@ -572,9 +572,9 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
         <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
           <TouchableOpacity
             onPress={onClose}
-            style={styles.solidHeaderButton}
+            style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
           >
-            <MaterialIcons name="close" size={24} color={theme.text} />
+            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
             Thematic Guides

@@ -15,15 +15,18 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fivefold.app",
+      "bundleIdentifier": "com.jesusxoi.biblely",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
         "UIBackgroundModes": [
           "background-processing",
+          "remote-notification",
+          "background-processing",
           "remote-notification"
         ],
         "UIStatusBarHidden": false,
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -32,7 +35,7 @@
         "backgroundColor": "#667eea"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.fivefold.app",
+      "package": "com.jesusxoi.biblely",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
@@ -45,6 +48,15 @@
     },
     "description": "Faith & Focus Daily - Combine prayer with productivity in a beautiful spiritual companion app",
     "plugins": [
+      "react-native-bottom-tabs",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -54,7 +66,8 @@
         }
       ],
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      "expo-dev-client"
     ],
     "extra": {
       "eas": {

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getNextPrayerTime } from '../utils/solarCalculations';
+import { LiquidGlassStatsCard, LiquidGlassProgressCard } from './LiquidGlassCard';
 
 const Dashboard = ({ userStats, prayerTimes, location, onSettingsPress, onExportPress, onBiblePress }) => {
   const level = Math.floor((userStats?.totalPoints || 0) / 100) + 1;
@@ -21,7 +22,7 @@ const Dashboard = ({ userStats, prayerTimes, location, onSettingsPress, onExport
   return (
     <View style={styles.container}>
       {/* Header with Controls */}
-      <View style={styles.header}>
+      <LiquidGlassStatsCard style={styles.header}>
         <Text style={styles.welcomeText}>Welcome back! 🙏</Text>
         <Text style={styles.subtitle}>Let's make today count with faith and focus.</Text>
         
@@ -39,24 +40,24 @@ const Dashboard = ({ userStats, prayerTimes, location, onSettingsPress, onExport
             <Text style={styles.controlButtonText}>ℹ️</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </LiquidGlassStatsCard>
 
       {/* Next Prayer */}
       {nextPrayer && (
-        <View style={styles.nextPrayerCard}>
+        <LiquidGlassStatsCard style={styles.nextPrayerCard}>
           <Text style={styles.nextPrayerLabel}>Next Prayer:</Text>
           <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
           <Text style={styles.nextPrayerTime}>at {formatTime(nextPrayer.time)}</Text>
-        </View>
+        </LiquidGlassStatsCard>
       )}
 
       {/* Stats Cards */}
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
+        <LiquidGlassStatsCard style={styles.statCard}>
           <Text style={styles.statIcon}>💰</Text>
           <Text style={styles.statNumber}>{currentPoints}</Text>
           <Text style={styles.statLabel}>Points</Text>
-        </View>
+        </LiquidGlassStatsCard>
         
         <View style={styles.statCard}>
           <Text style={styles.statIcon}>🔥</Text>

@@ -13,6 +13,10 @@ import {
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
 import { GlassCard, GlassHeader } from '../components/GlassEffect';
@@ -55,7 +59,7 @@ const AnimatedBibleButton = ({ children, onPress, style, ...props }) => {
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.98, // Reduced by 50% - more subtle press effect (was 0.96, now 0.98)
       useNativeDriver: true,
       tension: 300,
       friction: 10,
@@ -77,7 +81,7 @@ const AnimatedBibleButton = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.5} // Reduced brightness by 50% (was 1, now 0.5)
         style={style}
         {...props}
       >
@@ -92,7 +96,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.94,
+      toValue: 0.97, // Reduced by 50% - more subtle press effect (was 0.94, now 0.97)
       useNativeDriver: true,
       tension: 400,
       friction: 8,
@@ -114,7 +118,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.5} // Reduced brightness by 50% (was 1, now 0.5)
         style={style}
         {...props}
       >
@@ -260,16 +264,74 @@ const BiblePrayerTab = () => {
 
 
 
-  // Bible access section
-  const BibleSection = () => (
-    <BlurView intensity={18} tint="light" style={styles.bibleCard}>
+  // Bible access section with Liquid Glass
+  const BibleSection = () => {
+    // Liquid Glass Container for Bible Section
+    const LiquidGlassBibleContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.bibleCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassBibleCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassBibleContainer>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>📖 Holy Bible</Text>
       <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
         Read, study, and grow in faith
       </Text>
       
       <AnimatedBibleButton 
-        style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
+        style={[styles.bibleButton, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
+          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary, // Colored shadow
+          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
+          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
+          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
+          elevation: 1, // Much lower elevation (3 -> 1)
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4', // Hot pink glow
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2', // Blue violet glow
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082', // Indigo glow
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+        }]}
         onPress={() => {
           hapticFeedback.medium(); // Medium feedback when opening Bible
           setShowBible(true); // Open modal like prayers do
@@ -287,43 +349,131 @@ const BiblePrayerTab = () => {
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
       </AnimatedBibleButton>
       
-      {/* Verse of the day */}
-      <BlurView intensity={30} tint="light" style={styles.verseOfDay}>
+      {/* Verse of the day - Force transparent styling */}
+      <TouchableOpacity
+        activeOpacity={0.4} // Reduced brightness by 50% (was 0.8, now 0.4)
+        onPress={() => {
+          hapticFeedback.light();
+          // Future: Add verse sharing or Bible navigation
+        }}
+        style={[styles.transparentVerseOfDay, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
+          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary, // Colored shadow
+          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
+          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
+          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
+          elevation: 1, // Much lower elevation (3 -> 1)
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4', // Hot pink glow
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2', // Blue violet glow
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082', // Indigo glow
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+        }]}
+      >
         <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
           💫 Verse of the Day
         </Text>
         <Text 
           style={[styles.verseText, { color: theme.text }]}
-          selectable={true}
-          selectTextOnFocus={false}
-          dataDetectorType="none"
+          selectable={false} // Disable selection for tappable area
           allowFontScaling={true}
         >
           "{dailyVerse.text}"
         </Text>
         <Text 
           style={[styles.verseReference, { color: theme.textSecondary }]}
-          selectable={true}
-          selectTextOnFocus={false}
-          dataDetectorType="none"
+          selectable={false} // Disable selection for tappable area
           allowFontScaling={true}
         >
           {dailyVerse.reference}
         </Text>
-      </BlurView>
-    </BlurView>
-  );
+      </TouchableOpacity>
+      </LiquidGlassBibleContainer>
+    );
+  };
 
-  // Bible Study section with educational features
-  const BibleStudySection = () => (
-    <BlurView intensity={18} tint="light" style={styles.bibleCard}>
+  // Bible Study section with Liquid Glass
+  const BibleStudySection = () => {
+    // Liquid Glass Container for Bible Study Section
+    const LiquidGlassBibleStudyContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.bibleCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassBibleCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassBibleStudyContainer>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>📚 Bible Study</Text>
       <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
         Explore characters, timeline, maps & more
       </Text>
       
       <AnimatedBibleButton 
-        style={[styles.bibleButton, { backgroundColor: theme.bibleBackground }]}
+        style={[styles.bibleButton, { 
+          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
+          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
+          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          shadowColor: theme.primary, // Colored shadow
+          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
+          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
+          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
+          elevation: 1, // Much lower elevation (3 -> 1)
+          // Add glow effect for different themes
+          ...(isBlushTheme && {
+            shadowColor: '#FF69B4', // Hot pink glow
+            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
+          }),
+          ...(isCresviaTheme && {
+            shadowColor: '#8A2BE2', // Blue violet glow
+            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+          ...(isEternaTheme && {
+            shadowColor: '#4B0082', // Indigo glow
+            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
+          }),
+        }]}
         onPress={() => {
           hapticFeedback.medium();
           setShowBibleStudy(true);
@@ -341,46 +491,9 @@ const BiblePrayerTab = () => {
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
       </AnimatedBibleButton>
 
-      {/* Quick access features */}
-      <View style={styles.quickAccessContainer}>
-        <AnimatedQuickAccessButton 
-          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
-          onPress={() => {
-            hapticFeedback.light();
-            setShowBibleStudy(true);
-            // Could set initial section to characters
-          }}
-        >
-          <MaterialIcons name="people" size={18} color={theme.primary} />
-          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Characters</Text>
-        </AnimatedQuickAccessButton>
-
-        <AnimatedQuickAccessButton 
-          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
-          onPress={() => {
-            hapticFeedback.light();
-            setShowBibleStudy(true);
-            // Could set initial section to timeline
-          }}
-        >
-          <MaterialIcons name="timeline" size={18} color={theme.primary} />
-          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Timeline</Text>
-        </AnimatedQuickAccessButton>
-
-        <AnimatedQuickAccessButton 
-          style={[styles.quickAccessButton, { backgroundColor: `${theme.primary}15` }]}
-          onPress={() => {
-            hapticFeedback.light();
-            setShowBibleStudy(true);
-            // Could set initial section to maps
-          }}
-        >
-          <MaterialIcons name="map" size={18} color={theme.primary} />
-          <Text style={[styles.quickAccessText, { color: theme.primary }]}>Maps</Text>
-        </AnimatedQuickAccessButton>
-      </View>
-    </BlurView>
-  );
+      </LiquidGlassBibleStudyContainer>
+    );
+  };
 
   return (
     <AnimatedWallpaper 
@@ -399,9 +512,11 @@ const BiblePrayerTab = () => {
       {/* Fixed Header - Always Visible - Glassy */}
       <GlassHeader 
         style={[styles.fixedHeader, { 
-          backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'rgba(255, 255, 255, 0.1)' : (isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)')
+          backgroundColor: isDark 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : `${theme.primary}15` // Same as cards - use theme primary color with 15% opacity
         }]}
-        intensity={(isBlushTheme || isCresviaTheme || isEternaTheme) ? 15 : 25}
+        intensity={15}
         absolute={false}
       >
         <View style={styles.headerContent}>
@@ -615,8 +730,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 16,
+    // Background and border set dynamically in JSX using theme colors
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bibleButtonContent: {
     flex: 1,
@@ -634,6 +756,57 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  liquidGlassBibleCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassVerseOfDay: {
+    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 16,
+    backgroundColor: 'transparent', // Make it transparent like prayer items!
+    borderWidth: 0, // Remove border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tappableVerseOfDay: {
+    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light transparent background - same as Open Bible
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)', // Subtle border like Open Bible
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  transparentVerseOfDay: {
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 16,
+    // Background and border set dynamically in JSX using theme colors
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   verseLabel: {
     fontSize: 12,

@@ -1105,8 +1105,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
           >
             <SafeAreaView style={[styles.detailContainer, { backgroundColor: theme.background }]}>
               <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={styles.detailCloseButton}>
-                  <MaterialIcons name="close" size={24} color={theme.text} />
+                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
+                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
                 </TouchableOpacity>
                 <Text style={[styles.detailTitle, { color: theme.text }]}>
                   {selectedLocation.name}

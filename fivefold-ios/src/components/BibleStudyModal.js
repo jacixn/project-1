@@ -854,8 +854,8 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
           <View style={{ height: 60, backgroundColor: theme.surface }} />
           <SafeAreaView style={{ backgroundColor: theme.surface }} edges={['top']}>
             <View style={[styles.solidHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-              <TouchableOpacity onPress={() => setShowModal(false)} style={styles.solidHeaderButton}>
-              <MaterialIcons name="close" size={24} color={theme.text} />
+              <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
             </TouchableOpacity>
               <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>{section.title}</Text>
               <View style={{ width: 48 }} />
@@ -1338,8 +1338,8 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         <SafeAreaView style={{ backgroundColor: theme.background }} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={24} color={theme.text} />
+          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
           <View style={{ width: 24 }} />

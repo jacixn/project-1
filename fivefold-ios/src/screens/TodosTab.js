@@ -15,6 +15,10 @@ import {
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
@@ -337,8 +341,39 @@ const TodosTab = () => {
       });
     }
 
+    // Liquid Glass Container for Calendar
+    const LiquidGlassCalendarContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={20} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.calendarCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassCalendarCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
     return (
-      <BlurView intensity={20} tint="light" style={styles.calendarCard}>
+      <LiquidGlassCalendarContainer>
         {/* Today Banner */}
         <View style={styles.todayBanner}>
           <AnimatedTodoButton style={[styles.todayButton, { backgroundColor: theme.primary }]}>
@@ -396,7 +431,7 @@ const TodosTab = () => {
             );
           })}
         </View>
-      </BlurView>
+      </LiquidGlassCalendarContainer>
     );
   };
 
@@ -410,39 +445,154 @@ const TodosTab = () => {
       return today === completedDate;
     });
 
+    // Liquid Glass Container for Stats
+    const LiquidGlassStatsContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.statsCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassStatsCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
     return (
-      <BlurView intensity={18} tint="light" style={styles.statsCard}>
+      <LiquidGlassStatsContainer>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>📊 Today's Progress</Text>
         
         <View style={styles.statsRow}>
-          <BlurView intensity={30} tint="light" style={styles.statItem}>
+          <View 
+            style={[styles.statItem, { 
+              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+              borderColor: `${theme.primary}15`, // Very subtle border color
+              borderWidth: 0.8, // Very subtle border
+              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              shadowColor: theme.primary,
+              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+              shadowOpacity: 0.06, // Very subtle shadow
+              shadowRadius: 3, // Small shadow radius
+              elevation: 1, // Minimal elevation
+              // Add glow effect for different themes
+              ...(isBlushTheme && {
+                shadowColor: '#FF69B4',
+                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+                borderColor: 'rgba(255, 105, 180, 0.4)',
+              }),
+              ...(isCresviaTheme && {
+                shadowColor: '#8A2BE2',
+                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+              }),
+              ...(isEternaTheme && {
+                shadowColor: '#4B0082',
+                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+              }),
+            }]}
+          >
             <Text style={[styles.statNumber, { color: theme.primary }]}>
               {activeTodos.length}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Active Tasks
             </Text>
-          </BlurView>
+          </View>
           
-          <BlurView intensity={30} tint="light" style={styles.statItem}>
+          <View 
+            style={[styles.statItem, { 
+              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+              borderColor: `${theme.primary}15`, // Very subtle border color
+              borderWidth: 0.8, // Very subtle border
+              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              shadowColor: theme.primary,
+              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+              shadowOpacity: 0.06, // Very subtle shadow
+              shadowRadius: 3, // Small shadow radius
+              elevation: 1, // Minimal elevation
+              // Add glow effect for different themes
+              ...(isBlushTheme && {
+                shadowColor: '#FF69B4',
+                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+                borderColor: 'rgba(255, 105, 180, 0.4)',
+              }),
+              ...(isCresviaTheme && {
+                shadowColor: '#8A2BE2',
+                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+              }),
+              ...(isEternaTheme && {
+                shadowColor: '#4B0082',
+                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+              }),
+            }]}
+          >
             <Text style={[styles.statNumber, { color: theme.success }]}>
               {completedToday.length}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Completed
             </Text>
-          </BlurView>
+          </View>
           
-          <BlurView intensity={30} tint="light" style={styles.statItem}>
+          <View 
+            style={[styles.statItem, { 
+              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+              borderColor: `${theme.primary}15`, // Very subtle border color
+              borderWidth: 0.8, // Very subtle border
+              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              shadowColor: theme.primary,
+              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+              shadowOpacity: 0.06, // Very subtle shadow
+              shadowRadius: 3, // Small shadow radius
+              elevation: 1, // Minimal elevation
+              // Add glow effect for different themes
+              ...(isBlushTheme && {
+                shadowColor: '#FF69B4',
+                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+                borderColor: 'rgba(255, 105, 180, 0.4)',
+              }),
+              ...(isCresviaTheme && {
+                shadowColor: '#8A2BE2',
+                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+              }),
+              ...(isEternaTheme && {
+                shadowColor: '#4B0082',
+                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+              }),
+            }]}
+          >
             <Text style={[styles.statNumber, { color: theme.warning }]}>
               {userStats.points}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Points
             </Text>
-          </BlurView>
+          </View>
         </View>
-      </BlurView>
+      </LiquidGlassStatsContainer>
     );
   };
 
@@ -454,25 +604,62 @@ const TodosTab = () => {
       .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
       .slice(0, 10);
 
+    // Liquid Glass Container for History
+    const LiquidGlassHistoryContainer = ({ children }) => {
+      if (!isLiquidGlassSupported) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.suggestionsCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassHistoryCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
     if (completedHistory.length === 0) {
       return (
-        <BlurView intensity={18} tint="light" style={styles.suggestionsCard}>
+        <LiquidGlassHistoryContainer>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>📜 History</Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Your completed tasks will appear here
           </Text>
-          <BlurView intensity={30} tint="light" style={styles.emptyHistory}>
+          <View 
+            style={[styles.emptyHistory, { 
+              backgroundColor: `${theme.primary}15`, // Use theme primary with transparency
+              borderColor: `${theme.primary}25`, // Use theme primary for border
+              borderWidth: 1.5,
+            }]}
+          >
             <MaterialIcons name="history" size={40} color={theme.textTertiary} />
             <Text style={[styles.emptyHistoryText, { color: theme.textSecondary }]}>
               No completed tasks yet
             </Text>
-          </BlurView>
-        </BlurView>
+          </View>
+        </LiquidGlassHistoryContainer>
       );
     }
 
     return (
-      <BlurView intensity={18} tint="light" style={styles.suggestionsCard}>
+      <LiquidGlassHistoryContainer>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>📜 History</Text>
         <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
           Last 10 completed tasks
@@ -480,11 +667,13 @@ const TodosTab = () => {
         
         <View style={styles.suggestionsList}>
           {completedHistory.map((todo) => (
-            <BlurView
+              <View
               key={todo.id}
-              intensity={30}
-              tint="light"
-              style={styles.historyItem}
+              style={[styles.historyItem, { 
+                backgroundColor: `${theme.primary}15`, // Use theme primary with transparency
+                borderColor: `${theme.primary}25`, // Use theme primary for border
+                borderWidth: 1.5,
+              }]}
             >
               <MaterialIcons name="check-circle" size={20} color={theme.success} />
               <View style={styles.historyContent}>
@@ -498,10 +687,10 @@ const TodosTab = () => {
                   {todo.completedAt ? new Date(todo.completedAt).toLocaleTimeString() : 'Earlier'}
                 </Text>
               </View>
-            </BlurView>
+            </View>
           ))}
         </View>
-      </BlurView>
+      </LiquidGlassHistoryContainer>
     );
   };
 
@@ -540,9 +729,11 @@ const TodosTab = () => {
       {/* Fixed Header - Always Visible - Glassy */}
       <GlassHeader 
         style={[styles.fixedHeader, { 
-          backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'rgba(255, 255, 255, 0.1)' : (isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)')
+          backgroundColor: isDark 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : `${theme.primary}15` // Same as cards - use theme primary color with 15% opacity
         }]}
-        intensity={(isBlushTheme || isCresviaTheme || isEternaTheme) ? 15 : 25}
+        intensity={15}
         absolute={false}
       >
         <View style={styles.headerContent}>
@@ -812,6 +1003,43 @@ const styles = StyleSheet.create({
   emptyHistoryText: {
     marginTop: 10,
     fontSize: 14,
+  },
+  // Liquid Glass Styles
+  liquidGlassCalendarCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassStatsCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassHistoryCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   // Compact Calendar Styles - Like the reference image
   calendarCard: {

@@ -13,16 +13,14 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AiBibleChat from './AiBibleChat';
-import { 
-  AnimatedLiquidGlassCard, 
-  LiquidGlassButton, 
-  GlassText,
-  isLiquidGlassSupported 
-} from './LiquidGlassComponents';
 
 // Animated Prayer Components (follows Rules of Hooks)
 const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
@@ -30,7 +28,7 @@ const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.95,
+      toValue: 0.975, // Reduced by 50% - more subtle press effect (was 0.95, now 0.975)
       useNativeDriver: true,
       tension: 400,
       friction: 8,
@@ -52,7 +50,7 @@ const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.5} // Reduced brightness by 50% (was 1, now 0.5)
         style={style}
         {...props}
       >
@@ -67,10 +65,10 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.97,
+      toValue: 0.975, // Reduced by 50% - more subtle press effect (was 0.95, now 0.975)
       useNativeDriver: true,
-      tension: 300,
-      friction: 10,
+      tension: 400,
+      friction: 8,
     }).start();
   };
 
@@ -78,8 +76,8 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 300,
-      friction: 10,
+      tension: 400,
+      friction: 8,
     }).start();
   };
 
@@ -89,7 +87,7 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.5} // Reduced brightness by 50% (was 1, now 0.5)
         style={{ flex: 1 }}
         {...props}
       >
@@ -114,7 +112,7 @@ const VERSES = [
 ];
 
 const SimplePrayerCard = () => {
-  const { theme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
   
   const [prayers, setPrayers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -523,25 +521,52 @@ In simple words: God is telling us something important here that we can understa
     }
   };
 
+  // Liquid Glass Container Component
+  const LiquidGlassContainer = ({ children, style }) => {
+    if (!isLiquidGlassSupported) {
+      // Fallback for unsupported devices
+      return (
+        <BlurView 
+          intensity={18} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.container, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15`
+          }, style]}
+        >
+          {children}
+        </BlurView>
+      );
+    }
+
+    return (
+      <LiquidGlassView
+        interactive={true}
+        effect="clear"
+        colorScheme="system"
+        tintColor="rgba(255, 255, 255, 0.08)" // Subtle white tint for better visibility
+        style={[styles.liquidGlassContainer, style]}
+      >
+        {children}
+      </LiquidGlassView>
+    );
+  };
+
   return (
-    <AnimatedLiquidGlassCard 
-      style={styles.container}
-      effect="regular"
-      interactive={false}
-    >
+    <LiquidGlassContainer>
       {/* Header */}
       <View style={styles.header}>
-        <GlassText style={[styles.title]}>🙏 My Prayers</GlassText>
-        <LiquidGlassButton
-          style={[styles.addButton]}
-          effect="clear"
+        <Text style={[styles.title, { color: theme.text }]}>🙏 My Prayers</Text>
+        <AnimatedPrayerButton
+          style={[styles.addButton, { backgroundColor: theme.primary }]}
           onPress={() => {
             setShowAddModal(true);
             hapticFeedback.light();
           }}
         >
-          <MaterialIcons name="add" size={24} color={theme.primary} />
-        </LiquidGlassButton>
+          <MaterialIcons name="add" size={24} color="#ffffff" />
+        </AnimatedPrayerButton>
       </View>
 
       {/* Prayer List */}
@@ -559,13 +584,50 @@ In simple words: God is telling us something important here that we can understa
             const timeUntil = getTimeUntilAvailable(prayer);
             const isInTimeWindow = isPrayerTimeAvailable(prayer);
             
+            // Individual Prayer Item Component - Fully transparent
+            const PrayerItemCard = ({ children, style, onPress }) => {
+              // Use regular View with completely transparent background - no white tint!
+              return (
+                <View
+                  style={[styles.fullyTransparentPrayerItem, { 
+                    backgroundColor: `${theme.primary}12`, // Use theme primary with transparency
+                    borderColor: `${theme.primary}20`, // Use theme primary for border
+                    opacity: canComplete ? 1 : 0.7
+                  }, style]}
+                >
+                  {children}
+                </View>
+              );
+              
+              // Fallback with transparent background
+              /*
+              if (!isLiquidGlassSupported) {
+                return (
+                  <View style={[styles.prayerItem, { 
+                    backgroundColor: 'transparent', // No purple in fallback either!
+                    opacity: canComplete ? 1 : 0.7
+                  }, style]}>
+                    {children}
+                  </View>
+                );
+              }
+              */
+            };
+
             return (
-              <View key={prayer.id} style={[styles.prayerItem, { 
-                backgroundColor: theme.card + 'CC',
-                opacity: canComplete ? 1 : 0.7
-              }]}>
+              <PrayerItemCard key={prayer.id}>
                 <AnimatedPrayerCard
-                  style={styles.prayerContent}
+                  style={[styles.prayerContent, {
+                    backgroundColor: 'transparent', // Remove inner rectangle background!
+                    borderWidth: 0, // Remove border
+                    borderColor: 'transparent', // Remove border color
+                    borderRadius: 16, // Keep rounded corners for touch area
+                    shadowColor: 'transparent', // Remove shadow
+                    shadowOffset: { width: 0, height: 0 }, // Remove shadow
+                    shadowOpacity: 0, // Remove shadow
+                    shadowRadius: 0, // Remove shadow
+                    elevation: 0, // Remove elevation
+                  }]}
                   onPress={() => {
                     setSelectedPrayer(prayer);
                     setShowPrayerModal(true);
@@ -598,7 +660,7 @@ In simple words: God is telling us something important here that we can understa
                 >
                   <MaterialIcons name="edit" size={16} color={theme.primary} />
                 </AnimatedPrayerButton>
-              </View>
+              </PrayerItemCard>
             );
           })
         )}
@@ -611,7 +673,15 @@ In simple words: God is telling us something important here that we can understa
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <BlurView intensity={100} tint="light" style={styles.modalContainer}>
+        <BlurView 
+          intensity={100} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.modalContainer, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
+          }]}
+        >
           <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F0' }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
@@ -673,7 +743,15 @@ In simple words: God is telling us something important here that we can understa
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPrayerModal(false)}
       >
-        <BlurView intensity={100} tint="light" style={styles.modalContainer}>
+        <BlurView 
+          intensity={100} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.modalContainer, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
+          }]}
+        >
           <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F0' }]}>
             {selectedPrayer && (
               <>
@@ -835,7 +913,15 @@ In simple words: God is telling us something important here that we can understa
         presentationStyle="pageSheet"
         onRequestClose={() => setShowEditModal(false)}
       >
-        <BlurView intensity={100} tint="light" style={styles.modalContainer}>
+        <BlurView 
+          intensity={100} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.modalContainer, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
+          }]}
+        >
           <SafeAreaView style={[styles.modalContent, { backgroundColor: theme.background + 'F0' }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -921,7 +1007,7 @@ In simple words: God is telling us something important here that we can understa
           title="Discuss This Verse"
         />
       )}
-    </AnimatedLiquidGlassCard>
+    </LiquidGlassContainer>
   );
 };
 
@@ -936,6 +1022,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    overflow: 'hidden',
+  },
+  liquidGlassContainer: {
+    borderRadius: 20,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
     overflow: 'hidden',
   },
   header: {
@@ -981,6 +1079,36 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  liquidGlassPrayerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    backgroundColor: 'transparent', // Force transparent background - no purple!
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1, // Reduce shadow opacity
+    shadowRadius: 8,
+    elevation: 4,
+    // Remove border that might cause color
+    borderWidth: 0,
+  },
+  fullyTransparentPrayerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    marginBottom: 12,
+    // Background and border set dynamically in JSX using theme colors
+    borderWidth: 1.5,
+    padding: 4, // Add padding so border is visible
+    // Subtle shadow to lift it off the background
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,

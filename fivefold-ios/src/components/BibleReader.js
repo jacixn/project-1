@@ -854,9 +854,9 @@ In simple words: God is telling us something important here that we can understa
             hapticFeedback.light(); // Light feedback when closing Bible
             onClose();
           }} 
-          style={styles.closeButton}
+          style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}
         >
-          <MaterialIcons name="close" size={24} color={theme.text} />
+          <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
           <Text style={[styles.title, { color: theme.text }]}>📖 Holy Bible</Text>

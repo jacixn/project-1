@@ -1895,8 +1895,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
             {/* Header */}
             <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
               <View style={styles.headerContent}>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <MaterialIcons name="close" size={24} color="#FFFFFF" />
+                <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+                  <Text style={[{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { 
                   color: '#FFFFFF',
@@ -2104,8 +2104,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
           >
             <SafeAreaView style={[styles.detailContainer, { backgroundColor: theme.background }]}>
               <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={styles.detailCloseButton}>
-                  <MaterialIcons name="close" size={24} color={theme.text} />
+                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
+                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
                 </TouchableOpacity>
                 <Text style={[styles.detailTitle, { color: theme.text }]}>
                   {selectedLocation.name}

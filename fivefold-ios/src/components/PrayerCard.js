@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
+import { LiquidGlassPrayerCard } from './LiquidGlassCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   getPrayerStatus, 
@@ -169,12 +170,20 @@ const PrayerCard = ({ userPrayers = [], prayerHistory, onPrayerComplete, onPraye
 
   return (
     <>
-      <BlurView intensity={18} tint="light" style={styles.container}>
+      <BlurView 
+        intensity={18} 
+        tint={isDark ? "dark" : "light"} 
+        style={[styles.container, { 
+          backgroundColor: isDark 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
+        }]}
+      >
         <Text style={[styles.sectionTitle, { color: theme.text }]}>🕊️ Today's Prayers</Text>
       
 
 
-      <View style={[styles.prayersList, { backgroundColor: theme.surface }]}>
+      <LiquidGlassPrayerCard style={styles.prayersList}>
         {prayers.map(prayer => {
           const prayerStatus = getPrayerStatus(prayer.time, false, prayerHistory, prayer.slot);
           const statusColor = getPrayerStatusColor(prayerStatus.status, theme);
@@ -234,7 +243,7 @@ const PrayerCard = ({ userPrayers = [], prayerHistory, onPrayerComplete, onPraye
             </View>
           );
         })}
-      </View>
+      </LiquidGlassPrayerCard>
       
         {/* Hint text */}
         <Text style={[styles.hintText, { color: theme.textTertiary }]}>

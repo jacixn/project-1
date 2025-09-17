@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
 
 const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [pendingTasks, setPendingTasks] = useState([]); // Queue for tasks being analyzed
@@ -65,8 +69,39 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
 
   const activeTodos = todos.filter(t => !t.completed);
 
+  // Liquid Glass Container for TodoList
+  const LiquidGlassTodoContainer = ({ children }) => {
+    if (!isLiquidGlassSupported) {
+      return (
+        <BlurView 
+          intensity={18} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.container, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15`
+          }]}
+        >
+          {children}
+        </BlurView>
+      );
+    }
+
+    return (
+      <LiquidGlassView
+        interactive={true}
+        effect="clear"
+        colorScheme="system"
+        tintColor="rgba(255, 255, 255, 0.08)"
+        style={styles.liquidGlassTodoCard}
+      >
+        {children}
+      </LiquidGlassView>
+    );
+  };
+
   return (
-    <BlurView intensity={18} tint="light" style={styles.container}>
+    <LiquidGlassTodoContainer>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>📝 Tasks</Text>
       
       {!isAdding ? (
@@ -113,7 +148,16 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
 
       {/* Pending Tasks - Being Analyzed */}
       {pendingTasks.map(task => (
-        <BlurView key={task.id} intensity={18} tint="light" style={[styles.todoItem, styles.pendingItem]}>
+        <BlurView 
+          key={task.id} 
+          intensity={30} 
+          tint={isDark ? "dark" : "light"} 
+          style={[styles.todoItem, styles.pendingItem, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.08)' 
+              : `${theme.primary}25` // Deeper color for individual items
+          }]}
+        >
           <View style={styles.checkButton}>
             <ActivityIndicator size={20} color={theme.primary} />
           </View>
@@ -192,7 +236,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
           );
         })
       )}
-    </BlurView>
+    </LiquidGlassTodoContainer>
   );
 };
 
@@ -208,6 +252,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3, // Android shadow
+    overflow: 'hidden',
+  },
+  liquidGlassTodoCard: {
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
     overflow: 'hidden',
   },
   sectionTitle: {
