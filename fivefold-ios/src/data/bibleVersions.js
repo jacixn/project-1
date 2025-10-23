@@ -1,5 +1,5 @@
 // Bible Versions Data
-// Source: https://github.com/arron-taylor/bible-versions
+// Source: https://github.com/jacixn/bible-versions (forked for reliability)
 // 35 complete English Bible translations in JSON format
 
 export const bibleVersions = [
