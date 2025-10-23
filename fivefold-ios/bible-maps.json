@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-10-23",
+  "metadata": {
+    "description": "Comprehensive Biblical locations and journey data from Abraham to Paul",
+    "extractedFrom": "InteractiveBibleMaps.js component",
+    "totalLocations": 0,
+    "totalJourneys": 0
+  },
+  "biblicalLocations": [],
+  "biblicalJourneys": []
+}

@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'react-native-maps';
@@ -18,8 +19,25 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import SimplePercentageLoader from './SimplePercentageLoader';
 
 const { width, height } = Dimensions.get('window');
+
+// Remote Bible Maps Configuration
+const MAPS_CONFIG = {
+  GITHUB_USERNAME: 'jacixn',
+  REPO_NAME: 'project-1',
+  BRANCH: 'main',
+  FILE_PATH: 'fivefold-ios/bible-maps.json',
+  get URL() {
+    if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
+    return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
+  },
+  CACHE_KEY: 'bible_maps_data_v1',
+  CACHE_TIMESTAMP_KEY: 'bible_maps_timestamp_v1',
+  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
+};
 
 const InteractiveBibleMaps = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -36,6 +54,11 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
   const journeyTimeouts = useRef([]);
   const isPlayingRef = useRef(false);
 
+  // Remote data state
+  const [mapsData, setMapsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   // Function to stop journey and clear all timeouts
   const stopJourney = () => {
     setIsPlayingJourney(false);
@@ -46,6 +69,118 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     journeyTimeouts.current = [];
   };
 
+  // Cache management functions
+  const isCacheValid = async () => {
+    try {
+      const timestamp = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
+      if (!timestamp) return false;
+      
+      const cacheAge = Date.now() - parseInt(timestamp);
+      return cacheAge < MAPS_CONFIG.CACHE_DURATION;
+    } catch (error) {
+      console.error('Error checking cache validity:', error);
+      return false;
+    }
+  };
+
+  const fetchMapsFromRemote = async () => {
+    try {
+      const url = MAPS_CONFIG.URL;
+      if (!url) {
+        throw new Error('Remote URL not configured');
+      }
+
+      console.log('📍 Fetching Bible maps from:', url);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Cache the data
+      await AsyncStorage.setItem(MAPS_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await AsyncStorage.setItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      
+      console.log('✅ Successfully fetched and cached Bible maps');
+      return data;
+    } catch (error) {
+      console.error('Error fetching Bible maps from remote:', error);
+      throw error;
+    }
+  };
+
+  const loadFallbackData = () => {
+    // Minimal fallback data
+    return {
+      version: '1.0',
+      biblicalLocations: [],
+      biblicalJourneys: [],
+      filterCategories: [
+        { id: 'all', name: 'All Locations', icon: 'map' }
+      ],
+      eraFilters: [
+        { id: 'all', name: 'All Eras', icon: 'history' }
+      ],
+      initialRegion: {
+        latitude: 31.7683,
+        longitude: 35.2137,
+        latitudeDelta: 8.0,
+        longitudeDelta: 8.0
+      }
+    };
+  };
+
+  const loadMapsData = async () => {
+    try {
+      // Check cache first
+      if (await isCacheValid()) {
+        const cachedData = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_KEY);
+        if (cachedData) {
+          const data = JSON.parse(cachedData);
+          setMapsData(data);
+          setLoading(false);
+          console.log('✅ Loaded Bible maps from cache');
+          return;
+        }
+      }
+
+      // Fetch from remote
+      const data = await fetchMapsFromRemote();
+      setMapsData(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('❌ Error loading Bible maps:', error);
+      
+      // Try to use cached data even if expired
+      try {
+        const cachedData = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_KEY);
+        if (cachedData) {
+          console.log('⚠️ Using expired cache due to fetch failure');
+          const data = JSON.parse(cachedData);
+          setMapsData(data);
+          setError('Using offline data');
+        } else {
+          throw new Error('No cached data available');
+        }
+      } catch (cacheError) {
+        console.log('📍 Using fallback map data');
+        setMapsData(loadFallbackData());
+        setError('Using limited offline data');
+      }
+      
+      setLoading(false);
+    }
+  };
+
+  // Load maps data on mount
+  useEffect(() => {
+    if (visible) {
+      loadMapsData();
+    }
+  }, [visible]);
+
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
@@ -55,8 +190,42 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     };
   }, []);
 
-  // Comprehensive Biblical Locations Data - From Abraham to Paul
-  const biblicalLocations = [
+  // Get data from remote or fallback
+  const biblicalLocations = mapsData?.biblicalLocations || [];
+  const biblicalJourneys = mapsData?.biblicalJourneys || [];
+  const filterCategories = mapsData?.filterCategories || [
+    { id: 'all', name: 'All Locations', icon: 'map', color: theme.primary }
+  ];
+  const eraFilters = mapsData?.eraFilters || [
+    { id: 'all', name: 'All Eras', icon: 'history', color: theme.primary }
+  ];
+  const initialRegion = mapsData?.initialRegion || {
+    latitude: 31.7683,
+    longitude: 35.2137,
+    latitudeDelta: 8.0,
+    longitudeDelta: 8.0
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Modal
+        visible={visible}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        onRequestClose={onClose}
+      >
+        <View style={[styles.fullScreenContainer, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
+          <SimplePercentageLoader 
+            message="Loading Bible Maps..."
+            subMessage="Preparing interactive locations..."
+          />
+        </View>
+      </Modal>
+    );
+  }
+
+  // Get filtered locations based on active era and filter
     // ABRAHAM'S JOURNEY LOCATIONS
     {
       id: 'ur',
@@ -1891,9 +2060,9 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
 
         {/* Overlay UI Elements */}
         <View style={styles.overlayContainer} pointerEvents="box-none">
-          <SafeAreaView style={styles.safeAreaContainer} edges={['top']} pointerEvents="box-none">
+          <View style={styles.safeAreaContainer} pointerEvents="box-none">
             {/* Header */}
-            <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+            <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)', marginTop: 60 }]}>
               <View style={styles.headerContent}>
                 <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
                   <Text style={[{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
@@ -2091,7 +2260,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                 </ScrollView>
               </View>
             </BlurView>
-          </SafeAreaView>
+          </View>
         </View>
 
         {/* Location Detail Modal */}
