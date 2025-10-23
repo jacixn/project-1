@@ -1,8 +1,8 @@
 // Centralized GitHub Repository for Simplified Bible Verses
 // This saves money by reusing AI-simplified verses across all users
 
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/jacixn/simplified-bible-verses/main';
-const GITHUB_API_BASE = 'https://api.github.com/repos/jacixn/simplified-bible-verses';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios';
+const GITHUB_API_BASE = 'https://api.github.com/repos/jacixn/project-1';
 
 class SimplifiedVersesRepository {
   constructor() {

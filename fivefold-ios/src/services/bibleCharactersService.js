@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/jacixn/biblely-character-data/main/bible-characters.json';
+const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/bible-characters.json';
 const CACHE_KEY = 'bible_characters_data';
 const CACHE_EXPIRY_KEY = 'bible_characters_expiry';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
