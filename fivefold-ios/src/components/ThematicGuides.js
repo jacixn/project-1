@@ -10,8 +10,11 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  Animated,
+  PanResponder,
   ActivityIndicator,
   Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -22,6 +25,7 @@ import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -54,6 +58,16 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
   const [guidesData, setGuidesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Bible version states for dynamic verse fetching
+  const [fetchedVerses, setFetchedVerses] = useState({}); // { 'reference': { text: '...', version: 'NIV' } }
+  const [loadingDynamicVerses, setLoadingDynamicVerses] = useState(false);
+  const [bibleVersion, setBibleVersion] = useState('KJV');
+
+  // Modal animation refs for guide detail view
+  const guideSlideAnim = useRef(new Animated.Value(0)).current;
+  const guideFadeAnim = useRef(new Animated.Value(0)).current;
+  const guidePanY = useRef(new Animated.Value(0)).current;
 
   // Cache management functions
   const isCacheValid = async () => {
@@ -143,6 +157,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
           setGuidesData(data);
           setLoading(false);
           console.log('✅ Loaded thematic guides from cache');
+          // Load dynamic verses after loading guides
+          await loadDynamicVerses(data);
           return;
         }
       }
@@ -151,6 +167,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
       try {
         const data = await fetchGuidesFromRemote();
         setGuidesData(data);
+        // Load dynamic verses after loading guides
+        await loadDynamicVerses(data);
       } catch (remoteError) {
         console.error('Remote fetch failed, using fallback:', remoteError);
         
@@ -160,11 +178,13 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
           const data = JSON.parse(cachedData);
           setGuidesData(data);
           console.log('📦 Using expired cache due to remote failure');
+          await loadDynamicVerses(data);
         } else {
           // Use fallback data
           const fallbackData = loadLocalFallbackData();
           setGuidesData(fallbackData);
           console.log('🔄 Using fallback data');
+          await loadDynamicVerses(fallbackData);
         }
         
         setError('Using offline data. Pull to refresh when online.');
@@ -178,6 +198,60 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
       setGuidesData(fallbackData);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load verses from user's preferred Bible version
+  const loadDynamicVerses = async (data) => {
+    try {
+      setLoadingDynamicVerses(true);
+      console.log('📖 Loading dynamic verses for thematic guides from preferred Bible version...');
+      
+      // Get user's preferred version
+      const version = await verseByReferenceService.getPreferredVersion();
+      setBibleVersion(version.toUpperCase());
+      console.log('📖 User prefers:', version.toUpperCase());
+      
+      // Get all verses from all guides
+      const allGuides = data.guides || [];
+      const allVerses = allGuides.flatMap(guide => guide.keyVerses || []);
+      console.log('📖 Found', allVerses.length, 'verses to fetch');
+      
+      // Fetch verses dynamically (batch processing)
+      const versesMap = {};
+      const batchSize = 10;
+      
+      for (let i = 0; i < allVerses.length; i += batchSize) {
+        const batch = allVerses.slice(i, i + batchSize);
+        const promises = batch.map(async (verseObj) => {
+          if (!verseObj.verse) return; // verse is the reference field
+          try {
+            const verseData = await verseByReferenceService.getVerseByReference(verseObj.verse, version);
+            versesMap[verseObj.verse] = {
+              text: verseData.text,
+              version: verseData.version
+            };
+            console.log('✅ Loaded:', verseObj.verse);
+          } catch (error) {
+            console.error('❌ Failed to load:', verseObj.verse, error.message);
+            // Fallback to hardcoded text if fetch fails
+            versesMap[verseObj.verse] = {
+              text: verseObj.text,
+              version: version.toUpperCase()
+            };
+          }
+        });
+        
+        await Promise.all(promises);
+        console.log(`📊 Progress: ${Math.min(i + batchSize, allVerses.length)}/${allVerses.length} verses loaded`);
+      }
+      
+      setFetchedVerses(versesMap);
+      setLoadingDynamicVerses(false);
+      console.log('✅ All dynamic verses loaded for thematic guides!');
+    } catch (error) {
+      console.error('Error loading dynamic verses:', error);
+      setLoadingDynamicVerses(false);
     }
   };
 
@@ -220,6 +294,31 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
       initializeData();
     }
   }, [visible]);
+
+  // Listen for Bible version changes from Settings
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('bibleVersionChanged', async (newVersion) => {
+      console.log('📡 ThematicGuides: Received Bible version change event ->', newVersion);
+      
+      // Clear cached verses
+      setFetchedVerses({});
+      
+      // Update version display
+      setBibleVersion(newVersion.toUpperCase());
+      
+      // Reload all verses with new version
+      if (guidesData) {
+        console.log('🔄 Reloading all guide verses with new version:', newVersion);
+        await loadDynamicVerses(guidesData);
+      }
+      
+      console.log('✅ ThematicGuides refreshed with new Bible version');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [guidesData]); // Re-subscribe if guidesData changes
 
   // Cleanup: save any pending reflections when component unmounts
   useEffect(() => {
@@ -352,42 +451,185 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
     );
   };
 
+  // Reset panY when modal closes
+  useEffect(() => {
+    if (!selectedGuide) {
+      guidePanY.setValue(0);
+    }
+  }, [selectedGuide]);
+
+  // Pan gesture handler for guide detail modal
+  const guidePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderGrant: () => {
+        hapticFeedback.light();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          guidePanY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+          hapticFeedback.success();
+          Animated.parallel([
+            Animated.timing(guideSlideAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }),
+            Animated.timing(guideFadeAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            setSelectedGuide(null);
+          });
+        } else {
+          hapticFeedback.light();
+          Animated.spring(guidePanY, {
+            toValue: 0,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // Animate guide detail modal in/out
+  useEffect(() => {
+    if (selectedGuide) {
+      guideSlideAnim.setValue(0);
+      guideFadeAnim.setValue(0);
+      
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.spring(guideSlideAnim, {
+            toValue: 1,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }),
+          Animated.timing(guideFadeAnim, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    } else {
+      guideSlideAnim.setValue(0);
+      guideFadeAnim.setValue(0);
+    }
+  }, [selectedGuide]);
+
   const renderGuideDetail = () => {
     if (!selectedGuide) return null;
     
     const themeColor = themeCategories.find(cat => cat.id === selectedGuide.theme)?.color || theme.primary;
     const isCompleted = completedGuides.includes(selectedGuide.id);
 
+    const modalTranslateY = guideSlideAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1000, 0],
+    });
+
+    const combinedTranslateY = Animated.add(modalTranslateY, guidePanY);
+
+    const handleBackdropClose = () => {
+      Animated.parallel([
+        Animated.timing(guideSlideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(guideFadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setSelectedGuide(null);
+      });
+    };
+
     return (
       <Modal 
-        visible={!!selectedGuide} 
-        animationType="slide" 
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedGuide(null)}
+        visible={!!selectedGuide}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleBackdropClose}
+        statusBarTranslucent={true}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.background }]}>
-            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
-            
-            {/* Modal Handle */}
-            <View style={styles.modalHandle}>
-              <View style={[styles.handleBar, { backgroundColor: theme.textSecondary }]} />
-            </View>
+        <View style={[styles.guideModalOverlay, { justifyContent: 'flex-end' }]}>
+          {/* Backdrop */}
+          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: guideFadeAnim }}>
+            <TouchableOpacity 
+              style={styles.guideModalBackdrop}
+              activeOpacity={1}
+              onPress={handleBackdropClose}
+            />
+          </Animated.View>
           
-          {/* Header */}
-          <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <View style={{ width: 40 }} />
-            <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
-              Thematic Guide
-            </Text>
-            <TouchableOpacity
-              onPress={() => onNavigateToVerse && onNavigateToVerse(selectedGuide.passage)}
-              style={styles.closeButton}
-            >
-              <MaterialIcons name="menu-book" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
+          {/* Modal Content */}
+          <Animated.View
+            style={[
+              styles.guideModalContainer,
+              {
+                transform: [{ translateY: combinedTranslateY }],
+                opacity: guideFadeAnim,
+                backgroundColor: theme.background,
+                height: '94%',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 10
+              }
+            ]}
+          >
+            <View style={styles.guideDetailSafeArea}>
+              {/* Drag Handle */}
+              <View
+                style={[styles.modalHandle, { paddingTop: 12, paddingBottom: 4 }]}
+                {...guidePanResponder.panHandlers}
+              >
+                <View style={[styles.handleBar, {
+                  width: 40,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'
+                }]} />
+              </View>
+              
+              {/* Header */}
+              <View 
+                style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
+                {...guidePanResponder.panHandlers}
+              >
+                <View style={{ width: 40 }} />
+                <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
+                  Thematic Guide
+                </Text>
+                <TouchableOpacity
+                  onPress={() => onNavigateToVerse && onNavigateToVerse(selectedGuide.passage)}
+                  style={styles.closeButton}
+                >
+                  <MaterialIcons name="menu-book" size={24} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
 
-          <ScrollView style={styles.guideDetailContent} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.guideDetailContent} showsVerticalScrollIndicator={false} bounces={false}>
             {/* Guide Header */}
             <LinearGradient
               colors={[`${themeColor}20`, `${themeColor}10`, 'transparent']}
@@ -454,11 +696,22 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
                 {selectedGuide.keyVerses.map((verseItem, index) => (
                   <View key={index} style={[styles.verseCard, { backgroundColor: theme.surface, borderColor: `${themeColor}20` }]}>
                     <Text style={[styles.verseText, { color: theme.text }]}>
-                      "{verseItem.text}"
+                      "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verseItem.verse]?.text || verseItem.text)}"
                     </Text>
-                    <Text style={[styles.verseReference, { color: themeColor }]}>
-                      {verseItem.verse}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                      <Text style={[styles.verseReference, { color: themeColor }]}>
+                        {verseItem.verse}
+                      </Text>
+                      <Text style={[styles.versionBadge, { 
+                        color: themeColor,
+                        backgroundColor: isDark 
+                          ? `${themeColor}15` 
+                          : `${themeColor}10`,
+                        borderColor: `${themeColor}30`
+                      }]}>
+                        {bibleVersion}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -556,7 +809,9 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
             )}
 
             <View style={{ height: 40 }} />
-          </ScrollView>
+              </ScrollView>
+            </View>
+          </Animated.View>
         </View>
       </Modal>
     );
@@ -568,8 +823,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
         
         {/* Header */}
-        <View style={{ height: 60, backgroundColor: theme.surface }} />
-        <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
+        <View style={[styles.solidHeader, { backgroundColor: theme.surface, paddingTop: 60 }]}>
           <TouchableOpacity
             onPress={onClose}
             style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
@@ -580,7 +834,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
             Thematic Guides
           </Text>
           <View style={styles.solidHeaderButton} />
-        </SafeAreaView>
+        </View>
 
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
@@ -748,6 +1002,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  // Guide detail modal styles
+  guideModalOverlay: {
+    flex: 1,
+  },
+  guideModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  guideModalContainer: {
+    // Styles moved inline for theme support
+  },
+  guideDetailSafeArea: {
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     borderTopLeftRadius: 0,
@@ -783,7 +1051,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 3,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
@@ -1025,6 +1293,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'right',
+  },
+  versionBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+    borderWidth: 1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   insightItem: {
     flexDirection: 'row',

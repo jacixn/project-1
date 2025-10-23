@@ -49,10 +49,10 @@ const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistor
           setCurrentVerses(verses);
         } catch (error) {
           console.error('Error loading prayer verses:', error);
-          // Set fallback verses
+          // Set loading state
           setCurrentVerses([
-            { text: "Be still, and know that I am God.", reference: "Psalm 46:10" },
-            { text: "Cast all your anxiety on him because he cares for you.", reference: "1 Peter 5:7" }
+            { text: "Verse is loading...", reference: "Loading..." },
+            { text: "Verse is loading...", reference: "Loading..." }
           ]);
         }
       };

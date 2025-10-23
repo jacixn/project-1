@@ -970,8 +970,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
         
         {/* Header */}
-        <View style={{ height: 60, backgroundColor: theme.surface }} />
-        <SafeAreaView edges={['top']} style={[styles.solidHeader, { backgroundColor: theme.surface }]}>
+        <View style={[styles.solidHeader, { backgroundColor: theme.surface, paddingTop: 60 }]}>
           <TouchableOpacity
             onPress={onClose}
             style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
@@ -982,7 +981,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             Bible Timeline
           </Text>
           <View style={styles.solidHeaderButton} />
-        </SafeAreaView>
+        </View>
 
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
@@ -1538,7 +1537,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 3,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },

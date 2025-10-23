@@ -18,11 +18,13 @@
       "bundleIdentifier": "com.jesusxoi.biblely",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "com.jesusxoi.biblely.refresh",
+          "com.jesusxoi.biblely.processing"
+        ],
         "UIBackgroundModes": [
-          "background-processing",
           "remote-notification",
-          "background-processing",
-          "remote-notification"
+          "processing"
         ],
         "UIStatusBarHidden": false,
         "UIViewControllerBasedStatusBarAppearance": false,

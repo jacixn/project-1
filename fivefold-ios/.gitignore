@@ -35,3 +35,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# API Keys & Tokens - KEEP SECRET
+github.config.js
+deepseek.config.js

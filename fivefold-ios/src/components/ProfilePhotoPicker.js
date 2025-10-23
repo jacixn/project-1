@@ -16,39 +16,63 @@ import { hapticFeedback } from '../utils/haptics';
 const ProfilePhotoPicker = ({ onImageSelected }) => {
   const { theme } = useTheme();
 
-  const requestPermissions = async () => {
-    // Request camera permissions
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (cameraStatus !== 'granted' || mediaStatus !== 'granted') {
-      Alert.alert(
-        'Permissions Required',
-        'We need camera and photo library permissions to let you upload a profile picture.',
-        [{ text: 'OK' }]
-      );
+  const requestCameraPermissions = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Camera Permission Required',
+          'Please allow camera access in your device settings to take photos.',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error requesting camera permissions:', error);
       return false;
     }
-    return true;
+  };
+
+  const requestMediaLibraryPermissions = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Photo Library Permission Required',
+          'Please allow photo library access in your device settings to select photos.',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error requesting media library permissions:', error);
+      return false;
+    }
   };
 
   const pickImageFromCamera = async () => {
-    hapticFeedback.buttonPress();
-    
-    const hasPermissions = await requestPermissions();
-    if (!hasPermissions) return;
-
     try {
+      hapticFeedback.buttonPress();
+      
+      const hasPermissions = await requestCameraPermissions();
+      if (!hasPermissions) return;
+
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1], // Square aspect ratio
+        aspect: [1, 1],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log('Camera photo selected:', imageUri);
         hapticFeedback.photoCapture();
-        onImageSelected(result.assets[0].uri);
+        onImageSelected(imageUri);
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -57,22 +81,24 @@ const ProfilePhotoPicker = ({ onImageSelected }) => {
   };
 
   const pickImageFromGallery = async () => {
-    hapticFeedback.buttonPress();
-    
-    const hasPermissions = await requestPermissions();
-    if (!hasPermissions) return;
-
     try {
+      hapticFeedback.buttonPress();
+      
+      const hasPermissions = await requestMediaLibraryPermissions();
+      if (!hasPermissions) return;
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1], // Square aspect ratio
+        aspect: [1, 1],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log('Gallery photo selected:', imageUri);
         hapticFeedback.photoCapture();
-        onImageSelected(result.assets[0].uri);
+        onImageSelected(imageUri);
       }
     } catch (error) {
       console.error('Gallery error:', error);

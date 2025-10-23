@@ -422,14 +422,10 @@ class NotificationService {
       
       // Reschedule based on new settings
       if (settings.dailyPrayerTime) {
-        const prayerTimes = await getStoredData('prayerTimes') || {
-          beforeSunrise: '05:30',
-          afterSunrise: '06:30',
-          midday: '12:00',
-          beforeSunset: '17:30',
-          afterSunset: '18:30',
-        };
-        await this.schedulePrayerNotifications(prayerTimes, settings);
+        const prayerTimes = await getStoredData('customPrayerTimes') || {};
+        if (Object.keys(prayerTimes).length > 0) {
+          await this.schedulePrayerNotifications(prayerTimes, settings);
+        }
       }
       
       if (settings.streakReminders) {

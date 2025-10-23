@@ -2,10 +2,126 @@
   "version": "1.0",
   "lastUpdated": "2025-10-23",
   "metadata": {
-    "description": "Comprehensive Biblical locations and journey data from Abraham to Paul",
-    "extractedFrom": "InteractiveBibleMaps.js component",
     "totalLocations": 0,
-    "totalJourneys": 0
+    "totalJourneys": 0,
+    "description": "Comprehensive Biblical locations and journey data from Abraham to Paul",
+    "extractedFrom": "InteractiveBibleMaps.js component"
+  },
+  "filterCategories": [
+    {
+      "id": "all",
+      "name": "All Locations",
+      "icon": "map"
+    },
+    {
+      "id": "divine_encounter",
+      "name": "Divine Encounters",
+      "icon": "flash-on",
+      "color": "#FFD700"
+    },
+    {
+      "id": "miracle",
+      "name": "Miracles",
+      "icon": "auto-fix-high",
+      "color": "#FF6B6B"
+    },
+    {
+      "id": "covenant_moment",
+      "name": "Covenant Moments",
+      "icon": "handshake",
+      "color": "#4ECDC4"
+    },
+    {
+      "id": "battle_miracle",
+      "name": "Battles & Miracles",
+      "icon": "sports-martial-arts",
+      "color": "#E74C3C"
+    },
+    {
+      "id": "prophecy_foreshadowing",
+      "name": "Prophecies",
+      "icon": "visibility",
+      "color": "#9B59B6"
+    },
+    {
+      "id": "passion_resurrection",
+      "name": "Passion & Resurrection",
+      "icon": "favorite",
+      "color": "#FF1744"
+    },
+    {
+      "id": "conversion",
+      "name": "Conversions",
+      "icon": "refresh",
+      "color": "#00E676"
+    },
+    {
+      "id": "mercy_forgiveness",
+      "name": "Mercy & Forgiveness",
+      "icon": "healing",
+      "color": "#00BCD4"
+    }
+  ],
+  "eraFilters": [
+    {
+      "id": "all",
+      "name": "All Eras",
+      "icon": "history"
+    },
+    {
+      "id": "patriarchs",
+      "name": "Patriarchs",
+      "icon": "family-restroom",
+      "color": "#8D6E63"
+    },
+    {
+      "id": "exodus",
+      "name": "Exodus",
+      "icon": "directions-walk",
+      "color": "#FF5722"
+    },
+    {
+      "id": "conquest",
+      "name": "Conquest",
+      "icon": "flag",
+      "color": "#795548"
+    },
+    {
+      "id": "kingdom",
+      "name": "Kingdom",
+      "icon": "castle",
+      "color": "#673AB7"
+    },
+    {
+      "id": "prophets",
+      "name": "Prophets",
+      "icon": "record-voice-over",
+      "color": "#3F51B5"
+    },
+    {
+      "id": "exile",
+      "name": "Exile",
+      "icon": "sentiment-very-dissatisfied",
+      "color": "#607D8B"
+    },
+    {
+      "id": "nt",
+      "name": "New Testament",
+      "icon": "auto-stories",
+      "color": "#2196F3"
+    },
+    {
+      "id": "apostolic",
+      "name": "Apostolic",
+      "icon": "groups",
+      "color": "#009688"
+    }
+  ],
+  "initialRegion": {
+    "latitude": 31.7683,
+    "longitude": 35.2137,
+    "latitudeDelta": 8.0,
+    "longitudeDelta": 8.0
   },
   "biblicalLocations": [],
   "biblicalJourneys": []

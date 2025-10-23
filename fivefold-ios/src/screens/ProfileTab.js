@@ -15,6 +15,9 @@ import {
   Animated,
   RefreshControl,
   ActivityIndicator,
+  DeviceEventEmitter,
+  PanResponder,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -41,6 +44,9 @@ import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } from '../data/bibleVersions';
 import AiBibleChat from '../components/AiBibleChat';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
+import AppStreakManager from '../utils/appStreakManager';
+import VerseDataManager from '../utils/verseDataManager';
+import verseByReferenceService from '../services/verseByReferenceService';
 
 // Animated Profile Card Components (follows Rules of Hooks)
 const AnimatedStatCard = ({ children, onPress, style, ...props }) => {
@@ -227,6 +233,29 @@ const ProfileTab = () => {
 
   const [purchasedVersions, setPurchasedVersions] = useState(['kjv', 'web']); // Free versions
   
+  // App Streak State
+  const [appStreak, setAppStreak] = useState(0);
+  const [showStreakMilestone, setShowStreakMilestone] = useState(false);
+  const [streakAnimation, setStreakAnimation] = useState(null);
+  
+  // Journal State
+  const [journalNotes, setJournalNotes] = useState([]);
+  const [journalVerseTexts, setJournalVerseTexts] = useState({});
+  const [showJournal, setShowJournal] = useState(false);
+  const [showAddJournalNote, setShowAddJournalNote] = useState(false);
+  const [newJournalNote, setNewJournalNote] = useState({ reference: '', text: '' });
+  
+  // Highlights State
+  const [highlightedVerses, setHighlightedVerses] = useState([]);
+  const [showHighlights, setShowHighlights] = useState(false);
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState(null); // Track selected color for drill-down
+  const [highlightVersesWithText, setHighlightVersesWithText] = useState([]); // Store verses with full text
+  
+  // Modal animation refs for interactive dismissal
+  const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
+  const journalSlideAnim = useRef(new Animated.Value(0)).current;
+  const highlightsSlideAnim = useRef(new Animated.Value(0)).current;
+  
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
 
@@ -265,18 +294,311 @@ const ProfileTab = () => {
     setRefreshingSavedVerses(false);
   };
 
+  const loadAppStreak = async () => {
+    try {
+      const streakData = await AppStreakManager.trackAppOpen();
+      setAppStreak(streakData.currentStreak);
+      
+      // Check for milestone and show animation
+      if (streakData.milestoneReached) {
+        setShowStreakMilestone(true);
+        const animation = AppStreakManager.getStreakAnimation(streakData.currentStreak);
+        setStreakAnimation(animation);
+        
+        // Clear milestone flag
+        await AppStreakManager.clearMilestoneFlag();
+        
+        // Hide animation after 3 seconds
+        setTimeout(() => {
+          setShowStreakMilestone(false);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error loading app streak:', error);
+    }
+  };
+
+  // Helper function to check if a string looks like a Bible reference
+  const isValidBibleReference = (ref) => {
+    if (!ref || ref === 'Unknown Reference' || ref === 'My Thoughts') return false;
+    // Check if it matches pattern like "Book Chapter:Verse" or "Book Chapter:Verse-Verse"
+    const bibleRefPattern = /^[1-3]?\s*[A-Za-z]+\s+\d+:\d+(-\d+)?$/;
+    return bibleRefPattern.test(ref.trim());
+  };
+
+  const loadJournalNotes = async () => {
+    try {
+      const notes = await VerseDataManager.getAllNotes();
+      setJournalNotes(notes);
+      console.log(`📖 Loaded ${notes.length} journal notes`);
+      
+      // Fetch verse texts only for notes with valid Bible references
+      const verseTexts = {};
+      for (const note of notes) {
+        if (isValidBibleReference(note.verseReference)) {
+          try {
+            console.log(`📖 Fetching verse: ${note.verseReference}`);
+            const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'niv';
+            const verseData = await verseByReferenceService.getVerseByReference(
+              note.verseReference,
+              preferredVersion
+            );
+            if (verseData && verseData.text) {
+              verseTexts[note.id] = verseData.text;
+            }
+          } catch (error) {
+            console.error(`Error fetching verse for ${note.verseReference}:`, error);
+          }
+        } else {
+          console.log(`📝 Skipping non-verse reference: ${note.verseReference}`);
+        }
+      }
+      setJournalVerseTexts(verseTexts);
+    } catch (error) {
+      console.error('Error loading journal notes:', error);
+    }
+  };
+
+  const loadHighlights = async () => {
+    try {
+      const allData = await VerseDataManager.getAllVerseData();
+      const highlights = [];
+      
+      Object.entries(allData).forEach(([verseId, data]) => {
+        if (data.highlights && data.highlights.length > 0) {
+          const latestHighlight = data.highlights[data.highlights.length - 1];
+          highlights.push({
+            verseId,
+            color: latestHighlight.color,
+            verseReference: latestHighlight.verseReference || verseId,
+            timestamp: latestHighlight.createdAt
+          });
+        }
+      });
+      
+      setHighlightedVerses(highlights);
+      console.log(`🎨 Loaded ${highlights.length} highlighted verses`);
+    } catch (error) {
+      console.error('Error loading highlights:', error);
+    }
+  };
+
+  // Load verses with full text for a specific color
+  const loadVersesForColor = async (color) => {
+    try {
+      const versesInColor = highlightedVerses.filter(v => v.color === color);
+      const versesWithText = [];
+      
+      for (const verse of versesInColor) {
+        try {
+          const verseData = await verseByReferenceService.getVerseByReference(verse.verseReference);
+          // Extract text from the returned object
+          const verseText = typeof verseData === 'string' ? verseData : (verseData?.text || 'Verse text not available');
+          versesWithText.push({
+            ...verse,
+            text: verseText
+          });
+        } catch (error) {
+          console.error(`Error fetching verse ${verse.verseReference}:`, error);
+          versesWithText.push({
+            ...verse,
+            text: 'Verse text not available'
+          });
+        }
+      }
+      
+      setHighlightVersesWithText(versesWithText);
+      setSelectedHighlightColor(color);
+      console.log(`📖 Loaded ${versesWithText.length} verses for color ${color}`);
+    } catch (error) {
+      console.error('Error loading verses for color:', error);
+    }
+  };
+
+  // Group highlights by color
+  const groupHighlightsByColor = () => {
+    const grouped = {};
+    highlightedVerses.forEach(verse => {
+      if (!grouped[verse.color]) {
+        grouped[verse.color] = [];
+      }
+      grouped[verse.color].push(verse);
+    });
+    return grouped;
+  };
+
+  // Get color name from hex
+  const getColorName = (hexColor) => {
+    const colorNames = {
+      '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
+      '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
+      '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
+      '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
+      '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
+      '#B2DFDB': 'Teal', '#FFB3B3': 'Salmon', '#CCCCFF': 'Periwinkle', '#F7E7CE': 'Champagne',
+      '#AFEEEE': 'Turquoise', '#FFE4E1': 'Blush', '#98FF98': 'Mint Green', '#89CFF0': 'Baby Blue',
+      '#FFB6C1': 'Powder', '#FFFFCC': 'Butter', '#93E9BE': 'Seafoam', '#DA70D6': 'Orchid',
+      '#FFD700': 'Honey', '#C1E1EC': 'Ice Blue', '#DE3163': 'Cherry', '#93C572': 'Pistachio',
+      '#DDA0DD': 'Plum', '#FFCC00': 'Tangerine', '#F5DEB3': 'Sand', '#7FFFD4': 'Cyan',
+      '#FF77FF': 'Magenta', '#FFDEAD': 'Melon', '#C4C3D0': 'Iris', '#FFE5B4': 'Gold',
+      '#AFE1AF': 'Celadon', '#C9A0DC': 'Wisteria', '#FFEA00': 'Citrus', '#B0E0E6': 'Azure',
+      '#F3E5AB': 'Vanilla', '#50C878': 'Emerald', '#9966CC': 'Amethyst', '#F0EAD6': 'Pearl',
+      '#00A86B': 'Jade'
+    };
+    return colorNames[hexColor] || 'Custom';
+  };
+
+  // PanResponders for interactive dismissal
+  const savedVersesPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderGrant: () => {
+        console.log('📱 Saved Verses: Pan started');
+      },
+      onPanResponderMove: (_, gestureState) => {
+        console.log('📱 Saved Verses: Dragging dy:', gestureState.dy);
+        if (gestureState.dy > 0) {
+          savedVersesSlideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        console.log('📱 Saved Verses: Released at dy:', gestureState.dy);
+        if (gestureState.dy > 150) {
+          console.log('📱 Saved Verses: Dismissing...');
+          Animated.timing(savedVersesSlideAnim, {
+            toValue: 1000,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowSavedVerses(false);
+          });
+        } else {
+          console.log('📱 Saved Verses: Bouncing back...');
+          Animated.spring(savedVersesSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const journalPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderGrant: () => {
+        console.log('📖 Journal: Pan started');
+      },
+      onPanResponderMove: (_, gestureState) => {
+        console.log('📖 Journal: Dragging dy:', gestureState.dy);
+        if (gestureState.dy > 0) {
+          journalSlideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        console.log('📖 Journal: Released at dy:', gestureState.dy);
+        if (gestureState.dy > 150) {
+          console.log('📖 Journal: Dismissing...');
+          Animated.timing(journalSlideAnim, {
+            toValue: 1000,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowJournal(false);
+          });
+        } else {
+          console.log('📖 Journal: Bouncing back...');
+          Animated.spring(journalSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const highlightsPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderGrant: () => {
+        console.log('🎨 Highlights: Pan started');
+      },
+      onPanResponderMove: (_, gestureState) => {
+        console.log('🎨 Highlights: Dragging dy:', gestureState.dy);
+        if (gestureState.dy > 0) {
+          highlightsSlideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        console.log('🎨 Highlights: Released at dy:', gestureState.dy);
+        if (gestureState.dy > 150) {
+          console.log('🎨 Highlights: Dismissing...');
+          Animated.timing(highlightsSlideAnim, {
+            toValue: 1000,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowHighlights(false);
+          });
+        } else {
+          console.log('🎨 Highlights: Bouncing back...');
+          Animated.spring(highlightsSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)  ).current;
+
+  // Reset animation values when modals open
+  useEffect(() => {
+    if (showSavedVerses) {
+      savedVersesSlideAnim.setValue(0);
+    }
+  }, [showSavedVerses]);
+
+  useEffect(() => {
+    if (showJournal) {
+      journalSlideAnim.setValue(0);
+    }
+  }, [showJournal]);
+
+  useEffect(() => {
+    if (showHighlights) {
+      highlightsSlideAnim.setValue(0);
+    }
+  }, [showHighlights]);
+
+  // Debug: Monitor showAddJournalNote state
+  useEffect(() => {
+    console.log('📝 showAddJournalNote changed to:', showAddJournalNote);
+  }, [showAddJournalNote]);
 
   useEffect(() => {
     loadUserData();
     checkAiStatus();
     loadVibrationSetting();
     loadSavedVerses();
+    loadAppStreak();
+    loadJournalNotes();
+    loadHighlights();
     // Start entrance animation
     createEntranceAnimation(slideAnim, fadeAnim, scaleAnim, 0, 0).start();
     // Header appears after content
@@ -323,6 +645,9 @@ const ProfileTab = () => {
       const storedBibleVersion = await AsyncStorage.getItem('selectedBibleVersion');
       if (storedBibleVersion) {
         setSelectedBibleVersion(storedBibleVersion);
+      } else {
+        // Default to NIV if no version selected
+        setSelectedBibleVersion('niv');
       }
 
       const storedPurchasedVersions = await AsyncStorage.getItem('purchasedBibleVersions');
@@ -482,14 +807,12 @@ const ProfileTab = () => {
       // Haptic feedback
       hapticFeedback.success();
       
-      // Show confirmation
-      setTimeout(() => {
-        Alert.alert(
-          'Bible Version Updated', 
-          `Now using ${version.name} (${version.abbreviation})`,
-          [{ text: 'OK' }]
-        );
-      }, 500);
+      // Automatically refresh the app to reflect new Bible version
+      console.log('🔄 Triggering FULL APP RELOAD for Bible version change to:', versionId);
+      
+      // Emit event to trigger full app reload (shows splash screen)
+      DeviceEventEmitter.emit('bibleVersionChanged', versionId);
+      console.log('📡 Broadcast: Bible version changed to', versionId);
     } catch (error) {
       console.error('Failed to select Bible version:', error);
       Alert.alert('Error', 'Failed to update Bible version. Please try again.');
@@ -582,14 +905,36 @@ const ProfileTab = () => {
         ) : (
           <MaterialIcons name="person" size={40} color="#FFFFFF" />
         )}
-        <View style={[styles.cameraIcon, { backgroundColor: theme.background }]}>
-          <MaterialIcons name="camera-alt" size={16} color={theme.primary} />
-        </View>
       </TouchableOpacity>
       
+      <View style={{ alignItems: 'center' }}>
       <Text style={[styles.userName, { color: theme.text }]}>
         {userName} {userProfile?.country?.flag || ''}
       </Text>
+        
+        {/* Streak Display */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginTop: 4,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          backgroundColor: `${theme.warning}20`,
+          borderRadius: 20,
+        }}>
+          <Text style={{ fontSize: 18, marginRight: 6 }}>
+            {AppStreakManager.getStreakEmoji(appStreak)}
+          </Text>
+          <Text style={[{
+            fontSize: 15,
+            fontWeight: '700',
+            color: theme.warning
+          }]}>
+            {appStreak} Day Streak
+          </Text>
+        </View>
+      </View>
+      
       <Text style={[styles.userLevel, { color: theme.textSecondary }]}>
         {t.level || 'Level'} {userStats.level} {t.believer || 'Believer'}
       </Text>
@@ -735,7 +1080,8 @@ const ProfileTab = () => {
           </Text>
         </AnimatedStatCard>
         
-        <View style={[styles.statBox, { 
+        <AnimatedStatCard
+          style={[styles.statBox, { 
           backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
           borderColor: `${theme.primary}15`, // Very subtle border color
           borderWidth: 0.8, // Very subtle border
@@ -761,17 +1107,24 @@ const ProfileTab = () => {
             backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
             borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
           }),
-        }]}>
-          <MaterialIcons name="favorite" size={24} color={theme.error} />
+          }]}
+          onPress={() => {
+            hapticFeedback.light();
+            loadHighlights();
+            setShowHighlights(true);
+          }}
+        >
+          <MaterialIcons name="palette" size={24} color={theme.warning} />
           <Text style={[styles.statValue, { color: theme.text }]}>
-            {userStats.prayersCompleted || 0}
+            {highlightedVerses.length}
           </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-            {t.prayers || 'Prayers'}
+            {t.highlights || 'Highlights'}
           </Text>
-        </View>
+        </AnimatedStatCard>
         
-        <View style={[styles.statBox, { 
+        <AnimatedStatCard
+          style={[styles.statBox, { 
           backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
           borderColor: `${theme.primary}15`, // Very subtle border color
           borderWidth: 0.8, // Very subtle border
@@ -797,15 +1150,21 @@ const ProfileTab = () => {
             backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
             borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
           }),
-        }]}>
-          <MaterialIcons name="local-fire-department" size={24} color={theme.warning} />
+          }]}
+          onPress={() => {
+            hapticFeedback.light();
+            loadJournalNotes();
+            setShowJournal(true);
+          }}
+        >
+          <MaterialIcons name="book" size={24} color={theme.info} />
           <Text style={[styles.statValue, { color: theme.text }]}>
-            {userStats.streak || 0}
+            {journalNotes.length}
           </Text>
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-            {t.dayStreak || 'Day Streak'}
+            {t.journal || 'Journal'}
           </Text>
-        </View>
+        </AnimatedStatCard>
       </View>
       </LiquidGlassStatsContainer>
     );
@@ -1122,7 +1481,7 @@ const ProfileTab = () => {
               setShowCountryPicker(false);
             }}
           >
-            <View style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: 60 }}>
               <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#ccc' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <TouchableOpacity onPress={() => {
@@ -1369,12 +1728,22 @@ const ProfileTab = () => {
                       <Text style={[styles.versionAbbreviation, { color: theme.textSecondary, fontSize: 14, marginTop: 2 }]}>
                         {lang.name}
                       </Text>
+                      {!isEnglish && (
+                        <Text style={[styles.comingSoonText, { color: theme.primary, fontSize: 12, marginTop: 4, fontStyle: 'italic' }]}>
+                          Coming Soon
+                        </Text>
+                      )}
                     </View>
                   </View>
                   
-                  {isSelected && (
-                    <MaterialIcons name="check-circle" size={24} color={theme.primary} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {isSelected && isEnglish && (
+                      <MaterialIcons name="check-circle" size={24} color={theme.primary} style={{ marginRight: 8 }} />
                   )}
+                    {!isEnglish && (
+                      <MaterialIcons name="lock" size={20} color={theme.textTertiary} />
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -1394,25 +1763,40 @@ const ProfileTab = () => {
         </View>
       )}
 
-      {/* Saved Verses Modal */}
+      {/* Saved Verses Modal - Interactive Dismissal Style */}
       <Modal
         visible={showSavedVerses}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType="none"
+        transparent={true}
         onRequestClose={() => setShowSavedVerses(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
-            {/* Pull indicator */}
-            <View style={styles.pullIndicatorContainer}>
-              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary }]} />
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'flex-end'
+        }}>
+          <Animated.View style={{
+            backgroundColor: theme.background,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            height: '93%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 20,
+            transform: [{ translateY: savedVersesSlideAnim }]
+          }}>
+            {/* Drag Handle - Swipe Area */}
+            <View 
+              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
+              {...savedVersesPanResponder.panHandlers}
+            >
+              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
             </View>
             
-            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16 }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>{t.savedVersesTitle || 'Saved Verses'}</Text>
-              <TouchableOpacity onPress={() => setShowSavedVerses(false)} style={{ minWidth: 60, alignItems: 'center' }}>
-                <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-              </TouchableOpacity>
+            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center' }]}>
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>Saved Verses</Text>
             </View>
             
             <ScrollView 
@@ -1451,76 +1835,19 @@ const ProfileTab = () => {
                         {verse.version?.toUpperCase() || 'KJV'}
                       </Text>
                     </View>
-                    {/* Always show original content */}
                     <Text style={[styles.savedVerseContent, { color: theme.text }]}>
-                      {verse.content}
+                      {verse.text || verse.content}
                     </Text>
-                    
-                    {/* Show simplified text below original when simplified */}
-                    {simplifiedSavedVerses.has(verse.id) && (
-                      <View style={styles.simplifiedSavedVerseContainer}>
-                        <View style={styles.simplifiedSavedVerseHeader}>
-                          <MaterialIcons name="child-friendly" size={16} color={theme.warning} />
-                          <Text style={[styles.simplifiedSavedVerseLabel, { color: theme.warning }]}>
-                            Easy to understand:
-                          </Text>
-                        </View>
-                        <Text style={[styles.simplifiedSavedVerseText, { color: theme.text, backgroundColor: `${theme.warning}10` }]}>
-                          {simplifiedSavedVerses.get(verse.id)}
-                        </Text>
-                      </View>
-                    )}
                     
                     {/* Action buttons */}
                     <View style={styles.savedVerseActions}>
-                      {/* Simple Button */}
-                      <TouchableOpacity
-                        style={[styles.savedVerseButton, { 
-                          backgroundColor: simplifiedSavedVerses.has(verse.id) ? theme.warning + '20' : theme.textSecondary + '15',
-                          borderColor: simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary + '30'
-                        }]}
-                        onPress={async () => {
-                          hapticFeedback.light();
-                          if (simplifiedSavedVerses.has(verse.id)) {
-                            // Toggle back to original
-                            const newMap = new Map(simplifiedSavedVerses);
-                            newMap.delete(verse.id);
-                            setSimplifiedSavedVerses(newMap);
-                            console.log(`📖 Hiding simplified text for saved verse: ${verse.reference}`);
-                          } else {
-                            // Simplify the verse [[memory:7766870]]
-                            try {
-                              console.log(`🧒 Simplifying saved verse for 12-year-old: ${verse.reference}`);
-                              const productionAiService = require('../services/productionAiService').default;
-                              const simplifiedText = await productionAiService.simplifyBibleVerse(verse.content, verse.reference);
-                              const newMap = new Map(simplifiedSavedVerses);
-                              newMap.set(verse.id, simplifiedText);
-                              setSimplifiedSavedVerses(newMap);
-                              console.log(`✅ Successfully simplified saved verse: ${verse.reference}`);
-                            } catch (error) {
-                              console.error('Error simplifying saved verse:', error);
-                              Alert.alert('Error', 'Could not simplify verse. Please try again.');
-                            }
-                          }
-                        }}
-                      >
-                        <MaterialIcons 
-                          name={simplifiedSavedVerses.has(verse.id) ? "child-care" : "child-friendly"} 
-                          size={16} 
-                          color={simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary} 
-                        />
-                        <Text style={[styles.savedVerseButtonText, { color: simplifiedSavedVerses.has(verse.id) ? theme.warning : theme.textSecondary }]}>
-                          {t.simple || 'Simple'}
-                        </Text>
-                      </TouchableOpacity>
-                      
                       {/* Discuss Button */}
                       <TouchableOpacity
                         style={[styles.savedVerseButton, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
                         onPress={() => {
                           hapticFeedback.medium();
                           setVerseToInterpret({
-                            text: verse.content,
+                            text: verse.text || verse.content,
                             reference: verse.reference
                           });
                           setShowSavedVerses(false);
@@ -1556,7 +1883,7 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
@@ -1679,7 +2006,7 @@ const ProfileTab = () => {
               <View style={styles.settingLeft}>
                 <MaterialIcons name="language" size={20} color={theme.primary} />
                 <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.language}
+                  {t.language || 'Language'}
                 </Text>
               </View>
               <View style={styles.settingRight}>
@@ -1790,6 +2117,691 @@ const ProfileTab = () => {
           }}
           initialVerse={verseToInterpret}
         />
+      )}
+
+      {/* Journal Modal - Interactive Dismissal Style */}
+      <Modal
+        visible={showJournal}
+        animationType="none"
+        transparent={true}
+        onRequestClose={() => setShowJournal(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'flex-end'
+        }}>
+          <Animated.View style={{
+            backgroundColor: theme.background,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            height: '93%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 20,
+            transform: [{ translateY: journalSlideAnim }]
+          }}>
+            {/* Drag Handle - Swipe Area */}
+            <View 
+              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
+              {...journalPanResponder.panHandlers}
+            >
+              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
+            </View>
+            
+            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center' }]}>
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>
+                Journal
+              </Text>
+            </View>
+            
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              scrollEventThrottle={16}
+            >
+              {journalNotes.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="menu-book" size={64} color={theme.textTertiary} />
+                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
+                    No Notes Yet
+                  </Text>
+                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22, textAlign: 'center' }]}>
+                    Long-press any verse in the Bible to add your personal notes and reflections
+                  </Text>
+                </View>
+              ) : (
+                journalNotes.map((note, index) => (
+                  <View
+                    key={note.id || index}
+                    style={[{
+                      backgroundColor: theme.card,
+                      borderRadius: 20,
+                      marginBottom: 20,
+                      overflow: 'hidden',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 12,
+                      elevation: 5,
+                    }]}
+                  >
+                    {/* Header with date */}
+                    <View style={{
+                      backgroundColor: theme.primary,
+                      paddingHorizontal: 20,
+                      paddingVertical: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <MaterialIcons name="bookmark" size={18} color="#fff" />
+                        <Text style={{
+                          fontSize: 15,
+                          fontWeight: '700',
+                          color: '#fff',
+                          marginLeft: 8
+                        }}>
+                          {note.verseReference || 'Unknown Reference'}
+                        </Text>
+                      </View>
+                      <Text style={{
+                        fontSize: 12,
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        fontWeight: '500'
+                      }}>
+                        {new Date(note.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </Text>
+                    </View>
+
+                    {/* Content */}
+                    <View style={{ padding: 20 }}>
+                      {/* Verse Text (if available) */}
+                      {journalVerseTexts[note.id] && (
+                        <View style={{
+                          backgroundColor: `${theme.textSecondary}08`,
+                          borderRadius: 12,
+                          padding: 16,
+                          marginBottom: 16,
+                          borderLeftWidth: 3,
+                          borderLeftColor: theme.textSecondary
+                        }}>
+                          <Text style={{
+                            fontSize: 14,
+                            lineHeight: 22,
+                            color: theme.text,
+                            opacity: 0.9
+                          }}>
+                            {journalVerseTexts[note.id]}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {/* User's Note */}
+                      <View style={{
+                        backgroundColor: `${theme.primary}08`,
+                        borderRadius: 12,
+                        padding: 16,
+                        borderLeftWidth: 4,
+                        borderLeftColor: theme.primary
+                      }}>
+                        <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+                          <MaterialIcons name="edit" size={16} color={theme.primary} style={{ opacity: 0.5 }} />
+                          <Text style={{
+                            fontSize: 13,
+                            fontWeight: '600',
+                            color: theme.primary,
+                            marginLeft: 6,
+                            opacity: 0.7
+                          }}>
+                            My Note
+                          </Text>
+                        </View>
+                        <Text style={{
+                          fontSize: 15,
+                          lineHeight: 23,
+                          color: theme.text,
+                          fontStyle: 'italic'
+                        }}>
+                          {note.text}
+                        </Text>
+                      </View>
+
+                      {/* Actions */}
+                      <View style={{
+                        flexDirection: 'row',
+                        marginTop: 16,
+                        gap: 10
+                      }}>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 12,
+                            borderRadius: 12,
+                            backgroundColor: `${theme.error}15`
+                          }}
+                          onPress={async () => {
+                            hapticFeedback.light();
+                            const noteId = note.id;
+                            const verseId = note.verseId;
+                            await VerseDataManager.deleteNote(verseId, noteId);
+                            await loadJournalNotes();
+                          }}
+                        >
+                          <MaterialIcons name="delete-outline" size={20} color={theme.error} />
+                          <Text style={{
+                            fontSize: 14,
+                            fontWeight: '600',
+                            color: theme.error,
+                            marginLeft: 6
+                          }}>
+                            Delete
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            
+            {/* Floating Add Button */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 30,
+                right: 20,
+                zIndex: 1000
+              }}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: theme.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 8
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={() => {
+                console.log('📝 Add button pressed!');
+                console.log('📝 Current showAddJournalNote:', showAddJournalNote);
+                console.log('📝 Current showJournal:', showJournal);
+                hapticFeedback.medium();
+                // Close journal modal first
+                setShowJournal(false);
+                // Then open add note modal
+                setTimeout(() => {
+                  setShowAddJournalNote(true);
+                  console.log('📝 Set showAddJournalNote to true');
+                }, 300);
+              }}
+              >
+                <MaterialIcons name="add" size={32} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Add Journal Entry Modal */}
+      <Modal
+        visible={showAddJournalNote}
+        animationType="slide"
+        transparent={true}
+        presentationStyle="overFullScreen"
+        onRequestClose={() => {
+          setShowAddJournalNote(false);
+          setTimeout(() => setShowJournal(true), 300);
+        }}
+        onShow={() => console.log('📝 Journal entry modal opened!')}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end'
+          }}>
+            <View style={{
+              backgroundColor: theme.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingTop: 20,
+              paddingBottom: 40,
+              paddingHorizontal: 20,
+              maxHeight: '90%'
+            }}>
+              {/* Header */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 24
+              }}>
+                <Text style={{
+                  fontSize: 24,
+                  fontWeight: '700',
+                  color: theme.text
+                }}>
+                  New Journal Entry
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowAddJournalNote(false);
+                    setNewJournalNote({ reference: '', text: '' });
+                    setTimeout(() => setShowJournal(true), 300);
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialIcons name="close" size={28} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Title Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: theme.textSecondary,
+                    marginBottom: 8
+                  }}>
+                    Title (Optional)
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderRadius: 12,
+                      padding: 16,
+                      fontSize: 16,
+                      color: theme.text,
+                      borderWidth: 1,
+                      borderColor: theme.border
+                    }}
+                    placeholder="e.g., Exodus 1:1 or My Thoughts"
+                    placeholderTextColor={theme.textTertiary}
+                    value={newJournalNote.reference}
+                    onChangeText={(text) => setNewJournalNote(prev => ({ ...prev, reference: text }))}
+                  />
+                </View>
+
+                {/* Note Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: theme.textSecondary,
+                    marginBottom: 8
+                  }}>
+                    Your Note
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderRadius: 12,
+                      padding: 16,
+                      fontSize: 16,
+                      color: theme.text,
+                      minHeight: 200,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      textAlignVertical: 'top'
+                    }}
+                    placeholder="Write your thoughts, reflections, or prayers..."
+                    placeholderTextColor={theme.textTertiary}
+                    value={newJournalNote.text}
+                    onChangeText={(text) => setNewJournalNote(prev => ({ ...prev, text: text }))}
+                    multiline
+                  />
+                </View>
+
+                {/* Save Button */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: theme.primary,
+                    borderRadius: 12,
+                    padding: 16,
+                    alignItems: 'center',
+                    opacity: newJournalNote.text.trim() ? 1 : 0.5
+                  }}
+                  disabled={!newJournalNote.text.trim()}
+                  onPress={async () => {
+                    if (newJournalNote.text.trim()) {
+                      hapticFeedback.success();
+                      try {
+                        // Create a unique ID for this journal entry
+                        const journalId = `journal_${Date.now()}`;
+                        const noteReference = newJournalNote.reference.trim() || 'My Thoughts';
+                        
+                        // Save to VerseDataManager
+                        await VerseDataManager.addNote(
+                          journalId,
+                          newJournalNote.text.trim(),
+                          noteReference
+                        );
+                        
+                        // Reload journal notes
+                        await loadJournalNotes();
+                        
+                        // Close modal and reset
+                        setShowAddJournalNote(false);
+                        setNewJournalNote({ reference: '', text: '' });
+                        
+                        // Reopen journal modal
+                        setTimeout(() => setShowJournal(true), 300);
+                      } catch (error) {
+                        console.error('Error saving journal entry:', error);
+                        Alert.alert('Error', 'Could not save journal entry. Please try again.');
+                      }
+                    }
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: '#fff'
+                  }}>
+                    Save Entry
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Highlights Modal - Interactive Dismissal Style */}
+      <Modal
+        visible={showHighlights}
+        animationType="none"
+        transparent={true}
+        onRequestClose={() => {
+          setShowHighlights(false);
+          setSelectedHighlightColor(null);
+          setHighlightVersesWithText([]);
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'flex-end'
+        }}>
+          <Animated.View style={{
+            backgroundColor: theme.background,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            height: '93%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 20,
+            transform: [{ translateY: highlightsSlideAnim }]
+          }}>
+            {/* Drag Handle - Swipe Area */}
+            <View 
+              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
+              {...highlightsPanResponder.panHandlers}
+            >
+              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
+            </View>
+            
+            {/* Header with back button if viewing verses */}
+            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center', flexDirection: 'row', alignItems: 'center' }]}>
+              {selectedHighlightColor && (
+                <TouchableOpacity
+                  style={{ position: 'absolute', left: 16, padding: 8 }}
+                  onPress={() => {
+                    setSelectedHighlightColor(null);
+                    setHighlightVersesWithText([]);
+                    hapticFeedback.light();
+                  }}
+                >
+                  <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>
+                {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
+              </Text>
+            </View>
+            
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+            >
+              {highlightedVerses.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="palette" size={64} color={theme.textTertiary} />
+                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
+                    No Highlights Yet
+                  </Text>
+                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
+                    Long-press any verse in the Bible and choose a color to highlight it
+                  </Text>
+                </View>
+              ) : !selectedHighlightColor ? (
+                // Show color cards
+                Object.entries(groupHighlightsByColor()).map(([color, verses]) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={{
+                      backgroundColor: `${color}30`,
+                      borderRadius: 16,
+                      padding: 19,
+                      marginBottom: 13,
+                      borderWidth: 3,
+                      borderColor: color,
+                      shadowColor: color,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 6,
+                      elevation: 5,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      hapticFeedback.medium();
+                      loadVersesForColor(color);
+                    }}
+                  >
+                    <View style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 26,
+                      backgroundColor: color,
+                      marginBottom: 13,
+                      shadowColor: color,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 6,
+                      elevation: 6
+                    }} />
+                    <Text style={{
+                      fontSize: 19,
+                      fontWeight: '800',
+                      color: theme.text,
+                      marginBottom: 6
+                    }}>
+                      {getColorName(color)}
+                    </Text>
+                    <View style={{
+                      backgroundColor: `${theme.primary}20`,
+                      paddingHorizontal: 13,
+                      paddingVertical: 6,
+                      borderRadius: 16
+                    }}>
+                      <Text style={{
+                        fontSize: 13,
+                        fontWeight: '700',
+                        color: theme.primary
+                      }}>
+                        {verses.length} {verses.length === 1 ? 'verse' : 'verses'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                // Show verses with full text for selected color
+                highlightVersesWithText.map((verse, index) => (
+                  <View
+                    key={verse.verseId + index}
+                    style={{
+                      backgroundColor: `${selectedHighlightColor}20`,
+                      borderLeftWidth: 6,
+                      borderLeftColor: selectedHighlightColor,
+                      borderRadius: 16,
+                      padding: 20,
+                      marginBottom: 16,
+                      shadowColor: selectedHighlightColor,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 8,
+                      elevation: 3
+                    }}
+                  >
+                    {/* Verse Reference Header */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                      paddingBottom: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: `${selectedHighlightColor}40`
+                    }}>
+                      <MaterialIcons name="auto-stories" size={20} color={theme.text} style={{ opacity: 0.7 }} />
+                      <Text style={{
+                        fontSize: 17,
+                        fontWeight: '800',
+                        color: theme.text,
+                        marginLeft: 10
+                      }}>
+                        {verse.verseReference}
+                      </Text>
+                    </View>
+                    
+                    {/* Verse Text */}
+                    <Text style={{
+                      fontSize: 16,
+                      color: theme.text,
+                      lineHeight: 26,
+                      marginBottom: 16
+                    }}>
+                      {verse.text}
+                    </Text>
+                    
+                    {/* Delete Highlight Button */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        alignSelf: 'flex-start',
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        borderRadius: 12,
+                        backgroundColor: `${theme.error}20`,
+                        marginTop: 8
+                      }}
+                      onPress={async () => {
+                        hapticFeedback.light();
+                        await VerseDataManager.removeHighlight(verse.verseId);
+                        await loadHighlights();
+                        // Remove from current view
+                        setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
+                        // Go back if no verses left
+                        if (highlightVersesWithText.length === 1) {
+                          setSelectedHighlightColor(null);
+                        }
+                        // Notify other parts of the app that highlights have changed
+                        DeviceEventEmitter.emit('highlightsChanged');
+                      }}
+                    >
+                      <MaterialIcons name="delete-outline" size={18} color={theme.error} />
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '700',
+                        color: theme.error,
+                        marginLeft: 8
+                      }}>
+                        Remove
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Streak Milestone Animation Overlay */}
+      {showStreakMilestone && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10000
+        }}>
+          <View style={{
+            backgroundColor: theme.card,
+            borderRadius: 24,
+            padding: 40,
+            alignItems: 'center',
+            shadowColor: theme.warning,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.4,
+            shadowRadius: 20,
+            elevation: 10
+          }}>
+            <Text style={{ fontSize: 80, marginBottom: 16 }}>
+              {AppStreakManager.getStreakEmoji(appStreak)}
+            </Text>
+            <Text style={{
+              fontSize: 32,
+              fontWeight: '800',
+              color: theme.warning,
+              marginBottom: 8
+            }}>
+              {appStreak} Day Streak
+            </Text>
+            <Text style={{
+              fontSize: 18,
+              color: theme.textSecondary,
+              textAlign: 'center'
+            }}>
+              You're on fire! Keep it up!
+            </Text>
+          </View>
+        </View>
       )}
     </View>
     </AnimatedWallpaper>
@@ -2080,18 +3092,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-  },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   modalContainer: {
     flex: 1,

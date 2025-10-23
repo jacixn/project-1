@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
   StatusBar,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import bibleCharactersService from '../services/bibleCharactersService';
 import BibleTimeline from './BibleTimeline';
 import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
@@ -161,16 +163,38 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
 };
 
 // Animated Individual Character Card Component (follows Rules of Hooks)
-const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, theme, index }) => {
+const AnimatedIndividualCharacterCard = ({ character, section, group, onPress, isDark, theme, index }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
   const isAvailable = character.available !== false;
-  const isEven = index % 2 === 0;
+
+  useEffect(() => {
+    // Shimmer effect with delay based on index
+    const timeout = setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerAnim, {
+            toValue: 1,
+            duration: 2500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerAnim, {
+            toValue: 0,
+            duration: 2500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }, index * 100);
+
+    return () => clearTimeout(timeout);
+  }, [index]);
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.97,
       useNativeDriver: true,
-      tension: 300,
+      tension: 400,
       friction: 10,
     }).start();
   };
@@ -179,7 +203,7 @@ const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, 
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 300,
+      tension: 400,
       friction: 10,
     }).start();
   };
@@ -188,16 +212,12 @@ const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, 
     <Animated.View
       style={{
         transform: [{ scale: scaleAnim }],
-        width: '70%',
         marginBottom: 12,
-        alignSelf: isEven ? 'flex-start' : 'flex-end',
-        marginLeft: isEven ? 0 : 60,
-        marginRight: isEven ? 60 : 0,
       }}
     >
       <TouchableOpacity
-        style={[styles.alternatingCharacterCard, { 
-          backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : (theme.surface || 'rgba(0,0,0,0.04)'),
+        style={[styles.modernCharacterCard, { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
           shadowColor: isAvailable ? section.color : theme.textTertiary,
           borderWidth: isDark ? 0 : 1,
           borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
@@ -207,54 +227,90 @@ const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, 
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
+        disabled={!isAvailable}
       >
+        {/* Shimmer overlay */}
+        <Animated.View 
+          style={[
+            styles.characterShimmer,
+            {
+              opacity: shimmerAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.15]
+              }),
+              transform: [{
+                translateX: shimmerAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-150, 150]
+                })
+              }]
+            }
+          ]}
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(255, 255, 255, 0.5)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        {/* Background gradient accent */}
         <LinearGradient
           colors={isAvailable ? 
-            [`${section.color}18`, `${section.color}10`, 'transparent'] :
-            [isDark ? 'rgba(255,255,255,0.08)' : 'rgba(128,128,128,0.08)', 'transparent', 'transparent']
+            [group.color + '18', group.color + '08', 'transparent'] :
+            ['rgba(128,128,128,0.08)', 'rgba(128,128,128,0.04)', 'transparent']
           }
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.alternatingCharacterCardGradient}
-        >
-          {/* Character Avatar */}
-          <View style={[styles.alternatingCharacterAvatarContainer, { 
-            backgroundColor: isAvailable ? `${section.color}20` : `${theme.textTertiary}15`,
-            borderColor: isAvailable ? `${section.color}30` : `${theme.textTertiary}25`,
+          end={{ x: 1, y: 0 }}
+          style={styles.characterCardGradient}
+        />
+
+        <View style={styles.characterCardContent}>
+          {/* Avatar with gradient */}
+          <View style={[styles.characterAvatar, {
+            backgroundColor: isAvailable ? group.color + '25' : 'rgba(128,128,128,0.15)',
+            borderWidth: 2,
+            borderColor: isAvailable ? group.color + '40' : 'rgba(128,128,128,0.25)',
           }]}>
-            {isAvailable ? (
-              <MaterialIcons name="person" size={16} color={section.color} />
-            ) : (
-              <MaterialIcons name="person-outline" size={16} color={theme.textTertiary} />
-            )}
+            <LinearGradient
+              colors={isAvailable ? 
+                [group.color + '30', group.color + '20'] :
+                ['rgba(128,128,128,0.2)', 'rgba(128,128,128,0.1)']
+              }
+              style={styles.avatarGradient}
+            >
+              <MaterialIcons 
+                name={isAvailable ? "person" : "lock"} 
+                size={22} 
+                color={isAvailable ? group.color : theme.textTertiary} 
+              />
+            </LinearGradient>
           </View>
 
-          {/* Character Info */}
-          <Text style={[styles.alternatingCharacterName, { 
-            color: isAvailable ? theme.text : theme.textTertiary,
-            flex: 1,
+          {/* Name */}
+          <Text style={[styles.characterNameText, { 
+            color: isAvailable ? (isDark ? '#FFFFFF' : theme.text) : theme.textTertiary,
           }]}>
             {character.name}
           </Text>
 
-          {/* Compact Status Badge */}
-          <View style={[styles.alternatingCharacterStatusBadge, { 
-            backgroundColor: isAvailable ? `${section.color}15` : `${theme.textTertiary}12`
-          }]}>
-            {isAvailable ? (
-              <View style={[styles.alternatingCharacterPulseDot, { backgroundColor: section.color }]} />
-            ) : (
-              <MaterialIcons name="schedule" size={8} color={theme.textTertiary} />
-            )}
-          </View>
-
-          {/* Interactive Arrow */}
+          {/* Status indicator */}
           {isAvailable && (
-            <View style={styles.alternatingCharacterArrowContainer}>
-              <MaterialIcons name="chevron-right" size={14} color={section.color} />
-            </View>
+            <View style={[styles.characterDot, { backgroundColor: group.color }]} />
           )}
-        </LinearGradient>
+          
+          {/* Arrow */}
+          <View style={[styles.characterArrow, {
+            backgroundColor: isAvailable ? group.color + '20' : 'rgba(128,128,128,0.15)',
+          }]}>
+            <MaterialIcons 
+              name="arrow-forward-ios" 
+              size={14} 
+              color={isAvailable ? group.color : theme.textTertiary} 
+            />
+            </View>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -263,39 +319,82 @@ const AnimatedIndividualCharacterCard = ({ character, section, onPress, isDark, 
 // Animated Character Card Component (follows Rules of Hooks)
 const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Continuous shimmer animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+  }, []);
 
   const handlePressIn = () => {
+    Animated.parallel([
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+        toValue: 0.94,
       useNativeDriver: true,
-      tension: 300,
+        tension: 400,
       friction: 10,
-    }).start();
+      }),
+      Animated.spring(rotateAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 400,
+        friction: 10,
+      }),
+    ]).start();
   };
 
   const handlePressOut = () => {
+    Animated.parallel([
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 300,
+        tension: 400,
       friction: 10,
-    }).start();
+      }),
+      Animated.spring(rotateAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 400,
+        friction: 10,
+      }),
+    ]).start();
   };
+
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-2deg']
+  });
 
   return (
     <Animated.View
       style={{
-        transform: [{ scale: scaleAnim }],
+        transform: [
+          { scale: scaleAnim },
+          { rotate: rotateInterpolate }
+        ],
         width: '48%',
-        marginBottom: 20,
+        marginBottom: 16,
       }}
     >
       <TouchableOpacity
         style={[styles.characterGroupCard, { 
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : (theme.surface || 'rgba(0,0,0,0.04)'),
-          shadowColor: section.color,
-          borderWidth: isDark ? 0 : 1,
-          borderColor: isDark ? 'transparent' : (theme.border || 'rgba(0,0,0,0.08)'),
+          shadowColor: group.color,
+          shadowOpacity: 0.25,
           width: '100%',
         }]}
         onPress={onPress}
@@ -303,45 +402,70 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
         onPressOut={handlePressOut}
         activeOpacity={1}
       >
-        {/* Subtle gradient overlay for visual interest */}
+        {/* Animated shimmer overlay */}
+        <Animated.View 
+          style={[
+            styles.shimmerEffect,
+            {
+              opacity: shimmerAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.2]
+              }),
+              transform: [{
+                translateX: shimmerAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-200, 200]
+                })
+              }]
+            }
+          ]}
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(255, 255, 255, 0.4)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        {/* Main gradient background */}
         <LinearGradient
-          colors={isDark ? 
-            [`${section.color}12`, `${section.color}06`, 'transparent'] :
-            [`${section.color}08`, `${section.color}04`, 'transparent']
-          }
+          colors={[group.color + 'E6', group.color + 'CC', group.color + 'B3']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.cardGradientBackground}
-        />
-        
-        <View style={styles.alternatingCardGradient}>
+        >
+          <View style={styles.cardOverlay}>
+            {/* Icon */}
+            <View style={styles.iconCircle}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.iconCircleGradient}
+              >
+                <Text style={styles.groupIcon}>{group.icon}</Text>
+              </LinearGradient>
+            </View>
+            
           {/* Content */}
-          <View style={styles.alternatingCardContent}>
-            <Text style={[styles.alternatingCharacterGroupTitle, { color: theme.text }]}>
+            <View style={styles.cardTextContent}>
+              <Text style={styles.modernCharacterGroupTitle}>
               {group.title}
             </Text>
             
-            <View style={styles.alternatingStatsRow}>
-              <View style={[styles.alternatingCountBadge, { 
-                backgroundColor: isDark ? `${section.color}20` : `${section.color}25`
-              }]}>
-                <MaterialIcons name="people" size={12} color={section.color} />
-                <Text style={[styles.alternatingCountText, { color: section.color }]}>
+              <View style={styles.modernCountBadge}>
+                <MaterialIcons name="people" size={14} color="#FFFFFF" />
+                <Text style={styles.modernCountText}>
                   {group.characters.length}
                 </Text>
-              </View>
             </View>
           </View>
 
-          {/* Arrow with glow effect */}
-          <View style={[styles.alternatingArrowContainer, { 
-            backgroundColor: isDark ? `${section.color}15` : `${section.color}20`
-          }]}>
-            <MaterialIcons name="arrow-forward-ios" size={14} color={section.color} />
+            {/* Arrow */}
+            <View style={styles.modernArrowContainer}>
+              <MaterialIcons name="arrow-forward-ios" size={16} color="#FFFFFF" />
           </View>
-
-          {/* Decorative elements */}
-          <View style={[styles.alternatingDecorativeCircle1, { backgroundColor: `${section.color}08` }]} />
-          <View style={[styles.alternatingDecorativeCircle2, { backgroundColor: `${section.color}05` }]} />
         </View>
+        </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -349,11 +473,16 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 
 
 const BibleStudyModal = ({ visible, onClose }) => {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [showTimeline, setShowTimeline] = useState(false);
+  
+  // Character data state
+  const [characterProfiles, setCharacterProfiles] = useState({});
+  const [characterGroups, setCharacterGroups] = useState([]);
+  const [charactersLoading, setCharactersLoading] = useState(true);
   
   // Modal overlay states for each section
   const [showTimelineModal, setShowTimelineModal] = useState(false);
@@ -366,6 +495,80 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [showParallelsModal, setShowParallelsModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+
+  // Load character data from GitHub on mount
+  useEffect(() => {
+    const loadCharacterData = async () => {
+      try {
+        setCharactersLoading(true);
+        
+        // Force refresh to get latest data from GitHub
+        await bibleCharactersService.refresh();
+        
+        const profiles = bibleCharactersService.getCharacters();
+        const groups = bibleCharactersService.getCharacterGroups();
+        
+        console.log('📥 Raw profiles from service:', Object.keys(profiles));
+        console.log('📥 Sample profile:', profiles['Adam']);
+        
+        // Process profiles to use GitHub images with local fallback
+        const processedProfiles = {};
+        Object.keys(profiles).forEach(key => {
+          const profile = profiles[key];
+          const imageSource = profile.imageUrl ? { uri: profile.imageUrl } : getLocalImage(key);
+          processedProfiles[key] = {
+            ...profile,
+            // Use GitHub image URL if available, otherwise fallback to local
+            image: imageSource,
+          };
+          console.log(`📸 ${key} image:`, imageSource);
+        });
+        
+        // Add theme-aware colors to character groups
+        const colors = cardColors;
+        const groupsWithColors = groups.map((group, index) => ({
+          ...group,
+          color: colors[index % colors.length],
+        }));
+        
+        setCharacterProfiles(processedProfiles);
+        setCharacterGroups(groupsWithColors);
+        console.log(`✅ Loaded ${Object.keys(processedProfiles).length} characters and ${groupsWithColors.length} groups`);
+      } catch (error) {
+        console.error('Error loading character data:', error);
+        // Fallback to empty state
+        setCharacterProfiles({});
+        setCharacterGroups([]);
+      } finally {
+        setCharactersLoading(false);
+      }
+    };
+
+    loadCharacterData();
+  }, []);
+
+  // Helper to get local images (fallback when GitHub images aren't available)
+  const getLocalImage = (characterName) => {
+    try {
+      const imageMap = {
+        'Adam': require('../assets/adam.png'),
+        'Eve': require('../assets/eve.png'),
+        'Cain': require('../assets/cain.png'),
+        'Abel': require('../assets/abel.png'),
+      };
+      const image = imageMap[characterName];
+      if (image) {
+        console.log(`✅ Using local image for ${characterName}`);
+        return image;
+      }
+      console.log(`⚠️ No local image found for ${characterName}`);
+      return null;
+    } catch (error) {
+      console.error(`❌ Error loading local image for ${characterName}:`, error);
+      return null;
+    }
+  };
 
   // Generate theme-appropriate colors for study sections
   const getThemeColors = () => {
@@ -486,306 +689,30 @@ const BibleStudyModal = ({ visible, onClose }) => {
     }
   ];
 
-  const characterProfiles = {
-    'Adam': {
-      name: 'Adam - The First Man',
-      image: require('../assets/adam.png'),
-      story: `Adam is the first human being created by God, formed from dust and given life through God's breath (Genesis 1-3). His name means "man" or "human" and comes from the Hebrew word for ground (adamah). God placed Adam in the Garden of Eden to tend it and gave him authority to name all the animals. When God saw it wasn't good for Adam to be alone, He created Eve from Adam's rib as his companion.
-
-Adam's most significant moment comes with the Fall. Despite God's warning not to eat from the tree of the knowledge of good and evil, Adam (along with Eve) ate the forbidden fruit after being tempted. This act of disobedience brought sin and death into the world. When God confronted him, Adam blamed both Eve and God himself ("The woman you put here with me - she gave me some fruit"). As punishment, God cursed the ground, making Adam's work difficult, and declared that he would eventually die and return to dust.
-
-After the Fall, Adam lived 930 years and had many children, including Cain, Abel, and Seth. He represents humanity's original innocence, fall into sin, and need for redemption.`,
-      themes: [
-        'Image of God: Adam was created in God\'s image, establishing human dignity and our role as God\'s representatives on earth',
-        'Original Sin: Adam\'s disobedience introduced sin into humanity, affecting all his descendants',
-        'Type of Christ: In Christian theology, Adam is contrasted with Jesus (the "Second Adam"). Where Adam\'s disobedience brought death, Christ\'s obedience brought life'
-      ],
-      culturalImpact: `Adam appears throughout art, literature, and culture. Michelangelo's "Creation of Adam" on the Sistine Chapel ceiling is one of the most famous religious paintings. Milton's "Paradise Lost" portrays Adam as noble but ultimately responsible for the Fall. The phrase "Adam's apple" comes from the folk belief that the forbidden fruit got stuck in his throat.`,
-      verses: ['Genesis 1:27', 'Genesis 2:7', 'Genesis 3:19', 'Romans 5:12']
-    },
-    'Eve': {
-      name: 'Eve - The First Woman',
-      image: require('../assets/eve.png'),
-      story: `Eve is the first woman, created by God from Adam's rib to be his companion (Genesis 2-3). When Adam first sees her, he joyfully declares, "This is now bone of my bones and flesh of my flesh." Her creation establishes the institution of marriage and the principle that men and women are equal in essence and dignity.
-
-Eve plays a crucial role in the Fall. The serpent approaches her with questions about God's command, eventually deceiving her into believing that eating the forbidden fruit would make her wise like God. She takes the fruit and also gives some to Adam. When God confronts them, Eve acknowledges her deception: "The serpent deceived me, and I ate."
-
-After the Fall, Adam names her Eve (meaning "living") because she would become "the mother of all living." God promises that her offspring would eventually defeat the serpent, which Christians interpret as the first hint of salvation through Jesus Christ. Eve experienced the pain of childbirth and the difficulty of relationships as consequences of sin.`,
-      themes: [
-        'Helper and Equality: Eve was created as Adam\'s equal partner, not his subordinate',
-        'Temptation and Choice: Her conversation with the serpent represents humanity\'s struggle with temptation and the freedom to choose',
-        'Mother of Humanity: As the mother of all living people, Eve represents both the entry of sin and the hope of redemption',
-        'New Eve: Christian tradition sees Mary, the mother of Jesus, as the "New Eve" whose obedience reversed Eve\'s disobedience'
-      ],
-      culturalImpact: `Eve appears frequently in art, often at the moment of temptation or after the Fall. Renaissance painters like Titian and Dürer portrayed her as the archetype of beauty and temptation. In literature, Milton's "Paradise Lost" gives Eve a complex character who shows both intelligence and remorse. Modern feminist interpretations often emphasize her desire for wisdom and her role as a tragic figure rather than simply the cause of humanity's problems.`,
-      verses: ['Genesis 2:22-23', 'Genesis 3:6', 'Genesis 3:15', 'Genesis 3:20']
-    },
-    'Cain': {
-      name: 'Cain - The First Murderer',
-      image: require('../assets/cain.png'),
-      story: `Cain is Adam and Eve's firstborn son, whose name means "acquired" (Genesis 4). He became a farmer while his brother Abel became a shepherd. When both brothers brought offerings to God, God accepted Abel's offering of the best portions from his flock but rejected Cain's offering of produce from the ground.
-
-Consumed by anger and jealousy, Cain murdered Abel in the field, making him history's first murderer. When God asked where Abel was, Cain gave the famous callous response: "I don't know. Am I my brother's keeper?" God cursed Cain to be a restless wanderer, unable to successfully farm the ground that had absorbed Abel's blood.
-
-Fearing for his life, Cain complained that his punishment was too great. In an act of mercy, God placed a protective mark on Cain, warning that anyone who killed him would face sevenfold vengeance. Cain then went to live in the land of Nod ("wandering") east of Eden, where he built the first city and had descendants who became pioneers in music, metalworking, and other crafts.`,
-      themes: [
-        'Sin\'s Progression: Cain\'s story shows how quickly sin escalated from disobedience (Adam and Eve) to murder in the next generation',
-        'Brother\'s Keeper: His question "Am I my brother\'s keeper?" has become a fundamental moral challenge about our responsibility for others',
-        'Jealousy and Worship: Cain\'s rejected offering teaches that God desires sincere worship from the heart, not just external ritual',
-        'Grace in Judgment: Even as God punished Cain, He also protected him, showing mercy within justice'
-      ],
-      culturalImpact: `The phrase "raising Cain" means causing trouble, while the "mark of Cain" refers to a stigma of shame. Cain and Abel represent the eternal struggle between good and evil, appearing in countless works from Byron's dramatic poem "Cain" to Steinbeck's "East of Eden." The question "Am I my brother's keeper?" continues to challenge discussions about social responsibility and human compassion.`,
-      verses: ['Genesis 4:1-16', 'Hebrews 11:4', '1 John 3:12']
-    },
-    'Abel': {
-      name: 'Abel - The First Martyr',
-      image: require('../assets/abel.png'),
-      story: `Abel is Adam and Eve's second son, whose name means "breath" or "vapor" (Genesis 4). He became a shepherd and brought God an offering of the fat portions from the firstborn of his flock. God looked favorably on Abel and his offering, which sparked his brother Cain's deadly jealousy.
-
-Abel speaks no recorded words in Scripture. When Cain invited him to the field, Abel went unsuspectingly and was murdered there. His death made him the first martyr - an innocent person killed for his righteousness. God told Cain that Abel's blood was crying out from the ground for justice.
-
-Though Abel died childless and young, his legacy lived on. Jesus called him "righteous Abel" and placed him first in the line of righteous people who suffered persecution. The Book of Hebrews honors Abel as the first person in its "hall of faith," saying that "by faith Abel still speaks, even though he is dead."`,
-      themes: [
-        'True Worship: Abel exemplifies genuine faith-based worship, offering his best to God with a sincere heart',
-        'Innocent Suffering: As the first martyr, Abel represents all righteous people who suffer for their faith',
-        'Blood that Speaks: Abel\'s spilled blood crying for justice contrasts with Christ\'s blood, which speaks for mercy and forgiveness',
-        'Faith\'s Testimony: Though Abel died young, his faith continues to teach and inspire others'
-      ],
-      culturalImpact: `Abel appears in Christian art as a shepherd with a lamb, often symbolizing Christ the Good Shepherd. His story represents the triumph of faith over worldly success and the eternal significance of righteousness. The concept of Abel as the first martyr connects him to all later martyrs and saints who died for their beliefs.`,
-      verses: ['Genesis 4:2-10', 'Matthew 23:35', 'Hebrews 11:4', 'Hebrews 12:24']
+  // Define theme-aware colors for character groups
+  const getCardColors = () => {
+    if (isBlushTheme) {
+      return ['#FFB6C1', '#FF69B4', '#FF1493', '#FFC0CB', '#FFB3D9', '#FF8DC7', '#FF6BB5', '#FF4DA6'];
+    } else if (isCresviaTheme) {
+      return ['#9370DB', '#8A2BE2', '#6A0DAD', '#BA55D3', '#9932CC', '#8B7AB8', '#7B68EE', '#6A5ACD'];
+    } else if (isEternaTheme) {
+      return ['#663399', '#4B0082', '#2E0854', '#8B008B', '#9400D3', '#800080', '#9370DB', '#8A2BE2'];
+    } else if (isDark) {
+      return ['#3B82F6', '#2563EB', '#1D4ED8', '#60A5FA', '#3B82F6', '#2563EB', '#1E40AF', '#1E3A8A'];
+    } else {
+      return ['#60A5FA', '#3B82F6', '#2563EB', '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8'];
     }
   };
 
-  const characterGroups = [
-    {
-      id: 'adam-eve',
-      title: 'Garden of Eden & First Generations',
-      icon: '🌱',
-      characters: ['Adam', 'Eve', 'Cain', 'Abel', 'Seth', 'Enosh', 'Kenan', 'Mahalalel', 'Jared', 'Enoch', 'Methuselah', 'Lamech', 'Noah']
-    },
-    {
-      id: 'noah',
-      title: "Noah's Ark & The Great Flood",
-      icon: '🚢',
-      characters: ['Noah', "Noah's Wife", 'Shem', 'Ham', 'Japheth', 'Nimrod']
-    },
-    {
-      id: 'abraham',
-      title: 'Abraham: Father of Faith',
-      icon: '⭐',
-      characters: ['Abraham', 'Sarah', 'Hagar', 'Isaac', 'Ishmael', 'Lot', "Lot's Wife", "Lot's Daughters", 'Eliezer of Damascus', 'Melchizedek', 'King Abimelech', 'Phicol']
-    },
-    {
-      id: 'isaac',
-      title: 'Isaac: The Promised Son',
-      icon: '🔥',
-      characters: ['Isaac', 'Rebekah', 'Esau', 'Jacob', 'Bethuel', 'Laban']
-    },
-    {
-      id: 'jacob-israel',
-      title: 'Jacob & The Twelve Tribes',
-      icon: '🏺',
-      characters: ['Jacob', 'Leah', 'Rachel', 'Bilhah', 'Zilpah', 'Reuben', 'Simeon', 'Levi', 'Judah', 'Dan', 'Naphtali', 'Gad', 'Asher', 'Issachar', 'Zebulun', 'Dinah', 'Joseph', 'Benjamin']
-    },
-    {
-      id: 'joseph',
-      title: 'Joseph: Dreams & Egypt',
-      icon: '👑',
-      characters: ['Joseph', 'Jacob', 'Rachel', 'Pharaoh', 'Potiphar', "Potiphar's Wife", 'Chief Cupbearer', 'Chief Baker', 'Manasseh', 'Ephraim', 'Asenath', 'Simeon', 'Judah', 'Reuben', 'Benjamin']
-    },
-    {
-      id: 'job',
-      title: 'Job: Faith Through Suffering',
-      icon: '💪',
-      characters: ['Job', 'Eliphaz', 'Bildad', 'Zophar', 'Elihu', "Job's Wife"]
-    },
-    {
-      id: 'moses',
-      title: 'Moses & The Exodus',
-      icon: '📜',
-      characters: ['Moses', 'Aaron', 'Miriam', 'Pharaoh', "Pharaoh's Daughter", 'Jethro (Reuel)', 'Zipporah', 'Gershom', 'Eliezer (son of Moses)', 'Joshua', 'Caleb', 'Hur', 'Bezalel', 'Oholiab', 'Korah', 'Dathan', 'Abiram', 'Nadab', 'Abihu', 'Eleazar', 'Ithamar', 'Balaam', 'Balak', 'Hobab', 'Amalek', "Joshua's Aides", 'Elders of Israel']
-    },
-    {
-      id: 'levitical-priests',
-      title: 'Temple Priests & Sacred Service',
-      icon: '🕯️',
-      characters: ['Aaron', 'Eleazar', 'Ithamar', 'Phinehas', 'Elazar (son of Aaron)', 'Eli', 'Hophni', 'Phinehas (son of Eli)', 'Abiathar', 'Zadok', 'Ahimelech', 'Jehoiada', 'Zechariah (son of Jehoiada)', 'Azariah', 'Hilkiah', 'Seraiah', 'Ezra']
-    },
-    {
-      id: 'wilderness-conquest',
-      title: 'Conquering the Promised Land',
-      icon: '⚔️',
-      characters: ['Joshua', 'Caleb', 'Rahab', 'Achar (Achan)', 'Eleazar', 'Phinehas', "Zilpah's Descendants", 'Gibeonites', 'Othniel']
-    },
-    {
-      id: 'judges',
-      title: 'Heroes & Judges of Israel',
-      icon: '⚖️',
-      characters: ['Othniel', 'Ehud', 'Shamgar', 'Deborah', 'Barak', 'Jael', 'Sisera', 'Gideon', 'Jerubbaal', 'Abimelech', 'Tola', 'Jair', 'Jephthah', 'Ibzan', 'Elon', 'Abdon', 'Samson', 'Delilah', 'Manoah', 'Philistine Lords', 'Micah of Ephraim', 'Levite of Micah', 'Danites']
-    },
-    {
-      id: 'ruth',
-      title: 'Ruth: Love & Loyalty',
-      icon: '🌾',
-      characters: ['Ruth', 'Naomi', 'Boaz', 'Orpah', 'Obed']
-    },
-    {
-      id: 'samuel-saul',
-      title: 'Samuel & The First King',
-      icon: '👑',
-      characters: ['Samuel', 'Hannah', 'Elkanah', 'Eli', 'Hophni', 'Phinehas', 'Ichabod', 'Saul', 'Jonathan', 'Michal', 'Merab', 'Agag', 'Doeg the Edomite', 'Abner', 'Kish', 'Ahimelech']
-    },
-    {
-      id: 'david',
-      title: 'David: Giant Slayer & King',
-      icon: '🎵',
-      characters: ['David', 'Goliath', 'Saul', 'Jonathan', 'Michal', 'Abigail', 'Bathsheba', 'Uriah', 'Joab', 'Abner', 'Ish-bosheth', 'Mephibosheth', 'Nathan', 'Gad', 'Zadok', 'Abiathar', 'Shimei', 'Hushai', 'Ahithophel', 'Ittai', 'Amnon', 'Tamar (daughter of David)', 'Absalom', 'Adonijah', 'Solomon', 'Benaiah', 'Zeruiah', 'Asahel']
-    },
-    {
-      id: 'solomon',
-      title: 'Solomon: Wisdom & Glory',
-      icon: '🏛️',
-      characters: ['Solomon', 'Bathsheba', 'Nathan', 'Zadok', 'Adonijah', 'Abiathar', 'Benaiah', 'Queen of Sheba', 'Hiram of Tyre', 'Rehoboam', 'Jeroboam', "Pharaoh's Daughter"]
-    },
-    {
-      id: 'elijah-elisha',
-      title: 'Elijah & Elisha: Fire Prophets',
-      icon: '🔥',
-      characters: ['Elijah', 'Elisha', 'Gehazi', 'Ahab', 'Jezebel', 'Omri', 'Ahaziah of Israel', 'Jehoram (Joram) of Israel', 'Naboth', 'Obadiah (court official)', 'Ben-hadad', 'Hazael', 'Naaman', 'The Shunammite Woman', 'Jehu', 'Jehoahaz', 'Jehoash (Joash) of Israel', 'Jonah (son of Amittai)']
-    },
-    {
-      id: 'kings-israel-north',
-      title: 'Northern Kingdom: Israel',
-      icon: '👑',
-      characters: ['Jeroboam (son of Nebat)', 'Nadab', 'Baasha', 'Elah', 'Zimri', 'Omri', 'Ahab', 'Ahaziah', 'Jehoram (Joram)', 'Jehu', 'Jehoahaz', 'Jehoash', 'Jeroboam II', 'Zechariah', 'Shallum', 'Menahem', 'Pekahiah', 'Pekah', 'Hoshea']
-    },
-    {
-      id: 'kings-judah-south',
-      title: 'Southern Kingdom: Judah',
-      icon: '🏰',
-      characters: ['Rehoboam', 'Abijah', 'Asa', 'Jehoshaphat', 'Jehoram', 'Ahaziah', 'Athaliah', 'Joash (Jehoash)', 'Amaziah', 'Uzziah (Azariah)', 'Jotham', 'Ahaz', 'Hezekiah', 'Manasseh', 'Amon', 'Josiah', 'Jehoahaz (Shallum)', 'Jehoiakim', 'Jehoiachin (Jeconiah)', 'Zedekiah']
-    },
-    {
-      id: 'prophets-around-kings',
-      title: 'Prophets: God\'s Messengers',
-      icon: '📢',
-      characters: ['Ahijah the Shilonite', 'Shemaiah', 'Iddo', 'Jehu (son of Hanani)', 'Hanani', 'Azariah (son of Oded)', 'Oded', 'Micah (son of Imlah)', 'Huldah', 'Isaiah', 'Micah of Moreshah', 'Jeremiah', 'Uriah (son of Shemaiah)', 'Baruch', 'Zephaniah', 'Nahum', 'Habakkuk', 'Joel', 'Amos', 'Hosea', 'Obadiah', 'Jonah', 'Zechariah', 'Haggai', 'Malachi', 'Gad', 'Nathan']
-    },
-    {
-      id: 'assyria-babylon-persia',
-      title: 'Ancient Empires & Rulers',
-      icon: '🏺',
-      characters: ['Shalmaneser V', 'Sargon II', 'Sennacherib', 'Esarhaddon', 'Nebuchadnezzar II', 'Evil-merodach', 'Belshazzar', 'Darius the Mede', 'Cyrus the Great', 'Cambyses', 'Darius I', 'Xerxes (Ahasuerus)', 'Artaxerxes']
-    },
-    {
-      id: 'exile-return',
-      title: 'Babylon Exile & Homecoming',
-      icon: '🏠',
-      characters: ['Daniel', 'Hananiah (Shadrach)', 'Mishael (Meshach)', 'Azariah (Abednego)', 'Arioch', 'Darius the Mede', 'Cyrus', 'Belshazzar', 'Zerubbabel', 'Jeshua (Jozadak)', 'Ezra', 'Nehemiah', 'Sheshbazzar', 'Sanballat', 'Tobiah', 'Geshem the Arab', 'Haggai', 'Zechariah']
-    },
-    {
-      id: 'esther',
-      title: 'Esther: Queen of Courage',
-      icon: '👸',
-      characters: ['Esther (Hadassah)', 'Mordecai', 'King Ahasuerus (Xerxes)', 'Haman', 'Vashti', 'Zeresh']
-    },
-    {
-      id: 'wisdom-poetry',
-      title: 'Psalms, Proverbs & Poetry',
-      icon: '📝',
-      characters: ['Job', 'Eliphaz', 'Bildad', 'Zophar', 'Elihu', 'David', 'Asaph', 'Sons of Korah', 'Heman', 'Ethan', 'Solomon', 'Agur', 'Lemuel']
-    },
-    {
-      id: 'john-baptist',
-      title: 'John the Baptist: Voice in Wilderness',
-      icon: '🌊',
-      characters: ['John the Baptist', 'Zechariah', 'Elizabeth', 'Herod Antipas', 'Herodias', "Herodias' Daughter"]
-    },
-    {
-      id: 'herodian-family',
-      title: 'Herod Dynasty & Roman Rule',
-      icon: '🏛️',
-      characters: ['Herod the Great', 'Archelaus', 'Herod Antipas', 'Herod Philip the Tetrarch', 'Herod Agrippa I', 'Herod Agrippa II', 'Bernice', 'Drusilla', 'Salome']
-    },
-    {
-      id: 'jesus',
-      title: 'Jesus: The Messiah',
-      icon: '✝️',
-      characters: ['Jesus', 'Mary (mother of Jesus)', 'Joseph', 'Zechariah', 'Elizabeth', 'Simeon', 'Anna', 'Magi', 'Shepherds', 'John the Baptist', 'Peter', 'Andrew', 'James (son of Zebedee)', 'John (son of Zebedee)', 'Philip', 'Bartholomew', 'Thomas', 'Matthew', 'James (son of Alphaeus)', 'Thaddaeus (Jude)', 'Simon the Zealot', 'Judas Iscariot', 'Mary Magdalene', 'Joanna', 'Susanna', 'Salome', 'Martha', 'Mary of Bethany', 'Lazarus', 'Zacchaeus', 'Jairus', 'Bartimaeus', 'Joseph of Arimathea', 'Nicodemus', 'Caiaphas', 'Annas', 'Pontius Pilate', 'Barabbas', 'Herod Antipas', 'Centurion at Capernaum', 'Centurion at the Cross', 'Cleopas']
-    },
-    {
-      id: 'twelve-apostles',
-      title: 'The Twelve Disciples',
-      icon: '👥',
-      characters: ['Peter', 'Andrew', 'James (son of Zebedee)', 'John', 'Philip', 'Bartholomew', 'Thomas', 'Matthew (Levi)', 'James (son of Alphaeus)', 'Thaddaeus (Jude)', 'Simon the Zealot', 'Judas Iscariot', 'Matthias']
-    },
-    {
-      id: 'opponents-groups',
-      title: 'Religious Leaders & Groups',
-      icon: '⚡',
-      characters: ['Pharisees', 'Sadducees', 'Scribes', 'Chief Priests', 'Herodians', 'Zealots', 'Samaritan Villagers']
-    },
-    {
-      id: 'early-church-deacons',
-      title: 'Early Church Leaders',
-      icon: '⛪',
-      characters: ['Stephen', 'Philip the Evangelist', 'Prochorus', 'Nicanor', 'Timon', 'Parmenas', 'Nicholas of Antioch', "James (the Lord's Brother)", 'Barnabas', 'John Mark', 'Silas', 'Timothy', 'Titus', 'Apollos']
-    },
-    {
-      id: 'acts-notable',
-      title: 'Acts: Church Expansion',
-      icon: '🌟',
-      characters: ['Cornelius', 'Tabitha (Dorcas)', 'Simon the Tanner', 'Ananias of Damascus', 'Sapphira', 'Gamaliel', 'Rhoda', 'Agabus', 'Sergius Paulus', 'Elymas (Bar-Jesus)', 'Lydia', 'The Philippian Jailer', 'Damsel with Spirit of Divination', 'Eutychus', 'Crispus', 'Gallio', 'Demetrius the Silversmith', 'Eutychus']
-    },
-    {
-      id: 'paul-coworkers',
-      title: 'Paul\'s Ministry Team',
-      icon: '✉️',
-      characters: ['Luke', 'Priscilla', 'Aquila', 'Phoebe', 'Junia', 'Andronicus', 'Urbanus', 'Apelles', 'Herodion', 'Rufus and his Mother', 'Tryphena', 'Tryphosa', 'Persis', 'Aristarchus', 'Epaphras', 'Epaphroditus', 'Onesimus', 'Philemon', 'Archippus', 'Onesiphorus', 'Demas', 'Mark (John Mark)', 'Crescent', 'Carpus', 'Erastus', 'Trophimus', 'Tychicus', 'Tertius', 'Quartus', 'Gaius', 'Sopater', 'Secundus', 'Timothy', 'Titus', 'Silvanus', 'Chloe', 'Stephanas', 'Sosthenes', 'Crispus', 'Nympha', 'Diotrephes', 'Demetrius of Third John', 'Alexander the Coppersmith']
-    },
-    {
-      id: 'general-epistles',
-      title: 'Letters to the Churches',
-      icon: '📜',
-      characters: ['James', 'Jude', 'Peter', 'John', 'Gaius', 'The Elect Lady', 'Elders and Overseers', 'Deacons', 'Widows']
-    },
-    {
-      id: 'revelation',
-      title: 'Revelation: End Times Vision',
-      icon: '🌅',
-      characters: ['John of Patmos', 'The Seven Churches (Ephesus, Smyrna, Pergamum, Thyatira, Sardis, Philadelphia, Laodicea)', 'The Two Witnesses', 'Twenty-Four Elders', 'Four Living Creatures', 'The Archangel Michael']
-    },
-    {
-      id: 'angels-spiritual',
-      title: 'Angels & Spiritual Beings',
-      icon: '👼',
-      characters: ['Michael', 'Gabriel', 'Cherubim', 'Seraphim', 'Angels of the Churches', 'Satan (The Adversary)', 'The Devil', 'The Accuser', 'Evil Spirits', 'Legion']
-    },
-    {
-      id: 'women-bible',
-      title: 'Women of Faith & Courage',
-      icon: '👩',
-      characters: ['Sarah', 'Rebekah', 'Leah', 'Rachel', 'Bilhah', 'Zilpah', 'Miriam', 'Deborah', 'Jael', 'Ruth', 'Naomi', 'Hannah', 'Abigail', 'Michal', 'Bathsheba', 'Tamar (daughter-in-law of Judah)', 'Tamar (daughter of David)', 'Athaliah', 'Jezebel', 'Huldah', 'Esther', 'Vashti', 'Widow of Zarephath', 'Shunammite Woman', 'Rahab', 'Delilah', 'Queen of Sheba', 'Mary (mother of Jesus)', 'Elizabeth', 'Mary Magdalene', 'Salome', 'Joanna', 'Susanna', 'Martha', 'Mary of Bethany', 'Priscilla', 'Tabitha (Dorcas)', 'Rhoda', 'Lydia', 'Damaris', 'Phoebe', 'Eunice', 'Lois']
-    },
-    {
-      id: 'foreign-nations',
-      title: 'Enemy Nations & Conflicts',
-      icon: '🗡️',
-      characters: ['Amalek and Agag', 'Philistines and Goliath', 'Moab and Balak', 'Ammon', 'Edom', 'Aram (Syria) and Ben-hadad', 'Assyria and Sennacherib', 'Babylon and Nebuchadnezzar', 'Persia and Haman', 'Samaria Opponents (Sanballat, Tobiah, Geshem)']
-    },
-    {
-      id: 'additional-named',
-      title: 'Other Notable Figures',
-      icon: '📋',
-      characters: ['Jabez', 'Boaz', 'Elkanah', 'Obed', 'Oholah and Oholibah', 'Uriah the Prophet', 'Shebna', 'Eliakim', 'Rabshakeh', 'Pashhur', 'Gedaliah', 'Ebed-melech', 'Baruch (son of Neriah)', 'Saphan (Shaphan)', 'Ahikam', 'Gemariah', 'Micaiah (son of Gemariah)', 'Pelatiah', 'Jazaniah', 'Jaazaniah', 'Ishmael (son of Nethaniah)']
-    }
-  ];
+  const cardColors = getCardColors();
+
+  // characterGroups is now loaded dynamically from state (see useEffect above)
 
   const handleSectionPress = (sectionId) => {
     hapticFeedback.light();
     
     // Open modal overlays instead of changing selectedSection
-    switch (sectionId) {
+    switch(sectionId) {
       case 'timeline':
         setShowTimelineModal(true);
         break;
@@ -917,6 +844,13 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
       );
     }
 
+    // Special handling for quiz section - open full screen modal
+    if (selectedSection === 'quiz') {
+      setShowQuizModal(true);
+      setSelectedSection('main');
+      return null;
+    }
+
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.detailHeader}>
@@ -1008,66 +942,63 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Modern Header with Back Button */}
-        <View style={styles.modernGroupHeader}>
+        {/* Floating Back Button */}
+        <View style={styles.floatingBackButton}>
           <TouchableOpacity 
-            style={styles.modernGroupBackButton}
+            style={[styles.backButtonContainer, {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.9)',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            }]}
             onPress={() => {
               hapticFeedback.light();
               setSelectedCharacterGroup(null);
             }}
           >
-            <View style={[styles.backButtonCircle, { backgroundColor: `${section.color}15` }]}>
-              <MaterialIcons name="arrow-back" size={20} color={section.color} />
-            </View>
+            <MaterialIcons name="arrow-back" size={22} color={group.color} />
           </TouchableOpacity>
         </View>
 
-        {/* Modern Hero Section for Group */}
-        <View style={styles.modernGroupHeroSection}>
-          <View style={[styles.groupHeroCard, { 
-            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : (theme.surface || 'rgba(255,255,255,0.9)'),
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : (theme.border || 'rgba(0,0,0,0.08)'),
-            shadowColor: isDark ? '#000' : section.color,
-            borderWidth: 1,
-          }]}>
+        {/* Stunning Hero Card with Gradient */}
+        <View style={styles.stunningHeroContainer}>
             <LinearGradient
-              colors={[
-                `${section.color}15`, 
-                `${section.color}08`, 
-                'transparent'
-              ]}
-              style={styles.groupHeroGradient}
-            >
-              {/* Group Icon */}
-              <View style={[styles.modernGroupIconContainer, { backgroundColor: `${section.color}20` }]}>
-                <Text style={styles.modernGroupIcon}>{group.icon}</Text>
+            colors={[group.color + 'F2', group.color + 'E6', group.color + 'D9']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.stunningHeroGradient}
+          >
+            {/* Animated floating particles */}
+            <View style={[styles.floatingParticle1, { backgroundColor: 'rgba(255, 255, 255, 0.15)' }]} />
+            <View style={[styles.floatingParticle2, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]} />
+            <View style={[styles.floatingParticle3, { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]} />
+            
+            <View style={styles.heroContent}>
+              {/* Large Icon with Glow */}
+              <View style={styles.heroIconContainer}>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.heroIconGradient}
+                >
+                  <Text style={styles.heroIcon}>{group.icon}</Text>
+                </LinearGradient>
               </View>
               
-              {/* Group Title and Description */}
-              <View style={styles.modernGroupTitleContainer}>
-                <Text style={[styles.modernGroupTitle, { 
-                  color: theme.text,
-                  fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System'
-                }]}>
-              {group.title}
-            </Text>
-                <View style={[styles.groupSubtitleContainer, { backgroundColor: `${section.color}12` }]}>
-                  <MaterialIcons name="people" size={16} color={section.color} />
-                  <Text style={[styles.modernGroupSubtitle, { 
-                    color: section.color,
-                    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System'
-                  }]}>
+              {/* Title */}
+              <Text style={styles.heroTitle}>{group.title}</Text>
+              
+              {/* Badge */}
+              <View style={styles.heroBadge}>
+                <MaterialIcons name="people" size={16} color="#FFFFFF" />
+                <Text style={styles.heroBadgeText}>
                     {group.characters.length} Biblical Characters
             </Text>
                 </View>
               </View>
             </LinearGradient>
-          </View>
         </View>
 
-        {/* Alternating Character List with Micro-Interactions */}
-        <View style={styles.alternatingCharacterListContainer}>
+        {/* Character List with Beautiful Cards */}
+        <View style={styles.characterListSection}>
           {group.characters.map((character, index) => {
             const isAvailable = characterProfiles[character];
             
@@ -1076,6 +1007,7 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
                 key={index}
                 character={{ name: character, available: isAvailable }}
                 section={section}
+                group={group}
                 index={index}
                 isDark={isDark}
                 theme={theme}
@@ -1099,225 +1031,221 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
   const renderCharacterDetail = () => {
     const character = characterProfiles[selectedCharacter];
     const section = studySections.find(s => s.id === 'characters');
+    
+    // Show loading or error if character not found
+    if (!character) {
+      return (
+        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center', padding: 40 }]}>
+          <MaterialIcons name="person-outline" size={80} color={theme.textTertiary} />
+          <Text style={[{ color: theme.text, fontSize: 18, marginTop: 20, textAlign: 'center' }]}>
+            {charactersLoading ? 'Loading character...' : 'Character profile not available yet'}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => setSelectedCharacter(null)}
+            style={{ marginTop: 20, padding: 12, backgroundColor: theme.primary, borderRadius: 12 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    // Get the group for this character to use its theme color
+    const characterGroup = characterGroups.find(g => 
+      g.characters.includes(selectedCharacter)
+    );
+    const themeColor = characterGroup?.color || section.color;
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Professional Header with Back Button */}
-        <View style={styles.professionalHeader}>
+        {/* Floating Back Button */}
+        <View style={styles.floatingBackButton}>
           <TouchableOpacity 
-            style={styles.modernBackButton}
+            style={[styles.backButtonContainer, {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.9)',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            }]}
             onPress={() => {
               hapticFeedback.light();
               setSelectedCharacter(null);
             }}
           >
-            <View style={[styles.backButtonCircle, { backgroundColor: `${section.color}15` }]}>
-              <MaterialIcons name="arrow-back" size={20} color={section.color} />
-            </View>
+            <MaterialIcons name="arrow-back" size={22} color={themeColor} />
           </TouchableOpacity>
         </View>
 
-        {/* Epic Hero Section with Dynamic Background */}
-        <View style={[styles.epicHeroSection, { backgroundColor: `${section.color}05` }]}>
+        {/* Stunning Hero Card with Full Gradient */}
+        <View style={styles.characterDetailHero}>
           <LinearGradient
-            colors={[
-              `${section.color}25`, 
-              `${section.color}15`, 
-              `${section.color}08`,
-              'transparent'
-            ]}
+            colors={[themeColor + 'F2', themeColor + 'E6', themeColor + 'D9']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.epicHeroGradient}
+            style={styles.characterHeroGradient}
           >
-            {/* Floating Background Elements */}
-            <View style={[styles.floatingElement1, { backgroundColor: `${section.color}08` }]} />
-            <View style={[styles.floatingElement2, { backgroundColor: `${section.color}05` }]} />
-            <View style={[styles.floatingElement3, { backgroundColor: `${section.color}03` }]} />
+            {/* Floating particles */}
+            <View style={[styles.floatingParticle1, { backgroundColor: 'rgba(255, 255, 255, 0.15)' }]} />
+            <View style={[styles.floatingParticle2, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]} />
+            <View style={[styles.floatingParticle3, { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]} />
             
-            {/* Stunning Profile Image with Glow */}
-            {character.image && (
-              <View style={styles.epicImageContainer}>
-                <View style={[styles.imageGlowRing, { 
-                  backgroundColor: `${section.color}15`,
-                  shadowColor: section.color,
-                }]}>
-                  <View style={[styles.imageOuterRing, { borderColor: `${section.color}30` }]}>
-                    <View style={[styles.imageInnerRing, { borderColor: `${section.color}50` }]}>
+            {/* Profile Image with Beautiful Ring */}
+            <View style={styles.characterImageContainer}>
+              <View style={styles.characterImageRing}>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.characterImageRingGradient}
+                >
+                  {character.image ? (
                     <Image
                       source={character.image}
-                        style={styles.epicHeroImage}
+                      style={styles.characterImage}
                       resizeMode="cover"
+                      onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
                     />
-                      <View style={[styles.imageOverlay, { backgroundColor: `${section.color}10` }]} />
+                  ) : (
+                    <MaterialIcons name="person" size={80} color="rgba(255, 255, 255, 0.5)" />
+                  )}
+                </LinearGradient>
                     </View>
                   </View>
-                </View>
-              </View>
-            )}
             
-            {/* Dynamic Typography with Animations */}
-            <View style={styles.epicNameContainer}>
-              <View style={[styles.titleAccent, { backgroundColor: section.color }]} />
-              <Text style={[styles.epicCharacterTitle, { 
-                color: theme.text,
-                fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'System',
-                fontWeight: '700'
-              }]}>
+            {/* Character Info */}
+            <View style={styles.characterInfo}>
+              <View style={styles.characterDivider} />
+              <Text style={styles.characterDetailName}>
                 {character.name.split(' - ')[0]}
               </Text>
-              <Text style={[styles.epicCharacterSubtitle, { 
-                color: section.color,
-                fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
-                fontWeight: '500'
-              }]}>
+              <Text style={styles.characterDetailSubtitle}>
                 {character.name.split(' - ')[1]}
               </Text>
-              <View style={[styles.titleAccent, { backgroundColor: section.color }]} />
+              <View style={styles.characterDivider} />
             </View>
 
-            {/* Floating Info Badges */}
-            <View style={styles.infoBadgesContainer}>
-              <View style={[styles.infoBadge, { 
-                backgroundColor: `${section.color}15`,
-                borderColor: `${section.color}25`
-              }]}>
-                <MaterialIcons name="auto-stories" size={16} color={section.color} />
-                <Text style={[styles.badgeText, { color: section.color }]}>Biblical Figure</Text>
+            {/* Badge */}
+            <View style={styles.characterBadgeContainer}>
+              <View style={styles.characterBadge}>
+                <MaterialIcons name="auto-stories" size={16} color="#FFFFFF" />
+                <Text style={styles.characterBadgeText}>Biblical Figure</Text>
               </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* Story Card - Magazine Style */}
-        <View style={styles.cardContainer}>
-          <View style={[styles.storyCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
-            <LinearGradient
-              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
-              style={styles.cardGradient}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
-                  <MaterialIcons name="auto-stories" size={24} color={section.color} />
+        {/* Modern Content Cards */}
+        <View style={styles.modernContentContainer}>
+          {/* Story Card */}
+          <View style={[styles.modernCard, {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+            shadowColor: themeColor,
+          }]}>
+            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                <MaterialIcons name="auto-stories" size={22} color={themeColor} />
                 </View>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
+              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
                   Biblical Story
                 </Text>
               </View>
               
               <Text 
-                style={[styles.storyText, { color: theme.text }]}
+              style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
                 selectable={true}
-                selectTextOnFocus={false}
-                dataDetectorType="none"
-                allowFontScaling={true}
               >
                 {character.story}
               </Text>
-            </LinearGradient>
-          </View>
         </View>
 
-        {/* Themes Card - Beautiful Grid */}
-        <View style={styles.cardContainer}>
-          <View style={[styles.themesCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
-            <LinearGradient
-              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
-              style={styles.cardGradient}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
-                  <MaterialIcons name="psychology" size={24} color={section.color} />
+          {/* Themes Card */}
+          <View style={[styles.modernCard, {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+            shadowColor: themeColor,
+          }]}>
+            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                <MaterialIcons name="psychology" size={22} color={themeColor} />
                 </View>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
+              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
                   Key Themes
                 </Text>
               </View>
               
-              <View style={styles.themesGrid}>
+            <View style={styles.modernThemesGrid}>
                 {character.themes.map((themeText, index) => (
-                  <View key={index} style={[styles.themeCard, { backgroundColor: `${section.color}15`, borderColor: `${section.color}30`, borderWidth: 1 }]}>
-                    <View style={[styles.themeIndicator, { backgroundColor: section.color }]} />
+                <View key={index} style={[styles.modernThemeTag, { 
+                  backgroundColor: themeColor + '20',
+                  borderColor: themeColor + '40',
+                }]}>
+                  <View style={[styles.modernThemeDot, { backgroundColor: themeColor }]} />
                     <Text 
-                      style={[styles.themeCardText, { color: theme.text }]}
+                    style={[styles.modernThemeText, { color: isDark ? '#FFFFFF' : theme.text }]}
                       selectable={true}
-                      selectTextOnFocus={false}
-                      dataDetectorType="none"
-                      allowFontScaling={true}
                     >
                       {themeText}
                     </Text>
                   </View>
                 ))}
-              </View>
-            </LinearGradient>
           </View>
         </View>
 
         {/* Cultural Impact Card */}
-        <View style={styles.cardContainer}>
-          <View style={[styles.culturalCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
-            <LinearGradient
-              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
-              style={styles.cardGradient}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
-                  <MaterialIcons name="palette" size={24} color={section.color} />
+          <View style={[styles.modernCard, {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+            shadowColor: themeColor,
+          }]}>
+            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                <MaterialIcons name="palette" size={22} color={themeColor} />
                 </View>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
+              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
                   Cultural Impact
                 </Text>
               </View>
               
               <Text 
-                style={[styles.culturalText, { color: theme.text }]}
+              style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
                 selectable={true}
-                selectTextOnFocus={false}
-                dataDetectorType="none"
-                allowFontScaling={true}
               >
                 {character.culturalImpact}
               </Text>
-            </LinearGradient>
-          </View>
         </View>
 
-        {/* Key Verses Card - Elegant Chips */}
-        <View style={styles.cardContainer}>
-          <View style={[styles.versesCard, { backgroundColor: theme.card, shadowColor: section.color, borderColor: `${section.color}20`, borderWidth: 1 }]}>
-            <LinearGradient
-              colors={[`${section.color}12`, `${section.color}06`, 'transparent']}
-              style={styles.cardGradient}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: `${section.color}15` }]}>
-                  <MaterialIcons name="menu-book" size={24} color={section.color} />
+          {/* Key Verses Card */}
+          <View style={[styles.modernCard, {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+            shadowColor: themeColor,
+          }]}>
+            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                <MaterialIcons name="menu-book" size={22} color={themeColor} />
                 </View>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
+              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
                   Key Verses
                 </Text>
               </View>
               
-              <View style={styles.versesGrid}>
+            <View style={styles.modernVersesContainer}>
                 {character.verses.map((verse, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={[styles.verseChip, { backgroundColor: `${section.color}12`, borderColor: `${section.color}30` }]}
+                  style={[styles.modernVerseChip, { 
+                    backgroundColor: themeColor + '20',
+                    borderColor: themeColor + '40',
+                  }]}
                     onPress={() => {
                       hapticFeedback.light();
                       // Future: Navigate to Bible verse
                     }}
                     activeOpacity={0.7}
                   >
-                    <MaterialIcons name="bookmark" size={16} color={section.color} />
-                    <Text style={[styles.verseChipText, { color: section.color }]}>
+                  <View style={[styles.modernVerseIconCircle, { backgroundColor: themeColor + '30' }]}>
+                    <MaterialIcons name="bookmark" size={14} color={themeColor} />
+                  </View>
+                  <Text style={[styles.modernVerseText, { color: isDark ? '#FFFFFF' : theme.text }]}>
                       {verse}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </LinearGradient>
           </View>
         </View>
 
@@ -1381,6 +1309,68 @@ Though Abel died childless and young, his legacy lived on. Jesus called him "rig
         visible={showKeyVersesModal}
         onClose={() => setShowKeyVersesModal(false)}
       />
+
+      {/* Quiz & Games - Full Screen Modal */}
+      <Modal 
+        visible={showQuizModal} 
+        animationType="slide" 
+        presentationStyle="fullScreen"
+        onRequestClose={() => {}}
+      >
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+          
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: 60, paddingBottom: 3, borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={() => setShowQuizModal(false)} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Quiz & Games</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.comingSoonContainer}>
+              <BlurView intensity={20} style={styles.comingSoonCard}>
+                <MaterialIcons name="build" size={32} color="#673AB7" />
+                <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
+                  Quiz & Games - In Development
+                </Text>
+                <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
+                  This section will include:
+                </Text>
+                
+                <View style={styles.featuresList}>
+                  <View style={styles.featureItem}>
+                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
+                    <Text style={[styles.featureItemText, { color: theme.text }]}>
+                      Interactive quizzes
+                    </Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
+                    <Text style={[styles.featureItemText, { color: theme.text }]}>
+                      Memory games
+                    </Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
+                    <Text style={[styles.featureItemText, { color: theme.text }]}>
+                      Progress tracking
+                    </Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
+                    <Text style={[styles.featureItemText, { color: theme.text }]}>
+                      Achievement badges
+                    </Text>
+                  </View>
+                </View>
+              </BlurView>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* All Other Section Modal Overlays */}
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
@@ -2136,29 +2126,95 @@ const styles = StyleSheet.create({
   },
   
   characterGroupCard: {
-    borderRadius: 24, // More modern rounded corners
+    borderRadius: 20,
     overflow: 'hidden',
-    // Width and marginBottom now controlled by AnimatedCharacterCard
-    // Enhanced shadows for more depth
     ...Platform.select({
       ios: {
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 12 },
+        shadowRadius: 25,
       },
       android: {
-        elevation: 12,
+        elevation: 15,
       },
     }),
   },
-  // Gradient background for visual interest
-  cardGradientBackground: {
+  shimmerEffect: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 24,
+    width: 100,
+    zIndex: 2,
+  },
+  cardGradientBackground: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  cardOverlay: {
+    padding: 18,
+    minHeight: 140,
+    justifyContent: 'space-between',
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  iconCircleGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupIcon: {
+    fontSize: 28,
+  },
+  cardTextContent: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  modernCharacterGroupTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    lineHeight: 22,
+    letterSpacing: -0.2,
+  },
+  modernCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  modernCountText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modernArrowContainer: {
+    position: 'absolute',
+    bottom: 18,
+    right: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   
   alternatingCardGradient: {
@@ -2455,6 +2511,417 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+  },
+
+  // New Stunning Hero Styles
+  floatingBackButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 100,
+  },
+  backButtonContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  stunningHeroContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 24,
+    borderRadius: 28,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+  stunningHeroGradient: {
+    padding: 28,
+    minHeight: 240,
+    borderRadius: 28,
+    position: 'relative',
+  },
+  floatingParticle1: {
+    position: 'absolute',
+    top: 30,
+    right: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  floatingParticle2: {
+    position: 'absolute',
+    bottom: 40,
+    left: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  floatingParticle3: {
+    position: 'absolute',
+    top: 100,
+    left: 50,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  heroContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  heroIconGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroIcon: {
+    fontSize: 52,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    paddingHorizontal: 20,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  heroBadgeText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  characterListSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    gap: 12,
+  },
+
+  // Modern Character Card Styles
+  modernCharacterCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 14,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  characterShimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 80,
+    zIndex: 3,
+  },
+  characterCardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  characterCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  characterAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  avatarGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  characterNameText: {
+    fontSize: 17,
+    fontWeight: '600',
+    flex: 1,
+    letterSpacing: -0.3,
+  },
+  characterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  characterArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Character Detail Hero Styles
+  characterDetailHero: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    borderRadius: 32,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 16 },
+        shadowOpacity: 0.35,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 18,
+      },
+    }),
+  },
+  characterHeroGradient: {
+    padding: 32,
+    paddingTop: 48,
+    paddingBottom: 36,
+    borderRadius: 32,
+  },
+  characterImageContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  characterImageRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    padding: 4,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 14,
+      },
+    }),
+  },
+  characterImageRingGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 66,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  characterImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 66,
+  },
+  characterInfo: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  characterDivider: {
+    width: 50,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 2,
+    marginVertical: 12,
+  },
+  characterDetailName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: -0.8,
+    marginBottom: 8,
+  },
+  characterDetailSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  characterBadgeContainer: {
+    alignItems: 'center',
+  },
+  characterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  characterBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+
+  // Modern Content Cards
+  modernContentContainer: {
+    paddingHorizontal: 20,
+  },
+  modernCard: {
+    borderRadius: 24,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  modernCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 18,
+    paddingBottom: 14,
+  },
+  modernIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernCardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  modernStoryText: {
+    fontSize: 16,
+    lineHeight: 26,
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    letterSpacing: -0.2,
+  },
+  modernThemesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  modernThemeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  modernThemeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  modernThemeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  modernVersesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  modernVerseChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  modernVerseIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernVerseText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
 });
 

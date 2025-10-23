@@ -17,28 +17,28 @@ const PRAYER_VERSES_CONFIG = {
 // Fallback prayer verses (in case remote fails)
 const fallbackPrayerVerses = {
   'pre_dawn': [
-    { text: "Very early in the morning, while it was still dark, Jesus got up, left the house and went off to a solitary place, where he prayed.", reference: "Mark 1:35" },
-    { text: "In the morning, Lord, you hear my voice; in the morning I lay my requests before you and wait expectantly.", reference: "Psalm 5:3" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ],
   'post_dawn': [
-    { text: "This is the day the Lord has made; we will rejoice and be glad in it.", reference: "Psalm 118:24" },
-    { text: "Because of the Lord's great love we are not consumed, for his compassions never fail. They are new every morning; great is your faithfulness.", reference: "Lamentations 3:22-23" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ],
   'midday': [
-    { text: "At noon I will pray and cry aloud, and He shall hear my voice.", reference: "Psalm 55:17" },
-    { text: "Cast all your anxiety on him because he cares for you.", reference: "1 Peter 5:7" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ],
   'pre_sunset': [
-    { text: "From the rising of the sun to the place where it sets, the name of the Lord is to be praised.", reference: "Psalm 113:3" },
-    { text: "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth.", reference: "Psalm 46:10" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ],
   'post_sunset': [
-    { text: "When I lie down, I go to sleep in peace; you alone, O Lord, let me sleep in safety.", reference: "Psalm 4:8" },
-    { text: "The Lord bless you and keep you; the Lord make his face shine on you and be gracious to you; the Lord turn his face toward you and give you peace.", reference: "Numbers 6:24-26" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ],
   'night': [
-    { text: "I will praise the Lord, who counsels me; even at night my heart instructs me.", reference: "Psalm 16:7" },
-    { text: "On my bed I remember you; I think of you through the watches of the night.", reference: "Psalm 63:6" }
+    { text: "Verse is loading...", reference: "Loading..." },
+    { text: "Verse is loading...", reference: "Loading..." }
   ]
 };
 

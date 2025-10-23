@@ -8,9 +8,11 @@ import { getVersionById } from '../data/bibleVersions';
 
 class BibleService {
   constructor() {
-    // Use a different free Bible API that doesn't require auth
-    this.baseUrl = 'https://bible-api.com';
-    this.backupUrl = 'https://labs.bible.org/api';
+    // DISABLED - bible-api.com causes rate limiting
+    // Use githubBibleService instead
+    console.warn('⚠️ bibleService is DEPRECATED - use githubBibleService');
+    this.baseUrl = null; // DISABLED
+    this.backupUrl = null; // DISABLED
     this.cachedBooks = null;
     this.cachedVerses = new Map();
     this.simplifiedCache = new Map();
@@ -442,10 +444,10 @@ class BibleService {
       };
     } catch (error) {
       console.error('Error fetching verse of the day:', error);
-      // Return a fallback verse
+      // Return loading state instead of fallback verse
       return {
-        reference: 'John 3:16',
-        content: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.'
+        reference: 'Loading...',
+        content: 'Verse is loading...'
       };
     }
   }

@@ -27,8 +27,8 @@ import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 // Bible Verse Reference Parser Component
 const BibleVerseText = memo(({ text, style, onVersePress }) => {
   // Enhanced regex to match various Bible verse reference formats:
-  // "John 3:16", "1 Corinthians 13:4-7", "Matthew, chapter 1, verse 1", "book of Matthew, chapter 1, verse 1"
-  const bibleVerseRegex = /(?:(?:the\s+)?book\s+of\s+)?(\d?\s?[A-Za-z]+)(?:,?\s*chapter\s+(\d+)(?:,?\s*verses?\s+(\d+)(?:-(\d+))?)?|\s+(\d+):(\d+)(?:-(\d+))?)/gi;
+  // "John 3:16", "1 Corinthians 13:4-7", "Romans 8:11", "Matthew, chapter 1, verse 1"
+  const bibleVerseRegex = /(?:(?:the\s+)?book\s+of\s+)?(\d?\s?[A-Za-z]+)(?:,?\s*chapter\s+(\d+)(?:[,.\s]*verses?\s+(\d+)(?:-(\d+))?)?|\s+(\d+):(\d+)(?:-(\d+))?)/gi;
   
   const parts = [];
   let lastIndex = 0;
@@ -60,12 +60,25 @@ const BibleVerseText = memo(({ text, style, onVersePress }) => {
     
     // Create standardized reference format (Book Chapter:Verse)
     let standardReference = book;
-    if (chapter && verse) {
-      standardReference = `${book} ${chapter}:${verse}`;
-      if (verseEnd) {
-        standardReference += `-${verseEnd}`;
+    if (chapter) {
+      if (verse) {
+        standardReference = `${book} ${chapter}:${verse}`;
+        if (verseEnd) {
+          standardReference += `-${verseEnd}`;
+        }
+      } else {
+        // If we have chapter but no verse, include the chapter
+        standardReference = `${book} ${chapter}`;
       }
     }
+    
+    console.log('📖 Verse match found:', { 
+      matched: match[0], 
+      book, 
+      chapter, 
+      verse, 
+      standardReference 
+    });
     
     // Add the Bible verse reference
     parts.push({
@@ -254,7 +267,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       return;
     }
 
-    // Filter out only user and AI messages (not system messages)
+    // Filter out only user and Smart messages (not system messages)
     const conversationMessages = messages.filter(msg => msg.text && msg.text.trim());
     
     if (conversationMessages.length === 0) {
@@ -367,7 +380,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         };
         setMessages([userMessage]);
         
-        // Then get AI response
+        // Then get Smart response
         setIsLoading(true);
         getBibleAnswer(interpretationRequest).then(response => {
           const aiMessage = {
@@ -404,7 +417,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     hapticFeedback.light();
     
     if (onNavigateToBible) {
-      // Close the AI chat and navigate to the Bible with search
+      // Close the Smart chat and navigate to the Bible with search
       onClose();
       // Pass the verse reference as a search query instead of navigation
       onNavigateToBible(verseReference, 'search');
@@ -440,21 +453,21 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     scrollToBottom();
 
     try {
-      console.log('🔄 Starting AI request...');
-      // Call AI service for Bible questions - now returns response or error message
+      console.log('🔄 Starting Smart request...');
+      // Call Smart service for Bible questions - now returns response or error message
       const response = await getBibleAnswer(messageText);
       console.log('✅ Got response:', response);
       
       const aiMessage = {
         id: (Date.now() + 1).toString(),
-        text: response, // This will be either the AI response or a user-friendly error message
+        text: response, // This will be either the Smart response or a user-friendly error message
         isAi: true,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
       
-      // Auto-save conversation after AI response
+      // Auto-save conversation after Smart response
       setTimeout(() => {
         saveChatToHistory();
       }, 1000); // Small delay to ensure state is updated
@@ -642,12 +655,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
   const testConnectivity = async () => {
     try {
-      console.log('🧪 Testing AI connectivity...');
+      console.log('🧪 Testing Smart connectivity...');
       const apiKey = await AsyncStorage.getItem('fivefold_groq_api_key');
-      console.log('🧪 AI test result:', apiKey ? `Enabled (${apiKey.length} chars)` : 'NOT ENABLED');
+      console.log('🧪 Smart test result:', apiKey ? `Enabled (${apiKey.length} chars)` : 'NOT ENABLED');
       Alert.alert('Smart Features Status', apiKey ? 'Smart features are active! Friend is ready to chat.' : 'Please enable smart features in Profile > Settings first.');
     } catch (error) {
-      console.error('🧪 AI connectivity test error:', error);
+      console.error('🧪 Smart connectivity test error:', error);
       Alert.alert('Smart Features Error', 'Failed to check smart features status - ' + error.message);
     }
   };

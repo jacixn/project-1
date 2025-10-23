@@ -129,25 +129,22 @@ export const translations = {
 
 export const availableLanguages = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇪🇸' },
-  { code: 'fr', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇫🇷' },
-  { code: 'de', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇩🇪' },
-  { code: 'it', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇮🇹' },
-  { code: 'pt', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇵🇹' },
-  { code: 'ru', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇷🇺' },
-  { code: 'zh', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇨🇳' },
-  { code: 'ja', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇯🇵' },
-  { code: 'ko', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇰🇷' },
-  { code: 'ar', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇸🇦' },
-  { code: 'hi', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇮🇳' },
-  { code: 'sw', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇰🇪' },
-  { code: 'tw', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇬🇭' },
-  { code: 'yo', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇳🇬' },
-  { code: 'ig', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇳🇬' },
-  { code: 'ha', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇳🇬' },
-  { code: 'am', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇪🇹' },
-  { code: 'zu', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇿🇦' },
-  { code: 'xh', name: 'Coming Soon', nativeName: 'Coming Soon', flag: '🇿🇦' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇰🇪' },
+  { code: 'tw', name: 'Twi', nativeName: 'Twi', flag: '🇬🇭' },
+  { code: 'yo', name: 'Yoruba', nativeName: 'Yorùbá', flag: '🇳🇬' },
+  { code: 'am', name: 'Amharic', nativeName: 'አማርኛ', flag: '🇪🇹' },
+  { code: 'zu', name: 'Zulu', nativeName: 'isiZulu', flag: '🇿🇦' },
 ];
 
 // Create "Coming Soon" translation for all non-English languages
@@ -233,11 +230,8 @@ translations.hi = createBasicTranslation('hi');
 translations.sw = createBasicTranslation('sw');
 translations.tw = createBasicTranslation('tw');
 translations.yo = createBasicTranslation('yo');
-translations.ig = createBasicTranslation('ig');
-translations.ha = createBasicTranslation('ha');
 translations.am = createBasicTranslation('am');
 translations.zu = createBasicTranslation('zu');
-translations.xh = createBasicTranslation('xh');
 
 export const getTranslation = (language = 'en') => {
   return translations[language] || translations.en;

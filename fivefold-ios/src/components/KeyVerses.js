@@ -11,9 +11,11 @@ import {
   StatusBar,
   Platform,
   Animated,
+  PanResponder,
   Share,
   ActivityIndicator,
   Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,6 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -63,6 +66,16 @@ const KeyVerses = ({ visible, onClose }) => {
   const scrollViewRef = useRef(null);
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Bible version states for dynamic verse fetching
+  const [fetchedVerses, setFetchedVerses] = useState({}); // { 'reference': { text: '...', version: 'NIV' } }
+  const [loadingDynamicVerses, setLoadingDynamicVerses] = useState(false);
+  const [bibleVersion, setBibleVersion] = useState('KJV');
+
+  // Modal animation refs for detail view
+  const detailSlideAnim = useRef(new Animated.Value(0)).current;
+  const detailFadeAnim = useRef(new Animated.Value(0)).current;
+  const detailPanY = useRef(new Animated.Value(0)).current;
 
   // Function to check if cache is still valid
   const isCacheValid = async () => {
@@ -212,6 +225,8 @@ const KeyVerses = ({ visible, onClose }) => {
         if (cachedData) {
           setVersesData(cachedData);
           setLoading(false);
+          // After loading verses metadata, fetch dynamic verses
+          await loadDynamicVerses(cachedData);
           return;
         }
       }
@@ -220,6 +235,8 @@ const KeyVerses = ({ visible, onClose }) => {
       console.log('Cache invalid or missing, fetching from remote...');
       const remoteData = await fetchVersesFromRemote();
       setVersesData(remoteData);
+      // After loading verses metadata, fetch dynamic verses
+      await loadDynamicVerses(remoteData);
       
     } catch (error) {
       // Try to load from cache as fallback
@@ -229,6 +246,7 @@ const KeyVerses = ({ visible, onClose }) => {
         if (cachedData) {
           setVersesData(cachedData);
           setError('Using offline data - check your internet connection');
+          await loadDynamicVerses(cachedData);
         } else {
           console.log('No cache available, loading local fallback...');
           await loadLocalFallbackData();
@@ -240,6 +258,59 @@ const KeyVerses = ({ visible, onClose }) => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load verses from user's preferred Bible version
+  const loadDynamicVerses = async (data) => {
+    try {
+      setLoadingDynamicVerses(true);
+      console.log('📖 Loading dynamic verses from preferred Bible version...');
+      
+      // Get user's preferred version
+      const version = await verseByReferenceService.getPreferredVersion();
+      setBibleVersion(version.toUpperCase());
+      console.log('📖 User prefers:', version.toUpperCase());
+      
+      // Get all verses from all categories
+      const allVerses = data.verses ? Object.values(data.verses).flat() : [];
+      console.log('📖 Found', allVerses.length, 'verses to fetch');
+      
+      // Fetch verses dynamically (limit to prevent too many requests at once)
+      const versesMap = {};
+      const batchSize = 10; // Fetch 10 verses at a time
+      
+      for (let i = 0; i < allVerses.length; i += batchSize) {
+        const batch = allVerses.slice(i, i + batchSize);
+        const promises = batch.map(async (verse) => {
+          if (!verse.reference) return;
+          try {
+            const verseData = await verseByReferenceService.getVerseByReference(verse.reference, version);
+            versesMap[verse.reference] = {
+              text: verseData.text,
+              version: verseData.version
+            };
+            console.log('✅ Loaded:', verse.reference);
+          } catch (error) {
+            console.error('❌ Failed to load:', verse.reference, error.message);
+            // Fallback to hardcoded text if fetch fails
+            versesMap[verse.reference] = {
+              text: verse.text,
+              version: version.toUpperCase()
+            };
+          }
+        });
+        
+        await Promise.all(promises);
+        console.log(`📊 Progress: ${Math.min(i + batchSize, allVerses.length)}/${allVerses.length} verses loaded`);
+      }
+      
+      setFetchedVerses(versesMap);
+      setLoadingDynamicVerses(false);
+      console.log('✅ All dynamic verses loaded!');
+    } catch (error) {
+      console.error('Error loading dynamic verses:', error);
+      setLoadingDynamicVerses(false);
     }
   };
 
@@ -317,6 +388,31 @@ const KeyVerses = ({ visible, onClose }) => {
       scaleAnim.setValue(0.9);
     }
   }, [visible]);
+
+  // Listen for Bible version changes from Settings
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('bibleVersionChanged', async (newVersion) => {
+      console.log('📡 KeyVerses: Received Bible version change event ->', newVersion);
+      
+      // Clear cached verses
+      setFetchedVerses({});
+      
+      // Update version display
+      setBibleVersion(newVersion.toUpperCase());
+      
+      // Reload all verses with new version
+      if (versesData) {
+        console.log('🔄 Reloading all verses with new version:', newVersion);
+        await loadDynamicVerses(versesData);
+      }
+      
+      console.log('✅ KeyVerses refreshed with new Bible version');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [versesData]); // Re-subscribe if versesData changes
 
   // Categories with beautiful colors and icons
   // Get categories from loaded data and add 'all' category
@@ -509,13 +605,24 @@ const KeyVerses = ({ visible, onClose }) => {
             {/* Verse content */}
             <View style={styles.verseGridContent}>
               <Text style={[styles.verseTextGrid, { color: theme.text }]} numberOfLines={4}>
-                "{verse.text}"
+                "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
               </Text>
               
               <View style={styles.verseGridFooter}>
-                <Text style={[styles.verseReferenceGrid, { color: category?.color || theme.primary }]}>
-                  {verse.reference}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.verseReferenceGrid, { color: category?.color || theme.primary }]}>
+                    {verse.reference}
+                  </Text>
+                  <Text style={[styles.versionBadge, { 
+                    color: category?.color || theme.primary,
+                    backgroundColor: isDark 
+                      ? `${category?.color || theme.primary}15` 
+                      : `${category?.color || theme.primary}10`,
+                    borderColor: `${category?.color || theme.primary}30`
+                  }]}>
+                    {bibleVersion}
+                  </Text>
+                </View>
                 
                 <View style={styles.verseActionsGrid}>
                   <TouchableOpacity
@@ -584,14 +691,25 @@ const KeyVerses = ({ visible, onClose }) => {
           {/* Verse content */}
           <View style={styles.verseContent}>
             <Text style={[styles.verseText, { color: theme.text }]} numberOfLines={3}>
-              "{verse.text}"
+              "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
             </Text>
             
             <View style={styles.verseFooter}>
               <View>
-                <Text style={[styles.verseReference, { color: category?.color || theme.primary }]}>
-                  {verse.reference}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Text style={[styles.verseReference, { color: category?.color || theme.primary }]}>
+                    {verse.reference}
+                  </Text>
+                  <Text style={[styles.versionBadge, { 
+                    color: category?.color || theme.primary,
+                    backgroundColor: isDark 
+                      ? `${category?.color || theme.primary}15` 
+                      : `${category?.color || theme.primary}10`,
+                    borderColor: `${category?.color || theme.primary}30`
+                  }]}>
+                    {bibleVersion}
+                  </Text>
+                </View>
                 <Text style={[styles.verseTheme, { color: theme.textSecondary }]}>
                   {verse.theme}
                 </Text>
@@ -627,42 +745,185 @@ const KeyVerses = ({ visible, onClose }) => {
     );
   };
 
+  // Reset panY when modal closes
+  useEffect(() => {
+    if (!selectedVerse) {
+      detailPanY.setValue(0);
+    }
+  }, [selectedVerse]);
+
+  // Pan gesture handler for verse detail modal
+  const detailPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderGrant: () => {
+        hapticFeedback.light();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          detailPanY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+          hapticFeedback.success();
+          Animated.parallel([
+            Animated.timing(detailSlideAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }),
+            Animated.timing(detailFadeAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            setSelectedVerse(null);
+          });
+        } else {
+          hapticFeedback.light();
+          Animated.spring(detailPanY, {
+            toValue: 0,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // Animate verse detail modal in/out
+  useEffect(() => {
+    if (selectedVerse) {
+      detailSlideAnim.setValue(0);
+      detailFadeAnim.setValue(0);
+      
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.spring(detailSlideAnim, {
+            toValue: 1,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }),
+          Animated.timing(detailFadeAnim, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    } else {
+      detailSlideAnim.setValue(0);
+      detailFadeAnim.setValue(0);
+    }
+  }, [selectedVerse]);
+
   const renderVerseDetail = () => {
     if (!selectedVerse) return null;
     
     const category = categories.find(cat => cat.id === selectedVerse.category);
     const isFavorite = favoriteVerses.includes(selectedVerse.id);
+
+    const modalTranslateY = detailSlideAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1000, 0],
+    });
+
+    const combinedTranslateY = Animated.add(modalTranslateY, detailPanY);
+
+    const handleBackdropClose = () => {
+      Animated.parallel([
+        Animated.timing(detailSlideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(detailFadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setSelectedVerse(null);
+      });
+    };
     
     return (
       <Modal
         visible={!!selectedVerse}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedVerse(null)}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleBackdropClose}
+        statusBarTranslucent={true}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.background }]}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} />
+        <View style={[styles.verseModalOverlay, { justifyContent: 'flex-end' }]}>
+          {/* Backdrop */}
+          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: detailFadeAnim }}>
+            <TouchableOpacity 
+              style={styles.verseModalBackdrop}
+              activeOpacity={1}
+              onPress={handleBackdropClose}
+            />
+          </Animated.View>
           
-          {/* Modal Handle */}
-          <View style={styles.modalHandle}>
-            <View style={[styles.handleBar, { backgroundColor: theme.textSecondary }]} />
-          </View>
-          
-          {/* Header */}
-          <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <View style={{ width: 40 }} />
-            <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
-              Key Verse
-            </Text>
-            <TouchableOpacity
-              onPress={() => shareVerse(selectedVerse)}
-              style={styles.closeButton}
-            >
-              <MaterialIcons name="share" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles.verseDetailContent} showsVerticalScrollIndicator={false}>
+          {/* Modal Content */}
+          <Animated.View
+            style={[
+              styles.verseModalContainer,
+              {
+                transform: [{ translateY: combinedTranslateY }],
+                opacity: detailFadeAnim,
+                backgroundColor: theme.background,
+                height: '94%',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 10
+              }
+            ]}
+          >
+            <View style={styles.verseDetailSafeArea}>
+              {/* Drag Handle */}
+              <View
+                style={[styles.modalHandle, { paddingTop: 12, paddingBottom: 4 }]}
+                {...detailPanResponder.panHandlers}
+              >
+                <View style={[styles.handleBar, {
+                  width: 40,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'
+                }]} />
+              </View>
+              
+              {/* Header */}
+              <View 
+                style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
+                {...detailPanResponder.panHandlers}
+              >
+                <View style={{ width: 40 }} />
+                <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
+                  Key Verse
+                </Text>
+                <TouchableOpacity
+                  onPress={() => shareVerse(selectedVerse)}
+                  style={styles.closeButton}
+                >
+                  <MaterialIcons name="share" size={24} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.verseDetailContent} showsVerticalScrollIndicator={false} bounces={false}>
             {/* Verse Hero */}
             <LinearGradient
               colors={category?.gradient || [theme.primary, theme.primaryDark]}
@@ -670,13 +931,21 @@ const KeyVerses = ({ visible, onClose }) => {
             >
               <View style={styles.verseHeroContent}>
                 <Text style={styles.verseDetailText}>
-                  "{selectedVerse.text}"
+                  "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text)}"
                 </Text>
                 
                 <View style={styles.verseDetailFooter}>
-                  <Text style={styles.verseDetailReference}>
-                    {selectedVerse.reference}
-                  </Text>
+                  <View>
+                    <Text style={styles.verseDetailReference}>
+                      {selectedVerse.reference}
+                    </Text>
+                    <Text style={[styles.versionBadgeModal, { 
+                      backgroundColor: 'rgba(255,255,255,0.3)',
+                      borderColor: 'rgba(255,255,255,0.5)'
+                    }]}>
+                      {bibleVersion}
+                    </Text>
+                  </View>
                   
                   <TouchableOpacity
                     onPress={() => toggleFavorite(selectedVerse.id)}
@@ -717,7 +986,9 @@ const KeyVerses = ({ visible, onClose }) => {
             </View>
             
             <View style={{ height: 40 }} />
-          </ScrollView>
+              </ScrollView>
+            </View>
+          </Animated.View>
         </View>
       </Modal>
     );
@@ -789,7 +1060,7 @@ const KeyVerses = ({ visible, onClose }) => {
         )}
         
         {/* Header with proper status bar spacing */}
-        <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: Platform.OS === 'ios' ? 70 : 30 }]}>
+        <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: 60 }]}>
           <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
             <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
           </TouchableOpacity>
@@ -906,7 +1177,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingBottom: 3,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
@@ -1046,6 +1317,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  versionBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  versionBadgeModal: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
   verseTheme: {
     fontSize: 11,
     marginTop: 2,
@@ -1102,14 +1396,14 @@ const styles = StyleSheet.create({
   },
   verseGridFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     marginTop: 8,
+    gap: 12,
   },
   verseReferenceGrid: {
     fontSize: 11,
     fontWeight: '700',
-    flex: 1,
   },
   verseActionsGrid: {
     flexDirection: 'row',
@@ -1118,6 +1412,20 @@ const styles = StyleSheet.create({
   actionButtonGrid: {
     padding: 6,
     borderRadius: 6,
+  },
+  // Verse detail modal styles
+  verseModalOverlay: {
+    flex: 1,
+  },
+  verseModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  verseModalContainer: {
+    // Styles moved inline for theme support
+  },
+  verseDetailSafeArea: {
+    flex: 1,
   },
   modalOverlay: {
     flex: 1,

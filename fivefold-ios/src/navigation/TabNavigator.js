@@ -21,19 +21,28 @@ import LiquidGlassTabBar from '../components/LiquidGlassTabBar';
 // Tab screens
 import BiblePrayerTab from '../screens/BiblePrayerTab';
 import TodosTab from '../screens/TodosTab';
+import GymTab from '../screens/GymTab';
 import ProfileTab from '../screens/ProfileTab';
 
 const TabNavigator = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
 
-  // Use native tabs if available, otherwise fallback to custom liquid glass
-  if (createNativeBottomTabNavigator) {
+  // Use native tabs for iOS if available - with native iOS 26 Liquid Glass effect
+  // Falls back to custom themed tabs for Android or if native tabs unavailable
+  if (createNativeBottomTabNavigator && Platform.OS === 'ios') {
     const NativeTab = createNativeBottomTabNavigator();
     
     return (
       <NativeTab.Navigator
         screenOptions={{
           headerShown: false,
+        }}
+        appearance={{
+          // Native iOS 26 Liquid Glass effect
+          translucent: true,
+          blur: true,
+          // Let iOS handle the blur automatically based on system appearance
+          // This ensures proper blur even when modals are opened/closed
         }}
       >
         <NativeTab.Screen 
@@ -45,6 +54,7 @@ const TabNavigator = () => {
               sfSymbol: "book.fill",
               fill: color,
             }),
+            scrollToTopOnPress: true,
           }}
         />
         <NativeTab.Screen 
@@ -56,6 +66,19 @@ const TabNavigator = () => {
               sfSymbol: "checkmark.circle.fill",
               fill: color,
             }),
+            scrollToTopOnPress: false,
+          }}
+        />
+        <NativeTab.Screen 
+          name="Gym" 
+          component={GymTab}
+          options={{
+            title: 'Gym',
+            tabBarIcon: ({ color }) => ({
+              sfSymbol: "figure.strengthtraining.traditional",
+              fill: color,
+            }),
+            scrollToTopOnPress: false,
           }}
         />
         <NativeTab.Screen 
@@ -67,13 +90,14 @@ const TabNavigator = () => {
               sfSymbol: "person.fill",
               fill: color,
             }),
+            scrollToTopOnPress: true,
           }}
         />
       </NativeTab.Navigator>
     );
   }
 
-  // Fallback to custom liquid glass tab bar
+  // Fallback to custom themed Liquid Glass tab bar for Android or unsupported devices
   const Tab = createBottomTabNavigator();
   
   return (
@@ -95,6 +119,13 @@ const TabNavigator = () => {
         component={TodosTab}
         options={{
           tabBarLabel: 'Tasks',
+        }}
+      />
+      <Tab.Screen 
+        name="Gym" 
+        component={GymTab}
+        options={{
+          tabBarLabel: 'Gym',
         }}
       />
       <Tab.Screen 

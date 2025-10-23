@@ -25,7 +25,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
   
   // Calculate dimensions - EXACTLY like native iOS from your image
   const tabBarWidth = screenWidth * 0.75; // Bigger like the native iOS in your image
-  const maxWidth = Math.min(tabBarWidth, 294); // Reduced by 6px (was 300, now 294)
+  const maxWidth = Math.min(tabBarWidth, 414); // Increased by 50px (was 364, now 414)
   const numberOfTabs = state.routes.length;
   const tabWidth = maxWidth / numberOfTabs;
   
@@ -73,6 +73,8 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
         return 'menu-book';
       case 'Todos':
         return 'check-circle';
+      case 'Gym':
+        return 'fitness-center';
       case 'Profile':
         return 'person';
       default:
@@ -86,6 +88,8 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
         return 'Bible';
       case 'Todos':
         return 'Tasks';
+      case 'Gym':
+        return 'Gym';
       case 'Profile':
         return 'Profile';
       default:
@@ -94,16 +98,34 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
   };
 
   if (!isLiquidGlassSupported) {
-    // Fallback for unsupported devices - maintains current blur appearance
+    // Fallback for unsupported devices - beautiful blur with theme colors
     return (
       <View style={styles.container}>
-        <View style={[styles.fallbackTabBar, { width: maxWidth }]}>
-          {/* Fallback active indicator */}
+        <BlurView 
+          intensity={90} 
+          tint={isDark ? "dark" : "light"}
+          style={[styles.fallbackTabBar, { 
+            width: maxWidth,
+            backgroundColor: isDark 
+              ? 'rgba(0, 0, 0, 0.5)' 
+              : 'rgba(255, 255, 255, 0.7)'
+          }]}
+        >
+          {/* Fallback active indicator with theme colors */}
           <Animated.View
             style={[
               styles.fallbackActiveIndicator,
               {
                 width: tabWidth - 16,
+                backgroundColor: isBlushTheme 
+                  ? 'rgba(255, 105, 180, 0.4)' 
+                  : isCresviaTheme 
+                  ? 'rgba(138, 43, 226, 0.35)' 
+                  : isEternaTheme 
+                  ? 'rgba(75, 0, 130, 0.35)'
+                  : isDark 
+                  ? 'rgba(255, 255, 255, 0.25)' 
+                  : 'rgba(59, 130, 246, 0.35)',
                 transform: [{ translateX: Animated.add(slideAnimation, new Animated.Value(8)) }],
               },
             ]}
@@ -140,30 +162,18 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                 >
                   <MaterialIcons
                     name={getTabIcon(route.name)}
-                    size={isFocused ? 24 : 22}
+                    size={isFocused ? 32 : 28}
                     color={
                       isFocused
                         ? theme.tabActive || theme.primary
                         : theme.textSecondary || `${theme.tabActive || theme.primary}99`
                     }
                   />
-                  <Text style={[
-                    styles.tabLabel,
-                    { 
-                      color: isFocused
-                        ? theme.tabActive || theme.primary
-                        : theme.textSecondary || `${theme.tabActive || theme.primary}99`,
-                      fontWeight: isFocused ? '600' : '500',
-                      fontSize: isFocused ? 12 : 11,
-                    }
-                  ]}>
-                    {getTabLabel(route.name)}
-                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
+        </BlurView>
       </View>
     );
   }
@@ -187,7 +197,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                   styles.activeIndicator,
                   {
                     width: tabWidth - 10, // Reduced by 2px (was -8, now -10)
-                    height: 58, // Reduced by 6px (was 64, now 58)
+                    height: 63, // Increased by 5px (was 58, now 63)
                     transform: [
                       { translateX: Animated.add(slideAnimation, new Animated.Value(8)) },
                       { scale: scaleAnimation },
@@ -243,7 +253,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                 >
                   <MaterialIcons
                     name={getTabIcon(route.name)}
-                    size={isFocused ? 27 : 25} // Increased by 5 as requested
+                    size={isFocused ? 32 : 28}
                     color={
                       isFocused
                         ? theme.tabActive || theme.primary
@@ -251,21 +261,6 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
                     }
                     style={styles.tabIcon}
                   />
-                  
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      {
-                        color: isFocused
-                          ? theme.tabActive || theme.primary
-                          : theme.textSecondary || `${theme.tabActive || theme.primary}99`,
-                        fontWeight: isFocused ? '600' : '500',
-                        fontSize: isFocused ? 16 : 15, // Increased by 5 as requested
-                      },
-                    ]}
-                  >
-                    {getTabLabel(route.name)}
-                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -290,28 +285,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fallbackTabBar: {
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    height: 69,
+    borderRadius: 34,
     overflow: 'hidden',
     position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
   },
   fallbackActiveIndicator: {
     position: 'absolute',
-    top: 8,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    top: 3,
+    height: 63,
+    borderRadius: 31,
     zIndex: 1,
   },
   tabBarContainer: {
-    height: 64, // Reduced by 6px (was 70, now 64)
-    borderRadius: 32, // Adjusted for new height
+    height: 69, // Increased by 5px (was 64, now 69)
+    borderRadius: 34, // Adjusted for new height
     overflow: 'hidden',
     position: 'relative',
     shadowColor: '#000',
@@ -322,14 +315,14 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: 'absolute',
-    top: 3, // Centered for 64px height with 58px pill
-    borderRadius: 29, // Rounded pill shape (adjusted for new height)
+    top: 3, // Centered for 69px height with 63px pill
+    borderRadius: 31, // Rounded pill shape (adjusted for new height)
     overflow: 'hidden',
     zIndex: 1,
   },
   indicatorGlass: {
     flex: 1,
-    borderRadius: 29, // Rounded pill to match (adjusted for new height)
+    borderRadius: 31, // Rounded pill to match (adjusted for new height)
   },
   tabsRow: {
     flexDirection: 'row',

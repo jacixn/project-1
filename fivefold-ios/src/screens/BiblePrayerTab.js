@@ -9,10 +9,14 @@ import {
   StatusBar,
   Animated,
   Image,
+  DeviceEventEmitter,
+  Modal,
+  Dimensions,
 } from 'react-native';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -35,23 +39,9 @@ import { getStoredData, saveData } from '../utils/localStorage';
 // Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
-import { getDailyVerse } from '../utils/dailyVerse';
+import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
 
-// Fixed prayer times - no location needed
-const calculatePrayerTimes = () => {
-  return {
-    beforeSunrise: '05:30',
-    afterSunrise: '06:30', 
-    midday: '12:00',
-    beforeSunset: '17:30',
-    afterSunset: '18:30'
-  };
-};
-
-const getNextPrayerTime = (times) => {
-  const timeKeys = Object.keys(times);
-  return timeKeys[0]; // Simple fallback
-};
+// Prayer times are now user-configurable - no hardcoded defaults
 
 // Animated Bible Components (follows Rules of Hooks)
 const AnimatedBibleButton = ({ children, onPress, style, ...props }) => {
@@ -143,6 +133,15 @@ const BiblePrayerTab = () => {
   const [location, setLocation] = useState(null);
   const [nextPrayer, setNextPrayer] = useState(null);
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
+  
+  // Verse of the Day modal state
+  const [showVerseModal, setShowVerseModal] = useState(false);
+  const verseModalScale = useRef(new Animated.Value(0.3)).current;
+  const verseModalOpacity = useRef(new Animated.Value(0)).current;
+  const verseModalSlide = useRef(new Animated.Value(50)).current;
+  const verseModalRotate = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const iconPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     initializePrayerData();
@@ -157,8 +156,9 @@ const BiblePrayerTab = () => {
       } catch (error) {
         console.error('Error loading daily verse:', error);
         setDailyVerse({ 
-          text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, to give you hope and a future.", 
-          reference: "Jeremiah 29:11" 
+          text: "Daily verse is loading...", 
+          reference: "Loading...",
+          version: "NIV"
         });
       }
     };
@@ -181,6 +181,25 @@ const BiblePrayerTab = () => {
     return () => clearInterval(interval);
   }, [dailyVerse.reference]);
 
+  // Listen for Bible version changes and re-fetch the same verse in the new version
+  useEffect(() => {
+    const handleVersionChange = async () => {
+      try {
+        console.log('📖 Bible version changed, re-fetching same verse in new version...');
+        const verse = await refetchDailyVerseInNewVersion();
+        setDailyVerse(verse);
+      } catch (error) {
+        console.error('Error re-fetching daily verse after version change:', error);
+      }
+    };
+
+    const subscription = DeviceEventEmitter.addListener('bibleVersionChanged', handleVersionChange);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const initializePrayerData = async () => {
     try {
       // Initialize daily reset system first
@@ -193,13 +212,143 @@ const BiblePrayerTab = () => {
       const history = await getStoredData('prayerHistory') || [];
       setPrayerHistory(history);
       
-      // Calculate fixed prayer times (no location needed)
-      const times = calculatePrayerTimes();
-      setPrayerTimes(times);
-      setNextPrayer(getNextPrayerTime(times));
+      // Load user's custom prayer times (no hardcoded defaults)
+      const customTimes = await getStoredData('customPrayerTimes') || {};
+      setPrayerTimes(customTimes);
     } catch (error) {
       console.error('Failed to initialize prayer data:', error);
     }
+  };
+
+  const openVerseModal = useCallback(() => {
+    hapticFeedback.medium();
+    setShowVerseModal(true);
+    
+    // Reset animation values
+    verseModalScale.setValue(0.3);
+    verseModalOpacity.setValue(0);
+    verseModalSlide.setValue(50);
+    verseModalRotate.setValue(-5);
+    shimmerAnim.setValue(0);
+    iconPulse.setValue(0.8);
+    
+    // Animate in with beautiful spring effect
+    Animated.parallel([
+      Animated.spring(verseModalScale, {
+        toValue: 1,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseModalOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(verseModalSlide, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.spring(verseModalRotate, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.spring(iconPulse, {
+        toValue: 1,
+        tension: 50,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Start continuous shimmer effect
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+      
+      // Start icon pulse loop
+      Animated.loop(
+        Animated.sequence([
+          Animated.spring(iconPulse, {
+            toValue: 1.1,
+            tension: 50,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+          Animated.spring(iconPulse, {
+            toValue: 1,
+            tension: 50,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    });
+  }, []);
+
+  const closeVerseModal = useCallback(() => {
+    hapticFeedback.light();
+    
+    // Animate out
+    Animated.parallel([
+      Animated.spring(verseModalScale, {
+        toValue: 0.3,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseModalOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(verseModalSlide, {
+        toValue: 50,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowVerseModal(false);
+    });
+  }, []);
+
+  const handleDiscussVerse = () => {
+    console.log('💬 Discuss button pressed!');
+    console.log('💬 Daily verse:', dailyVerse);
+    hapticFeedback.medium();
+    
+    // Set the verse data first
+    const verseData = {
+      text: dailyVerse.text,
+      content: dailyVerse.text,
+      reference: dailyVerse.reference,
+      version: dailyVerse.version
+    };
+    
+    console.log('💬 Setting verse data:', verseData);
+    setVerseToInterpret(verseData);
+    
+    // Close verse modal
+    setShowVerseModal(false);
+    
+    // Open Friend chat immediately
+    console.log('💬 Opening Friend chat now');
+    setShowFriendChat(true);
   };
 
   const handlePrayerPress = useCallback((prayer) => {
@@ -352,10 +501,7 @@ const BiblePrayerTab = () => {
       {/* Verse of the day - Force transparent styling */}
       <TouchableOpacity
         activeOpacity={0.4} // Reduced brightness by 50% (was 0.8, now 0.4)
-        onPress={() => {
-          hapticFeedback.light();
-          // Future: Add verse sharing or Bible navigation
-        }}
+        onPress={openVerseModal}
         style={[styles.transparentVerseOfDay, { 
           backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
           borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
@@ -399,7 +545,7 @@ const BiblePrayerTab = () => {
           selectable={false} // Disable selection for tappable area
           allowFontScaling={true}
         >
-          {dailyVerse.reference}
+          {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
         </Text>
       </TouchableOpacity>
       </LiquidGlassBibleContainer>
@@ -534,6 +680,9 @@ const BiblePrayerTab = () => {
               Faith & Focus, Every Day
             </Text>
           </View>
+          
+          {/* Removed connection indicator - app works perfectly without it */}
+          <View style={styles.headerRight} />
         </View>
       </GlassHeader>
 
@@ -614,7 +763,6 @@ const BiblePrayerTab = () => {
       )}
 
       {/* Friend Chat Modal */}
-      {showFriendChat && (
         <AiBibleChat
           visible={showFriendChat}
           onClose={() => {
@@ -624,7 +772,200 @@ const BiblePrayerTab = () => {
           initialVerse={verseToInterpret}
           onNavigateToBible={handleNavigateToVerse}
         />
-      )}
+
+      {/* Verse of the Day Modal */}
+      <Modal
+        visible={showVerseModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeVerseModal}
+      >
+        <View style={styles.verseModalOverlay}>
+          <TouchableOpacity 
+            style={styles.verseModalBackdrop}
+            activeOpacity={1}
+            onPress={closeVerseModal}
+          >
+            <Animated.View style={{ 
+              opacity: verseModalOpacity,
+              ...StyleSheet.absoluteFillObject,
+            }}>
+              <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill}>
+                <View style={[styles.verseModalDimOverlay, { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.75)'
+                }]} />
+              </BlurView>
+            </Animated.View>
+          </TouchableOpacity>
+
+          <Animated.View 
+            style={[
+              styles.verseModalCard,
+              {
+                opacity: verseModalOpacity,
+                transform: [
+                  { scale: verseModalScale },
+                  { translateY: verseModalSlide },
+                  { 
+                    rotate: verseModalRotate.interpolate({
+                      inputRange: [-5, 0],
+                      outputRange: ['-5deg', '0deg']
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            {/* Animated shimmer overlay */}
+            <Animated.View 
+              style={[
+                styles.shimmerOverlay,
+                {
+                  opacity: shimmerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 0.15]
+                  }),
+                  transform: [{
+                    translateX: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-400, 400]
+                    })
+                  }]
+                }
+              ]}
+            >
+              <LinearGradient
+                colors={['transparent', 'rgba(255, 255, 255, 0.6)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+
+            {/* Main gradient background */}
+            <LinearGradient
+              colors={
+                isBlushTheme 
+                  ? ['#FFB6C1', '#FF69B4', '#FF1493']
+                  : isCresviaTheme
+                  ? ['#9370DB', '#8A2BE2', '#6A0DAD']
+                  : isEternaTheme
+                  ? ['#663399', '#4B0082', '#2E0854']
+                  : isDark
+                  ? ['#3B82F6', '#2563EB', '#1D4ED8']
+                  : ['#60A5FA', '#3B82F6', '#2563EB']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.verseModalGradient}
+            >
+              <BlurView 
+                intensity={isDark ? 20 : 30} 
+                tint={isDark ? "dark" : "light"}
+                style={styles.verseModalBlur}
+              >
+                <View style={styles.verseModalContent}>
+                  {/* Close button with backdrop */}
+                  <TouchableOpacity 
+                    style={[styles.verseModalClose, {
+                      backgroundColor: isDark 
+                        ? 'rgba(255, 255, 255, 0.1)' 
+                        : 'rgba(0, 0, 0, 0.1)'
+                    }]}
+                    onPress={closeVerseModal}
+                  >
+                    <MaterialIcons name="close" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+
+                  {/* Animated icon with glow */}
+                  <Animated.View style={[
+                    styles.verseModalIconContainer,
+                    {
+                      transform: [{ scale: iconPulse }],
+                      shadowColor: isBlushTheme 
+                        ? '#FF69B4' 
+                        : isCresviaTheme 
+                        ? '#8A2BE2' 
+                        : isEternaTheme 
+                        ? '#4B0082' 
+                        : '#3B82F6',
+                      shadowOpacity: 0.3,
+                      shadowRadius: 20,
+                      shadowOffset: { width: 0, height: 0 }
+                    }
+                  ]}>
+                    <LinearGradient
+                      colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
+                      style={styles.iconGradient}
+                    >
+                      <Text style={styles.verseModalIcon}>💫</Text>
+                    </LinearGradient>
+                  </Animated.View>
+
+                  {/* Title with gradient text effect */}
+                  <View style={styles.verseModalHeader}>
+                    <Text style={styles.verseModalTitle}>
+                      Verse of the Day
+                    </Text>
+                    <Text style={styles.verseModalDate}>
+                      {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                  </View>
+
+                  {/* Verse container with subtle backdrop */}
+                  <View style={styles.verseModalTextContainer}>
+                    <View style={[styles.verseBackdrop, {
+                      backgroundColor: isDark 
+                        ? 'rgba(0, 0, 0, 0.2)' 
+                        : 'rgba(255, 255, 255, 0.25)'
+                    }]}>
+                      <Text style={styles.verseModalQuote}>
+                        "{dailyVerse.text}"
+                      </Text>
+                      <View style={styles.referenceContainer}>
+                        <View style={styles.referenceDivider} />
+                        <Text style={styles.verseModalReference}>
+                          {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Action button with gradient */}
+                  <View style={styles.verseModalActions}>
+                    <TouchableOpacity
+                      style={styles.verseModalButton}
+                      onPress={handleDiscussVerse}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={
+                          isDark
+                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
+                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
+                        }
+                        style={styles.buttonGradient}
+                      >
+                        <View style={styles.buttonContent}>
+                          <MaterialIcons name="chat-bubble" size={22} color="#FFFFFF" />
+                          <Text style={styles.verseModalButtonText}>
+                            Discuss with Friend
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </BlurView>
+            </LinearGradient>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
     </AnimatedWallpaper>
   );
@@ -685,6 +1026,11 @@ const styles = StyleSheet.create({
   headerTextContainer: {
     alignItems: 'center',
     flex: 1,
+  },
+  headerRight: {
+    position: 'absolute',
+    right: 20,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
@@ -844,6 +1190,170 @@ const styles = StyleSheet.create({
   quickAccessText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  // Verse Modal Styles
+  verseModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verseModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  verseModalDimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  verseModalCard: {
+    width: Dimensions.get('window').width - 32,
+    maxWidth: 450,
+    borderRadius: 32,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.5,
+    shadowRadius: 40,
+    elevation: 25,
+  },
+  shimmerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 200,
+    zIndex: 1,
+  },
+  verseModalGradient: {
+    borderRadius: 32,
+    overflow: 'hidden',
+  },
+  verseModalBlur: {
+    borderRadius: 32,
+    overflow: 'hidden',
+  },
+  verseModalContent: {
+    padding: 28,
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
+  verseModalClose: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  verseModalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+    elevation: 10,
+  },
+  iconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  verseModalIcon: {
+    fontSize: 40,
+  },
+  verseModalHeader: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  verseModalTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  verseModalDate: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
+  verseModalTextContainer: {
+    marginBottom: 28,
+  },
+  verseBackdrop: {
+    borderRadius: 20,
+    padding: 24,
+    paddingVertical: 28,
+  },
+  verseModalQuote: {
+    fontSize: 19,
+    lineHeight: 30,
+    fontStyle: 'italic',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    fontWeight: '400',
+    letterSpacing: 0.3,
+  },
+  referenceContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  referenceDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 1,
+  },
+  verseModalReference: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  verseModalActions: {
+    marginTop: 8,
+  },
+  verseModalButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  buttonGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  verseModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });
 

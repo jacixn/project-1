@@ -198,7 +198,7 @@ export const ShimmerText = ({ children, style, colors = ['#FECACA', '#F472B6', '
       Animated.timing(shimmerAnim, {
         toValue: 1,
         duration: 2000,
-        useNativeDriver: false,
+        useNativeDriver: true,
       })
     );
     animation.start();

@@ -185,13 +185,13 @@ export class PrayerManager {
         const customNames = oldCustomNames ? JSON.parse(oldCustomNames) : {};
         const customTimes = oldCustomTimes ? JSON.parse(oldCustomTimes) : {};
         
-        // Default old prayer structure
+        // User-configurable prayer structure (no hardcoded defaults)
         const oldPrayers = [
-          { slot: 'pre_dawn', defaultName: 'Before Sunrise', defaultTime: '05:30' },
-          { slot: 'post_sunrise', defaultName: 'After Sunrise', defaultTime: '06:30' },
-          { slot: 'midday', defaultName: 'Midday', defaultTime: '12:00' },
-          { slot: 'pre_sunset', defaultName: 'Before Sunset', defaultTime: '17:30' },
-          { slot: 'night', defaultName: 'After Sunset', defaultTime: '18:30' }
+          { slot: 'pre_dawn', defaultName: 'Before Sunrise', defaultTime: null },
+          { slot: 'post_sunrise', defaultName: 'After Sunrise', defaultTime: null },
+          { slot: 'midday', defaultName: 'Midday', defaultTime: null },
+          { slot: 'pre_sunset', defaultName: 'Before Sunset', defaultTime: null },
+          { slot: 'night', defaultName: 'After Sunset', defaultTime: null }
         ];
         
         const migratedPrayers = oldPrayers.map((prayer, index) => ({
