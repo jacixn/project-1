@@ -1,11 +1,12 @@
 // GitHub Bible Service
-// Fetches Bible translations from https://github.com/arron-taylor/bible-versions
+// Fetches Bible translations from https://github.com/jacixn/bible-versions
 // 35 complete English translations, all free and open-source
+// (Forked from arron-taylor/bible-versions for reliability and control)
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVersionById } from '../data/bibleVersions';
 
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/arron-taylor/bible-versions/main/';
+const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/jacixn/bible-versions/main/';
 const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Book name mapping (App ID → GitHub name)
