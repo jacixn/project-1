@@ -967,21 +967,37 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
-        {/* Header */}
-        <View style={[styles.solidHeader, { backgroundColor: theme.surface, paddingTop: 60 }]}>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
-          >
-            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-          </TouchableOpacity>
-          <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-            Bible Timeline
-          </Text>
-          <View style={styles.solidHeaderButton} />
-        </View>
+        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
+          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+            >
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+              Bible Timeline
+            </Text>
+            <View style={styles.solidHeaderButton} />
+          </View>
+        </BlurView>
 
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
@@ -1010,7 +1026,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {/* Main Content */}
         {!loading && !error && (
           <>
-        <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
+        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
         
         <View style={[styles.container, { backgroundColor: 'transparent' }]}>
 
