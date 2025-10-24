@@ -1052,7 +1052,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       {/* Era Detail Panel */}
       {renderSelectedEraDetail()}
       </View>
-    </View>
           </>
         )}
     </View>
