@@ -978,7 +978,6 @@ const KeyVerses = ({ visible, onClose }) => {
           <SimplePercentageLoader 
             isVisible={true}
             loadingText="Loading key verses..."
-            onComplete={() => setLoading(false)}
           />
         </View>
       </Modal>
@@ -1024,48 +1023,6 @@ const KeyVerses = ({ visible, onClose }) => {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
-        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
-        <BlurView 
-          intensity={20} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: 'hidden',
-          }}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
-          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
-            <TouchableOpacity 
-              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              style={styles.closeButton}
-            >
-              <MaterialIcons 
-                name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
-                size={24} 
-                color={theme.text} 
-              />
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-        
-        {/* Show error banner if using offline data */}
-        {error && versesData && (
-          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800', marginTop: Platform.OS === 'ios' ? 110 : 70 }]}>
-            <MaterialIcons name="wifi-off" size={16} color="#fff" />
-            <Text style={styles.errorBannerText}>Offline mode - {error}</Text>
-          </View>
-        )}
-        
         <Animated.View 
           style={[
             styles.content, 
@@ -1075,61 +1032,15 @@ const KeyVerses = ({ visible, onClose }) => {
             }
           ]}
         >
-          {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: theme.surface }]}>
-            <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-            <TextInput
-              ref={searchRef}
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search verses, themes, or references..."
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcons name="clear" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          {/* Categories */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesContainer}
-            contentContainerStyle={styles.categoriesContent}
-          >
-            {categories.map(renderCategoryChip)}
-          </ScrollView>
-          
-          {/* Results Count */}
-          <View style={styles.resultsHeader}>
-            <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-              {filteredVerses.length} {filteredVerses.length === 1 ? 'verse' : 'verses'}
-              {selectedCategory === 'favorites' && ' in Favorites'}
-              {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
-            </Text>
-            
-            {favoriteVerses.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites')}
-                style={[styles.favoritesButton, { backgroundColor: theme.surface }]}
-              >
-                <MaterialIcons name="favorite" size={16} color="#E91E63" />
-                <Text style={[styles.favoritesButtonText, { color: theme.text }]}>
-                  {favoriteVerses.length}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          {/* Verses Grid/List */}
+          {/* Verses Grid/List - This scrolls behind the header */}
           <ScrollView 
             ref={scrollViewRef}
             style={styles.versesContainer}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={viewMode === 'grid' ? styles.versesContentGrid : styles.versesContent}
+            contentContainerStyle={[
+              viewMode === 'grid' ? styles.versesContentGrid : styles.versesContent,
+              { paddingTop: 320 } // Space for header + filter container
+            ]}
           >
             {viewMode === 'grid' ? (
               <View style={styles.gridContainer}>
@@ -1152,6 +1063,99 @@ const KeyVerses = ({ visible, onClose }) => {
             )}
           </ScrollView>
         </Animated.View>
+        
+        {/* Combined Header + Filter Container with Blur */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            backgroundColor: 'transparent',
+          }}
+        >
+          {/* Header Section */}
+          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
+            <TouchableOpacity 
+              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={styles.closeButton}
+            >
+              <MaterialIcons 
+                name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
+                size={24} 
+                color={theme.text} 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Filter Section */}
+          <View style={{ backgroundColor: 'transparent', paddingBottom: 16 }}>
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+              <TextInput
+                ref={searchRef}
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder="Search verses, themes, or references..."
+                placeholderTextColor={theme.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <MaterialIcons name="clear" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Categories */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesContainer}
+              contentContainerStyle={styles.categoriesContent}
+            >
+              {categories.map(renderCategoryChip)}
+            </ScrollView>
+            
+            {/* Results Count */}
+            <View style={styles.resultsHeader}>
+              <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
+                {filteredVerses.length} {filteredVerses.length === 1 ? 'verse' : 'verses'}
+                {selectedCategory === 'favorites' && ' in Favorites'}
+                {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
+              </Text>
+              
+              {favoriteVerses.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites')}
+                  style={[styles.favoritesButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                >
+                  <MaterialIcons name="favorite" size={16} color="#E91E63" />
+                  <Text style={[styles.favoritesButtonText, { color: theme.text }]}>
+                    {favoriteVerses.length}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </BlurView>
+        
+        {/* Show error banner if using offline data */}
+        {error && versesData && (
+          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800', marginTop: Platform.OS === 'ios' ? 110 : 70 }]}>
+            <MaterialIcons name="wifi-off" size={16} color="#fff" />
+            <Text style={styles.errorBannerText}>Offline mode - {error}</Text>
+          </View>
+        )}
         
         {/* Verse Detail Modal */}
         {renderVerseDetail()}
@@ -1179,7 +1183,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 110 : 70,
   },
   searchContainer: {
     flexDirection: 'row',
