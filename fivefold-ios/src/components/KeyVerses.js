@@ -1022,33 +1022,49 @@ const KeyVerses = ({ visible, onClose }) => {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent={false}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
+        
+        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
+          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
+            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
+            <TouchableOpacity 
+              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={styles.closeButton}
+            >
+              <MaterialIcons 
+                name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
+                size={24} 
+                color={theme.text} 
+              />
+            </TouchableOpacity>
+          </View>
+        </BlurView>
         
         {/* Show error banner if using offline data */}
         {error && versesData && (
-          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800' }]}>
+          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800', marginTop: Platform.OS === 'ios' ? 110 : 70 }]}>
             <MaterialIcons name="wifi-off" size={16} color="#fff" />
             <Text style={styles.errorBannerText}>Offline mode - {error}</Text>
           </View>
         )}
-        
-        {/* Header with proper status bar spacing */}
-        <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: 60 }]}>
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
-            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
-          <TouchableOpacity 
-            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            style={styles.closeButton}
-          >
-            <MaterialIcons 
-              name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
-              size={24} 
-              color={theme.text} 
-            />
-          </TouchableOpacity>
-        </View>
         
         <Animated.View 
           style={[
@@ -1163,6 +1179,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 110 : 70,
   },
   searchContainer: {
     flexDirection: 'row',
