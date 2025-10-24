@@ -779,9 +779,9 @@ const BibleStudyModal = ({ visible, onClose }) => {
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
           
-          {/* Transparent Blurred Header - Covers Entire Top Area */}
+          {/* Transparent Blurred Header - Very Light Blur */}
           <BlurView 
-            intensity={45} 
+            intensity={20} 
             tint={isDark ? 'dark' : 'light'} 
             style={{ 
               position: 'absolute', 
@@ -789,12 +789,10 @@ const BibleStudyModal = ({ visible, onClose }) => {
               left: 0, 
               right: 0, 
               zIndex: 1000,
-              paddingTop: Platform.OS === 'ios' ? 50 : 0,
-              borderBottomWidth: 0.5, 
-              borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
             }}
           >
-            <View style={[styles.solidHeader, { backgroundColor: 'rgba(0,0,0,0)', borderBottomWidth: 0 }]}>
+            <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
+            <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0.3, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
                 <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
               </TouchableOpacity>
