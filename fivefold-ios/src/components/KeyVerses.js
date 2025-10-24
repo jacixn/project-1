@@ -635,17 +635,6 @@ const KeyVerses = ({ visible, onClose }) => {
                       color={isFavorite ? '#E91E63' : theme.textSecondary} 
                     />
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    onPress={() => shareVerse(verse)}
-                    style={styles.actionButtonGrid}
-                  >
-                    <MaterialIcons 
-                      name="share" 
-                      size={18} 
-                      color={theme.textSecondary} 
-                    />
-                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -724,17 +713,6 @@ const KeyVerses = ({ visible, onClose }) => {
                     name={isFavorite ? 'favorite' : 'favorite-border'} 
                     size={20} 
                     color={isFavorite ? '#E91E63' : theme.textSecondary} 
-                  />
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  onPress={() => shareVerse(verse)}
-                  style={styles.actionButton}
-                >
-                  <MaterialIcons 
-                    name="share" 
-                    size={20} 
-                    color={theme.textSecondary} 
                   />
                 </TouchableOpacity>
               </View>
@@ -915,12 +893,7 @@ const KeyVerses = ({ visible, onClose }) => {
                 <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
                   Key Verse
                 </Text>
-                <TouchableOpacity
-                  onPress={() => shareVerse(selectedVerse)}
-                  style={styles.closeButton}
-                >
-                  <MaterialIcons name="share" size={24} color={theme.primary} />
-                </TouchableOpacity>
+                <View style={{ width: 40 }} />
               </View>
               
               <ScrollView style={styles.verseDetailContent} showsVerticalScrollIndicator={false} bounces={false}>
