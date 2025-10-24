@@ -15,6 +15,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import MapView, { Marker, Polyline, Circle, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -50,6 +51,9 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
   const [selectedJourney, setSelectedJourney] = useState(null);
   const [showJourneyRoutes, setShowJourneyRoutes] = useState(false);
   const [activeEra, setActiveEra] = useState('all');
+  
+  // Animated value for modal swipe gesture
+  const modalTranslateY = useRef(new Animated.Value(0)).current;
   const [activeFilter, setActiveFilter] = useState('all');
   const [bookmarkedLocations, setBookmarkedLocations] = useState([]);
   const [animatedRouteIndex, setAnimatedRouteIndex] = useState(0);
@@ -271,6 +275,38 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       </Modal>
     );
   }
+
+  // Handle modal swipe gesture
+  const handleModalPanGesture = (event) => {
+    const { translationY, velocityY, state } = event.nativeEvent;
+    
+    // Only allow downward swipes
+    if (translationY > 0) {
+      modalTranslateY.setValue(translationY);
+    }
+    
+    // On gesture end, determine if should dismiss
+    if (state === 5) { // State.END
+      if (translationY > 150 || velocityY > 1000) {
+        // Dismiss modal
+        Animated.timing(modalTranslateY, {
+          toValue: height,
+          duration: 250,
+          useNativeDriver: true,
+        }).start(() => {
+          setSelectedLocation(null);
+          modalTranslateY.setValue(0);
+        });
+      } else {
+        // Snap back
+        Animated.spring(modalTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+        }).start();
+      }
+    }
+  };
 
   // Get filtered locations based on active era and filter
   const getFilteredLocations = () => {
@@ -1080,25 +1116,36 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
         {selectedLocation && (
           <Modal
             visible={!!selectedLocation}
-            animationType="none"
-            presentationStyle="pageSheet"
+            animationType="slide"
+            presentationStyle="overFullScreen"
             onRequestClose={() => setSelectedLocation(null)}
+            transparent={true}
           >
-            <SafeAreaView style={[styles.detailContainer, { backgroundColor: theme.background }]}>
-              {/* Swipe indicator */}
-              <View style={styles.swipeIndicatorContainer}>
-                <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
-              </View>
-              
-              <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
-                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-                </TouchableOpacity>
-                <Text style={[styles.detailTitle, { color: theme.text }]}>
-                  {selectedLocation.name}
-                </Text>
-                {/* Bookmark removed */}
-                <View style={styles.detailBookmarkButton} />
+            <View style={styles.modalOverlay}>
+              <PanGestureHandler onGestureEvent={handleModalPanGesture} onHandlerStateChange={handleModalPanGesture}>
+                <Animated.View 
+                  style={[
+                    styles.modalContent, 
+                    { 
+                      backgroundColor: theme.background,
+                      transform: [{ translateY: modalTranslateY }]
+                    }
+                  ]}
+                >
+                  {/* Swipe indicator */}
+                  <View style={styles.swipeIndicatorContainer}>
+                    <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
+                  </View>
+                  
+                  <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
+                    <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
+                      <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+                    </TouchableOpacity>
+                    <Text style={[styles.detailTitle, { color: theme.text }]}>
+                      {selectedLocation.name}
+                    </Text>
+                    {/* Bookmark removed */}
+                    <View style={styles.detailBookmarkButton} />
               </View>
 
               <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
@@ -1192,7 +1239,9 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                   </View>
                 )}
               </ScrollView>
-            </SafeAreaView>
+                </Animated.View>
+              </PanGestureHandler>
+            </View>
           </Modal>
         )}
       </View>
@@ -1379,6 +1428,17 @@ const styles = StyleSheet.create({
   },
   detailContainer: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    height: '90%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
   },
   swipeIndicatorContainer: {
     paddingTop: 8,
