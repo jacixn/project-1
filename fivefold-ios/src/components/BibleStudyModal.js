@@ -777,20 +777,26 @@ const BibleStudyModal = ({ visible, onClose }) => {
     return (
       <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
           
           {/* Transparent Blurred Header */}
-          <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} edges={['top']}>
-            <BlurView intensity={isDark ? 60 : 80} tint={isDark ? 'dark' : 'light'} style={{ overflow: 'hidden' }}>
-              <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomColor: 'transparent' }]}>
-                <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
-                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
-                </TouchableOpacity>
-                <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>{section.title}</Text>
-                <View style={{ width: 48 }} />
-              </View>
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }}>
+            <BlurView 
+              intensity={100} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ borderBottomWidth: 0.5, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+            >
+              <SafeAreaView edges={['top']}>
+                <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
+                  <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
+                    <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>{section.title}</Text>
+                  <View style={{ width: 48 }} />
+                </View>
+              </SafeAreaView>
             </BlurView>
-          </SafeAreaView>
+          </View>
           
           <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
 
