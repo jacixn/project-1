@@ -792,7 +792,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
             </BlurView>
           </SafeAreaView>
           
-          <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 0 }}>
+          <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
 
           {/* Special handling for characters section */}
           {sectionId === 'characters' && renderCharactersSection(section)}
