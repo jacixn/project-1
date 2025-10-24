@@ -36,8 +36,8 @@ const MAPS_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'bible_maps_data_v2', // Changed from v1 to v2 to force refresh
-  CACHE_TIMESTAMP_KEY: 'bible_maps_timestamp_v2', // Changed from v1 to v2
+  CACHE_KEY: 'bible_maps_data_v1',
+  CACHE_TIMESTAMP_KEY: 'bible_maps_timestamp_v1',
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
@@ -63,13 +63,61 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Essential features only - NO GAMES
+  // NEW FEATURES STATE
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain
+  const [show3DBuildings, setShow3DBuildings] = useState(false);
+  const [showDistanceCircles, setShowDistanceCircles] = useState(false);
   const [visitedLocations, setVisitedLocations] = useState([]);
+  const [userNotes, setUserNotes] = useState({});
   const [showStats, setShowStats] = useState(false);
+  const [quizMode, setQuizMode] = useState(false);
+  const [currentQuizQuestion, setCurrentQuizQuestion] = useState(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState([]);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(1.0);
+  const [showLegend, setShowLegend] = useState(true);
+  const [tourMode, setTourMode] = useState(false);
+  const [currentTourStep, setCurrentTourStep] = useState(0);
+  const [favoriteJourneys, setFavoriteJourneys] = useState([]);
+  const [showCharacters, setShowCharacters] = useState(true);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [showVerses, setShowVerses] = useState(true);
+  const [photoMode, setPhotoMode] = useState(false);
+  const [userPhotos, setUserPhotos] = useState({});
+  const [showWeather, setShowWeather] = useState(false);
+  const [historicalMode, setHistoricalMode] = useState(false);
+  const [selectedHistoricalPeriod, setSelectedHistoricalPeriod] = useState(null);
   const [showConnections, setShowConnections] = useState(false);
+  const [clusterMarkers, setClusterMarkers] = useState(true);
+  const [autoPlayJourneys, setAutoPlayJourneys] = useState(false);
+  const [narrationMode, setNarrationMode] = useState(false);
+  const [showEvents, setShowEvents] = useState(true);
+  const [eventFilter, setEventFilter] = useState('all');
+  const [showAudioGuides, setShowAudioGuides] = useState(false);
+  const [achievementsUnlocked, setAchievementsUnlocked] = useState([]);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [shareMode, setShareMode] = useState(false);
+  const [customMarkers, setCustomMarkers] = useState([]);
+  const [showTerrain, setShowTerrain] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
   const [showPaths, setShowPaths] = useState(true);
+  const [pathWidth, setPathWidth] = useState(3);
+  const [markerSize, setMarkerSize] = useState(1.0);
+  const [showLabels, setShowLabels] = useState(true);
+  const [labelSize, setLabelSize] = useState(12);
+  const [filterByCharacter, setFilterByCharacter] = useState(null);
+  const [filterByEvent, setFilterByEvent] = useState(null);
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyNotes, setStudyNotes] = useState({});
+  const [groupMode, setGroupMode] = useState(false);
+  const [sharedLocations, setSharedLocations] = useState([]);
 
   // Function to stop journey and clear all timeouts
   const stopJourney = () => {
@@ -186,6 +234,21 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     }
   };
 
+  // HELPER FUNCTIONS (must be before useEffect hooks that use them)
+  
+  // 6. DAILY CHALLENGE
+  const generateDailyChallenge = () => {
+    const challenges = [
+      { type: 'visit', target: 'jerusalem', description: 'Visit Jerusalem today' },
+      { type: 'journey', target: 'exodus_journey', description: 'Play the Exodus journey' },
+      { type: 'quiz', target: 5, description: 'Answer 5 quiz questions correctly' },
+      { type: 'explore', target: 'patriarchs', description: 'Explore 3 Patriarch era locations' },
+    ];
+    
+    const todayIndex = new Date().getDate() % challenges.length;
+    setDailyChallenge(challenges[todayIndex]);
+  };
+
   // Load maps data on mount
   useEffect(() => {
     if (visible) {
@@ -208,9 +271,13 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       try {
         const visited = await AsyncStorage.getItem('bible_maps_visited');
         const bookmarks = await AsyncStorage.getItem('bible_maps_bookmarks');
+        const notes = await AsyncStorage.getItem('bible_maps_notes');
+        const achievements = await AsyncStorage.getItem('bible_maps_achievements');
         
         if (visited) setVisitedLocations(JSON.parse(visited));
         if (bookmarks) setBookmarkedLocations(JSON.parse(bookmarks));
+        if (notes) setUserNotes(JSON.parse(notes));
+        if (achievements) setAchievementsUnlocked(JSON.parse(achievements));
       } catch (error) {
         console.log('Error loading user data:', error);
       }
@@ -218,6 +285,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     
     if (visible) {
       loadUserData();
+      generateDailyChallenge();
     }
   }, [visible]);
 
@@ -227,6 +295,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       try {
         await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(visitedLocations));
         await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
+        await AsyncStorage.setItem('bible_maps_notes', JSON.stringify(userNotes));
+        await AsyncStorage.setItem('bible_maps_achievements', JSON.stringify(achievementsUnlocked));
       } catch (error) {
         console.log('Error saving user data:', error);
       }
@@ -235,7 +305,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     if (visible && visitedLocations.length > 0) {
       saveUserData();
     }
-  }, [visitedLocations, bookmarkedLocations, visible]);
+  }, [visitedLocations, bookmarkedLocations, userNotes, achievementsUnlocked, visible]);
 
   // Get data from remote or fallback
   const biblicalLocations = mapsData?.biblicalLocations || [];
