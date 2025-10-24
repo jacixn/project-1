@@ -110,6 +110,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
       position: { x: width * 0.25, y: 40 },
       size: 120,
+      imageUrl: 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/timeline-stickers/creation-sticker.png',
           description: 'Bible timeline is loading from remote source...',
       stories: [
         {
@@ -767,19 +768,31 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
               }),
             }],
           }}>
-                    <Image
-          source={{ uri: era.imageUrl }}
-              style={[styles.stickerImage, { 
-                width: era.size, 
+            {era.imageUrl ? (
+              <Image
+                source={{ uri: era.imageUrl }}
+                style={[styles.stickerImage, { 
+                  width: era.size, 
+                  height: era.size,
+                  // Add a subtle glow filter effect
+                  shadowColor: theme.primary,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.8,
+                  shadowRadius: 15,
+                }]}
+                resizeMode="contain"
+                onError={() => console.log(`Failed to load image for ${era.id}`)}
+              />
+            ) : (
+              <View style={{
+                width: era.size,
                 height: era.size,
-                // Add a subtle glow filter effect
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.8,
-                shadowRadius: 15,
-              }]}
-              resizeMode="contain"
-            />
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Text style={{ fontSize: era.size * 0.5 }}>{era.emoji}</Text>
+              </View>
+            )}
           </Animated.View>
           
           {/* Enhanced Selection Glow */}
