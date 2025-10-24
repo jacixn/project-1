@@ -473,14 +473,14 @@
       "waypoints": ["ur", "haran", "bethel", "hebron"],
       "verses": ["Genesis 12:1-9"],
       "duration": "Years",
-      "distance": "~1243 miles"
+      "distance": "~2000 km"
     },
     {
       "id": "exodus_journey",
       "name": "The Exodus",
       "era": "exodus",
       "color": "#FF5722",
-      "description": "From Egypt to the Promised Land - 40 years of wilderness wandering",
+      "description": "From Egypt to the Promised Land",
       "route": [
         { "latitude": 30.0444, "longitude": 31.2357 },
         { "latitude": 29.5, "longitude": 32.7 },
@@ -488,9 +488,9 @@
         { "latitude": 32.0, "longitude": 35.6 }
       ],
       "waypoints": ["egypt", "red_sea", "mount_sinai", "jordan_river"],
-      "verses": ["Exodus 12-14", "Numbers 33"],
+      "verses": ["Exodus 12-14"],
       "duration": "40 years",
-      "distance": "~497 miles direct (wandered much farther)"
+      "distance": "~800 km"
     },
     {
       "id": "jesus_ministry",
@@ -505,9 +505,9 @@
         { "latitude": 31.7683, "longitude": 35.2137 }
       ],
       "waypoints": ["nazareth", "capernaum", "sea_of_galilee", "jerusalem"],
-      "verses": ["Matthew 4:12-25", "Luke 9:51"],
+      "verses": ["Matthew 4:12-25"],
       "duration": "3 years",
-      "distance": "~124 miles"
+      "distance": "~200 km"
     },
     {
       "id": "paul_first",
@@ -523,14 +523,14 @@
       "waypoints": ["antioch", "ephesus"],
       "verses": ["Acts 13-14"],
       "duration": "2 years",
-      "distance": "~1243 miles"
+      "distance": "~2000 km"
     },
     {
       "id": "paul_rome",
       "name": "Paul's Journey to Rome",
       "era": "apostolic",
       "color": "#673AB7",
-      "description": "Imprisoned journey to Rome via shipwreck",
+      "description": "Imprisoned journey to Rome",
       "route": [
         { "latitude": 32.5000, "longitude": 34.8903 },
         { "latitude": 35.1667, "longitude": 33.3667 },
@@ -540,7 +540,7 @@
       "waypoints": ["caesarea", "rome"],
       "verses": ["Acts 27-28"],
       "duration": "Several months",
-      "distance": "~1864 miles"
+      "distance": "~3000 km"
     }
   ]
 }
