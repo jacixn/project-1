@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import errorHandler from '../utils/errorHandler';
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/bible-characters.json';
 const CACHE_KEY = 'bible_characters_data';
@@ -22,7 +23,7 @@ class BibleCharactersService {
       const expiryTime = parseInt(expiry, 10);
       return Date.now() < expiryTime;
     } catch (error) {
-      console.error('Error checking cache validity:', error);
+      errorHandler.silent('Bible Characters Cache Check', error);
       return false;
     }
   }
@@ -40,7 +41,7 @@ class BibleCharactersService {
       }
       return false;
     } catch (error) {
-      console.error('Error loading from cache:', error);
+      errorHandler.silent('Bible Characters Cache Load', error);
       return false;
     }
   }
@@ -52,7 +53,7 @@ class BibleCharactersService {
       await AsyncStorage.setItem(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
       console.log('✅ Saved Bible characters to cache');
     } catch (error) {
-      console.error('Error saving to cache:', error);
+      errorHandler.silent('Bible Characters Cache Save', error);
     }
   }
 
@@ -83,7 +84,7 @@ class BibleCharactersService {
       return true;
     } catch (error) {
       // Silent fallback - network errors are expected offline
-      console.log('ℹ️ Using cached Bible characters (network unavailable)');
+      errorHandler.networkError('Bible Characters GitHub Fetch', error);
       this.error = null; // Don't show error to user
       return false;
     }
@@ -175,7 +176,7 @@ class BibleCharactersService {
       await AsyncStorage.removeItem(CACHE_EXPIRY_KEY);
       console.log('🗑️ Cleared Bible characters cache');
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      errorHandler.silent('Bible Characters Cache Clear', error);
     }
   }
 }
