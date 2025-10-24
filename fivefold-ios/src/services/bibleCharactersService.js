@@ -64,10 +64,11 @@ class BibleCharactersService {
         headers: {
           'Cache-Control': 'no-cache',
         },
+        timeout: 10000, // 10 second timeout
       });
 
       if (!response.ok) {
-        throw new Error(`GitHub fetch failed: ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -81,8 +82,9 @@ class BibleCharactersService {
       console.log(`✅ Loaded ${Object.keys(data.characters).length} characters from GitHub`);
       return true;
     } catch (error) {
-      console.error('❌ Error fetching from GitHub:', error);
-      this.error = error.message;
+      // Silent fallback - network errors are expected offline
+      console.log('ℹ️ Using cached Bible characters (network unavailable)');
+      this.error = null; // Don't show error to user
       return false;
     }
   }
@@ -90,12 +92,10 @@ class BibleCharactersService {
   // Main method to get character data
   async loadCharacters() {
     if (this.loading) {
-      console.log('⏳ Already loading characters...');
       return;
     }
 
     if (this.characters && this.characterGroups) {
-      console.log('✅ Characters already loaded');
       return;
     }
 
@@ -113,16 +113,19 @@ class BibleCharactersService {
         }
       }
 
-      // Fetch from GitHub if cache is invalid or empty
-      await this.fetchFromGitHub();
-    } catch (error) {
-      console.error('Error loading characters:', error);
-      this.error = error.message;
+      // Try to fetch from GitHub (will silently fall back to cache)
+      const fetched = await this.fetchFromGitHub();
       
-      // Try loading from cache as fallback
+      // If GitHub fetch failed, try loading any cached data
+      if (!fetched) {
+        await this.loadFromCache();
+      }
+    } catch (error) {
+      // Silent error handling - try cache as last resort
       await this.loadFromCache();
     } finally {
       this.loading = false;
+      console.log(`✅ Loaded ${this.characters ? Object.keys(this.characters).length : 0} characters and ${this.characterGroups ? this.characterGroups.length : 0} groups`);
     }
   }
 
