@@ -878,7 +878,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
 
         {/* Main Content */}
         {!loading && !error && (
-          <ScrollView style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 130 : 90 }]} showsVerticalScrollIndicator={false}>
+          <ScrollView style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 110 : 70 }]} showsVerticalScrollIndicator={false}>
             
           {/* Theme Chips */}
           <View style={styles.chipsSection}>
