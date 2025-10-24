@@ -676,6 +676,13 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     // Static animation values for better performance (no animations running)
     const anim = { float: new Animated.Value(0), pulse: new Animated.Value(1) };
     const isSelected = selectedEra?.id === era.id;
+    
+    // Debug logging
+    console.log(`Rendering bubble for ${era.id}:`, {
+      hasImageUrl: !!era.imageUrl,
+      imageUrl: era.imageUrl,
+      emoji: era.emoji
+    });
 
     return (
       <Animated.View
@@ -768,31 +775,23 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
               }),
             }],
           }}>
-            {era.imageUrl ? (
-              <Image
-                source={{ uri: era.imageUrl }}
-                style={[styles.stickerImage, { 
-                  width: era.size, 
-                  height: era.size,
-                  // Add a subtle glow filter effect
-                  shadowColor: theme.primary,
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.8,
-                  shadowRadius: 15,
-                }]}
-                resizeMode="contain"
-                onError={() => console.log(`Failed to load image for ${era.id}`)}
-              />
-            ) : (
-              <View style={{
-                width: era.size,
+            <Image
+              source={{ uri: era.imageUrl }}
+              style={[styles.stickerImage, { 
+                width: era.size, 
                 height: era.size,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-                <Text style={{ fontSize: era.size * 0.5 }}>{era.emoji}</Text>
-              </View>
-            )}
+                // Add a subtle glow filter effect
+                shadowColor: theme.primary,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.8,
+                shadowRadius: 15,
+              }]}
+              resizeMode="contain"
+              onError={(error) => {
+                console.log(`Failed to load image for ${era.id}:`, error.nativeEvent.error);
+                console.log(`Image URL: ${era.imageUrl}`);
+              }}
+            />
           </Animated.View>
           
           {/* Enhanced Selection Glow */}
