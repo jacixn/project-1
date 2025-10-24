@@ -36,8 +36,8 @@ const MAPS_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'bible_maps_data_v2', // Changed from v1 to v2 to force refresh
-  CACHE_TIMESTAMP_KEY: 'bible_maps_timestamp_v2', // Changed from v1 to v2
+  CACHE_KEY: 'bible_maps_data_v3', // Changed to v3 to force fresh download
+  CACHE_TIMESTAMP_KEY: 'bible_maps_timestamp_v3', // Changed to v3
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
