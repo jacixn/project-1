@@ -234,6 +234,21 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     }
   };
 
+  // HELPER FUNCTIONS (must be before useEffect hooks that use them)
+  
+  // 6. DAILY CHALLENGE
+  const generateDailyChallenge = () => {
+    const challenges = [
+      { type: 'visit', target: 'jerusalem', description: 'Visit Jerusalem today' },
+      { type: 'journey', target: 'exodus_journey', description: 'Play the Exodus journey' },
+      { type: 'quiz', target: 5, description: 'Answer 5 quiz questions correctly' },
+      { type: 'explore', target: 'patriarchs', description: 'Explore 3 Patriarch era locations' },
+    ];
+    
+    const todayIndex = new Date().getDate() % challenges.length;
+    setDailyChallenge(challenges[todayIndex]);
+  };
+
   // Load maps data on mount
   useEffect(() => {
     if (visible) {
@@ -644,19 +659,6 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
         );
       }
     });
-  };
-
-  // 6. DAILY CHALLENGE
-  const generateDailyChallenge = () => {
-    const challenges = [
-      { type: 'visit', target: 'jerusalem', description: 'Visit Jerusalem today' },
-      { type: 'journey', target: 'exodus_journey', description: 'Play the Exodus journey' },
-      { type: 'quiz', target: 5, description: 'Answer 5 quiz questions correctly' },
-      { type: 'explore', target: 'patriarchs', description: 'Explore 3 Patriarch era locations' },
-    ];
-    
-    const todayIndex = new Date().getDate() % challenges.length;
-    setDailyChallenge(challenges[todayIndex]);
   };
 
   // 7. CHARACTER FILTER
