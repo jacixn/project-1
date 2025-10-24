@@ -250,6 +250,48 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     };
   }, []);
 
+  // Load user data on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const visited = await AsyncStorage.getItem('bible_maps_visited');
+        const bookmarks = await AsyncStorage.getItem('bible_maps_bookmarks');
+        const notes = await AsyncStorage.getItem('bible_maps_notes');
+        const achievements = await AsyncStorage.getItem('bible_maps_achievements');
+        
+        if (visited) setVisitedLocations(JSON.parse(visited));
+        if (bookmarks) setBookmarkedLocations(JSON.parse(bookmarks));
+        if (notes) setUserNotes(JSON.parse(notes));
+        if (achievements) setAchievementsUnlocked(JSON.parse(achievements));
+      } catch (error) {
+        console.log('Error loading user data:', error);
+      }
+    };
+    
+    if (visible) {
+      loadUserData();
+      generateDailyChallenge();
+    }
+  }, [visible]);
+
+  // Auto-save user data
+  useEffect(() => {
+    const saveUserData = async () => {
+      try {
+        await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(visitedLocations));
+        await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
+        await AsyncStorage.setItem('bible_maps_notes', JSON.stringify(userNotes));
+        await AsyncStorage.setItem('bible_maps_achievements', JSON.stringify(achievementsUnlocked));
+      } catch (error) {
+        console.log('Error saving user data:', error);
+      }
+    };
+    
+    if (visible && visitedLocations.length > 0) {
+      saveUserData();
+    }
+  }, [visitedLocations, bookmarkedLocations, userNotes, achievementsUnlocked, visible]);
+
   // Get data from remote or fallback
   const biblicalLocations = mapsData?.biblicalLocations || [];
   const biblicalJourneys = mapsData?.biblicalJourneys || [];
@@ -779,54 +821,6 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       mapRef.current.animateToRegion(initialRegion, 1000);
     }
   };
-
-  // Load initial data
-  useEffect(() => {
-    if (visible) {
-      generateDailyChallenge();
-    }
-  }, [visible]);
-
-  // Auto-save user data
-  useEffect(() => {
-    const saveUserData = async () => {
-      try {
-        await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(visitedLocations));
-        await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
-        await AsyncStorage.setItem('bible_maps_notes', JSON.stringify(userNotes));
-        await AsyncStorage.setItem('bible_maps_achievements', JSON.stringify(achievementsUnlocked));
-      } catch (error) {
-        console.log('Error saving user data:', error);
-      }
-    };
-    
-    if (visible) {
-      saveUserData();
-    }
-  }, [visitedLocations, bookmarkedLocations, userNotes, achievementsUnlocked]);
-
-  // Load user data
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const visited = await AsyncStorage.getItem('bible_maps_visited');
-        const bookmarks = await AsyncStorage.getItem('bible_maps_bookmarks');
-        const notes = await AsyncStorage.getItem('bible_maps_notes');
-        const achievements = await AsyncStorage.getItem('bible_maps_achievements');
-        
-        if (visited) setVisitedLocations(JSON.parse(visited));
-        if (bookmarks) setBookmarkedLocations(JSON.parse(bookmarks));
-        if (notes) setUserNotes(JSON.parse(notes));
-        if (achievements) setAchievementsUnlocked(JSON.parse(achievements));
-      } catch (error) {
-        console.log('Error loading user data:', error);
-      }
-    };
-    
-    if (visible) {
-      loadUserData();
-    }
-  }, [visible]);
 
   return (
     <Modal
