@@ -969,53 +969,82 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
-        {/* Content with padding for header */}
-        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
-          
-          {/* Simple Loading with Percentage */}
-          <SimplePercentageLoader 
-            isVisible={loading}
-            loadingText="Loading Bible timeline..."
-          />
+        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
+          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+            >
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+              Bible Timeline
+            </Text>
+            <View style={styles.solidHeaderButton} />
+          </View>
+        </BlurView>
 
-          {/* Error State */}
-          {error && !loading && (
-            <View style={styles.errorContainer}>
-              <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
-              <Text style={[styles.errorText, { color: theme.text }]}>
-                {error}
-              </Text>
-              <TouchableOpacity
-                style={[styles.retryButton, { backgroundColor: theme.primary }]}
-                onPress={refreshTimeline}
-              >
-                <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
-                  Try Again
+        {/* Simple Loading with Percentage */}
+        <SimplePercentageLoader 
+          isVisible={loading}
+          loadingText="Loading Bible timeline..."
+        />
+
+        {/* Error State */}
+        {error && !loading && (
+          <View style={styles.errorContainer}>
+            <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
+            <Text style={[styles.errorText, { color: theme.text }]}>
+              {error}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                    <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: theme.primary }]}
+              onPress={refreshTimeline}
+            >
+              <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
+                Try Again
+              </Text>
+                    </TouchableOpacity>
+                </View>
+        )}
 
-          {/* Main Content */}
-          {!loading && !error && (
-            <>
-              <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-                {/* Interactive Mindmap with Smooth Scrolling */}
-                <ScrollView
-                  style={styles.mindmapScrollContainer}
-                  contentContainerStyle={styles.mindmapContent}
-                  showsVerticalScrollIndicator={false}
-                  showsHorizontalScrollIndicator={false}
-                  bounces={true}
-                  bouncesZoom={true}
-                  minimumZoomScale={0.8}
-                  maximumZoomScale={2.0}
-                  pinchGestureEnabled={true}
-                  scrollEventThrottle={16}
-                >
-                  {/* Content continues here... */}
-                  {renderGeometricShapesBackground()}
-                  {renderFlowingPath()}
+        {/* Main Content */}
+        {!loading && !error && (
+          <>
+        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
+        
+        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+
+      {/* Interactive Mindmap with Smooth Scrolling */}
+      <ScrollView
+        style={styles.mindmapScrollContainer}
+        contentContainerStyle={styles.mindmapContent}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        bounces={true}
+        bouncesZoom={true}
+        minimumZoomScale={0.8}
+        maximumZoomScale={2.0}
+        pinchGestureEnabled={true}
+        scrollEventThrottle={16}
+      >
+        {/* Scattered Geometric Shapes Background */}
+        {renderGeometricShapesBackground()}
         
         {/* Beautiful Curved Flowing Path */}
         {renderCurvedFlowingPath()}
@@ -1052,39 +1081,9 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       {/* Era Detail Panel */}
       {renderSelectedEraDetail()}
       </View>
+    </View>
           </>
         )}
-    </View>
-    
-    {/* Transparent Blurred Header - Positioned on top */}
-    <BlurView 
-      intensity={20} 
-      tint={isDark ? 'dark' : 'light'} 
-      style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        zIndex: 1000,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        overflow: 'hidden',
-      }}
-    >
-      <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
-      <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
-        <TouchableOpacity
-          onPress={onClose}
-          style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
-        >
-          <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
-        </TouchableOpacity>
-        <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-          Bible Timeline
-        </Text>
-        <View style={styles.solidHeaderButton} />
-      </View>
-    </BlurView>
     </View>
     </Modal>
   );

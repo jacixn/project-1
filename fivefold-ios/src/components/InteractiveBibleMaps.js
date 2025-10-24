@@ -803,48 +803,48 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
               const isSelected = selectedLocation?.id === location.id;
               
               return (
-                <Marker
-                  key={location.id}
-                  coordinate={location.coordinate}
-                  title={location.name}
-                  description={location.description}
+              <Marker
+                key={location.id}
+                coordinate={location.coordinate}
+                title={location.name}
+                description={location.description}
                   onPress={() => {
                     showLocationDetails(location);
                     markLocationVisited(location.id);
                   }}
-                  pinColor={getMarkerColor(location)}
-                >
-                  <View style={[
-                    styles.customMarker,
-                    { 
-                      backgroundColor: getMarkerColor(location),
-                      borderColor: theme.surface,
+                pinColor={getMarkerColor(location)}
+              >
+                <View style={[
+                  styles.customMarker,
+                  { 
+                    backgroundColor: getMarkerColor(location),
+                    borderColor: theme.surface,
                       borderWidth: isBookmarked ? 3 : 2,
                       opacity: isVisited ? 1.0 : 0.7,
                       transform: [{ scale: isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0 }],
-                      shadowColor: getMarkerColor(location),
+                    shadowColor: getMarkerColor(location),
                       shadowOpacity: isSelected ? 0.8 : 0.4,
                       shadowRadius: isSelected ? 10 : 5,
-                    }
-                  ]}>
-                    <MaterialIcons 
-                      name={location.icon} 
+                  }
+                ]}>
+                  <MaterialIcons 
+                    name={location.icon} 
                       size={isSelected ? 26 : 20} 
-                      color="white" 
-                    />
+                    color="white" 
+                  />
                     {/* Visited checkmark */}
                     {isVisited && (
                       <View style={styles.visitedIndicator}>
                         <MaterialIcons name="check-circle" size={12} color="#00E676" />
                       </View>
                     )}
-                    {location.miracleCount && location.miracleCount > 0 && (
-                      <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
-                        <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
-                      </View>
-                    )}
-                  </View>
-                </Marker>
+                  {location.miracleCount && location.miracleCount > 0 && (
+                    <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
+                      <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
+                    </View>
+                  )}
+                </View>
+              </Marker>
               );
             })}
 
@@ -1116,15 +1116,15 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                       <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
                     </View>
                     
-                    <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                      <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
-                        <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-                      </TouchableOpacity>
-                      <Text style={[styles.detailTitle, { color: theme.text }]}>
-                        {selectedLocation.name}
-                      </Text>
-                      {/* Bookmark removed */}
-                      <View style={styles.detailBookmarkButton} />
+              <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
+                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+                </TouchableOpacity>
+                <Text style={[styles.detailTitle, { color: theme.text }]}>
+                  {selectedLocation.name}
+                </Text>
+                {/* Bookmark removed */}
+                <View style={styles.detailBookmarkButton} />
               </View>
 
               <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>

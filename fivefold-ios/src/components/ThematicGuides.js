@@ -914,36 +914,6 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
             </ScrollView>
           </View>
 
-          {/* Sort Options */}
-          <View style={styles.sortSection}>
-            <Text style={[styles.sortLabel, { color: theme.textSecondary }]}>Sort by:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortContainer}>
-              {sortOptions.map(option => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.sortChip,
-                    {
-                      backgroundColor: sortBy === option.id ? theme.primary : theme.surface,
-                      borderColor: theme.primary,
-                    }
-                  ]}
-                  onPress={() => {
-                    hapticFeedback.light();
-                    setSortBy(option.id);
-                  }}
-                >
-                  <Text style={[
-                    styles.sortChipText,
-                    { color: sortBy === option.id ? 'white' : theme.primary }
-                  ]}>
-                    {option.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
           {/* Guides List */}
           <View style={styles.guidesSection}>
             <Text style={[styles.sectionHeaderText, { color: theme.text }]}>
