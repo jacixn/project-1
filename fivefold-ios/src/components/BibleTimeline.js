@@ -194,6 +194,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   // Initialize data loading
   useEffect(() => {
     if (visible) {
+      // Clear old v1 cache to force fresh data load with imageUrls
+      AsyncStorage.removeItem('bible_timeline_data_v1').catch(() => {});
+      AsyncStorage.removeItem('bible_timeline_timestamp_v1').catch(() => {});
+      
       loadTimeline();
     }
   }, [visible]);
