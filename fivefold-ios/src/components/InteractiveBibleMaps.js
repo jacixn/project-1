@@ -680,13 +680,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
 
   // 11. MAP TYPE SWITCHER
   const getMapTypeForRN = () => {
-    const types = {
-      standard: 'standard',
-      satellite: 'satellite',
-      hybrid: 'hybrid',
-      terrain: Platform.OS === 'ios' ? 'mutedStandard' : 'terrain'
-    };
-    return types[mapType] || 'standard';
+    return 'standard'; // Always use standard map type
   };
 
   // 12. STATISTICS
