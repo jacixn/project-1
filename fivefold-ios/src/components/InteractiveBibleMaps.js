@@ -379,9 +379,13 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
 
   // Show journey details modal
   const showJourneyDetails = (journey) => {
+    const versesText = journey.verses && journey.verses.length > 0 
+      ? `\n\nScriptures: ${journey.verses.join(', ')}`
+      : '';
+    
     Alert.alert(
       `${journey.name}`,
-      `${journey.description}\n\nDistance: ${journey.totalDistance}\nDuration: ${journey.duration}\nSignificance: ${journey.significance}\n\nMiracles: ${journey.miracleCount || 0}\nThemes: ${journey.keyThemes ? journey.keyThemes.join(', ') : 'Various'}`,
+      `${journey.description}\n\nDistance: ${journey.distance || 'Not specified'}\nDuration: ${journey.duration || 'Unknown'}${versesText}`,
       [
         { text: 'Play Journey', onPress: () => animateJourneyRoute(journey) },
         { text: 'View Route', onPress: () => handleJourneyPress(journey) },
@@ -401,13 +405,17 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     const locations = getFilteredLocations();
     const journeys = getFilteredJourneys();
     
+    // Count miracles based on category (miracle or battle_miracle)
+    const miracleCount = locations.filter(loc => 
+      loc.category === 'miracle' || loc.category === 'battle_miracle'
+    ).length;
+    
     return {
       locationCount: locations.length,
       journeyCount: journeys.length,
-      miracleCount: locations.reduce((sum, loc) => sum + (loc.miracleCount || 0), 0) + 
-                   journeys.reduce((sum, journey) => sum + (journey.miracleCount || 0), 0),
+      miracleCount: miracleCount,
       totalDistance: journeys.reduce((sum, journey) => {
-        const distance = parseInt(journey.totalDistance?.replace(/[^\d]/g, '') || '0');
+        const distance = parseInt(journey.distance?.replace(/[^\d]/g, '') || '0');
         return sum + distance;
       }, 0)
     };
