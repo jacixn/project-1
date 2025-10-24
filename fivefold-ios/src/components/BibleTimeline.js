@@ -768,34 +768,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             }],
           }}>
                     <Image
-          source={era.id === 'creation'
-            ? require('../assets/creation-sticker.png')
-            : era.id === 'patriarchs'
-            ? require('../assets/patriarchs-sticker.png')
-            : era.id === 'exodus'
-            ? require('../assets/exodus-sticker.png')
-            : era.id === 'conquest'
-            ? require('../assets/conquest-sticker.png')
-            : era.id === 'judges'
-            ? require('../assets/judges-sticker.png')
-            : era.id === 'united-kingdom'
-            ? require('../assets/united-kingdom-sticker.png')
-            : era.id === 'divided-kingdom'
-            ? require('../assets/divided-kingdom-sticker.png')
-            : era.id === 'exile'
-            ? require('../assets/exile-sticker.png')
-            : era.id === 'return'
-            ? require('../assets/return-sticker.png')
-            : era.id === 'intertestamental'
-            ? require('../assets/intertestamental-sticker.png')
-            : era.id === 'jesus'
-            ? require('../assets/jesus-sticker.png')
-            : era.id === 'early-church'
-            ? require('../assets/early-church-sticker.png')
-            : era.id === 'apostolic-age'
-            ? require('../assets/apostolic-sticker.png')
-            : require('../assets/end-times-sticker.png')
-          } 
+          source={{ uri: era.imageUrl }}
               style={[styles.stickerImage, { 
                 width: era.size, 
                 height: era.size,
@@ -969,36 +942,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
-        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
-        <BlurView 
-          intensity={20} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: 'hidden',
-          }}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
-          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
-            >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
-            </TouchableOpacity>
-            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-              Bible Timeline
-            </Text>
-            <View style={styles.solidHeaderButton} />
-          </View>
-        </BlurView>
-
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
           isVisible={loading}
@@ -1026,14 +969,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         {/* Main Content */}
         {!loading && !error && (
           <>
-        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
+        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: 0, paddingBottom: 0 }}>
         
         <View style={[styles.container, { backgroundColor: 'transparent' }]}>
 
       {/* Interactive Mindmap with Smooth Scrolling */}
       <ScrollView
         style={styles.mindmapScrollContainer}
-        contentContainerStyle={styles.mindmapContent}
+        contentContainerStyle={[styles.mindmapContent]}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         bounces={true}
@@ -1043,6 +986,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         pinchGestureEnabled={true}
         scrollEventThrottle={16}
       >
+        {/* Add top spacing wrapper */}
+        <View style={{ marginTop: Platform.OS === 'ios' ? 100 : 80, width: '100%', height: '100%' }}>
         {/* Scattered Geometric Shapes Background */}
         {renderGeometricShapesBackground()}
         
@@ -1076,6 +1021,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             />
           ))}
         </View>
+        </View>
       </ScrollView>
 
       {/* Era Detail Panel */}
@@ -1084,6 +1030,37 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     </View>
           </>
         )}
+        
+        {/* Transparent Blurred Header */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            backgroundColor: 'transparent',
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+            >
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+              Bible Timeline
+            </Text>
+            <View style={styles.solidHeaderButton} />
+          </View>
+        </BlurView>
     </View>
     </Modal>
   );
