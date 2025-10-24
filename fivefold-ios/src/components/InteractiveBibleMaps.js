@@ -1080,11 +1080,16 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
         {selectedLocation && (
           <Modal
             visible={!!selectedLocation}
-            animationType="slide"
+            animationType="none"
             presentationStyle="pageSheet"
             onRequestClose={() => setSelectedLocation(null)}
           >
             <SafeAreaView style={[styles.detailContainer, { backgroundColor: theme.background }]}>
+              {/* Swipe indicator */}
+              <View style={styles.swipeIndicatorContainer}>
+                <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
+              </View>
+              
               <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
                   <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
@@ -1374,6 +1379,17 @@ const styles = StyleSheet.create({
   },
   detailContainer: {
     flex: 1,
+  },
+  swipeIndicatorContainer: {
+    paddingTop: 8,
+    paddingBottom: 4,
+    alignItems: 'center',
+  },
+  swipeIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.3,
   },
   detailHeader: {
     flexDirection: 'row',
