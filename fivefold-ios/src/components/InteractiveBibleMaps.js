@@ -826,51 +826,6 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
               );
             })}
 
-            {/* Distance Circles */}
-            {showDistanceCircles && selectedLocation && (
-              <>
-                <Circle
-                  center={selectedLocation.coordinate}
-                  radius={100000} // 100km
-                  strokeColor="rgba(255, 215, 0, 0.3)"
-                  fillColor="rgba(255, 215, 0, 0.1)"
-                  strokeWidth={2}
-                />
-                <Circle
-                  center={selectedLocation.coordinate}
-                  radius={200000} // 200km
-                  strokeColor="rgba(255, 215, 0, 0.2)"
-                  fillColor="rgba(255, 215, 0, 0.05)"
-                  strokeWidth={1}
-                />
-              </>
-            )}
-
-            {/* Measure Mode Lines */}
-            {measureMode && measurePoints.length > 0 && (
-              <>
-                {measurePoints.map((point, index) => (
-                  <Marker
-                    key={`measure-${index}`}
-                    coordinate={point}
-                    pinColor="#FF6B6B"
-                  >
-                    <View style={[styles.measurePoint, { backgroundColor: '#FF6B6B' }]}>
-                      <Text style={styles.measurePointText}>{index + 1}</Text>
-                    </View>
-                  </Marker>
-                ))}
-                {measurePoints.length > 1 && (
-                  <Polyline
-                    coordinates={measurePoints}
-                    strokeColor="#FF6B6B"
-                    strokeWidth={3}
-                    lineDashPattern={[5, 5]}
-                  />
-                )}
-              </>
-            )}
-
             {/* Connection Lines */}
             {showConnections && selectedLocation && getConnectedLocations(selectedLocation.id).map((connectedLoc) => (
               <Polyline
