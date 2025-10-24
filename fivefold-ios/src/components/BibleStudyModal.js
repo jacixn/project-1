@@ -782,12 +782,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
           {/* Transparent Blurred Header */}
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }}>
             <BlurView 
-              intensity={100} 
+              intensity={45} 
               tint={isDark ? 'dark' : 'light'} 
-              style={{ borderBottomWidth: 0.5, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+              style={{ borderBottomWidth: 0.5, borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
             >
               <SafeAreaView edges={['top']}>
-                <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
+                <View style={[styles.solidHeader, { backgroundColor: 'rgba(0,0,0,0)', borderBottomWidth: 0 }]}>
                   <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
                     <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
                   </TouchableOpacity>
