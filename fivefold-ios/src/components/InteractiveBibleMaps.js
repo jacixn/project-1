@@ -606,36 +606,14 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     }
   };
 
-  // 4. LOCATION VISIT TRACKING
+  // LOCATION VISIT TRACKING (simplified - achievements removed)
   const markLocationVisited = (locationId) => {
     if (!visitedLocations.includes(locationId)) {
       setVisitedLocations(prev => [...prev, locationId]);
-      checkAchievements(visitedLocations.length + 1);
     }
   };
 
-  // 5. ACHIEVEMENTS SYSTEM
-  const checkAchievements = (visitCount) => {
-    const achievements = [
-      { id: 'explorer_5', name: 'Explorer', threshold: 5, icon: 'explore' },
-      { id: 'pilgrim_10', name: 'Pilgrim', threshold: 10, icon: 'directions-walk' },
-      { id: 'scholar_20', name: 'Scholar', threshold: 20, icon: 'school' },
-      { id: 'master_30', name: 'Bible Master', threshold: 30, icon: 'workspace-premium' },
-    ];
-    
-    achievements.forEach(achievement => {
-      if (visitCount >= achievement.threshold && !achievementsUnlocked.includes(achievement.id)) {
-        setAchievementsUnlocked(prev => [...prev, achievement.id]);
-        Alert.alert(
-          '🏆 Achievement Unlocked!',
-          `${achievement.name}\nYou've visited ${achievement.threshold} locations!`,
-          [{ text: 'Awesome!' }]
-        );
-      }
-    });
-  };
-
-  // 7. CHARACTER FILTER
+  // CHARACTER FILTER
   const getAllCharacters = () => {
     const chars = new Set();
     biblicalLocations.forEach(loc => {
@@ -1433,7 +1411,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -1441,6 +1419,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   swipeIndicatorContainer: {
     paddingTop: 8,
