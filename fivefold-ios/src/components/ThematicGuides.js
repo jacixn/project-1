@@ -863,21 +863,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
         {/* Main Content */}
         {!loading && !error && (
           <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* Hero Section */}
-            <View style={styles.heroSection}>
-            <LinearGradient
-              colors={isDark ? [`${theme.primary}30`, `${theme.primary}20`, `${theme.primary}10`] : [`${theme.primary}20`, `${theme.primary}15`, `${theme.primary}10`]}
-              style={styles.heroGradient}
-            >
-              <Text style={[styles.heroTitle, { color: theme.text }]}>
-                Short studies by theme
-              </Text>
-              <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
-                Read. Reflect. Practice.
-              </Text>
-            </LinearGradient>
-          </View>
-
+            
           {/* Theme Chips */}
           <View style={styles.chipsSection}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContainer}>
