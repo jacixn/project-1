@@ -317,8 +317,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     // Don't show route path for "View Route" - only for "Play Journey"
     
     // Animate to journey bounds
-    if (mapRef.current && journey.coordinates.length > 0) {
-      mapRef.current.fitToCoordinates(journey.coordinates, {
+    if (mapRef.current && journey.route && journey.route.length > 0) {
+      mapRef.current.fitToCoordinates(journey.route, {
         edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
         animated: true,
       });
@@ -327,7 +327,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
 
   // Enhanced journey route animation with waypoint details
   const animateJourneyRoute = (journey) => {
-    if (!journey || !journey.coordinates) return;
+    if (!journey || !journey.route) return;
     
     hapticFeedback.light();
     // Clear any existing timeouts first
@@ -342,7 +342,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     
     // Animate to each coordinate (which represents points of interest)
     const animateToNextPoint = (coordinateIndex) => {
-      if (!isPlayingRef.current || !journey.coordinates || coordinateIndex >= journey.coordinates.length) {
+      if (!isPlayingRef.current || !journey.route || coordinateIndex >= journey.route.length) {
         setIsPlayingJourney(false);
         isPlayingRef.current = false;
         setShowJourneyRoutes(false); // Hide route path when journey completes
@@ -350,7 +350,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
         return;
       }
       
-      const coordinate = journey.coordinates[coordinateIndex];
+      const coordinate = journey.route[coordinateIndex];
       
       // Animate to coordinate location (point of interest)
       if (mapRef.current && coordinate) {
