@@ -11,9 +11,11 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  TextInput,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, Circle, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,6 +44,8 @@ const MAPS_CONFIG = {
 const InteractiveBibleMaps = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const mapRef = useRef(null);
+  
+  // Core state
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedJourney, setSelectedJourney] = useState(null);
   const [showJourneyRoutes, setShowJourneyRoutes] = useState(false);
@@ -58,6 +62,62 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
   const [mapsData, setMapsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // NEW FEATURES STATE
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain
+  const [show3DBuildings, setShow3DBuildings] = useState(false);
+  const [showDistanceCircles, setShowDistanceCircles] = useState(false);
+  const [visitedLocations, setVisitedLocations] = useState([]);
+  const [userNotes, setUserNotes] = useState({});
+  const [showStats, setShowStats] = useState(false);
+  const [quizMode, setQuizMode] = useState(false);
+  const [currentQuizQuestion, setCurrentQuizQuestion] = useState(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState([]);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(1.0);
+  const [showLegend, setShowLegend] = useState(true);
+  const [tourMode, setTourMode] = useState(false);
+  const [currentTourStep, setCurrentTourStep] = useState(0);
+  const [favoriteJourneys, setFavoriteJourneys] = useState([]);
+  const [showCharacters, setShowCharacters] = useState(true);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [showVerses, setShowVerses] = useState(true);
+  const [photoMode, setPhotoMode] = useState(false);
+  const [userPhotos, setUserPhotos] = useState({});
+  const [showWeather, setShowWeather] = useState(false);
+  const [historicalMode, setHistoricalMode] = useState(false);
+  const [selectedHistoricalPeriod, setSelectedHistoricalPeriod] = useState(null);
+  const [showConnections, setShowConnections] = useState(false);
+  const [clusterMarkers, setClusterMarkers] = useState(true);
+  const [autoPlayJourneys, setAutoPlayJourneys] = useState(false);
+  const [narrationMode, setNarrationMode] = useState(false);
+  const [showEvents, setShowEvents] = useState(true);
+  const [eventFilter, setEventFilter] = useState('all');
+  const [showAudioGuides, setShowAudioGuides] = useState(false);
+  const [achievementsUnlocked, setAchievementsUnlocked] = useState([]);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [shareMode, setShareMode] = useState(false);
+  const [customMarkers, setCustomMarkers] = useState([]);
+  const [showTerrain, setShowTerrain] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
+  const [showPaths, setShowPaths] = useState(true);
+  const [pathWidth, setPathWidth] = useState(3);
+  const [markerSize, setMarkerSize] = useState(1.0);
+  const [showLabels, setShowLabels] = useState(true);
+  const [labelSize, setLabelSize] = useState(12);
+  const [filterByCharacter, setFilterByCharacter] = useState(null);
+  const [filterByEvent, setFilterByEvent] = useState(null);
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyNotes, setStudyNotes] = useState({});
+  const [groupMode, setGroupMode] = useState(false);
+  const [sharedLocations, setSharedLocations] = useState([]);
 
   // Function to stop journey and clear all timeouts
   const stopJourney = () => {
@@ -398,6 +458,376 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     return categoryColors[location.category] || theme.primary;
   };
 
+  // NEW FEATURE FUNCTIONS
+
+  // 1. SEARCH FUNCTIONALITY
+  const getSearchResults = () => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return biblicalLocations.filter(loc => 
+      loc.name.toLowerCase().includes(query) ||
+      loc.description.toLowerCase().includes(query) ||
+      loc.characters?.some(c => c.toLowerCase().includes(query)) ||
+      loc.events?.some(e => e.toLowerCase().includes(query))
+    );
+  };
+
+  const handleSearchSelect = (location) => {
+    setSearchQuery('');
+    setShowSearch(false);
+    handleLocationPress(location);
+  };
+
+  // 2. DISTANCE CALCULATOR
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const getTotalMeasuredDistance = () => {
+    if (measurePoints.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < measurePoints.length - 1; i++) {
+      total += calculateDistance(
+        measurePoints[i].latitude,
+        measurePoints[i].longitude,
+        measurePoints[i + 1].latitude,
+        measurePoints[i + 1].longitude
+      );
+    }
+    return total.toFixed(2);
+  };
+
+  // 3. QUIZ MODE
+  const generateQuizQuestion = () => {
+    const locations = getFilteredLocations();
+    if (locations.length === 0) return null;
+    
+    const randomLoc = locations[Math.floor(Math.random() * locations.length)];
+    const questionTypes = [
+      {
+        question: `Where did ${randomLoc.events?.[0] || 'this event'} happen?`,
+        answer: randomLoc.name,
+        options: [randomLoc.name, ...getRandomLocations(3).map(l => l.name)]
+      },
+      {
+        question: `What happened at ${randomLoc.name}?`,
+        answer: randomLoc.events?.[0] || randomLoc.description,
+        options: [randomLoc.events?.[0] || randomLoc.description, ...getRandomEvents(3)]
+      },
+      {
+        question: `Which character is associated with ${randomLoc.name}?`,
+        answer: randomLoc.characters?.[0] || 'Unknown',
+        options: [randomLoc.characters?.[0] || 'Unknown', ...getRandomCharacters(3)]
+      }
+    ];
+    
+    const q = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+    q.options = q.options.sort(() => Math.random() - 0.5).slice(0, 4);
+    return q;
+  };
+
+  const getRandomLocations = (count) => {
+    const locations = getFilteredLocations();
+    const shuffled = [...locations].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
+
+  const getRandomEvents = (count) => {
+    const events = biblicalLocations.flatMap(l => l.events || []);
+    const shuffled = [...events].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
+
+  const getRandomCharacters = (count) => {
+    const characters = biblicalLocations.flatMap(l => l.characters || []);
+    const shuffled = [...characters].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
+
+  const startQuiz = () => {
+    hapticFeedback.medium();
+    setQuizMode(true);
+    setQuizScore(0);
+    setCurrentQuizQuestion(generateQuizQuestion());
+  };
+
+  const answerQuiz = (answer) => {
+    hapticFeedback.light();
+    if (answer === currentQuizQuestion.answer) {
+      setQuizScore(prev => prev + 1);
+      hapticFeedback.success();
+      Alert.alert('Correct!', 'Great job!', [
+        { text: 'Next Question', onPress: () => setCurrentQuizQuestion(generateQuizQuestion()) }
+      ]);
+    } else {
+      hapticFeedback.error();
+      Alert.alert('Incorrect', `The correct answer was: ${currentQuizQuestion.answer}`, [
+        { text: 'Try Again', onPress: () => setCurrentQuizQuestion(generateQuizQuestion()) }
+      ]);
+    }
+  };
+
+  // 4. LOCATION VISIT TRACKING
+  const markLocationVisited = (locationId) => {
+    if (!visitedLocations.includes(locationId)) {
+      setVisitedLocations(prev => [...prev, locationId]);
+      checkAchievements(visitedLocations.length + 1);
+    }
+  };
+
+  // 5. ACHIEVEMENTS SYSTEM
+  const checkAchievements = (visitCount) => {
+    const achievements = [
+      { id: 'explorer_5', name: 'Explorer', threshold: 5, icon: 'explore' },
+      { id: 'pilgrim_10', name: 'Pilgrim', threshold: 10, icon: 'directions-walk' },
+      { id: 'scholar_20', name: 'Scholar', threshold: 20, icon: 'school' },
+      { id: 'master_30', name: 'Bible Master', threshold: 30, icon: 'workspace-premium' },
+    ];
+    
+    achievements.forEach(achievement => {
+      if (visitCount >= achievement.threshold && !achievementsUnlocked.includes(achievement.id)) {
+        setAchievementsUnlocked(prev => [...prev, achievement.id]);
+        Alert.alert(
+          '🏆 Achievement Unlocked!',
+          `${achievement.name}\nYou've visited ${achievement.threshold} locations!`,
+          [{ text: 'Awesome!' }]
+        );
+      }
+    });
+  };
+
+  // 6. DAILY CHALLENGE
+  const generateDailyChallenge = () => {
+    const challenges = [
+      { type: 'visit', target: 'jerusalem', description: 'Visit Jerusalem today' },
+      { type: 'journey', target: 'exodus_journey', description: 'Play the Exodus journey' },
+      { type: 'quiz', target: 5, description: 'Answer 5 quiz questions correctly' },
+      { type: 'explore', target: 'patriarchs', description: 'Explore 3 Patriarch era locations' },
+    ];
+    
+    const todayIndex = new Date().getDate() % challenges.length;
+    setDailyChallenge(challenges[todayIndex]);
+  };
+
+  // 7. CHARACTER FILTER
+  const getAllCharacters = () => {
+    const chars = new Set();
+    biblicalLocations.forEach(loc => {
+      loc.characters?.forEach(char => chars.add(char));
+    });
+    return Array.from(chars).sort();
+  };
+
+  const filterByCharacterFunc = (character) => {
+    setFilterByCharacter(character);
+    setSelectedCharacter(character);
+  };
+
+  const getLocationsForCharacter = (character) => {
+    return biblicalLocations.filter(loc => 
+      loc.characters?.includes(character)
+    );
+  };
+
+  // 8. COMPARISON MODE
+  const toggleCompareLocation = (locationId) => {
+    if (selectedLocations.includes(locationId)) {
+      setSelectedLocations(prev => prev.filter(id => id !== locationId));
+    } else if (selectedLocations.length < 4) {
+      setSelectedLocations(prev => [...prev, locationId]);
+    } else {
+      Alert.alert('Maximum Reached', 'You can compare up to 4 locations at once');
+    }
+  };
+
+  const getComparisonData = () => {
+    return selectedLocations.map(id => 
+      biblicalLocations.find(loc => loc.id === id)
+    ).filter(Boolean);
+  };
+
+  // 9. GUIDED TOUR
+  const startGuidedTour = (era) => {
+    hapticFeedback.medium();
+    const tourLocations = biblicalLocations.filter(loc => 
+      loc.era.includes(era)
+    ).sort((a, b) => {
+      // Sort by historical timeline if available
+      return 0;
+    });
+    
+    if (tourLocations.length > 0) {
+      setTourMode(true);
+      setCurrentTourStep(0);
+      setSelectedLocations(tourLocations.map(l => l.id).slice(0, 10));
+      handleLocationPress(tourLocations[0]);
+    }
+  };
+
+  const nextTourStep = () => {
+    const nextIndex = currentTourStep + 1;
+    if (nextIndex < selectedLocations.length) {
+      setCurrentTourStep(nextIndex);
+      const nextLoc = biblicalLocations.find(l => l.id === selectedLocations[nextIndex]);
+      if (nextLoc) handleLocationPress(nextLoc);
+    } else {
+      setTourMode(false);
+      Alert.alert('Tour Complete!', 'You've completed the guided tour!');
+    }
+  };
+
+  const previousTourStep = () => {
+    const prevIndex = currentTourStep - 1;
+    if (prevIndex >= 0) {
+      setCurrentTourStep(prevIndex);
+      const prevLoc = biblicalLocations.find(l => l.id === selectedLocations[prevIndex]);
+      if (prevLoc) handleLocationPress(prevLoc);
+    }
+  };
+
+  // 10. USER NOTES
+  const addNoteToLocation = (locationId, note) => {
+    setUserNotes(prev => ({
+      ...prev,
+      [locationId]: [...(prev[locationId] || []), {
+        text: note,
+        date: new Date().toISOString(),
+      }]
+    }));
+  };
+
+  // 11. MAP TYPE SWITCHER
+  const getMapTypeForRN = () => {
+    const types = {
+      standard: 'standard',
+      satellite: 'satellite',
+      hybrid: 'hybrid',
+      terrain: Platform.OS === 'ios' ? 'mutedStandard' : 'terrain'
+    };
+    return types[mapType] || 'standard';
+  };
+
+  // 12. STATISTICS
+  const getDetailedStats = () => {
+    const stats = {
+      totalLocations: biblicalLocations.length,
+      totalJourneys: biblicalJourneys.length,
+      visitedCount: visitedLocations.length,
+      bookmarkedCount: bookmarkedLocations.length,
+      locationsPerEra: {},
+      locationsPerCategory: {},
+      mostCommonCharacters: {},
+      totalDistance: 0,
+    };
+
+    biblicalLocations.forEach(loc => {
+      loc.era.forEach(era => {
+        stats.locationsPerEra[era] = (stats.locationsPerEra[era] || 0) + 1;
+      });
+      stats.locationsPerCategory[loc.category] = (stats.locationsPerCategory[loc.category] || 0) + 1;
+      
+      loc.characters?.forEach(char => {
+        stats.mostCommonCharacters[char] = (stats.mostCommonCharacters[char] || 0) + 1;
+      });
+    });
+
+    biblicalJourneys.forEach(journey => {
+      const dist = parseInt(journey.distance?.replace(/[^\d]/g, '') || '0');
+      stats.totalDistance += dist;
+    });
+
+    return stats;
+  };
+
+  // 13. CONNECT LOCATIONS (Show relationships)
+  const getConnectedLocations = (locationId) => {
+    const location = biblicalLocations.find(l => l.id === locationId);
+    if (!location) return [];
+    
+    // Find locations with shared characters
+    return biblicalLocations.filter(loc => 
+      loc.id !== locationId &&
+      loc.characters?.some(char => location.characters?.includes(char))
+    );
+  };
+
+  // 14. JOURNEY FAVORITES
+  const toggleFavoriteJourney = (journeyId) => {
+    if (favoriteJourneys.includes(journeyId)) {
+      setFavoriteJourneys(prev => prev.filter(id => id !== journeyId));
+    } else {
+      setFavoriteJourneys(prev => [...prev, journeyId]);
+    }
+  };
+
+  // 15. RESET TO OVERVIEW
+  const resetMapView = () => {
+    hapticFeedback.light();
+    setSelectedLocation(null);
+    setSelectedJourney(null);
+    setShowJourneyRoutes(false);
+    stopJourney();
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(initialRegion, 1000);
+    }
+  };
+
+  // Load initial data
+  useEffect(() => {
+    if (visible) {
+      generateDailyChallenge();
+    }
+  }, [visible]);
+
+  // Auto-save user data
+  useEffect(() => {
+    const saveUserData = async () => {
+      try {
+        await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(visitedLocations));
+        await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
+        await AsyncStorage.setItem('bible_maps_notes', JSON.stringify(userNotes));
+        await AsyncStorage.setItem('bible_maps_achievements', JSON.stringify(achievementsUnlocked));
+      } catch (error) {
+        console.log('Error saving user data:', error);
+      }
+    };
+    
+    if (visible) {
+      saveUserData();
+    }
+  }, [visitedLocations, bookmarkedLocations, userNotes, achievementsUnlocked]);
+
+  // Load user data
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const visited = await AsyncStorage.getItem('bible_maps_visited');
+        const bookmarks = await AsyncStorage.getItem('bible_maps_bookmarks');
+        const notes = await AsyncStorage.getItem('bible_maps_notes');
+        const achievements = await AsyncStorage.getItem('bible_maps_achievements');
+        
+        if (visited) setVisitedLocations(JSON.parse(visited));
+        if (bookmarks) setBookmarkedLocations(JSON.parse(bookmarks));
+        if (notes) setUserNotes(JSON.parse(notes));
+        if (achievements) setAchievementsUnlocked(JSON.parse(achievements));
+      } catch (error) {
+        console.log('Error loading user data:', error);
+      }
+    };
+    
+    if (visible) {
+      loadUserData();
+    }
+  }, [visible]);
+
   return (
     <Modal
       visible={visible}
@@ -412,56 +842,149 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
             ref={mapRef}
             style={styles.fullScreenMap}
             initialRegion={initialRegion}
+            mapType={getMapTypeForRN()}
             provider={Platform.OS === 'ios' ? PROVIDER_APPLE : PROVIDER_GOOGLE}
             showsUserLocation={false}
             showsMyLocationButton={false}
             showsCompass={true}
             showsScale={true}
+            showsBuildings={show3DBuildings}
+            showsTraffic={false}
+            onPress={(e) => {
+              if (measureMode) {
+                setMeasurePoints(prev => [...prev, e.nativeEvent.coordinate]);
+              }
+            }}
           >
             {/* Enhanced Location Markers */}
-            {getFilteredLocations().map((location) => (
-              <Marker
-                key={location.id}
-                coordinate={location.coordinate}
-                title={location.name}
-                description={location.description}
-                onPress={() => showLocationDetails(location)}
-                pinColor={getMarkerColor(location)}
-              >
-                <View style={[
-                  styles.customMarker,
-                  { 
-                    backgroundColor: getMarkerColor(location),
-                    borderColor: theme.surface,
-                    transform: [{ scale: selectedLocation?.id === location.id ? 1.3 : bookmarkedLocations.includes(location.id) ? 1.1 : 1.0 }],
-                    shadowColor: getMarkerColor(location),
-                    shadowOpacity: selectedLocation?.id === location.id ? 0.6 : 0.3,
-                    shadowRadius: selectedLocation?.id === location.id ? 8 : 4,
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name={location.icon} 
-                    size={selectedLocation?.id === location.id ? 24 : 20} 
-                    color="white" 
-                  />
-                  {/* Bookmark indicator removed */}
-                  {location.miracleCount && location.miracleCount > 0 && (
-                    <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
-                      <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
+            {getFilteredLocations().map((location) => {
+              const isVisited = visitedLocations.includes(location.id);
+              const isBookmarked = bookmarkedLocations.includes(location.id);
+              const isSelected = selectedLocation?.id === location.id;
+              
+              return (
+                <Marker
+                  key={location.id}
+                  coordinate={location.coordinate}
+                  title={location.name}
+                  description={location.description}
+                  onPress={() => {
+                    showLocationDetails(location);
+                    markLocationVisited(location.id);
+                  }}
+                  pinColor={getMarkerColor(location)}
+                >
+                  <View style={[
+                    styles.customMarker,
+                    { 
+                      backgroundColor: getMarkerColor(location),
+                      borderColor: theme.surface,
+                      borderWidth: isBookmarked ? 3 : 2,
+                      opacity: isVisited ? 1.0 : 0.7,
+                      transform: [{ scale: (isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0) * markerSize }],
+                      shadowColor: getMarkerColor(location),
+                      shadowOpacity: isSelected ? 0.8 : 0.4,
+                      shadowRadius: isSelected ? 10 : 5,
+                    }
+                  ]}>
+                    <MaterialIcons 
+                      name={location.icon} 
+                      size={(isSelected ? 26 : 20) * markerSize} 
+                      color="white" 
+                    />
+                    {/* Visited checkmark */}
+                    {isVisited && (
+                      <View style={styles.visitedIndicator}>
+                        <MaterialIcons name="check-circle" size={12} color="#00E676" />
+                      </View>
+                    )}
+                    {location.miracleCount && location.miracleCount > 0 && (
+                      <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
+                        <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                </Marker>
+              );
+            })}
+
+            {/* Distance Circles */}
+            {showDistanceCircles && selectedLocation && (
+              <>
+                <Circle
+                  center={selectedLocation.coordinate}
+                  radius={100000} // 100km
+                  strokeColor="rgba(255, 215, 0, 0.3)"
+                  fillColor="rgba(255, 215, 0, 0.1)"
+                  strokeWidth={2}
+                />
+                <Circle
+                  center={selectedLocation.coordinate}
+                  radius={200000} // 200km
+                  strokeColor="rgba(255, 215, 0, 0.2)"
+                  fillColor="rgba(255, 215, 0, 0.05)"
+                  strokeWidth={1}
+                />
+              </>
+            )}
+
+            {/* Measure Mode Lines */}
+            {measureMode && measurePoints.length > 0 && (
+              <>
+                {measurePoints.map((point, index) => (
+                  <Marker
+                    key={`measure-${index}`}
+                    coordinate={point}
+                    pinColor="#FF6B6B"
+                  >
+                    <View style={[styles.measurePoint, { backgroundColor: '#FF6B6B' }]}>
+                      <Text style={styles.measurePointText}>{index + 1}</Text>
                     </View>
-                  )}
-                </View>
-              </Marker>
+                  </Marker>
+                ))}
+                {measurePoints.length > 1 && (
+                  <Polyline
+                    coordinates={measurePoints}
+                    strokeColor="#FF6B6B"
+                    strokeWidth={3}
+                    lineDashPattern={[5, 5]}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Connection Lines */}
+            {showConnections && selectedLocation && getConnectedLocations(selectedLocation.id).map((connectedLoc) => (
+              <Polyline
+                key={`connection-${selectedLocation.id}-${connectedLoc.id}`}
+                coordinates={[selectedLocation.coordinate, connectedLoc.coordinate]}
+                strokeColor="rgba(255, 215, 0, 0.4)"
+                strokeWidth={2}
+                lineDashPattern={[10, 5]}
+              />
             ))}
 
             {/* Journey Routes */}
-            {showJourneyRoutes && getFilteredJourneys().map((journey) => (
+            {showJourneyRoutes && selectedJourney && selectedJourney.route && showPaths && (
+              <Polyline
+                coordinates={selectedJourney.route}
+                strokeColor={selectedJourney.color || theme.primary}
+                strokeWidth={pathWidth}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+
+            {/* All Journey Routes (faded) */}
+            {!showJourneyRoutes && showPaths && getFilteredJourneys().map((journey) => (
               <Polyline
                 key={journey.id}
-                coordinates={journey.coordinates}
-                strokeColor={journey.color}
-                strokeWidth={selectedJourney?.id === journey.id ? 4 : 2}
-                strokePattern={selectedJourney?.id === journey.id ? [10, 5] : undefined}
+                coordinates={journey.route || []}
+                strokeColor={`${journey.color || theme.primary}66`}
+                strokeWidth={pathWidth * 0.6}
+                lineCap="round"
+                lineJoin="round"
+                onPress={() => handleJourneyPress(journey)}
               />
             ))}
           </MapView>

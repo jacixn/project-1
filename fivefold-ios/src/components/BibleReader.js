@@ -659,6 +659,177 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     setShowJournalingModal(true);
   };
 
+  // 100+ Beautiful Share Card Gradients with excellent readability
+  const getShareCardGradient = () => {
+    const shareCardGradients = [
+      // Deep Ocean Collection
+      ['#0F2027', '#203A43', '#2C5364'], // Deep ocean
+      ['#000428', '#004e92'], // Navy depths
+      ['#141E30', '#243B55'], // Midnight ocean
+      ['#1e3c72', '#2a5298'], // Deep blue
+      ['#000046', '#1CB5E0'], // Ocean abyss
+      
+      // Sunset & Sunrise Collection
+      ['#ED4264', '#FFEDBC'], // Coral sunset
+      ['#C33764', '#1D2671'], // Purple dusk
+      ['#F2709C', '#FF9472'], // Pink sunrise
+      ['#EE0979', '#FF6A00'], // Vibrant sunset
+      ['#FF512F', '#DD2476'], // Fire sunset
+      ['#FF416C', '#FF4B2B'], // Hot sunset
+      ['#200122', '#6f0000'], // Dark red sunset
+      
+      // Forest & Nature Collection
+      ['#134E5E', '#71B280'], // Forest green
+      ['#0F2027', '#2C5364'], // Deep forest
+      ['#076585', '#fff'], // Sky gradient
+      ['#11998e', '#38ef7d'], // Emerald
+      ['#16222A', '#3A6073'], // Ocean forest
+      ['#005C97', '#363795'], // Deep teal
+      
+      // Royal & Luxe Collection
+      ['#360033', '#0b8793'], // Royal purple
+      ['#4A00E0', '#8E2DE2'], // Deep violet
+      ['#5f2c82', '#49a09d'], // Regal
+      ['#834d9b', '#d04ed6'], // Purple majesty
+      ['#6441A5', '#2a0845'], // Deep purple
+      ['#7F00FF', '#E100FF'], // Ultra violet
+      ['#8E0E00', '#1F1C18'], // Dark red royal
+      
+      // Berry & Wine Collection
+      ['#8E2DE2', '#4A00E0'], // Berry blast
+      ['#a8c0ff', '#3f2b96'], // Blueberry
+      ['#D31027', '#EA384D'], // Cherry red
+      ['#880E4F', '#1A237E'], // Wine dark
+      ['#642B73', '#C6426E'], // Plum wine
+      
+      // Golden Hour Collection
+      ['#F09819', '#EDDE5D'], // Honey gold
+      ['#FFB75E', '#ED8F03'], // Amber
+      ['#f7971e', '#ffd200'], // Sunset gold
+      ['#FDC830', '#F37335'], // Mango gold
+      ['#F46B45', '#EEA849'], // Peach gold
+      
+      // Mystical & Magic Collection
+      ['#4568DC', '#B06AB3'], // Mystic purple
+      ['#6A82FB', '#FC5C7D'], // Magic hour
+      ['#9D50BB', '#6E48AA'], // Enchanted
+      ['#5E60CE', '#4EA8DE'], // Cosmic blue
+      ['#667eea', '#764ba2'], // Purple magic
+      ['#4776E6', '#8E54E9'], // Electric purple
+      
+      // Earth Tones Collection
+      ['#603813', '#b29f94'], // Earth brown
+      ['#3E2723', '#6D4C41'], // Chocolate earth
+      ['#37474F', '#263238'], // Slate gray
+      ['#455A64', '#263238'], // Storm gray
+      ['#4E342E', '#5D4037'], // Coffee brown
+      
+      // Cool Blues Collection
+      ['#1488CC', '#2B32B2'], // Azure
+      ['#005AA7', '#FFFDE4'], // Light blue
+      ['#003973', '#E5E5BE'], // Soft blue
+      ['#283c86', '#45a247'], // Cool gradient
+      ['#2E3192', '#1BFFFF'], // Electric blue
+      ['#136a8a', '#267871'], // Turquoise
+      
+      // Warm Reds Collection
+      ['#B92B27', '#1565C0'], // Bold red
+      ['#870000', '#190A05'], // Deep crimson
+      ['#E74C3C', '#C0392B'], // Ruby red
+      ['#CB2D3E', '#EF473A'], // Scarlet
+      ['#3a1c71', '#d76d77', '#ffaf7b'], // Triple warmth
+      
+      // Tropical Collection
+      ['#f953c6', '#b91d73'], // Tropical pink
+      ['#ee0979', '#ff6a00'], // Mango tango
+      ['#FF7E5F', '#FEB47B'], // Peach
+      ['#FA8BFF', '#2BD2FF', '#2BFF88'], // Rainbow bright
+      ['#FF61D2', '#FE9090'], // Coral pink
+      
+      // Galaxy & Space Collection
+      ['#000000', '#434343'], // Space black
+      ['#0F2027', '#203A43'], // Nebula
+      ['#2C3E50', '#4CA1AF'], // Space blue
+      ['#232526', '#414345'], // Dark matter
+      ['#1D2671', '#C33764'], // Galaxy purple
+      ['#2C3E50', '#3498DB'], // Stellar
+      
+      // Jewel Tones Collection
+      ['#108DC7', '#EF8E38'], // Sapphire sunset
+      ['#FF0099', '#493240'], // Ruby dark
+      ['#0099F7', '#F11712'], // Bold jewels
+      ['#614385', '#516395'], // Amethyst
+      ['#009FFF', '#ec2F4B'], // Neon jewels
+      
+      // Moody Dark Collection
+      ['#0B486B', '#F56217'], // Deep moody
+      ['#003973', '#E5E5BE'], // Dark teal
+      ['#1f4037', '#99f2c8'], // Forest night
+      ['#355C7D', '#6C5B7B', '#C06C84'], // Dusty rose
+      ['#403A3E', '#BE5869'], // Dusty pink
+      
+      // Vibrant Neon Collection
+      ['#FF0844', '#FFB199'], // Hot neon
+      ['#7F7FD5', '#86A8E7', '#91EAE4'], // Neon dream
+      ['#00F260', '#0575E6'], // Cyber green
+      ['#E100FF', '#7F00FF'], // Neon purple
+      ['#6A3093', '#A044FF'], // Purple neon
+      
+      // Professional Blues
+      ['#1A2980', '#26D0CE'], // Corporate blue
+      ['#304352', '#d7d2cc'], // Professional steel
+      ['#2C3E50', '#BDC3C7'], // Business gray
+      ['#1e3c72', '#1e3c72', '#2a5298'], // Navy pro
+      ['#659999', '#f4791f'], // Modern blue
+      
+      // Rich Greens
+      ['#34e89e', '#0f3443'], // Jade
+      ['#0cebeb', '#20e3b2', '#29ffc6'], // Mint gradient
+      ['#00d2ff', '#3a47d5'], // Sky green
+      ['#02AAB0', '#00CDAC'], // Teal fresh
+      ['#56ab2f', '#a8e063'], // Spring green
+      
+      // Warm Sunset Extended
+      ['#ff6e7f', '#bfe9ff'], // Soft sunset
+      ['#f83600', '#f9d423'], // Fire sky
+      ['#ffc3a0', '#ffafbd'], // Pastel sunset
+      ['#cc2b5e', '#753a88'], // Magenta sunset
+      ['#e43a15', '#e65245'], // Orange fire
+      
+      // Arctic & Ice Collection
+      ['#3E5151', '#DECBA4'], // Arctic light
+      ['#355C7D', '#6C5B7B'], // Frozen
+      ['#2C3E50', '#4CA1AF'], // Ice blue
+      ['#7474BF', '#348AC7'], // Winter sky
+      ['#1D976C', '#93F9B9'], // Ice mint
+      
+      // Autumn Collection
+      ['#D38312', '#A83279'], // Autumn leaves
+      ['#DA4453', '#89216B'], // Deep autumn
+      ['#F2994A', '#F2C94C'], // Golden fall
+      ['#D66D75', '#E29587'], // Rustic autumn
+      ['#BE93C5', '#7BC6CC'], // Soft autumn
+      
+      // Bold & Dramatic
+      ['#F00000', '#DC281E'], // Dramatic red
+      ['#FF0099', '#493240'], // Hot pink dark
+      ['#000000', '#e74c3c'], // Black to red
+      ['#141517', '#51a3a3'], // Dark teal drama
+      ['#FF5F6D', '#FFC371'], // Coral drama
+      
+      // Soft Pastels (darkened for readability)
+      ['#667eea', '#764ba2'], // Purple pastel
+      ['#f093fb', '#f5576c'], // Pink pastel
+      ['#4facfe', '#00f2fe'], // Blue pastel
+      ['#43e97b', '#38f9d7'], // Green pastel
+      ['#fa709a', '#fee140'], // Peach pastel
+    ];
+    
+    // Pick a random gradient from the collection
+    const randomIndex = Math.floor(Math.random() * shareCardGradients.length);
+    return shareCardGradients[randomIndex];
+  };
+
   // Save verse to saved verses
   // Share verse function
   const shareVerse = () => {
@@ -3422,18 +3593,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   <View>
                     <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
                     <LinearGradient
-                      colors={[
-                        ['#FF6B9D', '#FEC163'],
-                        ['#A8EDEA', '#FED6E3'],
-                        ['#667EEA', '#764BA2'],
-                        ['#F093FB', '#F5576C'],
-                        ['#4FACFE', '#00F2FE'],
-                        ['#43E97B', '#38F9D7'],
-                        ['#FA709A', '#FEE140'],
-                        ['#30CFD0', '#330867'],
-                        ['#A8EDEA', '#FED6E3'],
-                        ['#FCCB90', '#D57EEB'],
-                      ][Math.floor(Math.random() * 10)]}
+                      colors={getShareCardGradient()}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
