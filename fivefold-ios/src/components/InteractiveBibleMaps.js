@@ -762,18 +762,16 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
             ref={mapRef}
             style={styles.fullScreenMap}
             initialRegion={initialRegion}
-            mapType={getMapTypeForRN()}
+            mapType="standard"
             provider={Platform.OS === 'ios' ? PROVIDER_APPLE : PROVIDER_GOOGLE}
             showsUserLocation={false}
             showsMyLocationButton={false}
             showsCompass={true}
             showsScale={true}
-            showsBuildings={show3DBuildings}
+            showsBuildings={false}
             showsTraffic={false}
             onPress={(e) => {
-              if (measureMode) {
-                setMeasurePoints(prev => [...prev, e.nativeEvent.coordinate]);
-              }
+              // Map press handler
             }}
           >
             {/* Enhanced Location Markers */}
@@ -801,7 +799,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                       borderColor: theme.surface,
                       borderWidth: isBookmarked ? 3 : 2,
                       opacity: isVisited ? 1.0 : 0.7,
-                      transform: [{ scale: (isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0) * markerSize }],
+                      transform: [{ scale: isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0 }],
                       shadowColor: getMarkerColor(location),
                       shadowOpacity: isSelected ? 0.8 : 0.4,
                       shadowRadius: isSelected ? 10 : 5,
@@ -809,7 +807,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                   ]}>
                     <MaterialIcons 
                       name={location.icon} 
-                      size={(isSelected ? 26 : 20) * markerSize} 
+                      size={isSelected ? 26 : 20} 
                       color="white" 
                     />
                     {/* Visited checkmark */}
@@ -889,7 +887,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
               <Polyline
                 coordinates={selectedJourney.route}
                 strokeColor={selectedJourney.color || theme.primary}
-                strokeWidth={pathWidth}
+                strokeWidth={3}
                 lineCap="round"
                 lineJoin="round"
               />
@@ -901,7 +899,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                 key={journey.id}
                 coordinates={journey.route || []}
                 strokeColor={`${journey.color || theme.primary}66`}
-                strokeWidth={pathWidth * 0.6}
+                strokeWidth={2}
                 lineCap="round"
                 lineJoin="round"
                 onPress={() => handleJourneyPress(journey)}
