@@ -881,8 +881,16 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
             {/* Header */}
             <View style={styles.eraDetailHeader}>
               <View style={[styles.eraDetailIcon, { backgroundColor: `${selectedEra.color}30` }]}>
-                <Text style={styles.eraDetailEmoji}>{selectedEra.emoji}</Text>
-                <Text style={styles.eraDetailBgEmoji}>{selectedEra.bgEmoji}</Text>
+                {selectedEra.imageUrl && (
+                  <Image
+                    source={{ uri: selectedEra.imageUrl }}
+                    style={{
+                      width: 60,
+                      height: 60,
+                    }}
+                    resizeMode="contain"
+                  />
+                )}
               </View>
               <View style={styles.eraDetailTitles}>
                 <Text style={[styles.eraDetailTitle, { color: '#FFFFFF' }]}>
