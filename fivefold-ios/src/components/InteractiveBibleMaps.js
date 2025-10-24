@@ -1121,31 +1121,32 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
             onRequestClose={() => setSelectedLocation(null)}
             transparent={true}
           >
-            <View style={styles.modalOverlay}>
-              <PanGestureHandler onGestureEvent={handleModalPanGesture} onHandlerStateChange={handleModalPanGesture}>
-                <Animated.View 
-                  style={[
-                    styles.modalContent, 
-                    { 
-                      backgroundColor: theme.background,
-                      transform: [{ translateY: modalTranslateY }]
-                    }
-                  ]}
-                >
-                  {/* Swipe indicator */}
-                  <View style={styles.swipeIndicatorContainer}>
-                    <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
-                  </View>
-                  
-                  <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                    <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
-                      <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-                    </TouchableOpacity>
-                    <Text style={[styles.detailTitle, { color: theme.text }]}>
-                      {selectedLocation.name}
-                    </Text>
-                    {/* Bookmark removed */}
-                    <View style={styles.detailBookmarkButton} />
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <View style={styles.modalOverlay}>
+                <PanGestureHandler onGestureEvent={handleModalPanGesture} onHandlerStateChange={handleModalPanGesture}>
+                  <Animated.View 
+                    style={[
+                      styles.modalContent, 
+                      { 
+                        backgroundColor: theme.background,
+                        transform: [{ translateY: modalTranslateY }]
+                      }
+                    ]}
+                  >
+                    {/* Swipe indicator */}
+                    <View style={styles.swipeIndicatorContainer}>
+                      <View style={[styles.swipeIndicator, { backgroundColor: theme.border }]} />
+                    </View>
+                    
+                    <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
+                      <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
+                        <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.detailTitle, { color: theme.text }]}>
+                        {selectedLocation.name}
+                      </Text>
+                      {/* Bookmark removed */}
+                      <View style={styles.detailBookmarkButton} />
               </View>
 
               <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
@@ -1241,7 +1242,8 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
               </ScrollView>
                 </Animated.View>
               </PanGestureHandler>
-            </View>
+              </View>
+            </GestureHandlerRootView>
           </Modal>
         )}
       </View>
