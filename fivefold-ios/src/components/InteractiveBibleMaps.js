@@ -680,7 +680,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       if (nextLoc) handleLocationPress(nextLoc);
     } else {
       setTourMode(false);
-      Alert.alert('Tour Complete!', 'You've completed the guided tour!');
+      Alert.alert('Tour Complete', 'You have completed the guided tour');
     }
   };
 
@@ -1702,6 +1702,156 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     marginTop: 2,
+  },
+  
+  // New Feature Styles
+  visitedIndicator: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 2,
+  },
+  measurePoint: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  measurePointText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  searchResults: {
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    maxHeight: 200,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  searchResultText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginLeft: 12,
+  },
+  quizContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    borderRadius: 16,
+    padding: 20,
+  },
+  quizQuestion: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  quizOption: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  quizOptionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  quizScore: {
+    color: '#00E676',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  tourControls: {
+    position: 'absolute',
+    bottom: 40,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  tourButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  tourButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  tourProgress: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  measureInfo: {
+    position: 'absolute',
+    top: 120,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  measureText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  achievementBadge: {
+    position: 'absolute',
+    top: 120,
+    left: 16,
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  achievementText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
   },
 });
 
