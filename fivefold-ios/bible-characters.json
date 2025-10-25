@@ -50,6 +50,19 @@
       ],
       "culturalImpact": "Abel appears in Christian art as a shepherd with a lamb, often symbolizing Christ the Good Shepherd. His story represents the triumph of faith over worldly success and the eternal significance of righteousness. The concept of Abel as the first martyr connects him to all later martyrs and saints who died for their beliefs.",
       "verses": ["Genesis 4:2-10", "Matthew 23:35", "Hebrews 11:4", "Hebrews 12:24"]
+    },
+    "Seth": {
+      "name": "Seth - Hope After Tragedy",
+      "imageUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/profileImage/seth.png",
+      "story": "Seth is Adam and Eve's third son, born after the tragedy of Abel's murder (Genesis 4-5). His name means \"appointed\" or \"granted,\" reflecting Eve's declaration: \"God has granted me another child in place of Abel, since Cain killed him.\" Seth represented a fresh start for humanity, a replacement for the righteous Abel and a continuation of the godly line that Cain had severed.\n\nSeth became the father of Enosh, and it was during Enosh's time that \"people began to call on the name of the Lord.\" This marks a significant spiritual awakening, suggesting that Seth's family line was characterized by worship and devotion to God. Unlike Cain's descendants who pioneered in worldly achievements but grew increasingly violent, Seth's line maintained faithfulness to God across generations.\n\nSeth lived 912 years and had many sons and daughters. His lineage became crucial to God's redemptive plan, as it led directly to Noah (who would save humanity from the flood), and eventually to Jesus Christ himself. Luke's genealogy traces Jesus back through Seth, establishing him as a key figure in the messianic line. Seth represents God's faithfulness to preserve a righteous remnant even after devastating loss.",
+      "themes": [
+        "Divine Appointment: Seth's birth demonstrates that God appoints leaders and preserves His purposes even after human tragedy and sin",
+        "Righteous Lineage: Seth's line represents the faithful remnant through history, those who worship God and walk in His ways",
+        "Hope and Restoration: After the horror of the first murder, Seth brings hope that goodness can continue despite evil's presence",
+        "Spiritual Legacy: Seth's descendants began calling on God's name, establishing a pattern of worship that would define the faithful throughout Scripture"
+      ],
+      "culturalImpact": "While Seth receives less attention in art and literature than his brothers, he holds significant importance in religious tradition. Jewish, Christian, and Islamic traditions all recognize Seth as the ancestor of the righteous. Some ancient texts (like the 'Life of Adam and Eve') elaborate on Seth's wisdom and righteousness. His name became synonymous with divine providence and the continuation of God's plan despite human failure. In theological discussions, Seth represents God's ability to bring beauty from ashes and maintain His purposes through faithful people.",
+      "verses": ["Genesis 4:25-26", "Genesis 5:3-8", "1 Chronicles 1:1", "Luke 3:38"]
     }
   },
   "characterGroups": [
