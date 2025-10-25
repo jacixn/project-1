@@ -681,6 +681,51 @@
         "courage-facing-fear",
         "community-living-together"
       ]
+    },
+    {
+      "id": "peace-making-reconciliation",
+      "title": "Peace – Being a Peacemaker",
+      "hook": "Blessed are the peacemakers, for they will be called children of God",
+      "theme": "peace",
+      "timeMinutes": 5,
+      "passage": "Genesis 13:1-18, Matthew 5:9, 23-24, Romans 12:18",
+      "anchorVerse": "Blessed are the peacemakers, for they will be called children of God",
+      "verseRef": "Matthew 5:9",
+      "intro": "Peacemaking isn't avoiding conflict—it's stepping into broken relationships with God's love to bring healing and reconciliation. Jesus calls peacemakers blessed because they reflect God's heart for restored relationships.",
+      "story": [
+        "Abraham and Lot's herdsmen were fighting over land. Instead of asserting his rights as the elder, Abraham chose peace. He gave Lot first choice of the land, trusting God to provide. Abraham's humility preserved the relationship and demonstrated that peace is worth more than being right.",
+        "Jesus taught that if you're worshiping and remember someone has something against you, leave your gift at the altar and go make peace first. Reconciliation with others matters so much to God that it takes priority over religious rituals.",
+        "Paul was thrown in prison in Philippi, beaten and chained. Yet at midnight, he and Silas sang hymns. When an earthquake freed them, instead of escaping, Paul stopped the jailer from harming himself. Paul's peace in chaos led to the jailer's entire family coming to faith. Peace isn't just internal—it's contagious."
+      ],
+      "keyVerses": [
+        {
+          "verse": "Romans 12:18",
+          "text": "If it is possible, as far as it depends on you, live at peace with everyone"
+        },
+        {
+          "verse": "Colossians 3:15",
+          "text": "Let the peace of Christ rule in your hearts, since as members of one body you were called to peace"
+        },
+        {
+          "verse": "James 3:18",
+          "text": "Peacemakers who sow in peace reap a harvest of righteousness"
+        }
+      ],
+      "insights": [
+        "Peacemaking requires humility and courage. It means taking the first step toward reconciliation, even when you've been hurt.",
+        "True peace doesn't mean pretending everything is fine. It means addressing conflict with grace, truth, and a desire for restoration."
+      ],
+      "reflectQuestions": [
+        "Is there someone you need to reconcile with? What's holding you back from taking the first step?",
+        "How can you be a peacemaker in a conflict happening around you—at home, work, or in your community?"
+      ],
+      "practice": "This week, identify one broken or strained relationship. Pray about it, then take one step toward reconciliation—send a message, make a call, or have a conversation seeking to make peace.",
+      "prayer": "Prince of Peace, help me be a peacemaker like You. Give me courage to pursue reconciliation, humility to admit when I'm wrong, and grace to forgive. Use me to bring Your peace to broken relationships. Amen.",
+      "relatedGuides": [
+        "peace-resting-wholeness",
+        "forgiveness-letting-go",
+        "love-selfless-action"
+      ]
     }
   ]
 }
