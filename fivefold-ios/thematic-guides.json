@@ -636,6 +636,51 @@
         "leadership-adversity-strength",
         "community-living-together"
       ]
+    },
+    {
+      "id": "justice-standing-oppressed",
+      "title": "Justice – Standing for the Oppressed",
+      "hook": "God's heart beats for justice, and He calls us to join Him",
+      "theme": "justice",
+      "timeMinutes": 5,
+      "passage": "Exodus 3:7-10, Amos 5:21-24, Luke 4:16-21",
+      "anchorVerse": "Learn to do right; seek justice. Defend the oppressed. Take up the cause of the fatherless; plead the case of the widow",
+      "verseRef": "Isaiah 1:17",
+      "intro": "Justice isn't optional in God's kingdom—it's central to who He is. From Genesis to Revelation, God defends the vulnerable and calls His people to do the same. Biblical justice means making wrong things right and ensuring everyone is treated with dignity.",
+      "story": [
+        "God heard the cries of enslaved Israelites in Egypt. He didn't ignore their suffering—He saw it, felt it, and acted. God told Moses, 'I have come down to rescue them.' God's justice is active, not passive.",
+        "Amos thundered against Israel's religious hypocrisy. They sang worship songs while exploiting the poor. God's response? 'I hate your religious festivals... But let justice roll on like a river, righteousness like a never-failing stream!' God cares more about how we treat people than how we perform rituals.",
+        "Jesus launched His ministry by quoting Isaiah: 'The Spirit of the Lord is on me... to proclaim good news to the poor, freedom for prisoners, recovery of sight for the blind, to set the oppressed free.' Jesus came to bring justice. His entire ministry was about restoring dignity to the marginalized."
+      ],
+      "keyVerses": [
+        {
+          "verse": "Micah 6:8",
+          "text": "He has shown you, O mortal, what is good. And what does the Lord require of you? To act justly and to love mercy and to walk humbly with your God"
+        },
+        {
+          "verse": "Proverbs 31:8-9",
+          "text": "Speak up for those who cannot speak for themselves, for the rights of all who are destitute. Speak up and judge fairly; defend the rights of the poor and needy"
+        },
+        {
+          "verse": "James 1:27",
+          "text": "Religion that God our Father accepts as pure and faultless is this: to look after orphans and widows in their distress"
+        }
+      ],
+      "insights": [
+        "Biblical justice isn't about punishment—it's about restoration. It's making things right, lifting up the vulnerable, and giving dignity to those society overlooks.",
+        "You can't separate loving God from pursuing justice. If we claim to love God but ignore injustice, we're missing the heart of the gospel."
+      ],
+      "reflectQuestions": [
+        "Who are the vulnerable or marginalized people in your community? How is God calling you to see them and stand with them?",
+        "What injustice breaks your heart? That might be where God is inviting you to act."
+      ],
+      "practice": "This week, take one tangible action for justice: donate to a cause helping the vulnerable, volunteer your time, speak up when you see unfairness, or simply listen to someone whose voice is often ignored.",
+      "prayer": "God of justice, open my eyes to see injustice around me. Give me courage to speak up, compassion to act, and humility to stand with those You love. Help me reflect Your heart for the oppressed. Amen.",
+      "relatedGuides": [
+        "compassion-heart-others",
+        "courage-facing-fear",
+        "community-living-together"
+      ]
     }
   ]
 }
