@@ -546,6 +546,51 @@
         "integrity-living-consistently",
         "calling-embracing-purpose"
       ]
+    },
+    {
+      "id": "leadership-adversity-strength",
+      "title": "Leadership – Leading Through Adversity",
+      "hook": "Great leaders are forged in the fire of trials",
+      "theme": "leadership",
+      "timeMinutes": 5,
+      "passage": "Nehemiah 1-2, Daniel 6:1-23, Acts 27:13-44",
+      "anchorVerse": "We also glory in our sufferings, because we know that suffering produces perseverance; perseverance, character; and character, hope",
+      "verseRef": "Romans 5:3-4",
+      "intro": "Leadership isn't just about managing success – it's about guiding others through storms. When challenges come, true leaders don't run or hide. They stand firm, trust God, and inspire others to keep going.",
+      "story": [
+        "Nehemiah heard devastating news: Jerusalem's walls were destroyed. But instead of giving up, he wept, prayed, fasted, and then boldly asked the king for help. Despite opposition, mockery, and threats, Nehemiah rallied the people and rebuilt the walls in just 52 days.",
+        "Daniel faced a death sentence for praying to God. Thrown into a lions' den, he trusted God completely. His unwavering faith under persecution didn't just save his life – it changed a king's heart and influenced an entire kingdom.",
+        "Paul was shipwrecked while being taken to Rome as a prisoner. When the storm raged and all hope seemed lost, Paul stood up and encouraged 276 terrified people. His calm faith and leadership saved every life on board."
+      ],
+      "keyVerses": [
+        {
+          "verse": "Joshua 1:9",
+          "text": "Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go"
+        },
+        {
+          "verse": "2 Timothy 1:7",
+          "text": "For God has not given us a spirit of fear, but of power and of love and of a sound mind"
+        },
+        {
+          "verse": "Isaiah 41:10",
+          "text": "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand"
+        }
+      ],
+      "insights": [
+        "Adversity reveals what kind of leader you really are. Anyone can lead when things are easy.",
+        "The leader's faith becomes the anchor for everyone else. When you trust God publicly, others find courage to trust Him too."
+      ],
+      "reflectQuestions": [
+        "When facing difficulties, do you lead with faith or fear? How do others see you respond?",
+        "Think of a challenging situation you're in. What would it look like to lead through it with courage and trust in God?"
+      ],
+      "practice": "Identify one challenge you're facing this week. Before reacting, pause and pray. Then take one courageous step forward, trusting God with the outcome.",
+      "prayer": "God, when the storms come, help me be a leader who points others to You. Give me courage when I'm afraid, wisdom when I'm confused, and faith when everything feels uncertain. Amen.",
+      "relatedGuides": [
+        "leadership-servant-heart",
+        "trust-leaning-faithfulness",
+        "courage-facing-fear"
+      ]
     }
   ]
 }
