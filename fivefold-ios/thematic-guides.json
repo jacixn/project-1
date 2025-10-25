@@ -502,6 +502,50 @@
         "trust-leaning-faithfulness",
         "prayer-conversation-god"
       ]
+    },
+    {
+      "id": "leadership-servant-heart",
+      "title": "Leadership – Leading with a Servant's Heart",
+      "hook": "True leadership is about serving others, not being served",
+      "theme": "leadership",
+      "timeMinutes": 5,
+      "passage": "Exodus 3:1-12, 1 Samuel 16:1-13, Mark 10:35-45",
+      "anchorVerse": "Whoever wants to become great among you must be your servant",
+      "verseRef": "Mark 10:43",
+      "intro": "Biblical leadership flips the world's understanding upside down. It's not about power, position, or prestige – it's about humbly serving those you lead, following Jesus's example.",
+      "story": [
+        "Moses was tending sheep when God called him from a burning bush. He was hesitant, unsure, and felt inadequate – yet God chose him to lead Israel out of slavery. His leadership wasn't about his abilities but about obedience to God.",
+        "David was the youngest son, overlooked by everyone. While his brothers looked impressive, God chose David – a humble shepherd boy with a heart for God – to become Israel's greatest king.",
+        "Jesus, the ultimate leader, knelt down and washed His disciples' feet. He taught that the greatest among us must be servants of all. Then He demonstrated this by giving His life on the cross."
+      ],
+      "keyVerses": [
+        {
+          "verse": "Mark 10:43-45",
+          "text": "Whoever wants to become great among you must be your servant, and whoever wants to be first must be slave of all. For even the Son of Man did not come to be served, but to serve"
+        },
+        {
+          "verse": "1 Peter 5:2-3",
+          "text": "Be shepherds of God's flock that is under your care, not lording it over those entrusted to you, but being examples to the flock"
+        },
+        {
+          "verse": "Proverbs 11:14",
+          "text": "Where there is no guidance, a people falls, but in an abundance of counselors there is safety"
+        }
+      ],
+      "insights": [
+        "Godly leadership begins with humility – recognizing that your authority comes from God and is meant to serve others.",
+        "The best leaders create more leaders. Like Moses training Joshua or Jesus investing in His disciples, great leaders multiply themselves."
+      ],
+      "reflectQuestions": [
+        "In what areas of your life do you have influence or leadership? How can you lead more like Jesus?",
+        "Who has modeled servant leadership for you? What did you learn from them?"
+      ],
+      "practice": "This week, intentionally serve someone you lead or influence. Do something for them without expecting recognition or reward.",
+      "prayer": "Lord, help me lead like You led – with humility, compassion, and a servant's heart. Show me how to use my influence to serve others and point them to You. Amen.",
+      "relatedGuides": [
+        "integrity-living-consistently",
+        "calling-embracing-purpose"
+      ]
     }
   ]
 }
