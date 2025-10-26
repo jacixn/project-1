@@ -289,13 +289,13 @@
       "id": "conquering-promised-land",
       "title": "Conquering the Promised Land",
       "icon": "⚔️",
-      "characters": ["Joshua", "Caleb", "Rahab", "Achan", "Eleazar", "Phinehas", "Gibeonites", "Othniel"]
+      "characters": ["Joshua", "Caleb", "Rahab", "Achan (Achar)", "Eleazar", "Phinehas", "Zilpah's Descendants", "Gibeonites", "Othniel"]
     },
     {
       "id": "judges",
       "title": "Heroes & Judges of Israel",
       "icon": "⚖️",
-      "characters": ["Othniel", "Ehud", "Shamgar", "Deborah", "Barak", "Jael", "Sisera", "Gideon", "Abimelech", "Tola", "Jair", "Jephthah", "Ibzan", "Elon", "Abdon", "Samson", "Delilah", "Manoah", "Philistine Lords", "Micah of Ephraim", "Levite of Micah", "Danites"]
+      "characters": ["Othniel", "Ehud", "Shamgar", "Deborah", "Barak", "Jael", "Sisera", "Gideon", "Jerubbaal", "Abimelech", "Tola", "Jair", "Jephthah", "Ibzan", "Elon", "Abdon", "Samson", "Delilah", "Manoah", "Philistine Lords", "Micah of Ephraim", "Levite of Micah", "Danites"]
     },
     {
       "id": "ruth",
@@ -313,7 +313,7 @@
       "id": "david",
       "title": "David: Giant Slayer & King",
       "icon": "🗡️",
-      "characters": ["David", "Goliath", "Saul", "Jonathan", "Michal", "Abigail", "Bathsheba", "Uriah", "Joab", "Abner", "Ish-bosheth", "Mephibosheth", "Nathan", "Gad", "Zadok", "Abiathar", "Shimei", "Hushai", "Ahithophel", "Ittai", "Amnon", "Tamar (daughter of David)", "Absalom", "Adonijah", "Solomon", "Benaiah", "Zeruiah", "Asahel"]
+      "characters": ["David", "Goliath", "Saul", "Jonathan", "Michal", "Abigail", "Bathsheba", "Uriah", "Joab", "Abner", "Ish-bosheth", "Mephibosheth", "Nathan", "Gad", "Zadok", "Abiathar", "Shimei", "Hushai", "Ahithophel", "Ittai", "Amnon", "Tamar (daughter of David)", "Absalom", "Adonijah", "Solomon", "Benaiah", "Zeruiah", "Asahel", "Merab", "Agag", "Doeg the Edomite", "Kish", "Ahimelech"]
     },
     {
       "id": "solomon",
