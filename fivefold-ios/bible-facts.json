@@ -1,0 +1,309 @@
+{
+  "categories": [
+    { "id": "all", "name": "All Facts", "icon": "auto-awesome", "color": "#9C27B0", "gradient": ["#9C27B0", "#7B1FA2"] },
+    { "id": "numbers", "name": "Numbers & Stats", "icon": "analytics", "color": "#2196F3", "gradient": ["#2196F3", "#1976D2"] },
+    { "id": "historical", "name": "Historical", "icon": "history-edu", "color": "#FF9800", "gradient": ["#FF9800", "#F57C00"] },
+    { "id": "people", "name": "People & Places", "icon": "place", "color": "#4CAF50", "gradient": ["#4CAF50", "#388E3C"] },
+    { "id": "languages", "name": "Languages", "icon": "translate", "color": "#E91E63", "gradient": ["#E91E63", "#C2185B"] },
+    { "id": "prophecies", "name": "Prophecies", "icon": "auto_stories", "color": "#00BCD4", "gradient": ["#00BCD4", "#0097A7"] },
+    { "id": "miracles", "name": "Miracles", "icon": "stars", "color": "#FF5722", "gradient": ["#FF5722", "#E64A19"] },
+    { "id": "unique", "name": "Unique Facts", "icon": "emoji_objects", "color": "#795548", "gradient": ["#795548", "#5D4037"] }
+  ],
+  "facts": [
+    {
+      "id": "fact_1",
+      "category": "numbers",
+      "title": "The Bible Has 66 Books",
+      "description": "39 books in the Old Testament and 27 in the New Testament. It was written by approximately 40 different authors over 1,500 years.",
+      "icon": "menu_book",
+      "tags": ["Books", "Structure"],
+      "didYouKnow": "The word 'Bible' comes from the Greek word 'biblia,' meaning 'books.'"
+    },
+    {
+      "id": "fact_2",
+      "category": "numbers",
+      "title": "31,102 Verses Total",
+      "description": "The Bible contains 31,102 verses, 1,189 chapters, and approximately 783,137 words in the original languages.",
+      "icon": "format_list_numbered",
+      "tags": ["Verses", "Statistics"],
+      "didYouKnow": "The middle verse of the Bible is Psalm 118:8."
+    },
+    {
+      "id": "fact_3",
+      "category": "numbers",
+      "title": "Longest Book: Psalms",
+      "description": "Psalms is the longest book with 150 chapters and 2,461 verses. The shortest book is 3 John with only 14 verses.",
+      "icon": "library_books",
+      "tags": ["Psalms", "Records"],
+      "didYouKnow": "The longest chapter is Psalm 119 with 176 verses."
+    },
+    {
+      "id": "fact_4",
+      "category": "numbers",
+      "title": "Most Mentioned Name",
+      "description": "David is the most mentioned person in the Bible, with over 1,000 references. Jesus is mentioned approximately 973 times.",
+      "icon": "person",
+      "tags": ["Names", "People"],
+      "didYouKnow": "The name 'David' means 'beloved' in Hebrew."
+    },
+    {
+      "id": "fact_5",
+      "category": "historical",
+      "title": "Dead Sea Scrolls Discovery",
+      "description": "In 1947, a Bedouin shepherd discovered ancient biblical manuscripts in caves near the Dead Sea, dating back to 200 BC.",
+      "icon": "explore",
+      "tags": ["Discovery", "Archaeology"],
+      "didYouKnow": "The scrolls included complete books of Isaiah and many other Old Testament texts."
+    },
+    {
+      "id": "fact_6",
+      "category": "historical",
+      "title": "Oldest Bible Manuscript",
+      "description": "The oldest known Bible manuscript fragments date back to around 125 AD, containing portions of the Gospel of John.",
+      "icon": "article",
+      "tags": ["Manuscripts", "Ancient"],
+      "didYouKnow": "This is the Rylands Library Papyrus P52, kept in Manchester, England."
+    },
+    {
+      "id": "fact_7",
+      "category": "historical",
+      "title": "Gutenberg Bible - First Printed",
+      "description": "In 1455, Johannes Gutenberg printed the first Bible using movable type, revolutionizing Bible distribution.",
+      "icon": "print",
+      "tags": ["Printing", "Revolution"],
+      "didYouKnow": "Only 49 Gutenberg Bibles still exist today, worth millions of dollars."
+    },
+    {
+      "id": "fact_8",
+      "category": "historical",
+      "title": "Bible Timeline Span",
+      "description": "The events in the Bible span approximately 4,000 years, from Creation to the establishment of the early church.",
+      "icon": "timeline",
+      "tags": ["Timeline", "History"],
+      "didYouKnow": "The Old Testament covers about 3,500 years of history."
+    },
+    {
+      "id": "fact_9",
+      "category": "people",
+      "title": "Methuselah - Oldest Person",
+      "description": "Methuselah lived 969 years, making him the oldest person recorded in the Bible (Genesis 5:27).",
+      "icon": "elderly",
+      "tags": ["Age", "Records"],
+      "didYouKnow": "His name means 'when he dies, judgment will come.' He died the year of the flood."
+    },
+    {
+      "id": "fact_10",
+      "category": "people",
+      "title": "Shortest Man: Zacchaeus",
+      "description": "Zacchaeus, a chief tax collector, climbed a sycamore tree to see Jesus because he was too short to see over the crowd.",
+      "icon": "accessibility",
+      "tags": ["New Testament", "Stories"],
+      "didYouKnow": "Jesus visited his house, transforming his life completely (Luke 19)."
+    },
+    {
+      "id": "fact_11",
+      "category": "people",
+      "title": "Jerusalem Mentioned 811 Times",
+      "description": "Jerusalem is the most frequently mentioned city in the Bible, appearing 811 times. Damascus is second with 60 mentions.",
+      "icon": "location_city",
+      "tags": ["Cities", "Geography"],
+      "didYouKnow": "Jerusalem is considered holy by three major religions: Judaism, Christianity, and Islam."
+    },
+    {
+      "id": "fact_12",
+      "category": "people",
+      "title": "Women Authors Debated",
+      "description": "While most biblical books were written by men, some scholars suggest portions may have been written or influenced by women like Deborah.",
+      "icon": "woman",
+      "tags": ["Authors", "Women"],
+      "didYouKnow": "The Song of Deborah (Judges 5) is one of the oldest passages in the Bible."
+    },
+    {
+      "id": "fact_13",
+      "category": "languages",
+      "title": "Three Original Languages",
+      "description": "The Bible was originally written in Hebrew, Aramaic, and Greek. Most of the Old Testament is in Hebrew.",
+      "icon": "language",
+      "tags": ["Languages", "Translation"],
+      "didYouKnow": "Jesus likely spoke Aramaic in his daily life."
+    },
+    {
+      "id": "fact_14",
+      "category": "languages",
+      "title": "Most Translated Book",
+      "description": "The Bible has been translated into over 3,500 languages, making it the most translated book in history.",
+      "icon": "g_translate",
+      "tags": ["Translation", "Records"],
+      "didYouKnow": "About 90% of the world can read the Bible in their native language."
+    },
+    {
+      "id": "fact_15",
+      "category": "languages",
+      "title": "King James Version Impact",
+      "description": "The King James Version (1611) shaped English literature and introduced phrases like 'fight the good fight' and 'eat, drink, and be merry.'",
+      "icon": "auto_stories",
+      "tags": ["KJV", "English"],
+      "didYouKnow": "The KJV took 7 years and 47 scholars to translate."
+    },
+    {
+      "id": "fact_16",
+      "category": "languages",
+      "title": "No Word for 'Eternity'",
+      "description": "The Hebrew language in the Old Testament has no single word for 'eternity.' Instead, it uses 'olam,' meaning 'forever' or 'age.'",
+      "icon": "all_inclusive",
+      "tags": ["Hebrew", "Concepts"],
+      "didYouKnow": "This shows how ancient Hebrews conceptualized time differently."
+    },
+    {
+      "id": "fact_17",
+      "category": "prophecies",
+      "title": "300+ Prophecies About Jesus",
+      "description": "Over 300 Old Testament prophecies were fulfilled in Jesus Christ, including his birthplace, manner of death, and resurrection.",
+      "icon": "verified",
+      "tags": ["Messiah", "Fulfillment"],
+      "didYouKnow": "The probability of one person fulfilling just 48 prophecies is 1 in 10^157."
+    },
+    {
+      "id": "fact_18",
+      "category": "prophecies",
+      "title": "Isaiah Written 700 Years Before",
+      "description": "Isaiah 53 describes the suffering servant (Jesus) in remarkable detail, written 700 years before Christ was born.",
+      "icon": "calendar_today",
+      "tags": ["Isaiah", "Messiah"],
+      "didYouKnow": "Dead Sea Scrolls confirmed Isaiah was written before Jesus lived."
+    },
+    {
+      "id": "fact_19",
+      "category": "prophecies",
+      "title": "Bethlehem Prophecy",
+      "description": "Micah 5:2 predicted the Messiah would be born in Bethlehem, written 700 years before Jesus birth.",
+      "icon": "star",
+      "tags": ["Birth", "Micah"],
+      "didYouKnow": "Bethlehem means 'house of bread' in Hebrew."
+    },
+    {
+      "id": "fact_20",
+      "category": "prophecies",
+      "title": "Crucifixion Details Predicted",
+      "description": "Psalm 22 describes crucifixion details (pierced hands/feet, divided garments) before crucifixion was even invented.",
+      "icon": "healing",
+      "tags": ["Psalm", "Cross"],
+      "didYouKnow": "Crucifixion was invented by the Persians around 500 BC."
+    },
+    {
+      "id": "fact_21",
+      "category": "miracles",
+      "title": "37 Miracles of Jesus",
+      "description": "The Gospels record 37 specific miracles performed by Jesus, though John says there were many more not recorded.",
+      "icon": "auto_fix_high",
+      "tags": ["Jesus", "Signs"],
+      "didYouKnow": "John 21:25 says 'the world could not contain the books' if all Jesus did was written."
+    },
+    {
+      "id": "fact_22",
+      "category": "miracles",
+      "title": "Parting of the Red Sea",
+      "description": "Moses parted the Red Sea, allowing the Israelites to escape Egypt. Some scholars estimate 2-3 million people crossed.",
+      "icon": "waves",
+      "tags": ["Exodus", "Moses"],
+      "didYouKnow": "This is one of the most dramatic miracles in the Old Testament."
+    },
+    {
+      "id": "fact_23",
+      "category": "miracles",
+      "title": "Walls of Jericho",
+      "description": "The walls of Jericho fell after the Israelites marched around the city for 7 days and shouted (Joshua 6).",
+      "icon": "domain_disabled",
+      "tags": ["Joshua", "Conquest"],
+      "didYouKnow": "Archaeological evidence shows Jericho walls collapsed outward, matching the biblical account."
+    },
+    {
+      "id": "fact_24",
+      "category": "miracles",
+      "title": "Sun Stood Still",
+      "description": "Joshua commanded the sun to stand still during battle, and it did for about a full day (Joshua 10:13).",
+      "icon": "wb_sunny",
+      "tags": ["Joshua", "Battle"],
+      "didYouKnow": "This allowed Israel to completely defeat their enemies."
+    },
+    {
+      "id": "fact_25",
+      "category": "unique",
+      "title": "Shortest Verse",
+      "description": "'Jesus wept' (John 11:35) is the shortest verse in the Bible - only two words in English.",
+      "icon": "short_text",
+      "tags": ["Verse", "Records"],
+      "didYouKnow": "This verse shows Jesus humanity and compassion at Lazarus death."
+    },
+    {
+      "id": "fact_26",
+      "category": "unique",
+      "title": "Letter Without 'E'",
+      "description": "In some ancient manuscripts, the letter 'E' is carefully avoided in certain passages as a literary technique.",
+      "icon": "text_fields",
+      "tags": ["Literary", "Unique"],
+      "didYouKnow": "This technique is called 'lipogrammatic writing.'"
+    },
+    {
+      "id": "fact_27",
+      "category": "unique",
+      "title": "Animals Talk",
+      "description": "Only two animals speak in the Bible: the serpent in Eden (Genesis 3) and Balaam's donkey (Numbers 22).",
+      "icon": "pets",
+      "tags": ["Animals", "Stories"],
+      "didYouKnow": "Both times, the animals spoke to deliver God's message."
+    },
+    {
+      "id": "fact_28",
+      "category": "unique",
+      "title": "Perfect Palindrome Chapter",
+      "description": "Psalm 117 is the shortest chapter (2 verses) and sits at the exact center of the Bible.",
+      "icon": "center_focus_strong",
+      "tags": ["Psalm", "Structure"],
+      "didYouKnow": "It has 594 chapters before it and 594 chapters after it."
+    },
+    {
+      "id": "fact_29",
+      "category": "unique",
+      "title": "No Vowels Originally",
+      "description": "The original Hebrew text had no vowels or punctuation - they were added centuries later by the Masoretes.",
+      "icon": "text_format",
+      "tags": ["Hebrew", "History"],
+      "didYouKnow": "Readers relied on context and tradition to pronounce words correctly."
+    },
+    {
+      "id": "fact_30",
+      "category": "unique",
+      "title": "Bible Reading Marathon",
+      "description": "If read continuously, it would take about 70 hours to read the entire Bible aloud.",
+      "icon": "schedule",
+      "tags": ["Reading", "Time"],
+      "didYouKnow": "That's about 3 days of non-stop reading."
+    },
+    {
+      "id": "fact_31",
+      "category": "historical",
+      "title": "Bestselling Book Ever",
+      "description": "The Bible is the bestselling book of all time, with over 5 billion copies distributed throughout history.",
+      "icon": "trending_up",
+      "tags": ["Sales", "Records"],
+      "didYouKnow": "An estimated 100 million Bibles are sold or given away each year."
+    },
+    {
+      "id": "fact_32",
+      "category": "numbers",
+      "title": "Paul Wrote 13 Books",
+      "description": "The Apostle Paul wrote 13 books of the New Testament, more than any other single author.",
+      "icon": "edit",
+      "tags": ["Paul", "Author"],
+      "didYouKnow": "Some scholars debate whether Paul wrote Hebrews, which would make it 14."
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "totalFacts": 32,
+    "lastUpdated": "2025-10-26",
+    "description": "Verified Bible facts across 8 categories"
+  }
+}
+
