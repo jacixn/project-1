@@ -278,6 +278,12 @@
       "title": "Moses & The Exodus",
       "icon": "📜",
       "characters": ["Moses", "Aaron", "Miriam", "Pharaoh", "Pharaoh's Daughter", "Jethro (Reuel)", "Zipporah", "Gershom", "Eliezer (son of Moses)", "Joshua", "Caleb", "Hur", "Bezalel", "Oholiab", "Korah", "Dathan", "Abiram", "Nadab", "Abihu", "Eleazar", "Ithamar", "Balaam", "Balak", "Hobab", "Amalek", "Joshua's Aides", "Elders of Israel"]
+    },
+    {
+      "id": "temple-priests",
+      "title": "Temple Priests & Sacred Service",
+      "icon": "🕯️",
+      "characters": []
     }
   ],
   "version": "1.0.0",
