@@ -297,11 +297,1523 @@
       "icon": "edit",
       "tags": ["Paul", "Author"],
       "didYouKnow": "Some scholars debate whether Paul wrote Hebrews, which would make it 14."
+    },
+    {
+      "id": "fact_33",
+      "category": "numbers",
+      "title": "Moses Wrote 5 Books",
+      "description": "Moses wrote the first five books of the Bible (Genesis, Exodus, Leviticus, Numbers, Deuteronomy), called the Torah or Pentateuch.",
+      "icon": "menu_book",
+      "tags": ["Moses", "Torah"],
+      "didYouKnow": "These books form the foundation of Jewish law and Christian understanding."
+    },
+    {
+      "id": "fact_34",
+      "category": "numbers",
+      "title": "Only Two Chapters Without Sin",
+      "description": "The first two chapters of Genesis and the last two of Revelation are the only chapters without any mention of sin.",
+      "icon": "auto_awesome",
+      "tags": ["Sin", "Paradise"],
+      "didYouKnow": "These chapters describe paradise before the fall and after restoration."
+    },
+    {
+      "id": "fact_35",
+      "category": "people",
+      "title": "Enoch Never Died",
+      "description": "Enoch walked with God and was taken to heaven without experiencing death at age 365 (Genesis 5:24).",
+      "icon": "flight_takeoff",
+      "tags": ["Enoch", "Heaven"],
+      "didYouKnow": "Only Enoch and Elijah were taken to heaven without dying."
+    },
+    {
+      "id": "fact_36",
+      "category": "people",
+      "title": "Elijah's Fiery Departure",
+      "description": "Elijah was taken to heaven in a whirlwind with chariots and horses of fire (2 Kings 2:11).",
+      "icon": "local_fire_department",
+      "tags": ["Elijah", "Miracle"],
+      "didYouKnow": "Elisha witnessed this and received a double portion of Elijah's spirit."
+    },
+    {
+      "id": "fact_37",
+      "category": "people",
+      "title": "Job's Suffering Timeline",
+      "description": "Job lost everything in a single day but remained faithful to God, eventually receiving double what he lost.",
+      "icon": "volunteer_activism",
+      "tags": ["Job", "Patience"],
+      "didYouKnow": "Job is considered one of the oldest books in the Bible."
+    },
+    {
+      "id": "fact_38",
+      "category": "people",
+      "title": "Samson's Superhuman Strength",
+      "description": "Samson killed 1,000 Philistines with a donkey's jawbone and later brought down an entire temple.",
+      "icon": "fitness_center",
+      "tags": ["Samson", "Judges"],
+      "didYouKnow": "His strength came from his uncut hair as part of his Nazarite vow."
+    },
+    {
+      "id": "fact_39",
+      "category": "people",
+      "title": "David and Goliath",
+      "description": "Goliath was over 9 feet tall, and David defeated him with just a sling and one stone.",
+      "icon": "sports",
+      "tags": ["David", "Giant"],
+      "didYouKnow": "David chose 5 smooth stones because Goliath had 4 brothers."
+    },
+    {
+      "id": "fact_40",
+      "category": "people",
+      "title": "Noah's Ark Dimensions",
+      "description": "The ark was 450 feet long, 75 feet wide, and 45 feet high - about the size of 1.5 football fields.",
+      "icon": "directions_boat",
+      "tags": ["Noah", "Ark"],
+      "didYouKnow": "Naval engineers confirm these dimensions create a very stable vessel."
+    },
+    {
+      "id": "fact_41",
+      "category": "historical",
+      "title": "Oldest Church Building",
+      "description": "The Dura-Europos church in Syria, dating to 233 AD, is the oldest known Christian church building.",
+      "icon": "church",
+      "tags": ["Church", "Ancient"],
+      "didYouKnow": "It was discovered in 1920s and contains early Christian frescoes."
+    },
+    {
+      "id": "fact_42",
+      "category": "historical",
+      "title": "Codex Sinaiticus Discovery",
+      "description": "One of the most important biblical manuscripts was discovered at St. Catherine's Monastery in 1844.",
+      "icon": "auto_stories",
+      "tags": ["Manuscript", "Discovery"],
+      "didYouKnow": "It contains the oldest complete New Testament in existence."
+    },
+    {
+      "id": "fact_43",
+      "category": "historical",
+      "title": "Bible Smuggling History",
+      "description": "During communist rule, Bibles were smuggled behind the Iron Curtain in creative ways, including false car parts.",
+      "icon": "local_shipping",
+      "tags": ["Persecution", "Courage"],
+      "didYouKnow": "Brother Andrew became famous for smuggling Bibles across borders."
+    },
+    {
+      "id": "fact_44",
+      "category": "historical",
+      "title": "William Tyndale's Sacrifice",
+      "description": "William Tyndale was executed in 1536 for translating the Bible into English.",
+      "icon": "history",
+      "tags": ["Translation", "Martyr"],
+      "didYouKnow": "His last words were 'Lord, open the King of England's eyes.'"
+    },
+    {
+      "id": "fact_45",
+      "category": "miracles",
+      "title": "Feeding 5,000",
+      "description": "Jesus fed 5,000 men (plus women and children, possibly 15,000 total) with just 5 loaves and 2 fish.",
+      "icon": "restaurant",
+      "tags": ["Jesus", "Multiplication"],
+      "didYouKnow": "There were 12 baskets of leftovers, one for each disciple."
+    },
+    {
+      "id": "fact_46",
+      "category": "miracles",
+      "title": "Walking on Water",
+      "description": "Jesus walked on water during a storm, and Peter briefly walked on water too before doubting.",
+      "icon": "waves",
+      "tags": ["Jesus", "Faith"],
+      "didYouKnow": "This miracle demonstrated Jesus' authority over nature itself."
+    },
+    {
+      "id": "fact_47",
+      "category": "miracles",
+      "title": "Lazarus Raised After 4 Days",
+      "description": "Jesus raised Lazarus from the dead after he had been in the tomb for four days.",
+      "icon": "healing",
+      "tags": ["Resurrection", "Power"],
+      "didYouKnow": "This was one of Jesus' greatest miracles before his own resurrection."
+    },
+    {
+      "id": "fact_48",
+      "category": "miracles",
+      "title": "Jesus Calms the Storm",
+      "description": "Jesus rebuked a fierce storm with just the words 'Peace, be still' and immediately there was calm.",
+      "icon": "air",
+      "tags": ["Authority", "Nature"],
+      "didYouKnow": "The disciples asked 'Who is this that even wind and waves obey him?'"
+    },
+    {
+      "id": "fact_49",
+      "category": "miracles",
+      "title": "Water Turned to Wine",
+      "description": "Jesus' first recorded miracle was turning water into wine at a wedding in Cana (John 2).",
+      "icon": "wine_bar",
+      "tags": ["First Miracle", "Wedding"],
+      "didYouKnow": "He turned approximately 120-180 gallons of water into wine."
+    },
+    {
+      "id": "fact_50",
+      "category": "prophecies",
+      "title": "Virgin Birth Foretold",
+      "description": "Isaiah 7:14 prophesied a virgin would conceive, written 700 years before Jesus' birth.",
+      "icon": "child_care",
+      "tags": ["Isaiah", "Birth"],
+      "didYouKnow": "This prophecy was considered impossible until its fulfillment."
+    },
+    {
+      "id": "fact_51",
+      "category": "prophecies",
+      "title": "30 Silver Pieces Predicted",
+      "description": "Zechariah 11:12-13 predicted the Messiah would be betrayed for 30 pieces of silver centuries before Judas.",
+      "icon": "payments",
+      "tags": ["Betrayal", "Zechariah"],
+      "didYouKnow": "Even the detail about the money being thrown in the temple was foretold."
+    },
+    {
+      "id": "fact_52",
+      "category": "prophecies",
+      "title": "Not a Bone Broken",
+      "description": "Psalm 34:20 predicted none of the Messiah's bones would be broken during crucifixion.",
+      "icon": "medical_services",
+      "tags": ["Crucifixion", "Prophecy"],
+      "didYouKnow": "Roman soldiers broke the legs of the criminals beside Jesus but not his."
+    },
+    {
+      "id": "fact_53",
+      "category": "prophecies",
+      "title": "Resurrection Foretold",
+      "description": "Psalm 16:10 prophesied God would not let his Holy One see decay, predicting the resurrection.",
+      "icon": "celebration",
+      "tags": ["Resurrection", "David"],
+      "didYouKnow": "Peter quoted this psalm on the day of Pentecost."
+    },
+    {
+      "id": "fact_54",
+      "category": "languages",
+      "title": "Wycliffe Bible Translators",
+      "description": "Founded in 1942, Wycliffe has helped translate the Bible into over 700 languages.",
+      "icon": "translate",
+      "tags": ["Translation", "Mission"],
+      "didYouKnow": "About 2,000 languages still need Bible translation begun."
+    },
+    {
+      "id": "fact_55",
+      "category": "languages",
+      "title": "Greek Koine Language",
+      "description": "The New Testament was written in Koine Greek, the common language of the Eastern Mediterranean.",
+      "icon": "language",
+      "tags": ["Greek", "New Testament"],
+      "didYouKnow": "This made it accessible to the widest possible audience at the time."
+    },
+    {
+      "id": "fact_56",
+      "category": "languages",
+      "title": "Aramaic Sections",
+      "description": "Parts of Daniel and Ezra were written in Aramaic, the language Jesus spoke daily.",
+      "icon": "record_voice_over",
+      "tags": ["Aramaic", "Language"],
+      "didYouKnow": "Some of Jesus' words are recorded in Aramaic, like 'Talitha koum.'"
+    },
+    {
+      "id": "fact_57",
+      "category": "languages",
+      "title": "Septuagint Translation",
+      "description": "The Septuagint is the Greek translation of Hebrew Scriptures, created around 250 BC by 70 scholars.",
+      "icon": "groups",
+      "tags": ["Translation", "Greek"],
+      "didYouKnow": "Jesus and apostles often quoted from the Septuagint."
+    },
+    {
+      "id": "fact_58",
+      "category": "unique",
+      "title": "Esther Never Mentions God",
+      "description": "The book of Esther never explicitly mentions God's name, yet his providence is evident throughout.",
+      "icon": "visibility_off",
+      "tags": ["Esther", "Providence"],
+      "didYouKnow": "Despite this, it's one of the most powerful books about God's sovereignty."
+    },
+    {
+      "id": "fact_59",
+      "category": "unique",
+      "title": "Song of Songs Romance",
+      "description": "Song of Solomon celebrates romantic love between a husband and wife with beautiful poetry.",
+      "icon": "favorite",
+      "tags": ["Love", "Poetry"],
+      "didYouKnow": "It's also understood as an allegory of Christ's love for the church."
+    },
+    {
+      "id": "fact_60",
+      "category": "unique",
+      "title": "Seven Days of Creation",
+      "description": "Genesis 1 describes creation occurring over six days, with God resting on the seventh.",
+      "icon": "calendar_view_week",
+      "tags": ["Creation", "Genesis"],
+      "didYouKnow": "This established the seven-day week pattern still used worldwide."
+    },
+    {
+      "id": "fact_61",
+      "category": "unique",
+      "title": "Ten Commandments",
+      "description": "God gave Moses the Ten Commandments on Mount Sinai, written by God's own finger on stone tablets.",
+      "icon": "rule",
+      "tags": ["Law", "Moses"],
+      "didYouKnow": "Moses broke the first set in anger and God made a second set."
+    },
+    {
+      "id": "fact_62",
+      "category": "unique",
+      "title": "Twelve Tribes of Israel",
+      "description": "Jacob's twelve sons became the twelve tribes of Israel, though the listings vary slightly.",
+      "icon": "family_restroom",
+      "tags": ["Israel", "Tribes"],
+      "didYouKnow": "Joseph's two sons often replace him, keeping the count at twelve."
+    },
+    {
+      "id": "fact_63",
+      "category": "numbers",
+      "title": "40 Days and 40 Nights",
+      "description": "The number 40 appears frequently: rain during flood, Moses on mountain, Jesus' temptation, etc.",
+      "icon": "calendar_month",
+      "tags": ["Numbers", "Symbolism"],
+      "didYouKnow": "40 often represents a period of testing or judgment in the Bible."
+    },
+    {
+      "id": "fact_64",
+      "category": "numbers",
+      "title": "7 - Number of Completion",
+      "description": "The number 7 appears over 700 times in the Bible, symbolizing completion or perfection.",
+      "icon": "check_circle",
+      "tags": ["Numbers", "Seven"],
+      "didYouKnow": "There are 7 days of creation, 7 churches in Revelation, 7 seals, 7 trumpets."
+    },
+    {
+      "id": "fact_65",
+      "category": "numbers",
+      "title": "12 - Number of Government",
+      "description": "12 tribes, 12 apostles, 12 gates of heaven - representing God's government or authority.",
+      "icon": "admin_panel_settings",
+      "tags": ["Numbers", "Authority"],
+      "didYouKnow": "New Jerusalem has 12 foundations with the names of 12 apostles."
+    },
+    {
+      "id": "fact_66",
+      "category": "numbers",
+      "title": "3 - Number of Divine Completeness",
+      "description": "Trinity (Father, Son, Spirit), Jesus' 3-day resurrection, Peter's 3 denials.",
+      "icon": "looks_3",
+      "tags": ["Numbers", "Trinity"],
+      "didYouKnow": "Jesus asked Peter 'Do you love me?' three times to restore him."
+    },
+    {
+      "id": "fact_67",
+      "category": "people",
+      "title": "Abraham's Age at Isaac's Birth",
+      "description": "Abraham was 100 years old when Isaac was born, and Sarah was 90.",
+      "icon": "cake",
+      "tags": ["Abraham", "Miracle"],
+      "didYouKnow": "Sarah laughed when God promised her a son at her age."
+    },
+    {
+      "id": "fact_68",
+      "category": "people",
+      "title": "Moses' 120 Year Life",
+      "description": "Moses lived exactly 120 years - 40 years in Egypt, 40 in Midian, 40 leading Israel.",
+      "icon": "timeline",
+      "tags": ["Moses", "Life"],
+      "didYouKnow": "His eyes were not weak and his strength not gone when he died."
+    },
+    {
+      "id": "fact_69",
+      "category": "people",
+      "title": "Joseph's Dreams Came True",
+      "description": "Joseph's dreams of his brothers bowing to him came true when he became Egypt's second-in-command.",
+      "icon": "psychology",
+      "tags": ["Joseph", "Dreams"],
+      "didYouKnow": "He went from slave to ruler in one day after interpreting Pharaoh's dreams."
+    },
+    {
+      "id": "fact_70",
+      "category": "people",
+      "title": "Daniel in Lions' Den",
+      "description": "Daniel was thrown into a lions' den for praying to God, but God shut the lions' mouths.",
+      "icon": "pets",
+      "tags": ["Daniel", "Faith"],
+      "didYouKnow": "His accusers were thrown in next and immediately devoured."
+    },
+    {
+      "id": "fact_71",
+      "category": "people",
+      "title": "Jonah and the Great Fish",
+      "description": "Jonah was swallowed by a great fish for 3 days after running from God's call.",
+      "icon": "waves",
+      "tags": ["Jonah", "Obedience"],
+      "didYouKnow": "Jesus referenced Jonah as a sign of his own 3-day resurrection."
+    },
+    {
+      "id": "fact_72",
+      "category": "people",
+      "title": "Ruth's Loyalty",
+      "description": "Ruth chose to stay with her mother-in-law Naomi, becoming an ancestor of King David and Jesus.",
+      "icon": "volunteer_activism",
+      "tags": ["Ruth", "Loyalty"],
+      "didYouKnow": "She's one of only 5 women mentioned in Jesus' genealogy."
+    },
+    {
+      "id": "fact_73",
+      "category": "people",
+      "title": "Esther Saved Her People",
+      "description": "Queen Esther risked her life to save the Jewish people from genocide in Persia.",
+      "icon": "shield",
+      "tags": ["Esther", "Courage"],
+      "didYouKnow": "The Jewish festival of Purim celebrates this deliverance."
+    },
+    {
+      "id": "fact_74",
+      "category": "people",
+      "title": "Mary Magdalene First Witness",
+      "description": "Mary Magdalene was the first person to see Jesus after his resurrection.",
+      "icon": "visibility",
+      "tags": ["Resurrection", "Women"],
+      "didYouKnow": "In that culture, women's testimony wasn't accepted in court."
+    },
+    {
+      "id": "fact_75",
+      "category": "people",
+      "title": "Peter's Restoration",
+      "description": "After denying Jesus 3 times, Peter was restored when Jesus asked him 3 times 'Do you love me?'",
+      "icon": "refresh",
+      "tags": ["Peter", "Forgiveness"],
+      "didYouKnow": "Peter became the bold spokesman at Pentecost, leading 3,000 to Christ."
+    },
+    {
+      "id": "fact_76",
+      "category": "historical",
+      "title": "Early Church Persecution",
+      "description": "The early church faced severe persecution, yet grew from 120 to millions within 300 years.",
+      "icon": "trending_up",
+      "tags": ["Church", "Growth"],
+      "didYouKnow": "The blood of the martyrs became the seed of the church."
+    },
+    {
+      "id": "fact_77",
+      "category": "historical",
+      "title": "Council of Nicaea",
+      "description": "The Council of Nicaea in 325 AD affirmed the doctrine of the Trinity and produced the Nicene Creed.",
+      "icon": "groups",
+      "tags": ["Church History", "Doctrine"],
+      "didYouKnow": "Emperor Constantine called this first ecumenical council."
+    },
+    {
+      "id": "fact_78",
+      "category": "historical",
+      "title": "Destruction of the Temple",
+      "description": "The Jerusalem Temple was destroyed by Romans in 70 AD, just as Jesus predicted.",
+      "icon": "domain_disabled",
+      "tags": ["Prophecy", "Temple"],
+      "didYouKnow": "Not one stone was left on another, exactly as Jesus foretold."
+    },
+    {
+      "id": "fact_79",
+      "category": "historical",
+      "title": "Biblical Archaeology Confirms",
+      "description": "Archaeological discoveries have consistently confirmed biblical accounts, including the Pool of Siloam and Pontius Pilate's existence.",
+      "icon": "search",
+      "tags": ["Archaeology", "Evidence"],
+      "didYouKnow": "Over 25,000 sites show correlation with the Bible."
+    },
+    {
+      "id": "fact_80",
+      "category": "miracles",
+      "title": "Ten Plagues of Egypt",
+      "description": "God sent ten plagues on Egypt to convince Pharaoh to free the Israelites.",
+      "icon": "warning",
+      "tags": ["Exodus", "Plagues"],
+      "didYouKnow": "Each plague was a judgment on a specific Egyptian god."
+    },
+    {
+      "id": "fact_81",
+      "category": "miracles",
+      "title": "Manna From Heaven",
+      "description": "God provided bread from heaven (manna) for Israel in the wilderness for 40 years.",
+      "icon": "restaurant",
+      "tags": ["Provision", "Wilderness"],
+      "didYouKnow": "The manna tasted like wafers made with honey."
+    },
+    {
+      "id": "fact_82",
+      "category": "miracles",
+      "title": "Water From the Rock",
+      "description": "Moses struck a rock and water gushed out to provide for millions of Israelites.",
+      "icon": "water_drop",
+      "tags": ["Moses", "Provision"],
+      "didYouKnow": "Paul says this rock was Christ, providing spiritual water."
+    },
+    {
+      "id": "fact_83",
+      "category": "miracles",
+      "title": "Fiery Furnace Survival",
+      "description": "Shadrach, Meshach, and Abednego survived a fiery furnace so hot it killed the guards.",
+      "icon": "local_fire_department",
+      "tags": ["Daniel", "Faith"],
+      "didYouKnow": "A fourth person appeared with them in the fire, like 'a son of the gods.'"
+    },
+    {
+      "id": "fact_84",
+      "category": "miracles",
+      "title": "Widow's Oil Multiplied",
+      "description": "Elisha multiplied a widow's small jar of oil to fill all her vessels, saving her from debt.",
+      "icon": "oil_barrel",
+      "tags": ["Elisha", "Provision"],
+      "didYouKnow": "The oil stopped flowing only when she ran out of containers."
+    },
+    {
+      "id": "fact_85",
+      "category": "miracles",
+      "title": "Axe Head Floats",
+      "description": "Elisha made an iron axe head float on water after it fell into the Jordan River.",
+      "icon": "construction",
+      "tags": ["Elisha", "Power"],
+      "didYouKnow": "This showed God's care even for everyday problems."
+    },
+    {
+      "id": "fact_86",
+      "category": "prophecies",
+      "title": "Daniel's 70 Weeks",
+      "description": "Daniel 9 predicted the exact timing of Messiah's coming, 483 years after the decree to rebuild Jerusalem.",
+      "icon": "event",
+      "tags": ["Daniel", "Timing"],
+      "didYouKnow": "This is one of the most precise prophecies in Scripture."
+    },
+    {
+      "id": "fact_87",
+      "category": "prophecies",
+      "title": "Destruction of Tyre Predicted",
+      "description": "Ezekiel predicted Tyre would be destroyed and never rebuilt, which happened exactly as foretold.",
+      "icon": "location_city",
+      "tags": ["Ezekiel", "Cities"],
+      "didYouKnow": "Alexander the Great fulfilled this prophecy in 332 BC."
+    },
+    {
+      "id": "fact_88",
+      "category": "prophecies",
+      "title": "Israel's Regathering",
+      "description": "Multiple prophets predicted Israel would be scattered and regathered, fulfilled in 1948.",
+      "icon": "public",
+      "tags": ["Israel", "Modern"],
+      "didYouKnow": "After 2,000 years, Israel became a nation again in one day."
+    },
+    {
+      "id": "fact_89",
+      "category": "prophecies",
+      "title": "Born of David's Line",
+      "description": "Prophecies required the Messiah to be a descendant of King David, fulfilled through Mary and Joseph.",
+      "icon": "family_restroom",
+      "tags": ["Lineage", "David"],
+      "didYouKnow": "Both Matthew and Luke trace Jesus' genealogy to David."
+    },
+    {
+      "id": "fact_90",
+      "category": "languages",
+      "title": "Gothic Bible Translation",
+      "description": "Ulfilas created the Gothic alphabet to translate the Bible in the 4th century.",
+      "icon": "font_download",
+      "tags": ["Translation", "Gothic"],
+      "didYouKnow": "This was the first Bible translation for Germanic peoples."
+    },
+    {
+      "id": "fact_91",
+      "category": "languages",
+      "title": "Latin Vulgate",
+      "description": "Jerome's Latin Vulgate (405 AD) was the Catholic Church's official Bible for over 1,000 years.",
+      "icon": "history_edu",
+      "tags": ["Latin", "Translation"],
+      "didYouKnow": "Jerome translated directly from Hebrew and Greek, not just Greek."
+    },
+    {
+      "id": "fact_92",
+      "category": "languages",
+      "title": "English Bible History",
+      "description": "Over 900 English Bible translations exist, from Wycliffe (1382) to modern versions.",
+      "icon": "translate",
+      "tags": ["English", "History"],
+      "didYouKnow": "The Geneva Bible (1560) was the Pilgrims' Bible at Plymouth."
+    },
+    {
+      "id": "fact_93",
+      "category": "unique",
+      "title": "Longest Name in Bible",
+      "description": "Maher-shalal-hash-baz (Isaiah's son) has the longest name, meaning 'quick to plunder, swift to spoil.'",
+      "icon": "text_fields",
+      "tags": ["Names", "Records"],
+      "didYouKnow": "This name was itself a prophetic message about Assyria."
+    },
+    {
+      "id": "fact_94",
+      "category": "unique",
+      "title": "Shortest Book: 3 John",
+      "description": "3 John has only 14 verses and 299 words in Greek, making it the shortest book.",
+      "icon": "short_text",
+      "tags": ["Books", "Records"],
+      "didYouKnow": "2 John is the second shortest with only 13 verses."
+    },
+    {
+      "id": "fact_95",
+      "category": "unique",
+      "title": "Only Female Judge",
+      "description": "Deborah was the only female judge of Israel and led the nation to victory in battle.",
+      "icon": "gavel",
+      "tags": ["Deborah", "Women"],
+      "didYouKnow": "She judged Israel under a palm tree called Deborah's Palm."
+    },
+    {
+      "id": "fact_96",
+      "category": "unique",
+      "title": "Melchizedek Mystery",
+      "description": "Melchizedek appears only twice (Genesis 14, Hebrews 7) but is called a priest forever.",
+      "icon": "help",
+      "tags": ["Melchizedek", "Mystery"],
+      "didYouKnow": "He had no recorded beginning or end, typifying Christ's eternal priesthood."
+    },
+    {
+      "id": "fact_97",
+      "category": "unique",
+      "title": "Urim and Thummim",
+      "description": "These mysterious objects were used by high priests to determine God's will, but their exact nature is unknown.",
+      "icon": "casino",
+      "tags": ["Priesthood", "Mystery"],
+      "didYouKnow": "They were kept in the high priest's breastplate."
+    },
+    {
+      "id": "fact_98",
+      "category": "people",
+      "title": "Rahab the Heroine",
+      "description": "Rahab, a Canaanite prostitute, saved Israelite spies and became part of Jesus' lineage.",
+      "icon": "shield",
+      "tags": ["Rahab", "Grace"],
+      "didYouKnow": "She married Salmon and became the great-great-grandmother of David."
+    },
+    {
+      "id": "fact_99",
+      "category": "people",
+      "title": "Solomon's Wisdom",
+      "description": "God gave Solomon wisdom beyond all others. He wrote 3,000 proverbs and 1,005 songs.",
+      "icon": "psychology",
+      "tags": ["Solomon", "Wisdom"],
+      "didYouKnow": "People came from all nations to hear Solomon's wisdom."
+    },
+    {
+      "id": "fact_100",
+      "category": "people",
+      "title": "Paul's Conversion",
+      "description": "Saul of Tarsus persecuted Christians until Jesus appeared to him on the Damascus road.",
+      "icon": "change_circle",
+      "tags": ["Paul", "Conversion"],
+      "didYouKnow": "He was blind for 3 days until Ananias prayed for him."
+    },
+    {
+      "id": "fact_101",
+      "category": "miracles",
+      "title": "Jesus Healed the Blind",
+      "description": "Jesus healed many blind people, including a man blind from birth by putting mud on his eyes.",
+      "icon": "visibility",
+      "tags": ["Healing", "Miracles"],
+      "didYouKnow": "The man had to wash in the Pool of Siloam to receive his sight."
+    },
+    {
+      "id": "fact_102",
+      "category": "miracles",
+      "title": "Healing the Paralytic",
+      "description": "Four friends lowered a paralyzed man through a roof to Jesus, who forgave his sins and healed him.",
+      "icon": "accessible",
+      "tags": ["Faith", "Healing"],
+      "didYouKnow": "Jesus first forgave sins, then healed to prove he had authority to forgive."
+    },
+    {
+      "id": "fact_103",
+      "category": "miracles",
+      "title": "Woman with Issue of Blood",
+      "description": "A woman who bled for 12 years touched Jesus' garment and was instantly healed.",
+      "icon": "healing",
+      "tags": ["Faith", "Touch"],
+      "didYouKnow": "Jesus felt power leave him when she touched him in faith."
+    },
+    {
+      "id": "fact_104",
+      "category": "miracles",
+      "title": "Cursing the Fig Tree",
+      "description": "Jesus cursed a fig tree for not bearing fruit, and it withered immediately.",
+      "icon": "park",
+      "tags": ["Authority", "Judgment"],
+      "didYouKnow": "This symbolized judgment on Israel for not bearing spiritual fruit."
+    },
+    {
+      "id": "fact_105",
+      "category": "people",
+      "title": "John the Baptist's Message",
+      "description": "John baptized with water and prepared the way for Jesus, calling people to repent.",
+      "icon": "water",
+      "tags": ["John Baptist", "Preparation"],
+      "didYouKnow": "He said he wasn't worthy to untie Jesus' sandals."
+    },
+    {
+      "id": "fact_106",
+      "category": "people",
+      "title": "Nicodemus Visits at Night",
+      "description": "Nicodemus, a Pharisee, came to Jesus at night and learned about being born again.",
+      "icon": "dark_mode",
+      "tags": ["Nicodemus", "Teaching"],
+      "didYouKnow": "Jesus told him 'You must be born again' (John 3)."
+    },
+    {
+      "id": "fact_107",
+      "category": "people",
+      "title": "Woman at the Well",
+      "description": "Jesus talked with a Samaritan woman and revealed he knew about her five husbands.",
+      "icon": "water_drop",
+      "tags": ["Samaritan", "Living Water"],
+      "didYouKnow": "Jews normally didn't speak to Samaritans, especially women."
+    },
+    {
+      "id": "fact_108",
+      "category": "people",
+      "title": "Zacchaeus the Tax Collector",
+      "description": "Zacchaeus climbed a tree to see Jesus and was transformed, giving back what he stole.",
+      "icon": "forest",
+      "tags": ["Transformation", "Salvation"],
+      "didYouKnow": "He promised to give half his possessions to the poor."
+    },
+    {
+      "id": "fact_109",
+      "category": "people",
+      "title": "The Good Samaritan",
+      "description": "Jesus' parable shows a Samaritan helping a wounded Jew when religious leaders passed by.",
+      "icon": "volunteer_activism",
+      "tags": ["Parable", "Compassion"],
+      "didYouKnow": "This redefined who our 'neighbor' is."
+    },
+    {
+      "id": "fact_110",
+      "category": "people",
+      "title": "Prodigal Son Returns",
+      "description": "A rebellious son wasted his inheritance but was welcomed home by his forgiving father.",
+      "icon": "home",
+      "tags": ["Parable", "Forgiveness"],
+      "didYouKnow": "This illustrates God's joy when sinners repent."
+    },
+    {
+      "id": "fact_111",
+      "category": "numbers",
+      "title": "666 - Number of the Beast",
+      "description": "Revelation 13:18 identifies 666 as the number of the beast, representing imperfection.",
+      "icon": "warning",
+      "tags": ["Revelation", "Prophecy"],
+      "didYouKnow": "777 would be perfect (3x7), so 666 falls short three times."
+    },
+    {
+      "id": "fact_112",
+      "category": "numbers",
+      "title": "153 Fish Caught",
+      "description": "After the resurrection, disciples caught exactly 153 fish when Jesus told them where to cast nets.",
+      "icon": "phishing",
+      "tags": ["Resurrection", "Miracles"],
+      "didYouKnow": "The net didn't break despite this large catch."
+    },
+    {
+      "id": "fact_113",
+      "category": "numbers",
+      "title": "144,000 Sealed",
+      "description": "Revelation mentions 144,000 servants of God sealed from the 12 tribes (12,000 each).",
+      "icon": "verified_user",
+      "tags": ["Revelation", "Israel"],
+      "didYouKnow": "This represents complete protection of God's people."
+    },
+    {
+      "id": "fact_114",
+      "category": "historical",
+      "title": "First Century Christianity",
+      "description": "Christianity spread rapidly despite persecution, reaching from Jerusalem to Rome within 30 years.",
+      "icon": "travel_explore",
+      "tags": ["Early Church", "Expansion"],
+      "didYouKnow": "By 300 AD, about 10% of the Roman Empire was Christian."
+    },
+    {
+      "id": "fact_115",
+      "category": "historical",
+      "title": "Emperor Nero's Persecution",
+      "description": "Nero blamed Christians for Rome's fire in 64 AD and began severe persecutions.",
+      "icon": "local_fire_department",
+      "tags": ["Persecution", "Rome"],
+      "didYouKnow": "Peter and Paul were likely martyred during Nero's reign."
+    },
+    {
+      "id": "fact_116",
+      "category": "historical",
+      "title": "Constantine's Conversion",
+      "description": "Emperor Constantine legalized Christianity in 313 AD after seeing a cross in the sky before battle.",
+      "icon": "military_tech",
+      "tags": ["Rome", "Legalization"],
+      "didYouKnow": "He saw the words 'In this sign, conquer' with the cross."
+    },
+    {
+      "id": "fact_117",
+      "category": "historical",
+      "title": "Monks Preserved Scripture",
+      "description": "Medieval monks hand-copied Bible manuscripts, preserving Scripture for future generations.",
+      "icon": "draw",
+      "tags": ["Manuscripts", "Preservation"],
+      "didYouKnow": "It took about a year to copy one complete Bible by hand."
+    },
+    {
+      "id": "fact_118",
+      "category": "prophecies",
+      "title": "Cyrus Named 150 Years Early",
+      "description": "Isaiah prophesied Cyrus would decree Jerusalem's rebuilding, 150 years before Cyrus was born.",
+      "icon": "account_circle",
+      "tags": ["Isaiah", "Persia"],
+      "didYouKnow": "Isaiah even named Cyrus specifically in the prophecy."
+    },
+    {
+      "id": "fact_119",
+      "category": "prophecies",
+      "title": "Jesus Born in Bethlehem",
+      "description": "Micah predicted the Messiah's birthplace 700 years before Jesus was born there.",
+      "icon": "place",
+      "tags": ["Micah", "Birth"],
+      "didYouKnow": "Mary and Joseph were only in Bethlehem because of a census."
+    },
+    {
+      "id": "fact_120",
+      "category": "prophecies",
+      "title": "Messiah Rides a Donkey",
+      "description": "Zechariah prophesied the king would come riding on a donkey, fulfilled on Palm Sunday.",
+      "icon": "pets",
+      "tags": ["Zechariah", "Entry"],
+      "didYouKnow": "This showed he came in peace, not war (kings rode horses for war)."
+    },
+    {
+      "id": "fact_121",
+      "category": "unique",
+      "title": "Acrostic Psalms",
+      "description": "Several Psalms (like 119) are acrostics, with verses starting with successive Hebrew letters.",
+      "icon": "sort_by_alpha",
+      "tags": ["Psalms", "Poetry"],
+      "didYouKnow": "Psalm 119 has 22 sections, one for each Hebrew letter."
+    },
+    {
+      "id": "fact_122",
+      "category": "unique",
+      "title": "Book of Job Poetry",
+      "description": "Most of Job (chapters 3-41) is written in Hebrew poetry, among the oldest in the world.",
+      "icon": "menu_book",
+      "tags": ["Job", "Poetry"],
+      "didYouKnow": "Only the prologue and epilogue are in prose."
+    },
+    {
+      "id": "fact_123",
+      "category": "unique",
+      "title": "Chiastic Structure",
+      "description": "Many biblical passages use chiasmus (ABBA pattern) for emphasis and memory.",
+      "icon": "sync_alt",
+      "tags": ["Structure", "Literary"],
+      "didYouKnow": "The entire Gospel of John is arranged in a giant chiasm."
+    },
+    {
+      "id": "fact_124",
+      "category": "languages",
+      "title": "Peshitta Syriac Version",
+      "description": "The Peshitta is a Syriac Bible translation from the 2nd century, still used by Eastern churches.",
+      "icon": "church",
+      "tags": ["Syriac", "Translation"],
+      "didYouKnow": "Syriac is a dialect of Aramaic, Jesus' language."
+    },
+    {
+      "id": "fact_125",
+      "category": "languages",
+      "title": "Coptic Bible Translation",
+      "description": "The Bible was translated into Coptic (Egyptian) in the 2nd century for Egyptian Christians.",
+      "icon": "translate",
+      "tags": ["Coptic", "Egypt"],
+      "didYouKnow": "These are some of the oldest Bible translations."
+    },
+    {
+      "id": "fact_126",
+      "category": "people",
+      "title": "Barnabas the Encourager",
+      "description": "Barnabas ('son of encouragement') vouched for Paul when others feared him.",
+      "icon": "support",
+      "tags": ["Barnabas", "Encouragement"],
+      "didYouKnow": "He sold his land to help the early church."
+    },
+    {
+      "id": "fact_127",
+      "category": "people",
+      "title": "Timothy, Paul's Son in Faith",
+      "description": "Timothy was mentored by Paul and became a pastor at a young age.",
+      "icon": "school",
+      "tags": ["Timothy", "Ministry"],
+      "didYouKnow": "Paul wrote two letters to him that are in the Bible."
+    },
+    {
+      "id": "fact_128",
+      "category": "people",
+      "title": "Lydia, First European Convert",
+      "description": "Lydia, a businesswoman from Thyatira, was the first person converted in Europe.",
+      "icon": "store",
+      "tags": ["Lydia", "Acts"],
+      "didYouKnow": "She sold purple cloth, an expensive luxury item."
+    },
+    {
+      "id": "fact_129",
+      "category": "people",
+      "title": "Priscilla and Aquila",
+      "description": "This tent-making couple taught Apollos and hosted a church in their home.",
+      "icon": "groups",
+      "tags": ["Ministry Team", "Church"],
+      "didYouKnow": "Priscilla is often mentioned first, suggesting she was prominent."
+    },
+    {
+      "id": "fact_130",
+      "category": "people",
+      "title": "Stephen, First Martyr",
+      "description": "Stephen was stoned to death for his faith, becoming Christianity's first martyr.",
+      "icon": "shield",
+      "tags": ["Stephen", "Martyr"],
+      "didYouKnow": "Saul (Paul) watched and approved of his stoning."
+    },
+    {
+      "id": "fact_131",
+      "category": "people",
+      "title": "Philip the Evangelist",
+      "description": "Philip preached in Samaria and baptized the Ethiopian eunuch.",
+      "icon": "campaign",
+      "tags": ["Philip", "Evangelism"],
+      "didYouKnow": "He had four daughters who prophesied."
+    },
+    {
+      "id": "fact_132",
+      "category": "miracles",
+      "title": "Pentecost Tongues of Fire",
+      "description": "The Holy Spirit descended on 120 believers with tongues of fire and they spoke in other languages.",
+      "icon": "local_fire_department",
+      "tags": ["Pentecost", "Holy Spirit"],
+      "didYouKnow": "People from every nation understood them in their own language."
+    },
+    {
+      "id": "fact_133",
+      "category": "miracles",
+      "title": "Peter's Shadow Healed",
+      "description": "People were healed just by Peter's shadow falling on them as he passed by.",
+      "icon": "bedtime",
+      "tags": ["Peter", "Power"],
+      "didYouKnow": "The sick were laid in the streets hoping for this."
+    },
+    {
+      "id": "fact_134",
+      "category": "miracles",
+      "title": "Paul's Handkerchiefs Healed",
+      "description": "Handkerchiefs that touched Paul were used to heal the sick and cast out demons.",
+      "icon": "health_and_safety",
+      "tags": ["Paul", "Healing"],
+      "didYouKnow": "This happened during Paul's ministry in Ephesus."
+    },
+    {
+      "id": "fact_135",
+      "category": "miracles",
+      "title": "Peter Raised Tabitha",
+      "description": "Peter raised Tabitha (Dorcas) from the dead in Joppa.",
+      "icon": "healing",
+      "tags": ["Peter", "Resurrection"],
+      "didYouKnow": "She was known for making clothes for widows."
+    },
+    {
+      "id": "fact_136",
+      "category": "miracles",
+      "title": "Paul Survived Snake Bite",
+      "description": "A poisonous snake bit Paul on Malta, but he shook it off and suffered no harm.",
+      "icon": "pets",
+      "tags": ["Paul", "Protection"],
+      "didYouKnow": "The islanders first thought he was a murderer, then a god."
+    },
+    {
+      "id": "fact_137",
+      "category": "miracles",
+      "title": "Prison Doors Opened",
+      "description": "An angel opened prison doors and freed the apostles during the night.",
+      "icon": "lock_open",
+      "tags": ["Prison", "Angels"],
+      "didYouKnow": "The guards found the doors locked but the prison empty."
+    },
+    {
+      "id": "fact_138",
+      "category": "miracles",
+      "title": "Eutychus Fell from Window",
+      "description": "Eutychus fell from a third-story window during Paul's long sermon and died, but Paul raised him.",
+      "icon": "window",
+      "tags": ["Paul", "Resurrection"],
+      "didYouKnow": "He fell asleep during the sermon and fell out the window."
+    },
+    {
+      "id": "fact_139",
+      "category": "historical",
+      "title": "Papyrus Manuscripts",
+      "description": "Most ancient New Testament manuscripts were written on papyrus, made from reeds.",
+      "icon": "article",
+      "tags": ["Manuscripts", "Ancient"],
+      "didYouKnow": "Papyrus degrades quickly except in very dry climates like Egypt."
+    },
+    {
+      "id": "fact_140",
+      "category": "historical",
+      "title": "Codex Over Scroll",
+      "description": "Christians pioneered the use of codex (book form) over scrolls in the 2nd century.",
+      "icon": "menu_book",
+      "tags": ["Books", "Innovation"],
+      "didYouKnow": "This made it easier to find specific passages quickly."
+    },
+    {
+      "id": "fact_141",
+      "category": "historical",
+      "title": "Council of Jerusalem",
+      "description": "The first church council (Acts 15) decided Gentiles didn't need to become Jews first.",
+      "icon": "gavel",
+      "tags": ["Church", "Council"],
+      "didYouKnow": "This was crucial for Christianity spreading beyond Judaism."
+    },
+    {
+      "id": "fact_142",
+      "category": "prophecies",
+      "title": "Scattered Among Nations",
+      "description": "Deuteronomy predicted Jews would be scattered among all nations, fulfilled multiple times.",
+      "icon": "public",
+      "tags": ["Israel", "Diaspora"],
+      "didYouKnow": "This happened in 586 BC, 70 AD, and 135 AD."
+    },
+    {
+      "id": "fact_143",
+      "category": "prophecies",
+      "title": "Rachel Weeping Prophecy",
+      "description": "Jeremiah prophesied Rachel weeping for her children, fulfilled in Herod's massacre.",
+      "icon": "child_care",
+      "tags": ["Jeremiah", "Herod"],
+      "didYouKnow": "Herod killed all boys under 2 in Bethlehem trying to kill Jesus."
+    },
+    {
+      "id": "fact_144",
+      "category": "prophecies",
+      "title": "Called Out of Egypt",
+      "description": "Hosea prophesied 'Out of Egypt I called my son,' fulfilled when Jesus returned from Egypt.",
+      "icon": "flight_land",
+      "tags": ["Hosea", "Egypt"],
+      "didYouKnow": "Joseph and Mary fled to Egypt to escape Herod."
+    },
+    {
+      "id": "fact_145",
+      "category": "unique",
+      "title": "Four Gospels, One Story",
+      "description": "Matthew, Mark, Luke, and John tell Jesus' story from different perspectives.",
+      "icon": "auto_stories",
+      "tags": ["Gospels", "Jesus"],
+      "didYouKnow": "Matthew wrote for Jews, Mark for Romans, Luke for Greeks, John for everyone."
+    },
+    {
+      "id": "fact_146",
+      "category": "unique",
+      "title": "Gospel Symbols",
+      "description": "The four Gospels are symbolized by man (Matthew), lion (Mark), ox (Luke), eagle (John).",
+      "icon": "pets",
+      "tags": ["Gospels", "Symbols"],
+      "didYouKnow": "These come from Ezekiel's vision of four living creatures."
+    },
+    {
+      "id": "fact_147",
+      "category": "unique",
+      "title": "Synoptic Gospels",
+      "description": "Matthew, Mark, and Luke are called synoptic ('seeing together') because of their similar viewpoints.",
+      "icon": "remove_red_eye",
+      "tags": ["Gospels", "Similarity"],
+      "didYouKnow": "John's Gospel is quite different, focusing on Jesus' divine nature."
+    },
+    {
+      "id": "fact_148",
+      "category": "numbers",
+      "title": "10 Plagues of Egypt",
+      "description": "God sent 10 specific plagues on Egypt: blood, frogs, gnats, flies, livestock disease, boils, hail, locusts, darkness, firstborn death.",
+      "icon": "pest_control",
+      "tags": ["Exodus", "Plagues"],
+      "didYouKnow": "Each plague targeted a specific Egyptian god."
+    },
+    {
+      "id": "fact_149",
+      "category": "numbers",
+      "title": "8 People on the Ark",
+      "description": "Only Noah, his wife, his 3 sons, and their wives (8 people total) survived the flood.",
+      "icon": "groups",
+      "tags": ["Noah", "Flood"],
+      "didYouKnow": "All people alive today descended from these 8 people."
+    },
+    {
+      "id": "fact_150",
+      "category": "numbers",
+      "title": "70 Disciples Sent Out",
+      "description": "Jesus sent out 70 (or 72) disciples in pairs to preach and heal.",
+      "icon": "send",
+      "tags": ["Disciples", "Mission"],
+      "didYouKnow": "This represented all the nations of the world (70 nations in Genesis 10)."
+    },
+    {
+      "id": "fact_151",
+      "category": "people",
+      "title": "Mary and Martha",
+      "description": "These sisters were Jesus' friends. Mary sat at Jesus' feet while Martha served.",
+      "icon": "group",
+      "tags": ["Friendship", "Service"],
+      "didYouKnow": "Jesus said Mary chose the better part by learning from him."
+    },
+    {
+      "id": "fact_152",
+      "category": "people",
+      "title": "Lazarus, Friend of Jesus",
+      "description": "Lazarus was raised from the dead after being in the tomb 4 days.",
+      "icon": "favorite",
+      "tags": ["Lazarus", "Miracle"],
+      "didYouKnow": "This miracle convinced many to believe in Jesus."
+    },
+    {
+      "id": "fact_153",
+      "category": "people",
+      "title": "Thomas Doubted",
+      "description": "Thomas doubted Jesus' resurrection until he saw and touched Jesus' wounds.",
+      "icon": "touch_app",
+      "tags": ["Thomas", "Faith"],
+      "didYouKnow": "Jesus said 'Blessed are those who haven't seen yet believe.'"
+    },
+    {
+      "id": "fact_154",
+      "category": "people",
+      "title": "John, the Beloved",
+      "description": "John was the disciple whom Jesus loved, the only apostle not martyred.",
+      "icon": "favorite",
+      "tags": ["John", "Love"],
+      "didYouKnow": "He lived to old age and wrote 5 New Testament books."
+    },
+    {
+      "id": "fact_155",
+      "category": "people",
+      "title": "James and John, Sons of Thunder",
+      "description": "Jesus nicknamed James and John 'Boanerges' (Sons of Thunder) for their fiery personalities.",
+      "icon": "bolt",
+      "tags": ["James", "John"],
+      "didYouKnow": "They wanted to call fire down on a Samaritan village."
+    },
+    {
+      "id": "fact_156",
+      "category": "people",
+      "title": "Matthew the Tax Collector",
+      "description": "Matthew left his lucrative tax collecting job immediately when Jesus called him.",
+      "icon": "receipt",
+      "tags": ["Matthew", "Calling"],
+      "didYouKnow": "Tax collectors were hated as traitors working for Rome."
+    },
+    {
+      "id": "fact_157",
+      "category": "people",
+      "title": "Simon the Zealot",
+      "description": "Simon was a Zealot, part of a radical group that wanted to overthrow Rome.",
+      "icon": "gavel",
+      "tags": ["Simon", "Politics"],
+      "didYouKnow": "He was on the opposite side politically from Matthew the tax collector."
+    },
+    {
+      "id": "fact_158",
+      "category": "people",
+      "title": "Judas Iscariot's Betrayal",
+      "description": "Judas betrayed Jesus for 30 silver coins, then hanged himself in remorse.",
+      "icon": "payments",
+      "tags": ["Judas", "Betrayal"],
+      "didYouKnow": "The field bought with the betrayal money was called Field of Blood."
+    },
+    {
+      "id": "fact_159",
+      "category": "people",
+      "title": "Pontius Pilate",
+      "description": "Pilate was the Roman governor who sentenced Jesus to death despite finding no fault in him.",
+      "icon": "gavel",
+      "tags": ["Pilate", "Crucifixion"],
+      "didYouKnow": "He washed his hands symbolically to show he wasn't responsible."
+    },
+    {
+      "id": "fact_160",
+      "category": "people",
+      "title": "Barabbas Released",
+      "description": "Pilate released Barabbas, a murderer, instead of Jesus at the crowd's demand.",
+      "icon": "lock_open",
+      "tags": ["Barabbas", "Substitution"],
+      "didYouKnow": "This illustrates how Christ died in our place."
+    },
+    {
+      "id": "fact_161",
+      "category": "people",
+      "title": "Simon of Cyrene",
+      "description": "Simon was forced to carry Jesus' cross when Jesus was too weak.",
+      "icon": "work",
+      "tags": ["Cross", "Service"],
+      "didYouKnow": "His sons Alexander and Rufus later became known in the church."
+    },
+    {
+      "id": "fact_162",
+      "category": "people",
+      "title": "Joseph of Arimathea",
+      "description": "This wealthy secret disciple provided his own tomb for Jesus' burial.",
+      "icon": "church",
+      "tags": ["Burial", "Disciple"],
+      "didYouKnow": "He was a member of the Sanhedrin who didn't agree with condemning Jesus."
+    },
+    {
+      "id": "fact_163",
+      "category": "people",
+      "title": "Nicodemus Helped Bury Jesus",
+      "description": "Nicodemus brought 75 pounds of myrrh and aloes for Jesus' burial.",
+      "icon": "volunteer_activism",
+      "tags": ["Nicodemus", "Burial"],
+      "didYouKnow": "This was an extremely expensive gift showing great devotion."
+    },
+    {
+      "id": "fact_164",
+      "category": "people",
+      "title": "Caiaphas the High Priest",
+      "description": "Caiaphas presided over Jesus' illegal trial and pushed for his crucifixion.",
+      "icon": "person",
+      "tags": ["Trial", "High Priest"],
+      "didYouKnow": "He unknowingly prophesied that Jesus would die for the nation."
+    },
+    {
+      "id": "fact_165",
+      "category": "people",
+      "title": "Annas, Former High Priest",
+      "description": "Annas was Caiaphas' father-in-law and still wielded great power.",
+      "icon": "elderly",
+      "tags": ["Trial", "Power"],
+      "didYouKnow": "Jesus was brought to Annas first before the official trial."
+    },
+    {
+      "id": "fact_166",
+      "category": "miracles",
+      "title": "Darkness at Crucifixion",
+      "description": "Darkness covered the land from noon to 3 PM when Jesus was crucified.",
+      "icon": "dark_mode",
+      "tags": ["Crucifixion", "Signs"],
+      "didYouKnow": "This couldn't have been an eclipse, as Passover is at full moon."
+    },
+    {
+      "id": "fact_167",
+      "category": "miracles",
+      "title": "Temple Curtain Torn",
+      "description": "The massive temple curtain tore in two from top to bottom when Jesus died.",
+      "icon": "splitscreen",
+      "tags": ["Temple", "Access"],
+      "didYouKnow": "This symbolized direct access to God through Christ."
+    },
+    {
+      "id": "fact_168",
+      "category": "miracles",
+      "title": "Earthquake at Death",
+      "description": "An earthquake occurred when Jesus died, splitting rocks and opening tombs.",
+      "icon": "waves",
+      "tags": ["Crucifixion", "Signs"],
+      "didYouKnow": "Saints were raised and appeared to many in Jerusalem."
+    },
+    {
+      "id": "fact_169",
+      "category": "miracles",
+      "title": "Guards at the Tomb",
+      "description": "Roman soldiers guarding Jesus' tomb saw an angel and became like dead men from fear.",
+      "icon": "security",
+      "tags": ["Resurrection", "Angels"],
+      "didYouKnow": "They were bribed to say disciples stole the body."
+    },
+    {
+      "id": "fact_170",
+      "category": "miracles",
+      "title": "Emmaus Road Appearance",
+      "description": "Jesus walked with two disciples for miles, explaining Scripture, before revealing himself.",
+      "icon": "directions_walk",
+      "tags": ["Resurrection", "Teaching"],
+      "didYouKnow": "Their hearts burned within them as he taught."
+    },
+    {
+      "id": "fact_171",
+      "category": "miracles",
+      "title": "Jesus Ascends to Heaven",
+      "description": "Jesus ascended into heaven in a cloud 40 days after resurrection.",
+      "icon": "cloud",
+      "tags": ["Ascension", "Heaven"],
+      "didYouKnow": "Angels promised he would return the same way."
+    },
+    {
+      "id": "fact_172",
+      "category": "historical",
+      "title": "Apostle Paul's Journeys",
+      "description": "Paul traveled over 10,000 miles on three missionary journeys throughout the Roman Empire.",
+      "icon": "flight",
+      "tags": ["Paul", "Missions"],
+      "didYouKnow": "He planted churches in major cities throughout Asia Minor and Greece."
+    },
+    {
+      "id": "fact_173",
+      "category": "historical",
+      "title": "Paul Shipwrecked",
+      "description": "Paul was shipwrecked three times and spent a night and day in the open sea.",
+      "icon": "sailing",
+      "tags": ["Paul", "Hardship"],
+      "didYouKnow": "His final shipwreck on Malta is recorded in Acts 27."
+    },
+    {
+      "id": "fact_174",
+      "category": "historical",
+      "title": "Paul Beaten Five Times",
+      "description": "Paul received the 39 lashes (40 minus 1) five times from Jewish authorities.",
+      "icon": "healing",
+      "tags": ["Paul", "Suffering"],
+      "didYouKnow": "He was also beaten with rods three times and stoned once."
+    },
+    {
+      "id": "fact_175",
+      "category": "historical",
+      "title": "Paul in Prison",
+      "description": "Paul wrote Ephesians, Philippians, Colossians, and Philemon while imprisoned in Rome.",
+      "icon": "edit",
+      "tags": ["Paul", "Prison"],
+      "didYouKnow": "These are called the 'Prison Epistles.'"
+    },
+    {
+      "id": "fact_176",
+      "category": "prophecies",
+      "title": "Triumphal Entry Predicted",
+      "description": "Zechariah predicted the king would come to Jerusalem riding on a donkey, fulfilled on Palm Sunday.",
+      "icon": "celebration",
+      "tags": ["Zechariah", "Palm Sunday"],
+      "didYouKnow": "The crowd waved palm branches and shouted 'Hosanna.'"
+    },
+    {
+      "id": "fact_177",
+      "category": "prophecies",
+      "title": "Sold for Silver",
+      "description": "Zechariah prophesied the Messiah would be valued at 30 pieces of silver.",
+      "icon": "sell",
+      "tags": ["Zechariah", "Betrayal"],
+      "didYouKnow": "This was the price of a slave in that time."
+    },
+    {
+      "id": "fact_178",
+      "category": "prophecies",
+      "title": "Potter's Field Prophecy",
+      "description": "Zechariah predicted the silver would be thrown to the potter in God's house.",
+      "icon": "home_work",
+      "tags": ["Zechariah", "Fulfillment"],
+      "didYouKnow": "The priests bought a potter's field with Judas' returned silver."
+    },
+    {
+      "id": "fact_179",
+      "category": "prophecies",
+      "title": "Pierced Hands and Feet",
+      "description": "Psalm 22 predicted piercing of hands and feet centuries before crucifixion was invented.",
+      "icon": "healing",
+      "tags": ["Psalm", "Cross"],
+      "didYouKnow": "This Psalm also predicted casting lots for his clothing."
+    },
+    {
+      "id": "fact_180",
+      "category": "prophecies",
+      "title": "Gall and Vinegar",
+      "description": "Psalm 69 predicted they would give the Messiah gall and vinegar to drink.",
+      "icon": "local_drink",
+      "tags": ["Psalm", "Suffering"],
+      "didYouKnow": "This happened while Jesus was on the cross."
+    },
+    {
+      "id": "fact_181",
+      "category": "unique",
+      "title": "The Lord's Prayer",
+      "description": "Jesus taught his disciples a model prayer covering worship, provision, forgiveness, and protection.",
+      "icon": "favorite",
+      "tags": ["Prayer", "Teaching"],
+      "didYouKnow": "It appears in both Matthew and Luke with slight variations."
+    },
+    {
+      "id": "fact_182",
+      "category": "unique",
+      "title": "Beatitudes",
+      "description": "Jesus began the Sermon on the Mount with 8 blessings, called the Beatitudes.",
+      "icon": "auto_awesome",
+      "tags": ["Sermon", "Blessings"],
+      "didYouKnow": "They describe the character of citizens of God's kingdom."
+    },
+    {
+      "id": "fact_183",
+      "category": "unique",
+      "title": "Great Commission",
+      "description": "Jesus' final command was to make disciples of all nations, baptizing and teaching them.",
+      "icon": "public",
+      "tags": ["Mission", "Command"],
+      "didYouKnow": "He promised to be with us always, even to the end of the age."
+    },
+    {
+      "id": "fact_184",
+      "category": "unique",
+      "title": "Golden Rule",
+      "description": "Jesus taught 'Do to others what you want them to do to you' (Matthew 7:12).",
+      "icon": "balance",
+      "tags": ["Ethics", "Teaching"],
+      "didYouKnow": "This summarizes the Law and the Prophets."
+    },
+    {
+      "id": "fact_185",
+      "category": "unique",
+      "title": "Greatest Commandment",
+      "description": "Jesus said the greatest commands are to love God completely and love your neighbor as yourself.",
+      "icon": "favorite",
+      "tags": ["Love", "Command"],
+      "didYouKnow": "All other commands hang on these two."
+    },
+    {
+      "id": "fact_186",
+      "category": "unique",
+      "title": "New Commandment",
+      "description": "Jesus gave a new command: 'Love one another as I have loved you.'",
+      "icon": "volunteer_activism",
+      "tags": ["Love", "Discipleship"],
+      "didYouKnow": "By this love, everyone would know they were his disciples."
+    },
+    {
+      "id": "fact_187",
+      "category": "languages",
+      "title": "Ethiopic Bible",
+      "description": "Ethiopia has one of the oldest Christian traditions, with Bible translation in the 4th century.",
+      "icon": "language",
+      "tags": ["Ethiopian", "Ancient"],
+      "didYouKnow": "The Ethiopian eunuch in Acts was an early convert."
+    },
+    {
+      "id": "fact_188",
+      "category": "languages",
+      "title": "Armenian Bible",
+      "description": "Armenia was the first nation to officially adopt Christianity (301 AD) and translated the Bible.",
+      "icon": "flag",
+      "tags": ["Armenian", "Nation"],
+      "didYouKnow": "Their alphabet was created specifically for Bible translation."
+    },
+    {
+      "id": "fact_189",
+      "category": "languages",
+      "title": "Bible in Braille",
+      "description": "The Bible was translated into Braille by Louis Braille himself in the 1800s.",
+      "icon": "accessibility",
+      "tags": ["Braille", "Accessibility"],
+      "didYouKnow": "This made Scripture accessible to the blind worldwide."
+    },
+    {
+      "id": "fact_190",
+      "category": "languages",
+      "title": "Sign Language Bibles",
+      "description": "The Bible has been translated into many sign languages for deaf communities.",
+      "icon": "sign_language",
+      "tags": ["Sign Language", "Deaf"],
+      "didYouKnow": "Each sign language is unique, not universal."
+    },
+    {
+      "id": "fact_191",
+      "category": "numbers",
+      "title": "500 Witnesses to Resurrection",
+      "description": "Paul records that Jesus appeared to over 500 people at once after his resurrection.",
+      "icon": "groups",
+      "tags": ["Resurrection", "Witnesses"],
+      "didYouKnow": "Most were still alive when Paul wrote this (1 Corinthians 15:6)."
+    },
+    {
+      "id": "fact_192",
+      "category": "numbers",
+      "title": "3,000 Saved at Pentecost",
+      "description": "About 3,000 people were baptized and added to the church on the day of Pentecost.",
+      "icon": "people",
+      "tags": ["Pentecost", "Growth"],
+      "didYouKnow": "This was after Peter's first sermon filled with the Holy Spirit."
+    },
+    {
+      "id": "fact_193",
+      "category": "numbers",
+      "title": "5,000 Men Believed",
+      "description": "After healing the lame beggar, about 5,000 men believed (Acts 4:4).",
+      "icon": "trending_up",
+      "tags": ["Growth", "Early Church"],
+      "didYouKnow": "This doesn't count women and children, so total was much higher."
+    },
+    {
+      "id": "fact_194",
+      "category": "people",
+      "title": "Ananias and Sapphira",
+      "description": "This couple lied to the Holy Spirit about their giving and both dropped dead.",
+      "icon": "warning",
+      "tags": ["Judgment", "Honesty"],
+      "didYouKnow": "Great fear came upon the whole church after this."
+    },
+    {
+      "id": "fact_195",
+      "category": "people",
+      "title": "Cornelius, First Gentile Convert",
+      "description": "Cornelius, a Roman centurion, and his household were the first Gentiles to receive the Holy Spirit.",
+      "icon": "military_tech",
+      "tags": ["Cornelius", "Gentiles"],
+      "didYouKnow": "Peter saw a vision of unclean animals before meeting him."
+    },
+    {
+      "id": "fact_196",
+      "category": "people",
+      "title": "Gamaliel's Wise Counsel",
+      "description": "Gamaliel, a respected Pharisee, advised not to fight against God by persecuting Christians.",
+      "icon": "psychology",
+      "tags": ["Gamaliel", "Wisdom"],
+      "didYouKnow": "He was Paul's teacher before Paul's conversion."
+    },
+    {
+      "id": "fact_197",
+      "category": "people",
+      "title": "Agabus Prophesied Famine",
+      "description": "Agabus accurately prophesied a great famine coming to the Roman world.",
+      "icon": "warning",
+      "tags": ["Agabus", "Prophecy"],
+      "didYouKnow": "He later prophesied Paul's imprisonment in Jerusalem."
+    },
+    {
+      "id": "fact_198",
+      "category": "people",
+      "title": "Herod Agrippa Struck Down",
+      "description": "King Herod Agrippa was eaten by worms and died for accepting worship as a god.",
+      "icon": "dangerous",
+      "tags": ["Herod", "Judgment"],
+      "didYouKnow": "He had just killed James the apostle before this."
+    },
+    {
+      "id": "fact_199",
+      "category": "people",
+      "title": "Aquila and Priscilla Risked Lives",
+      "description": "This couple risked their lives for Paul, and all Gentile churches were grateful.",
+      "icon": "volunteer_activism",
+      "tags": ["Courage", "Service"],
+      "didYouKnow": "They corrected Apollos' incomplete understanding of Jesus."
+    },
+    {
+      "id": "fact_200",
+      "category": "people",
+      "title": "Onesimus the Slave",
+      "description": "Onesimus ran away from Philemon but was converted and sent back as a brother.",
+      "icon": "person",
+      "tags": ["Onesimus", "Transformation"],
+      "didYouKnow": "Paul wrote Philemon's letter asking him to receive Onesimus back."
     }
   ],
   "metadata": {
     "version": "1.0",
-    "totalFacts": 32,
+    "totalFacts": 200,
     "lastUpdated": "2025-10-26",
     "description": "Verified Bible facts across 8 categories"
   }
