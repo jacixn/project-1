@@ -11,6 +11,7 @@ import {
   StatusBar,
   Animated,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import BibleTimeline from './BibleTimeline';
 import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
+import BibleFastFacts from './BibleFastFacts';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
 const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
@@ -66,17 +68,17 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
       >
         <LinearGradient
           colors={isDark ? 
-            [`${section.color}40`, `${section.color}25`, `${section.color}15`] :
-            [`${section.color}35`, `${section.color}20`, `${section.color}10`]
+            [`${section.color}FF`, `${section.color}CC`, `${section.color}99`] :
+            [`${section.color}FF`, `${section.color}CC`, `${section.color}99`]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.sectionGradient}
         >
           <View style={[styles.sectionIconContainer, { 
-            backgroundColor: isDark ? `${section.color}50` : `${section.color}45`,
+            backgroundColor: isDark ? `${section.color}FF` : `${section.color}FF`,
             borderWidth: 2,
-            borderColor: isDark ? `${section.color}70` : `${section.color}60`,
+            borderColor: isDark ? `${section.color}FF` : `${section.color}FF`,
             shadowColor: section.color,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.3,
@@ -98,7 +100,7 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
           
           <View style={styles.sectionContent}>
             <Text style={[styles.sectionTitle, { 
-              color: isDark ? '#FFFFFF' : '#1A1A1A',
+              color: '#FFFFFF',
               fontWeight: '800',
               fontSize: 18,
               letterSpacing: -0.3
@@ -106,7 +108,7 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
               {section.title}
             </Text>
             <Text style={[styles.sectionDescription, { 
-              color: isDark ? '#E0E0E0' : '#4A4A4A',
+              color: '#FFFFFF',
               fontWeight: '500',
               fontSize: 14,
               lineHeight: 20
@@ -117,12 +119,12 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
             <View style={styles.featuresContainer}>
               {section.features.slice(0, 2).map((feature, idx) => (
                 <View key={idx} style={[styles.featureTag, {
-                  backgroundColor: isDark ? `${section.color}30` : `${section.color}25`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
                   borderWidth: 1,
-                  borderColor: isDark ? `${section.color}50` : `${section.color}40`,
+                  borderColor: 'rgba(255, 255, 255, 0.4)',
                 }]}>
                   <Text style={[styles.featureText, { 
-                    color: section.color,
+                    color: '#FFFFFF',
                     fontWeight: '700',
                     fontSize: 12,
                     letterSpacing: 0.2
@@ -473,16 +475,20 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 
 
 const BibleStudyModal = ({ visible, onClose }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isAscendTheme, isClutchTheme, isSailormoonTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [showTimeline, setShowTimeline] = useState(false);
   
+  // Ref for character detail ScrollView
+  const characterDetailScrollRef = useRef(null);
+  
   // Character data state
   const [characterProfiles, setCharacterProfiles] = useState({});
   const [characterGroups, setCharacterGroups] = useState([]);
   const [charactersLoading, setCharactersLoading] = useState(true);
+  const [charactersRefreshing, setCharactersRefreshing] = useState(false);
   
   // Modal overlay states for each section
   const [showTimelineModal, setShowTimelineModal] = useState(false);
@@ -548,6 +554,51 @@ const BibleStudyModal = ({ visible, onClose }) => {
     loadCharacterData();
   }, []);
 
+  // Scroll to top when character is selected
+  useEffect(() => {
+    if (selectedCharacter && characterDetailScrollRef.current) {
+      characterDetailScrollRef.current.scrollTo({ y: 0, animated: false });
+    }
+  }, [selectedCharacter]);
+
+  // Pull to refresh handler for Bible Characters
+  const onRefreshCharacters = async () => {
+    setCharactersRefreshing(true);
+    hapticFeedback.light();
+    try {
+      // Force refresh from GitHub
+      await bibleCharactersService.refresh();
+      
+      const profiles = bibleCharactersService.getCharacters();
+      const groups = bibleCharactersService.getCharacterGroups();
+      
+      // Process profiles to use GitHub images with local fallback
+      const processedProfiles = {};
+      Object.keys(profiles).forEach(key => {
+        const profile = profiles[key];
+        const imageSource = profile.imageUrl ? { uri: profile.imageUrl } : getLocalImage(key);
+        processedProfiles[key] = {
+          ...profile,
+          image: imageSource,
+        };
+      });
+      
+      // Add theme-aware colors to character groups
+      const colors = cardColors;
+      const groupsWithColors = groups.map((group, index) => ({
+        ...group,
+        color: colors[index % colors.length],
+      }));
+      
+      setCharacterProfiles(processedProfiles);
+      setCharacterGroups(groupsWithColors);
+    } catch (error) {
+      console.error('Error refreshing characters:', error);
+    } finally {
+      setCharactersRefreshing(false);
+    }
+  };
+
   // Helper to get local images (fallback when GitHub images aren't available)
   const getLocalImage = (characterName) => {
     try {
@@ -612,7 +663,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
       title: 'Bible Timeline',
       icon: 'timeline',
       description: 'Journey through Biblical history',
-      color: '#2196F3', // Vibrant Blue
+      color: '#1E40AF', // Deep Dark Blue for better readability
       features: ['Chronological events', 'Historical dates', 'Quick verse links', 'Era overview']
     },
     {
@@ -697,6 +748,16 @@ const BibleStudyModal = ({ visible, onClose }) => {
       return ['#9370DB', '#8A2BE2', '#6A0DAD', '#BA55D3', '#9932CC', '#8B7AB8', '#7B68EE', '#6A5ACD'];
     } else if (isEternaTheme) {
       return ['#663399', '#4B0082', '#2E0854', '#8B008B', '#9400D3', '#800080', '#9370DB', '#8A2BE2'];
+    } else if (isSpidermanTheme) {
+      return ['#E31E24', '#C70000', '#FF4444', '#B30000', '#E31E24', '#C70000', '#FF2020', '#A00000'];
+    } else if (isFaithTheme) {
+      return ['#4A90E2', '#5BA3F5', '#2979FF', '#90CAF9', '#4A90E2', '#5BA3F5', '#64B5F6', '#42A5F5'];
+    } else if (isAscendTheme) {
+      return ['#3D6CB9', '#5B8DD6', '#2E5AAC', '#7AC7E8', '#3D6CB9', '#5B8DD6', '#4A82C3', '#2C5AA0'];
+    } else if (isClutchTheme) {
+      return ['#3D5A9E', '#5A7AC7', '#FF6B4A', '#FF8A6B', '#3D5A9E', '#B39DDB', '#5A7AC7', '#FF6B4A'];
+    } else if (isSailormoonTheme) {
+      return ['#C8A2D0', '#B8A4D9', '#FFB6D9', '#E0C4E8', '#C8A2D0', '#9B7BA8', '#E8D4F0', '#B8A4D9'];
     } else if (isDark) {
       return ['#3B82F6', '#2563EB', '#1D4ED8', '#60A5FA', '#3B82F6', '#2563EB', '#1E40AF', '#1E3A8A'];
     } else {
@@ -747,7 +808,11 @@ const BibleStudyModal = ({ visible, onClose }) => {
   };
 
   const renderMainMenu = () => (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.content} 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
+    >
       <View style={styles.headerContainer}>
           {/* Title text removed but container kept for spacing */}
       </View>
@@ -779,32 +844,9 @@ const BibleStudyModal = ({ visible, onClose }) => {
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
           
-          {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
-          <BlurView 
-            intensity={20} 
-            tint={isDark ? 'dark' : 'light'} 
-            style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              zIndex: 1000,
-              borderBottomLeftRadius: 20,
-              borderBottomRightRadius: 20,
-              overflow: 'hidden',
-            }}
-          >
-            <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
-            <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
-              <TouchableOpacity onPress={() => setShowModal(false)} style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}>
-                <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
-              </TouchableOpacity>
-              <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>{section.title}</Text>
-              <View style={{ width: 48 }} />
-            </View>
-          </BlurView>
+          {/* Header DELETED for characters */}
           
-          <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Platform.OS === 'ios' ? 100 : 60, paddingBottom: 0 }}>
+          <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: 0, paddingBottom: 0 }}>
 
           {/* Special handling for characters section */}
           {sectionId === 'characters' && renderCharactersSection(section)}
@@ -817,7 +859,11 @@ const BibleStudyModal = ({ visible, onClose }) => {
           
           {/* For other sections, show basic content instead of "Coming Soon" */}
           {!['characters', 'timeline', 'maps', 'themes', 'verses'].includes(sectionId) && (
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.content} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
+            >
               <View style={styles.comingSoonContainer}>
                 <BlurView intensity={20} style={styles.comingSoonCard}>
                   <MaterialIcons name={section.icon} size={32} color={section.color} />
@@ -832,6 +878,82 @@ const BibleStudyModal = ({ visible, onClose }) => {
             </ScrollView>
           )}
           </View>
+          
+          {/* NEW: Transparent Blurry Header for Bible Characters */}
+          {sectionId === 'characters' && (
+            <BlurView 
+              intensity={30} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
+              
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+              }}>
+                <TouchableOpacity 
+                  onPress={() => setShowModal(false)} 
+                  style={{ minWidth: 60, alignItems: 'center' }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
+                    Back
+                  </Text>
+                </TouchableOpacity>
+                
+                <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', textAlign: 'center' }}>
+                  Bible Characters
+                </Text>
+                
+                <View style={{ width: 60 }} />
+              </View>
+            </BlurView>
+          )}
+
+          {/* Transparent Blurred Header for Fast Facts - Same as Bible Timeline */}
+          {sectionId === 'facts' && (
+            <BlurView 
+              intensity={20} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                backgroundColor: 'transparent',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+                <TouchableOpacity
+                  onPress={() => setShowModal(false)}
+                  style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+                >
+                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+                </TouchableOpacity>
+                <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+                  Fast Facts
+                </Text>
+                <View style={styles.solidHeaderButton} />
+              </View>
+            </BlurView>
+          )}
         </View>
       </Modal>
     );
@@ -868,7 +990,11 @@ const BibleStudyModal = ({ visible, onClose }) => {
     }
 
     return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
+      >
         <View style={styles.detailHeader}>
           <TouchableOpacity 
             style={styles.backButton}
@@ -929,8 +1055,23 @@ const BibleStudyModal = ({ visible, onClose }) => {
     }
 
     return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Hero Header - gradient removed */}
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 0 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={charactersRefreshing}
+            onRefresh={onRefreshCharacters}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+            title="Pull to refresh..."
+            titleColor={theme.textSecondary}
+          />
+        }
+      >
+        {/* Spacer for header */}
+        <View style={{ height: Platform.OS === 'ios' ? 110 : 80 }} />
 
         {/* Character Group Cards - 2 per row with Micro-Interactions */}
         <View style={styles.characterGroupsGrid}>
@@ -957,7 +1098,11 @@ const BibleStudyModal = ({ visible, onClose }) => {
     const section = studySections.find(s => s.id === 'characters');
 
     return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
+      >
         {/* Floating Back Button */}
         <View style={styles.floatingBackButton}>
           <TouchableOpacity 
@@ -1073,7 +1218,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
     const themeColor = characterGroup?.color || section.color;
 
     return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={characterDetailScrollRef}
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
+      >
         {/* Floating Back Button */}
         <View style={styles.floatingBackButton}>
           <TouchableOpacity 
@@ -1275,24 +1425,58 @@ const BibleStudyModal = ({ visible, onClose }) => {
     <Modal 
       visible={visible} 
       animationType="slide" 
-      presentationStyle="pageSheet"
-      onRequestClose={() => {}} // Disable pull-down-to-close gesture
+      presentationStyle="fullScreen"
+      statusBarTranslucent={false}
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <SafeAreaView style={{ backgroundColor: theme.background }} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
-            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Study</Text>
-          <View style={{ width: 24 }} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
+        
+        {/* Main Content - Scrolls from top */}
+        <View style={{ flex: 1 }}>
+          {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
         </View>
-        </SafeAreaView>
-
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
-        </View>
+        
+        {/* Header - Hide for Bible Characters section completely */}
+        {selectedSection !== 'characters' && (
+          <View 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              zIndex: 1000,
+              backgroundColor: 'transparent',
+            }}
+          >
+            <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
+            
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+            }}>
+              <TouchableOpacity 
+                onPress={selectedSection === 'main' ? onClose : () => setSelectedSection('main')} 
+                style={{ minWidth: 60, alignItems: 'center' }}
+              >
+                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
+                  {selectedSection === 'main' ? 'Close' : 'Back'}
+                </Text>
+              </TouchableOpacity>
+              
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', textAlign: 'center' }}>
+                {selectedSection === 'maps' ? 'Bible Maps' :
+                 selectedSection === 'themes' ? 'Thematic Guides' :
+                 selectedSection === 'keyverses' ? 'Key Verses' :
+                 'Bible Study'}
+              </Text>
+              
+              <View style={{ width: 60 }} />
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Timeline Modal Overlay */}
@@ -1324,6 +1508,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
       <KeyVerses
         visible={showKeyVersesModal}
         onClose={() => setShowKeyVersesModal(false)}
+      />
+
+      {/* Bible Fast Facts - Custom Component */}
+      <BibleFastFacts
+        visible={showFactsModal}
+        onClose={() => setShowFactsModal(false)}
       />
 
       {/* Quiz & Games - Full Screen Modal */}
@@ -2136,7 +2326,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 20,
-    paddingTop: 20,
     paddingBottom: 30,
     justifyContent: 'space-between',
   },
@@ -2532,7 +2721,7 @@ const styles = StyleSheet.create({
   // New Stunning Hero Styles
   floatingBackButton: {
     position: 'absolute',
-    top: 20,
+    top: 135,
     left: 20,
     zIndex: 100,
   },
