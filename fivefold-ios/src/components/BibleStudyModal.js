@@ -25,6 +25,7 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 import BibleFastFacts from './BibleFastFacts';
+import ReadingPlans from './ReadingPlans';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
 const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
@@ -557,7 +558,10 @@ const BibleStudyModal = ({ visible, onClose }) => {
   // Scroll to top when character is selected
   useEffect(() => {
     if (selectedCharacter && characterDetailScrollRef.current) {
-      characterDetailScrollRef.current.scrollTo({ y: 0, animated: false });
+      // Add a small delay to ensure ScrollView and content are fully mounted
+      setTimeout(() => {
+        characterDetailScrollRef.current?.scrollTo({ y: 0, animated: true });
+      }, 100);
     }
   }, [selectedCharacter]);
 
@@ -906,7 +910,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
               }}>
                 <TouchableOpacity 
                   onPress={() => setShowModal(false)} 
-                  style={{ minWidth: 60, alignItems: 'center' }}
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    paddingHorizontal: 16, 
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                  }}
                 >
                   <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
                     Back
@@ -943,14 +952,19 @@ const BibleStudyModal = ({ visible, onClose }) => {
               <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
                 <TouchableOpacity
                   onPress={() => setShowModal(false)}
-                  style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    paddingHorizontal: 16, 
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                  }}
                 >
                   <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
                   Fast Facts
                 </Text>
-                <View style={styles.solidHeaderButton} />
+                <View style={{ width: 60 }} />
               </View>
             </BlurView>
           )}
@@ -1067,11 +1081,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
             colors={[theme.primary]}
             title="Pull to refresh..."
             titleColor={theme.textSecondary}
+            progressViewOffset={Platform.OS === 'ios' ? 110 : 80}
           />
         }
       >
         {/* Spacer for header */}
-        <View style={{ height: Platform.OS === 'ios' ? 110 : 80 }} />
+        <View style={{ height: Platform.OS === 'ios' ? 130 : 100 }} />
 
         {/* Character Group Cards - 2 per row with Micro-Interactions */}
         <View style={styles.characterGroupsGrid}>
@@ -1459,7 +1474,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
             }}>
               <TouchableOpacity 
                 onPress={selectedSection === 'main' ? onClose : () => setSelectedSection('main')} 
-                style={{ minWidth: 60, alignItems: 'center' }}
+                style={{ 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                  paddingHorizontal: 16, 
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                }}
               >
                 <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
                   {selectedSection === 'main' ? 'Close' : 'Back'}
@@ -1528,11 +1548,16 @@ const BibleStudyModal = ({ visible, onClose }) => {
           
           {/* Header */}
           <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: 60, paddingBottom: 3, borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => setShowQuizModal(false)} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+            <TouchableOpacity onPress={() => setShowQuizModal(false)} style={{ 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+              paddingHorizontal: 16, 
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}>
               <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Quiz & Games</Text>
-            <View style={{ width: 24 }} />
+            <View style={{ width: 60 }} />
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -1578,10 +1603,15 @@ const BibleStudyModal = ({ visible, onClose }) => {
         </View>
       </Modal>
 
+      {/* Reading Plans - Custom Component */}
+      <ReadingPlans
+        visible={showReadingModal}
+        onClose={() => setShowReadingModal(false)}
+      />
+
       {/* All Other Section Modal Overlays */}
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
       {renderSectionModalOverlay('facts', showFactsModal, setShowFactsModal)}
-      {renderSectionModalOverlay('reading', showReadingModal, setShowReadingModal)}
       {renderSectionModalOverlay('parallels', showParallelsModal, setShowParallelsModal)}
       {renderSectionModalOverlay('audio', showAudioModal, setShowAudioModal)}
     </Modal>
