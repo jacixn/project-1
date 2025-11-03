@@ -241,7 +241,12 @@ const QuizGames = ({ visible, onClose }) => {
       setTimer(0);
       setQuizStartTime(Date.now());
       setIsSpecialMode('daily');
-      setSelectedCategory({ id: 'daily', title: 'Daily Challenge', gradient: ['#FF9800', '#F57C00'] });
+      setSelectedCategory({ 
+        id: 'daily', 
+        title: 'Daily Challenge', 
+        color: '#FF9800',
+        gradient: ['#FF9800', '#F57C00'] 
+      });
       animateScreenTransition('quiz');
     } catch (error) {
       console.error('Error loading daily challenge:', error);
@@ -267,7 +272,12 @@ const QuizGames = ({ visible, onClose }) => {
       setTimer(0);
       setQuizStartTime(Date.now());
       setIsSpecialMode('speed');
-      setSelectedCategory({ id: 'speed', title: 'Speed Round', gradient: ['#E91E63', '#C2185B'] });
+      setSelectedCategory({ 
+        id: 'speed', 
+        title: 'Speed Round',
+        color: '#E91E63',
+        gradient: ['#E91E63', '#C2185B'] 
+      });
       animateScreenTransition('quiz');
     } catch (error) {
       console.error('Error loading speed round:', error);
@@ -454,15 +464,144 @@ const QuizGames = ({ visible, onClose }) => {
     const currentLevel = getCurrentLevel();
     const nextLevel = getNextLevel();
     
-    // If data not loaded yet
+    // If data not loaded yet, show simplified view
     if (!currentLevel || !nextLevel) {
       return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <Text style={[styles.loadingText, { color: theme.text }]}>Error loading data</Text>
-          <Text style={[styles.loadingSubtext, { color: theme.textSecondary }]}>
-            Please check your connection and try again
-          </Text>
-        </View>
+        <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {/* Simple Progress Card (no levels) */}
+            <LinearGradient
+              colors={[theme.primary + '40', theme.primary + '20']}
+              style={styles.progressCard}
+            >
+              <View style={styles.progressHeader}>
+                <Text style={[styles.progressTitle, { color: theme.text }]}>YOUR PROGRESS</Text>
+              </View>
+              
+              <Text style={[styles.levelTitle, { color: theme.text }]}>Quiz Master</Text>
+              
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statIcon}>🔥</Text>
+                  <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.streak}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Day Streak</Text>
+                </View>
+                
+                <View style={styles.statItem}>
+                  <Text style={styles.statIcon}>🎯</Text>
+                  <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.totalQuizzes}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
+                </View>
+              </View>
+            </LinearGradient>
+
+            {/* Quick Actions */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>QUICK PLAY</Text>
+            </View>
+            
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity 
+                style={styles.quickActionCard}
+                onPress={handleDailyChallenge}
+              >
+                <LinearGradient
+                  colors={['#FF9800', '#F57C00']}
+                  style={styles.quickActionGradient}
+                >
+                  <Text style={styles.quickActionIcon}>📖</Text>
+                  <Text style={styles.quickActionTitle}>Daily Challenge</Text>
+                  <Text style={styles.quickActionSubtitle}>5 Questions</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.quickActionCard}
+                onPress={handleSpeedRound}
+              >
+                <LinearGradient
+                  colors={['#E91E63', '#C2185B']}
+                  style={styles.quickActionGradient}
+                >
+                  <Text style={styles.quickActionIcon}>⚡</Text>
+                  <Text style={styles.quickActionTitle}>Speed Round</Text>
+                  <Text style={styles.quickActionSubtitle}>10 Qs / 2min</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Categories */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>QUIZ CATEGORIES</Text>
+            </View>
+
+            {quizCategories.map((category, index) => {
+              const categoryProgress = userProgress.categoryProgress[category.id] || { completed: 0, bestScore: 0 };
+              const progressPercent = (categoryProgress.completed / category.totalQuizzes) * 100;
+              
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[styles.categoryCard, { backgroundColor: theme.surface, opacity: category.locked ? 0.6 : 1 }]}
+                  onPress={() => handleCategorySelect(category)}
+                  disabled={category.locked}
+                >
+                  <LinearGradient
+                    colors={[category.gradient[0] + '20', category.gradient[1] + '10']}
+                    style={styles.categoryGradientBorder}
+                  >
+                    <View style={styles.categoryContent}>
+                      <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
+                        <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      </View>
+                      
+                      <View style={styles.categoryInfo}>
+                        <View style={styles.categoryTitleRow}>
+                          <Text style={[styles.categoryTitle, { color: theme.text }]}>{category.title}</Text>
+                          {category.locked && <MaterialIcons name="lock" size={18} color={theme.textSecondary} />}
+                        </View>
+                        <Text style={[styles.categoryDescription, { color: theme.textSecondary }]} numberOfLines={1}>
+                          {category.description}
+                        </Text>
+                        
+                        {!category.locked && (
+                          <View style={styles.categoryProgress}>
+                            <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
+                              <View style={[styles.progressBarFill, { width: `${progressPercent}%`, backgroundColor: category.color }]} />
+                            </View>
+                            <Text style={[styles.progressText, { color: theme.textSecondary }]}>
+                              {categoryProgress.completed}/{category.totalQuizzes} quizzes
+                            </Text>
+                          </View>
+                        )}
+                        
+                        {category.locked && (
+                          <Text style={[styles.lockText, { color: theme.textSecondary }]}>
+                            🔒 {category.unlockRequirement}
+                          </Text>
+                        )}
+                      </View>
+                      
+                      <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={styles.bottomNav}>
+              <TouchableOpacity 
+                style={styles.bottomNavButton}
+                onPress={() => animateScreenTransition('stats')}
+              >
+                <MaterialIcons name="bar-chart" size={24} color={theme.primary} />
+                <Text style={[styles.bottomNavText, { color: theme.text }]}>View Stats</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        </Animated.View>
       );
     }
 
@@ -755,12 +894,21 @@ const QuizGames = ({ visible, onClose }) => {
   );
 
   const renderQuiz = () => {
-    if (currentQuiz.length === 0) return null;
+    if (currentQuiz.length === 0 || !currentQuiz[currentQuestionIndex]) {
+      return (
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Loading question...</Text>
+        </View>
+      );
+    }
     
     const currentQuestion = currentQuiz[currentQuestionIndex];
+    if (!currentQuestion || !selectedCategory) return null;
+    
     const progress = (currentQuestionIndex / currentQuiz.length);
     const hasAnswered = userAnswers.length > currentQuestionIndex;
     const userAnswer = hasAnswered ? userAnswers[currentQuestionIndex] : null;
+    const categoryColor = selectedCategory.color || theme.primary;
 
     return (
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
@@ -773,7 +921,7 @@ const QuizGames = ({ visible, onClose }) => {
                   styles.quizProgressFill, 
                   { 
                     width: `${progress * 100}%`,
-                    backgroundColor: selectedCategory.color,
+                    backgroundColor: categoryColor,
                   }
                 ]} 
               />
@@ -802,7 +950,7 @@ const QuizGames = ({ visible, onClose }) => {
 
             {/* Answer Options */}
             <View style={styles.answerOptions}>
-              {typeof currentQuestion.correctAnswer === 'number' ? (
+              {typeof currentQuestion.correctAnswer === 'number' && currentQuestion.options ? (
                 currentQuestion.options.map((option, index) => {
                   const isSelected = hasAnswered && userAnswer.userAnswer === index;
                   const isCorrect = index === currentQuestion.correctAnswer;
@@ -945,6 +1093,7 @@ const QuizGames = ({ visible, onClose }) => {
     const totalQuestions = currentQuiz.length;
     const percentage = Math.round((correctCount / totalQuestions) * 100);
     const stars = percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0;
+    const categoryGradient = selectedCategory?.gradient || [theme.primary, theme.primaryDark];
 
     return (
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -962,7 +1111,7 @@ const QuizGames = ({ visible, onClose }) => {
 
           {/* Score Card */}
           <LinearGradient
-            colors={selectedCategory.gradient}
+            colors={categoryGradient}
             style={styles.scoreCard}
           >
             <Text style={styles.scoreLabel}>Your Score</Text>
@@ -1038,11 +1187,17 @@ const QuizGames = ({ visible, onClose }) => {
               style={styles.resultButton}
               onPress={() => {
                 hapticFeedback.buttonPress();
-                handleStartQuiz();
+                if (isSpecialMode === 'daily') {
+                  handleDailyChallenge();
+                } else if (isSpecialMode === 'speed') {
+                  handleSpeedRound();
+                } else {
+                  handleStartQuiz();
+                }
               }}
             >
               <LinearGradient
-                colors={selectedCategory.gradient}
+                colors={categoryGradient}
                 style={styles.resultButtonGradient}
               >
                 <MaterialIcons name="refresh" size={20} color="#FFF" />
