@@ -834,36 +834,36 @@ const QuizGames = ({ visible, onClose }) => {
         >
           {/* Progress Bar */}
           <View style={styles.quizProgress}>
-            <View style={[styles.quizProgressBar, { backgroundColor: '#E0E0E0' }]}>
+            <View style={[styles.quizProgressBar, { backgroundColor: '#E0E0E0', borderWidth: 1, borderColor: '#BDBDBD' }]}>
               <Animated.View 
                 style={[
                   styles.quizProgressFill, 
                   { 
                     width: `${progress * 100}%`,
-                    backgroundColor: categoryColor,
+                    backgroundColor: '#2196F3',
                   }
                 ]} 
               />
             </View>
             <View style={styles.quizMeta}>
-              <Text style={[styles.quizMetaText, { color: '#666' }]}>
+              <Text style={[styles.quizMetaText, { color: '#000000', fontSize: 16, fontWeight: '700' }]}>
                 Score: {score} pts
               </Text>
-              <Text style={[styles.quizMetaText, { color: '#666' }]}>
+              <Text style={[styles.quizMetaText, { color: '#000000', fontSize: 16, fontWeight: '700' }]}>
                 ⏱️ {formatTime(timer)}
               </Text>
             </View>
           </View>
 
           {/* Question Card */}
-          <View style={[styles.questionCard, { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E0E0E0' }]}>
+          <View style={[styles.questionCard, { backgroundColor: '#FFFFFF' }]}>
             <View style={styles.questionHeader}>
-              <Text style={[styles.questionNumber, { color: '#666' }]}>
+              <Text style={[styles.questionNumber, { color: '#333333', fontSize: 16, fontWeight: '700' }]}>
                 Question {currentQuestionIndex + 1}
               </Text>
             </View>
             
-            <Text style={[styles.questionText, { color: '#1a1a1a' }]}>
+            <Text style={[styles.questionText, { color: '#000000', fontSize: 24, fontWeight: '800' }]}>
               {currentQuestion.question}
             </Text>
 
@@ -875,16 +875,19 @@ const QuizGames = ({ visible, onClose }) => {
                   const isCorrect = index === currentQuestion.correctAnswer;
                   const showResult = hasAnswered;
                   
-                  let backgroundColor = '#FFFFFF';
-                  let borderColor = '#CCCCCC';
+                  let backgroundColor = '#F5F5F5';
+                  let borderColor = '#2196F3';
+                  let textColor = '#000000';
                   
                   if (showResult) {
                     if (isCorrect) {
-                      backgroundColor = '#4CAF5020';
+                      backgroundColor = '#E8F5E9';
                       borderColor = '#4CAF50';
+                      textColor = '#1B5E20';
                     } else if (isSelected && !isCorrect) {
-                      backgroundColor = '#F4433620';
+                      backgroundColor = '#FFEBEE';
                       borderColor = '#F44336';
+                      textColor = '#B71C1C';
                     }
                   }
                   
@@ -893,17 +896,17 @@ const QuizGames = ({ visible, onClose }) => {
                       key={index}
                       style={[
                         styles.answerOption,
-                        { backgroundColor, borderColor, borderWidth: 2 },
+                        { backgroundColor, borderColor, borderWidth: 3 },
                       ]}
                       onPress={() => !hasAnswered && handleAnswer(index)}
                       disabled={hasAnswered}
                     >
                       <View style={[styles.answerLetter, { backgroundColor: borderColor }]}>
-                        <Text style={styles.answerLetterText}>
+                        <Text style={[styles.answerLetterText, { fontSize: 18, fontWeight: '900' }]}>
                           {String.fromCharCode(65 + index)}
                         </Text>
                       </View>
-                      <Text style={[styles.answerText, { color: '#1a1a1a' }]}>
+                      <Text style={[styles.answerText, { color: textColor, fontSize: 18, fontWeight: '700' }]}>
                         {option}
                       </Text>
                       {showResult && isCorrect && (
@@ -926,16 +929,19 @@ const QuizGames = ({ visible, onClose }) => {
                     const isCorrect = (index === 1 && !currentQuestion.correctAnswer) || (index === 0 && currentQuestion.correctAnswer);
                     const showResult = hasAnswered;
                     
-                    let backgroundColor = '#FFFFFF';
-                    let borderColor = '#CCCCCC';
+                    let backgroundColor = '#F5F5F5';
+                    let borderColor = '#2196F3';
+                    let textColor = '#000000';
                     
                     if (showResult) {
                       if (isCorrect) {
-                        backgroundColor = '#4CAF5020';
+                        backgroundColor = '#E8F5E9';
                         borderColor = '#4CAF50';
+                        textColor = '#1B5E20';
                       } else if (isSelected && !isCorrect) {
-                        backgroundColor = '#F4433620';
+                        backgroundColor = '#FFEBEE';
                         borderColor = '#F44336';
+                        textColor = '#B71C1C';
                       }
                     }
                     
@@ -944,13 +950,13 @@ const QuizGames = ({ visible, onClose }) => {
                         key={index}
                         style={[
                           styles.trueFalseOption,
-                          { backgroundColor, borderColor, borderWidth: 3 },
+                          { backgroundColor, borderColor, borderWidth: 4 },
                         ]}
                         onPress={() => !hasAnswered && handleAnswer(index)}
                         disabled={hasAnswered}
                       >
-                        <Text style={styles.trueFalseIcon}>{option.icon}</Text>
-                        <Text style={[styles.trueFalseText, { color: '#1a1a1a' }]}>
+                        <Text style={[styles.trueFalseIcon, { fontSize: 36 }]}>{option.icon}</Text>
+                        <Text style={[styles.trueFalseText, { color: textColor, fontSize: 26, fontWeight: '900' }]}>
                           {option.label}
                         </Text>
                         {showResult && isCorrect && (
@@ -972,29 +978,33 @@ const QuizGames = ({ visible, onClose }) => {
                 style={[
                   styles.explanationCard,
                   { 
-                    backgroundColor: userAnswer.isCorrect ? '#4CAF5015' : '#F4433615',
+                    backgroundColor: userAnswer.isCorrect ? '#E8F5E9' : '#FFEBEE',
                   }
                 ]}
               >
                 <View style={styles.explanationHeader}>
                   <MaterialIcons 
                     name={userAnswer.isCorrect ? 'check-circle' : 'cancel'} 
-                    size={24} 
+                    size={28} 
                     color={userAnswer.isCorrect ? '#4CAF50' : '#F44336'} 
                   />
                   <Text style={[
                     styles.explanationTitle,
-                    { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' }
+                    { 
+                      color: userAnswer.isCorrect ? '#2E7D32' : '#C62828',
+                      fontSize: 20,
+                      fontWeight: '900'
+                    }
                   ]}>
                     {userAnswer.isCorrect ? 'CORRECT!' : 'INCORRECT'}
                   </Text>
                 </View>
                 
-                <Text style={[styles.explanationText, { color: theme.text }]}>
+                <Text style={[styles.explanationText, { color: '#000000', fontSize: 16, fontWeight: '600', lineHeight: 24 }]}>
                   {currentQuestion.explanation}
                 </Text>
                 
-                <Text style={[styles.explanationReference, { color: theme.textSecondary }]}>
+                <Text style={[styles.explanationReference, { color: '#424242', fontSize: 15, fontWeight: '700' }]}>
                   📖 {currentQuestion.reference}
                 </Text>
               </Animated.View>
