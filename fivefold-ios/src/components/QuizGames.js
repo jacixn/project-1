@@ -894,7 +894,15 @@ const QuizGames = ({ visible, onClose }) => {
   );
 
   const renderQuiz = () => {
+    console.log('🎯 renderQuiz called:', {
+      quizLength: currentQuiz.length,
+      currentIndex: currentQuestionIndex,
+      hasCategory: !!selectedCategory,
+      categoryId: selectedCategory?.id,
+    });
+
     if (currentQuiz.length === 0 || !currentQuiz[currentQuestionIndex]) {
+      console.log('❌ No quiz or no question at index');
       return (
         <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <Text style={[styles.loadingText, { color: theme.text }]}>Loading question...</Text>
@@ -903,19 +911,48 @@ const QuizGames = ({ visible, onClose }) => {
     }
     
     const currentQuestion = currentQuiz[currentQuestionIndex];
-    if (!currentQuestion || !selectedCategory) return null;
+    console.log('📝 Current question:', {
+      id: currentQuestion?.id,
+      hasQuestion: !!currentQuestion?.question,
+      hasOptions: !!currentQuestion?.options,
+      answerType: typeof currentQuestion?.correctAnswer,
+    });
+
+    if (!currentQuestion) {
+      console.log('❌ No current question');
+      return (
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Question not found</Text>
+        </View>
+      );
+    }
+
+    if (!selectedCategory) {
+      console.log('❌ No selected category');
+      return (
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Category not set</Text>
+        </View>
+      );
+    }
     
     const progress = (currentQuestionIndex / currentQuiz.length);
     const hasAnswered = userAnswers.length > currentQuestionIndex;
     const userAnswer = hasAnswered ? userAnswers[currentQuestionIndex] : null;
     const categoryColor = selectedCategory.color || theme.primary;
 
+    console.log('✅ Rendering quiz UI');
+
     return (
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.quizScrollContent}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.quizScrollContent}
+          style={{ flex: 1 }}
+        >
           {/* Progress Bar */}
           <View style={styles.quizProgress}>
-            <View style={[styles.quizProgressBar, { backgroundColor: theme.surface }]}>
+            <View style={[styles.quizProgressBar, { backgroundColor: '#E0E0E0' }]}>
               <Animated.View 
                 style={[
                   styles.quizProgressFill, 
@@ -927,24 +964,24 @@ const QuizGames = ({ visible, onClose }) => {
               />
             </View>
             <View style={styles.quizMeta}>
-              <Text style={[styles.quizMetaText, { color: theme.textSecondary }]}>
+              <Text style={[styles.quizMetaText, { color: '#666' }]}>
                 Score: {score} pts
               </Text>
-              <Text style={[styles.quizMetaText, { color: theme.textSecondary }]}>
+              <Text style={[styles.quizMetaText, { color: '#666' }]}>
                 ⏱️ {formatTime(timer)}
               </Text>
             </View>
           </View>
 
           {/* Question Card */}
-          <View style={[styles.questionCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.questionCard, { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E0E0E0' }]}>
             <View style={styles.questionHeader}>
-              <Text style={[styles.questionNumber, { color: theme.textSecondary }]}>
+              <Text style={[styles.questionNumber, { color: '#666' }]}>
                 Question {currentQuestionIndex + 1}
               </Text>
             </View>
             
-            <Text style={[styles.questionText, { color: theme.text }]}>
+            <Text style={[styles.questionText, { color: '#1a1a1a' }]}>
               {currentQuestion.question}
             </Text>
 
@@ -956,8 +993,8 @@ const QuizGames = ({ visible, onClose }) => {
                   const isCorrect = index === currentQuestion.correctAnswer;
                   const showResult = hasAnswered;
                   
-                  let backgroundColor = theme.surface;
-                  let borderColor = theme.border;
+                  let backgroundColor = '#FFFFFF';
+                  let borderColor = '#CCCCCC';
                   
                   if (showResult) {
                     if (isCorrect) {
@@ -984,7 +1021,7 @@ const QuizGames = ({ visible, onClose }) => {
                           {String.fromCharCode(65 + index)}
                         </Text>
                       </View>
-                      <Text style={[styles.answerText, { color: theme.text }]}>
+                      <Text style={[styles.answerText, { color: '#1a1a1a' }]}>
                         {option}
                       </Text>
                       {showResult && isCorrect && (
@@ -1007,8 +1044,8 @@ const QuizGames = ({ visible, onClose }) => {
                     const isCorrect = (index === 1 && !currentQuestion.correctAnswer) || (index === 0 && currentQuestion.correctAnswer);
                     const showResult = hasAnswered;
                     
-                    let backgroundColor = theme.surface;
-                    let borderColor = theme.border;
+                    let backgroundColor = '#FFFFFF';
+                    let borderColor = '#CCCCCC';
                     
                     if (showResult) {
                       if (isCorrect) {
@@ -1031,7 +1068,7 @@ const QuizGames = ({ visible, onClose }) => {
                         disabled={hasAnswered}
                       >
                         <Text style={styles.trueFalseIcon}>{option.icon}</Text>
-                        <Text style={[styles.trueFalseText, { color: theme.text }]}>
+                        <Text style={[styles.trueFalseText, { color: '#1a1a1a' }]}>
                           {option.label}
                         </Text>
                         {showResult && isCorrect && (
@@ -1364,7 +1401,7 @@ const styles = StyleSheet.create({
   },
   quizScrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 40,
     paddingBottom: 40,
   },
   
