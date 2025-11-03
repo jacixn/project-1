@@ -26,10 +26,8 @@ const QuizGames = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   
   // State Management
-  const [currentScreen, setCurrentScreen] = useState('home'); // home, category, quiz, results, stats, badges
+  const [currentScreen, setCurrentScreen] = useState('home'); // home, quiz, results, stats
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedQuizType, setSelectedQuizType] = useState(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
   const [currentQuiz, setCurrentQuiz] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
@@ -247,22 +245,28 @@ const QuizGames = ({ visible, onClose }) => {
       return;
     }
     setSelectedCategory(category);
-    animateScreenTransition('category');
-  };
-
-  const handleStartQuiz = () => {
-    hapticFeedback.buttonPress();
     
-    // Get questions for selected category and difficulty
-    const categoryQuestions = quizQuestions[selectedCategory.id];
-    const questions = categoryQuestions?.[selectedQuizType]?.[selectedDifficulty] || [];
+    // Get ALL questions from this category (mixed MC and TF)
+    const categoryQuestions = quizQuestions[category.id];
+    const allQuestions = [];
     
-    if (questions.length === 0) {
+    // Collect all questions from all types and difficulties
+    if (categoryQuestions) {
+      Object.keys(categoryQuestions).forEach(quizType => {
+        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+          const questions = categoryQuestions[quizType][difficulty] || [];
+          allQuestions.push(...questions);
+        });
+      });
+    }
+    
+    if (allQuestions.length === 0) {
+      Alert.alert('No Questions', 'No questions available for this category yet.');
       return;
     }
-
-    // Shuffle and select questions (max 10)
-    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    
+    // Shuffle and select 10 random questions (mix of MC and TF)
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
     const selectedQuestions = shuffled.slice(0, Math.min(10, shuffled.length));
     
     setCurrentQuiz(selectedQuestions);
@@ -426,7 +430,6 @@ const QuizGames = ({ visible, onClose }) => {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           {currentScreen === 'home' && 'Quiz & Games'}
-          {currentScreen === 'category' && selectedCategory?.title}
           {currentScreen === 'quiz' && `Question ${currentQuestionIndex + 1}/${currentQuiz.length}`}
           {currentScreen === 'results' && 'Results'}
           {currentScreen === 'stats' && 'Your Stats'}
@@ -772,132 +775,6 @@ const QuizGames = ({ visible, onClose }) => {
     );
   };
 
-  const renderCategory = () => (
-    <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Quiz Type Selection */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>CHOOSE YOUR CHALLENGE</Text>
-        </View>
-
-        <View style={styles.quizTypeRow}>
-          <TouchableOpacity
-            style={[styles.quizTypeCard, { borderColor: selectedQuizType === 'true-false' ? selectedCategory.color : theme.border }]}
-            onPress={() => {
-              setSelectedQuizType('true-false');
-              hapticFeedback.selection();
-            }}
-          >
-            <LinearGradient
-              colors={selectedQuizType === 'true-false' ? selectedCategory.gradient : [theme.surface, theme.surface]}
-              style={styles.quizTypeGradient}
-            >
-              <Text style={styles.quizTypeIcon}>✅</Text>
-              <Text style={[styles.quizTypeTitle, { color: selectedQuizType === 'true-false' ? '#FFF' : theme.text }]}>
-                True/False
-              </Text>
-              <Text style={[styles.quizTypeSubtitle, { color: selectedQuizType === 'true-false' ? 'rgba(255,255,255,0.9)' : theme.textSecondary }]}>
-                Quick & Fun
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.quizTypeCard, { borderColor: selectedQuizType === 'multiple-choice' ? selectedCategory.color : theme.border }]}
-            onPress={() => {
-              setSelectedQuizType('multiple-choice');
-              hapticFeedback.selection();
-            }}
-          >
-            <LinearGradient
-              colors={selectedQuizType === 'multiple-choice' ? selectedCategory.gradient : [theme.surface, theme.surface]}
-              style={styles.quizTypeGradient}
-            >
-              <Text style={styles.quizTypeIcon}>🎯</Text>
-              <Text style={[styles.quizTypeTitle, { color: selectedQuizType === 'multiple-choice' ? '#FFF' : theme.text }]}>
-                Multiple Choice
-              </Text>
-              <Text style={[styles.quizTypeSubtitle, { color: selectedQuizType === 'multiple-choice' ? 'rgba(255,255,255,0.9)' : theme.textSecondary }]}>
-                Test Knowledge
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Difficulty Selection */}
-        {selectedQuizType && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>DIFFICULTY</Text>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.difficultyCard, { 
-                backgroundColor: theme.surface,
-                borderColor: selectedDifficulty === 'beginner' ? selectedCategory.color : theme.border,
-                borderWidth: 2,
-              }]}
-              onPress={() => {
-                setSelectedDifficulty('beginner');
-                hapticFeedback.selection();
-              }}
-            >
-              <Text style={styles.difficultyIcon}>😊</Text>
-              <View style={styles.difficultyInfo}>
-                <Text style={[styles.difficultyTitle, { color: theme.text }]}>BEGINNER</Text>
-                <Text style={[styles.difficultyDescription, { color: theme.textSecondary }]}>
-                  Perfect for starting out
-                </Text>
-              </View>
-              {selectedDifficulty === 'beginner' && (
-                <MaterialIcons name="check-circle" size={24} color={selectedCategory.color} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.difficultyCard, { 
-                backgroundColor: theme.surface,
-                borderColor: selectedDifficulty === 'intermediate' ? selectedCategory.color : theme.border,
-                borderWidth: 2,
-              }]}
-              onPress={() => {
-                setSelectedDifficulty('intermediate');
-                hapticFeedback.selection();
-              }}
-            >
-              <Text style={styles.difficultyIcon}>🤔</Text>
-              <View style={styles.difficultyInfo}>
-                <Text style={[styles.difficultyTitle, { color: theme.text }]}>INTERMEDIATE</Text>
-                <Text style={[styles.difficultyDescription, { color: theme.textSecondary }]}>
-                  Test your Bible knowledge
-                </Text>
-              </View>
-              {selectedDifficulty === 'intermediate' && (
-                <MaterialIcons name="check-circle" size={24} color={selectedCategory.color} />
-              )}
-            </TouchableOpacity>
-
-            {/* Start Quiz Button */}
-            <TouchableOpacity
-              style={styles.startQuizButton}
-              onPress={handleStartQuiz}
-            >
-              <LinearGradient
-                colors={selectedCategory.gradient}
-                style={styles.startQuizGradient}
-              >
-                <Text style={styles.startQuizText}>START QUIZ (10Q)</Text>
-                <MaterialIcons name="play-arrow" size={24} color="#FFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </>
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </Animated.View>
-  );
-
   const renderQuiz = () => {
     console.log('🎯 renderQuiz called:', {
       quizLength: currentQuiz.length,
@@ -1229,7 +1106,8 @@ const QuizGames = ({ visible, onClose }) => {
               style={styles.resultButton}
               onPress={() => {
                 hapticFeedback.buttonPress();
-                handleStartQuiz();
+                // Start a new quiz with the same category
+                handleCategorySelect(selectedCategory);
               }}
             >
               <LinearGradient
@@ -1323,7 +1201,6 @@ const QuizGames = ({ visible, onClose }) => {
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
         
         {currentScreen === 'home' && renderHome()}
-        {currentScreen === 'category' && renderCategory()}
         {currentScreen === 'quiz' && renderQuiz()}
         {currentScreen === 'results' && renderResults()}
         {currentScreen === 'stats' && renderStats()}
@@ -1623,83 +1500,6 @@ const styles = StyleSheet.create({
   bottomNavText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-
-  // Quiz Type Selection
-  quizTypeRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 24,
-  },
-  quizTypeCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 3,
-  },
-  quizTypeGradient: {
-    padding: 24,
-    alignItems: 'center',
-    minHeight: 160,
-    justifyContent: 'center',
-  },
-  quizTypeIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  quizTypeTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  quizTypeSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
-  // Difficulty Cards
-  difficultyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  difficultyIcon: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  difficultyInfo: {
-    flex: 1,
-  },
-  difficultyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  difficultyDescription: {
-    fontSize: 14,
-  },
-
-  // Start Quiz Button
-  startQuizButton: {
-    marginTop: 24,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  startQuizGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 8,
-  },
-  startQuizText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '800',
   },
 
   // Quiz Screen
