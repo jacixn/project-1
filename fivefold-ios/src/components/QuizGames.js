@@ -64,6 +64,9 @@ const QuizGames = ({ visible, onClose }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
+  const loadingSpinAnim = useRef(new Animated.Value(0)).current;
+  const loadingPulseAnim = useRef(new Animated.Value(1)).current;
+  const loadingFloatAnim = useRef(new Animated.Value(0)).current;
 
   // Load quiz data and user progress on mount
   useEffect(() => {
@@ -120,6 +123,56 @@ const QuizGames = ({ visible, onClose }) => {
       ])
     ).start();
   }, []);
+
+  // Loading animations
+  useEffect(() => {
+    if (isLoadingData) {
+      // Spin animation
+      Animated.loop(
+        Animated.timing(loadingSpinAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      // Pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingPulseAnim, {
+            toValue: 1.15,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(loadingPulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Float animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingFloatAnim, {
+            toValue: -15,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(loadingFloatAnim, {
+            toValue: 0,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      loadingSpinAnim.setValue(0);
+      loadingPulseAnim.setValue(1);
+      loadingFloatAnim.setValue(0);
+    }
+  }, [isLoadingData]);
 
   const loadUserProgress = async () => {
     try {
@@ -384,15 +437,101 @@ const QuizGames = ({ visible, onClose }) => {
   );
 
   const renderHome = () => {
-    // Loading state
+    // Beautiful loading animation
     if (isLoadingData) {
+      const spin = loadingSpinAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+      });
+
       return (
         <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <MaterialIcons name="quiz" size={64} color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>Loading Quiz Data...</Text>
-          <Text style={[styles.loadingSubtext, { color: theme.textSecondary }]}>
-            Fetching fresh questions from the cloud
-          </Text>
+          {/* Animated Background Circles */}
+          <Animated.View 
+            style={[
+              styles.loadingCircleOuter,
+              { 
+                borderColor: theme.primary + '20',
+                transform: [{ rotate: spin }]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.loadingCircleMiddle,
+              { 
+                borderColor: theme.primary + '30',
+                transform: [{ rotate: spin }]
+              }
+            ]} 
+          />
+          
+          {/* Main Icon with Pulse */}
+          <Animated.View 
+            style={[
+              styles.loadingIconContainer,
+              { 
+                transform: [
+                  { scale: loadingPulseAnim },
+                  { translateY: loadingFloatAnim }
+                ]
+              }
+            ]}
+          >
+            <LinearGradient
+              colors={[theme.primary, theme.primaryDark]}
+              style={styles.loadingIconGradient}
+            >
+              <MaterialIcons name="quiz" size={56} color="#FFFFFF" />
+            </LinearGradient>
+            
+            {/* Glow effect */}
+            <View style={[styles.loadingIconGlow, { backgroundColor: theme.primary + '30' }]} />
+          </Animated.View>
+
+          {/* Loading Text */}
+          <Animated.View 
+            style={[
+              styles.loadingTextContainer,
+              { opacity: loadingPulseAnim.interpolate({
+                  inputRange: [1, 1.15],
+                  outputRange: [0.7, 1],
+                })
+              }
+            ]}
+          >
+            <Text style={[styles.loadingText, { color: theme.text }]}>
+              Loading Quiz Data
+            </Text>
+            <Text style={[styles.loadingSubtext, { color: theme.textSecondary }]}>
+              Fetching fresh questions from the cloud
+            </Text>
+          </Animated.View>
+
+          {/* Animated Dots */}
+          <View style={styles.loadingDotsContainer}>
+            {[0, 1, 2].map((i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.loadingDot,
+                  {
+                    backgroundColor: theme.primary,
+                    opacity: loadingPulseAnim.interpolate({
+                      inputRange: [1, 1.15],
+                      outputRange: [0.3, 1],
+                    }),
+                    transform: [{
+                      translateY: loadingFloatAnim.interpolate({
+                        inputRange: [-15, 0],
+                        outputRange: [i === 1 ? -20 : i === 2 ? -10 : -15, 0],
+                      })
+                    }]
+                  }
+                ]}
+              />
+            ))}
+          </View>
         </View>
       );
     }
@@ -1204,17 +1343,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    position: 'relative',
+  },
+  loadingCircleOuter: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 3,
+    borderStyle: 'dashed',
+  },
+  loadingCircleMiddle: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 2,
+    borderStyle: 'dotted',
+  },
+  loadingIconContainer: {
+    position: 'relative',
+    marginBottom: 40,
+  },
+  loadingIconGradient: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  loadingIconGlow: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    top: -10,
+    left: -10,
+    zIndex: -1,
+  },
+  loadingTextContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   loadingText: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 20,
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   loadingSubtext: {
-    fontSize: 14,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  loadingDotsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  loadingDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   blurHeader: {
     position: 'absolute',
