@@ -339,3 +339,22 @@ All locations, events, and characters are historically and biblically accurate!
 *Verified on: October 24, 2025*
 *Data Source: bible-maps.json*
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

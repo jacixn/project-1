@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -27,7 +28,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
-const { width, height } = Dimensions.get('window');
+// const { width, height } = Dimensions.get('window');
 
 // Remote Thematic Guides Configuration
 const GUIDES_CONFIG = {
@@ -58,6 +59,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
   const [guidesData, setGuidesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Bible version states for dynamic verse fetching
   const [fetchedVerses, setFetchedVerses] = useState({}); // { 'reference': { text: '...', version: 'NIV' } }
@@ -267,6 +269,17 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
     }
   };
 
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    hapticFeedback.light();
+    try {
+      await refreshGuides();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Initialize data loading
   useEffect(() => {
     const initializeData = async () => {
@@ -349,17 +362,17 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
 
   const getFilteredGuides = () => {
     let filtered = selectedTheme === 'all' 
-      ? thematicGuides 
+      ? [...thematicGuides]
       : thematicGuides.filter(guide => guide.theme === selectedTheme);
 
-    // Sort guides
+    // Sort guides (using slice to avoid mutating original array)
     switch (sortBy) {
       case 'shortest':
-        return filtered.sort((a, b) => a.timeMinutes - b.timeMinutes);
+        return [...filtered].sort((a, b) => a.timeMinutes - b.timeMinutes);
       case 'deep':
-        return filtered.sort((a, b) => b.timeMinutes - a.timeMinutes);
+        return [...filtered].sort((a, b) => b.timeMinutes - a.timeMinutes);
       case 'new':
-        return filtered.reverse();
+        return [...filtered].reverse();
       default:
         return filtered; // Most helpful (default order)
     }
@@ -837,52 +850,28 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
             overflow: 'hidden',
           }}
         >
-          <View style={{ height: Platform.OS === 'ios' ? 50 : 20, backgroundColor: 'transparent' }} />
+          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
           <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                paddingHorizontal: 16, 
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
             >
               <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
             </TouchableOpacity>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               Thematic Guides
             </Text>
-            <View style={styles.solidHeaderButton} />
+            <View style={{ width: 60 }} />
           </View>
-        </BlurView>
-
-        {/* Simple Loading with Percentage */}
-        <SimplePercentageLoader 
-          isVisible={loading}
-          loadingText="Loading thematic guides..."
-        />
-
-        {/* Error State */}
-        {error && !loading && (
-          <View style={styles.errorContainer}>
-            <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
-            <Text style={[styles.errorText, { color: theme.text }]}>
-              {error}
-            </Text>
-            <TouchableOpacity 
-              style={[styles.retryButton, { backgroundColor: theme.primary }]}
-              onPress={refreshGuides}
-            >
-              <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
-                Try Again
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Main Content */}
-        {!loading && !error && (
-          <ScrollView style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 110 : 70 }]} showsVerticalScrollIndicator={false}>
-            
-          {/* Theme Chips */}
-          <View style={styles.chipsSection}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContainer}>
+          
+          {/* Category Chips in Header */}
+          <View style={{ paddingTop: 5, paddingBottom: 12, backgroundColor: 'transparent' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chipsContainer, { paddingHorizontal: 20 }]}>
               {themeCategories.map(category => (
                 <TouchableOpacity
                   key={category.id}
@@ -915,6 +904,48 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
               ))}
             </ScrollView>
           </View>
+        </BlurView>
+
+        {/* Simple Loading with Percentage */}
+        <SimplePercentageLoader 
+          isVisible={loading}
+          loadingText="Loading thematic guides..."
+        />
+
+        {/* Error State */}
+        {error && !loading && (
+          <View style={styles.errorContainer}>
+            <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
+            <Text style={[styles.errorText, { color: theme.text }]}>
+              {error}
+            </Text>
+            <TouchableOpacity 
+              style={[styles.retryButton, { backgroundColor: theme.primary }]}
+              onPress={refreshGuides}
+            >
+              <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
+                Try Again
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Main Content */}
+        {!loading && !error && (
+          <ScrollView 
+            style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 160 : 120 }]} 
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.primary}
+                colors={[theme.primary]}
+                title="Pull to refresh..."
+                titleColor={theme.textSecondary}
+              />
+            }
+          >
 
           {/* Guides List */}
           <View style={styles.guidesSection}>

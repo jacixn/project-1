@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -149,6 +150,7 @@ const BibleVerseText = memo(({ text, style, onVersePress }) => {
 const TypewriterText = memo(({ text, style, speed = 30, onProgress, onVersePress }) => {
   const [displayText, setDisplayText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   
   useEffect(() => {
     if (currentIndex < text.length) {
@@ -162,18 +164,31 @@ const TypewriterText = memo(({ text, style, speed = 30, onProgress, onVersePress
       }, speed);
       
       return () => clearTimeout(timeout);
-    } else if (currentIndex === text.length && text.length > 0) {
-      // Finished typing - no haptic feedback to avoid spam
-      // hapticFeedback.gentle(); // Removed to prevent excessive haptics
+    } else if (currentIndex === text.length && text.length > 0 && !isTypingComplete) {
+      // Finished typing - mark as complete
+      setIsTypingComplete(true);
     }
-  }, [currentIndex, text, speed, onProgress]);
+  }, [currentIndex, text, speed, onProgress, isTypingComplete]);
   
   useEffect(() => {
     // Reset when text changes
     setDisplayText('');
     setCurrentIndex(0);
+    setIsTypingComplete(false);
   }, [text]);
   
+  // Once typing is complete, render the full text with interactive verse links
+  if (isTypingComplete) {
+    return (
+      <BibleVerseText 
+        text={text} 
+        style={style} 
+        onVersePress={onVersePress}
+      />
+    );
+  }
+  
+  // During typing, render the partial text
   return (
     <View>
       <BibleVerseText 
@@ -201,16 +216,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [nameLoaded, setNameLoaded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef(null);
+  const chatInputRef = useRef(null);
 
-  // Suggested questions that appear on first load
-  const suggestedQuestions = [
-    "How can I deepen my faith?",
-    "How can I understand the Bible better?",
-    "What does this verse mean?",
-    "How do I pray effectively?",
-    "What is God's purpose for my life?",
-    "How can I find peace in difficult times?"
-  ];
+  // Suggested questions removed per user request
+  const suggestedQuestions = [];
 
   // Load user name function
   const loadUserName = async () => {
@@ -231,6 +240,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   useEffect(() => {
     if (visible) {
       setIsInitializing(true);
+      // Always start with fresh chat - clear previous messages
+      setMessages([]);
       // Initialize quickly, then load data in background
       setTimeout(() => {
         setIsInitializing(false);
@@ -238,6 +249,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         loadChatHistory();
         loadUserName();
       }, 100);
+      
+      // Auto-focus chat input after screen appears
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 400);
     }
   }, [visible]);
 
@@ -274,26 +290,60 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       return;
     }
 
-    try {
-      // Get the first user message for preview
-      const firstUserMessage = conversationMessages.find(msg => !msg.isAi);
-      const previewText = firstUserMessage?.text || conversationMessages[0]?.text || 'Conversation';
-      
-      const conversation = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        messages: conversationMessages,
-        preview: previewText.substring(0, 50) + (previewText.length > 50 ? '...' : ''),
-        date: new Date().toLocaleDateString()
-      };
+    // Only save conversations with 2 or more messages (avoid saving single greetings)
+    if (conversationMessages.length < 2) {
+      return;
+    }
 
+    try {
       // Load current history to ensure we have the latest
       const storedHistory = await AsyncStorage.getItem('friendChatHistory');
       const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
       
-      const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
-      await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
-      setChatHistory(updatedHistory);
+      // Get the first user message for preview
+      const firstUserMessage = conversationMessages.find(msg => !msg.isAi);
+      const previewText = firstUserMessage?.text || conversationMessages[0]?.text || 'Conversation';
+      
+      const now = new Date();
+      const currentDate = now.toLocaleDateString();
+      
+      // Check if there's an existing conversation with the same first message that should be updated
+      const currentPreview = previewText.substring(0, 50) + (previewText.length > 50 ? '...' : '');
+      const existingConversationIndex = currentHistory.findIndex(conv => conv.preview === currentPreview);
+      let shouldUpdateExisting = existingConversationIndex !== -1;
+      
+      if (shouldUpdateExisting) {
+        // Update the existing conversation and move it to the top (most recent)
+        const existingConversation = currentHistory[existingConversationIndex];
+        currentHistory.splice(existingConversationIndex, 1); // Remove from current position
+        
+        const updatedConversation = {
+          ...existingConversation,
+          timestamp: now.toISOString(),
+          messages: conversationMessages,
+          date: currentDate
+        };
+        
+        currentHistory.unshift(updatedConversation); // Add to top
+        
+        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(currentHistory));
+        setChatHistory(currentHistory);
+        console.log('📝 Updated existing chat in history and moved to top');
+      } else {
+        // Create new conversation entry
+        const conversation = {
+          id: Date.now().toString(),
+          timestamp: now.toISOString(),
+          messages: conversationMessages,
+          preview: previewText.substring(0, 50) + (previewText.length > 50 ? '...' : ''),
+          date: currentDate
+        };
+        
+        const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
+        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
+        setChatHistory(updatedHistory);
+        console.log('📝 Created new chat in history');
+      }
     } catch (error) {
       // Error handled gracefully
     }
@@ -301,7 +351,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
   // Load a conversation from history
   const loadConversationFromHistory = (conversation) => {
-    setMessages(conversation.messages);
+    // Mark all messages as loaded from history (no animation needed)
+    const messagesFromHistory = conversation.messages.map(msg => ({
+      ...msg,
+      isFromHistory: true
+    }));
+    setMessages(messagesFromHistory);
     setShowHistory(false);
     hapticFeedback.light();
     console.log('📖 Loaded conversation from history');
@@ -414,21 +469,27 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
   const handleVersePress = (verseReference) => {
     console.log('📖 Verse reference tapped:', verseReference);
+    console.log('📖 onNavigateToBible callback exists?', !!onNavigateToBible);
     hapticFeedback.light();
     
     if (onNavigateToBible) {
-      // Close the Smart chat and navigate to the Bible with search
+      // Close the Friend chat and navigate directly to the verse
       onClose();
-      // Pass the verse reference as a search query instead of navigation
-      onNavigateToBible(verseReference, 'search');
+      // Pass the verse reference for direct navigation (not search)
+      onNavigateToBible(verseReference);
     } else {
-      // Fallback: show alert if navigation not available
+      // Fallback: still show alert but make it functional
+      console.warn('⚠️ onNavigateToBible callback is missing! This should not happen.');
       Alert.alert(
         'Navigate to Bible',
         `Would you like to read ${verseReference} in the Holy Bible section?`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: () => console.log('Navigate to Bible requested') }
+          { text: 'Yes', onPress: () => {
+            console.log('User wants to navigate but no callback available');
+            // Close the chat at least
+            onClose();
+          }}
         ]
       );
     }
@@ -521,16 +582,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         console.log('🔍 AiBibleChat - NOT adding name context because userName is:', userName);
       }
       
-      // Pass conversation context to prevent repeated greetings
-      const isFirstMessage = messages.length <= 1;
-      const conversationContext = {
-        isFirstMessage,
-        messageCount: messages.length,
-        userName: userName
-      };
+      // Pass actual conversation history to prevent repeated greetings
+      // Convert messages to the format expected by AI service
+      const conversationHistory = messages.map(msg => ({
+        role: msg.isAi ? 'assistant' : 'user',
+        content: msg.text || ''
+      }));
       
       // Direct call to proxy for chat (not task analysis!)
-      const response = await aiService.chatWithFriend(contextualQuestion, conversationContext);
+      const response = await aiService.chatWithFriend(contextualQuestion, conversationHistory);
       
       if (response) {
         console.log('✅ Friend response received');
@@ -623,21 +683,25 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           ]}
         >
           {isAi ? (
-            <TypewriterText
-              text={message.text}
-              style={[
-                styles.messageText,
-                { color: theme.text }
-              ]}
-              speed={25} // Faster typing speed for better UX
-              onProgress={() => {
-                // Auto-scroll as text types
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 50);
-              }}
-              onVersePress={handleVersePress}
-            />
+            message.isFromHistory ? (
+              // Messages from history: display instantly without animation
+              <BibleVerseText 
+                text={message.text} 
+                style={[styles.messageText, { color: theme.text }]}
+                onVersePress={handleVersePress}
+              />
+            ) : (
+              // New messages: animate with typewriter effect
+              <TypewriterText
+                text={message.text}
+                style={[
+                  styles.messageText,
+                  { color: theme.text }
+                ]}
+                speed={9} // Increased typing speed for better UX
+                onVersePress={handleVersePress}
+              />
+            )
           ) : (
             <Text
               style={[
@@ -694,28 +758,21 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     <Modal 
       visible={visible} 
       animationType="slide" 
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}>
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF'), borderBottomColor: theme.border || (isDark ? '#333333' : '#E0E0E0') }]}>
-            <TouchableOpacity onPress={handleClose} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-            </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Ask me anything</Text>
-          <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
-            <MaterialIcons name="more-horiz" size={24} color={theme.text} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.chatContainer}>
+          
+          <View style={styles.chatContainer}>
           {/* Messages */}
           <ScrollView
             ref={scrollViewRef}
             style={[styles.messagesContainer, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.messagesContent, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
+            contentContainerStyle={[styles.messagesContent, { 
+              backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF'),
+              paddingTop: Platform.OS === 'ios' ? 110 : 85,
+            }]}
           >
             {isInitializing ? (
               <View style={styles.loadingContainer}>
@@ -748,7 +805,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         {/* Input Area - Fixed at bottom with keyboard avoidance */}
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          keyboardVerticalOffset={0}
         >
           <View style={[
             styles.inputContainer, 
@@ -762,6 +819,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               borderColor: theme.border || (isDark ? '#444444' : '#E0E0E0')
             }]}>
               <TextInput
+                ref={chatInputRef}
                 style={[styles.textInput, { 
                   color: theme.text || (isDark ? '#FFFFFF' : '#000000'), // Fallback colors
                   backgroundColor: 'transparent' // Ensure background is transparent
@@ -810,14 +868,6 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           <View style={[styles.menuContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={copyLastMessage}
-            >
-              <MaterialIcons name="content-copy" size={20} color={theme.text} />
-              <Text style={[styles.menuItemText, { color: theme.text }]}>Copy Last Message</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.menuItem}
               onPress={() => {
                 setShowMenu(false);
                 setShowHistory(true);
@@ -830,10 +880,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => {
+              onPress={async () => {
                 setShowMenu(false);
-                saveChatToHistory();
                 hapticFeedback.light();
+                await saveChatToHistory();
+                Alert.alert('Chat Saved', 'Your conversation has been saved to history.');
               }}
             >
               <MaterialIcons name="save" size={20} color={theme.text} />
@@ -841,22 +892,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={styles.menuItem}
+              style={[styles.menuItem, styles.menuItemLast]}
               onPress={clearChat}
             >
               <MaterialIcons name="clear" size={20} color={theme.text} />
               <Text style={[styles.menuItemText, { color: theme.text }]}>Clear Chat</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemLast]}
-              onPress={() => {
-                setShowMenu(false);
-                Alert.alert('About Friend', 'Friend is your smart Bible assistant, powered by advanced technology to help you understand scripture and grow in your faith.');
-              }}
-            >
-              <MaterialIcons name="info" size={20} color={theme.text} />
-              <Text style={[styles.menuItemText, { color: theme.text }]}>About Friend</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -937,6 +977,64 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Transparent Blurred Header - Exactly like Bible Timeline */}
+      <BlurView 
+        intensity={20} 
+        tint={isDark ? 'dark' : 'light'} 
+        style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          zIndex: 1000,
+          backgroundColor: 'transparent',
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+          overflow: 'hidden',
+        }}
+      >
+        <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+        <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+          <TouchableOpacity
+            onPress={handleClose}
+            style={{ 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+              paddingHorizontal: 16, 
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}
+          >
+            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+          </TouchableOpacity>
+          
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 12 }}>
+            <View style={[styles.friendAvatarContainer, { 
+              backgroundColor: theme.primary || '#7C3AED',
+              marginRight: 10,
+            }]}>
+              <MaterialIcons name="auto-awesome" size={20} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+              Friend
+            </Text>
+          </View>
+          
+          <TouchableOpacity
+            onPress={handleMenuPress}
+            style={{ 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <MaterialIcons name="more-horiz" size={20} color={theme.text} />
+          </TouchableOpacity>
+        </View>
+      </BlurView>
     </Modal>
   );
 };
@@ -945,26 +1043,159 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerContainer: {
+    paddingTop: Platform.OS === 'ios' ? 12 : 12,
+    paddingBottom: 4,
+    backgroundColor: 'transparent',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 25 : 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    marginRight: 8,
+  },
+  glassButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  headerCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 8,
+  },
+  avatarStack: {
+    position: 'relative',
+    marginRight: 14,
+  },
+  friendAvatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  solidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  solidHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  avatarShine: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    right: -8,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    transform: [{ rotate: '-15deg' }],
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  statusDotInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#10B981',
+  },
+  headerTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
   },
   headerTitle: {
     fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  verifiedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+  },
+  headerSubtitle: {
+    fontSize: 13,
     fontWeight: '600',
+    opacity: 0.65,
+    letterSpacing: 0.1,
   },
   menuButton: {
-    padding: 8,
-    marginRight: -8,
+    marginLeft: 8,
+  },
+  headerDividerContainer: {
+    paddingHorizontal: 32,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  headerDivider: {
+    height: 0.5,
+    borderRadius: 1,
   },
   chatContainer: {
     flex: 1,

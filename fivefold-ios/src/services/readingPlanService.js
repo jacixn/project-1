@@ -9,8 +9,8 @@ const GITHUB_CONFIG = {
   get URL() {
     return `https://raw.githubusercontent.com/${this.USERNAME}/${this.REPO}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'one_year_bible_plan_data',
-  CACHE_TIMESTAMP_KEY: 'one_year_bible_plan_timestamp',
+  CACHE_KEY: 'one_year_bible_plan_data_v2', // Changed to force cache refresh
+  CACHE_TIMESTAMP_KEY: 'one_year_bible_plan_timestamp_v2', // Changed to force cache refresh
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
@@ -34,13 +34,21 @@ class ReadingPlanService {
   static async fetchFromGitHub() {
     try {
       console.log('📥 Fetching One Year Bible plan from GitHub...');
+      console.log('📥 URL:', GITHUB_CONFIG.URL);
       const response = await fetch(GITHUB_CONFIG.URL);
+      
+      console.log('📥 Response status:', response.status, response.statusText);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('📥 Data received:', {
+        planName: data.planName,
+        totalDays: data.totalDays,
+        readingsCount: data.readings?.length
+      });
       
       // Cache the data
       await AsyncStorage.setItem(GITHUB_CONFIG.CACHE_KEY, JSON.stringify(data));
@@ -50,6 +58,7 @@ class ReadingPlanService {
       return data;
     } catch (error) {
       console.error('❌ Error fetching reading plan from GitHub:', error);
+      console.error('❌ Error details:', error.message, error.stack);
       throw error;
     }
   }
@@ -57,8 +66,11 @@ class ReadingPlanService {
   // Get reading plan data (with caching)
   static async getReadingPlan() {
     try {
+      console.log('📖 getReadingPlan called');
+      
       // Check cache first
       const cacheValid = await this.isCacheValid();
+      console.log('📖 Cache valid:', cacheValid);
       
       if (cacheValid) {
         const cachedData = await AsyncStorage.getItem(GITHUB_CONFIG.CACHE_KEY);
@@ -69,9 +81,10 @@ class ReadingPlanService {
       }
 
       // Fetch from GitHub if cache is invalid or missing
+      console.log('📥 Cache invalid or missing, fetching from GitHub...');
       return await this.fetchFromGitHub();
     } catch (error) {
-      console.error('Error loading reading plan:', error);
+      console.error('❌ Error loading reading plan:', error);
       
       // Try to use expired cache as fallback
       try {
@@ -81,10 +94,11 @@ class ReadingPlanService {
           return JSON.parse(cachedData);
         }
       } catch (cacheError) {
-        console.error('Error loading from cache:', cacheError);
+        console.error('❌ Error loading from cache:', cacheError);
       }
       
       // Return fallback data
+      console.log('📦 Using fallback data');
       return this.getFallbackData();
     }
   }

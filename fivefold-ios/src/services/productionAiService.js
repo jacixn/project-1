@@ -73,18 +73,49 @@ class ProductionSmartService {
     try {
       console.log('💬 Friend chat request:', userMessage.substring(0, 50) + '...');
       
-      // Build context-aware prompt
+      // Build context-aware prompt based on conversation history
       let contextPrompt = '';
-      if (conversationContext && conversationContext.length > 0) {
-        const recentMessages = conversationContext.slice(-3);
-        contextPrompt = 'Recent conversation:\n' + 
-          recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n') + 
-          '\n\n';
+      let isFirstMessage = true;
+      let userName = 'friend';
+      
+      // Handle both array format (message history) and object format (metadata)
+      if (conversationContext) {
+        if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+          // Array format: actual message history
+          const recentMessages = conversationContext.slice(-4);
+          contextPrompt = 'Previous messages in this conversation:\n' + 
+            recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Friend'}: ${msg.content.substring(0, 150)}`).join('\n') + 
+            '\n\n';
+          // If there's any Friend message already in history, it's NOT the first message
+          isFirstMessage = !conversationContext.some(msg => msg.role === 'assistant');
+        } else if (conversationContext.messageCount !== undefined) {
+          // Object format: just metadata
+          isFirstMessage = conversationContext.isFirstMessage || conversationContext.messageCount <= 1;
+          userName = conversationContext.userName || 'friend';
+        }
       }
       
-      const prompt = `${contextPrompt}You are Friend, a caring Bible study companion in the Biblely app. Your purpose is to help people understand the Bible, grow in their faith, and answer questions about God, Jesus, prayer, and spiritual matters.
+      // Build the prompt with conversation awareness
+      let prompt;
+      
+      // Always use the same prompt - no introductions, just answer questions
+      prompt = `${contextPrompt}You are Friend, a caring Bible study companion in the Biblely app. 
+
+⚠️ CRITICAL INSTRUCTIONS:
+1. NEVER introduce yourself or say "I'm Friend" or "nice to meet you" - the user already knows who you are
+2. Just answer their question directly and naturally, like a friend continuing a conversation
+3. Write EVERYTHING so a 12-year-old can easily understand - use simple words, short sentences, everyday language
+4. MANDATORY: You MUST include actual Bible verse references in your answer (format: "Book Chapter:Verse" like "John 3:16", "Romans 8:28", "Psalm 23:1"). These become clickable links for the user. Include at least 1-2 specific verse references in EVERY response.
+5. NEVER use dashes (-), bullet points (•), or lists - write in complete, flowing sentences
 
 The user said: "${userMessage}"
+
+Simply answer their question directly. Be warm, encouraging, and supportive. Keep it conversational - like texting a good friend.
+
+⚠️ CRITICAL: You MUST include specific Bible verse references (like "Matthew 5:16" or "Proverbs 3:5-6") in your answer. When you mention a concept or story, cite the actual verse reference. For example:
+- If talking about love, mention "1 Corinthians 13:4"
+- If discussing faith, cite "Hebrews 11:1"
+- If explaining a verse, reference related verses too
 
 IMPORTANT: You are ONLY here to help with:
 - Understanding Bible verses and passages
@@ -92,11 +123,9 @@ IMPORTANT: You are ONLY here to help with:
 - Prayer guidance and spiritual encouragement
 - Biblical wisdom and life application
 
-If someone asks about homework, school assignments, general knowledge, or anything not related to Bible study and faith, politely redirect them by saying something like: "I'm here to help with Bible study and faith questions. Is there a Bible verse or spiritual topic I can help you understand?"
+If someone asks about homework, school assignments, general knowledge, or anything not related to Bible study and faith, politely redirect them.
 
-Respond in a warm, conversational way. Be encouraging and supportive. Keep it natural and friendly - like texting a good friend who loves helping people understand the Bible. Don't use bullet points or lists. Just have a normal conversation.
-
-Important: NEVER use dashes (-) or bullet points in your response. Write in complete, flowing sentences like you're talking to a friend.`;
+Remember: Write for a 12-year-old, ALWAYS include specific verse references (Book Chapter:Verse format), and NEVER introduce yourself.`;
 
       const response = await this.simpleSmartChat(prompt);
       
@@ -260,6 +289,110 @@ No explanations, just the two numbers.`;
     } catch (error) {
       console.error('Prayer scoring error:', error);
       return { urgency: 5, importance: 5 };
+    }
+  }
+
+  // Get service status
+  async getStatus() {
+    return {
+      hasApiKey: this.isInitialized && DEEPSEEK_CONFIG.apiKey ? true : false,
+      apiKeyType: 'deepseek-direct',
+      requestCount: this.requestCount,
+      lastError: this.lastError
+    };
+  }
+
+  // Analyze a task and assign points (for todo scoring)
+  async analyzeTask(taskText) {
+    try {
+      console.log('🚀 Using Smart Analysis for task scoring...');
+      this.requestCount++;
+
+      const prompt = `You are a task difficulty analyzer. Analyze tasks and classify them based on complexity, time, and effort required.
+
+TIERS:
+- LOW TIER (500-799 points): Quick, simple tasks under 15 minutes
+- MID TIER (800-1999 points): Moderate tasks 15 minutes to 2 hours  
+- HIGH TIER (2000-4000 points): Complex, time-intensive tasks 2+ hours
+
+Analyze this task: "${taskText}"
+
+Respond with ONLY a JSON object:
+{
+  "tier": "low" | "mid" | "high",
+  "points": [number within tier range],
+  "reasoning": "[brief explanation]",
+  "confidence": [0-100],
+  "timeEstimate": "[realistic time estimate]",
+  "complexity": [0.0-1.0]
+}`;
+
+      const response = await this.simpleSmartChat(prompt);
+      
+      // Parse and validate the response
+      let parsed;
+      try {
+        // Try to extract JSON from response
+        const jsonMatch = response.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(response);
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', response);
+        // Fallback to mid-tier
+        parsed = {
+          tier: 'mid',
+          points: 1200,
+          reasoning: 'Unable to parse AI response',
+          confidence: 50,
+          timeEstimate: '30-60 min',
+          complexity: 0.5
+        };
+      }
+
+      // Validate and return
+      return {
+        tier: parsed.tier || 'mid',
+        points: parsed.points || 1200,
+        reasoning: parsed.reasoning || 'Task analyzed',
+        confidence: parsed.confidence || 80,
+        timeEstimate: parsed.timeEstimate || '30-60 min',
+        complexity: parsed.complexity || 0.5
+      };
+      
+    } catch (error) {
+      this.lastError = error.message;
+      console.error('❌ Task analysis error:', error);
+      
+      // Return fallback scoring
+      return {
+        tier: 'mid',
+        points: 1200,
+        reasoning: 'Fallback scoring due to error',
+        confidence: 60,
+        timeEstimate: '30-60 min',
+        complexity: 0.5
+      };
+    }
+  }
+
+  // Test connection
+  async testConnection() {
+    try {
+      const result = await this.analyzeTask('Test task: Complete project documentation');
+      return {
+        success: true,
+        model: 'deepseek-chat',
+        provider: 'deepseek-direct',
+        result: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 

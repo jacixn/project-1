@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   TextInput,
   Switch,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
@@ -66,6 +67,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
   const [mapsData, setMapsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Essential features only - NO GAMES
   const [searchQuery, setSearchQuery] = useState('');
@@ -187,6 +189,23 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
       }
       
       setLoading(false);
+    }
+  };
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    hapticFeedback.light();
+    try {
+      await AsyncStorage.removeItem(MAPS_CONFIG.CACHE_KEY);
+      await AsyncStorage.removeItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
+      const data = await fetchMapsFromRemote();
+      setMapsData(data);
+      setError(null);
+    } catch (error) {
+      console.error('Error refreshing maps:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -561,7 +580,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     ];
     
     const q = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-    q.options = q.options.sort(() => Math.random() - 0.5).slice(0, 4);
+    q.options = [...q.options].sort(() => Math.random() - 0.5).slice(0, 4);
     return q;
   };
 
@@ -1127,7 +1146,20 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                 <View style={styles.detailBookmarkButton} />
               </View>
 
-              <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                style={styles.detailContent} 
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={theme.primary}
+                    colors={[theme.primary]}
+                    title="Pull to refresh..."
+                    titleColor={theme.textSecondary}
+                  />
+                }
+              >
                 {/* Location Info Card */}
                 <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
                   <View style={styles.detailCardHeader}>

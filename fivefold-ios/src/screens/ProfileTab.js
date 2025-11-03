@@ -18,12 +18,17 @@ import {
   DeviceEventEmitter,
   PanResponder,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
+
+// const { width } = Dimensions.get('window');
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
+  isLiquidGlassSupportedByDevice,
 } from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -47,6 +52,8 @@ import PrayerCompletionManager from '../utils/prayerCompletionManager';
 import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
+import ThemeModal from '../components/ThemeModal';
+
 
 // Animated Profile Card Components (follows Rules of Hooks)
 const AnimatedStatCard = ({ children, onPress, style, ...props }) => {
@@ -194,7 +201,7 @@ const AnimatedModalButton = ({ children, onPress, style, ...props }) => {
 };
 
 const ProfileTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, toggleTheme, changeTheme, availableThemes, currentTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, toggleTheme, changeTheme, availableThemes, currentTheme } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const [userStats, setUserStats] = useState({
     points: 0,
@@ -220,16 +227,20 @@ const ProfileTab = () => {
   const [aiEnabled, setAiEnabled] = useState(false);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showBibleVersionModal, setShowBibleVersionModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
   const [refreshingSavedVerses, setRefreshingSavedVerses] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const [purchasedVersions, setPurchasedVersions] = useState(['kjv', 'web']); // Free versions
   
@@ -244,6 +255,7 @@ const ProfileTab = () => {
   const [showJournal, setShowJournal] = useState(false);
   const [showAddJournalNote, setShowAddJournalNote] = useState(false);
   const [newJournalNote, setNewJournalNote] = useState({ reference: '', text: '' });
+  const [isAddingEntry, setIsAddingEntry] = useState(false); // Track if we're in add mode within journal modal
   
   // Highlights State
   const [highlightedVerses, setHighlightedVerses] = useState([]);
@@ -251,10 +263,19 @@ const ProfileTab = () => {
   const [selectedHighlightColor, setSelectedHighlightColor] = useState(null); // Track selected color for drill-down
   const [highlightVersesWithText, setHighlightVersesWithText] = useState([]); // Store verses with full text
   
+  // Tasks Done State
+  const [showTasksDone, setShowTasksDone] = useState(false);
+  const [completedTodosList, setCompletedTodosList] = useState([]);
+  
   // Modal animation refs for interactive dismissal
   const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
   const journalSlideAnim = useRef(new Animated.Value(0)).current;
   const highlightsSlideAnim = useRef(new Animated.Value(0)).current;
+  const addJournalSlideAnim = useRef(new Animated.Value(600)).current;
+  
+  const savedVersesFadeAnim = useRef(new Animated.Value(0)).current;
+  const journalFadeAnim = useRef(new Animated.Value(0)).current;
+  const highlightsFadeAnim = useRef(new Animated.Value(0)).current;
   
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
@@ -264,7 +285,41 @@ const ProfileTab = () => {
       const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
-        setSavedVersesList(verses);
+        
+        // Get user's current preferred Bible version
+        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'kjv';
+        console.log(`📖 Loading ${verses.length} saved verses in preferred version: ${preferredVersion.toUpperCase()}`);
+        
+        // Fetch each verse in the user's preferred version
+        const versesWithPreferredVersion = await Promise.all(
+          verses.map(async (verse) => {
+            try {
+              // Skip if this is a Key Verse (special identifier)
+              if (verse.version === 'KEY_VERSES') {
+                return verse; // Keep Key Verses as-is
+              }
+              
+              // Fetch the verse in the user's preferred version
+              const { text, version } = await verseByReferenceService.getVerseByReference(
+                verse.reference,
+                preferredVersion
+              );
+              
+              return {
+                ...verse,
+                text: text,
+                version: version.toLowerCase(),
+                originalVersion: verse.version, // Keep track of original version
+              };
+            } catch (error) {
+              console.warn(`⚠️ Could not fetch ${verse.reference} in ${preferredVersion}, using saved text:`, error.message);
+              // If fetching fails, keep the original saved text
+              return verse;
+            }
+          })
+        );
+        
+        setSavedVersesList(versesWithPreferredVersion);
         
         // Update the stats count
         setUserStats(prev => ({
@@ -278,7 +333,7 @@ const ProfileTab = () => {
         userStatsData.savedVerses = verses.length;
         await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
         
-        console.log(`📖 Loaded ${verses.length} saved verses in ProfileTab`);
+        console.log(`✅ Loaded ${verses.length} saved verses in ${preferredVersion.toUpperCase()}`);
       } else {
         setSavedVersesList([]);
         console.log('📖 No saved verses found');
@@ -380,6 +435,35 @@ const ProfileTab = () => {
       console.log(`🎨 Loaded ${highlights.length} highlighted verses`);
     } catch (error) {
       console.error('Error loading highlights:', error);
+    }
+  };
+
+  const loadCompletedTasks = async () => {
+    try {
+      console.log('🔍 Loading completed tasks from AsyncStorage...');
+      const storedTodos = await AsyncStorage.getItem('todos');
+      console.log('📦 Raw stored todos:', storedTodos);
+      
+      if (storedTodos) {
+        const todos = JSON.parse(storedTodos);
+        console.log('📋 Total todos:', todos.length);
+        
+        // Use the EXACT same logic as the History card
+        const completedHistory = todos
+          .filter(todo => todo.completed)
+          .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+        
+        console.log('✅ Completed tasks count:', completedHistory.length);
+        console.log('✅ Completed tasks:', completedHistory);
+        
+        setCompletedTodosList(completedHistory);
+      } else {
+        console.log('❌ No todos found in storage');
+        setCompletedTodosList([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading completed tasks:', error);
+      setCompletedTodosList([]);
     }
   };
 
@@ -560,31 +644,144 @@ const ProfileTab = () => {
     })
   ).current;
 
+  const addJournalPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderGrant: () => {},
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          addJournalSlideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150) {
+          Animated.timing(addJournalSlideAnim, {
+            toValue: 1000,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setIsAddingEntry(false);
+            setNewJournalNote({ reference: '', text: '' });
+            addJournalSlideAnim.setValue(600);
+          });
+        } else {
+          Animated.spring(addJournalSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)  ).current;
+  
+  // Logo animations
+  const logoSpin = useRef(new Animated.Value(0)).current;
+  const logoPulse = useRef(new Animated.Value(1)).current;
+  const logoFloat = useRef(new Animated.Value(0)).current;
+  
+  // Modal card animations
+  const modalFadeAnim = useRef(new Animated.Value(0)).current;
+  const modalSlideAnim = useRef(new Animated.Value(50)).current;
+  const cardShimmer = useRef(new Animated.Value(0)).current;
 
-  // Reset animation values when modals open
-  useEffect(() => {
-    if (showSavedVerses) {
-      savedVersesSlideAnim.setValue(0);
-    }
-  }, [showSavedVerses]);
+  const startShimmerAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cardShimmer, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardShimmer, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
+  // Continuous logo animations
+  const startLogoAnimations = () => {
+    // Gentle spinning animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoSpin, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoSpin, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Pulsing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoPulse, {
+          toValue: 1.15,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoPulse, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Floating animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoFloat, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoFloat, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Reset states when modals close
   useEffect(() => {
-    if (showJournal) {
-      journalSlideAnim.setValue(0);
+    if (!showJournal) {
+      setIsAddingEntry(false);
+      setNewJournalNote({ reference: '', text: '' });
     }
   }, [showJournal]);
 
+  // Animate add journal entry modal
   useEffect(() => {
-    if (showHighlights) {
-      highlightsSlideAnim.setValue(0);
+    if (isAddingEntry) {
+      addJournalSlideAnim.setValue(600);
+      Animated.spring(addJournalSlideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
     }
-  }, [showHighlights]);
+  }, [isAddingEntry]);
 
   // Debug: Monitor showAddJournalNote state
   useEffect(() => {
@@ -595,10 +792,14 @@ const ProfileTab = () => {
     loadUserData();
     checkAiStatus();
     loadVibrationSetting();
+    loadLiquidGlassSetting();
     loadSavedVerses();
     loadAppStreak();
     loadJournalNotes();
     loadHighlights();
+    loadCompletedTasks();
+    startLogoAnimations();
+    startShimmerAnimation();
     // Start entrance animation
     createEntranceAnimation(slideAnim, fadeAnim, scaleAnim, 0, 0).start();
     // Header appears after content
@@ -610,6 +811,27 @@ const ProfileTab = () => {
     }).start();
   }, []);
 
+  useEffect(() => {
+    if (showAboutModal) {
+      // Animate modal entrance
+      modalFadeAnim.setValue(0);
+      modalSlideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(modalFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(modalSlideAnim, {
+          toValue: 0,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showAboutModal]);
+
   // Refresh saved verses when modal becomes visible
   useEffect(() => {
     if (showSavedVerses) {
@@ -617,6 +839,27 @@ const ProfileTab = () => {
       loadSavedVerses();
     }
   }, [showSavedVerses]);
+
+  // Refresh completed tasks when modal becomes visible
+  useEffect(() => {
+    if (showTasksDone) {
+      console.log('✅ Tasks Done modal opened, refreshing data...');
+      loadCompletedTasks();
+    }
+  }, [showTasksDone]);
+
+  // Listen for task completion events
+  useEffect(() => {
+    const taskCompletedListener = DeviceEventEmitter.addListener('taskCompleted', () => {
+      console.log('✅ Task completed event received, refreshing data...');
+      loadCompletedTasks();
+      loadUserData(); // Also refresh user stats
+    });
+
+    return () => {
+      taskCompletedListener.remove();
+    };
+  }, []);
 
   const loadUserData = async () => {
     try {
@@ -629,7 +872,16 @@ const ProfileTab = () => {
         setUserName(profile.name || 'Faithful Friend');
         setEditName(profile.name || 'Faithful Friend');
         setProfilePicture(profile.profilePicture);
-        setSelectedCountry(profile.country);
+        
+        // Set country object from profile data
+        if (profile.countryCode) {
+          const countryObj = {
+            code: profile.countryCode,
+            name: profile.country,
+            flag: profile.countryFlag
+          };
+          setSelectedCountry(countryObj);
+        }
       } else {
         // Fallback to old data format
         const storedName = await getStoredData('userName') || 'Faithful Friend';
@@ -648,6 +900,14 @@ const ProfileTab = () => {
       } else {
         // Default to NIV if no version selected
         setSelectedBibleVersion('niv');
+      }
+
+      // Load weight unit preference
+      const storedWeightUnit = await AsyncStorage.getItem('weightUnit');
+      if (storedWeightUnit) {
+        setWeightUnit(storedWeightUnit);
+      } else {
+        setWeightUnit('kg'); // Default to kg
       }
 
       const storedPurchasedVersions = await AsyncStorage.getItem('purchasedBibleVersions');
@@ -714,7 +974,9 @@ const ProfileTab = () => {
       const profileData = {
         name: editName,
         profilePicture: profilePicture,
-        country: selectedCountry,
+        country: selectedCountry?.name || null,
+        countryCode: selectedCountry?.code || null,
+        countryFlag: selectedCountry?.flag || null,
         joinedDate: userProfile?.joinedDate || new Date().toISOString(),
       };
       
@@ -728,6 +990,9 @@ const ProfileTab = () => {
       if (profilePicture) {
         await saveData('profilePicture', profilePicture);
       }
+      
+      // Emit event to notify other components
+      DeviceEventEmitter.emit('userNameChanged');
       
       console.log('Profile saved successfully');
       
@@ -787,6 +1052,33 @@ const ProfileTab = () => {
   const handleVibrationToggle = async (enabled) => {
     setVibrationEnabled(enabled);
     await updateHapticsSetting(enabled);
+  };
+
+  const loadLiquidGlassSetting = async () => {
+    try {
+      const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+      if (setting !== null) {
+        const enabled = setting === 'true';
+        setLiquidGlassEnabled(enabled);
+        global.liquidGlassUserPreference = enabled;
+      }
+    } catch (error) {
+      console.log('Error loading liquid glass setting:', error);
+    }
+  };
+
+  const handleLiquidGlassToggle = async (enabled) => {
+    setLiquidGlassEnabled(enabled);
+    await AsyncStorage.setItem('fivefold_liquidGlass', enabled.toString());
+    global.liquidGlassUserPreference = enabled;
+    hapticFeedback.light();
+    
+    // Show alert that app needs refresh
+    Alert.alert(
+      'Liquid Glass Updated',
+      'Close and reopen the app to see the changes take effect.',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   const handleBibleVersionSelect = async (versionId) => {
@@ -909,7 +1201,7 @@ const ProfileTab = () => {
       
       <View style={{ alignItems: 'center' }}>
       <Text style={[styles.userName, { color: theme.text }]}>
-        {userName} {userProfile?.country?.flag || ''}
+        {userName} {selectedCountry?.flag || '🌍'}
       </Text>
         
         {/* Streak Display */}
@@ -997,36 +1289,27 @@ const ProfileTab = () => {
 
     return (
       <LiquidGlassStatsContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>📊 {t.yourJourney || 'Your Journey'}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t.yourJourney || 'Your Journey'}</Text>
       
       <View style={styles.statsGrid}>
-        <View style={[styles.statBox, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderColor: `${theme.primary}15`, // Very subtle border color
-          borderWidth: 0.8, // Very subtle border
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-          shadowOpacity: 0.06, // Very subtle shadow
-          shadowRadius: 3, // Small shadow radius
-          elevation: 1, // Minimal elevation
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4',
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)',
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2',
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082',
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-          }),
-        }]}>
+        <AnimatedStatCard 
+          style={[styles.statBox, { 
+            backgroundColor: `${theme.primary}30`,
+            borderColor: `${theme.primary}99`,
+            borderWidth: 0.8,
+            borderRadius: 16,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
+          }]}
+          onPress={async () => {
+            hapticFeedback.light();
+            await loadCompletedTasks();
+            setShowTasksDone(true);
+          }}
+        >
           <MaterialIcons name="check-circle" size={24} color={theme.success} />
           <Text style={[styles.statValue, { color: theme.text }]}>
             {userStats.completedTasks || 0}
@@ -1034,35 +1317,19 @@ const ProfileTab = () => {
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
             {t.tasksDone || 'Tasks Done'}
           </Text>
-        </View>
+        </AnimatedStatCard>
         
         <AnimatedStatCard 
           style={[styles.statBox, { 
-            backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-            borderColor: `${theme.primary}15`, // Very subtle border color
-            borderWidth: 0.8, // Very subtle border
-            borderRadius: 16, // Smooth rounded corners - no sharp edges!
+            backgroundColor: `${theme.primary}30`,
+            borderColor: `${theme.primary}99`,
+            borderWidth: 0.8,
+            borderRadius: 16,
             shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-            shadowOpacity: 0.06, // Very subtle shadow
-            shadowRadius: 3, // Small shadow radius
-            elevation: 1, // Minimal elevation
-            // Add glow effect for different themes
-            ...(isBlushTheme && {
-              shadowColor: '#FF69B4',
-              backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-              borderColor: 'rgba(255, 105, 180, 0.4)',
-            }),
-            ...(isCresviaTheme && {
-              shadowColor: '#8A2BE2',
-              backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-              borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-            }),
-            ...(isEternaTheme && {
-              shadowColor: '#4B0082',
-              backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-              borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-            }),
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
           }]}
           onPress={() => {
             hapticFeedback.light();
@@ -1082,31 +1349,15 @@ const ProfileTab = () => {
         
         <AnimatedStatCard
           style={[styles.statBox, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderColor: `${theme.primary}15`, // Very subtle border color
-          borderWidth: 0.8, // Very subtle border
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
+          backgroundColor: `${theme.primary}30`,
+          borderColor: `${theme.primary}99`,
+          borderWidth: 0.8,
+          borderRadius: 16,
           shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-          shadowOpacity: 0.06, // Very subtle shadow
-          shadowRadius: 3, // Small shadow radius
-          elevation: 1, // Minimal elevation
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4',
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)',
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2',
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082',
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-          }),
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          elevation: 1,
           }]}
           onPress={() => {
             hapticFeedback.light();
@@ -1125,11 +1376,11 @@ const ProfileTab = () => {
         
         <AnimatedStatCard
           style={[styles.statBox, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderColor: `${theme.primary}15`, // Very subtle border color
+          backgroundColor: 'rgba(30, 64, 175, 0.30)', // See-through deep blue at 30% opacity
+          borderColor: 'rgba(30, 64, 175, 0.6)', // Semi-transparent deep blue border
           borderWidth: 0.8, // Very subtle border
           borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: theme.primary,
+          shadowColor: '#1E40AF', // Deep blue shadow
           shadowOffset: { width: 0, height: 1 }, // Minimal shadow
           shadowOpacity: 0.06, // Very subtle shadow
           shadowRadius: 3, // Small shadow radius
@@ -1149,6 +1400,21 @@ const ProfileTab = () => {
             shadowColor: '#4B0082',
             backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
             borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+          }),
+          ...(isFaithTheme && {
+            shadowColor: '#4A90E2', // Sky blue glow - Faith theme
+            backgroundColor: 'rgba(74, 144, 226, 0.30)', // See-through sky blue at 30% - Faith theme
+            borderColor: 'rgba(74, 144, 226, 0.6)', // Semi-transparent sky blue border - Faith theme
+          }),
+          ...(isSailormoonTheme && {
+            shadowColor: '#C8A2D0', // Soft purple glow - Sailor Moon theme
+            backgroundColor: 'rgba(200, 162, 208, 0.30)', // See-through soft purple at 30% - Sailor Moon theme
+            borderColor: 'rgba(200, 162, 208, 0.6)', // Semi-transparent soft purple border - Sailor Moon theme
+          }),
+          ...(isSpidermanTheme && {
+            shadowColor: '#E31E24', // Red glow - Spiderman theme
+            backgroundColor: 'rgba(227, 30, 36, 0.30)', // See-through red at 30% - Spiderman theme
+            borderColor: 'rgba(227, 30, 36, 0.6)', // Semi-transparent red border - Spiderman theme
           }),
           }]}
           onPress={() => {
@@ -1188,7 +1454,7 @@ const ProfileTab = () => {
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 Achievements</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Achievements</Text>
           <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
         </View>
         
@@ -1199,11 +1465,11 @@ const ProfileTab = () => {
               style={[
                 styles.badgeItem, 
                 { 
-                  backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+                  backgroundColor: 'rgba(30, 64, 175, 0.30)', // See-through deep blue at 30% opacity
                   borderWidth: 0.8, // Very subtle border
-                  borderColor: `${theme.primary}15`, // Very subtle border color
+                  borderColor: 'rgba(30, 64, 175, 0.6)', // Semi-transparent deep blue border
                   borderRadius: 16, // Smooth rounded corners - no sharp edges!
-                  shadowColor: theme.primary,
+                  shadowColor: '#1E40AF', // Deep blue shadow
                   shadowOffset: { width: 0, height: 1 }, // Minimal shadow
                   shadowOpacity: 0.06, // Very subtle shadow
                   shadowRadius: 3, // Small shadow radius
@@ -1223,6 +1489,21 @@ const ProfileTab = () => {
                     shadowColor: '#4B0082',
                     backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
                     borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+                  }),
+                  ...(isFaithTheme && {
+                    shadowColor: '#4A90E2', // Sky blue glow - Faith theme
+                    backgroundColor: 'rgba(74, 144, 226, 0.30)', // See-through sky blue at 30% - Faith theme
+                    borderColor: 'rgba(74, 144, 226, 0.6)', // Semi-transparent sky blue border - Faith theme
+                  }),
+                  ...(isSailormoonTheme && {
+                    shadowColor: '#C8A2D0', // Soft purple glow - Sailor Moon theme
+                    backgroundColor: 'rgba(200, 162, 208, 0.30)', // See-through soft purple at 30% - Sailor Moon theme
+                    borderColor: 'rgba(200, 162, 208, 0.6)', // Semi-transparent soft purple border - Sailor Moon theme
+                  }),
+                  ...(isSpidermanTheme && {
+                    shadowColor: '#E31E24', // Red glow - Spiderman theme
+                    backgroundColor: 'rgba(227, 30, 36, 0.30)', // See-through red at 30% - Spiderman theme
+                    borderColor: 'rgba(227, 30, 36, 0.6)', // Semi-transparent red border - Spiderman theme
                   }),
                 },
                 !badge.earned && { opacity: 0.5 }
@@ -1244,14 +1525,45 @@ const ProfileTab = () => {
         </View>
         
           <View style={[styles.viewAllButton, { 
-            backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
+            backgroundColor: 'rgba(30, 64, 175, 0.30)', // See-through deep blue at 30% opacity
             borderWidth: 0.8, // Very subtle border
-            borderColor: `${theme.primary}15`, // Very subtle border color
-            shadowColor: theme.primary,
+            borderColor: 'rgba(30, 64, 175, 0.6)', // Semi-transparent deep blue border
+            shadowColor: '#1E40AF', // Deep blue shadow
             shadowOffset: { width: 0, height: 1 }, // Minimal shadow
             shadowOpacity: 0.06, // Very subtle shadow
             shadowRadius: 3, // Small shadow radius
             elevation: 1, // Minimal elevation
+            // Add glow effect for different themes
+            ...(isBlushTheme && {
+              shadowColor: '#FF69B4',
+              backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
+              borderColor: 'rgba(255, 105, 180, 0.4)',
+            }),
+            ...(isCresviaTheme && {
+              shadowColor: '#8A2BE2',
+              backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+              borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
+            }),
+            ...(isEternaTheme && {
+              shadowColor: '#4B0082',
+              backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
+              borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
+            }),
+            ...(isFaithTheme && {
+              shadowColor: '#4A90E2', // Sky blue glow - Faith theme
+              backgroundColor: 'rgba(74, 144, 226, 0.30)', // See-through sky blue at 30% - Faith theme
+              borderColor: 'rgba(74, 144, 226, 0.6)', // Semi-transparent sky blue border - Faith theme
+            }),
+            ...(isSailormoonTheme && {
+              shadowColor: '#C8A2D0', // Soft purple glow - Sailor Moon theme
+              backgroundColor: 'rgba(200, 162, 208, 0.30)', // See-through soft purple at 30% - Sailor Moon theme
+              borderColor: 'rgba(200, 162, 208, 0.6)', // Semi-transparent soft purple border - Sailor Moon theme
+            }),
+            ...(isSpidermanTheme && {
+              shadowColor: '#E31E24', // Red glow - Spiderman theme
+              backgroundColor: 'rgba(227, 30, 36, 0.30)', // See-through red at 30% - Spiderman theme
+              borderColor: 'rgba(227, 30, 36, 0.6)', // Semi-transparent red border - Spiderman theme
+            }),
           }]}>
             <Text style={[styles.viewAllText, { color: theme.primary }]}>
               View All Achievements
@@ -1315,7 +1627,7 @@ const ProfileTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -1332,12 +1644,44 @@ const ProfileTab = () => {
         absolute={false}
       >
         <View style={styles.headerContent}>
-          {/* Logo positioned on the left */}
-          <Image 
-            source={require('../../assets/logo.png')} 
-            style={[styles.headerLogo, { backgroundColor: 'transparent' }]}
-            resizeMode="contain"
-          />
+          {/* Animated Logo positioned on the left */}
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.heavy();
+              setShowAboutModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Animated.Image 
+              source={require('../../assets/logo.png')} 
+              style={[
+                styles.headerLogo,
+                {
+                  backgroundColor: 'transparent',
+                  transform: [
+                    {
+                      rotate: logoSpin.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })
+                    },
+                    { scale: logoPulse },
+                    {
+                      translateY: logoFloat.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -6]
+                      })
+                    }
+                  ],
+                  shadowColor: theme.primary,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 0 },
+                }
+              ]}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
@@ -1767,37 +2111,15 @@ const ProfileTab = () => {
       <Modal
         visible={showSavedVerses}
         animationType="none"
-        transparent={true}
         onRequestClose={() => setShowSavedVerses(false)}
+        presentationStyle="fullScreen"
       >
         <View style={{
           flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          justifyContent: 'flex-end'
+          backgroundColor: theme.background
         }}>
-          <Animated.View style={{
-            backgroundColor: theme.background,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            height: '93%',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 20,
-            transform: [{ translateY: savedVersesSlideAnim }]
-          }}>
-            {/* Drag Handle - Swipe Area */}
-            <View 
-              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
-              {...savedVersesPanResponder.panHandlers}
-            >
-              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
-            </View>
-            
-            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center' }]}>
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>Saved Verses</Text>
-            </View>
+            {/* Content */}
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
             
             <ScrollView 
               style={styles.modalScrollView} 
@@ -1883,7 +2205,58 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-          </Animated.View>
+            </View>
+
+            {/* Transparent Blurred Header */}
+            <BlurView 
+              intensity={20} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                backgroundColor: 'transparent',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={{ 
+                backgroundColor: 'transparent', 
+                borderBottomWidth: 0, 
+                paddingTop: 8, 
+                paddingBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20
+              }}>
+                <TouchableOpacity
+                  onPress={() => setShowSavedVerses(false)}
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    paddingHorizontal: 16, 
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
+                </TouchableOpacity>
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 18, 
+                  fontWeight: '600',
+                  flex: 1,
+                  textAlign: 'center'
+                }}>
+                  Saved Verses
+                </Text>
+                <View style={{ width: 60 }} />
+              </View>
+            </BlurView>
         </View>
       </Modal>
 
@@ -1899,73 +2272,33 @@ const ProfileTab = () => {
           </View>
 
           <ScrollView style={styles.modalContent}>
-            {/* 🌸 Theme Selection */}
-            <View style={[styles.modalSettingItem, { backgroundColor: theme.card, flexDirection: 'column', alignItems: 'stretch' }]}>
+            {/* Theme Selection Button */}
+            <TouchableOpacity 
+              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
+              onPress={() => {
+                console.log('Theme button pressed');
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => {
+                  setShowThemeModal(true);
+                }, 300);
+                console.log('showThemeModal set to true');
+              }}
+              activeOpacity={0.7}
+            >
               <View style={styles.settingLeft}>
-                <MaterialIcons 
-                  name="palette" 
-                  size={20} 
-                  color={theme.primary} 
-                />
+                <MaterialIcons name="palette" size={20} color={theme.primary} />
                 <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  🎨 Theme
+                  {t.theme || 'Theme'}
                 </Text>
               </View>
-              
-              <View style={styles.themeSelector}>
-                {availableThemes.map((themeOption) => (
-                  <TouchableOpacity
-                    key={themeOption.id}
-                    style={[
-                      styles.themeOption,
-                      { 
-                        backgroundColor: currentTheme === themeOption.id ? theme.primary + '20' : theme.surface,
-                        borderColor: currentTheme === themeOption.id ? theme.primary : theme.border,
-                        borderWidth: 1,
-                      }
-                    ]}
-                    onPress={() => {
-                      hapticFeedback.success();
-                      changeTheme(themeOption.id);
-                    }}
-                  >
-                    <Text style={styles.themeEmoji}>{themeOption.icon}</Text>
-                    <Text style={[
-                      styles.themeText, 
-                      { 
-                        color: currentTheme === themeOption.id ? theme.primary : theme.text,
-                        fontWeight: currentTheme === themeOption.id ? '600' : '400'
-                      }
-                    ]}>
-                      {themeOption.name}
-                    </Text>
-                    {currentTheme === themeOption.id && (
-                      <MaterialIcons name="check-circle" size={16} color={theme.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Dark Mode Toggle (Legacy - kept for compatibility) */}
-            <View style={[styles.modalSettingItem, { backgroundColor: theme.card }]}>
-              <View style={styles.settingLeft}>
-                <MaterialIcons 
-                  name={isDark ? "dark-mode" : "light-mode"} 
-                  size={20} 
-                  color={theme.primary} 
-                />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {isDark ? (t.darkMode || "Dark Mode") : (t.lightMode || "Light Mode")}
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                  {isBlushTheme ? 'Blush Bloom' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : 'Default'}
                 </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </View>
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: theme.border, true: theme.primary }}
-                thumbColor={isDark ? "#FFFFFF" : "#F4F3F4"}
-              />
-            </View>
+            </TouchableOpacity>
             
             {/* Bible Version Setting */}
             <TouchableOpacity 
@@ -2017,6 +2350,38 @@ const ProfileTab = () => {
               </View>
             </TouchableOpacity>
 
+            {/* Weight Unit Setting */}
+            <TouchableOpacity 
+              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
+                setWeightUnit(newUnit);
+                await AsyncStorage.setItem('weightUnit', newUnit);
+                
+                // Update in user profile
+                const storedProfile = await AsyncStorage.getItem('userProfile');
+                if (storedProfile) {
+                  const profile = JSON.parse(storedProfile);
+                  profile.weightUnit = newUnit;
+                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                }
+              }}
+            >
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
+                <Text style={[styles.settingLabel, { color: theme.text }]}>
+                  Weight Unit
+                </Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                  {weightUnit.toUpperCase()}
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
             {/* Haptic Feedback Toggle */}
             <View style={[styles.modalSettingItem, { backgroundColor: theme.card }]}>
               <View style={styles.settingLeft}>
@@ -2036,6 +2401,28 @@ const ProfileTab = () => {
                 thumbColor={vibrationEnabled ? "#FFFFFF" : "#F4F3F4"}
               />
             </View>
+
+            {/* Liquid Glass Toggle - Only show if device supports it */}
+            {isLiquidGlassSupportedByDevice && (
+              <View style={[styles.modalSettingItem, { backgroundColor: theme.card }]}>
+                <View style={styles.settingLeft}>
+                  <MaterialIcons 
+                    name="gradient" 
+                    size={20} 
+                    color={theme.primary} 
+                  />
+                  <Text style={[styles.settingLabel, { color: theme.text }]}>
+                    Liquid Glass Effect
+                  </Text>
+                </View>
+                <Switch
+                  value={liquidGlassEnabled}
+                  onValueChange={handleLiquidGlassToggle}
+                  trackColor={{ false: theme.border, true: theme.primary }}
+                  thumbColor={liquidGlassEnabled ? "#FFFFFF" : "#F4F3F4"}
+                />
+              </View>
+            )}
             
             {/* Notifications */}
             <TouchableOpacity 
@@ -2123,40 +2510,17 @@ const ProfileTab = () => {
       <Modal
         visible={showJournal}
         animationType="none"
-        transparent={true}
         onRequestClose={() => setShowJournal(false)}
+        presentationStyle="fullScreen"
       >
         <View style={{
           flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          justifyContent: 'flex-end'
+          backgroundColor: theme.background
         }}>
-          <Animated.View style={{
-            backgroundColor: theme.background,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            height: '93%',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 20,
-            transform: [{ translateY: journalSlideAnim }]
-          }}>
-            {/* Drag Handle - Swipe Area */}
-            <View 
-              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
-              {...journalPanResponder.panHandlers}
-            >
-              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
-            </View>
+            {/* Content */}
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
             
-            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center' }]}>
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>
-                Journal
-              </Text>
-            </View>
-            
+            {/* Journal List View */}
             <ScrollView 
               style={styles.modalScrollView} 
               showsVerticalScrollIndicator={false}
@@ -2342,24 +2706,265 @@ const ProfileTab = () => {
                   elevation: 8
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              onPress={() => {
-                console.log('📝 Add button pressed!');
-                console.log('📝 Current showAddJournalNote:', showAddJournalNote);
-                console.log('📝 Current showJournal:', showJournal);
-                hapticFeedback.medium();
-                // Close journal modal first
-                setShowJournal(false);
-                // Then open add note modal
-                setTimeout(() => {
-                  setShowAddJournalNote(true);
-                  console.log('📝 Set showAddJournalNote to true');
-                }, 300);
-              }}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  setIsAddingEntry(true);
+                }}
               >
                 <MaterialIcons name="add" size={32} color="#fff" />
               </TouchableOpacity>
             </View>
-          </Animated.View>
+
+            {/* Add Entry Bottom Sheet Modal - Appears on top */}
+            {isAddingEntry && (
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: 'flex-end',
+                zIndex: 2000
+              }}>
+                {/* Backdrop */}
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => {
+                    setIsAddingEntry(false);
+                    setNewJournalNote({ reference: '', text: '' });
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)'
+                  }}
+                />
+
+                {/* Bottom Sheet */}
+                <Animated.View style={{
+                  backgroundColor: theme.background,
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  paddingBottom: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: -4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 20,
+                  transform: [{ translateY: addJournalSlideAnim }]
+                }}>
+                  {/* Drag Handle */}
+                  <View 
+                    style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
+                    {...addJournalPanResponder.panHandlers}
+                  >
+                    <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
+                  </View>
+
+                  {/* Header */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 20,
+                    paddingBottom: 16
+                  }}>
+                    <Text style={{
+                      fontSize: 24,
+                      fontWeight: '700',
+                      color: theme.text
+                    }}>
+                      New Journal Entry
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setIsAddingEntry(false);
+                        setNewJournalNote({ reference: '', text: '' });
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialIcons name="close" size={28} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ maxHeight: 500 }}
+                  >
+                      {/* Title Input */}
+                      <View style={{ marginBottom: 20 }}>
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: theme.textSecondary,
+                          marginBottom: 8
+                        }}>
+                          Title (Optional)
+                        </Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderRadius: 12,
+                            padding: 16,
+                            fontSize: 16,
+                            color: theme.text,
+                            borderWidth: 1,
+                            borderColor: theme.border
+                          }}
+                          placeholder="e.g., Exodus 1:1 or My Thoughts"
+                          placeholderTextColor={theme.textTertiary}
+                          value={newJournalNote.reference}
+                          onChangeText={(text) => setNewJournalNote({ ...newJournalNote, reference: text })}
+                        />
+                      </View>
+
+                      {/* Note Input */}
+                      <View style={{ marginBottom: 24 }}>
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: theme.textSecondary,
+                          marginBottom: 8
+                        }}>
+                          Your Note
+                        </Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderRadius: 12,
+                            padding: 16,
+                            fontSize: 16,
+                            color: theme.text,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                            minHeight: 200,
+                            textAlignVertical: 'top'
+                          }}
+                          placeholder="Write your thoughts, reflections, or prayers..."
+                          placeholderTextColor={theme.textTertiary}
+                          value={newJournalNote.text}
+                          onChangeText={(text) => setNewJournalNote({ ...newJournalNote, text: text })}
+                          multiline
+                          numberOfLines={8}
+                        />
+                      </View>
+
+                      {/* Save Button */}
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: theme.primary,
+                          borderRadius: 12,
+                          padding: 18,
+                          alignItems: 'center',
+                          shadowColor: theme.primary,
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          elevation: 6
+                        }}
+                        onPress={async () => {
+                          if (!newJournalNote.text.trim()) {
+                            Alert.alert('Note Required', 'Please write something in your note before saving.');
+                            return;
+                          }
+
+                          hapticFeedback.medium();
+
+                          const newEntry = {
+                            id: Date.now().toString(),
+                            verseReference: newJournalNote.reference.trim() || 'Personal Reflection',
+                            text: newJournalNote.text.trim(),
+                            createdAt: new Date().toISOString(),
+                            verseId: `custom_${Date.now()}`
+                          };
+
+                          try {
+                            const existingNotes = await AsyncStorage.getItem('journalNotes');
+                            const notes = existingNotes ? JSON.parse(existingNotes) : [];
+                            notes.unshift(newEntry);
+                            await AsyncStorage.setItem('journalNotes', JSON.stringify(notes));
+                            
+                            setJournalNotes(notes);
+                            setNewJournalNote({ reference: '', text: '' });
+                            setIsAddingEntry(false);
+                          } catch (error) {
+                            console.error('Error saving journal entry:', error);
+                            Alert.alert('Error', 'Failed to save your journal entry. Please try again.');
+                          }
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: '#fff'
+                        }}>
+                          Save Entry
+                        </Text>
+                      </TouchableOpacity>
+                  </ScrollView>
+                </Animated.View>
+              </View>
+            )}
+            </View>
+
+            {/* Transparent Blurred Header */}
+            <BlurView 
+              intensity={20} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                backgroundColor: 'transparent',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={{ 
+                backgroundColor: 'transparent', 
+                borderBottomWidth: 0, 
+                paddingTop: 8, 
+                paddingBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20
+              }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowJournal(false);
+                    setIsAddingEntry(false);
+                  }}
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    paddingHorizontal: 16, 
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
+                </TouchableOpacity>
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 18, 
+                  fontWeight: '600',
+                  flex: 1,
+                  textAlign: 'center'
+                }}>
+                  Journal
+                </Text>
+                <View style={{ width: 60 }} />
+              </View>
+            </BlurView>
         </View>
       </Modal>
 
@@ -2539,56 +3144,19 @@ const ProfileTab = () => {
       <Modal
         visible={showHighlights}
         animationType="none"
-        transparent={true}
         onRequestClose={() => {
           setShowHighlights(false);
           setSelectedHighlightColor(null);
           setHighlightVersesWithText([]);
         }}
+        presentationStyle="fullScreen"
       >
         <View style={{
           flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          justifyContent: 'flex-end'
+          backgroundColor: theme.background
         }}>
-          <Animated.View style={{
-            backgroundColor: theme.background,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            height: '93%',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 20,
-            transform: [{ translateY: highlightsSlideAnim }]
-          }}>
-            {/* Drag Handle - Swipe Area */}
-            <View 
-              style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
-              {...highlightsPanResponder.panHandlers}
-            >
-              <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
-            </View>
-            
-            {/* Header with back button if viewing verses */}
-            <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 15, paddingHorizontal: 16, justifyContent: 'center', flexDirection: 'row', alignItems: 'center' }]}>
-              {selectedHighlightColor && (
-                <TouchableOpacity
-                  style={{ position: 'absolute', left: 16, padding: 8 }}
-                  onPress={() => {
-                    setSelectedHighlightColor(null);
-                    setHighlightVersesWithText([]);
-                    hapticFeedback.light();
-                  }}
-                >
-                  <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-              )}
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 20, fontWeight: '700' }]}>
-                {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
-              </Text>
-            </View>
+            {/* Content */}
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
             
             <ScrollView 
               style={styles.modalScrollView} 
@@ -2754,7 +3322,216 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-          </Animated.View>
+            </View>
+
+            {/* Transparent Blurred Header */}
+            <BlurView 
+              intensity={20} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                backgroundColor: 'transparent',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={{ 
+                backgroundColor: 'transparent', 
+                borderBottomWidth: 0, 
+                paddingTop: 8, 
+                paddingBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20
+              }}>
+                {selectedHighlightColor ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedHighlightColor(null);
+                      setHighlightVersesWithText([]);
+                      hapticFeedback.light();
+                    }}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      paddingHorizontal: 16, 
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                    }}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Back</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowHighlights(false);
+                      setSelectedHighlightColor(null);
+                      setHighlightVersesWithText([]);
+                    }}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      paddingHorizontal: 16, 
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                    }}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 18, 
+                  fontWeight: '600',
+                  flex: 1,
+                  textAlign: 'center'
+                }}>
+                  {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
+                </Text>
+                <View style={{ width: 60 }} />
+              </View>
+            </BlurView>
+        </View>
+      </Modal>
+
+      {/* Tasks Done Modal */}
+      <Modal
+        visible={showTasksDone}
+        animationType="none"
+        onRequestClose={() => setShowTasksDone(false)}
+        presentationStyle="fullScreen"
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: theme.background
+        }}>
+            {/* Content */}
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
+            
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+            >
+              {completedTodosList.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="check-circle-outline" size={64} color={theme.textTertiary} />
+                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
+                    No Completed Tasks Yet
+                  </Text>
+                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
+                    Complete tasks to see them here
+                  </Text>
+                </View>
+              ) : (
+                completedTodosList.map((task, index) => (
+                  <View
+                    key={task.id || index}
+                    style={{
+                      backgroundColor: `${theme.primary}15`,
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 12,
+                      borderLeftWidth: 4,
+                      borderLeftColor: theme.success,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 4,
+                      elevation: 2
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <MaterialIcons name="check-circle" size={22} color={theme.success} />
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: theme.text,
+                          marginLeft: 12,
+                          flex: 1
+                        }}>
+                          {task.text || task.title}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {task.completedAt && (
+                      <Text style={{
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                        marginLeft: 34,
+                        marginTop: 6
+                      }}>
+                        {new Date(task.completedAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            
+            {/* Transparent Blurred Header */}
+            <BlurView 
+              intensity={20} 
+              tint={isDark ? 'dark' : 'light'} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: 1000,
+                backgroundColor: 'transparent',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={{ 
+                backgroundColor: 'transparent', 
+                borderBottomWidth: 0, 
+                paddingTop: 8, 
+                paddingBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20
+              }}>
+                <TouchableOpacity
+                  onPress={() => setShowTasksDone(false)}
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    paddingHorizontal: 16, 
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
+                </TouchableOpacity>
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 18, 
+                  fontWeight: '600',
+                  flex: 1,
+                  textAlign: 'center'
+                }}>
+                  Tasks Done
+                </Text>
+                <View style={{ width: 60 }} />
+              </View>
+            </BlurView>
+            </View>
         </View>
       </Modal>
 
@@ -2806,6 +3583,248 @@ const ProfileTab = () => {
     </View>
     </AnimatedWallpaper>
 
+    {/* About Modal */}
+    <Modal
+      visible={showAboutModal}
+      animationType="none"
+      presentationStyle="fullScreen"
+      onRequestClose={() => setShowAboutModal(false)}
+    >
+      <LinearGradient
+        colors={isDark 
+          ? ['#0F0F23', '#1A1A2E', '#16213E'] 
+          : ['#F0F4FF', '#E8EEFF', '#DDE6FF']}
+        style={styles.aboutModal}
+      >
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        
+        {/* Animated Background Circles */}
+        <Animated.View style={[styles.bgCircle1, {
+          opacity: cardShimmer.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 0.6]
+          }),
+          transform: [{
+            scale: cardShimmer.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.2]
+            })
+          }]
+        }]} />
+        <Animated.View style={[styles.bgCircle2, {
+          opacity: cardShimmer.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.4, 0.7]
+          })
+        }]} />
+        
+        {/* Close Button */}
+        <TouchableOpacity
+          style={[styles.closeButtonFloating, {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+          }]}
+          onPress={() => {
+            hapticFeedback.medium();
+            setShowAboutModal(false);
+          }}
+        >
+          <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.closeButtonBlur}>
+            <MaterialIcons name="close" size={24} color={theme.text} />
+          </BlurView>
+        </TouchableOpacity>
+
+        {/* Content */}
+        <Animated.ScrollView 
+          style={styles.aboutContent}
+          contentContainerStyle={styles.aboutContentContainer}
+          showsVerticalScrollIndicator={false}
+          opacity={modalFadeAnim}
+        >
+          {/* Hero Title */}
+          <Animated.View style={{
+            transform: [{ translateY: modalSlideAnim }]
+          }}>
+            <LinearGradient
+              colors={[theme.primary, theme.primaryLight, theme.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroGradient}
+            >
+              <Text style={styles.heroTitle}>About Biblely</Text>
+              <MaterialIcons name="auto-awesome" size={28} color="#FFFFFF" style={styles.heroIcon} />
+            </LinearGradient>
+          </Animated.View>
+
+          {/* Creator Card */}
+          <Animated.View style={{
+            transform: [{ translateY: modalSlideAnim }],
+            opacity: modalFadeAnim
+          }}>
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.creatorCard}>
+              <LinearGradient
+                colors={isDark 
+                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                style={styles.creatorCardInner}
+              >
+                {/* Animated Avatar with Logo */}
+                <Animated.View style={[styles.creatorIconContainer, {
+                  transform: [{
+                    scale: cardShimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.05]
+                    })
+                  }]
+                }]}>
+                  <LinearGradient
+                    colors={[theme.primary, theme.primaryLight]}
+                    style={styles.avatarGradient}
+                  >
+                    <Image 
+                      source={require('../../assets/logo.png')} 
+                      style={styles.avatarLogo}
+                      resizeMode="contain"
+                    />
+                  </LinearGradient>
+                  {/* Glow ring */}
+                  <Animated.View style={[styles.glowRing, {
+                    borderColor: theme.primary,
+                    opacity: cardShimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 0.8]
+                    })
+                  }]} />
+                </Animated.View>
+                
+                <Text style={[styles.creatorName, { color: theme.text }]}>
+                  Hi, I'm Jason 👋
+                </Text>
+                <View style={styles.badgeContainer}>
+                  <LinearGradient
+                    colors={[theme.primary + '40', theme.primary + '20']}
+                    style={styles.badge}
+                  >
+                    <MaterialIcons name="school" size={14} color={theme.primary} />
+                    <Text style={[styles.badgeText, { color: theme.primary }]}>
+                      CS Student
+                    </Text>
+                  </LinearGradient>
+                  <LinearGradient
+                    colors={[theme.success + '40', theme.success + '20']}
+                    style={styles.badge}
+                  >
+                    <MaterialIcons name="code" size={14} color={theme.success} />
+                    <Text style={[styles.badgeText, { color: theme.success }]}>
+                      Developer
+                    </Text>
+                  </LinearGradient>
+                </View>
+              </LinearGradient>
+            </BlurView>
+          </Animated.View>
+
+          {/* Story Section */}
+          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.storyCard}>
+            <LinearGradient
+              colors={isDark 
+                ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+              style={styles.storyCardInner}
+            >
+              {/* Story Header with Gradient */}
+              <LinearGradient
+                colors={[theme.primary + '30', theme.primary + '10']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.storyHeaderGradient}
+              >
+                <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
+                <Text style={[styles.storyTitle, { color: theme.text }]}>
+                  Why I Built This
+                </Text>
+              </LinearGradient>
+              
+              <Text style={[styles.storyText, { color: theme.text }]}>
+                I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
+              </Text>
+              
+              <Text style={[styles.storyText, { color: theme.text }]}>
+                Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
+              </Text>
+              
+              <Text style={[styles.storyText, { color: theme.text }]}>
+                So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
+              </Text>
+
+              <Text style={[styles.storyText, { color: theme.text }]}>
+                I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
+              </Text>
+            </LinearGradient>
+          </BlurView>
+
+          {/* Thank You Section */}
+          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.thankYouCard}>
+            <LinearGradient
+              colors={isDark
+                ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+              style={styles.thankYouCardInner}
+            >
+              <Animated.View style={{
+                transform: [{
+                  scale: cardShimmer.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.1]
+                  })
+                }]
+              }}>
+                <LinearGradient
+                  colors={['#FF6B6B', '#EE5A6F']}
+                  style={styles.heartContainer}
+                >
+                  <MaterialIcons name="favorite" size={32} color="#FFFFFF" />
+                </LinearGradient>
+              </Animated.View>
+              
+              <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                Thanks for being here
+              </Text>
+              <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
+              </Text>
+              
+              <View style={styles.contactInfo}>
+                <View style={styles.contactItem}>
+                  <MaterialIcons name="email" size={18} color={theme.primary} />
+                  <Text style={[styles.contactText, { color: theme.text }]}>
+                    biblelyios@gmail.com
+                  </Text>
+                </View>
+                <View style={styles.contactItem}>
+                  <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
+                  <Text style={[styles.contactText, { color: theme.text }]}>
+                    @biblely.app on TikTok
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.signatureContainer}>
+                <View style={styles.signatureLine} />
+                <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                  Jason
+                </Text>
+              </View>
+            </LinearGradient>
+          </BlurView>
+        </Animated.ScrollView>
+      </LinearGradient>
+    </Modal>
+
+    {/* Theme Modal */}
+    <ThemeModal 
+      visible={showThemeModal} 
+      onClose={() => setShowThemeModal(false)} 
+    />
 
     </>
   );
@@ -3484,6 +4503,250 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     fontStyle: 'italic',
+  },
+  // About Modal Styles
+  aboutModal: {
+    flex: 1,
+  },
+  bgCircle1: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 1.2,
+    height: Dimensions.get('window').width * 1.2,
+    borderRadius: Dimensions.get('window').width * 0.6,
+    backgroundColor: '#667eea',
+    top: -Dimensions.get('window').width * 0.4,
+    right: -Dimensions.get('window').width * 0.2,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 0.8,
+    height: Dimensions.get('window').width * 0.8,
+    borderRadius: Dimensions.get('window').width * 0.4,
+    backgroundColor: '#764ba2',
+    bottom: -Dimensions.get('window').width * 0.3,
+    left: -Dimensions.get('window').width * 0.2,
+  },
+  closeButtonFloating: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  closeButtonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aboutContent: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 120 : 100,
+  },
+  aboutContentContainer: {
+    padding: 20,
+    paddingBottom: 60,
+  },
+  heroGradient: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  heroIcon: {
+    opacity: 0.9,
+  },
+  creatorCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  creatorCardInner: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  creatorIconContainer: {
+    marginBottom: 16,
+  },
+  avatarGradient: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarLogo: {
+    width: 70,
+    height: 70,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 2,
+    top: -7,
+    left: -7,
+  },
+  creatorName: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  storyCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  storyCardInner: {
+    padding: 24,
+  },
+  storyHeaderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  storyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    flex: 1,
+  },
+  storyText: {
+    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  thankYouCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  thankYouCardInner: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  heartContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  thankYouTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  thankYouText: {
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '400',
+  },
+  contactInfo: {
+    width: '100%',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 28,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  contactText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  signatureContainer: {
+    alignItems: 'center',
+  },
+  signatureLine: {
+    width: 100,
+    height: 2,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 12,
+  },
+  signature: {
+    fontSize: 20,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
   },
 });
 

@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { blushBloomTheme } from '../themes/blush-bloom/theme';
 import { cresviaTheme } from '../themes/cresvia/theme';
 import { eternaTheme } from '../themes/eterna/theme';
+import { spidermanTheme } from '../themes/spiderman/theme';
+import { faithTheme } from '../themes/faith/theme';
+import { sailormoonTheme } from '../themes/sailormoon/theme';
 
 // Beautiful theme definitions
 const themes = {
@@ -56,6 +59,8 @@ const themes = {
   'blush-bloom': blushBloomTheme,
   'cresvia': cresviaTheme,
   'eterna': eternaTheme,
+  'spiderman': spidermanTheme,
+  'faith': faithTheme,
   
   dark: {
     // Background colors
@@ -102,7 +107,9 @@ const themes = {
     // Gradients
     gradient: ['#1F2937', '#111827'],
     headerGradient: ['#1F2937', '#111827'],
-  }
+  },
+
+  'sailormoon': sailormoonTheme,
 };
 
 const ThemeContext = createContext();
@@ -156,13 +163,13 @@ export const ThemeProvider = ({ children }) => {
         setCurrentTheme(themeName);
         await AsyncStorage.setItem('fivefold_theme', themeName);
         
-        // Auto-set light mode for Blush Bloom and Eterna themes
-        if (themeName === 'blush-bloom' || themeName === 'eterna') {
+        // Auto-set light mode for Blush Bloom, Eterna, Faith and Sailor Moon themes
+        if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'faith' || themeName === 'sailormoon') {
           setIsDarkMode(false);
           await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(false));
         }
-        // Auto-set dark mode for Cresvia theme
-        else if (themeName === 'cresvia') {
+        // Auto-set dark mode for Cresvia and Spiderman themes
+        else if (themeName === 'cresvia' || themeName === 'spiderman') {
           setIsDarkMode(true);
           await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
         }
@@ -205,6 +212,9 @@ export const ThemeProvider = ({ children }) => {
   const isBlushTheme = currentTheme === 'blush-bloom';
   const isCresviaTheme = currentTheme === 'cresvia';
   const isEternaTheme = currentTheme === 'eterna';
+  const isSpidermanTheme = currentTheme === 'spiderman';
+  const isFaithTheme = currentTheme === 'faith';
+  const isSailormoonTheme = currentTheme === 'sailormoon';
   
   // Filter available themes to only show the themed ones (not light/dark)
   const availableThemes = Object.keys(themes)
@@ -223,6 +233,9 @@ export const ThemeProvider = ({ children }) => {
     isBlushTheme,
     isCresviaTheme,
     isEternaTheme,
+    isSpidermanTheme,
+    isFaithTheme,
+    isSailormoonTheme,
     toggleTheme,
     toggleDarkMode,
     changeTheme,

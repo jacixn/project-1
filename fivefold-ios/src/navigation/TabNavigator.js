@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useWorkout } from '../contexts/WorkoutContext';
 import { hapticFeedback } from '../utils/haptics';
 
 // Import native bottom tabs with fallback
@@ -25,7 +26,11 @@ import GymTab from '../screens/GymTab';
 import ProfileTab from '../screens/ProfileTab';
 
 const TabNavigator = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { hasActiveWorkout } = useWorkout();
+
+  // Debug log
+  console.log('🏋️ TabNavigator - hasActiveWorkout:', hasActiveWorkout);
 
   // Use native tabs for iOS if available - with native iOS 26 Liquid Glass effect
   // Falls back to custom themed tabs for Android or if native tabs unavailable
@@ -78,6 +83,7 @@ const TabNavigator = () => {
               sfSymbol: "figure.strengthtraining.traditional",
               fill: color,
             }),
+            tabBarBadge: hasActiveWorkout ? 1 : undefined,
             scrollToTopOnPress: false,
           }}
         />

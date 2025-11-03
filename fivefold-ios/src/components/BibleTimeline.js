@@ -13,6 +13,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -53,6 +54,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
   const [timelineDataState, setTimelineDataState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Cache management functions
   const isCacheValid = async () => {
@@ -188,6 +190,21 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
     } catch (error) {
       console.error('Error refreshing timeline:', error);
       Alert.alert('Error', 'Failed to refresh timeline. Please try again.');
+    }
+  };
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    hapticFeedback.light();
+    try {
+      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_KEY);
+      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
+      await loadTimeline();
+    } catch (error) {
+      console.error('Error refreshing timeline:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -1009,6 +1026,16 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         maximumZoomScale={2.0}
         pinchGestureEnabled={true}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+            title="Pull to refresh..."
+            titleColor={theme.textSecondary}
+          />
+        }
       >
         {/* Add top spacing wrapper */}
         <View style={{ marginTop: Platform.OS === 'ios' ? 100 : 80, width: '100%', height: '100%' }}>
@@ -1075,14 +1102,19 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
           <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.solidHeaderButton, { minWidth: 60, alignItems: 'center' }]}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                paddingHorizontal: 16, 
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
             >
               <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
             </TouchableOpacity>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               Bible Timeline
             </Text>
-            <View style={styles.solidHeaderButton} />
+            <View style={{ width: 60 }} />
           </View>
         </BlurView>
     </View>

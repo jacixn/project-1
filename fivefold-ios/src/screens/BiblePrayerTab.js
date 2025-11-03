@@ -12,11 +12,15 @@ import {
   DeviceEventEmitter,
   Modal,
   Dimensions,
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as MediaLibrary from 'expo-media-library';
+import ViewShot from 'react-native-view-shot';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -28,6 +32,8 @@ import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 
+// const { width } = Dimensions.get('window');
+
 // Components
 import PrayerCard from '../components/PrayerCard';
 import SimplePrayerCard from '../components/SimplePrayerCard';
@@ -36,6 +42,7 @@ import BibleStudyModal from '../components/BibleStudyModal';
 import PrayerScreen from '../components/PrayerScreen';
 import AiBibleChat from '../components/AiBibleChat';
 import { getStoredData, saveData } from '../utils/localStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
@@ -119,7 +126,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 };
 
 const BiblePrayerTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   const [showBible, setShowBible] = useState(false);
   const [showBibleStudy, setShowBibleStudy] = useState(false);
   const [showPrayerScreen, setShowPrayerScreen] = useState(false);
@@ -133,6 +140,7 @@ const BiblePrayerTab = () => {
   const [location, setLocation] = useState(null);
   const [nextPrayer, setNextPrayer] = useState(null);
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
+  const [userName, setUserName] = useState('');
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -143,9 +151,162 @@ const BiblePrayerTab = () => {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const iconPulse = useRef(new Animated.Value(1)).current;
 
+  // Share card state
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [shareCardAnimating, setShareCardAnimating] = useState(false);
+  const shareCardFadeAnim = useRef(new Animated.Value(0)).current;
+  const shareCardRef = useRef(null);
+
+  // About modal state
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  
+  // Logo animations
+  const logoSpin = useRef(new Animated.Value(0)).current;
+  const logoPulse = useRef(new Animated.Value(1)).current;
+  const logoFloat = useRef(new Animated.Value(0)).current;
+  
+  // Modal card animations
+  const modalFadeAnim = useRef(new Animated.Value(0)).current;
+  const modalSlideAnim = useRef(new Animated.Value(50)).current;
+  const cardShimmer = useRef(new Animated.Value(0)).current;
+
+  // Load user's name for personalization (same method as Friend chat)
+  const loadUserName = async () => {
+    try {
+      const storedProfile = await AsyncStorage.getItem('userProfile');
+      if (storedProfile) {
+        const profile = JSON.parse(storedProfile);
+        const name = profile.name || '';
+        console.log('📛 Loaded user name for Verse of the Day:', name);
+        setUserName(name);
+      } else {
+        console.log('📛 No user profile found');
+        setUserName('');
+      }
+    } catch (error) {
+      console.error('Failed to load user name:', error);
+      setUserName('');
+    }
+  };
+
   useEffect(() => {
     initializePrayerData();
+    loadUserName();
+    startLogoAnimations();
+    startShimmerAnimation();
   }, []);
+
+  useEffect(() => {
+    if (showAboutModal) {
+      // Animate modal entrance
+      modalFadeAnim.setValue(0);
+      modalSlideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(modalFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(modalSlideAnim, {
+          toValue: 0,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showAboutModal]);
+
+  const startShimmerAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cardShimmer, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardShimmer, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Continuous logo animations to attract attention
+  const startLogoAnimations = () => {
+    // Gentle spinning animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoSpin, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoSpin, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Pulsing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoPulse, {
+          toValue: 1.15,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoPulse, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Floating animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoFloat, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoFloat, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Reload userName every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 BiblePrayerTab focused - reloading user name');
+      loadUserName();
+    }, [])
+  );
+
+  // Load userName when verse modal opens (just like Friend chat does)
+  useEffect(() => {
+    if (showVerseModal) {
+      console.log('📖 Verse modal opened - loading user name');
+      loadUserName();
+    }
+  }, [showVerseModal]);
+
+  // Format possessive form of name (e.g., "Jason's" or "Jesus'")
+  const getPossessiveName = () => {
+    if (!userName) return '';
+    // If name ends with 's', just add apostrophe, otherwise add 's
+    return userName.endsWith('s') ? `${userName}'` : `${userName}'s`;
+  };
 
   // Update daily verse at midnight
   useEffect(() => {
@@ -200,6 +361,24 @@ const BiblePrayerTab = () => {
     };
   }, []);
 
+  // Listen for user name changes
+  useEffect(() => {
+    const handleNameChange = async () => {
+      try {
+        console.log('📛 User name changed, reloading...');
+        await loadUserName();
+      } catch (error) {
+        console.error('Error reloading user name:', error);
+      }
+    };
+
+    const subscription = DeviceEventEmitter.addListener('userNameChanged', handleNameChange);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const initializePrayerData = async () => {
     try {
       // Initialize daily reset system first
@@ -222,6 +401,8 @@ const BiblePrayerTab = () => {
 
   const openVerseModal = useCallback(() => {
     hapticFeedback.medium();
+    console.log('📛 Opening verse modal with userName:', userName);
+    console.log('📛 Possessive name will be:', userName ? getPossessiveName() : 'none');
     setShowVerseModal(true);
     
     // Reset animation values
@@ -298,7 +479,7 @@ const BiblePrayerTab = () => {
         ])
       ).start();
     });
-  }, []);
+  }, [userName]); // Add userName to dependencies
 
   const closeVerseModal = useCallback(() => {
     hapticFeedback.light();
@@ -349,6 +530,108 @@ const BiblePrayerTab = () => {
     // Open Friend chat immediately
     console.log('💬 Opening Friend chat now');
     setShowFriendChat(true);
+  };
+
+  const handleGoToVerse = () => {
+    console.log('📖 Go to Verse button pressed!');
+    console.log('📖 Daily verse reference:', dailyVerse.reference);
+    hapticFeedback.medium();
+    
+    // Close verse modal
+    setShowVerseModal(false);
+    
+    // Navigate to the verse in Bible reader with highlighting
+    setTimeout(() => {
+      handleNavigateToVerse(dailyVerse.reference, 'navigate');
+    }, 300); // Small delay for smooth transition
+  };
+
+  const handleShareVerse = () => {
+    console.log('📤 Share button pressed!');
+    hapticFeedback.medium();
+    
+    // Close verse modal and open share card
+    setShowVerseModal(false);
+    
+    // Small delay for smooth transition
+    setTimeout(() => {
+      openShareCard();
+    }, 300);
+  };
+
+  // Open share card with animation
+  const openShareCard = () => {
+    if (shareCardAnimating) {
+      return;
+    }
+    
+    setShareCardAnimating(true);
+    setShowShareCard(true);
+    
+    requestAnimationFrame(() => {
+      Animated.timing(shareCardFadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShareCardAnimating(false);
+      });
+    });
+  };
+
+  // Close share card
+  const closeShareCard = () => {
+    if (shareCardAnimating) {
+      return;
+    }
+    
+    setShareCardAnimating(true);
+    Animated.timing(shareCardFadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowShareCard(false);
+      setShareCardAnimating(false);
+    });
+  };
+
+  // Save verse card to photos
+  const saveVerseCard = async () => {
+    try {
+      hapticFeedback.medium();
+      
+      // Request permission
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to save images to your photo library.');
+        return;
+      }
+
+      // Capture the view as an image
+      if (shareCardRef.current) {
+        const uri = await shareCardRef.current.capture();
+        
+        // Save to camera roll
+        await MediaLibrary.saveToLibraryAsync(uri);
+        
+        hapticFeedback.success();
+        Alert.alert('Saved', 'Verse card saved to your photos');
+      }
+    } catch (error) {
+      console.error('Error saving verse card:', error);
+      Alert.alert('Error', 'Failed to save verse card');
+    }
+  };
+
+  // Get gradient colors for share card - use theme's gradient
+  const getShareCardGradient = () => {
+    // Use the theme's gradient if available
+    if (theme.gradient && Array.isArray(theme.gradient)) {
+      return theme.gradient;
+    }
+    // Fallback to default blue gradient
+    return ['#3B82F6', '#2563EB', '#1D4ED8'];
   };
 
   const handlePrayerPress = useCallback((prayer) => {
@@ -448,38 +731,22 @@ const BiblePrayerTab = () => {
 
     return (
       <LiquidGlassBibleContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>📖 Holy Bible</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Holy Bible</Text>
       <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
         Read, study, and grow in faith
       </Text>
       
       <AnimatedBibleButton 
         style={[styles.bibleButton, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
-          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: theme.primary, // Colored shadow
-          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
-          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
-          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
-          elevation: 1, // Much lower elevation (3 -> 1)
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4', // Hot pink glow
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2', // Blue violet glow
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082', // Indigo glow
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
+          backgroundColor: `${theme.primary}30`,
+          borderWidth: 0.8,
+          borderColor: `${theme.primary}99`,
+          borderRadius: 16,
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          elevation: 1,
         }]}
         onPress={() => {
           hapticFeedback.medium(); // Medium feedback when opening Bible
@@ -500,38 +767,22 @@ const BiblePrayerTab = () => {
       
       {/* Verse of the day - Force transparent styling */}
       <TouchableOpacity
-        activeOpacity={0.4} // Reduced brightness by 50% (was 0.8, now 0.4)
+        activeOpacity={0.4}
         onPress={openVerseModal}
         style={[styles.transparentVerseOfDay, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
-          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: theme.primary, // Colored shadow
-          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
-          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
-          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
-          elevation: 1, // Much lower elevation (3 -> 1)
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4', // Hot pink glow
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2', // Blue violet glow
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082', // Indigo glow
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
+          backgroundColor: `${theme.primary}30`,
+          borderWidth: 0.8,
+          borderColor: `${theme.primary}99`,
+          borderRadius: 16,
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          elevation: 1,
         }]}
       >
         <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
-          💫 Verse of the Day
+          {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
         </Text>
         <Text 
           style={[styles.verseText, { color: theme.text }]}
@@ -587,38 +838,22 @@ const BiblePrayerTab = () => {
 
     return (
       <LiquidGlassBibleStudyContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>📚 Bible Study</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Bible Study</Text>
       <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
         Explore characters, timeline, maps & more
       </Text>
       
       <AnimatedBibleButton 
         style={[styles.bibleButton, { 
-          backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-          borderWidth: 0.8, // Much thinner border (1.4 -> 0.8)
-          borderColor: `${theme.primary}15`, // Much more subtle border (32% -> 15%)
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: theme.primary, // Colored shadow
-          shadowOffset: { width: 0, height: 1 }, // Smaller shadow (2 -> 1)
-          shadowOpacity: 0.06, // Much more subtle shadow (0.12 -> 0.06)
-          shadowRadius: 3, // Smaller shadow radius (5 -> 3)
-          elevation: 1, // Much lower elevation (3 -> 1)
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4', // Hot pink glow
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)', // Reduced to 40%
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2', // Blue violet glow
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082', // Indigo glow
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Much more subtle (0.32 -> 0.15)
-          }),
+          backgroundColor: `${theme.primary}30`,
+          borderWidth: 0.8,
+          borderColor: `${theme.primary}99`,
+          borderRadius: 16,
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          elevation: 1,
         }]}
         onPress={() => {
           hapticFeedback.medium();
@@ -649,7 +884,7 @@ const BiblePrayerTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -666,12 +901,43 @@ const BiblePrayerTab = () => {
         absolute={false}
       >
         <View style={styles.headerContent}>
-          {/* Logo positioned on the left */}
-          <Image 
-            source={require('../../assets/logo.png')} 
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          {/* Animated Logo positioned on the left */}
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.heavy();
+              setShowAboutModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Animated.Image 
+              source={require('../../assets/logo.png')} 
+              style={[
+                styles.headerLogo,
+                {
+                  transform: [
+                    {
+                      rotate: logoSpin.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })
+                    },
+                    { scale: logoPulse },
+                    {
+                      translateY: logoFloat.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -6]
+                      })
+                    }
+                  ],
+                  shadowColor: theme.primary,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 0 },
+                }
+              ]}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
@@ -698,7 +964,7 @@ const BiblePrayerTab = () => {
         scrollEventThrottle={16}
       >
         {/* Simple Prayer Card */}
-        <SimplePrayerCard />
+        <SimplePrayerCard onNavigateToBible={handleNavigateToVerse} />
 
 
 
@@ -898,14 +1164,14 @@ const BiblePrayerTab = () => {
                       colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
                       style={styles.iconGradient}
                     >
-                      <Text style={styles.verseModalIcon}>💫</Text>
+                      <MaterialIcons name="auto-awesome" size={36} color="#FFFFFF" />
                     </LinearGradient>
                   </Animated.View>
 
                   {/* Title with gradient text effect */}
                   <View style={styles.verseModalHeader}>
                     <Text style={styles.verseModalTitle}>
-                      Verse of the Day
+                      Cantus Verse of the Day
                     </Text>
                     <Text style={styles.verseModalDate}>
                       {new Date().toLocaleDateString('en-US', { 
@@ -932,14 +1198,48 @@ const BiblePrayerTab = () => {
                         <Text style={styles.verseModalReference}>
                           {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
                         </Text>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          letterSpacing: 1.2,
+                          marginTop: 8,
+                          textAlign: 'center'
+                        }}>
+                          Biblely
+                        </Text>
                       </View>
                     </View>
                   </View>
 
-                  {/* Action button with gradient */}
+                  {/* Action buttons with gradient */}
                   <View style={styles.verseModalActions}>
+                    {/* Go to Verse Button */}
                     <TouchableOpacity
-                      style={styles.verseModalButton}
+                      style={[styles.verseModalButton, { marginBottom: 10 }]}
+                      onPress={handleGoToVerse}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={
+                          isDark
+                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
+                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
+                        }
+                        style={styles.buttonGradient}
+                      >
+                        <View style={styles.buttonContent}>
+                          <MaterialIcons name="menu-book" size={20} color="#FFFFFF" />
+                          <Text style={styles.verseModalButtonText}>
+                            Go to Verse
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Discuss with Friend Button */}
+                    <TouchableOpacity
+                      style={[styles.verseModalButton, { marginBottom: 10 }]}
                       onPress={handleDiscussVerse}
                       activeOpacity={0.8}
                     >
@@ -952,9 +1252,32 @@ const BiblePrayerTab = () => {
                         style={styles.buttonGradient}
                       >
                         <View style={styles.buttonContent}>
-                          <MaterialIcons name="chat-bubble" size={22} color="#FFFFFF" />
+                          <MaterialIcons name="chat-bubble" size={20} color="#FFFFFF" />
                           <Text style={styles.verseModalButtonText}>
                             Discuss with Friend
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Share Button */}
+                    <TouchableOpacity
+                      style={styles.verseModalButton}
+                      onPress={handleShareVerse}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={
+                          isDark
+                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
+                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
+                        }
+                        style={styles.buttonGradient}
+                      >
+                        <View style={styles.buttonContent}>
+                          <MaterialIcons name="share" size={20} color="#FFFFFF" />
+                          <Text style={styles.verseModalButtonText}>
+                            Share
                           </Text>
                         </View>
                       </LinearGradient>
@@ -965,6 +1288,404 @@ const BiblePrayerTab = () => {
             </LinearGradient>
           </Animated.View>
         </View>
+      </Modal>
+
+      {/* Share Card Modal */}
+      {showShareCard && (
+        <Modal
+          visible={showShareCard}
+          transparent={true}
+          animationType="none"
+          onRequestClose={closeShareCard}
+        >
+          <View style={styles.shareCardOverlay}>
+            <TouchableOpacity 
+              style={StyleSheet.absoluteFill} 
+              activeOpacity={1} 
+              onPress={closeShareCard}
+            />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Animated.View
+                style={{
+                  width: '90%',
+                  maxWidth: 400,
+                  opacity: shareCardFadeAnim,
+                  transform: [{
+                    scale: shareCardFadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1]
+                    })
+                  }]
+                }}
+              >
+                <View>
+                  <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
+                    <LinearGradient
+                      colors={getShareCardGradient()}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        borderRadius: 28,
+                        padding: 50,
+                        minHeight: 500
+                      }}
+                    >
+                      {/* Version Badge - Top Right */}
+                      <View style={{
+                        position: 'absolute',
+                        top: 20,
+                        right: 20,
+                      }}>
+                        <Text style={{
+                          fontSize: 10,
+                          fontWeight: '600',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          letterSpacing: 0.5,
+                          textTransform: 'uppercase'
+                        }}>
+                          {dailyVerse.version || 'NIV'}
+                        </Text>
+                      </View>
+
+                      {/* Main Content - Centered */}
+                      <View style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingVertical: 40
+                      }}>
+                        {/* Title */}
+                        <Text style={{
+                          fontSize: 20,
+                          fontWeight: '800',
+                          color: '#fff',
+                          marginBottom: 12,
+                          textAlign: 'center',
+                          textShadowColor: 'rgba(0, 0, 0, 0.2)',
+                          textShadowOffset: { width: 0, height: 2 },
+                          textShadowRadius: 4
+                        }}>
+                          {userName ? `${userName}'s Verse of the Day` : 'Cantus Verse of the Day'}
+                        </Text>
+
+                        {/* Verse Reference */}
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          marginBottom: 28,
+                          textShadowColor: 'rgba(0, 0, 0, 0.15)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 3
+                        }}>
+                          {dailyVerse.reference}
+                        </Text>
+
+                        {/* Verse Text */}
+                        <Text style={{
+                          fontSize: 22,
+                          fontWeight: '500',
+                          color: '#fff',
+                          lineHeight: 36,
+                          textAlign: 'center',
+                          fontStyle: 'italic',
+                          textShadowColor: 'rgba(0, 0, 0, 0.15)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 3
+                        }}>
+                          "{dailyVerse.text}"
+                        </Text>
+                      </View>
+
+                      {/* Biblely - Bottom */}
+                      <View style={{
+                        alignItems: 'center',
+                        marginTop: 24
+                      }}>
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '700',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          letterSpacing: 1.2,
+                        }}>
+                          Biblely
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                  </ViewShot>
+
+                  {/* Save Button - Outside the ViewShot */}
+                  <TouchableOpacity
+                    onPress={saveVerseCard}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      paddingVertical: 16,
+                      paddingHorizontal: 32,
+                      borderRadius: 28,
+                      marginTop: 24,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 12,
+                      elevation: 8
+                    }}
+                  >
+                    <MaterialIcons name="download" size={22} color="#000" />
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: '700',
+                      color: '#000',
+                      marginLeft: 10,
+                      letterSpacing: 0.5
+                    }}>
+                      Save to Photos
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* About Jason Modal */}
+      <Modal
+        visible={showAboutModal}
+        animationType="none"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <LinearGradient
+          colors={isDark 
+            ? ['#0F0F23', '#1A1A2E', '#16213E'] 
+            : ['#F0F4FF', '#E8EEFF', '#DDE6FF']}
+          style={styles.aboutModal}
+        >
+          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+          
+          {/* Animated Background Circles */}
+          <Animated.View style={[styles.bgCircle1, {
+            opacity: cardShimmer.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.3, 0.6]
+            }),
+            transform: [{
+              scale: cardShimmer.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.2]
+              })
+            }]
+          }]} />
+          <Animated.View style={[styles.bgCircle2, {
+            opacity: cardShimmer.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.4, 0.7]
+            })
+          }]} />
+          
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButtonFloating, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            }]}
+            onPress={() => {
+              hapticFeedback.medium();
+              setShowAboutModal(false);
+            }}
+          >
+            <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.closeButtonBlur}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </BlurView>
+          </TouchableOpacity>
+
+          {/* Content */}
+          <Animated.ScrollView 
+            style={styles.aboutContent}
+            contentContainerStyle={styles.aboutContentContainer}
+            showsVerticalScrollIndicator={false}
+            opacity={modalFadeAnim}
+          >
+            {/* Hero Title */}
+            <Animated.View style={{
+              transform: [{ translateY: modalSlideAnim }]
+            }}>
+              <LinearGradient
+                colors={[theme.primary, theme.primaryLight, theme.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroGradient}
+              >
+                <Text style={styles.heroTitle}>About Biblely</Text>
+                <MaterialIcons name="auto-awesome" size={28} color="#FFFFFF" style={styles.heroIcon} />
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Creator Card */}
+            <Animated.View style={{
+              transform: [{ translateY: modalSlideAnim }],
+              opacity: modalFadeAnim
+            }}>
+              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.creatorCard}>
+                <LinearGradient
+                  colors={isDark 
+                    ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                    : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                  style={styles.creatorCardInner}
+                >
+                  {/* Animated Avatar with Logo */}
+                  <Animated.View style={[styles.creatorIconContainer, {
+                    transform: [{
+                      scale: cardShimmer.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.05]
+                      })
+                    }]
+                  }]}>
+                    <LinearGradient
+                      colors={[theme.primary, theme.primaryLight]}
+                      style={styles.avatarGradient}
+                    >
+                      <Image 
+                        source={require('../../assets/logo.png')} 
+                        style={styles.avatarLogo}
+                        resizeMode="contain"
+                      />
+                    </LinearGradient>
+                    {/* Glow ring */}
+                    <Animated.View style={[styles.glowRing, {
+                      borderColor: theme.primary,
+                      opacity: cardShimmer.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.3, 0.8]
+                      })
+                    }]} />
+                  </Animated.View>
+                  
+                  <Text style={[styles.creatorName, { color: theme.text }]}>
+                    Hi, I'm Jason 👋
+                  </Text>
+                  <View style={styles.badgeContainer}>
+                    <LinearGradient
+                      colors={[theme.primary + '40', theme.primary + '20']}
+                      style={styles.badge}
+                    >
+                      <MaterialIcons name="school" size={14} color={theme.primary} />
+                      <Text style={[styles.badgeText, { color: theme.primary }]}>
+                        CS Student
+                      </Text>
+                    </LinearGradient>
+                    <LinearGradient
+                      colors={[theme.success + '40', theme.success + '20']}
+                      style={styles.badge}
+                    >
+                      <MaterialIcons name="code" size={14} color={theme.success} />
+                      <Text style={[styles.badgeText, { color: theme.success }]}>
+                        Developer
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                </LinearGradient>
+              </BlurView>
+            </Animated.View>
+
+            {/* Story Section */}
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.storyCard}>
+              <LinearGradient
+                colors={isDark 
+                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                style={styles.storyCardInner}
+              >
+                {/* Story Header with Gradient */}
+                <LinearGradient
+                  colors={[theme.primary + '30', theme.primary + '10']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.storyHeaderGradient}
+                >
+                  <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
+                  <Text style={[styles.storyTitle, { color: theme.text }]}>
+                    Why I Built This
+                  </Text>
+                </LinearGradient>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
+                </Text>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
+                </Text>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
+                </Text>
+
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
+                </Text>
+              </LinearGradient>
+            </BlurView>
+
+            {/* Thank You Section */}
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.thankYouCard}>
+              <LinearGradient
+                colors={isDark
+                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                style={styles.thankYouCardInner}
+              >
+                <Animated.View style={{
+                  transform: [{
+                    scale: cardShimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.1]
+                    })
+                  }]
+                }}>
+                  <LinearGradient
+                    colors={['#FF6B6B', '#EE5A6F']}
+                    style={styles.heartContainer}
+                  >
+                    <MaterialIcons name="favorite" size={32} color="#FFFFFF" />
+                  </LinearGradient>
+                </Animated.View>
+                
+                <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                  Thanks for being here
+                </Text>
+                <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                  Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
+                </Text>
+                
+                <View style={styles.contactInfo}>
+                  <View style={styles.contactItem}>
+                    <MaterialIcons name="email" size={18} color={theme.primary} />
+                    <Text style={[styles.contactText, { color: theme.text }]}>
+                      biblelyios@gmail.com
+                    </Text>
+                  </View>
+                  <View style={styles.contactItem}>
+                    <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
+                    <Text style={[styles.contactText, { color: theme.text }]}>
+                      @biblely.app on TikTok
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.signatureContainer}>
+                  <View style={styles.signatureLine} />
+                  <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                    Jason
+                  </Text>
+                </View>
+              </LinearGradient>
+            </BlurView>
+          </Animated.ScrollView>
+        </LinearGradient>
       </Modal>
     </View>
     </AnimatedWallpaper>
@@ -1021,7 +1742,8 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     position: 'absolute',
-    left: 20,
+    left: 16,
+    top: -2,
   },
   headerTextContainer: {
     alignItems: 'center',
@@ -1232,14 +1954,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   verseModalContent: {
-    padding: 28,
-    paddingTop: 32,
-    paddingBottom: 32,
+    padding: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   verseModalClose: {
     position: 'absolute',
-    top: 20,
-    right: 20,
+    top: 16,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1250,58 +1972,58 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   verseModalIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 14,
     elevation: 10,
   },
   iconGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   verseModalIcon: {
-    fontSize: 40,
+    fontSize: 36,
   },
   verseModalHeader: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 18,
   },
   verseModalTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   verseModalDate: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
     color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '500',
   },
   verseModalTextContainer: {
-    marginBottom: 28,
+    marginBottom: 18,
   },
   verseBackdrop: {
-    borderRadius: 20,
-    padding: 24,
-    paddingVertical: 28,
+    borderRadius: 18,
+    padding: 18,
+    paddingVertical: 20,
   },
   verseModalQuote: {
-    fontSize: 19,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 28,
     fontStyle: 'italic',
-    marginBottom: 20,
+    marginBottom: 14,
     textAlign: 'center',
     color: '#FFFFFF',
     fontWeight: '400',
@@ -1309,7 +2031,7 @@ const styles = StyleSheet.create({
   },
   referenceContainer: {
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   referenceDivider: {
     width: 40,
@@ -1325,34 +2047,319 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   verseModalActions: {
-    marginTop: 8,
+    marginTop: 4,
   },
   verseModalButton: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 6,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   buttonGradient: {
-    paddingVertical: 18,
-    paddingHorizontal: 28,
-    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 18,
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   verseModalButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  shareCardOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // About Modal Styles
+  aboutModal: {
+    flex: 1,
+  },
+  bgCircle1: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 1.2,
+    height: Dimensions.get('window').width * 1.2,
+    borderRadius: Dimensions.get('window').width * 0.6,
+    backgroundColor: '#667eea',
+    top: -Dimensions.get('window').width * 0.4,
+    right: -Dimensions.get('window').width * 0.2,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 0.8,
+    height: Dimensions.get('window').width * 0.8,
+    borderRadius: Dimensions.get('window').width * 0.4,
+    backgroundColor: '#764ba2',
+    bottom: -Dimensions.get('window').width * 0.3,
+    left: -Dimensions.get('window').width * 0.2,
+  },
+  closeButtonFloating: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  closeButtonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aboutContent: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 120 : 100,
+  },
+  aboutContentContainer: {
+    padding: 20,
+    paddingBottom: 60,
+  },
+  heroGradient: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  heroIcon: {
+    opacity: 0.9,
+  },
+  creatorCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  creatorCardInner: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  creatorIconContainer: {
+    marginBottom: 16,
+  },
+  avatarGradient: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarLogo: {
+    width: 70,
+    height: 70,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 2,
+    top: -7,
+    left: -7,
+  },
+  creatorName: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  storyCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  storyCardInner: {
+    padding: 24,
+  },
+  storyHeaderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  storyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    flex: 1,
+  },
+  storyText: {
+    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  missionBox: {
+    borderRadius: 20,
+    marginTop: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  missionBoxInner: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  missionText: {
+    fontSize: 16,
+    lineHeight: 26,
+    textAlign: 'center',
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginVertical: 12,
+  },
+  missionBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    marginTop: 6,
+  },
+  missionBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+  },
+  thankYouCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  thankYouCardInner: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  heartContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  thankYouTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  thankYouText: {
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '400',
+  },
+  contactInfo: {
+    width: '100%',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 28,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  contactText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  signatureContainer: {
+    alignItems: 'center',
+  },
+  signatureLine: {
+    width: 100,
+    height: 2,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 12,
+  },
+  signature: {
+    fontSize: 20,
+    fontWeight: '600',
+    fontStyle: 'italic',
     letterSpacing: 0.3,
   },
 });

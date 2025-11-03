@@ -22,7 +22,7 @@ export const AnimatedWallpaper = ({
   fadeOnScroll = false,
   scaleOnScroll = false 
 }) => {
-  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, currentTheme } = useTheme();
+  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, currentTheme } = useTheme();
   const parallaxAnim = useRef(new Animated.Value(0)).current;
   const blurAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1.2)).current; // Start bigger
@@ -116,6 +116,39 @@ export const AnimatedWallpaper = ({
       }
     }
     
+    if (isSpidermanTheme) {
+      // Load spiderman wallpaper
+      try {
+        console.log('🕷️ Loading Spiderman wallpaper...');
+        return require('../themes/spiderman/wallpaper1.jpg');
+      } catch (error) {
+        console.log('❌ Spiderman wallpaper image not found, using gradient background:', error);
+        return null;
+      }
+    }
+    
+    if (isFaithTheme) {
+      // Load faith wallpaper
+      try {
+        console.log('✝️ Loading Faith wallpaper...');
+        return require('../themes/faith/wallpaper1.jpg');
+      } catch (error) {
+        console.log('❌ Faith wallpaper image not found, using gradient background:', error);
+        return null;
+      }
+    }
+    
+    if (isSailormoonTheme) {
+      // Load sailormoon wallpaper
+      try {
+        console.log('🌙 Loading Sailor Moon wallpaper...');
+        return require('../themes/sailormoon/wallpaper1.jpg');
+      } catch (error) {
+        console.log('❌ Sailor Moon wallpaper image not found, using gradient background:', error);
+        return null;
+      }
+    }
+    
     return null;
   };
 
@@ -134,7 +167,7 @@ export const AnimatedWallpaper = ({
   return (
     <View style={styles.container}>
       {/* Animated Background */}
-      {(isBlushTheme || isCresviaTheme || isEternaTheme) && (
+      {(isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) && (
         <>
           {/* Gradient Background */}
           <Animated.View 

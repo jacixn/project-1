@@ -1,0 +1,1118 @@
+[
+  {
+    "id": "1",
+    "name": "Ab Wheel",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Ab Wheel",
+    "target": "abs"
+  },
+  {
+    "id": "2",
+    "name": "Aerobics",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "3",
+    "name": "Arnold Press (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "4",
+    "name": "Around the World",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "5",
+    "name": "Back Extension",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "lower back"
+  },
+  {
+    "id": "6",
+    "name": "Back Extension (Machine)",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "lower back"
+  },
+  {
+    "id": "7",
+    "name": "Ball Slams",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Medicine Ball",
+    "target": "abs"
+  },
+  {
+    "id": "8",
+    "name": "Barbell Row",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "upper back"
+  },
+  {
+    "id": "9",
+    "name": "Bench Press",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "10",
+    "name": "Bench Press (Dumbbell)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "11",
+    "name": "Bench Press (Smith Machine)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "pectorals"
+  },
+  {
+    "id": "12",
+    "name": "Bicep Curls",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "13",
+    "name": "Bicep Curls (Barbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "biceps"
+  },
+  {
+    "id": "14",
+    "name": "Bicep Curls (Cable)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "biceps"
+  },
+  {
+    "id": "15",
+    "name": "Bicep Curls (Dumbbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "16",
+    "name": "Bicycle Crunches",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "17",
+    "name": "Box Jumps",
+    "bodyPart": "Legs",
+    "category": "Plyometric",
+    "equipment": "Box",
+    "target": "quads"
+  },
+  {
+    "id": "18",
+    "name": "Bulgarian Split Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "quads"
+  },
+  {
+    "id": "19",
+    "name": "Burpees",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "20",
+    "name": "Cable Crossover",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "pectorals"
+  },
+  {
+    "id": "21",
+    "name": "Cable Fly",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "pectorals"
+  },
+  {
+    "id": "22",
+    "name": "Calf Raise",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "calves"
+  },
+  {
+    "id": "23",
+    "name": "Calf Raise (Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "calves"
+  },
+  {
+    "id": "24",
+    "name": "Calf Raise (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "calves"
+  },
+  {
+    "id": "25",
+    "name": "Chest Fly (Dumbbell)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "26",
+    "name": "Chest Press (Machine)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "pectorals"
+  },
+  {
+    "id": "27",
+    "name": "Chin Ups",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "lats"
+  },
+  {
+    "id": "28",
+    "name": "Clean and Jerk",
+    "bodyPart": "Full Body",
+    "category": "Olympic",
+    "equipment": "Barbell",
+    "target": "full body"
+  },
+  {
+    "id": "29",
+    "name": "Close Grip Bench Press",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "triceps"
+  },
+  {
+    "id": "30",
+    "name": "Close Grip Bench Press (Smith Machine)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "triceps"
+  },
+  {
+    "id": "31",
+    "name": "Concentration Curls",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "32",
+    "name": "Crunches",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "33",
+    "name": "Deadlift",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "lower back"
+  },
+  {
+    "id": "34",
+    "name": "Deadlift (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "lower back"
+  },
+  {
+    "id": "35",
+    "name": "Decline Bench Press",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "36",
+    "name": "Decline Bench Press (Smith Machine)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "pectorals"
+  },
+  {
+    "id": "37",
+    "name": "Diamond Push Ups",
+    "bodyPart": "Arms",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "triceps"
+  },
+  {
+    "id": "38",
+    "name": "Dips",
+    "bodyPart": "Arms",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "triceps"
+  },
+  {
+    "id": "39",
+    "name": "Dumbbell Row",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "upper back"
+  },
+  {
+    "id": "40",
+    "name": "Elliptical",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Machine",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "41",
+    "name": "Face Pulls",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "delts"
+  },
+  {
+    "id": "42",
+    "name": "Face Pulls (Cable)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "delts"
+  },
+  {
+    "id": "43",
+    "name": "Farmer Walks",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "forearms"
+  },
+  {
+    "id": "44",
+    "name": "Front Raise",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "45",
+    "name": "Front Raise (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "46",
+    "name": "Front Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "quads"
+  },
+  {
+    "id": "47",
+    "name": "Front Squat (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "quads"
+  },
+  {
+    "id": "48",
+    "name": "Goblet Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Kettlebell",
+    "target": "quads"
+  },
+  {
+    "id": "49",
+    "name": "Good Mornings",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "hamstrings"
+  },
+  {
+    "id": "50",
+    "name": "Hack Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "quads"
+  },
+  {
+    "id": "51",
+    "name": "Hammer Curls",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "52",
+    "name": "Hammer Curls (Dumbbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "53",
+    "name": "Hanging Leg Raises",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "54",
+    "name": "High Knees",
+    "bodyPart": "Legs",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "55",
+    "name": "Hip Thrust",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "glutes"
+  },
+  {
+    "id": "56",
+    "name": "Hip Thrust (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "glutes"
+  },
+  {
+    "id": "57",
+    "name": "Incline Bench Press",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "58",
+    "name": "Incline Bench Press (Dumbbell)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "pectorals"
+  },
+  {
+    "id": "59",
+    "name": "Incline Bench Press (Smith Machine)",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "pectorals"
+  },
+  {
+    "id": "60",
+    "name": "Jump Rope",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Jump Rope",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "61",
+    "name": "Jumping Jacks",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "62",
+    "name": "Kettlebell Swing",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Kettlebell",
+    "target": "glutes"
+  },
+  {
+    "id": "63",
+    "name": "Knee Raises",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "64",
+    "name": "Lat Pulldown",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "lats"
+  },
+  {
+    "id": "65",
+    "name": "Lat Pulldown (Cable)",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "lats"
+  },
+  {
+    "id": "66",
+    "name": "Lateral Raise",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "67",
+    "name": "Lateral Raise (Cable)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "delts"
+  },
+  {
+    "id": "68",
+    "name": "Lateral Raise (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "69",
+    "name": "Leg Curls",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "hamstrings"
+  },
+  {
+    "id": "70",
+    "name": "Leg Curls (Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "hamstrings"
+  },
+  {
+    "id": "71",
+    "name": "Leg Extension",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "quads"
+  },
+  {
+    "id": "72",
+    "name": "Leg Extension (Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "quads"
+  },
+  {
+    "id": "73",
+    "name": "Leg Press",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "quads"
+  },
+  {
+    "id": "74",
+    "name": "Leg Press (Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "quads"
+  },
+  {
+    "id": "75",
+    "name": "Lunges",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "quads"
+  },
+  {
+    "id": "76",
+    "name": "Lunges (Dumbbell)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "quads"
+  },
+  {
+    "id": "77",
+    "name": "Lunges (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "quads"
+  },
+  {
+    "id": "78",
+    "name": "Mountain Climbers",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "79",
+    "name": "Overhead Press",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "delts"
+  },
+  {
+    "id": "80",
+    "name": "Overhead Press (Barbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "delts"
+  },
+  {
+    "id": "81",
+    "name": "Overhead Press (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "82",
+    "name": "Overhead Press (Smith Machine)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "delts"
+  },
+  {
+    "id": "83",
+    "name": "Overhead Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "quads"
+  },
+  {
+    "id": "84",
+    "name": "Pec Deck Fly",
+    "bodyPart": "Chest",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "pectorals"
+  },
+  {
+    "id": "85",
+    "name": "Plank",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "86",
+    "name": "Preacher Curls",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "biceps"
+  },
+  {
+    "id": "87",
+    "name": "Preacher Curls (Barbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "biceps"
+  },
+  {
+    "id": "88",
+    "name": "Preacher Curls (Dumbbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "biceps"
+  },
+  {
+    "id": "89",
+    "name": "Pull Ups",
+    "bodyPart": "Back",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "lats"
+  },
+  {
+    "id": "90",
+    "name": "Push Ups",
+    "bodyPart": "Chest",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "pectorals"
+  },
+  {
+    "id": "91",
+    "name": "Rear Delt Fly",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "92",
+    "name": "Rear Delt Fly (Cable)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "delts"
+  },
+  {
+    "id": "93",
+    "name": "Rear Delt Fly (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "94",
+    "name": "Romanian Deadlift",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "hamstrings"
+  },
+  {
+    "id": "95",
+    "name": "Romanian Deadlift (Smith Machine)",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "hamstrings"
+  },
+  {
+    "id": "96",
+    "name": "Rowing Machine",
+    "bodyPart": "Full Body",
+    "category": "Cardio",
+    "equipment": "Machine",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "97",
+    "name": "Running",
+    "bodyPart": "Legs",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "98",
+    "name": "Russian Twist",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "99",
+    "name": "Seated Cable Row",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "upper back"
+  },
+  {
+    "id": "100",
+    "name": "Seated Row (Cable)",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "upper back"
+  },
+  {
+    "id": "101",
+    "name": "Shoulder Press",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "102",
+    "name": "Shoulder Press (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  },
+  {
+    "id": "103",
+    "name": "Shoulder Press (Machine)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Machine",
+    "target": "delts"
+  },
+  {
+    "id": "104",
+    "name": "Shoulder Press (Smith Machine)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "delts"
+  },
+  {
+    "id": "105",
+    "name": "Shrugs",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "traps"
+  },
+  {
+    "id": "106",
+    "name": "Shrugs (Barbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "traps"
+  },
+  {
+    "id": "107",
+    "name": "Shrugs (Dumbbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "traps"
+  },
+  {
+    "id": "108",
+    "name": "Shrugs (Smith Machine)",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "traps"
+  },
+  {
+    "id": "109",
+    "name": "Side Plank",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "110",
+    "name": "Sit Ups",
+    "bodyPart": "Core",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "abs"
+  },
+  {
+    "id": "111",
+    "name": "Skull Crushers",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "triceps"
+  },
+  {
+    "id": "112",
+    "name": "Snatch",
+    "bodyPart": "Full Body",
+    "category": "Olympic",
+    "equipment": "Barbell",
+    "target": "full body"
+  },
+  {
+    "id": "113",
+    "name": "Squat",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "quads"
+  },
+  {
+    "id": "114",
+    "name": "Squat (Barbell)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "quads"
+  },
+  {
+    "id": "115",
+    "name": "Squat (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "quads"
+  },
+  {
+    "id": "116",
+    "name": "Stair Climber",
+    "bodyPart": "Legs",
+    "category": "Cardio",
+    "equipment": "Machine",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "117",
+    "name": "Standing Calf Raise",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "calves"
+  },
+  {
+    "id": "118",
+    "name": "Standing Calf Raise (Smith Machine)",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "calves"
+  },
+  {
+    "id": "119",
+    "name": "Step Ups",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Box",
+    "target": "quads"
+  },
+  {
+    "id": "120",
+    "name": "Sumo Deadlift",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "glutes"
+  },
+  {
+    "id": "121",
+    "name": "Sumo Deadlift (Smith Machine)",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "glutes"
+  },
+  {
+    "id": "122",
+    "name": "Sumo Deadlift High Pull",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "traps"
+  },
+  {
+    "id": "123",
+    "name": "Sumo Deadlift High Pull (Barbell)",
+    "bodyPart": "Full Body",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "traps"
+  },
+  {
+    "id": "124",
+    "name": "T-Bar Row",
+    "bodyPart": "Back",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "upper back"
+  },
+  {
+    "id": "125",
+    "name": "Tricep Dips",
+    "bodyPart": "Arms",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "triceps"
+  },
+  {
+    "id": "126",
+    "name": "Tricep Extension",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "triceps"
+  },
+  {
+    "id": "127",
+    "name": "Tricep Extension (Cable)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "triceps"
+  },
+  {
+    "id": "128",
+    "name": "Tricep Extension (Dumbbell)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "triceps"
+  },
+  {
+    "id": "129",
+    "name": "Tricep Pushdown",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "triceps"
+  },
+  {
+    "id": "130",
+    "name": "Tricep Pushdown (Cable)",
+    "bodyPart": "Arms",
+    "category": "Strength",
+    "equipment": "Cable",
+    "target": "triceps"
+  },
+  {
+    "id": "131",
+    "name": "Treadmill",
+    "bodyPart": "Legs",
+    "category": "Cardio",
+    "equipment": "Machine",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "132",
+    "name": "Upright Row",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "delts"
+  },
+  {
+    "id": "133",
+    "name": "Upright Row (Barbell)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Barbell",
+    "target": "delts"
+  },
+  {
+    "id": "134",
+    "name": "Upright Row (Smith Machine)",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Smith Machine",
+    "target": "delts"
+  },
+  {
+    "id": "135",
+    "name": "Walking",
+    "bodyPart": "Legs",
+    "category": "Cardio",
+    "equipment": "Body Weight",
+    "target": "cardiovascular"
+  },
+  {
+    "id": "136",
+    "name": "Wall Sit",
+    "bodyPart": "Legs",
+    "category": "Strength",
+    "equipment": "Body Weight",
+    "target": "quads"
+  },
+  {
+    "id": "137",
+    "name": "Wide Grip Pull Ups",
+    "bodyPart": "Back",
+    "category": "Bodyweight",
+    "equipment": "Body Weight",
+    "target": "lats"
+  },
+  {
+    "id": "138",
+    "name": "Y Raises",
+    "bodyPart": "Shoulders",
+    "category": "Strength",
+    "equipment": "Dumbbell",
+    "target": "delts"
+  }
+]
+
+
+
+
+
+
+
+
+
+
+
+

@@ -41,7 +41,6 @@ const QuizGames = ({ visible, onClose }) => {
   // Quiz Data from GitHub
   const [quizCategories, setQuizCategories] = useState([]);
   const [quizQuestions, setQuizQuestions] = useState({});
-  const [badges, setBadges] = useState([]);
   const [levels, setLevels] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   
@@ -53,7 +52,6 @@ const QuizGames = ({ visible, onClose }) => {
     streak: 0,
     lastPlayedDate: null,
     categoryProgress: {},
-    unlockedBadges: [],
     stats: {
       totalCorrect: 0,
       totalQuestions: 0,
@@ -79,16 +77,14 @@ const QuizGames = ({ visible, onClose }) => {
   const loadQuizData = async () => {
     try {
       setIsLoadingData(true);
-      const [categories, questions, badgesData, levelsData] = await Promise.all([
+      const [categories, questions, levelsData] = await Promise.all([
         quizService.getCategories(),
         quizService.getQuestions(),
-        quizService.getBadges(),
         quizService.getLevels(),
       ]);
       
       setQuizCategories(categories);
       setQuizQuestions(questions);
-      setBadges(badgesData);
       setLevels(levelsData);
       setIsLoadingData(false);
     } catch (error) {
@@ -371,9 +367,6 @@ const QuizGames = ({ visible, onClose }) => {
       hapticFeedback.success();
     }
     
-    // Check and award badges
-    checkAndAwardBadges(newProgress, percentage, quizTime);
-    
     saveUserProgress(newProgress);
     
     // Confetti animation
@@ -387,54 +380,15 @@ const QuizGames = ({ visible, onClose }) => {
     animateScreenTransition('results');
   };
 
-  const checkAndAwardBadges = (progress, percentage, quizTime) => {
-    const newBadges = [];
-    
-    // First quiz
-    if (progress.totalQuizzes === 1 && !progress.unlockedBadges.includes('first-quiz')) {
-      newBadges.push('first-quiz');
-    }
-    
-    // Perfect score
-    if (percentage === 100 && !progress.unlockedBadges.includes('perfect-score')) {
-      newBadges.push('perfect-score');
-    }
-    
-    // Streak badges
-    if (progress.streak >= 7 && !progress.unlockedBadges.includes('streak-7')) {
-      newBadges.push('streak-7');
-    }
-    if (progress.streak >= 30 && !progress.unlockedBadges.includes('streak-30')) {
-      newBadges.push('streak-30');
-    }
-    
-    // Quiz count badges
-    if (progress.totalQuizzes >= 10 && !progress.unlockedBadges.includes('quiz-10')) {
-      newBadges.push('quiz-10');
-    }
-    if (progress.totalQuizzes >= 50 && !progress.unlockedBadges.includes('quiz-50')) {
-      newBadges.push('quiz-50');
-    }
-    
-    // Speed demon
-    if (quizTime < 120 && !progress.unlockedBadges.includes('speed-demon')) {
-      newBadges.push('speed-demon');
-    }
-    
-    if (newBadges.length > 0) {
-      progress.unlockedBadges = [...progress.unlockedBadges, ...newBadges];
-      hapticFeedback.success();
-    }
-  };
-
   const getCurrentLevel = () => {
-    if (levels.length === 0) return { level: 1, title: 'Seeker', xpRequired: 0, color: '#9E9E9E' };
+    if (levels.length === 0) return null;
     return levels.find(l => userProgress.xp >= l.xpRequired && userProgress.xp < (levels[levels.indexOf(l) + 1]?.xpRequired || Infinity)) || levels[0];
   };
 
   const getNextLevel = () => {
-    if (levels.length === 0) return { level: 2, title: 'Learner', xpRequired: 100, color: '#795548' };
+    if (levels.length === 0) return null;
     const currentLevel = getCurrentLevel();
+    if (!currentLevel) return null;
     const currentIndex = levels.indexOf(currentLevel);
     return levels[currentIndex + 1] || currentLevel;
   };
@@ -477,7 +431,6 @@ const QuizGames = ({ visible, onClose }) => {
           {currentScreen === 'quiz' && `Question ${currentQuestionIndex + 1}/${currentQuiz.length}`}
           {currentScreen === 'results' && 'Results'}
           {currentScreen === 'stats' && 'Your Stats'}
-          {currentScreen === 'badges' && 'Badges'}
         </Text>
         <View style={{ width: 60 }} />
       </View>
@@ -485,10 +438,6 @@ const QuizGames = ({ visible, onClose }) => {
   );
 
   const renderHome = () => {
-    const currentLevel = getCurrentLevel();
-    const nextLevel = getNextLevel();
-    const progress = currentLevel.level === nextLevel.level ? 1 : (userProgress.xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired);
-
     // Loading state
     if (isLoadingData) {
       return (
@@ -501,6 +450,23 @@ const QuizGames = ({ visible, onClose }) => {
         </View>
       );
     }
+
+    const currentLevel = getCurrentLevel();
+    const nextLevel = getNextLevel();
+    
+    // If data not loaded yet
+    if (!currentLevel || !nextLevel) {
+      return (
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Error loading data</Text>
+          <Text style={[styles.loadingSubtext, { color: theme.textSecondary }]}>
+            Please check your connection and try again
+          </Text>
+        </View>
+      );
+    }
+
+    const progress = currentLevel.level === nextLevel.level ? 1 : (userProgress.xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired);
 
     return (
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -544,9 +510,9 @@ const QuizGames = ({ visible, onClose }) => {
               </Animated.View>
               
               <View style={styles.statItem}>
-                <Text style={styles.statIcon}>⭐</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.unlockedBadges.length}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Badges</Text>
+                <Text style={styles.statIcon}>🎯</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.totalQuizzes}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
               </View>
             </View>
           </LinearGradient>
@@ -652,15 +618,7 @@ const QuizGames = ({ visible, onClose }) => {
               onPress={() => animateScreenTransition('stats')}
             >
               <MaterialIcons name="bar-chart" size={24} color={theme.primary} />
-              <Text style={[styles.bottomNavText, { color: theme.text }]}>Stats</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.bottomNavButton}
-              onPress={() => animateScreenTransition('badges')}
-            >
-              <MaterialIcons name="emoji-events" size={24} color={theme.primary} />
-              <Text style={[styles.bottomNavText, { color: theme.text }]}>Badges</Text>
+              <Text style={[styles.bottomNavText, { color: theme.text }]}>View Stats</Text>
             </TouchableOpacity>
           </View>
 
@@ -1163,68 +1121,6 @@ const QuizGames = ({ visible, onClose }) => {
     );
   };
 
-  const renderBadges = () => {
-    const earnedBadges = badges.filter(b => userProgress.unlockedBadges.includes(b.id));
-    const lockedBadges = badges.filter(b => !userProgress.unlockedBadges.includes(b.id));
-
-    return (
-      <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.badgesHeader}>
-            <Text style={[styles.badgesTitle, { color: theme.text }]}>BADGE COLLECTION</Text>
-            <Text style={[styles.badgesCount, { color: theme.textSecondary }]}>
-              {earnedBadges.length}/{badges.length}
-            </Text>
-          </View>
-
-          {earnedBadges.length > 0 && (
-            <>
-              <Text style={[styles.badgesSectionTitle, { color: theme.text }]}>EARNED</Text>
-              <View style={styles.badgesGrid}>
-                {earnedBadges.map(badge => (
-                  <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color + '20' }]}>
-                    <View style={[styles.badgeIconContainer, { backgroundColor: badge.color }]}>
-                      <Text style={styles.badgeIcon}>{badge.icon}</Text>
-                    </View>
-                    <Text style={[styles.badgeTitle, { color: theme.text }]} numberOfLines={1}>
-                      {badge.title}
-                    </Text>
-                    <Text style={[styles.badgeDescription, { color: theme.textSecondary }]} numberOfLines={2}>
-                      {badge.description}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-
-          {lockedBadges.length > 0 && (
-            <>
-              <Text style={[styles.badgesSectionTitle, { color: theme.text }]}>LOCKED</Text>
-              <View style={styles.badgesGrid}>
-                {lockedBadges.map(badge => (
-                  <View key={badge.id} style={[styles.badgeCard, { backgroundColor: theme.surface, opacity: 0.6 }]}>
-                    <View style={[styles.badgeIconContainer, { backgroundColor: theme.border }]}>
-                      <MaterialIcons name="lock" size={24} color={theme.textSecondary} />
-                    </View>
-                    <Text style={[styles.badgeTitle, { color: theme.textSecondary }]} numberOfLines={1}>
-                      {badge.title}
-                    </Text>
-                    <Text style={[styles.badgeDescription, { color: theme.textSecondary }]} numberOfLines={2}>
-                      {badge.requirement}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
-    );
-  };
-
   return (
     <Modal
       visible={visible}
@@ -1240,7 +1136,6 @@ const QuizGames = ({ visible, onClose }) => {
         {currentScreen === 'quiz' && renderQuiz()}
         {currentScreen === 'results' && renderResults()}
         {currentScreen === 'stats' && renderStats()}
-        {currentScreen === 'badges' && renderBadges()}
         
         {renderHeader()}
       </View>
@@ -1885,61 +1780,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Badges Screen
-  badgesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  badgesTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  badgesCount: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  badgesSectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  badgesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 24,
-  },
-  badgeCard: {
-    width: (screenWidth - 56) / 2,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-  },
-  badgeIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  badgeIcon: {
-    fontSize: 32,
-  },
-  badgeTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  badgeDescription: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
 });
 
 export default QuizGames;

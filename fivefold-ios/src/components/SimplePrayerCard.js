@@ -104,8 +104,8 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
   );
 };
 
-const SimplePrayerCard = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+const SimplePrayerCard = ({ onNavigateToBible }) => {
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   
   const [prayers, setPrayers] = useState([]);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
@@ -163,15 +163,25 @@ const SimplePrayerCard = () => {
     };
   }, [selectedPrayer]); // Re-subscribe if selectedPrayer changes
 
-  // Track modal changes
+  // Track modal changes with better debugging
   useEffect(() => {
     if (!showPrayerModal) {
-      console.log('🚨🚨🚨 MODAL CLOSED! Stack trace:');
-      console.trace();
+      console.log('🚨 Prayer modal closed');
+      if (selectedPrayer) {
+        console.log('   Selected prayer still set:', selectedPrayer.name);
+      } else {
+        console.log('   No prayer selected (this might cause the issue!)');
+      }
     } else {
-      console.log('✅ Modal opened');
+      console.log('✅ Prayer modal opened');
+      if (selectedPrayer) {
+        console.log('   Prayer:', selectedPrayer.name);
+        console.log('   Verses:', selectedPrayer.verses?.length || 0);
+      } else {
+        console.log('   ⚠️ WARNING: Modal opened but no prayer selected! This is the bug!');
+      }
     }
-  }, [showPrayerModal]);
+  }, [showPrayerModal, selectedPrayer]);
 
 
   const loadPrayers = async () => {
@@ -244,103 +254,100 @@ const SimplePrayerCard = () => {
   // Get 2 truly random verses from the ENTIRE Bible (optimized + validated)
   const getTwoRandomVerses = async () => {
     try {
-      console.log('🎲 Picking 2 random verses from the entire Bible...');
+      console.log('🎲 Picking 2 random verses from curated list...');
       
-      // Get all Bible books (cached, fast)
-      const books = await completeBibleService.getBooks();
-      const verses = [];
+      // Import curated verses
+      const CURATED_VERSES = require('../../daily-verses-references.json');
+      const curatedReferences = CURATED_VERSES.verses;
       
-      // Pick 2 random verses in parallel (faster)
-      const versePromises = [0, 1].map(async (i) => {
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        while (retryCount < maxRetries) {
-          try {
-            // Pick a random book
-            const randomBook = books[Math.floor(Math.random() * books.length)];
-            
-            // Get chapters for this book
-            const chapters = await completeBibleService.getChapters(randomBook.id);
-            
-            // Pick a random chapter
-            const randomChapter = chapters[Math.floor(Math.random() * chapters.length)];
-            
-            // Get verses for this chapter
-            const chapterVerses = await completeBibleService.getVerses(randomChapter.id, 'kjv');
-            
-            // Validate we actually got verses
-            if (!chapterVerses || chapterVerses.length === 0) {
-              console.warn('⚠️ No verses returned for', randomBook.name, randomChapter.number);
-              retryCount++;
-              continue;
-            }
-            
-            // Pick a random verse index
-            const randomIndex = Math.floor(Math.random() * chapterVerses.length);
-            const randomVerse = chapterVerses[randomIndex];
-            
-            // CRITICAL FIX: Use array index + 1 as verse number (more reliable than API numbering)
-            // This ensures we never get verse numbers that don't exist
-            const verseNumber = randomIndex + 1;
-            
-            // Double validation: Check if API's verse number matches our calculated number
-            const apiVerseNumber = parseInt(randomVerse.number || randomVerse.verse || verseNumber);
-            
-            // If API number is wildly different, log warning but use our calculated number
-            if (Math.abs(apiVerseNumber - verseNumber) > 5) {
-              console.warn('⚠️ Verse numbering mismatch!', {
-                book: randomBook.name,
-                chapter: randomChapter.number,
-                calculatedVerse: verseNumber,
-                apiVerse: apiVerseNumber,
-                totalVerses: chapterVerses.length
-              });
-            }
-            
-            // Create verse reference using our validated verse number
-            const verseReference = `${randomBook.name} ${randomChapter.number}:${verseNumber}`;
-            
-            // Final validation: Verse number should never exceed chapter length
-            if (verseNumber > chapterVerses.length) {
-              console.error('❌ INVALID verse number generated:', verseReference);
-              retryCount++;
-              continue;
-            }
-            
-            console.log('✅ Random verse picked:', verseReference, `(${chapterVerses.length} verses in chapter)`);
-            
+      // Pick 2 random references
+      const shuffled = [...curatedReferences].sort(() => Math.random() - 0.5);
+      const selectedRefs = shuffled.slice(0, 2);
+      
+      console.log(`✅ Selected 2 verses from ${curatedReferences.length} curated verses`);
+      
+      // Fetch the actual verse text for each reference
+      const versePromises = selectedRefs.map(async (reference, i) => {
+        try {
+          // Parse reference like "John 3:16" or "1 Corinthians 13:4"
+          const match = reference.match(/^((?:\d\s)?[\w\s]+)\s+(\d+):(\d+)(?:-(\d+))?$/);
+          
+          if (!match) {
+            console.error('Failed to parse reference:', reference);
             return {
-              id: Date.now() + i + retryCount,
-              reference: verseReference,
-              text: (randomVerse.text || randomVerse.content || '').trim()
+              id: Date.now() + i,
+              reference: "Loading...",
+              text: "Verse is loading..."
             };
-            
-          } catch (error) {
-            console.error('❌ Error picking verse', i + 1, '(attempt', retryCount + 1, '):', error);
-            retryCount++;
           }
+          
+          const bookName = match[1].trim();
+          const chapterNum = match[2];
+          const verseNum = match[3];
+          
+          // Convert book name to book ID
+          const bookId = bookName.toLowerCase()
+            .replace(/\s+/g, '')
+            .replace(/\d+/g, (num) => num);
+          
+          // Build chapter ID for githubBibleService
+          const chapterId = `${bookId}_${chapterNum}`;
+          
+          // Fetch verses for this chapter
+          const chapterVerses = await completeBibleService.getVerses(chapterId, 'kjv');
+          
+          if (!chapterVerses || chapterVerses.length === 0) {
+            console.warn('⚠️ No verses returned for', reference);
+            return {
+              id: Date.now() + i,
+              reference: reference,
+              text: "Verse is loading..."
+            };
+          }
+          
+          // Find the specific verse
+          const verseData = chapterVerses.find(v => {
+            const vNum = parseInt(String(v.number || v.verse || v.displayNumber || '').replace(/^Verse\s*/i, ''));
+            return vNum === parseInt(verseNum);
+          });
+          
+          if (!verseData) {
+            console.warn('⚠️ Verse not found:', reference);
+            return {
+              id: Date.now() + i,
+              reference: reference,
+              text: "Verse is loading..."
+            };
+          }
+          
+          console.log('✅ Fetched verse:', reference);
+          
+          return {
+            id: Date.now() + i,
+            reference: reference,
+            text: (verseData.text || verseData.content || '').trim()
+          };
+          
+        } catch (error) {
+          console.error('❌ Error fetching verse', reference, ':', error);
+          return {
+            id: Date.now() + i,
+            reference: "Loading...",
+            text: "Verse is loading..."
+          };
         }
-        
-        // If all retries failed, return loading state
-        console.error('❌ All retries failed for verse', i + 1, '- showing loading state');
-        return {
-          id: Date.now() + i,
-          reference: "Loading...",
-          text: "Verse is loading..."
-        };
       });
       
       const selectedVerses = await Promise.all(versePromises);
-      console.log('🎉 2 random verses selected from Bible!');
+      console.log('🎉 2 curated verses selected!');
       return selectedVerses;
       
     } catch (error) {
       console.error('❌ Error in getTwoRandomVerses:', error);
-      // Return loading state if something goes wrong
+      // Return fallback verses
       return [
-        { id: 1, reference: "Loading...", text: "Verse is loading..." },
-        { id: 2, reference: "Loading...", text: "Verse is loading..." }
+        { id: 1, reference: "Psalm 46:10", text: "Be still, and know that I am God." },
+        { id: 2, reference: "Psalm 23:1", text: "The Lord is my shepherd, I lack nothing." }
       ];
     }
   };
@@ -760,7 +767,7 @@ const SimplePrayerCard = () => {
     <LiquidGlassContainer>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>🙏 My Prayers</Text>
+              <Text style={[styles.title, { color: theme.text }]}>My Prayers</Text>
               <AnimatedPrayerButton
                 style={[styles.addButton, { backgroundColor: theme.primary }]}
                 onPress={() => {
@@ -788,13 +795,13 @@ const SimplePrayerCard = () => {
             const isInTimeWindow = isPrayerTimeAvailable(prayer);
             
             // Individual Prayer Item Component - Fully transparent
-            const PrayerItemCard = ({ children, style, onPress }) => {
+              const PrayerItemCard = ({ children, style, onPress }) => {
               // Use regular View with completely transparent background - no white tint!
               return (
                 <View
                   style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: `${theme.primary}12`, // Use theme primary with transparency
-                    borderColor: `${theme.primary}20`, // Use theme primary for border
+                    backgroundColor: `${theme.primary}30`,
+                    borderColor: `${theme.primary}99`,
                     opacity: canComplete ? 1 : 0.7
                   }, style]}
                 >
@@ -832,11 +839,15 @@ const SimplePrayerCard = () => {
                     elevation: 0, // Remove elevation
                   }]}
                   onPress={() => {
+                    // FIXED: Set prayer first, THEN show modal after a small delay to ensure state is set
                     setSelectedPrayer(prayer);
-                    setShowPrayerModal(true);
                     hapticFeedback.light();
                     // Fetch verses in background (don't block UI)
                     loadPrayerVerses(prayer);
+                    // Use requestAnimationFrame to ensure prayer state is set before showing modal
+                    requestAnimationFrame(() => {
+                      setShowPrayerModal(true);
+                    });
                   }}
                 >
                   <View style={styles.prayerInfo}>
@@ -874,7 +885,6 @@ const SimplePrayerCard = () => {
                       </Text>
                     </View>
                   </View>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
                 </AnimatedPrayerCard>
                 
                 <AnimatedPrayerButton
@@ -928,6 +938,7 @@ const SimplePrayerCard = () => {
             }, 300);
           }}
           initialVerse={verseToDiscuss}
+          onNavigateToBible={onNavigateToBible}
           title="Discuss This Verse"
         />
       )}

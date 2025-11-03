@@ -4,15 +4,27 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from './GlassEffect';
 import aiService from '../services/aiService';
+import ThemeModal from './ThemeModal';
 
 const Settings = ({ settings, onSettingsChange, onClose }) => {
-  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   
   // API key should be entered by user for security
   const [apiKey, setApiKey] = useState('');
   const [aiEnabled, setAiEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+
+  const getCurrentThemeDisplay = () => {
+    if (isBlushTheme) return { icon: '🌸', name: 'Blush Bloom' };
+    if (isEternaTheme) return { icon: '✨', name: 'Eterna' };
+    if (isCresviaTheme) return { icon: '🌌', name: 'Cresvia' };
+    if (isSpidermanTheme) return { icon: '🕷️', name: 'Spiderman' };
+    if (isFaithTheme) return { icon: '✝️', name: 'Faith' };
+    if (isSailormoonTheme) return { icon: '🌙', name: 'Sailor Moon' };
+    return { icon: '🎨', name: 'Default' };
+  };
 
   const handleEnableAI = async () => {
     if (!aiEnabled) {
@@ -86,76 +98,28 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 🌸 Theme Selection Section */}
-          <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              🎨 Theme
-            </Text>
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              Choose your preferred app appearance
-            </Text>
-            
-            <View style={styles.themeGrid}>
-              {(() => {
-                // Define clean theme display info
-                const themeInfo = {
-                  'light': { icon: '☀️', name: 'Light' },
-                  'dark': { icon: '🌙', name: 'Dark' },
-                  'blush-bloom': { icon: '🌸', name: 'Blush Bloom' },
-                  'cresvia': { icon: '🌌', name: 'Cresvia' },
-                  'eterna': { icon: '✨', name: 'Eterna' }
-                };
-                
-                // Create rows of 2 themes each
-                const rows = [];
-                for (let i = 0; i < availableThemes.length; i += 2) {
-                  const row = availableThemes.slice(i, i + 2);
-                  rows.push(
-                    <View key={`row-${i}`} style={styles.themeRow}>
-                      {row.map((themeOption) => {
-                        const displayInfo = themeInfo[themeOption.id] || { icon: '🎨', name: themeOption.name };
-                        
-                        return (
-                          <TouchableOpacity
-                            key={themeOption.id}
-                            style={[
-                              styles.themeCard,
-                              { 
-                                backgroundColor: currentTheme === themeOption.id ? theme.primary + '20' : theme.surface,
-                                borderColor: currentTheme === themeOption.id ? theme.primary : theme.border,
-                                borderWidth: currentTheme === themeOption.id ? 2 : 1,
-                              }
-                            ]}
-                            onPress={() => changeTheme(themeOption.id)}
-                          >
-                            <Text style={styles.themeIcon}>{displayInfo.icon}</Text>
-                            <Text 
-                              numberOfLines={1}
-                              style={[
-                                styles.themeName, 
-                                { 
-                                  color: currentTheme === themeOption.id ? theme.primary : theme.text,
-                                  fontWeight: currentTheme === themeOption.id ? '700' : '500'
-                                }
-                              ]}
-                            >
-                              {displayInfo.name}
-                            </Text>
-                            {currentTheme === themeOption.id && (
-                              <MaterialIcons name="check-circle" size={16} color={theme.primary} style={styles.checkIcon} />
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                      {/* Add empty space if odd number of themes */}
-                      {row.length === 1 && <View style={{ flex: 1 }} />}
-                    </View>
-                  );
-                }
-                return rows;
-              })()}
-            </View>
-          </GlassCard>
+          {/* Theme Selection Button */}
+          <TouchableOpacity 
+            onPress={() => setShowThemeModal(true)}
+            activeOpacity={0.7}
+          >
+            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <MaterialIcons name="palette" size={22} color={theme.primary} />
+                  <View style={styles.settingTextContainer}>
+                    <Text style={[styles.settingLabel, { color: theme.text }]}>
+                      Theme
+                    </Text>
+                    <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                      {getCurrentThemeDisplay().icon} {getCurrentThemeDisplay().name}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
+              </View>
+            </GlassCard>
+          </TouchableOpacity>
 
           {/* 🧠 Smart Scoring Section */}
           <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme}>
@@ -223,6 +187,12 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>All data stays on your device</Text>
           </GlassCard>
         </ScrollView>
+
+        {/* Theme Modal */}
+        <ThemeModal 
+          visible={showThemeModal} 
+          onClose={() => setShowThemeModal(false)} 
+        />
       </View>
     </Modal>
   );
@@ -309,39 +279,29 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 16,
   },
-  // 🌸 Theme Selection Styles
-  themeGrid: {
-    flexDirection: 'column',
-    gap: 12,
-    marginTop: 16,
-  },
-  themeRow: {
+  // Theme Button Styles
+  settingRow: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  themeCard: {
-    flex: 1,
-    height: 80,
-    padding: 16,
-    borderRadius: 16,
+  settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    position: 'relative',
+    flex: 1,
+    gap: 12,
   },
-  themeIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  themeName: {
-    fontSize: 16,
-    fontWeight: '600',
+  settingTextContainer: {
     flex: 1,
   },
-  checkIcon: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+  settingLabel: {
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  settingValue: {
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  PanResponder,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -20,10 +22,11 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReadingPlanService from '../services/readingPlanService';
+import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width } = Dimensions.get('window');
 
-const STORAGE_KEY = 'one_year_bible_progress';
+const STORAGE_KEY = 'one_year_bible_progress_v2';
 
 const OneYearBiblePlan = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -34,13 +37,143 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
   const [readingPlanData, setReadingPlanData] = useState(null);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  // Loading animation
+  const loadingScale = useRef(new Animated.Value(1)).current;
+  const loadingRotate = useRef(new Animated.Value(0)).current;
+  const loadingOpacity = useRef(new Animated.Value(1)).current;
+
+  // Modal animation refs for detail view
+  const detailPanY = useRef(new Animated.Value(0)).current;
+
+  // Start loading animation
+  useEffect(() => {
+    if (loading) {
+      // Scale animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingScale, {
+            toValue: 1.2,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(loadingScale, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Rotation animation
+      Animated.loop(
+        Animated.timing(loadingRotate, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      // Opacity pulse
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingOpacity, {
+            toValue: 0.4,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(loadingOpacity, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [loading]);
+
+  // Pan responder for day detail modal - created once at component level
+  const dayDetailPanResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => true,
+      onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only capture downward swipes
+        const isDraggingDown = gestureState.dy > 5;
+        return isDraggingDown;
+      },
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        const isDraggingDown = gestureState.dy > 5;
+        return isDraggingDown;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          detailPanY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        const screenHeight = Dimensions.get('window').height;
+        const swipeThreshold = 150; // Fixed threshold in pixels
+        const velocityThreshold = 0.5; // Velocity threshold
+        
+        if (gestureState.dy > swipeThreshold || gestureState.vy > velocityThreshold) {
+          // User swiped down far enough or fast enough - dismiss modal
+          hapticFeedback.light();
+          Animated.timing(detailPanY, {
+            toValue: screenHeight,
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => {
+            detailPanY.setValue(0);
+          });
+          // Close immediately to prevent flicker
+          setTimeout(() => setSelectedDay(null), 200);
+        } else {
+          // Snap back to original position
+          Animated.spring(detailPanY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start();
+        }
+      },
+    });
+  }, []);
+
+  console.log('📖 ========================================');
+  console.log('📖 OneYearBiblePlan COMPONENT RENDERING');
+  console.log('📖 visible prop:', visible);
+  console.log('📖 loading:', loading);
+  console.log('📖 hasData:', !!readingPlanData);
+  console.log('📖 ========================================');
 
   // Load reading plan data from GitHub
   useEffect(() => {
+    console.log('📖 OneYearBiblePlan useEffect triggered, visible:', visible);
     if (visible) {
       loadReadingPlanData();
     }
   }, [visible]);
+
+  // Auto-scroll to current day when data loads
+  useEffect(() => {
+    if (readingPlanData && !loading && scrollViewRef.current && currentDay > 1) {
+      // Delay to ensure ScrollView is rendered
+      setTimeout(() => {
+        // Calculate approximate scroll position
+        // Each card is roughly 120px tall with 12px gap
+        const cardHeight = 132; // card height + gap
+        const scrollY = Math.max(0, (currentDay - 3) * cardHeight); // Show current day with 2 cards above for context
+        
+        scrollViewRef.current?.scrollTo({ 
+          y: scrollY, 
+          animated: true 
+        });
+      }, 500);
+    }
+  }, [readingPlanData, loading, currentDay]);
 
   // Load progress from storage
   useEffect(() => {
@@ -49,12 +182,18 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
 
   const loadReadingPlanData = async () => {
     try {
+      console.log('📖 Starting to load reading plan data...');
       setLoading(true);
       const data = await ReadingPlanService.getReadingPlan();
+      console.log('📖 Reading plan data loaded:', {
+        planName: data?.planName,
+        totalDays: data?.totalDays,
+        readingsCount: data?.readings?.length
+      });
       setReadingPlanData(data);
       console.log('📖 Loaded reading plan with', data.readings?.length || 0, 'days');
     } catch (error) {
-      console.error('Error loading reading plan:', error);
+      console.error('❌ Error loading reading plan:', error);
       Alert.alert('Error', 'Failed to load reading plan. Please check your connection and try again.');
     } finally {
       setLoading(false);
@@ -72,15 +211,18 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
         // Calculate current day based on start date
         if (data.startDate) {
           const start = new Date(data.startDate);
+          start.setHours(0, 0, 0, 0); // Reset to start of day
           const today = new Date();
-          const diffTime = Math.abs(today - start);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          setCurrentDay(Math.min(diffDays, 365));
+          today.setHours(0, 0, 0, 0); // Reset to start of day
+          const diffTime = today - start;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 because day 1 is the start date
+          setCurrentDay(Math.min(Math.max(diffDays, 1), 365)); // Ensure it's between 1 and 365
         }
       } else {
-        // First time - set start date to today
+        // First time - set start date to today and current day to 1
         const today = new Date().toISOString();
         setStartDate(today);
+        setCurrentDay(1);
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
           startDate: today,
           completedDays: {}
@@ -130,6 +272,38 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
     await saveProgress(newProgress);
   };
 
+  const resetPlan = async () => {
+    Alert.alert(
+      'Reset Reading Plan',
+      'This will restart your One Year Bible plan from Day 1 today. All progress will be lost. Continue?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            hapticFeedback.medium();
+            const today = new Date().toISOString();
+            setStartDate(today);
+            setCurrentDay(1);
+            setProgress({});
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
+              startDate: today,
+              completedDays: {}
+            }));
+            // Scroll to top
+            if (scrollViewRef.current) {
+              scrollViewRef.current.scrollTo({ y: 0, animated: true });
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Calculate statistics
   const totalDays = readingPlanData?.totalDays || 365;
   const completedDays = Object.keys(progress).length;
@@ -150,6 +324,17 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
   };
 
   const currentStreak = calculateStreak();
+
+  // Calculate the actual date for a given day number
+  const getDateForDay = (dayNumber) => {
+    if (!startDate) return '';
+    const start = new Date(startDate);
+    const targetDate = new Date(start);
+    targetDate.setDate(start.getDate() + (dayNumber - 1));
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[targetDate.getMonth()]} ${targetDate.getDate()}`;
+  };
 
   const renderProgressRing = () => {
     const size = 140;
@@ -266,7 +451,7 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
         {/* Day Number */}
         <View style={styles.dayHeader}>
           <Text style={[styles.dayNumber, { color: theme.text }]}>Day {reading.day}</Text>
-          <Text style={[styles.dayDate, { color: theme.textSecondary }]}>{reading.date}</Text>
+          <Text style={[styles.dayDate, { color: theme.textSecondary }]}>{getDateForDay(reading.day)}</Text>
         </View>
 
         {/* Readings Preview */}
@@ -303,30 +488,49 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
     const isCompleted = progress[selectedDay.day];
 
     return (
-      <Modal visible={!!selectedDay} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelectedDay(null)}>
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
-          <ScrollView 
-            style={styles.dayDetailContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 80 : 60, paddingBottom: 100 }}
+      <Modal visible={!!selectedDay} animationType="none" presentationStyle="overFullScreen" transparent={true} onRequestClose={() => setSelectedDay(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <Animated.View
+            {...dayDetailPanResponder.panHandlers}
+            style={{
+              flex: 1,
+              marginTop: 100,
+              backgroundColor: theme.background,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              transform: [{ translateY: detailPanY }],
+            }}
           >
-            {/* Hero Header */}
-            <View style={styles.dayDetailHero}>
-              <LinearGradient
-                colors={isCompleted ? ['#4CAF50', '#388E3C'] : ['#E91E63', '#C2185B']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.dayDetailHeroGradient}
+            <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+              <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+              {/* Drag Handle */}
+              <View style={styles.dragHandle}>
+                <View style={[styles.dragIndicator, { backgroundColor: theme.textTertiary }]} />
+              </View>
+
+              <ScrollView 
+                style={styles.dayDetailContent}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
+                scrollEnabled={true}
+                bounces={true}
               >
-                {isCompleted && (
-                  <MaterialIcons name="check-circle" size={48} color="#FFFFFF" style={{ marginBottom: 12 }} />
-                )}
-                <Text style={styles.dayDetailTitle}>Day {selectedDay.day}</Text>
-                <Text style={styles.dayDetailDate}>{selectedDay.date}</Text>
-              </LinearGradient>
-            </View>
+                {/* Hero Header */}
+                <View style={styles.dayDetailHero}>
+                  <LinearGradient
+                    colors={isCompleted ? ['#4CAF50', '#388E3C'] : ['#E91E63', '#C2185B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.dayDetailHeroGradient}
+                  >
+                    {isCompleted && (
+                      <MaterialIcons name="check-circle" size={48} color="#FFFFFF" style={{ marginBottom: 12 }} />
+                    )}
+                    <Text style={styles.dayDetailTitle}>Day {selectedDay.day}</Text>
+                    <Text style={styles.dayDetailDate}>{getDateForDay(selectedDay.day)}</Text>
+                  </LinearGradient>
+                </View>
 
             {/* Reading Sections */}
             <View style={styles.readingSections}>
@@ -337,11 +541,11 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
                   <Text style={[styles.readingSectionTitle, { color: theme.text }]}>Old Testament</Text>
                 </View>
                 <View style={styles.readingSectionContent}>
-                  <Text style={[styles.referenceText, { color: theme.primary }]}>
+                  <Text style={[styles.referenceText, { color: '#E91E63', fontSize: 20, fontWeight: '700' }]}>
                     {selectedDay.oldTestament.reference}
                   </Text>
-                  <Text style={[styles.bookNameText, { color: theme.textSecondary }]}>
-                    {selectedDay.oldTestament.book} {selectedDay.oldTestament.chapters}
+                  <Text style={[styles.instructionText, { color: theme.textSecondary, marginTop: 12 }]}>
+                    Read {selectedDay.oldTestament.book} chapters {selectedDay.oldTestament.chapters} in your Bible
                   </Text>
                 </View>
               </View>
@@ -353,11 +557,11 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
                   <Text style={[styles.readingSectionTitle, { color: theme.text }]}>New Testament</Text>
                 </View>
                 <View style={styles.readingSectionContent}>
-                  <Text style={[styles.referenceText, { color: theme.primary }]}>
+                  <Text style={[styles.referenceText, { color: '#2196F3', fontSize: 20, fontWeight: '700' }]}>
                     {selectedDay.newTestament.reference}
                   </Text>
-                  <Text style={[styles.bookNameText, { color: theme.textSecondary }]}>
-                    {selectedDay.newTestament.book} {selectedDay.newTestament.chapters}
+                  <Text style={[styles.instructionText, { color: theme.textSecondary, marginTop: 12 }]}>
+                    Read {selectedDay.newTestament.book} {selectedDay.newTestament.chapters} in your Bible
                   </Text>
                 </View>
               </View>
@@ -369,8 +573,11 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
                   <Text style={[styles.readingSectionTitle, { color: theme.text }]}>Psalm</Text>
                 </View>
                 <View style={styles.readingSectionContent}>
-                  <Text style={[styles.referenceText, { color: theme.primary }]}>
+                  <Text style={[styles.referenceText, { color: '#9C27B0', fontSize: 20, fontWeight: '700' }]}>
                     {selectedDay.psalm.reference}
+                  </Text>
+                  <Text style={[styles.instructionText, { color: theme.textSecondary, marginTop: 12 }]}>
+                    Read this Psalm in your Bible
                   </Text>
                 </View>
               </View>
@@ -382,8 +589,11 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
                   <Text style={[styles.readingSectionTitle, { color: theme.text }]}>Proverb</Text>
                 </View>
                 <View style={styles.readingSectionContent}>
-                  <Text style={[styles.referenceText, { color: theme.primary }]}>
+                  <Text style={[styles.referenceText, { color: '#FF9800', fontSize: 20, fontWeight: '700' }]}>
                     {selectedDay.proverb.reference}
+                  </Text>
+                  <Text style={[styles.instructionText, { color: theme.textSecondary, marginTop: 12 }]}>
+                    Read these verses from Proverbs in your Bible
                   </Text>
                 </View>
               </View>
@@ -393,7 +603,7 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
             <View style={[styles.tipsCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <MaterialIcons name="info-outline" size={20} color={theme.textSecondary} />
               <Text style={[styles.tipsText, { color: theme.textSecondary }]}>
-                Tap each reference to open it in your Bible reader. Take your time and reflect on what you read.
+                Use the Bible Reader tab to read these passages, or read them in your physical Bible. Check off each day when complete!
               </Text>
             </View>
           </ScrollView>
@@ -424,45 +634,8 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Header */}
-          <BlurView
-            intensity={20}
-            tint={isDark ? 'dark' : 'light'}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              backgroundColor: 'transparent',
-              borderBottomLeftRadius: 20,
-              borderBottomRightRadius: 20,
-              overflow: 'hidden',
-            }}
-          >
-            <View style={{ height: Platform.OS === 'ios' ? 50 : 30, backgroundColor: 'transparent' }} />
-            <View style={styles.dayDetailHeader}>
-              <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.light();
-                  setSelectedDay(null);
-                }}
-                style={{
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                }}
-              >
-                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
-              </TouchableOpacity>
-              <Text style={[styles.dayDetailHeaderTitle, { color: theme.text }]}>
-                Today's Reading
-              </Text>
-              <View style={{ width: 60 }} />
-            </View>
-          </BlurView>
+            </SafeAreaView>
+          </Animated.View>
         </View>
       </Modal>
     );
@@ -475,11 +648,85 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
 
         {/* Loading State */}
         {loading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[{ marginTop: 16, fontSize: 16, color: theme.textSecondary }]}>
-              Loading reading plan...
-            </Text>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+            {/* Animated Bible Icon */}
+            <Animated.View
+              style={{
+                transform: [
+                  { scale: loadingScale },
+                  {
+                    rotate: loadingRotate.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <LinearGradient
+                colors={['#E91E63', '#C2185B', '#880E4F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#E91E63',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 20,
+                  elevation: 12,
+                }}
+              >
+                <MaterialIcons name="auto-stories" size={50} color="#FFFFFF" />
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Loading dots */}
+            <View style={{ flexDirection: 'row', marginTop: 40, gap: 12 }}>
+              {[0, 1, 2].map((index) => (
+                <Animated.View
+                  key={index}
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: theme.primary,
+                    opacity: loadingOpacity,
+                    transform: [
+                      {
+                        translateY: loadingScale.interpolate({
+                          inputRange: [1, 1.2],
+                          outputRange: [0, index === 1 ? -8 : index === 0 ? -4 : -6],
+                        }),
+                      },
+                    ],
+                  }}
+                />
+              ))}
+            </View>
+
+            {/* Loading Text */}
+            <Animated.View style={{ marginTop: 24, opacity: loadingOpacity }}>
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: theme.text,
+                letterSpacing: 0.5,
+              }}>
+                Loading Your Bible Plan
+              </Text>
+              <Text style={{ 
+                fontSize: 14, 
+                color: theme.textSecondary,
+                textAlign: 'center',
+                marginTop: 8,
+              }}>
+                Preparing 365 days of readings...
+              </Text>
+            </Animated.View>
           </View>
         ) : !readingPlanData ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
@@ -502,6 +749,11 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
           style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80, paddingBottom: 30 }}
+          onScroll={(event) => {
+            const offsetY = event.nativeEvent.contentOffset.y;
+            setShowScrollTop(offsetY > 500); // Show button after scrolling 500px
+          }}
+          scrollEventThrottle={16}
         >
           {/* Progress Ring */}
           {renderProgressRing()}
@@ -515,8 +767,14 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
             <TouchableOpacity
               onPress={() => {
                 // Scroll to current day
-                if (scrollViewRef.current) {
+                if (scrollViewRef.current && currentDay > 0) {
                   hapticFeedback.light();
+                  const cardHeight = 132;
+                  const scrollY = Math.max(0, (currentDay - 3) * cardHeight);
+                  scrollViewRef.current.scrollTo({ 
+                    y: scrollY, 
+                    animated: true 
+                  });
                 }
               }}
               style={[styles.todayButton, { backgroundColor: `${theme.primary}20` }]}
@@ -571,9 +829,36 @@ const OneYearBiblePlan = ({ visible, onClose }) => {
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               One Year Bible
             </Text>
-            <View style={{ width: 60 }} />
+            <TouchableOpacity
+              onPress={resetPlan}
+              style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
+            >
+              <MaterialIcons name="refresh" size={20} color={theme.primary} />
+            </TouchableOpacity>
           </View>
         </BlurView>
+
+        {/* Scroll to Top Button */}
+        {showScrollTop && (
+          <TouchableOpacity
+            style={[styles.scrollTopButton, { 
+              backgroundColor: theme.primary,
+              shadowColor: theme.primary,
+            }]}
+            onPress={() => {
+              hapticFeedback.light();
+              scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            }}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="arrow-upward" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
       </View>
     </Modal>
   );
@@ -796,21 +1081,19 @@ const styles = StyleSheet.create({
   },
 
   // Day Detail
+  dragHandle: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  dragIndicator: {
+    width: 50,
+    height: 5,
+    borderRadius: 3,
+    opacity: 0.4,
+  },
   dayDetailContent: {
     flex: 1,
-  },
-  dayDetailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  dayDetailHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
   },
   dayDetailHero: {
     marginHorizontal: 20,
@@ -882,10 +1165,25 @@ const styles = StyleSheet.create({
   referenceText: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  verseText: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
   },
   bookNameText: {
     fontSize: 14,
+    fontWeight: '500',
+  },
+  instructionText: {
+    fontSize: 15,
+    lineHeight: 22,
     fontWeight: '500',
   },
 
@@ -908,9 +1206,22 @@ const styles = StyleSheet.create({
   // Bottom Action Bar
   bottomActionBar: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
     borderTopWidth: 1,
+    gap: 8,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   actionButton: {
     flexDirection: 'row',
@@ -935,6 +1246,29 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // Scroll to Top Button
+  scrollTopButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
 });
 

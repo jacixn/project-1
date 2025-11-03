@@ -55,28 +55,25 @@ class QuizService {
       console.log('📥 Fetching quiz data from GitHub...');
       
       // Fetch all required files
-      const [categoriesRes, questionsRes, badgesRes, levelsRes] = await Promise.all([
+      const [categoriesRes, questionsRes, levelsRes] = await Promise.all([
         fetch(`${GITHUB_BASE_URL}/categories.json`),
         fetch(`${GITHUB_BASE_URL}/questions.json`),
-        fetch(`${GITHUB_BASE_URL}/badges.json`),
         fetch(`${GITHUB_BASE_URL}/levels.json`),
       ]);
 
-      if (!categoriesRes.ok || !questionsRes.ok || !badgesRes.ok || !levelsRes.ok) {
+      if (!categoriesRes.ok || !questionsRes.ok || !levelsRes.ok) {
         throw new Error('Failed to fetch quiz data from GitHub');
       }
 
-      const [categories, questions, badges, levels] = await Promise.all([
+      const [categories, questions, levels] = await Promise.all([
         categoriesRes.json(),
         questionsRes.json(),
-        badgesRes.json(),
         levelsRes.json(),
       ]);
 
       const quizData = {
         categories,
         questions,
-        badges,
         levels,
       };
 
@@ -151,11 +148,6 @@ class QuizService {
   async getQuestions() {
     const data = await this.getQuizData();
     return data?.questions || {};
-  }
-
-  async getBadges() {
-    const data = await this.getQuizData();
-    return data?.badges || [];
   }
 
   async getLevels() {

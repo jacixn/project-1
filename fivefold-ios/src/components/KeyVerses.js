@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -61,6 +62,7 @@ const KeyVerses = ({ visible, onClose }) => {
   const [versesData, setVersesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [favoriteVerses, setFavoriteVerses] = useState([]);
   const [viewMode, setViewMode] = useState('grid'); // grid or list
   const scrollViewRef = useRef(null);
@@ -335,6 +337,26 @@ const KeyVerses = ({ visible, onClose }) => {
       setLoading(false);
     }
   };
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    hapticFeedback.light();
+    try {
+      // Clear cache
+      await saveData(VERSES_CONFIG.CACHE_KEY, null);
+      await saveData(VERSES_CONFIG.CACHE_TIMESTAMP_KEY, null);
+      
+      const remoteData = await fetchVersesFromRemote();
+      setVersesData(remoteData);
+      await loadDynamicVerses(remoteData);
+    } catch (error) {
+      console.error('Error refreshing verses:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   // Load verses and favorites when component mounts
@@ -1039,8 +1061,19 @@ const KeyVerses = ({ visible, onClose }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               viewMode === 'grid' ? styles.versesContentGrid : styles.versesContent,
-              { paddingTop: 320 } // Space for header + filter container
+              { paddingTop: 260 } // Space for header + filter container (reduced spacing)
             ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.primary}
+                colors={[theme.primary]}
+                title="Pull to refresh..."
+                titleColor={theme.textSecondary}
+                progressViewOffset={260}
+              />
+            }
           >
             {viewMode === 'grid' ? (
               <View style={styles.gridContainer}>
@@ -1079,14 +1112,26 @@ const KeyVerses = ({ visible, onClose }) => {
         >
           {/* Header Section */}
           <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
+          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 4 }]}>
+            <TouchableOpacity onPress={onClose} style={{ 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+              paddingHorizontal: 16, 
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}>
               <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
             <TouchableOpacity 
               onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              style={styles.closeButton}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <MaterialIcons 
                 name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
@@ -1097,7 +1142,7 @@ const KeyVerses = ({ visible, onClose }) => {
           </View>
           
           {/* Filter Section */}
-          <View style={{ backgroundColor: 'transparent', paddingBottom: 16 }}>
+          <View style={{ backgroundColor: 'transparent', paddingBottom: 4 }}>
             {/* Search Bar */}
             <View style={[styles.searchContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
               <MaterialIcons name="search" size={20} color={theme.textSecondary} />
@@ -1188,7 +1233,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1204,7 +1249,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   categoriesContainer: {
-    marginTop: 20,
+    marginTop: 8,
     maxHeight: 50,
   },
   categoriesContent: {
@@ -1236,7 +1281,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 8,
     marginBottom: 16,
   },
   resultsCount: {

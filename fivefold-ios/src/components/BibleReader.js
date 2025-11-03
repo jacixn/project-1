@@ -99,6 +99,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [showSearchModal, setShowSearchModal] = useState(false);
   const searchModalPanY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const searchModalFadeAnim = useRef(new Animated.Value(0)).current;
+  const searchInputRef = useRef(null);
   
   // Verse action menu state (long-press menu)
   const [showVerseMenu, setShowVerseMenu] = useState(false);
@@ -262,6 +263,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
           useNativeDriver: true
         })
       ]).start();
+      
+      // Auto-focus search input after modal animation starts
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 300);
           } else {
       searchModalPanY.setValue(screenHeight * 0.94); // Set to modal height
       searchModalFadeAnim.setValue(0);
@@ -1070,28 +1076,44 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
 
   // Scroll to target verse when verses load
   useEffect(() => {
-    if (verses.length > 0 && targetVerseNumber && verseRefs.current[targetVerseNumber]) {
-      // Small delay to ensure layout is complete
-      setTimeout(() => {
+    if (verses.length > 0 && targetVerseNumber) {
+      console.log('🎯 Attempting to scroll to verse:', targetVerseNumber, 'Ref exists:', !!verseRefs.current[targetVerseNumber]);
+      
+      // Function to attempt scrolling
+      const attemptScroll = (attempt = 0) => {
         const targetVerseNum = parseInt(targetVerseNumber);
-        verseRefs.current[targetVerseNum]?.measureLayout(
-          versesScrollViewRef.current,
-          (x, y) => {
-            versesScrollViewRef.current?.scrollTo({
-              y: Math.max(0, y - 200), // Increased offset to account for header
-              animated: true
-            });
-            // Highlight the verse briefly
-            setHighlightedVerse(targetVerseNum);
-            setTimeout(() => {
-              setHighlightedVerse(null);
-              // Clear target verse after highlight fades
-              setTargetVerseNumber(null);
-            }, 2000);
-          },
-          () => console.log('Failed to measure verse position')
-        );
-      }, 500);
+        const ref = verseRefs.current[targetVerseNum];
+        
+        if (ref) {
+          console.log('✅ Found ref, scrolling to verse:', targetVerseNum);
+          ref.measureLayout(
+            versesScrollViewRef.current,
+            (x, y) => {
+              versesScrollViewRef.current?.scrollTo({
+                y: Math.max(0, y - 200),
+                animated: true
+              });
+              // Highlight the verse briefly
+              setHighlightedVerse(targetVerseNum);
+              hapticFeedback.light();
+              setTimeout(() => {
+                setHighlightedVerse(null);
+                setTargetVerseNumber(null);
+              }, 2000);
+            },
+            () => console.log('❌ Failed to measure verse position')
+          );
+        } else if (attempt < 5) {
+          // Retry up to 5 times with increasing delays
+          console.log(`⏳ Ref not ready yet, retrying in ${(attempt + 1) * 200}ms...`);
+          setTimeout(() => attemptScroll(attempt + 1), (attempt + 1) * 200);
+        } else {
+          console.log('❌ Failed to find verse ref after 5 attempts');
+        }
+      };
+      
+      // Start attempting with initial delay
+      setTimeout(() => attemptScroll(), 300);
     }
   }, [verses, targetVerseNumber]);
 
@@ -1156,6 +1178,61 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       }
     }
   };
+
+  // Live search effect - triggers on every keystroke
+  useEffect(() => {
+    const performLiveSearch = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Use the new liveSearchVerses method (limit to 100 results)
+        const results = await completeBibleService.liveSearchVerses(searchQuery, 100);
+        
+        // Fetch verses in user's selected version
+        const service = getBibleService(selectedBibleVersion);
+        const resultsWithVersion = await Promise.all(
+          results.map(async (result) => {
+            try {
+              // Get the chapter to find the verse
+              const chapters = await service.getChapters(result.bookId);
+              const chapter = chapters.find(c => c.number === result.chapter.toString());
+              if (chapter) {
+                const verses = await service.getVerses(chapter.id, selectedBibleVersion);
+                const verse = verses.find(v => parseInt(v.number || v.verse) === parseInt(result.verse));
+                if (verse) {
+                  return {
+                    ...result,
+                    text: verse.content || verse.text || result.text,
+                    content: verse.content || verse.text || result.content
+                  };
+                }
+              }
+            } catch (err) {
+              console.log('Could not fetch verse in selected version:', err);
+            }
+            return result; // Fallback to default version if fetch fails
+          })
+        );
+        
+        setSearchResults(resultsWithVersion);
+      } catch (error) {
+        console.error('Live search error:', error);
+        setSearchResults([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce the search to avoid too many API calls
+    const timeoutId = setTimeout(performLiveSearch, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, selectedBibleVersion]); // Re-run when query or version changes
 
   const searchBible = async () => {
     if (!searchQuery.trim()) return;
@@ -1307,11 +1384,14 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         // Show success message
         hapticFeedback.success();
         
-        // Scroll to and highlight the specific verse
-        if (parsedRef.verse) {
-          setTimeout(() => {
-            scrollToSpecificVerse(parsedRef.verse);
-          }, 500); // Wait for verses to render
+        // Set target verse number to trigger automatic scroll and highlight
+        // This uses the same mechanism as search results for consistent behavior
+        // The parser returns 'startVerse' not 'verse'
+        if (parsedRef.startVerse) {
+          console.log('🎯 Setting targetVerseNumber to:', parsedRef.startVerse);
+          setTargetVerseNumber(parsedRef.startVerse);
+        } else {
+          console.log('⚠️ No verse number in parsed reference:', parsedRef);
         }
         
       } catch (error) {
@@ -1360,7 +1440,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         }, 100);
         
         // Also highlight the verse temporarily
-        highlightVerse(verseNumber);
+        temporarilyHighlightVerse(verseNumber);
       } else {
         console.warn('⚠️ Verse not found in current chapter:', verseNumber);
       }
@@ -2709,22 +2789,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                     }}>
                       <MaterialIcons name="search" size={24} color={theme.textSecondary} />
                       <TextInput
+                        ref={searchInputRef}
                         style={{
                           flex: 1,
                           fontSize: 16,
                           color: theme.text,
                           marginLeft: 12
                         }}
-                        placeholder="Search the Bible"
+                        placeholder="Type to search (e.g., John 3:16)"
                         placeholderTextColor={theme.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        onSubmitEditing={() => {
-                          if (searchQuery.trim()) {
-                            searchBible();
-                          }
-                        }}
-                        autoFocus={false}
                       />
                       {searchQuery.length > 0 && (
                         <TouchableOpacity
@@ -2774,12 +2849,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         justifyContent: 'center',
                         paddingTop: 80
                       }}>
+                        <MaterialIcons name="search" size={64} color={theme.textTertiary} style={{ opacity: 0.3, marginBottom: 16 }} />
                         <Text style={{
                           fontSize: 16,
                           color: theme.textSecondary,
-                          textAlign: 'center'
+                          textAlign: 'center',
+                          marginBottom: 8
                         }}>
-                          No results found
+                          {searchQuery.trim() ? 'No verses found' : 'Start typing to search'}
+                        </Text>
+                        <Text style={{
+                          fontSize: 14,
+                          color: theme.textTertiary,
+                          textAlign: 'center',
+                          paddingHorizontal: 40
+                        }}>
+                          {searchQuery.trim() ? 'Try a different search term' : 'Try: John, John 3, or John 3:16'}
                         </Text>
                       </View>
                     ) : (
@@ -2791,7 +2876,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           color: theme.textSecondary,
                           marginBottom: 16
                         }}>
-                          {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'} for "{searchQuery}"
+                          {searchResults.length >= 100 
+                            ? `Showing first ${searchResults.length} results for "${searchQuery}"` 
+                            : `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'} for "${searchQuery}"`
+                          }
                         </Text>
                         
                         {searchResults.map((result, index) => (

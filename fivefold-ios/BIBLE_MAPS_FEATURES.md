@@ -504,3 +504,22 @@ The Interactive Bible Maps is now a **world-class** feature that rivals professi
 
 **No more boring maps - this is an adventure!**
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

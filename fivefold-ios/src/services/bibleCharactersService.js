@@ -135,6 +135,8 @@ class BibleCharactersService {
     console.log('🔄 Force refreshing Bible characters...');
     this.characters = null;
     this.characterGroups = null;
+    // Clear cache to force fresh fetch
+    await this.clearCache();
     await this.fetchFromGitHub();
   }
 

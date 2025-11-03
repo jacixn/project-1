@@ -142,7 +142,8 @@ const PrayerDetailModal = ({
     });
   };
 
-  if (!prayer) return null;
+  // FIXED: Don't render modal if prayer is not set (prevents race condition issues)
+  if (!prayer || !visible) return null;
 
   return (
     <Modal

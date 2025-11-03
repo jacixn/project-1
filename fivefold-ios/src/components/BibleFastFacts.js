@@ -47,7 +47,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
   const [selectedFact, setSelectedFact] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   
   // Remote data state
   const [factsData, setFactsData] = useState(null);
@@ -55,9 +55,19 @@ const BibleFastFacts = ({ visible, onClose }) => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   
+  // Random fact state
+  const [showRandomFact, setShowRandomFact] = useState(false);
+  const [randomFact, setRandomFact] = useState(null);
+  const [isLoadingRandom, setIsLoadingRandom] = useState(false);
+  
   const scrollViewRef = useRef(null);
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  
+  // Random fact animation refs
+  const randomSpinAnim = useRef(new Animated.Value(0)).current;
+  const randomScaleAnim = useRef(new Animated.Value(0)).current;
+  const randomFadeAnim = useRef(new Animated.Value(0)).current;
 
   // Modal animation refs for detail view
   const detailSlideAnim = useRef(new Animated.Value(0)).current;
@@ -308,6 +318,127 @@ const BibleFastFacts = ({ visible, onClose }) => {
     }
   };
 
+  const getRandomFact = () => {
+    if (!factsData || !factsData.facts || factsData.facts.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * factsData.facts.length);
+    return factsData.facts[randomIndex];
+  };
+
+  const showRandomFactCard = () => {
+    hapticFeedback.medium();
+    setIsLoadingRandom(true);
+    setShowRandomFact(true);
+    
+    // Reset animations
+    randomSpinAnim.setValue(0);
+    randomScaleAnim.setValue(0);
+    randomFadeAnim.setValue(0);
+    
+    // Start spinning animation
+    Animated.loop(
+      Animated.timing(randomSpinAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+    
+    // Fade in the loading state
+    Animated.timing(randomFadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    
+    // Simulate loading and pick random fact
+    setTimeout(() => {
+      const fact = getRandomFact();
+      setRandomFact(fact);
+      setIsLoadingRandom(false);
+      
+      // Stop spinning and show the card
+      randomSpinAnim.stopAnimation();
+      
+      Animated.parallel([
+        Animated.spring(randomScaleAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.timing(randomFadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 1500); // 1.5 second loading animation
+  };
+
+  const closeRandomFact = () => {
+    hapticFeedback.light();
+    Animated.parallel([
+      Animated.timing(randomScaleAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(randomFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowRandomFact(false);
+      setRandomFact(null);
+      setIsLoadingRandom(false);
+    });
+  };
+
+  const showAnotherRandomFact = () => {
+    hapticFeedback.medium();
+    setIsLoadingRandom(true);
+    
+    // Quick spin out current card
+    Animated.parallel([
+      Animated.timing(randomScaleAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(randomSpinAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Pick new random fact
+      setTimeout(() => {
+        const fact = getRandomFact();
+        setRandomFact(fact);
+        setIsLoadingRandom(false);
+        randomSpinAnim.setValue(0);
+        
+        // Spin in new card
+        Animated.parallel([
+          Animated.spring(randomScaleAnim, {
+            toValue: 1,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+          Animated.timing(randomSpinAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          randomSpinAnim.setValue(0);
+        });
+      }, 800);
+    });
+  };
+
   const getFilteredFacts = () => {
     if (!factsData || !factsData.facts) return [];
     
@@ -458,7 +589,6 @@ const BibleFastFacts = ({ visible, onClose }) => {
                   </View>
                 ))}
               </View>
-              <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -742,7 +872,12 @@ const BibleFastFacts = ({ visible, onClose }) => {
                 hapticFeedback.light();
                 onClose();
               }}
-              style={styles.backButton}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                paddingHorizontal: 16, 
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
             >
               <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
             </TouchableOpacity>
@@ -752,13 +887,124 @@ const BibleFastFacts = ({ visible, onClose }) => {
                 hapticFeedback.light();
                 setViewMode(viewMode === 'grid' ? 'list' : 'grid');
               }}
-              style={styles.viewModeButton}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <MaterialIcons
                 name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
                 size={24}
-                color={theme.primary}
+                color={theme.text}
               />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Bar */}
+          <View style={[styles.searchContainerHeader, { backgroundColor: theme.card }]}>
+            <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+            <TextInput
+              ref={searchRef}
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder="Search facts..."
+              placeholderTextColor={theme.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <MaterialIcons name="close" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Category Filters */}
+          <View style={styles.categoriesContainerHeader}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesScroll}
+            >
+              {factsData?.categories?.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                return (
+                  <TouchableOpacity
+                    key={category.id}
+                    onPress={() => {
+                      hapticFeedback.light();
+                      setSelectedCategory(category.id);
+                      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                    }}
+                    style={[
+                      styles.categoryChip,
+                      {
+                        backgroundColor: isSelected
+                          ? `${category.color}20`
+                          : isDark
+                          ? 'rgba(255,255,255,0.1)'
+                          : 'rgba(0,0,0,0.05)',
+                        borderColor: isSelected ? category.color : theme.border,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name={category.icon}
+                      size={18}
+                      color={isSelected ? category.color : theme.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        {
+                          color: isSelected ? category.color : theme.textSecondary,
+                        },
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Random Button & Results Count */}
+          <View style={{ 
+            paddingHorizontal: 20, 
+            paddingBottom: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
+              {filteredFacts.length} {filteredFacts.length === 1 ? 'fact' : 'facts'}
+            </Text>
+            
+            <TouchableOpacity
+              onPress={showRandomFactCard}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                shadowColor: theme.primary,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              <MaterialIcons name="shuffle" size={18} color={theme.primary} />
+              <Text style={{ color: theme.primary, fontSize: 14, fontWeight: '600' }}>
+                Random
+              </Text>
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -778,47 +1024,6 @@ const BibleFastFacts = ({ visible, onClose }) => {
             />
           }
         >
-          {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: theme.card }]}>
-            <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-            <TextInput
-              ref={searchRef}
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search facts..."
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcons name="close" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Category Filters */}
-          {renderCategoryFilters()}
-
-          {/* Results Count */}
-          <View style={styles.resultsHeader}>
-            <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-              {filteredFacts.length} {filteredFacts.length === 1 ? 'fact' : 'facts'}
-            </Text>
-            {favorites.length > 0 && (
-              <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.light();
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                }}
-              >
-                <Text style={[styles.favoritesLink, { color: theme.primary }]}>
-                  {favorites.length} {favorites.length === 1 ? 'favorite' : 'favorites'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
           {/* Facts Grid/List */}
           <View style={[styles.factsContainer, viewMode === 'list' && styles.factsContainerList]}>
             {filteredFacts.length > 0 ? (
@@ -839,6 +1044,141 @@ const BibleFastFacts = ({ visible, onClose }) => {
 
         {/* Fact Detail Modal */}
         {renderFactDetail()}
+
+        {/* Random Fact Modal */}
+        {showRandomFact && (
+          <Modal
+            visible={showRandomFact}
+            transparent={true}
+            animationType="none"
+            onRequestClose={closeRandomFact}
+            statusBarTranslucent={true}
+          >
+            <View style={styles.randomModalOverlay}>
+              {/* Backdrop */}
+              <TouchableOpacity 
+                style={styles.randomModalBackdrop}
+                activeOpacity={1}
+                onPress={closeRandomFact}
+              />
+              
+              {/* Random Fact Card */}
+              <Animated.View
+                style={[
+                  styles.randomFactContainer,
+                  {
+                    opacity: randomFadeAnim,
+                    transform: [
+                      { scale: randomScaleAnim },
+                      {
+                        rotate: randomSpinAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {isLoadingRandom ? (
+                  // Loading State
+                  <BlurView
+                    intensity={80}
+                    tint={isDark ? 'dark' : 'light'}
+                    style={styles.randomLoadingCard}
+                  >
+                    <View style={[styles.randomLoadingIcon, { backgroundColor: `${theme.primary}30` }]}>
+                      <MaterialIcons name="auto-awesome" size={48} color={theme.primary} />
+                    </View>
+                    <Text style={[styles.randomLoadingText, { color: theme.text }]}>
+                      Finding a random fact...
+                    </Text>
+                  </BlurView>
+                ) : randomFact ? (
+                  // Fact Card
+                  <View style={[styles.randomFactCard, { backgroundColor: theme.background }]}>
+                    {/* Close Button */}
+                    <TouchableOpacity
+                      onPress={closeRandomFact}
+                      style={[styles.randomCloseButton, { 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      }]}
+                    >
+                      <MaterialIcons name="close" size={20} color={theme.text} />
+                    </TouchableOpacity>
+
+                    {/* Fact Content with Gradient */}
+                    <LinearGradient
+                      colors={factsData?.categories?.find(c => c.id === randomFact.category)?.gradient || [theme.primary, theme.primary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.randomFactGradient}
+                    >
+                      <View style={[styles.randomFactIconContainer, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                        <MaterialIcons name={randomFact.icon} size={40} color="#FFFFFF" />
+                      </View>
+
+                      <Text style={styles.randomFactTitle}>{randomFact.title}</Text>
+                    </LinearGradient>
+
+                    {/* Fact Details */}
+                    <ScrollView style={styles.randomFactContent} showsVerticalScrollIndicator={false}>
+                      <View style={[styles.randomFactSection, { backgroundColor: theme.card }]}>
+                        <Text style={[styles.randomFactLabel, { color: theme.textSecondary }]}>
+                          Did You Know?
+                        </Text>
+                        <Text style={[styles.randomFactDescription, { color: theme.text }]}>
+                          {randomFact.description}
+                        </Text>
+                      </View>
+
+                      <View style={[styles.randomFactSection, { backgroundColor: theme.card }]}>
+                        <Text style={[styles.randomFactLabel, { color: theme.textSecondary }]}>
+                          The Fact
+                        </Text>
+                        <Text style={[styles.randomFactDidYouKnow, { color: theme.text }]}>
+                          {randomFact.didYouKnow}
+                        </Text>
+                      </View>
+
+                      {/* Tags */}
+                      <View style={styles.randomFactTags}>
+                        {randomFact.tags?.map((tag, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.randomFactTag, { 
+                              backgroundColor: `${factsData?.categories?.find(c => c.id === randomFact.category)?.color}20`,
+                              borderColor: `${factsData?.categories?.find(c => c.id === randomFact.category)?.color}40`,
+                            }]}
+                          >
+                            <Text style={[styles.randomFactTagText, { 
+                              color: factsData?.categories?.find(c => c.id === randomFact.category)?.color 
+                            }]}>
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </ScrollView>
+
+                    {/* Show Another Button */}
+                    <TouchableOpacity
+                      onPress={showAnotherRandomFact}
+                      style={[styles.randomAnotherButton, { 
+                        backgroundColor: theme.primary,
+                      }]}
+                    >
+                      <MaterialIcons name="shuffle" size={24} color="#FFFFFF" />
+                      <Text style={styles.randomAnotherButtonText}>
+                        Show Another Random Fact
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </Animated.View>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -924,14 +1264,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingTop: Platform.OS === 'ios' ? 110 : 80,
+    paddingTop: Platform.OS === 'ios' ? 310 : 280,
     paddingBottom: 30,
   },
-  searchContainer: {
+  searchContainerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -941,8 +1282,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
-  categoriesContainer: {
-    marginBottom: 16,
+  categoriesContainerHeader: {
+    marginBottom: 12,
   },
   categoriesScroll: {
     paddingHorizontal: 20,
@@ -1202,6 +1543,135 @@ const styles = StyleSheet.create({
   detailTagText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Random Fact Modal Styles
+  randomModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  randomModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  randomFactContainer: {
+    width: width - 40,
+    maxHeight: height * 0.75,
+  },
+  randomLoadingCard: {
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  randomLoadingIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  randomLoadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  randomFactCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  randomCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  randomFactGradient: {
+    padding: 30,
+    alignItems: 'center',
+  },
+  randomFactIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  randomFactTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  randomFactContent: {
+    maxHeight: 300,
+    padding: 20,
+  },
+  randomFactSection: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  randomFactLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  randomFactDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  randomFactDidYouKnow: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontStyle: 'italic',
+  },
+  randomFactTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  randomFactTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  randomFactTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  randomAnotherButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 20,
+    marginTop: 0,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  randomAnotherButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

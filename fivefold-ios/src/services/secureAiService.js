@@ -138,14 +138,14 @@ class SecureAIService {
     const wordCount = taskText.split(' ').length;
     
     let tier = 'mid';
-    let points = 150;
+    let points = 1200;
     
     if (lowKeywords.some(keyword => textLower.includes(keyword)) || wordCount < 5) {
       tier = 'low';
-      points = 50;
+      points = 650;
     } else if (highKeywords.some(keyword => textLower.includes(keyword)) || wordCount > 15) {
       tier = 'high';
-      points = 600;
+      points = 3000;
     }
     
     return {

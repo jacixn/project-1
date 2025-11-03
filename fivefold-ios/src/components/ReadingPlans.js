@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,13 @@ const ReadingPlans = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showOneYearPlan, setShowOneYearPlan] = useState(false);
+
+  // Reset selectedPlan when closing
+  useEffect(() => {
+    if (!visible) {
+      setSelectedPlan(null);
+    }
+  }, [visible]);
 
   // Reading plan types
   const readingPlans = [
@@ -233,20 +240,8 @@ const ReadingPlans = ({ visible, onClose }) => {
         <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80, paddingHorizontal: 20, paddingBottom: 30 }}
+          contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 130 : 100, paddingHorizontal: 20, paddingBottom: 30 }}
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}
-            onPress={() => {
-              hapticFeedback.light();
-              setSelectedPlan(null);
-            }}
-          >
-            <MaterialIcons name="arrow-back" size={22} color={theme.primary} />
-            <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
-          </TouchableOpacity>
-
           {/* Hero Card */}
           <View style={styles.heroCard}>
             <LinearGradient
@@ -255,6 +250,17 @@ const ReadingPlans = ({ visible, onClose }) => {
               end={{ x: 1, y: 1 }}
               style={styles.heroGradient}
             >
+              {/* Back Button */}
+              <TouchableOpacity
+                style={styles.heroBackButton}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setSelectedPlan(null);
+                }}
+              >
+                <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+
               {/* Icon */}
               <View style={[styles.heroIcon, { backgroundColor: 'rgba(255, 255, 255, 0.25)' }]}>
                 <MaterialIcons name={selectedPlan.icon} size={48} color="#FFFFFF" />
@@ -310,8 +316,14 @@ const ReadingPlans = ({ visible, onClose }) => {
             style={[styles.startButton, { backgroundColor: selectedPlan.color }]}
             onPress={() => {
               hapticFeedback.medium();
+              
               if (selectedPlan.id === 'one-year') {
-                setShowOneYearPlan(true);
+                // Close the reading plans modal first, then open the bible plan
+                onClose();
+                // Small delay to let the first modal close
+                setTimeout(() => {
+                  setShowOneYearPlan(true);
+                }, 300);
               } else {
                 // Other plans coming soon
                 Alert.alert(
@@ -343,7 +355,7 @@ const ReadingPlans = ({ visible, onClose }) => {
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
+      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
 
@@ -369,7 +381,14 @@ const ReadingPlans = ({ visible, onClose }) => {
           <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
           <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
             <TouchableOpacity
-              onPress={selectedPlan ? () => setSelectedPlan(null) : onClose}
+              onPress={() => {
+                hapticFeedback.light();
+                if (selectedPlan) {
+                  setSelectedPlan(null);
+                } else {
+                  onClose();
+                }
+              }}
               style={{
                 backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                 paddingHorizontal: 16,
@@ -390,14 +409,13 @@ const ReadingPlans = ({ visible, onClose }) => {
       </View>
     </Modal>
 
-      {/* One Year Bible Plan Modal */}
-      <OneYearBiblePlan
-        visible={showOneYearPlan}
-        onClose={() => {
-          setShowOneYearPlan(false);
-          setSelectedPlan(null);
-        }}
-      />
+    {/* One Year Bible Plan Modal - Separate from Reading Plans Modal */}
+    <OneYearBiblePlan
+      visible={showOneYearPlan}
+      onClose={() => {
+        setShowOneYearPlan(false);
+      }}
+    />
     </>
   );
 };
@@ -548,6 +566,18 @@ const styles = StyleSheet.create({
   heroGradient: {
     padding: 32,
     alignItems: 'center',
+  },
+  heroBackButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   heroIcon: {
     width: 96,

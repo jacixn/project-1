@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import EnhancedOnboarding from './EnhancedOnboarding';
+import OnboardingFlow from './OnboardingFlow';
 import { useTheme } from '../contexts/ThemeContext';
 
 const OnboardingWrapper = ({ children }) => {
@@ -61,7 +61,7 @@ const OnboardingWrapper = ({ children }) => {
 
   // Show onboarding if needed
   if (showOnboarding) {
-    return <EnhancedOnboarding onComplete={handleOnboardingComplete} />;
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   // Show main app

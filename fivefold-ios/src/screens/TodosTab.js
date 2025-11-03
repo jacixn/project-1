@@ -11,10 +11,13 @@ import {
   Dimensions,
   Alert,
   Image,
+  DeviceEventEmitter,
+  Modal,
 } from 'react-native';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -30,6 +33,9 @@ import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 // Components
 import TodoList from '../components/TodoList';
 import CalendarView from '../components/CalendarView';
+import FullCalendarModal from '../components/FullCalendarModal';
+import TasksOverviewModal from '../components/TasksOverviewModal';
+import TaskCompletionCelebration from '../components/TaskCompletionCelebration';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
@@ -111,7 +117,7 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
 };
 
 const TodosTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   const { language, t } = useLanguage();
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,15 +130,100 @@ const TodosTab = () => {
   });
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [showTasksOverview, setShowTasksOverview] = useState(false);
+  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
+  const [completedTask, setCompletedTask] = useState(null);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Logo animations
+  const logoSpin = useRef(new Animated.Value(0)).current;
+  const logoPulse = useRef(new Animated.Value(1)).current;
+  const logoFloat = useRef(new Animated.Value(0)).current;
+  
+  // Modal card animations
+  const modalFadeAnim = useRef(new Animated.Value(0)).current;
+  const modalSlideAnim = useRef(new Animated.Value(50)).current;
+  const cardShimmer = useRef(new Animated.Value(0)).current;
+
+  // Continuous logo animations
+  const startLogoAnimations = () => {
+    // Gentle spinning animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoSpin, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoSpin, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Pulsing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoPulse, {
+          toValue: 1.15,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoPulse, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Floating animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoFloat, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoFloat, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  const startShimmerAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cardShimmer, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardShimmer, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   useEffect(() => {
     initializeTodoData();
+    startLogoAnimations();
+    startShimmerAnimation();
     // Start entrance animation
     createEntranceAnimation(slideAnim, fadeAnim, scaleAnim, 0, 0).start();
     // Header appears after content
@@ -143,6 +234,27 @@ const TodosTab = () => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    if (showAboutModal) {
+      // Animate modal entrance
+      modalFadeAnim.setValue(0);
+      modalSlideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(modalFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(modalSlideAnim, {
+          toValue: 0,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showAboutModal]);
 
   // Refresh data when tab becomes focused (to show updated points from prayers)
   useEffect(() => {
@@ -263,32 +375,48 @@ const TodosTab = () => {
   };
 
   const handleTodoComplete = useCallback(async (todoId) => {
-    const updatedTodos = todos.map(todo => 
-      todo.id === todoId 
-        ? { ...todo, completed: true, completedAt: new Date().toISOString() }
-        : todo
-    );
-    
-    const completedTodo = updatedTodos.find(todo => todo.id === todoId);
-    const pointsEarned = completedTodo?.points || 0;
-    const newCompletedTasks = userStats.completedTasks + 1;
-    
-    const updatedStats = {
-      ...userStats,
-      totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
-      points: (userStats.totalPoints || userStats.points || 0) + pointsEarned, // Keep both for compatibility
-      completedTasks: newCompletedTasks,
-      level: Math.floor(((userStats.totalPoints || userStats.points || 0) + pointsEarned) / 1000) + 1,
-    };
-    
-    setTodos(updatedTodos);
-    setUserStats(updatedStats);
-    
-    await saveData('todos', updatedTodos);
-    await saveData('userStats', updatedStats);
-    
-    // Check for achievements and send notifications
-    await checkAndSendAchievements(newCompletedTasks, updatedTodos);
+    // Find the task before completing it to show in celebration
+    const taskToComplete = todos.find(t => t.id === todoId);
+    if (!taskToComplete) return;
+
+    // Show celebration first
+    setCompletedTask(taskToComplete);
+    setShowCompletionCelebration(true);
+
+    // Update data after showing celebration
+    setTimeout(async () => {
+      const updatedTodos = todos.map(todo => 
+        todo.id === todoId 
+          ? { ...todo, completed: true, completedAt: new Date().toISOString() }
+          : todo
+      );
+      
+      const completedTodo = updatedTodos.find(todo => todo.id === todoId);
+      const pointsEarned = completedTodo?.points || 0;
+      const newCompletedTasks = userStats.completedTasks + 1;
+      
+      const updatedStats = {
+        ...userStats,
+        totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+        points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+        completedTasks: newCompletedTasks,
+        level: Math.floor(((userStats.totalPoints || userStats.points || 0) + pointsEarned) / 1000) + 1,
+      };
+      
+      setTodos(updatedTodos);
+      setUserStats(updatedStats);
+      
+      await saveData('todos', updatedTodos);
+      await saveData('userStats', updatedStats);
+      
+      await checkAndSendAchievements(newCompletedTasks, updatedTodos);
+      
+      // Notify other components that a task was completed
+      DeviceEventEmitter.emit('taskCompleted', {
+        taskId: todoId,
+        completedCount: newCompletedTasks
+      });
+    }, 100);
   }, [todos, userStats]);
 
   const handleTodoDelete = useCallback(async (todoId) => {
@@ -307,34 +435,30 @@ const TodosTab = () => {
     // Get days of the week
     const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     
-    // Get calendar days for current month
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const firstDayWeekday = firstDayOfMonth.getDay();
-    const daysInMonth = lastDayOfMonth.getDate();
+    // Get the current week (Sunday to Saturday)
+    const currentDayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    const sundayOfWeek = new Date(today);
+    sundayOfWeek.setDate(today.getDate() - currentDayOfWeek); // Go back to Sunday
     
-    // Create calendar grid
+    // Create calendar grid for 7 days (Sunday to Saturday)
     const calendarDays = [];
     
-    // Add empty cells for days before month starts
-    for (let i = 0; i < firstDayWeekday; i++) {
-      calendarDays.push(null);
-    }
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(today.getFullYear(), today.getMonth(), day);
-      const isToday = day === currentDate;
+    // Add 7 days starting from Sunday
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sundayOfWeek);
+      date.setDate(sundayOfWeek.getDate() + i);
+      const day = date.getDate();
+      const isToday = date.toDateString() === today.toDateString();
+      
       const dayTodos = todos.filter(todo => {
         if (!todo.completedAt) return false;
         const todoDate = new Date(todo.completedAt);
-        return todoDate.getDate() === day && 
-               todoDate.getMonth() === today.getMonth() && 
-               todoDate.getFullYear() === today.getFullYear();
+        return todoDate.toDateString() === date.toDateString();
       });
       
       calendarDays.push({
         day,
+        date,
         isToday,
         hasActivity: dayTodos.length > 0,
         completedCount: dayTodos.length
@@ -394,43 +518,51 @@ const TodosTab = () => {
           ))}
         </View>
 
-        {/* Calendar Grid */}
-        <View style={styles.calendarGrid}>
-          {calendarDays.map((dayData, index) => {
-            if (!dayData) {
-              return <View key={index} style={styles.emptyDay} />;
-            }
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.calendarDay,
-                  dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
-                  dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
-                ]}
-                onPress={() => {
-                  hapticFeedback.light();
-                  setSelectedDate(new Date(today.getFullYear(), today.getMonth(), dayData.day));
-                }}
-              >
-                <Text style={[
-                  styles.dayNumber,
-                  { color: dayData.isToday ? '#fff' : theme.text },
-                  dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
-                ]}>
-                  {dayData.day}
-                </Text>
-                {dayData.hasActivity && (
-                  <View style={[
-                    styles.activityDot,
-                    { backgroundColor: dayData.isToday ? '#fff' : theme.success }
-                  ]} />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {/* Calendar Grid - Tappable to open full calendar */}
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => {
+            hapticFeedback.light();
+            setShowFullCalendar(true);
+          }}
+        >
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((dayData, index) => {
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.calendarDay,
+                    dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
+                    dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
+                  ]}
+                >
+                  <Text style={[
+                    styles.dayNumber,
+                    { color: dayData.isToday ? '#fff' : theme.text },
+                    dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
+                  ]}>
+                    {dayData.day}
+                  </Text>
+                  {dayData.hasActivity && (
+                    <View style={[
+                      styles.activityDot,
+                      { backgroundColor: dayData.isToday ? '#fff' : theme.success }
+                    ]} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Tap to expand hint */}
+          <View style={styles.expandHint}>
+            <MaterialIcons name="calendar-today" size={16} color={theme.textSecondary} />
+            <Text style={[styles.expandHintText, { color: theme.textSecondary }]}>
+              Tap to schedule tasks
+            </Text>
+          </View>
+        </TouchableOpacity>
       </LiquidGlassCalendarContainer>
     );
   };
@@ -444,6 +576,9 @@ const TodosTab = () => {
       const completedDate = new Date(todo.completedAt).toISOString().split('T')[0];
       return today === completedDate;
     });
+
+    // Calculate today's points from tasks completed today
+    const todayPoints = completedToday.reduce((total, todo) => total + (todo.points || 0), 0);
 
     // Liquid Glass Container for Stats
     const LiquidGlassStatsContainer = ({ children }) => {
@@ -478,36 +613,20 @@ const TodosTab = () => {
 
     return (
       <LiquidGlassStatsContainer>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>📊 Today's Progress</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Progress</Text>
         
         <View style={styles.statsRow}>
           <View 
             style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-              borderColor: `${theme.primary}15`, // Very subtle border color
-              borderWidth: 0.8, // Very subtle border
-              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              backgroundColor: `${theme.primary}30`,
+              borderColor: `${theme.primary}99`,
+              borderWidth: 0.8,
+              borderRadius: 16,
               shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-              shadowOpacity: 0.06, // Very subtle shadow
-              shadowRadius: 3, // Small shadow radius
-              elevation: 1, // Minimal elevation
-              // Add glow effect for different themes
-              ...(isBlushTheme && {
-                shadowColor: '#FF69B4',
-                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-                borderColor: 'rgba(255, 105, 180, 0.4)',
-              }),
-              ...(isCresviaTheme && {
-                shadowColor: '#8A2BE2',
-                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-              }),
-              ...(isEternaTheme && {
-                shadowColor: '#4B0082',
-                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-              }),
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 1,
             }]}
           >
             <Text style={[styles.statNumber, { color: theme.primary }]}>
@@ -520,31 +639,15 @@ const TodosTab = () => {
           
           <View 
             style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-              borderColor: `${theme.primary}15`, // Very subtle border color
-              borderWidth: 0.8, // Very subtle border
-              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              backgroundColor: `${theme.primary}30`,
+              borderColor: `${theme.primary}99`,
+              borderWidth: 0.8,
+              borderRadius: 16,
               shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-              shadowOpacity: 0.06, // Very subtle shadow
-              shadowRadius: 3, // Small shadow radius
-              elevation: 1, // Minimal elevation
-              // Add glow effect for different themes
-              ...(isBlushTheme && {
-                shadowColor: '#FF69B4',
-                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-                borderColor: 'rgba(255, 105, 180, 0.4)',
-              }),
-              ...(isCresviaTheme && {
-                shadowColor: '#8A2BE2',
-                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-              }),
-              ...(isEternaTheme && {
-                shadowColor: '#4B0082',
-                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-              }),
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 1,
             }]}
           >
             <Text style={[styles.statNumber, { color: theme.success }]}>
@@ -557,35 +660,19 @@ const TodosTab = () => {
           
           <View 
             style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}10`, // Added 4 to opacity (06 -> 10)
-              borderColor: `${theme.primary}15`, // Very subtle border color
-              borderWidth: 0.8, // Very subtle border
-              borderRadius: 16, // Smooth rounded corners - no sharp edges!
+              backgroundColor: `${theme.primary}30`,
+              borderColor: `${theme.primary}99`,
+              borderWidth: 0.8,
+              borderRadius: 16,
               shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-              shadowOpacity: 0.06, // Very subtle shadow
-              shadowRadius: 3, // Small shadow radius
-              elevation: 1, // Minimal elevation
-              // Add glow effect for different themes
-              ...(isBlushTheme && {
-                shadowColor: '#FF69B4',
-                backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-                borderColor: 'rgba(255, 105, 180, 0.4)',
-              }),
-              ...(isCresviaTheme && {
-                shadowColor: '#8A2BE2',
-                backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-              }),
-              ...(isEternaTheme && {
-                shadowColor: '#4B0082',
-                backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-                borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-              }),
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 1,
             }]}
           >
             <Text style={[styles.statNumber, { color: theme.warning }]}>
-              {userStats.points}
+              {todayPoints}
             </Text>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               Points
@@ -638,14 +725,14 @@ const TodosTab = () => {
     if (completedHistory.length === 0) {
       return (
         <LiquidGlassHistoryContainer>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>📜 History</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>History</Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
             Your completed tasks will appear here
           </Text>
           <View 
             style={[styles.emptyHistory, { 
-              backgroundColor: `${theme.primary}15`, // Use theme primary with transparency
-              borderColor: `${theme.primary}25`, // Use theme primary for border
+              backgroundColor: `${theme.primary}30`,
+              borderColor: `${theme.primary}99`,
               borderWidth: 1.5,
             }]}
           >
@@ -660,7 +747,7 @@ const TodosTab = () => {
 
     return (
       <LiquidGlassHistoryContainer>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>📜 History</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>History</Text>
         <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
           Last 10 completed tasks
         </Text>
@@ -670,8 +757,8 @@ const TodosTab = () => {
               <View
               key={todo.id}
               style={[styles.historyItem, { 
-                backgroundColor: `${theme.primary}15`, // Use theme primary with transparency
-                borderColor: `${theme.primary}25`, // Use theme primary for border
+                backgroundColor: `${theme.primary}30`,
+                borderColor: `${theme.primary}99`,
                 borderWidth: 1.5,
               }]}
             >
@@ -720,7 +807,7 @@ const TodosTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -737,12 +824,43 @@ const TodosTab = () => {
         absolute={false}
       >
         <View style={styles.headerContent}>
-          {/* Logo positioned on the left */}
-          <Image 
-            source={require('../../assets/logo.png')} 
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          {/* Animated Logo positioned on the left */}
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.heavy();
+              setShowAboutModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Animated.Image 
+              source={require('../../assets/logo.png')} 
+              style={[
+                styles.headerLogo,
+                {
+                  transform: [
+                    {
+                      rotate: logoSpin.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })
+                    },
+                    { scale: logoPulse },
+                    {
+                      translateY: logoFloat.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -6]
+                      })
+                    }
+                  ],
+                  shadowColor: theme.primary,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 0 },
+                }
+              ]}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
@@ -751,21 +869,6 @@ const TodosTab = () => {
               Stay focused and earn points
             </Text>
           </View>
-          
-          {/* View Toggle Button */}
-          <AnimatedTodoButton
-            style={[styles.viewToggle, { backgroundColor: theme.primary + '20' }]}
-            onPress={() => {
-              hapticFeedback.light();
-              setViewMode(viewMode === 'list' ? 'calendar' : 'list');
-            }}
-          >
-            <MaterialIcons 
-              name={viewMode === 'list' ? 'calendar-today' : 'list'} 
-              size={20} 
-              color={theme.primary} 
-            />
-          </AnimatedTodoButton>
         </View>
       </GlassHeader>
 
@@ -794,6 +897,7 @@ const TodosTab = () => {
               onTodoComplete={handleTodoComplete}
               onTodoDelete={handleTodoDelete}
               userStats={userStats}
+              onViewAll={() => setShowTasksOverview(true)}
             />
 
             {/* Stats Overview - Now below tasks */}
@@ -813,6 +917,269 @@ const TodosTab = () => {
           />
         )}
       </Animated.ScrollView>
+
+      {/* Full Calendar Modal */}
+      <FullCalendarModal
+        visible={showFullCalendar}
+        onClose={() => setShowFullCalendar(false)}
+        onTaskAdd={handleTodoAdd}
+      />
+
+      {/* Tasks Overview Modal */}
+      <TasksOverviewModal
+        visible={showTasksOverview}
+        onClose={() => setShowTasksOverview(false)}
+        todos={todos}
+        onTodoComplete={handleTodoComplete}
+        onTodoDelete={handleTodoDelete}
+      />
+
+      {/* Task Completion Celebration */}
+      <TaskCompletionCelebration
+        visible={showCompletionCelebration}
+        task={completedTask}
+        onClose={() => {
+          setShowCompletionCelebration(false);
+          setCompletedTask(null);
+        }}
+      />
+
+      {/* About Modal */}
+      <Modal
+        visible={showAboutModal}
+        animationType="none"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <LinearGradient
+          colors={isDark 
+            ? ['#0F0F23', '#1A1A2E', '#16213E'] 
+            : ['#F0F4FF', '#E8EEFF', '#DDE6FF']}
+          style={styles.aboutModal}
+        >
+          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+          
+          {/* Animated Background Circles */}
+          <Animated.View style={[styles.bgCircle1, {
+            opacity: cardShimmer.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.3, 0.6]
+            }),
+            transform: [{
+              scale: cardShimmer.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.2]
+              })
+            }]
+          }]} />
+          <Animated.View style={[styles.bgCircle2, {
+            opacity: cardShimmer.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.4, 0.7]
+            })
+          }]} />
+          
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButtonFloating, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            }]}
+            onPress={() => {
+              hapticFeedback.medium();
+              setShowAboutModal(false);
+            }}
+          >
+            <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.closeButtonBlur}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </BlurView>
+          </TouchableOpacity>
+
+          {/* Content */}
+          <Animated.ScrollView 
+            style={styles.aboutContent}
+            contentContainerStyle={styles.aboutContentContainer}
+            showsVerticalScrollIndicator={false}
+            opacity={modalFadeAnim}
+          >
+            {/* Hero Title */}
+            <Animated.View style={{
+              transform: [{ translateY: modalSlideAnim }]
+            }}>
+              <LinearGradient
+                colors={[theme.primary, theme.primaryLight, theme.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroGradient}
+              >
+                <Text style={styles.heroTitle}>About Biblely</Text>
+                <MaterialIcons name="auto-awesome" size={28} color="#FFFFFF" style={styles.heroIcon} />
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Creator Card */}
+            <Animated.View style={{
+              transform: [{ translateY: modalSlideAnim }],
+              opacity: modalFadeAnim
+            }}>
+              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.creatorCard}>
+                <LinearGradient
+                  colors={isDark 
+                    ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                    : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                  style={styles.creatorCardInner}
+                >
+                  {/* Animated Avatar with Logo */}
+                  <Animated.View style={[styles.creatorIconContainer, {
+                    transform: [{
+                      scale: cardShimmer.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.05]
+                      })
+                    }]
+                  }]}>
+                    <LinearGradient
+                      colors={[theme.primary, theme.primaryLight]}
+                      style={styles.avatarGradient}
+                    >
+                      <Image 
+                        source={require('../../assets/logo.png')} 
+                        style={styles.avatarLogo}
+                        resizeMode="contain"
+                      />
+                    </LinearGradient>
+                    {/* Glow ring */}
+                    <Animated.View style={[styles.glowRing, {
+                      borderColor: theme.primary,
+                      opacity: cardShimmer.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.3, 0.8]
+                      })
+                    }]} />
+                  </Animated.View>
+                  
+                  <Text style={[styles.creatorName, { color: theme.text }]}>
+                    Hi, I'm Jason 👋
+                  </Text>
+                  <View style={styles.badgeContainer}>
+                    <LinearGradient
+                      colors={[theme.primary + '40', theme.primary + '20']}
+                      style={styles.badge}
+                    >
+                      <MaterialIcons name="school" size={14} color={theme.primary} />
+                      <Text style={[styles.badgeText, { color: theme.primary }]}>
+                        CS Student
+                      </Text>
+                    </LinearGradient>
+                    <LinearGradient
+                      colors={[theme.success + '40', theme.success + '20']}
+                      style={styles.badge}
+                    >
+                      <MaterialIcons name="code" size={14} color={theme.success} />
+                      <Text style={[styles.badgeText, { color: theme.success }]}>
+                        Developer
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                </LinearGradient>
+              </BlurView>
+            </Animated.View>
+
+            {/* Story Section */}
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.storyCard}>
+              <LinearGradient
+                colors={isDark 
+                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                style={styles.storyCardInner}
+              >
+                {/* Story Header with Gradient */}
+                <LinearGradient
+                  colors={[theme.primary + '30', theme.primary + '10']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.storyHeaderGradient}
+                >
+                  <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
+                  <Text style={[styles.storyTitle, { color: theme.text }]}>
+                    Why I Built This
+                  </Text>
+                </LinearGradient>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
+                </Text>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
+                </Text>
+                
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
+                </Text>
+
+                <Text style={[styles.storyText, { color: theme.text }]}>
+                  I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
+                </Text>
+              </LinearGradient>
+            </BlurView>
+
+            {/* Thank You Section */}
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.thankYouCard}>
+              <LinearGradient
+                colors={isDark
+                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
+                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
+                style={styles.thankYouCardInner}
+              >
+                <Animated.View style={{
+                  transform: [{
+                    scale: cardShimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.1]
+                    })
+                  }]
+                }}>
+                  <LinearGradient
+                    colors={['#FF6B6B', '#EE5A6F']}
+                    style={styles.heartContainer}
+                  >
+                    <MaterialIcons name="favorite" size={32} color="#FFFFFF" />
+                  </LinearGradient>
+                </Animated.View>
+                
+                <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                  Thanks for being here
+                </Text>
+                <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                  Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
+                </Text>
+                
+                <View style={styles.contactInfo}>
+                  <View style={styles.contactItem}>
+                    <MaterialIcons name="email" size={18} color={theme.primary} />
+                    <Text style={[styles.contactText, { color: theme.text }]}>
+                      biblelyios@gmail.com
+                    </Text>
+                  </View>
+                  <View style={styles.contactItem}>
+                    <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
+                    <Text style={[styles.contactText, { color: theme.text }]}>
+                      @biblely.app on TikTok
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.signatureContainer}>
+                  <View style={styles.signatureLine} />
+                  <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                    Jason
+                  </Text>
+                </View>
+              </LinearGradient>
+            </BlurView>
+          </Animated.ScrollView>
+        </LinearGradient>
+      </Modal>
     </View>
     </AnimatedWallpaper>
   );
@@ -1138,6 +1505,262 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
+  },
+  expandHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  expandHintText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  // About Modal Styles
+  aboutModal: {
+    flex: 1,
+  },
+  bgCircle1: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 1.2,
+    height: Dimensions.get('window').width * 1.2,
+    borderRadius: Dimensions.get('window').width * 0.6,
+    backgroundColor: '#667eea',
+    top: -Dimensions.get('window').width * 0.4,
+    right: -Dimensions.get('window').width * 0.2,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    width: Dimensions.get('window').width * 0.8,
+    height: Dimensions.get('window').width * 0.8,
+    borderRadius: Dimensions.get('window').width * 0.4,
+    backgroundColor: '#764ba2',
+    bottom: -Dimensions.get('window').width * 0.3,
+    left: -Dimensions.get('window').width * 0.2,
+  },
+  closeButtonFloating: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  closeButtonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aboutContent: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 120 : 100,
+  },
+  aboutContentContainer: {
+    padding: 20,
+    paddingBottom: 60,
+  },
+  heroGradient: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  heroIcon: {
+    opacity: 0.9,
+  },
+  creatorCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  creatorCardInner: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  creatorIconContainer: {
+    marginBottom: 16,
+  },
+  avatarGradient: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarLogo: {
+    width: 70,
+    height: 70,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 2,
+    top: -7,
+    left: -7,
+  },
+  creatorName: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  storyCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  storyCardInner: {
+    padding: 24,
+  },
+  storyHeaderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  storyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    flex: 1,
+  },
+  storyText: {
+    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  thankYouCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  thankYouCardInner: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  heartContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  thankYouTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  thankYouText: {
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '400',
+  },
+  contactInfo: {
+    width: '100%',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 28,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  contactText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  signatureContainer: {
+    alignItems: 'center',
+  },
+  signatureLine: {
+    width: 100,
+    height: 2,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 12,
+  },
+  signature: {
+    fontSize: 20,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
   },
 });
 

@@ -1,14 +1,49 @@
 import React, { useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
+import { WorkoutProvider, useWorkout } from './src/contexts/WorkoutContext';
 import TabNavigator from './src/navigation/TabNavigator';
 import notificationService from './src/services/notificationService';
 import OnboardingWrapper from './src/components/OnboardingWrapper';
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
+import WorkoutModal from './src/components/WorkoutModal';
+
+if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
+  Object.defineProperty(globalThis, 'width', {
+    configurable: true,
+    get() {
+      console.error('⚠️ Global width accessed unexpectedly');
+      console.trace('Global width trace');
+      return undefined;
+    },
+    set(value) {
+      console.warn('⚠️ Attempt to set global width to', value);
+      return value;
+    },
+  });
+}
+
+// Catch global errors to inspect stack traces
+if (global.ErrorUtils && !global.__ERROR_HANDLER_INSTALLED__) {
+  global.__ERROR_HANDLER_INSTALLED__ = true;
+  const defaultHandler = global.ErrorUtils.getGlobalHandler && global.ErrorUtils.getGlobalHandler();
+  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+    console.log('🔥 Global error captured:', error?.message);
+    console.log('🔥 Stack:', error?.stack);
+    if (defaultHandler) {
+      defaultHandler(error, isFatal);
+    }
+  });
+}
+
+// Silence noisy warnings while debugging
+LogBox.ignoreLogs(['ReferenceError: Property']);
 
 // Splash Screen Component
 const SplashScreen = () => {
@@ -59,6 +94,59 @@ const SplashScreen = () => {
         }}>Biblely</Text>
       </Animated.View>
     </View>
+  );
+};
+
+// App navigation wrapper with mini workout player
+const AppNavigation = () => {
+  const { hasActiveWorkout, maximizeWorkout } = useWorkout();
+  const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
+  const [modalTemplateData, setModalTemplateData] = useState(null);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('openWorkoutModal', (payload = {}) => {
+      console.log('🎵 Received openWorkoutModal event with payload:', payload);
+      const template = payload?.template || null;
+      setModalTemplateData(template);
+
+      if (hasActiveWorkout) {
+        maximizeWorkout();
+      }
+
+      setWorkoutModalVisible(true);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [hasActiveWorkout, maximizeWorkout]);
+
+  const handleMiniPlayerPress = () => {
+    console.log('🎵 Mini player pressed - opening workout modal');
+    maximizeWorkout();
+    setModalTemplateData(null);
+    setWorkoutModalVisible(true);
+  };
+
+  return (
+    <>
+      <TabNavigator />
+      
+      {/* Global Mini Workout Player - Shows when workout is active */}
+      {hasActiveWorkout && (
+        <MiniWorkoutPlayer onPress={handleMiniPlayerPress} />
+      )}
+
+      {/* Workout Modal - Opens when mini player is tapped */}
+      <WorkoutModal
+        visible={workoutModalVisible}
+        onClose={() => {
+          setWorkoutModalVisible(false);
+          setModalTemplateData(null);
+        }}
+        templateData={modalTemplateData}
+      />
+    </>
   );
 };
 
@@ -133,9 +221,11 @@ const ThemedApp = () => {
       />
       <ErrorBoundary key={appKey}>
         <OnboardingWrapper key={`onboarding-${appKey}`}>
-          <NavigationContainer key={`nav-${appKey}`}>
-            <TabNavigator key={`tab-${appKey}`} />
-          </NavigationContainer>
+          <WorkoutProvider>
+            <NavigationContainer key={`nav-${appKey}`}>
+              <AppNavigation />
+            </NavigationContainer>
+          </WorkoutProvider>
         </OnboardingWrapper>
       </ErrorBoundary>
     </>

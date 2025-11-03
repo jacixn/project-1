@@ -10,7 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
 
-const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
+const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll }) => {
   const { theme, isDark } = useTheme();
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -67,7 +67,26 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
     }
   };
 
-  const activeTodos = todos.filter(t => !t.completed);
+  // Filter active todos to only show upcoming tasks (within 7 days) or tasks without dates
+  const activeTodos = todos.filter(t => {
+    if (t.completed) return false;
+    
+    // If no scheduled date, always show it
+    if (!t.scheduledDate) return true;
+    
+    // If has scheduled date, only show if it's within the next 7 days or overdue
+    const scheduledDate = new Date(t.scheduledDate);
+    scheduledDate.setHours(0, 0, 0, 0);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = scheduledDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Show if overdue (negative days) or within next 7 days
+    return diffDays <= 7;
+  });
 
   // Liquid Glass Container for TodoList
   const LiquidGlassTodoContainer = ({ children }) => {
@@ -100,9 +119,29 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
     );
   };
 
+  // Count all active tasks (not just the filtered ones)
+  const totalActiveTasks = todos.filter(t => !t.completed).length;
+  const hiddenTasksCount = totalActiveTasks - activeTodos.length;
+
   return (
     <LiquidGlassTodoContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>📝 Tasks</Text>
+      <View style={styles.headerRow}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Tasks</Text>
+        {totalActiveTasks > 0 && (
+          <TouchableOpacity 
+            style={[styles.viewAllButton, { backgroundColor: `${theme.primary}20` }]}
+            onPress={() => {
+              hapticFeedback.light();
+              onViewAll();
+            }}
+          >
+            <Text style={[styles.viewAllText, { color: theme.primary }]}>
+              View All {hiddenTasksCount > 0 && `(${totalActiveTasks})`}
+            </Text>
+            <MaterialIcons name="arrow-forward" size={16} color={theme.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
       
       {!isAdding ? (
         <TouchableOpacity 
@@ -155,7 +194,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
           style={[styles.todoItem, styles.pendingItem, { 
             backgroundColor: isDark 
               ? 'rgba(255, 255, 255, 0.08)' 
-              : `${theme.primary}25` // Deeper color for individual items
+              : `${theme.primary}25`
           }]}
         >
           <View style={styles.checkButton}>
@@ -163,13 +202,15 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
           </View>
           <View style={styles.todoContent}>
             <Text style={[styles.todoText, { color: theme.text }]}>{task.text}</Text>
-            <View style={styles.todoMeta}>
-              <View style={[styles.tierBadge, { backgroundColor: theme.textSecondary }]}>
-                <Text style={styles.tierText}>ANALYZING</Text>
+            <View style={styles.todoMetaRow}>
+              <View style={styles.todoMeta}>
+                <View style={[styles.tierBadge, { backgroundColor: theme.textSecondary }]}>
+                  <Text style={styles.tierText}>ANALYZING</Text>
+                </View>
+                <Text style={[styles.analyzingText, { color: theme.textSecondary }]}>
+                  Smart analysis...
+                </Text>
               </View>
-              <Text style={[styles.pointsText, { color: theme.textSecondary }]}>
-                🧠 Smart analysis in progress...
-              </Text>
             </View>
           </View>
         </BlurView>
@@ -198,41 +239,39 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete }) => {
           };
 
           return (
-            <BlurView key={todo.id} intensity={18} tint="light" style={styles.todoItem}>
-              <TouchableOpacity 
-                style={styles.checkButton} 
-                onPress={() => {
-                  hapticFeedback.success(); // Success feedback when completing task
-                  onTodoComplete(todo.id);
-                }}
-              >
-                <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
-              </TouchableOpacity>
-              <View style={styles.todoContent}>
-                <Text style={[styles.todoText, { color: theme.text }]}>{todo.text}</Text>
-                <View style={styles.todoMeta}>
-                  <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>
-                    <Text style={styles.tierText}>{getTierLabel(todo.tier)}</Text>
+            <TouchableOpacity
+              key={todo.id}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.light();
+                onViewAll();
+              }}
+            >
+              <BlurView intensity={18} tint="light" style={styles.todoItem}>
+                <TouchableOpacity 
+                  style={styles.checkButton} 
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    hapticFeedback.success();
+                    onTodoComplete(todo.id);
+                  }}
+                >
+                  <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
+                </TouchableOpacity>
+                <View style={styles.todoContent}>
+                  <Text style={[styles.todoText, { color: theme.text }]}>{todo.text}</Text>
+                  <View style={styles.todoMetaRow}>
+                    <View style={styles.todoMeta}>
+                      <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>
+                        <Text style={styles.tierText}>{getTierLabel(todo.tier)}</Text>
+                      </View>
+                      <Text style={[styles.pointsText, { color: theme.primary }]}>+{todo.points} pts</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
                   </View>
-                  <Text style={[styles.pointsText, { color: theme.primary }]}>+{todo.points} pts</Text>
-                  {todo.source === 'ai' && (
-                    <Text style={[styles.aiTag, { color: theme.primary }]}>
-                      🧠 Smart
-                    </Text>
-                  )}
                 </View>
-                {todo.reasoning && (
-                  <Text style={[styles.aiReasoning, { color: theme.textSecondary }]}>
-                    💭 {todo.reasoning}
-                  </Text>
-                )}
-                {todo.timeEstimate && todo.timeEstimate !== 'Unknown' && (
-                  <Text style={[styles.timeEstimate, { color: theme.textSecondary }]}>
-                    ⏱️ Est. time: {todo.timeEstimate}
-                  </Text>
-                )}
-              </View>
-            </BlurView>
+              </BlurView>
+            </TouchableOpacity>
           );
         })
       )}
@@ -267,11 +306,28 @@ const styles = StyleSheet.create({
     elevation: 8,
     overflow: 'hidden',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 16,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   addButton: {
     flexDirection: 'row',
@@ -370,12 +426,18 @@ const styles = StyleSheet.create({
   todoText: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 10,
+    lineHeight: 22,
+  },
+  todoMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   todoMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
   },
   tierBadge: {
     paddingHorizontal: 8,
@@ -388,25 +450,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   pointsText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#667eea',
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
-  aiTag: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  aiReasoning: {
-    fontSize: 12,
+  analyzingText: {
+    fontSize: 13,
+    fontWeight: '500',
     fontStyle: 'italic',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  timeEstimate: {
-    fontSize: 11,
-    marginTop: 2,
-    opacity: 0.8,
   },
 });
 
