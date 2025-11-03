@@ -36,7 +36,6 @@ const QuizGames = ({ visible, onClose }) => {
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(0);
   const [quizStartTime, setQuizStartTime] = useState(null);
-  const [isSpecialMode, setIsSpecialMode] = useState(null); // 'daily' or 'speed'
   
   // Quiz Data from GitHub
   const [quizCategories, setQuizCategories] = useState([]);
@@ -219,70 +218,7 @@ const QuizGames = ({ visible, onClose }) => {
     setScore(0);
     setTimer(0);
     setQuizStartTime(Date.now());
-    setIsSpecialMode(null);
     animateScreenTransition('quiz');
-  };
-
-  const handleDailyChallenge = async () => {
-    hapticFeedback.buttonPress();
-    
-    try {
-      const dailyQuestions = await quizService.getDailyChallenge();
-      
-      if (dailyQuestions.length === 0) {
-        Alert.alert('Error', 'Unable to load daily challenge. Please try again later.');
-        return;
-      }
-
-      setCurrentQuiz(dailyQuestions);
-      setCurrentQuestionIndex(0);
-      setUserAnswers([]);
-      setScore(0);
-      setTimer(0);
-      setQuizStartTime(Date.now());
-      setIsSpecialMode('daily');
-      setSelectedCategory({ 
-        id: 'daily', 
-        title: 'Daily Challenge', 
-        color: '#FF9800',
-        gradient: ['#FF9800', '#F57C00'] 
-      });
-      animateScreenTransition('quiz');
-    } catch (error) {
-      console.error('Error loading daily challenge:', error);
-      Alert.alert('Error', 'Unable to load daily challenge. Please try again later.');
-    }
-  };
-
-  const handleSpeedRound = async () => {
-    hapticFeedback.buttonPress();
-    
-    try {
-      const speedQuestions = await quizService.getSpeedRound();
-      
-      if (speedQuestions.length === 0) {
-        Alert.alert('Error', 'Unable to load speed round. Please try again later.');
-        return;
-      }
-
-      setCurrentQuiz(speedQuestions);
-      setCurrentQuestionIndex(0);
-      setUserAnswers([]);
-      setScore(0);
-      setTimer(0);
-      setQuizStartTime(Date.now());
-      setIsSpecialMode('speed');
-      setSelectedCategory({ 
-        id: 'speed', 
-        title: 'Speed Round',
-        color: '#E91E63',
-        gradient: ['#E91E63', '#C2185B'] 
-      });
-      animateScreenTransition('quiz');
-    } catch (error) {
-      console.error('Error loading speed round:', error);
-      Alert.alert('Error', 'Unable to load speed round. Please try again later.');
-    }
   };
 
   const handleAnswer = (answerIndex) => {
@@ -495,41 +431,6 @@ const QuizGames = ({ visible, onClose }) => {
               </View>
             </LinearGradient>
 
-            {/* Quick Actions */}
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>QUICK PLAY</Text>
-            </View>
-            
-            <View style={styles.quickActionsRow}>
-              <TouchableOpacity 
-                style={styles.quickActionCard}
-                onPress={handleDailyChallenge}
-              >
-                <LinearGradient
-                  colors={['#FF9800', '#F57C00']}
-                  style={styles.quickActionGradient}
-                >
-                  <Text style={styles.quickActionIcon}>📖</Text>
-                  <Text style={styles.quickActionTitle}>Daily Challenge</Text>
-                  <Text style={styles.quickActionSubtitle}>5 Questions</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.quickActionCard}
-                onPress={handleSpeedRound}
-              >
-                <LinearGradient
-                  colors={['#E91E63', '#C2185B']}
-                  style={styles.quickActionGradient}
-                >
-                  <Text style={styles.quickActionIcon}>⚡</Text>
-                  <Text style={styles.quickActionTitle}>Speed Round</Text>
-                  <Text style={styles.quickActionSubtitle}>10 Qs / 2min</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
             {/* Categories */}
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>QUIZ CATEGORIES</Text>
@@ -655,41 +556,6 @@ const QuizGames = ({ visible, onClose }) => {
               </View>
             </View>
           </LinearGradient>
-
-          {/* Quick Actions */}
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>QUICK PLAY</Text>
-          </View>
-          
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={handleDailyChallenge}
-            >
-              <LinearGradient
-                colors={['#FF9800', '#F57C00']}
-                style={styles.quickActionGradient}
-              >
-                <Text style={styles.quickActionIcon}>📖</Text>
-                <Text style={styles.quickActionTitle}>Daily Challenge</Text>
-                <Text style={styles.quickActionSubtitle}>5 Questions</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={handleSpeedRound}
-            >
-              <LinearGradient
-                colors={['#E91E63', '#C2185B']}
-                style={styles.quickActionGradient}
-              >
-                <Text style={styles.quickActionIcon}>⚡</Text>
-                <Text style={styles.quickActionTitle}>Speed Round</Text>
-                <Text style={styles.quickActionSubtitle}>10 Qs / 2min</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
 
           {/* Categories */}
           <View style={styles.sectionHeader}>
@@ -1224,13 +1090,7 @@ const QuizGames = ({ visible, onClose }) => {
               style={styles.resultButton}
               onPress={() => {
                 hapticFeedback.buttonPress();
-                if (isSpecialMode === 'daily') {
-                  handleDailyChallenge();
-                } else if (isSpecialMode === 'speed') {
-                  handleSpeedRound();
-                } else {
-                  handleStartQuiz();
-                }
+                handleStartQuiz();
               }}
             >
               <LinearGradient
@@ -1475,7 +1335,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Quick Actions
+  // Sections
   sectionHeader: {
     marginTop: 8,
     marginBottom: 16,
@@ -1484,38 +1344,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 1,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 24,
-  },
-  quickActionCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  quickActionGradient: {
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 140,
-    justifyContent: 'center',
-  },
-  quickActionIcon: {
-    fontSize: 36,
-    marginBottom: 12,
-  },
-  quickActionTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  quickActionSubtitle: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-    fontWeight: '500',
   },
 
   // Category Cards
