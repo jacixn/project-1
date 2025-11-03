@@ -1,0 +1,11 @@
+[
+  { "level": 1, "title": "Seeker", "xpRequired": 0, "color": "#9E9E9E" },
+  { "level": 2, "title": "Learner", "xpRequired": 100, "color": "#795548" },
+  { "level": 3, "title": "Student", "xpRequired": 300, "color": "#FF9800" },
+  { "level": 4, "title": "Scholar", "xpRequired": 600, "color": "#2196F3" },
+  { "level": 5, "title": "Teacher", "xpRequired": 1000, "color": "#9C27B0" },
+  { "level": 6, "title": "Master", "xpRequired": 1500, "color": "#E91E63" },
+  { "level": 7, "title": "Expert", "xpRequired": 2500, "color": "#FFD700" },
+  { "level": 8, "title": "Biblical Sage", "xpRequired": 4000, "color": "#00BCD4" }
+]
+

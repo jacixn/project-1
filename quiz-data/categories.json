@@ -1,0 +1,61 @@
+[
+  {
+    "id": "new-testament",
+    "title": "New Testament",
+    "icon": "🌟",
+    "color": "#2196F3",
+    "gradient": ["#2196F3", "#1976D2"],
+    "totalQuizzes": 27,
+    "description": "Explore the life of Jesus and early church"
+  },
+  {
+    "id": "old-testament",
+    "title": "Old Testament",
+    "icon": "📜",
+    "color": "#FF9800",
+    "gradient": ["#FF9800", "#F57C00"],
+    "totalQuizzes": 35,
+    "description": "Journey through ancient Israel and the prophets"
+  },
+  {
+    "id": "life-of-jesus",
+    "title": "Life of Jesus",
+    "icon": "✝️",
+    "color": "#4CAF50",
+    "gradient": ["#4CAF50", "#388E3C"],
+    "totalQuizzes": 30,
+    "description": "Discover the ministry and teachings of Christ"
+  },
+  {
+    "id": "miracles",
+    "title": "Miracles",
+    "icon": "✨",
+    "color": "#9C27B0",
+    "gradient": ["#9C27B0", "#7B1FA2"],
+    "totalQuizzes": 20,
+    "description": "Divine interventions throughout Scripture"
+  },
+  {
+    "id": "parables",
+    "title": "Parables",
+    "icon": "📖",
+    "color": "#E91E63",
+    "gradient": ["#E91E63", "#C2185B"],
+    "totalQuizzes": 15,
+    "description": "Stories with deeper spiritual meanings",
+    "locked": true,
+    "unlockRequirement": "Reach Level 5"
+  },
+  {
+    "id": "women-of-bible",
+    "title": "Women of the Bible",
+    "icon": "👑",
+    "color": "#F44336",
+    "gradient": ["#F44336", "#D32F2F"],
+    "totalQuizzes": 18,
+    "description": "Remarkable women of faith",
+    "locked": true,
+    "unlockRequirement": "Complete 10 quizzes"
+  }
+]
+

@@ -26,6 +26,7 @@ import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 import BibleFastFacts from './BibleFastFacts';
 import ReadingPlans from './ReadingPlans';
+import QuizGames from './QuizGames';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
 const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
@@ -476,7 +477,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 
 
 const BibleStudyModal = ({ visible, onClose }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isAscendTheme, isClutchTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
@@ -655,6 +656,14 @@ const BibleStudyModal = ({ visible, onClose }) => {
 
   const studySections = [
     {
+      id: 'quiz',
+      title: 'Quiz & Games',
+      icon: 'quiz',
+      description: 'Test your Bible knowledge',
+      color: '#673AB7', // Deep Purple
+      features: ['Interactive quizzes', 'Memory games', 'Progress tracking', 'Achievement badges']
+    },
+    {
       id: 'characters',
       title: 'Bible Characters',
       icon: 'people',
@@ -725,22 +734,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
       description: 'Listen and learn',
       color: '#FF5722', // Deep Orange
       features: ['Name pronunciation', 'Story summaries', 'Audio guides', 'Listening plans']
-    },
-    {
-      id: 'quiz',
-      title: 'Quiz & Games',
-      icon: 'quiz',
-      description: 'Test your Bible knowledge',
-      color: '#673AB7', // Deep Purple
-      features: ['Interactive quizzes', 'Memory games', 'Progress tracking', 'Achievement badges']
-    },
-    {
-      id: 'culture',
-      title: 'Daily Life Context',
-      icon: 'home',
-      description: 'Life in Biblical times',
-      color: '#009688', // Teal
-      features: ['Ancient customs', 'Food & clothing', 'Social structure', 'Historical context']
     }
   ];
 
@@ -756,10 +749,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
       return ['#E31E24', '#C70000', '#FF4444', '#B30000', '#E31E24', '#C70000', '#FF2020', '#A00000'];
     } else if (isFaithTheme) {
       return ['#4A90E2', '#5BA3F5', '#2979FF', '#90CAF9', '#4A90E2', '#5BA3F5', '#64B5F6', '#42A5F5'];
-    } else if (isAscendTheme) {
-      return ['#3D6CB9', '#5B8DD6', '#2E5AAC', '#7AC7E8', '#3D6CB9', '#5B8DD6', '#4A82C3', '#2C5AA0'];
-    } else if (isClutchTheme) {
-      return ['#3D5A9E', '#5A7AC7', '#FF6B4A', '#FF8A6B', '#3D5A9E', '#B39DDB', '#5A7AC7', '#FF6B4A'];
     } else if (isSailormoonTheme) {
       return ['#C8A2D0', '#B8A4D9', '#FFB6D9', '#E0C4E8', '#C8A2D0', '#9B7BA8', '#E8D4F0', '#B8A4D9'];
     } else if (isDark) {
@@ -1536,72 +1525,11 @@ const BibleStudyModal = ({ visible, onClose }) => {
         onClose={() => setShowFactsModal(false)}
       />
 
-      {/* Quiz & Games - Full Screen Modal */}
-      <Modal 
-        visible={showQuizModal} 
-        animationType="slide" 
-        presentationStyle="fullScreen"
-        onRequestClose={() => {}}
-      >
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
-          
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: 60, paddingBottom: 3, borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => setShowQuizModal(false)} style={{ 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-              paddingHorizontal: 16, 
-              paddingVertical: 8,
-              borderRadius: 20,
-            }}>
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Quiz & Games</Text>
-            <View style={{ width: 60 }} />
-          </View>
-
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <View style={styles.comingSoonContainer}>
-              <BlurView intensity={20} style={styles.comingSoonCard}>
-                <MaterialIcons name="build" size={32} color="#673AB7" />
-                <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-                  Quiz & Games - In Development
-                </Text>
-                <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-                  This section will include:
-                </Text>
-                
-                <View style={styles.featuresList}>
-                  <View style={styles.featureItem}>
-                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
-                    <Text style={[styles.featureItemText, { color: theme.text }]}>
-                      Interactive quizzes
-                    </Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
-                    <Text style={[styles.featureItemText, { color: theme.text }]}>
-                      Memory games
-                    </Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
-                    <Text style={[styles.featureItemText, { color: theme.text }]}>
-                      Progress tracking
-                    </Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <MaterialIcons name="check-circle" size={16} color="#673AB7" />
-                    <Text style={[styles.featureItemText, { color: theme.text }]}>
-                      Achievement badges
-                    </Text>
-                  </View>
-                </View>
-              </BlurView>
-            </View>
-          </ScrollView>
-        </View>
-      </Modal>
+      {/* Quiz & Games - Custom Component */}
+      <QuizGames
+        visible={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+      />
 
       {/* Reading Plans - Custom Component */}
       <ReadingPlans

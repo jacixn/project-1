@@ -1,0 +1,326 @@
+{
+  "new-testament": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "nt-mc-b-1",
+          "question": "Who wrote the Book of Revelation?",
+          "options": ["Paul", "John", "Peter", "Luke"],
+          "correctAnswer": 1,
+          "explanation": "John, the beloved disciple, wrote Revelation while exiled on the island of Patmos around 95 AD.",
+          "reference": "Revelation 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-2",
+          "question": "In which city was Jesus born?",
+          "options": ["Nazareth", "Jerusalem", "Bethlehem", "Capernaum"],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born in Bethlehem, fulfilling the prophecy in Micah 5:2.",
+          "reference": "Matthew 2:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-3",
+          "question": "How many disciples did Jesus choose?",
+          "options": ["10", "11", "12", "13"],
+          "correctAnswer": 2,
+          "explanation": "Jesus chose 12 disciples to be His closest followers and apostles.",
+          "reference": "Mark 3:14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-4",
+          "question": "Who baptized Jesus?",
+          "options": ["John the Baptist", "Peter", "James", "Andrew"],
+          "correctAnswer": 0,
+          "explanation": "John the Baptist baptized Jesus in the Jordan River, marking the beginning of His ministry.",
+          "reference": "Matthew 3:13-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-5",
+          "question": "What was Matthews profession before following Jesus?",
+          "options": ["Fisherman", "Tax collector", "Carpenter", "Farmer"],
+          "correctAnswer": 1,
+          "explanation": "Matthew was a tax collector before Jesus called him to become a disciple.",
+          "reference": "Matthew 9:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-6",
+          "question": "Which disciple denied Jesus three times?",
+          "options": ["John", "James", "Peter", "Thomas"],
+          "correctAnswer": 2,
+          "explanation": "Peter denied knowing Jesus three times before the rooster crowed, just as Jesus had predicted.",
+          "reference": "Luke 22:54-62",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-7",
+          "question": "On which day did Jesus rise from the dead?",
+          "options": ["Friday", "Saturday", "Sunday", "Monday"],
+          "correctAnswer": 2,
+          "explanation": "Jesus rose from the dead on Sunday, the first day of the week, which Christians celebrate as Easter.",
+          "reference": "Mark 16:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-8",
+          "question": "Who was the first person to see Jesus after His resurrection?",
+          "options": ["Peter", "John", "Mary Magdalene", "Thomas"],
+          "correctAnswer": 2,
+          "explanation": "Mary Magdalene was the first person to see the risen Jesus at the tomb.",
+          "reference": "John 20:11-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-9",
+          "question": "What is the shortest verse in the Bible?",
+          "options": ["Jesus wept", "God is love", "Pray always", "Be still"],
+          "correctAnswer": 0,
+          "explanation": "\"Jesus wept\" (John 11:35) is the shortest verse in the Bible, showing Jesus' compassion.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-10",
+          "question": "How many books are in the New Testament?",
+          "options": ["24", "25", "26", "27"],
+          "correctAnswer": 3,
+          "explanation": "The New Testament contains 27 books, from Matthew to Revelation.",
+          "reference": "Bible Structure",
+          "points": 10
+        }
+      ],
+      "intermediate": [
+        {
+          "id": "nt-mc-i-1",
+          "question": "Which Gospel was written specifically for the Gentiles?",
+          "options": ["Matthew", "Mark", "Luke", "John"],
+          "correctAnswer": 2,
+          "explanation": "Luke wrote his Gospel primarily for Gentile readers, emphasizing Jesus as the Savior for all people.",
+          "reference": "Luke 1:1-4",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-2",
+          "question": "On what island was Paul shipwrecked?",
+          "options": ["Crete", "Cyprus", "Malta", "Patmos"],
+          "correctAnswer": 2,
+          "explanation": "Paul was shipwrecked on the island of Malta during his journey to Rome.",
+          "reference": "Acts 28:1",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-3",
+          "question": "Who replaced Judas Iscariot as the 12th apostle?",
+          "options": ["Barnabas", "Matthias", "Silas", "Timothy"],
+          "correctAnswer": 1,
+          "explanation": "Matthias was chosen by lot to replace Judas Iscariot among the twelve apostles.",
+          "reference": "Acts 1:23-26",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-4",
+          "question": "What was Pauls name before his conversion?",
+          "options": ["Silas", "Saul", "Simon", "Samuel"],
+          "correctAnswer": 1,
+          "explanation": "Before his conversion, the apostle Paul was known as Saul of Tarsus.",
+          "reference": "Acts 13:9",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-5",
+          "question": "Which book of the Bible contains the fruit of the Spirit?",
+          "options": ["Romans", "Ephesians", "Galatians", "Philippians"],
+          "correctAnswer": 2,
+          "explanation": "The fruit of the Spirit is listed in Galatians 5:22-23.",
+          "reference": "Galatians 5:22-23",
+          "points": 15
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "nt-tf-b-1",
+          "question": "Jesus had 12 disciples.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus chose 12 disciples to be His closest followers.",
+          "reference": "Mark 3:14",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-2",
+          "question": "Jesus was born in Jerusalem.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was born in Bethlehem, not Jerusalem.",
+          "reference": "Matthew 2:1",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-3",
+          "question": "Peter walked on water with Jesus.",
+          "correctAnswer": true,
+          "explanation": "True! Peter stepped out of the boat and walked on water toward Jesus.",
+          "reference": "Matthew 14:29",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-4",
+          "question": "Jesus turned water into wine as His first miracle.",
+          "correctAnswer": true,
+          "explanation": "True! This miracle occurred at a wedding in Cana.",
+          "reference": "John 2:1-11",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-5",
+          "question": "There are 30 books in the New Testament.",
+          "correctAnswer": false,
+          "explanation": "False! There are 27 books in the New Testament.",
+          "reference": "Bible Structure",
+          "points": 5
+        }
+      ]
+    }
+  },
+  "old-testament": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "ot-mc-b-1",
+          "question": "Who built the ark?",
+          "options": ["Moses", "Noah", "Abraham", "David"],
+          "correctAnswer": 1,
+          "explanation": "Noah built the ark as commanded by God to save his family and the animals from the flood.",
+          "reference": "Genesis 6:14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-2",
+          "question": "How many days and nights did it rain during the flood?",
+          "options": ["7", "30", "40", "100"],
+          "correctAnswer": 2,
+          "explanation": "It rained for 40 days and 40 nights during the great flood.",
+          "reference": "Genesis 7:12",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-3",
+          "question": "Who was swallowed by a great fish?",
+          "options": ["Jonah", "Daniel", "Elijah", "Isaiah"],
+          "correctAnswer": 0,
+          "explanation": "Jonah was swallowed by a great fish after running from God's call.",
+          "reference": "Jonah 1:17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-4",
+          "question": "What did God create on the first day?",
+          "options": ["Animals", "Light", "Plants", "Humans"],
+          "correctAnswer": 1,
+          "explanation": "On the first day, God created light and separated it from darkness.",
+          "reference": "Genesis 1:3",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-5",
+          "question": "Who was the strongest man in the Bible?",
+          "options": ["David", "Goliath", "Samson", "Joshua"],
+          "correctAnswer": 2,
+          "explanation": "Samson was known for his supernatural strength given by God.",
+          "reference": "Judges 13-16",
+          "points": 10
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "ot-tf-b-1",
+          "question": "Moses parted the Red Sea.",
+          "correctAnswer": true,
+          "explanation": "True! God parted the Red Sea through Moses to save the Israelites.",
+          "reference": "Exodus 14:21",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-2",
+          "question": "David killed Goliath with a sword.",
+          "correctAnswer": false,
+          "explanation": "False! David killed Goliath with a stone from his sling.",
+          "reference": "1 Samuel 17:49",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-3",
+          "question": "There are 10 commandments.",
+          "correctAnswer": true,
+          "explanation": "True! God gave Moses the Ten Commandments on Mount Sinai.",
+          "reference": "Exodus 20:1-17",
+          "points": 5
+        }
+      ]
+    }
+  },
+  "life-of-jesus": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "loj-mc-b-1",
+          "question": "Who were Jesus' earthly parents?",
+          "options": ["Abraham and Sarah", "Joseph and Mary", "Zechariah and Elizabeth", "Boaz and Ruth"],
+          "correctAnswer": 1,
+          "explanation": "Joseph and Mary were the earthly parents who raised Jesus.",
+          "reference": "Matthew 1:18-25",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-2",
+          "question": "At what age did Jesus begin His ministry?",
+          "options": ["20", "25", "30", "35"],
+          "correctAnswer": 2,
+          "explanation": "Jesus was about 30 years old when He began His public ministry.",
+          "reference": "Luke 3:23",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-3",
+          "question": "How many loaves of bread did Jesus use to feed 5,000?",
+          "options": ["2", "5", "7", "12"],
+          "correctAnswer": 1,
+          "explanation": "Jesus used 5 loaves and 2 fish to feed the 5,000.",
+          "reference": "Matthew 14:17",
+          "points": 10
+        }
+      ]
+    }
+  },
+  "miracles": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "mir-mc-b-1",
+          "question": "What was Jesus' first miracle?",
+          "options": ["Walking on water", "Healing the blind", "Turning water to wine", "Feeding 5,000"],
+          "correctAnswer": 2,
+          "explanation": "Jesus' first miracle was turning water into wine at a wedding in Cana.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-2",
+          "question": "Who did Jesus raise from the dead after 4 days?",
+          "options": ["Jairus' daughter", "Lazarus", "Widow's son", "Dorcas"],
+          "correctAnswer": 1,
+          "explanation": "Jesus raised Lazarus from the dead after he had been in the tomb for four days.",
+          "reference": "John 11:38-44",
+          "points": 10
+        }
+      ]
+    }
+  }
+}
+
