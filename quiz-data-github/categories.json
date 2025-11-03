@@ -42,9 +42,7 @@
     "color": "#E91E63",
     "gradient": ["#E91E63", "#C2185B"],
     "totalQuizzes": 15,
-    "description": "Stories with deeper spiritual meanings",
-    "locked": true,
-    "unlockRequirement": "Reach Level 5"
+    "description": "Stories with deeper spiritual meanings"
   },
   {
     "id": "women-of-bible",
@@ -53,9 +51,7 @@
     "color": "#F44336",
     "gradient": ["#F44336", "#D32F2F"],
     "totalQuizzes": 18,
-    "description": "Remarkable women of faith",
-    "locked": true,
-    "unlockRequirement": "Complete 10 quizzes"
+    "description": "Remarkable women of faith"
   }
 ]
 
