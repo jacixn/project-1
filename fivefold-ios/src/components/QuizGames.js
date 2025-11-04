@@ -50,10 +50,26 @@ const QuizGames = ({ visible, onClose }) => {
   const loadData = async () => {
     try {
       setIsLoading(true);
+      
+      // Force refresh to get latest questions from GitHub
+      await quizService.refreshData();
+      
       const [cats, ques] = await Promise.all([
         quizService.getCategories(),
         quizService.getQuestions(),
       ]);
+      
+      console.log('📊 Loaded quiz data:', {
+        categories: cats.length,
+        totalQuestions: Object.values(ques).reduce((sum, cat) => {
+          return sum + Object.values(cat).reduce((catSum, type) => {
+            return catSum + Object.values(type).reduce((typeSum, diff) => {
+              return typeSum + (diff?.length || 0);
+            }, 0);
+          }, 0);
+        }, 0)
+      });
+      
       setCategories(cats);
       setQuestions(ques);
       setIsLoading(false);
@@ -217,15 +233,30 @@ const QuizGames = ({ visible, onClose }) => {
     );
   };
 
-  const renderSetup = () => (
-    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-      <LinearGradient
-        colors={[selectedCategory.color, selectedCategory.color + 'CC']}
-        style={styles.setupHeader}
-      >
-        <Text style={styles.setupCategoryIcon}>{selectedCategory.icon}</Text>
-        <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
-      </LinearGradient>
+  const renderSetup = () => {
+    // Count total questions in this category
+    const categoryQuestions = questions[selectedCategory.id];
+    let totalQuestions = 0;
+    
+    if (categoryQuestions) {
+      Object.keys(categoryQuestions).forEach(quizType => {
+        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+          const qs = categoryQuestions[quizType][difficulty] || [];
+          totalQuestions += qs.length;
+        });
+      });
+    }
+
+    return (
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <LinearGradient
+          colors={[selectedCategory.color, selectedCategory.color + 'CC']}
+          style={styles.setupHeader}
+        >
+          <Text style={styles.setupCategoryIcon}>{selectedCategory.icon}</Text>
+          <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
+          <Text style={styles.setupQuestionCount}>{totalQuestions} Questions Available</Text>
+        </LinearGradient>
 
       <View style={styles.setupSection}>
         <Text style={styles.setupLabel}>Number of Questions</Text>
@@ -310,7 +341,8 @@ const QuizGames = ({ visible, onClose }) => {
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
-  );
+    );
+  };
 
   const renderQuiz = () => {
     if (currentQuiz.length === 0 || !currentQuiz[currentIndex]) {
@@ -693,6 +725,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  setupQuestionCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   setupSection: {
     marginBottom: 32,
