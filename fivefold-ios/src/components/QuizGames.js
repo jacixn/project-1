@@ -481,6 +481,11 @@ const QuizGames = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Biblely Watermark */}
+          <View style={styles.watermarkContainer}>
+            <Text style={styles.watermarkText}>Biblely</Text>
+          </View>
         </View>
       </ScrollView>
     );
@@ -1007,6 +1012,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  watermarkContainer: {
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  watermarkText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#CCCCCC',
+    letterSpacing: 2,
   },
 });
 
