@@ -230,13 +230,13 @@ const QuizGames = ({ visible, onClose }) => {
             onRefresh={onRefresh}
             colors={['#2196F3']}
             tintColor="#2196F3"
-            title="Pull to refresh questions from GitHub"
+            title="Pull to refresh"
             titleColor="#666666"
           />
         }
       >
         <Text style={styles.sectionTitle}>SELECT A CATEGORY</Text>
-        <Text style={styles.pullToRefreshHint}>Pull down to get latest questions from GitHub</Text>
+        <Text style={styles.pullToRefreshHint}>Pull down to refresh</Text>
         
         {categories.map((category) => (
           <TouchableOpacity
