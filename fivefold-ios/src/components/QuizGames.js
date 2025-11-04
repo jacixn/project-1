@@ -8,6 +8,7 @@ import {
   Modal,
   StatusBar,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,7 @@ const QuizGames = ({ visible, onClose }) => {
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -47,12 +49,15 @@ const QuizGames = ({ visible, onClose }) => {
     return () => clearInterval(interval);
   }, [currentScreen]);
 
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
       
       // Force refresh to get latest questions from GitHub
-      await quizService.refreshData();
+      if (forceRefresh) {
+        console.log('🔄 Force refreshing quiz data from GitHub...');
+        await quizService.refreshData();
+      }
       
       const [cats, ques] = await Promise.all([
         quizService.getCategories(),
@@ -77,6 +82,12 @@ const QuizGames = ({ visible, onClose }) => {
       console.error('Error loading quiz data:', error);
       setIsLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    await loadData(true); // Force refresh from GitHub
+    setIsRefreshing(false);
   };
 
   const handleCategorySelect = (category) => {
@@ -210,8 +221,22 @@ const QuizGames = ({ visible, onClose }) => {
     }
 
     return (
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#2196F3']}
+            tintColor="#2196F3"
+            title="Pull to refresh questions from GitHub"
+            titleColor="#666666"
+          />
+        }
+      >
         <Text style={styles.sectionTitle}>SELECT A CATEGORY</Text>
+        <Text style={styles.pullToRefreshHint}>Pull down to get latest questions from GitHub</Text>
         
         {categories.map((category) => (
           <TouchableOpacity
@@ -673,8 +698,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#000000',
-    marginBottom: 20,
+    marginBottom: 8,
     letterSpacing: 1,
+  },
+  pullToRefreshHint: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2196F3',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   categoryCard: {
     flexDirection: 'row',
