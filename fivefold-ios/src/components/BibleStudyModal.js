@@ -27,6 +27,7 @@ import KeyVerses from './KeyVerses';
 import BibleFastFacts from './BibleFastFacts';
 import ReadingPlans from './ReadingPlans';
 import QuizGames from './QuizGames';
+import AudioLearning from './AudioLearning';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
 const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
@@ -1550,7 +1551,12 @@ const BibleStudyModal = ({ visible, onClose }) => {
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}
       {renderSectionModalOverlay('facts', showFactsModal, setShowFactsModal)}
       {renderSectionModalOverlay('parallels', showParallelsModal, setShowParallelsModal)}
-      {renderSectionModalOverlay('audio', showAudioModal, setShowAudioModal)}
+      
+      {/* Audio Learning - Custom Component */}
+      <AudioLearning
+        visible={showAudioModal}
+        onClose={() => setShowAudioModal(false)}
+      />
     </Modal>
   );
 };

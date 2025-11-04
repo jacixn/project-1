@@ -1,0 +1,33 @@
+{
+  "stories": [
+    {
+      "id": "david-goliath",
+      "title": "David and Goliath",
+      "subtitle": "Faith Defeats the Giant",
+      "category": "old-testament",
+      "duration": "4:30",
+      "icon": "🗡️",
+      "color": "#FF6B6B",
+      "gradient": ["#FF6B6B", "#C92A2A"],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/david-goliath.mp3",
+      "thumbnail": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-thumbnails/david-goliath.jpg",
+      "script": "Long ago in the land of Israel, the Philistine army gathered for war. Among them stood a giant warrior named Goliath - over nine feet tall, covered in bronze armor, wielding a massive spear. For forty days, Goliath mocked the armies of Israel, challenging anyone to face him in single combat. The Israelite soldiers trembled in fear. No one dared to fight the giant.\n\nBut there was a young shepherd boy named David. He had come to the battlefield to bring food to his brothers. When David heard Goliath's taunts, his heart burned with faith. 'Who is this uncircumcised Philistine,' David said, 'that he should defy the armies of the living God?'\n\nKing Saul offered David his own armor, but it was too heavy. Instead, David took his shepherd's staff, chose five smooth stones from a stream, and grabbed his sling. As Goliath approached, mocking the boy, David ran toward the giant. He placed one stone in his sling, swung it with all his might, and released. The stone flew through the air and struck Goliath right in the forehead. The giant fell face-down on the ground - defeated by a stone and a sling.\n\nDavid proved that day that God doesn't need mighty warriors or powerful weapons. He uses ordinary people with extraordinary faith. When we trust in God, nothing - not even a giant - can stand against us.",
+      "reference": "1 Samuel 17",
+      "keyLessons": [
+        "Faith conquers fear",
+        "God uses the weak to shame the strong",
+        "Trust in God's power, not your own strength",
+        "One person with God is a majority"
+      ],
+      "tags": ["courage", "faith", "victory", "old-testament", "david"],
+      "ageGroup": "all",
+      "difficulty": "easy"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "totalStories": 1,
+    "lastUpdated": "2025-11-04"
+  }
+}
+
