@@ -720,14 +720,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
       features: ['Historical order', 'Daily readings', 'Progress tracking', 'Guided study']
     },
     {
-      id: 'parallels',
-      title: 'Parallel Stories',
-      icon: 'link',
-      description: 'Connected Old & New Testament',
-      color: '#607D8B', // Blue Grey
-      features: ['Story connections', 'Prophecy fulfillment', 'Type & antitype', 'Cross-references']
-    },
-    {
       id: 'audio',
       title: 'Audio Learning',
       icon: 'headset',
