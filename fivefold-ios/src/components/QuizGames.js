@@ -2,23 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  Modal,
   TouchableOpacity,
+  StyleSheet,
   ScrollView,
   Dimensions,
-  Animated,
-  Platform,
   StatusBar,
+  Modal,
   Alert,
+  Animated,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../contexts/ThemeContext';
-import { hapticFeedback } from '../utils/haptics';
+import { useTheme } from '../theme/ThemeContext';
 import quizService from '../services/quizService';
+import hapticFeedback from '../utils/hapticFeedback';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -26,231 +25,95 @@ const QuizGames = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   
   // State Management
-  const [currentScreen, setCurrentScreen] = useState('home'); // home, quiz, results, stats
+  const [currentScreen, setCurrentScreen] = useState('home'); // home, setup, quiz, results
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [questionCount, setQuestionCount] = useState(10);
+  const [showAnswerMode, setShowAnswerMode] = useState('after-each'); // 'after-each' or 'end'
   const [currentQuiz, setCurrentQuiz] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(0);
-  const [quizStartTime, setQuizStartTime] = useState(null);
-  
-  // Quiz Data from GitHub
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [userProgress, setUserProgress] = useState({
+    totalQuizzes: 0,
+    totalCorrect: 0,
+    streak: 0,
+    categoryProgress: {},
+  });
   const [quizCategories, setQuizCategories] = useState([]);
   const [quizQuestions, setQuizQuestions] = useState({});
-  const [levels, setLevels] = useState([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  
-  // User Progress Data
-  const [userProgress, setUserProgress] = useState({
-    level: 1,
-    xp: 0,
-    totalQuizzes: 0,
-    streak: 0,
-    lastPlayedDate: null,
-    categoryProgress: {},
-    stats: {
-      totalCorrect: 0,
-      totalQuestions: 0,
-      fastestTime: null,
-    },
-  });
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const confettiAnim = useRef(new Animated.Value(0)).current;
-  const loadingSpinAnim = useRef(new Animated.Value(0)).current;
-  const loadingPulseAnim = useRef(new Animated.Value(1)).current;
-  const loadingFloatAnim = useRef(new Animated.Value(0)).current;
 
-  // Load quiz data and user progress on mount
+  // Load data on mount
   useEffect(() => {
     if (visible) {
-      loadQuizData();
-      loadUserProgress();
+      loadData();
     }
   }, [visible]);
 
-  const loadQuizData = async () => {
+  const loadData = async () => {
+    setIsLoadingData(true);
     try {
-      setIsLoadingData(true);
-      const [categories, questions, levelsData] = await Promise.all([
+      const [categories, questions, progress] = await Promise.all([
         quizService.getCategories(),
         quizService.getQuestions(),
-        quizService.getLevels(),
+        loadUserProgress(),
       ]);
       
       setQuizCategories(categories);
       setQuizQuestions(questions);
-      setLevels(levelsData);
-      setIsLoadingData(false);
+      setUserProgress(progress);
     } catch (error) {
       console.error('Error loading quiz data:', error);
+    } finally {
       setIsLoadingData(false);
     }
   };
-
-  // Timer for quiz
-  useEffect(() => {
-    let interval;
-    if (currentScreen === 'quiz' && quizStartTime) {
-      interval = setInterval(() => {
-        setTimer(Math.floor((Date.now() - quizStartTime) / 1000));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [currentScreen, quizStartTime]);
-
-  // Pulse animation for streak
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  // Loading animations
-  useEffect(() => {
-    if (isLoadingData) {
-      // Spin animation
-      Animated.loop(
-        Animated.timing(loadingSpinAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        })
-      ).start();
-
-      // Pulse animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(loadingPulseAnim, {
-            toValue: 1.15,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(loadingPulseAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      // Float animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(loadingFloatAnim, {
-            toValue: -15,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(loadingFloatAnim, {
-            toValue: 0,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      loadingSpinAnim.setValue(0);
-      loadingPulseAnim.setValue(1);
-      loadingFloatAnim.setValue(0);
-    }
-  }, [isLoadingData]);
 
   const loadUserProgress = async () => {
     try {
-      const savedProgress = await AsyncStorage.getItem('quizUserProgress');
-      if (savedProgress) {
-        const progress = JSON.parse(savedProgress);
-        
-        // Check and update streak
-        const today = new Date().toDateString();
-        const lastPlayed = progress.lastPlayedDate ? new Date(progress.lastPlayedDate).toDateString() : null;
-        
-        if (lastPlayed !== today) {
-          const yesterday = new Date(Date.now() - 86400000).toDateString();
-          if (lastPlayed !== yesterday) {
-            progress.streak = 0; // Reset streak if not played yesterday
-          }
-        }
-        
-        setUserProgress(progress);
+      const saved = await AsyncStorage.getItem('quizProgress');
+      if (saved) {
+        return JSON.parse(saved);
       }
     } catch (error) {
-      console.error('Error loading quiz progress:', error);
+      console.error('Error loading progress:', error);
     }
+    return {
+      totalQuizzes: 0,
+      totalCorrect: 0,
+      streak: 0,
+      categoryProgress: {},
+    };
   };
 
-  const saveUserProgress = async (newProgress) => {
+  const saveUserProgress = async (progress) => {
     try {
-      await AsyncStorage.setItem('quizUserProgress', JSON.stringify(newProgress));
-      setUserProgress(newProgress);
+      await AsyncStorage.setItem('quizProgress', JSON.stringify(progress));
     } catch (error) {
-      console.error('Error saving quiz progress:', error);
+      console.error('Error saving progress:', error);
     }
-  };
-
-  const animateScreenTransition = (toScreen) => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: -50,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => {
-      setCurrentScreen(toScreen);
-      slideAnim.setValue(50);
-      confettiAnim.setValue(0); // Reset confetti animation
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 50,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
   };
 
   const handleCategorySelect = (category) => {
     hapticFeedback.selection();
-    if (category.locked) {
-      return;
-    }
     setSelectedCategory(category);
+    setCurrentScreen('setup');
+  };
+
+  const startQuiz = () => {
+    hapticFeedback.buttonPress();
     
-    // Get ALL questions from this category (mixed MC and TF)
-    const categoryQuestions = quizQuestions[category.id];
+    // Get ALL questions from the category (mixed types)
+    const categoryQuestions = quizQuestions[selectedCategory.id];
     const allQuestions = [];
     
-    // Collect all questions from all types and difficulties
     if (categoryQuestions) {
       Object.keys(categoryQuestions).forEach(quizType => {
         Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
@@ -265,136 +128,99 @@ const QuizGames = ({ visible, onClose }) => {
       return;
     }
     
-    // Shuffle and select 10 random questions (mix of MC and TF)
+    // Shuffle and select requested number of questions
     const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
-    const selectedQuestions = shuffled.slice(0, Math.min(10, shuffled.length));
+    const selectedQuestions = shuffled.slice(0, Math.min(questionCount, shuffled.length));
     
     setCurrentQuiz(selectedQuestions);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setScore(0);
     setTimer(0);
-    setQuizStartTime(Date.now());
-    animateScreenTransition('quiz');
+    setShowAnswer(false);
+    setCurrentScreen('quiz');
   };
 
   const handleAnswer = (answerIndex) => {
     hapticFeedback.selection();
     const currentQuestion = currentQuiz[currentQuestionIndex];
     
-    // Determine if it's true/false based on the question structure
-    const isTrueFalse = typeof currentQuestion.correctAnswer === 'boolean';
-    const isCorrect = isTrueFalse
-      ? answerIndex === (currentQuestion.correctAnswer ? 0 : 1)
-      : answerIndex === currentQuestion.correctAnswer;
-    
-    const newAnswers = [...userAnswers, { questionId: currentQuestion.id, userAnswer: answerIndex, isCorrect }];
-    setUserAnswers(newAnswers);
-    
-    if (isCorrect) {
-      setScore(score + currentQuestion.points);
-      hapticFeedback.success();
+    // Determine if answer is correct
+    let isCorrect = false;
+    if (typeof currentQuestion.correctAnswer === 'number') {
+      isCorrect = answerIndex === currentQuestion.correctAnswer;
     } else {
-      hapticFeedback.error();
+      // True/False question
+      const userChoseTrue = answerIndex === 0;
+      isCorrect = userChoseTrue === currentQuestion.correctAnswer;
     }
-
-    // Animate to next question or results
-    setTimeout(() => {
+    
+    const answerData = {
+      questionId: currentQuestionIndex,
+      userAnswer: answerIndex,
+      isCorrect,
+      timeSpent: timer,
+    };
+    
+    setUserAnswers([...userAnswers, answerData]);
+    if (isCorrect) {
+      setScore(score + 100);
+    }
+    
+    if (showAnswerMode === 'after-each') {
+      setShowAnswer(true);
+    } else {
+      // Move to next question or finish
       if (currentQuestionIndex < currentQuiz.length - 1) {
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 0.9,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          setCurrentQuestionIndex(currentQuestionIndex + 1);
-        });
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setTimer(0);
       } else {
-        // Quiz complete
-        completeQuiz(newAnswers);
+        completeQuiz();
       }
-    }, 1500);
+    }
   };
 
-  const completeQuiz = (answers) => {
-    const correctCount = answers.filter(a => a.isCorrect).length;
-    const totalQuestions = currentQuiz.length;
-    const percentage = (correctCount / totalQuestions) * 100;
-    const quizTime = timer;
-    
-    // Calculate XP earned
-    const xpEarned = score + (percentage === 100 ? 50 : 0) + (quizTime < 120 ? 25 : 0);
+  const handleNext = () => {
+    if (currentQuestionIndex < currentQuiz.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setShowAnswer(false);
+      setTimer(0);
+    } else {
+      completeQuiz();
+    }
+  };
+
+  const completeQuiz = () => {
+    hapticFeedback.success();
     
     // Update progress
-    const newProgress = { ...userProgress };
-    newProgress.xp += xpEarned;
-    newProgress.totalQuizzes += 1;
-    newProgress.stats.totalCorrect += correctCount;
-    newProgress.stats.totalQuestions += totalQuestions;
+    const newProgress = {
+      ...userProgress,
+      totalQuizzes: userProgress.totalQuizzes + 1,
+      totalCorrect: userProgress.totalCorrect + userAnswers.filter(a => a.isCorrect).length,
+      categoryProgress: {
+        ...userProgress.categoryProgress,
+        [selectedCategory.id]: {
+          completed: (userProgress.categoryProgress[selectedCategory.id]?.completed || 0) + 1,
+        },
+      },
+    };
     
-    // Update streak
-    const today = new Date().toDateString();
-    const lastPlayed = newProgress.lastPlayedDate ? new Date(newProgress.lastPlayedDate).toDateString() : null;
-    if (lastPlayed !== today) {
-      newProgress.streak += 1;
-      newProgress.lastPlayedDate = new Date().toISOString();
-    }
-    
-    // Update fastest time
-    if (!newProgress.stats.fastestTime || quizTime < newProgress.stats.fastestTime) {
-      newProgress.stats.fastestTime = quizTime;
-    }
-    
-    // Update category progress
-    if (!newProgress.categoryProgress[selectedCategory.id]) {
-      newProgress.categoryProgress[selectedCategory.id] = {
-        completed: 0,
-        bestScore: 0,
-      };
-    }
-    newProgress.categoryProgress[selectedCategory.id].completed += 1;
-    if (percentage > newProgress.categoryProgress[selectedCategory.id].bestScore) {
-      newProgress.categoryProgress[selectedCategory.id].bestScore = percentage;
-    }
-    
-    // Check for level up
-    const currentLevel = levels.find(l => newProgress.xp >= l.xpRequired && newProgress.xp < (levels[levels.indexOf(l) + 1]?.xpRequired || Infinity));
-    if (currentLevel && currentLevel.level > newProgress.level) {
-      newProgress.level = currentLevel.level;
-      hapticFeedback.success();
-    }
-    
+    setUserProgress(newProgress);
     saveUserProgress(newProgress);
-    
-    // Confetti animation
-    Animated.spring(confettiAnim, {
-      toValue: 1,
-      tension: 50,
-      friction: 7,
-      useNativeDriver: true,
-    }).start();
-    
-    animateScreenTransition('results');
+    setCurrentScreen('results');
   };
 
-  const getCurrentLevel = () => {
-    if (levels.length === 0) return null;
-    return levels.find(l => userProgress.xp >= l.xpRequired && userProgress.xp < (levels[levels.indexOf(l) + 1]?.xpRequired || Infinity)) || levels[0];
-  };
-
-  const getNextLevel = () => {
-    if (levels.length === 0) return null;
-    const currentLevel = getCurrentLevel();
-    if (!currentLevel) return null;
-    const currentIndex = levels.indexOf(currentLevel);
-    return levels[currentIndex + 1] || currentLevel;
-  };
+  // Timer effect
+  useEffect(() => {
+    let interval;
+    if (currentScreen === 'quiz' && !showAnswer) {
+      interval = setInterval(() => {
+        setTimer(t => t + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [currentScreen, showAnswer]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -402,37 +228,46 @@ const QuizGames = ({ visible, onClose }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Render functions
   const renderHeader = () => (
     <BlurView 
-      intensity={20} 
-      tint={isDark ? 'dark' : 'light'} 
-      style={styles.blurHeader}
+      intensity={90} 
+      style={[styles.header, { 
+        backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+        borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      }]}
     >
-      <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-      <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+      <View style={styles.headerContent}>
         <TouchableOpacity
+          style={styles.headerButton}
           onPress={() => {
-            hapticFeedback.selection();
             if (currentScreen === 'home') {
               onClose();
+            } else if (currentScreen === 'setup') {
+              setCurrentScreen('home');
             } else if (currentScreen === 'quiz') {
-              // Don't allow back during quiz
-              return;
+              Alert.alert(
+                'Exit Quiz',
+                'Are you sure you want to exit? Your progress will be lost.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Exit', onPress: () => setCurrentScreen('home') },
+                ]
+              );
             } else {
-              animateScreenTransition('home');
+              setCurrentScreen('home');
             }
           }}
-          style={styles.headerButton}
         >
-          <Text style={[styles.headerButtonText, { color: theme.primary }]}>
+          <Text style={[styles.headerButtonText, { color: '#000000' }]}>
             {currentScreen === 'home' ? 'Close' : 'Back'}
           </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: '#000000' }]}>
           {currentScreen === 'home' && 'Quiz & Games'}
+          {currentScreen === 'setup' && 'Quiz Setup'}
           {currentScreen === 'quiz' && `Question ${currentQuestionIndex + 1}/${currentQuiz.length}`}
           {currentScreen === 'results' && 'Results'}
-          {currentScreen === 'stats' && 'Your Stats'}
         </Text>
         <View style={{ width: 60 }} />
       </View>
@@ -440,784 +275,405 @@ const QuizGames = ({ visible, onClose }) => {
   );
 
   const renderHome = () => {
-    // Beautiful loading animation
     if (isLoadingData) {
-      const spin = loadingSpinAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg'],
-      });
-
       return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          {/* Animated Background Circles */}
-          <Animated.View 
-            style={[
-              styles.loadingCircleOuter,
-              { 
-                borderColor: theme.primary + '20',
-                transform: [{ rotate: spin }]
-              }
-            ]} 
-          />
-          <Animated.View 
-            style={[
-              styles.loadingCircleMiddle,
-              { 
-                borderColor: theme.primary + '30',
-                transform: [{ rotate: spin }]
-              }
-            ]} 
-          />
-          
-          {/* Main Icon with Pulse */}
-          <Animated.View 
-            style={[
-              styles.loadingIconContainer,
-              { 
-                transform: [
-                  { scale: loadingPulseAnim },
-                  { translateY: loadingFloatAnim }
-                ]
-              }
-            ]}
-          >
-            <LinearGradient
-              colors={[theme.primary, theme.primaryDark]}
-              style={styles.loadingIconGradient}
-            >
-              <MaterialIcons name="quiz" size={56} color="#FFFFFF" />
-            </LinearGradient>
-            
-            {/* Glow effect */}
-            <View style={[styles.loadingIconGlow, { backgroundColor: theme.primary + '30' }]} />
-          </Animated.View>
-
-          {/* Loading Text */}
-          <Animated.View 
-            style={[
-              styles.loadingTextContainer,
-              { opacity: loadingPulseAnim.interpolate({
-                  inputRange: [1, 1.15],
-                  outputRange: [0.7, 1],
-                })
-              }
-            ]}
-          >
-            <Text style={[styles.loadingText, { color: theme.text }]}>
-              Loading Quiz Data
-            </Text>
-            <Text style={[styles.loadingSubtext, { color: theme.textSecondary }]}>
-              Fetching fresh questions from the cloud
-            </Text>
-          </Animated.View>
-
-          {/* Animated Dots */}
-          <View style={styles.loadingDotsContainer}>
-            {[0, 1, 2].map((i) => (
-              <Animated.View
-                key={i}
-                style={[
-                  styles.loadingDot,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: loadingPulseAnim.interpolate({
-                      inputRange: [1, 1.15],
-                      outputRange: [0.3, 1],
-                    }),
-                    transform: [{
-                      translateY: loadingFloatAnim.interpolate({
-                        inputRange: [-15, 0],
-                        outputRange: [i === 1 ? -20 : i === 2 ? -10 : -15, 0],
-                      })
-                    }]
-                  }
-                ]}
-              />
-            ))}
-          </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading Quiz Data...</Text>
         </View>
       );
     }
 
-    const currentLevel = getCurrentLevel();
-    const nextLevel = getNextLevel();
-    
-    // If data not loaded yet, show simplified view
-    if (!currentLevel || !nextLevel) {
-      return (
-        <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            {/* Simple Progress Card (no levels) */}
-            <LinearGradient
-              colors={[theme.primary + '40', theme.primary + '20']}
-              style={styles.progressCard}
-            >
-              <View style={styles.progressHeader}>
-                <Text style={[styles.progressTitle, { color: theme.text }]}>YOUR PROGRESS</Text>
-              </View>
-              
-              <Text style={[styles.levelTitle, { color: theme.text }]}>Quiz Master</Text>
-              
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>🔥</Text>
-                  <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.streak}</Text>
-                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Day Streak</Text>
-                </View>
-                
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>🎯</Text>
-                  <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.totalQuizzes}</Text>
-                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
-                </View>
-              </View>
-            </LinearGradient>
-
-            {/* Categories */}
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>QUIZ CATEGORIES</Text>
-            </View>
-
-            {quizCategories.map((category, index) => {
-              const categoryProgress = userProgress.categoryProgress[category.id] || { completed: 0, bestScore: 0 };
-              const progressPercent = (categoryProgress.completed / category.totalQuizzes) * 100;
-              
-              return (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[styles.categoryCard, { backgroundColor: theme.surface, opacity: category.locked ? 0.6 : 1 }]}
-                  onPress={() => handleCategorySelect(category)}
-                  disabled={category.locked}
-                >
-                  <LinearGradient
-                    colors={[category.gradient[0] + '20', category.gradient[1] + '10']}
-                    style={styles.categoryGradientBorder}
-                  >
-                    <View style={styles.categoryContent}>
-                      <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
-                        <Text style={styles.categoryIcon}>{category.icon}</Text>
-                      </View>
-                      
-                      <View style={styles.categoryInfo}>
-                        <View style={styles.categoryTitleRow}>
-                          <Text style={[styles.categoryTitle, { color: theme.text }]}>{category.title}</Text>
-                          {category.locked && <MaterialIcons name="lock" size={18} color={theme.textSecondary} />}
-                        </View>
-                        <Text style={[styles.categoryDescription, { color: theme.textSecondary }]} numberOfLines={1}>
-                          {category.description}
-                        </Text>
-                        
-                        {!category.locked && (
-                          <View style={styles.categoryProgress}>
-                            <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
-                              <View style={[styles.progressBarFill, { width: `${progressPercent}%`, backgroundColor: category.color }]} />
-                            </View>
-                            <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-                              {categoryProgress.completed}/{category.totalQuizzes} quizzes
-                            </Text>
-                          </View>
-                        )}
-                        
-                        {category.locked && (
-                          <Text style={[styles.lockText, { color: theme.textSecondary }]}>
-                            🔒 {category.unlockRequirement}
-                          </Text>
-                        )}
-                      </View>
-                      
-                      <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
-
-            <View style={styles.bottomNav}>
-              <TouchableOpacity 
-                style={styles.bottomNavButton}
-                onPress={() => animateScreenTransition('stats')}
-              >
-                <MaterialIcons name="bar-chart" size={24} color={theme.primary} />
-                <Text style={[styles.bottomNavText, { color: theme.text }]}>View Stats</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ height: 100 }} />
-          </ScrollView>
-        </Animated.View>
-      );
-    }
-
-    const progress = currentLevel.level === nextLevel.level ? 1 : (userProgress.xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired);
-
     return (
-      <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Progress Card */}
-          <LinearGradient
-            colors={[currentLevel.color + '40', currentLevel.color + '20']}
-            style={styles.progressCard}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>QUIZ CATEGORIES</Text>
+        </View>
+        
+        {quizCategories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[styles.categoryCard, { backgroundColor: '#F8F8F8' }]}
+            onPress={() => handleCategorySelect(category)}
           >
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progressTitle, { color: theme.text }]}>YOUR PROGRESS</Text>
-              <View style={[styles.levelBadge, { backgroundColor: currentLevel.color }]}>
-                <Text style={styles.levelBadgeText}>LVL {currentLevel.level}</Text>
-              </View>
-            </View>
-            
-            <Text style={[styles.levelTitle, { color: theme.text }]}>{currentLevel.title}</Text>
-            
-            <View style={styles.xpBar}>
-              <View style={[styles.xpBarBackground, { backgroundColor: theme.surface }]}>
-                <Animated.View 
-                  style={[
-                    styles.xpBarFill, 
-                    { 
-                      backgroundColor: currentLevel.color,
-                      width: `${progress * 100}%`,
-                    }
-                  ]} 
-                />
-              </View>
-              <Text style={[styles.xpText, { color: theme.textSecondary }]}>
-                {userProgress.xp}/{nextLevel.xpRequired} XP
+            <LinearGradient
+              colors={[category.color, category.color + 'DD']}
+              style={styles.categoryIconWrapper}
+            >
+              <MaterialIcons name={category.icon} size={28} color="#FFF" />
+            </LinearGradient>
+            <View style={styles.categoryContent}>
+              <Text style={styles.categoryTitle}>{category.title}</Text>
+              <Text style={styles.categoryDescription} numberOfLines={1}>
+                {category.description}
               </Text>
             </View>
-
-            <View style={styles.statsRow}>
-              <Animated.View style={[styles.statItem, { transform: [{ scale: userProgress.streak > 0 ? pulseAnim : 1 }] }]}>
-                <Text style={styles.statIcon}>🔥</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.streak}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Day Streak</Text>
-              </Animated.View>
-              
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>🎯</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{userProgress.totalQuizzes}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
-              </View>
-            </View>
-          </LinearGradient>
-
-          {/* Categories */}
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>QUIZ CATEGORIES</Text>
-          </View>
-
-          {quizCategories.map((category, index) => {
-            const categoryProgress = userProgress.categoryProgress[category.id] || { completed: 0, bestScore: 0 };
-            const progressPercent = (categoryProgress.completed / category.totalQuizzes) * 100;
-            
-            return (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.categoryCard, { backgroundColor: theme.surface, opacity: category.locked ? 0.6 : 1 }]}
-                onPress={() => handleCategorySelect(category)}
-                disabled={category.locked}
-              >
-                <LinearGradient
-                  colors={[category.gradient[0] + '20', category.gradient[1] + '10']}
-                  style={styles.categoryGradientBorder}
-                >
-                  <View style={styles.categoryContent}>
-                    <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
-                      <Text style={styles.categoryIcon}>{category.icon}</Text>
-                    </View>
-                    
-                    <View style={styles.categoryInfo}>
-                      <View style={styles.categoryTitleRow}>
-                        <Text style={[styles.categoryTitle, { color: theme.text }]}>{category.title}</Text>
-                        {category.locked && <MaterialIcons name="lock" size={18} color={theme.textSecondary} />}
-                      </View>
-                      <Text style={[styles.categoryDescription, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {category.description}
-                      </Text>
-                      
-                      {!category.locked && (
-                        <View style={styles.categoryProgress}>
-                          <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
-                            <View style={[styles.progressBarFill, { width: `${progressPercent}%`, backgroundColor: category.color }]} />
-                          </View>
-                          <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-                            {categoryProgress.completed}/{category.totalQuizzes} quizzes
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {category.locked && (
-                        <Text style={[styles.lockText, { color: theme.textSecondary }]}>
-                          🔒 {category.unlockRequirement}
-                        </Text>
-                      )}
-                    </View>
-                    
-                    <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Bottom Navigation */}
-          <View style={styles.bottomNav}>
-            <TouchableOpacity 
-              style={styles.bottomNavButton}
-              onPress={() => animateScreenTransition('stats')}
-            >
-              <MaterialIcons name="bar-chart" size={24} color={theme.primary} />
-              <Text style={[styles.bottomNavText, { color: theme.text }]}>View Stats</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
+            <MaterialIcons name="chevron-right" size={24} color="#000000" />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     );
   };
 
-  const renderQuiz = () => {
-    console.log('🎯 renderQuiz called:', {
-      quizLength: currentQuiz.length,
-      currentIndex: currentQuestionIndex,
-      hasCategory: !!selectedCategory,
-      categoryId: selectedCategory?.id,
-    });
-
-    if (currentQuiz.length === 0 || !currentQuiz[currentQuestionIndex]) {
-      console.log('❌ No quiz or no question at index');
-      return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <Text style={[styles.loadingText, { color: theme.text }]}>Loading question...</Text>
-        </View>
-      );
-    }
-    
-    const currentQuestion = currentQuiz[currentQuestionIndex];
-    console.log('📝 Current question:', {
-      id: currentQuestion?.id,
-      hasQuestion: !!currentQuestion?.question,
-      hasOptions: !!currentQuestion?.options,
-      answerType: typeof currentQuestion?.correctAnswer,
-    });
-
-    if (!currentQuestion) {
-      console.log('❌ No current question');
-      return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <Text style={[styles.loadingText, { color: theme.text }]}>Question not found</Text>
-        </View>
-      );
-    }
-
-    if (!selectedCategory) {
-      console.log('❌ No selected category');
-      return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <Text style={[styles.loadingText, { color: theme.text }]}>Category not set</Text>
-        </View>
-      );
-    }
-    
-    const progress = (currentQuestionIndex / currentQuiz.length);
-    const hasAnswered = userAnswers.length > currentQuestionIndex;
-    const userAnswer = hasAnswered ? userAnswers[currentQuestionIndex] : null;
-    const categoryColor = selectedCategory.color || theme.primary;
-
-    console.log('✅ Rendering quiz UI');
-
-    return (
-      <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          contentContainerStyle={[styles.quizScrollContent, { backgroundColor: '#FFFFFF' }]}
-          style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+  const renderSetup = () => (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.setupCard}>
+        <LinearGradient
+          colors={selectedCategory.gradient}
+          style={styles.setupHeader}
         >
-          {/* Progress Bar */}
-          <View style={styles.quizProgress}>
-            <View style={[styles.quizProgressBar, { backgroundColor: '#D0D0D0', borderWidth: 3, borderColor: '#000000' }]}>
-              <Animated.View 
+          <MaterialIcons name={selectedCategory.icon} size={48} color="#FFF" />
+          <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
+        </LinearGradient>
+        
+        <View style={styles.setupContent}>
+          <Text style={styles.setupSectionTitle}>Number of Questions</Text>
+          <View style={styles.questionCountOptions}>
+            {[5, 10, 15, 20, 30].map((count) => (
+              <TouchableOpacity
+                key={count}
                 style={[
-                  styles.quizProgressFill, 
-                  { 
-                    width: `${progress * 100}%`,
-                    backgroundColor: '#2196F3',
-                    shadowColor: '#000000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 2,
-                  }
-                ]} 
-              />
-            </View>
-            <View style={styles.quizMeta}>
-              <Text style={[styles.quizMetaText, { color: '#000000', fontSize: 18, fontWeight: '900' }]}>
-                Score: {score} pts
-              </Text>
-              <Text style={[styles.quizMetaText, { color: '#000000', fontSize: 18, fontWeight: '900' }]}>
-                ⏱️ {formatTime(timer)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Question Card */}
-          <View style={[styles.questionCard, { 
-            backgroundColor: '#FFFFFF', 
-            borderWidth: 3, 
-            borderColor: '#000000',
-            shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.5,
-            shadowRadius: 6,
-            elevation: 8,
-          }]}>
-            <View style={styles.questionHeader}>
-              <Text style={[styles.questionNumber, { color: '#000000', fontSize: 18, fontWeight: '900' }]}>
-                Question {currentQuestionIndex + 1}
-              </Text>
-            </View>
-            
-            <Text style={[styles.questionText, { color: '#000000', fontSize: 26, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.1)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 }]}>
-              {currentQuestion.question}
-            </Text>
-
-            {/* Answer Options */}
-            <View style={styles.answerOptions}>
-              {typeof currentQuestion.correctAnswer === 'number' && currentQuestion.options ? (
-                currentQuestion.options.map((option, index) => {
-                  const isSelected = hasAnswered && userAnswer.userAnswer === index;
-                  const isCorrect = index === currentQuestion.correctAnswer;
-                  const showResult = hasAnswered;
-                  
-                  let backgroundColor = '#FFFFFF';
-                  let borderColor = '#000000';
-                  
-                  if (showResult) {
-                    if (isCorrect) {
-                      backgroundColor = '#4CAF5020';
-                      borderColor = '#4CAF50';
-                    } else if (isSelected && !isCorrect) {
-                      backgroundColor = '#F4433620';
-                      borderColor = '#F44336';
-                    }
-                  }
-                  
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.answerOption,
-                        { 
-                          backgroundColor: showResult ? backgroundColor : '#F0F0F0', 
-                          borderColor: showResult ? borderColor : '#000000', 
-                          borderWidth: showResult ? 3 : 2,
-                          shadowColor: '#000000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.3,
-                          shadowRadius: 4,
-                          elevation: 4,
-                        },
-                      ]}
-                      onPress={() => !hasAnswered && handleAnswer(index)}
-                      disabled={hasAnswered}
-                    >
-                      <View style={[styles.answerLetter, { backgroundColor: '#000000' }]}>
-                        <Text style={[styles.answerLetterText, { fontSize: 18, fontWeight: '900' }]}>
-                          {String.fromCharCode(65 + index)}
-                        </Text>
-                      </View>
-                      <Text style={[styles.answerText, { color: '#000000', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }]}>
-                        {option}
-                      </Text>
-                      {showResult && isCorrect && (
-                        <MaterialIcons name="check-circle" size={24} color="#4CAF50" />
-                      )}
-                      {showResult && isSelected && !isCorrect && (
-                        <MaterialIcons name="cancel" size={24} color="#F44336" />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })
-              ) : (
-                // True/False
-                <>
-                  {[
-                    { label: 'TRUE', value: true, icon: '✓' },
-                    { label: 'FALSE', value: false, icon: '✗' },
-                  ].map((option, index) => {
-                    const isSelected = hasAnswered && userAnswer.userAnswer === index;
-                    const isCorrect = (index === 1 && !currentQuestion.correctAnswer) || (index === 0 && currentQuestion.correctAnswer);
-                    const showResult = hasAnswered;
-                    
-                    let backgroundColor = '#FFFFFF';
-                    let borderColor = '#000000';
-                    
-                    if (showResult) {
-                      if (isCorrect) {
-                        backgroundColor = '#4CAF5020';
-                        borderColor = '#4CAF50';
-                      } else if (isSelected && !isCorrect) {
-                        backgroundColor = '#F4433620';
-                        borderColor = '#F44336';
-                      }
-                    }
-                    
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        style={[
-                          styles.trueFalseOption,
-                          { 
-                            backgroundColor: showResult ? backgroundColor : '#F0F0F0', 
-                            borderColor: showResult ? borderColor : '#000000', 
-                            borderWidth: showResult ? 4 : 3,
-                            shadowColor: '#000000',
-                            shadowOffset: { width: 0, height: 3 },
-                            shadowOpacity: 0.4,
-                            shadowRadius: 5,
-                            elevation: 6,
-                          },
-                        ]}
-                        onPress={() => !hasAnswered && handleAnswer(index)}
-                        disabled={hasAnswered}
-                      >
-                        <Text style={[styles.trueFalseIcon, { fontSize: 40, color: '#000000' }]}>{option.icon}</Text>
-                      <Text style={[styles.trueFalseText, { color: '#000000', fontSize: 30, fontWeight: '900', letterSpacing: 1 }]}>
-                        {option.label}
-                      </Text>
-                        {showResult && isCorrect && (
-                          <MaterialIcons name="check-circle" size={28} color="#4CAF50" />
-                        )}
-                        {showResult && isSelected && !isCorrect && (
-                          <MaterialIcons name="cancel" size={28} color="#F44336" />
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </>
-              )}
-            </View>
-
-            {/* Explanation (shown after answer) */}
-            {hasAnswered && (
-              <Animated.View 
-                style={[
-                  styles.explanationCard,
-                  { 
-                    backgroundColor: userAnswer.isCorrect ? '#4CAF5015' : '#F4433615',
+                  styles.questionCountButton,
+                  questionCount === count && { 
+                    backgroundColor: selectedCategory.color,
+                    borderColor: selectedCategory.color,
                   }
                 ]}
+                onPress={() => {
+                  setQuestionCount(count);
+                  hapticFeedback.selection();
+                }}
               >
-                <View style={styles.explanationHeader}>
-                  <MaterialIcons 
-                    name={userAnswer.isCorrect ? 'check-circle' : 'cancel'} 
-                    size={24} 
-                    color={userAnswer.isCorrect ? '#4CAF50' : '#F44336'} 
-                  />
-                  <Text style={[
-                    styles.explanationTitle,
-                    { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' }
-                  ]}>
-                    {userAnswer.isCorrect ? 'CORRECT!' : 'INCORRECT'}
-                  </Text>
-                </View>
-                
-                <Text style={[styles.explanationText, { color: '#333333' }]}>
-                  {currentQuestion.explanation}
+                <Text style={[
+                  styles.questionCountText,
+                  questionCount === count && { color: '#FFFFFF' }
+                ]}>
+                  {count}
                 </Text>
-                
-                <Text style={[styles.explanationReference, { color: '#555555' }]}>
-                  📖 {currentQuestion.reference}
-                </Text>
-              </Animated.View>
-            )}
+              </TouchableOpacity>
+            ))}
           </View>
+          
+          <Text style={styles.setupSectionTitle}>Show Answers</Text>
+          <View style={styles.answerModeOptions}>
+            <TouchableOpacity
+              style={[
+                styles.answerModeButton,
+                showAnswerMode === 'after-each' && {
+                  backgroundColor: selectedCategory.color,
+                  borderColor: selectedCategory.color,
+                }
+              ]}
+              onPress={() => {
+                setShowAnswerMode('after-each');
+                hapticFeedback.selection();
+              }}
+            >
+              <MaterialIcons 
+                name="visibility" 
+                size={24} 
+                color={showAnswerMode === 'after-each' ? '#FFFFFF' : '#000000'} 
+              />
+              <Text style={[
+                styles.answerModeText,
+                showAnswerMode === 'after-each' && { color: '#FFFFFF' }
+              ]}>
+                After Each Question
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.answerModeButton,
+                showAnswerMode === 'end' && {
+                  backgroundColor: selectedCategory.color,
+                  borderColor: selectedCategory.color,
+                }
+              ]}
+              onPress={() => {
+                setShowAnswerMode('end');
+                hapticFeedback.selection();
+              }}
+            >
+              <MaterialIcons 
+                name="format-list-numbered" 
+                size={24} 
+                color={showAnswerMode === 'end' ? '#FFFFFF' : '#000000'} 
+              />
+              <Text style={[
+                styles.answerModeText,
+                showAnswerMode === 'end' && { color: '#FFFFFF' }
+              ]}>
+                At the End
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={startQuiz}
+          >
+            <LinearGradient
+              colors={selectedCategory.gradient}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>START QUIZ</Text>
+              <MaterialIcons name="play-arrow" size={28} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScrollView>
+  );
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
+  const renderQuiz = () => {
+    if (currentQuiz.length === 0) return null;
+    
+    const currentQuestion = currentQuiz[currentQuestionIndex];
+    const hasAnswered = userAnswers.length > currentQuestionIndex;
+    const userAnswer = userAnswers[currentQuestionIndex];
+    
+    return (
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.quizScrollContent}
+      >
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  width: `${((currentQuestionIndex + 1) / currentQuiz.length) * 100}%`,
+                  backgroundColor: selectedCategory.color,
+                }
+              ]} 
+            />
+          </View>
+          <View style={styles.quizStats}>
+            <Text style={styles.quizStatText}>Score: {score}</Text>
+            <Text style={styles.quizStatText}>{formatTime(timer)}</Text>
+          </View>
+        </View>
+        
+        {/* Question Card */}
+        <View style={styles.questionCard}>
+          <Text style={styles.questionNumber}>
+            Question {currentQuestionIndex + 1}
+          </Text>
+          
+          <Text style={styles.questionText}>
+            {currentQuestion.question}
+          </Text>
+          
+          {/* Multiple Choice */}
+          {typeof currentQuestion.correctAnswer === 'number' && currentQuestion.options && (
+            <View style={styles.optionsContainer}>
+              {currentQuestion.options.map((option, index) => {
+                const isSelected = hasAnswered && userAnswer?.userAnswer === index;
+                const isCorrect = index === currentQuestion.correctAnswer;
+                const showResult = hasAnswered && (showAnswer || showAnswerMode === 'end');
+                
+                let backgroundColor = '#FFFFFF';
+                let borderColor = '#000000';
+                let textColor = '#000000';
+                
+                if (showResult) {
+                  if (isCorrect) {
+                    backgroundColor = '#4CAF50';
+                    borderColor = '#4CAF50';
+                    textColor = '#FFFFFF';
+                  } else if (isSelected) {
+                    backgroundColor = '#F44336';
+                    borderColor = '#F44336';
+                    textColor = '#FFFFFF';
+                  }
+                }
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.optionButton,
+                      { backgroundColor, borderColor }
+                    ]}
+                    onPress={() => !hasAnswered && handleAnswer(index)}
+                    disabled={hasAnswered}
+                  >
+                    <View style={[styles.optionLetter, { backgroundColor: isSelected ? '#FFFFFF' : borderColor }]}>
+                      <Text style={[styles.optionLetterText, { color: isSelected ? borderColor : '#FFFFFF' }]}>
+                        {String.fromCharCode(65 + index)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.optionText, { color: textColor }]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+          
+          {/* True/False */}
+          {typeof currentQuestion.correctAnswer === 'boolean' && (
+            <View style={styles.trueFalseContainer}>
+              {[
+                { label: 'TRUE', value: true, icon: '✓' },
+                { label: 'FALSE', value: false, icon: '✗' },
+              ].map((option, index) => {
+                const isSelected = hasAnswered && userAnswer?.userAnswer === index;
+                const isCorrect = option.value === currentQuestion.correctAnswer;
+                const showResult = hasAnswered && (showAnswer || showAnswerMode === 'end');
+                
+                let backgroundColor = '#FFFFFF';
+                let borderColor = '#000000';
+                let textColor = '#000000';
+                
+                if (showResult) {
+                  if (isCorrect) {
+                    backgroundColor = '#4CAF50';
+                    borderColor = '#4CAF50';
+                    textColor = '#FFFFFF';
+                  } else if (isSelected) {
+                    backgroundColor = '#F44336';
+                    borderColor = '#F44336';
+                    textColor = '#FFFFFF';
+                  }
+                }
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.trueFalseButton,
+                      { backgroundColor, borderColor }
+                    ]}
+                    onPress={() => !hasAnswered && handleAnswer(index)}
+                    disabled={hasAnswered}
+                  >
+                    <Text style={[styles.trueFalseIcon, { color: textColor }]}>
+                      {option.icon}
+                    </Text>
+                    <Text style={[styles.trueFalseText, { color: textColor }]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+          
+          {/* Explanation */}
+          {showAnswer && hasAnswered && (
+            <View style={styles.explanationCard}>
+              <Text style={[styles.explanationTitle, { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' }]}>
+                {userAnswer.isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+              </Text>
+              <Text style={styles.explanationText}>
+                {currentQuestion.explanation}
+              </Text>
+              <Text style={styles.explanationReference}>
+                📖 {currentQuestion.reference}
+              </Text>
+              
+              <TouchableOpacity
+                style={[styles.nextButton, { backgroundColor: selectedCategory.color }]}
+                onPress={handleNext}
+              >
+                <Text style={styles.nextButtonText}>
+                  {currentQuestionIndex < currentQuiz.length - 1 ? 'Next Question' : 'See Results'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     );
   };
 
   const renderResults = () => {
     const correctCount = userAnswers.filter(a => a.isCorrect).length;
-    const totalQuestions = currentQuiz.length;
-    const percentage = Math.round((correctCount / totalQuestions) * 100);
-    const stars = percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0;
-    const categoryGradient = selectedCategory?.gradient || [theme.primary, theme.primaryDark];
-
+    const percentage = Math.round((correctCount / currentQuiz.length) * 100);
+    
     return (
-      <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Results Header */}
-          <Animated.View 
-            style={[
-              styles.resultsHeader,
-              { transform: [{ scale: confettiAnim }] }
-            ]}
-          >
-            <Text style={styles.resultsEmoji}>🎉</Text>
-            <Text style={[styles.resultsTitle, { color: theme.text }]}>QUIZ COMPLETE!</Text>
-          </Animated.View>
-
-          {/* Score Card */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.resultsCard}>
           <LinearGradient
-            colors={categoryGradient}
-            style={styles.scoreCard}
+            colors={selectedCategory.gradient}
+            style={styles.resultsHeader}
           >
-            <Text style={styles.scoreLabel}>Your Score</Text>
-            <Text style={styles.scoreValue}>{correctCount}/{totalQuestions}</Text>
-            <Text style={styles.scorePercentage}>{percentage}%</Text>
-            
-            <View style={styles.starsRow}>
-              {[1, 2, 3].map(i => (
-                <Text key={i} style={styles.star}>
-                  {i <= stars ? '⭐' : '☆'}
-                </Text>
-              ))}
-            </View>
+            <Text style={styles.resultsTitle}>Quiz Complete! 🎉</Text>
           </LinearGradient>
-
-          {/* Stats */}
-          <View style={[styles.resultsStats, { backgroundColor: theme.surface }]}>
-            <View style={styles.resultStatItem}>
-              <Text style={styles.resultStatIcon}>🏆</Text>
-              <Text style={[styles.resultStatValue, { color: theme.text }]}>+{score} XP</Text>
-              <Text style={[styles.resultStatLabel, { color: theme.textSecondary }]}>Points Earned</Text>
+          
+          <View style={styles.resultsContent}>
+            <View style={styles.scoreCircle}>
+              <Text style={styles.scorePercentage}>{percentage}%</Text>
+              <Text style={styles.scoreLabel}>
+                {correctCount}/{currentQuiz.length} Correct
+              </Text>
             </View>
             
-            <View style={styles.resultStatDivider} />
+            {showAnswerMode === 'end' && (
+              <View style={styles.answersReview}>
+                <Text style={styles.reviewTitle}>Review Answers</Text>
+                {currentQuiz.map((question, index) => {
+                  const userAnswer = userAnswers[index];
+                  const isCorrect = userAnswer?.isCorrect || false;
+                  
+                  return (
+                    <View key={index} style={styles.reviewItem}>
+                      <View style={[
+                        styles.reviewIcon,
+                        { backgroundColor: isCorrect ? '#4CAF50' : '#F44336' }
+                      ]}>
+                        <Text style={styles.reviewIconText}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewContent}>
+                        <Text style={styles.reviewQuestion} numberOfLines={2}>
+                          {question.question}
+                        </Text>
+                        {!isCorrect && (
+                          <Text style={styles.reviewAnswer}>
+                            Correct: {
+                              typeof question.correctAnswer === 'number' 
+                                ? question.options[question.correctAnswer]
+                                : question.correctAnswer ? 'True' : 'False'
+                            }
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
             
-            <View style={styles.resultStatItem}>
-              <Text style={styles.resultStatIcon}>⏱️</Text>
-              <Text style={[styles.resultStatValue, { color: theme.text }]}>{formatTime(timer)}</Text>
-              <Text style={[styles.resultStatLabel, { color: theme.textSecondary }]}>Time Taken</Text>
-            </View>
-            
-            <View style={styles.resultStatDivider} />
-            
-            <View style={styles.resultStatItem}>
-              <Text style={styles.resultStatIcon}>🔥</Text>
-              <Text style={[styles.resultStatValue, { color: theme.text }]}>{userProgress.streak}</Text>
-              <Text style={[styles.resultStatLabel, { color: theme.textSecondary }]}>Day Streak</Text>
-            </View>
-          </View>
-
-          {/* Answer Breakdown */}
-          <View style={styles.answerBreakdown}>
-            <Text style={[styles.breakdownTitle, { color: theme.text }]}>Answer Breakdown</Text>
-            <View style={styles.breakdownRow}>
-              {userAnswers.map((answer, index) => (
-                <View 
-                  key={index}
-                  style={[
-                    styles.breakdownDot,
-                    { backgroundColor: answer.isCorrect ? '#4CAF50' : '#F44336' }
-                  ]}
-                >
-                  <Text style={styles.breakdownDotText}>{index + 1}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.resultsButtons}>
-            <TouchableOpacity
-              style={[styles.resultButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                hapticFeedback.selection();
-                animateScreenTransition('home');
-              }}
-            >
-              <MaterialIcons name="home" size={20} color={theme.text} />
-              <Text style={[styles.resultButtonText, { color: theme.text }]}>Home</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.resultButton}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                // Start a new quiz with the same category
-                handleCategorySelect(selectedCategory);
-              }}
-            >
-              <LinearGradient
-                colors={categoryGradient}
-                style={styles.resultButtonGradient}
+            <View style={styles.resultButtons}>
+              <TouchableOpacity
+                style={[styles.resultButton, { backgroundColor: selectedCategory.color }]}
+                onPress={() => {
+                  setCurrentScreen('setup');
+                  hapticFeedback.buttonPress();
+                }}
               >
-                <MaterialIcons name="refresh" size={20} color="#FFF" />
-                <Text style={styles.resultButtonTextPrimary}>Try Again</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
-    );
-  };
-
-  const renderStats = () => {
-    const accuracy = userProgress.stats.totalQuestions > 0 
-      ? Math.round((userProgress.stats.totalCorrect / userProgress.stats.totalQuestions) * 100)
-      : 0;
-
-    return (
-      <Animated.View style={[styles.screenContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.statsTitle, { color: theme.text }]}>YOUR ACHIEVEMENTS</Text>
-            
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Text style={styles.statBoxIcon}>🎯</Text>
-                <Text style={[styles.statBoxValue, { color: theme.text }]}>{userProgress.totalQuizzes}</Text>
-                <Text style={[styles.statBoxLabel, { color: theme.textSecondary }]}>Total Quizzes</Text>
-              </View>
+                <Text style={styles.resultButtonText}>Play Again</Text>
+              </TouchableOpacity>
               
-              <View style={styles.statBox}>
-                <Text style={styles.statBoxIcon}>⭐</Text>
-                <Text style={[styles.statBoxValue, { color: theme.text }]}>{userProgress.xp}</Text>
-                <Text style={[styles.statBoxLabel, { color: theme.textSecondary }]}>Total XP</Text>
-              </View>
-              
-              <View style={styles.statBox}>
-                <Text style={styles.statBoxIcon}>📈</Text>
-                <Text style={[styles.statBoxValue, { color: theme.text }]}>{accuracy}%</Text>
-                <Text style={[styles.statBoxLabel, { color: theme.textSecondary }]}>Accuracy</Text>
-              </View>
-              
-              <View style={styles.statBox}>
-                <Text style={styles.statBoxIcon}>🔥</Text>
-                <Text style={[styles.statBoxValue, { color: theme.text }]}>{userProgress.streak}</Text>
-                <Text style={[styles.statBoxLabel, { color: theme.textSecondary }]}>Current Streak</Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.resultButton, { backgroundColor: '#666666' }]}
+                onPress={() => {
+                  setCurrentScreen('home');
+                  hapticFeedback.buttonPress();
+                }}
+              >
+                <Text style={styles.resultButtonText}>Home</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Progress by Category */}
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>PROGRESS BY CATEGORY</Text>
-          </View>
-
-          {quizCategories.filter(c => !c.locked).map(category => {
-            const categoryProg = userProgress.categoryProgress[category.id] || { completed: 0 };
-            const percent = Math.round((categoryProg.completed / category.totalQuizzes) * 100);
-            
-            return (
-              <View key={category.id} style={styles.categoryStatRow}>
-                <Text style={[styles.categoryStatName, { color: theme.text }]}>{category.title}</Text>
-                <View style={[styles.categoryStatBar, { backgroundColor: theme.border }]}>
-                  <View style={[styles.categoryStatBarFill, { width: `${percent}%`, backgroundColor: category.color }]} />
-                </View>
-                <Text style={[styles.categoryStatPercent, { color: theme.textSecondary }]}>{percent}%</Text>
-              </View>
-            );
-          })}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
+        </View>
+      </ScrollView>
     );
   };
 
@@ -1228,13 +684,13 @@ const QuizGames = ({ visible, onClose }) => {
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.background} translucent={false} hidden={false} />
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         
         {currentScreen === 'home' && renderHome()}
+        {currentScreen === 'setup' && renderSetup()}
         {currentScreen === 'quiz' && renderQuiz()}
         {currentScreen === 'results' && renderResults()}
-        {currentScreen === 'stats' && renderStats()}
         
         {renderHeader()}
       </View>
@@ -1245,589 +701,420 @@ const QuizGames = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  
+  // Header Styles
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 50,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  
+  // Common Styles
+  scrollContent: {
+    paddingTop: 100,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  quizScrollContent: {
+    paddingTop: 120,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    position: 'relative',
-  },
-  loadingCircleOuter: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 3,
-    borderStyle: 'dashed',
-  },
-  loadingCircleMiddle: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 2,
-    borderStyle: 'dotted',
-  },
-  loadingIconContainer: {
-    position: 'relative',
-    marginBottom: 40,
-  },
-  loadingIconGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  loadingIconGlow: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    top: -10,
-    left: -10,
-    zIndex: -1,
-  },
-  loadingTextContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
   },
   loadingText: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  loadingSubtext: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
-  },
-  loadingDotsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  loadingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  blurHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    backgroundColor: 'transparent',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    overflow: 'hidden',
-  },
-  solidHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  headerButton: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 60,
-  },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  headerTitle: {
     fontSize: 18,
+    color: '#000000',
     fontWeight: '700',
-    flex: 1,
-    textAlign: 'center',
-  },
-  screenContainer: {
-    flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 120 : 90,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  quizScrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 40,
   },
   
-  // Progress Card
-  progressCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  progressTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  levelBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  levelBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  levelTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 16,
-  },
-  xpBar: {
-    marginBottom: 20,
-  },
-  xpBarBackground: {
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  xpBarFill: {
-    height: '100%',
-    borderRadius: 6,
-  },
-  xpText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Sections
+  // Home Styles
   sectionHeader: {
-    marginTop: 8,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#666666',
     letterSpacing: 1,
   },
-
-  // Category Cards
   categoryCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  categoryGradientBorder: {
-    padding: 2,
-  },
-  categoryContent: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: 'transparent',
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#000000',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  categoryIconContainer: {
+  categoryIconWrapper: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
   },
-  categoryIcon: {
-    fontSize: 28,
-  },
-  categoryInfo: {
+  categoryContent: {
     flex: 1,
-  },
-  categoryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    marginLeft: 16,
   },
   categoryTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 4,
   },
   categoryDescription: {
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  categoryProgress: {
-    gap: 6,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  lockText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Bottom Nav
-  bottomNav: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 24,
-  },
-  bottomNavButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  bottomNavText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Quiz Screen
-  quizProgress: {
-    marginBottom: 24,
-  },
-  quizProgressBar: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  quizProgressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  quizMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quizMetaText: {
     fontSize: 14,
+    color: '#666666',
     fontWeight: '600',
   },
-  questionCard: {
+  
+  // Setup Styles
+  setupCard: {
     borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+  },
+  setupHeader: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  setupCategoryTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 12,
+  },
+  setupContent: {
     padding: 24,
   },
-  questionHeader: {
-    marginBottom: 16,
-  },
-  questionNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  questionText: {
-    fontSize: 22,
+  setupSectionTitle: {
+    fontSize: 18,
     fontWeight: '800',
-    lineHeight: 32,
+    color: '#000000',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  questionCountOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  questionCountButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 3,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+  },
+  questionCountText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  answerModeOptions: {
+    gap: 12,
     marginBottom: 32,
   },
-  answerOptions: {
-    gap: 12,
-  },
-  answerOption: {
+  answerModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
     gap: 12,
   },
-  answerLetter: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  answerLetterText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  answerText: {
-    flex: 1,
+  answerModeText: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#000000',
   },
-  trueFalseOption: {
+  startButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  startButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    paddingVertical: 18,
+    gap: 8,
+  },
+  startButtonText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  
+  // Quiz Styles
+  progressContainer: {
+    marginBottom: 24,
+  },
+  progressBar: {
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  progressFill: {
+    height: '100%',
+  },
+  quizStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  quizStatText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  questionCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: '#000000',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  questionNumber: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#666666',
+    marginBottom: 12,
+  },
+  questionText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#000000',
+    lineHeight: 32,
+    marginBottom: 32,
+  },
+  optionsContainer: {
     gap: 12,
   },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 3,
+    gap: 12,
+  },
+  optionLetter: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionLetterText: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  trueFalseContainer: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  trueFalseButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 4,
+    gap: 8,
+  },
   trueFalseIcon: {
-    fontSize: 32,
+    fontSize: 40,
+    fontWeight: '900',
   },
   trueFalseText: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   explanationCard: {
     marginTop: 24,
     padding: 20,
+    backgroundColor: '#F8F8F8',
     borderRadius: 16,
-  },
-  explanationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   explanationTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 12,
   },
   explanationText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    lineHeight: 24,
     marginBottom: 12,
   },
   explanationReference: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666666',
+    marginBottom: 20,
   },
-
-  // Results Screen
-  resultsHeader: {
+  nextButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 24,
   },
-  resultsEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+  nextButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  
+  // Results Styles
+  resultsCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+  },
+  resultsHeader: {
+    padding: 32,
+    alignItems: 'center',
   },
   resultsTitle: {
     fontSize: 28,
-    fontWeight: '800',
-  },
-  scoreCard: {
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  scoreLabel: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  scoreValue: {
-    color: '#FFF',
-    fontSize: 48,
     fontWeight: '900',
-    marginBottom: 8,
+    color: '#FFFFFF',
+  },
+  resultsContent: {
+    padding: 24,
+  },
+  scoreCircle: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 32,
+    borderWidth: 4,
+    borderColor: '#000000',
   },
   scorePercentage: {
-    color: '#FFF',
-    fontSize: 32,
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#000000',
+  },
+  scoreLabel: {
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 16,
+    color: '#666666',
   },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 8,
+  answersReview: {
+    marginBottom: 32,
   },
-  star: {
-    fontSize: 32,
-  },
-  resultsStats: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  resultStatItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  resultStatIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  resultStatValue: {
+  reviewTitle: {
     fontSize: 20,
     fontWeight: '800',
-    marginBottom: 4,
-  },
-  resultStatLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  resultStatDivider: {
-    width: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-  },
-  answerBreakdown: {
-    marginBottom: 24,
-  },
-  breakdownTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#000000',
     marginBottom: 16,
   },
-  breakdownRow: {
+  reviewItem: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    marginBottom: 16,
+    alignItems: 'flex-start',
   },
-  breakdownDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
+  reviewIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  breakdownDotText: {
-    color: '#FFF',
+  reviewIconText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  reviewContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  reviewQuestion: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  reviewAnswer: {
     fontSize: 14,
-    fontWeight: '700',
-  },
-  resultsButtons: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  resultButton: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  resultButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  resultButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  resultButtonTextPrimary: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  // Stats Screen
-  statsCard: {
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-  },
-  statsTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  statBox: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    padding: 16,
-  },
-  statBoxIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  statBoxValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  statBoxLabel: {
-    fontSize: 12,
     fontWeight: '600',
-    textAlign: 'center',
+    color: '#666666',
   },
-  categoryStatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+  resultButtons: {
     gap: 12,
   },
-  categoryStatName: {
-    fontSize: 14,
-    fontWeight: '600',
-    width: 120,
+  resultButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  categoryStatBar: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
+  resultButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
-  categoryStatBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  categoryStatPercent: {
-    fontSize: 14,
-    fontWeight: '700',
-    width: 40,
-    textAlign: 'right',
-  },
-
 });
 
 export default QuizGames;
-
