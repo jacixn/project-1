@@ -332,3 +332,182 @@ for cat, qs in data.items():
 print("\n🎉 All categories now have substantial content!")
 print("Users can now pull-to-refresh to get all these questions!")
 
+
+# Add 20 more questions to each category
+print("\n🔄 Adding 20 more questions to each category...")
+
+# NEW TESTAMENT - Add 20 more (100 → 120)
+print("Expanding New Testament to 120...")
+data["new-testament"]["multiple-choice"]["beginner"].extend([
+    mc("nt-mc-b-61", "Jesus fasted how many days?", ["30", "40", "50", "100"], 1, "Jesus fasted 40 days in the wilderness.", "Matthew 4:2"),
+    mc("nt-mc-b-62", "Who was Jesus cousin?", ["Peter", "James", "John Baptist", "Andrew"], 2, "John the Baptist was Jesus' cousin.", "Luke 1:36"),
+    mc("nt-mc-b-63", "Nicodemus came to Jesus when?", ["Morning", "Noon", "Night", "Evening"], 2, "Nicodemus came to Jesus at night.", "John 3:2"),
+    mc("nt-mc-b-64", "Born again means born of?", ["Water only", "Spirit only", "Water and Spirit", "Fire"], 2, "Born of water and Spirit.", "John 3:5"),
+    mc("nt-mc-b-65", "God so loved the?", ["Church", "World", "Israel", "Believers"], 1, "For God so loved the world.", "John 3:16"),
+    mc("nt-mc-b-66", "Rich man and Lazarus teaches?", ["Money", "Afterlife", "Prayer", "Faith"], 1, "It teaches about the afterlife.", "Luke 16:19-31"),
+    mc("nt-mc-b-67", "Seventy times seven means?", ["490", "Unlimited forgiveness", "70", "7"], 1, "Forgive unlimited times.", "Matthew 18:22"),
+    mc("nt-mc-b-68", "Greatest in kingdom is?", ["Richest", "Strongest", "Humble as child", "Wisest"], 2, "Whoever humbles themselves like a child.", "Matthew 18:4"),
+    mc("nt-mc-b-69", "Two or three gathered Jesus is?", ["Happy", "Present", "Blessing", "Watching"], 1, "Where two or three gather, Jesus is there.", "Matthew 18:20"),
+    mc("nt-mc-b-70", "Sabbath made for?", ["God", "Priests", "Man", "Angels"], 2, "The Sabbath was made for man.", "Mark 2:27"),
+])
+
+data["new-testament"]["true-false"]["beginner"].extend([
+    tf("nt-tf-b-41", "Jesus performed miracles every day.", False, "False! The Bible doesn't say He did miracles daily.", "Various"),
+    tf("nt-tf-b-42", "Jesus prayed often.", True, "True! Jesus frequently withdrew to pray.", "Luke 5:16"),
+    tf("nt-tf-b-43", "All Pharisees rejected Jesus.", False, "False! Some like Nicodemus believed.", "John 3:1-2"),
+    tf("nt-tf-b-44", "Jesus taught in synagogues.", True, "True! Jesus often taught in synagogues.", "Luke 4:15"),
+    tf("nt-tf-b-45", "Peter was married.", True, "True! Jesus healed Peter's mother-in-law.", "Matthew 8:14"),
+    tf("nt-tf-b-46", "Jesus wrote a book.", False, "False! Jesus didn't write any books of the Bible.", "Historical"),
+    tf("nt-tf-b-47", "Jesus loved children.", True, "True! Jesus welcomed little children.", "Mark 10:14"),
+    tf("nt-tf-b-48", "Jesus only spoke Hebrew.", False, "False! Jesus likely spoke Aramaic, Hebrew, and Greek.", "Historical"),
+    tf("nt-tf-b-49", "Judas was treasurer.", True, "True! Judas kept the money bag.", "John 12:6"),
+    tf("nt-tf-b-50", "Jesus appeared to 500 after resurrection.", True, "True! He appeared to over 500 people.", "1 Corinthians 15:6"),
+])
+
+# OLD TESTAMENT - Add 20 more (50 → 70)
+print("Expanding Old Testament to 70...")
+data["old-testament"]["multiple-choice"]["beginner"].extend([
+    mc("ot-mc-b-36", "Cain killed?", ["Seth", "Abel", "Enoch", "Noah"], 1, "Cain killed his brother Abel.", "Genesis 4:8"),
+    mc("ot-mc-b-37", "Enoch walked with?", ["Angels", "God", "Noah", "Abraham"], 1, "Enoch walked with God.", "Genesis 5:24"),
+    mc("ot-mc-b-38", "Methuselah lived?", ["500 years", "777 years", "969 years", "1000 years"], 2, "Methuselah lived 969 years.", "Genesis 5:27"),
+    mc("ot-mc-b-39", "Lot's wife became?", ["Dust", "Stone", "Salt pillar", "Sand"], 2, "She became a pillar of salt.", "Genesis 19:26"),
+    mc("ot-mc-b-40", "Moses struck rock for?", ["Oil", "Water", "Gold", "Fire"], 1, "Water came from the rock.", "Exodus 17:6"),
+    mc("ot-mc-b-41", "Aaron's rod became?", ["Flower", "Snake", "Staff", "Tree"], 1, "Aaron's rod became a snake.", "Exodus 7:10"),
+    mc("ot-mc-b-42", "Firstborn plague killed?", ["Animals", "Crops", "Firstborn sons", "Adults"], 2, "The plague killed firstborn sons.", "Exodus 12:29"),
+    mc("ot-mc-b-43", "Israelites marked doors with?", ["Oil", "Blood", "Water", "Ash"], 1, "They marked doors with lamb's blood.", "Exodus 12:7"),
+    mc("ot-mc-b-44", "Manna tasted like?", ["Honey wafers", "Bread", "Meat", "Fruit"], 0, "Manna tasted like wafers with honey.", "Exodus 16:31"),
+    mc("ot-mc-b-45", "Golden calf made by?", ["Moses", "Aaron", "Joshua", "Caleb"], 1, "Aaron made the golden calf.", "Exodus 32:4"),
+    mc("ot-mc-b-46", "Balaam's donkey?", ["Ran away", "Spoke", "Died", "Attacked"], 1, "Balaam's donkey spoke to him.", "Numbers 22:28"),
+    mc("ot-mc-b-47", "Walls of Jericho fell after?", ["1 day", "7 days", "30 days", "1 year"], 1, "The walls fell after 7 days.", "Joshua 6:15-20"),
+    mc("ot-mc-b-48", "Gideon's army reduced to?", ["100", "300", "1000", "5000"], 1, "God reduced Gideon's army to 300.", "Judges 7:7"),
+])
+
+data["old-testament"]["true-false"]["beginner"].extend([
+    tf("ot-tf-b-16", "Cain was Adam's son.", True, "True! Cain was the first son of Adam and Eve.", "Genesis 4:1"),
+    tf("ot-tf-b-17", "Babel means confusion.", True, "True! God confused their language at Babel.", "Genesis 11:9"),
+    tf("ot-tf-b-18", "Abraham had many sons.", True, "True! Abraham fathered several sons.", "Genesis 25:1-4"),
+    tf("ot-tf-b-19", "Moses saw God's face.", False, "False! No one can see God's face and live.", "Exodus 33:20"),
+    tf("ot-tf-b-20", "Joshua was Moses' successor.", True, "True! Joshua led Israel after Moses.", "Joshua 1:1-2"),
+    tf("ot-tf-b-21", "Ruth was David's great-grandmother.", True, "True! Ruth was in David's lineage.", "Ruth 4:17"),
+    tf("ot-tf-b-22", "Elijah went to heaven in chariot.", True, "True! Elijah was taken up in a whirlwind.", "2 Kings 2:11"),
+])
+
+# LIFE OF JESUS - Add 20 more (47 → 67)
+print("Expanding Life of Jesus to 67...")
+data["life-of-jesus"]["multiple-choice"]["beginner"].extend([
+    mc("loj-mc-b-36", "Jesus ministry lasted?", ["1 year", "2 years", "3 years", "5 years"], 2, "Jesus' ministry lasted about 3 years.", "Historical"),
+    mc("loj-mc-b-37", "Jesus was baptized at age?", ["20", "25", "30", "35"], 2, "Jesus was about 30 when baptized.", "Luke 3:23"),
+    mc("loj-mc-b-38", "Dove represented?", ["Peace", "Holy Spirit", "Love", "Hope"], 1, "The dove represented the Holy Spirit.", "Matthew 3:16"),
+    mc("loj-mc-b-39", "Voice from heaven said?", ["This is my son", "Follow him", "Hear him", "Obey him"], 0, "God said This is my beloved Son.", "Matthew 3:17"),
+    mc("loj-mc-b-40", "Satan tempted Jesus with?", ["Food power kingdoms", "Money fame power", "Gold silver bronze", "Wine women song"], 0, "Satan offered food, power, and kingdoms.", "Matthew 4:3-9"),
+    mc("loj-mc-b-41", "Jesus replied with?", ["Power", "Anger", "Scripture", "Silence"], 2, "Jesus answered with Scripture.", "Matthew 4:4"),
+    mc("loj-mc-b-42", "Woman anointed Jesus feet?", ["Mary Magdalene", "Mary of Bethany", "Martha", "Sinful woman"], 3, "A sinful woman anointed His feet.", "Luke 7:37-38"),
+    mc("loj-mc-b-43", "She used?", ["Water", "Oil", "Perfume and tears", "Soap"], 2, "She used perfume and her tears.", "Luke 7:38"),
+    mc("loj-mc-b-44", "Tax collector up tree?", ["Matthew", "Zacchaeus", "Levi", "John"], 1, "Zacchaeus climbed a tree.", "Luke 19:2-4"),
+    mc("loj-mc-b-45", "Zacchaeus was?", ["Tall", "Short", "Strong", "Old"], 1, "Zacchaeus was short in stature.", "Luke 19:3"),
+    mc("loj-mc-b-46", "Blessed are the?", ["Rich", "Poor in spirit", "Powerful", "Famous"], 1, "Blessed are the poor in spirit.", "Matthew 5:3"),
+    mc("loj-mc-b-47", "Salt of the earth means?", ["Preserving influence", "Bitter", "White", "Valuable"], 0, "Believers are to preserve and influence.", "Matthew 5:13"),
+    mc("loj-mc-b-48", "Light of world refers to?", ["Sun", "Moon", "Believers", "Angels"], 2, "Believers are the light of the world.", "Matthew 5:14"),
+])
+
+data["life-of-jesus"]["true-false"]["beginner"].extend([
+    tf("loj-tf-b-13", "Jesus was about 33 when crucified.", True, "True! Jesus was about 33 years old.", "Historical"),
+    tf("loj-tf-b-14", "Jesus visited Egypt as baby.", True, "True! Joseph took Jesus to Egypt.", "Matthew 2:14"),
+    tf("loj-tf-b-15", "Jesus was rich.", False, "False! Jesus had no place to lay His head.", "Matthew 8:20"),
+    tf("loj-tf-b-16", "Jesus healed Gentiles.", True, "True! Jesus healed people of all nations.", "Matthew 15:28"),
+    tf("loj-tf-b-17", "Jesus attended synagogue.", True, "True! Jesus regularly attended synagogue.", "Luke 4:16"),
+    tf("loj-tf-b-18", "Jesus only ministered in Jerusalem.", False, "False! Jesus traveled throughout Galilee and Judea.", "Various"),
+    tf("loj-tf-b-19", "Jesus raised three people.", True, "True! Jairus' daughter, widow's son, Lazarus.", "Various"),
+])
+
+# MIRACLES - Add 20 more (48 → 68)
+print("Expanding Miracles to 68...")
+data["miracles"]["multiple-choice"]["beginner"].extend([
+    mc("mir-mc-b-34", "Jesus healed centurion's?", ["Son", "Servant", "Wife", "Mother"], 1, "Jesus healed the centurion's servant.", "Matthew 8:5-13"),
+    mc("mir-mc-b-35", "Centurion said just speak?", ["Word", "Prayer", "Name", "Command"], 0, "Just speak the word and he'll be healed.", "Matthew 8:8"),
+    mc("mir-mc-b-36", "Daughter of Jairus?", ["12 years old", "5 years old", "20 years old", "Newborn"], 0, "She was 12 years old.", "Mark 5:42"),
+    mc("mir-mc-b-37", "Jesus said Talitha?", ["Wake", "Cumi arise", "Live", "Come"], 1, "Jesus said Talitha cumi (little girl arise).", "Mark 5:41"),
+    mc("mir-mc-b-38", "Five loaves were?", ["Wheat", "Barley", "Rye", "Corn"], 1, "They were barley loaves.", "John 6:9"),
+    mc("mir-mc-b-39", "Boy with loaves was?", ["Man", "Young lad", "Disciple", "Merchant"], 1, "A young boy had the loaves.", "John 6:9"),
+    mc("mir-mc-b-40", "Feeding 4000 had?", ["5 loaves", "7 loaves", "12 loaves", "3 loaves"], 1, "Jesus used 7 loaves for 4000.", "Matthew 15:34"),
+    mc("mir-mc-b-41", "Baskets from 4000?", ["5", "7", "12", "20"], 1, "7 baskets were left over.", "Matthew 15:37"),
+    mc("mir-mc-b-42", "Man born blind healed with?", ["Touch", "Mud", "Spit", "Mud and spit"], 3, "Jesus used mud made with spit.", "John 9:6"),
+    mc("mir-mc-b-43", "Blind man washed in?", ["Jordan", "Siloam", "Galilee", "Bethesda"], 1, "He washed in the Pool of Siloam.", "John 9:7"),
+    mc("mir-mc-b-44", "Syrophoenician woman wanted?", ["Healing for daughter", "Food", "Money", "House"], 0, "She wanted her daughter healed.", "Mark 7:26"),
+    mc("mir-mc-b-45", "Jesus compared Gentiles to?", ["Sheep", "Dogs", "Birds", "Fish"], 1, "Jesus used the metaphor of dogs (pets).", "Mark 7:27"),
+])
+
+data["miracles"]["true-false"]["beginner"].extend([
+    tf("mir-tf-b-16", "Jesus healed on Sabbath.", True, "True! Jesus often healed on Sabbath.", "Luke 13:14"),
+    tf("mir-tf-b-17", "Religious leaders were happy about healings.", False, "False! Many were angry He healed on Sabbath.", "Luke 6:11"),
+    tf("mir-tf-b-18", "Jesus healed from distance.", True, "True! Like the centurion's servant.", "Matthew 8:13"),
+    tf("mir-tf-b-19", "Jesus needed special tools to heal.", False, "False! Jesus healed by His power and word.", "Various"),
+    tf("mir-tf-b-20", "Faith was important for healing.", True, "True! Jesus often mentioned faith.", "Matthew 9:29"),
+])
+
+# PARABLES - Add 20 more (50 → 70)  
+print("Expanding Parables to 70...")
+data["parables"]["multiple-choice"]["beginner"].extend([
+    mc("par-mc-b-36", "Rich fool stored?", ["Money", "Grain", "Gold", "Animals"], 1, "The rich fool stored grain.", "Luke 12:18"),
+    mc("par-mc-b-37", "Rich fool's life ended?", ["That night", "Next year", "In old age", "Never"], 0, "God took his life that night.", "Luke 12:20"),
+    mc("par-mc-b-38", "Pharisee thanked God he wasn't?", ["Rich", "Like others", "Blind", "Sick"], 1, "He thanked God he wasn't like other men.", "Luke 18:11"),
+    mc("par-mc-b-39", "Two sons told to?", ["Build", "Work vineyard", "Travel", "Study"], 1, "They were told to work in vineyard.", "Matthew 21:28"),
+    mc("par-mc-b-40", "One son said yes but?", ["Went", "Didn't go", "Complained", "Paid someone"], 1, "He said yes but didn't go.", "Matthew 21:30"),
+    mc("par-mc-b-41", "Vineyard workers became?", ["Happy", "Jealous", "Thankful", "Angry"], 1, "Early workers were jealous of pay.", "Matthew 20:11"),
+    mc("par-mc-b-42", "Landowner's reply about?", ["Generosity", "Rules", "Time", "Work"], 0, "He could be generous with his money.", "Matthew 20:15"),
+    mc("par-mc-b-43", "Seed growing secretly teaches?", ["Farming", "Kingdom growth", "Patience", "Sleep"], 1, "It teaches about kingdom growth.", "Mark 4:26-29"),
+    mc("par-mc-b-44", "Leaven in dough represents?", ["Sin", "Kingdom spread", "Growth", "Change"], 1, "Kingdom spreads through everything.", "Matthew 13:33"),
+    mc("par-mc-b-45", "Net caught?", ["Only good fish", "All kinds fish", "No fish", "Small fish"], 1, "The net caught all kinds of fish.", "Matthew 13:47"),
+    mc("par-mc-b-46", "Fishermen sorted fish by?", ["Size", "Color", "Good and bad", "Type"], 2, "They sorted good from bad.", "Matthew 13:48"),
+    mc("par-mc-b-47", "Unforgiving servant owed?", ["100 denarii", "1000 talents", "10000 talents", "50 denarii"], 2, "He owed 10,000 talents.", "Matthew 18:24"),
+    mc("par-mc-b-48", "Fellow servant owed him?", ["100 denarii", "1000 denarii", "10000 denarii", "Nothing"], 0, "He was owed 100 denarii.", "Matthew 18:28"),
+])
+
+data["parables"]["true-false"]["beginner"].extend([
+    tf("par-tf-b-16", "Parables are simple stories.", True, "True! Parables are simple stories with deep meaning.", "Various"),
+    tf("par-tf-b-17", "Everyone understood parables.", False, "False! Many didn't understand their meaning.", "Matthew 13:13"),
+    tf("par-tf-b-18", "Jesus explained some parables.", True, "True! Jesus explained parables to disciples.", "Matthew 13:36"),
+    tf("par-tf-b-19", "Parables teach about God's kingdom.", True, "True! Most parables teach about the kingdom.", "Various"),
+    tf("par-tf-b-20", "Only Jesus used parables.", False, "False! Others used parables, but Jesus was the master.", "Historical"),
+])
+
+# WOMEN OF BIBLE - Add 20 more (50 → 70)
+print("Expanding Women of Bible to 70...")
+data["women-of-bible"]["multiple-choice"]["beginner"].extend([
+    mc("wob-mc-b-36", "Hagar was?", ["Sarah's servant", "Abraham's wife", "Isaac's mother", "Egyptian queen"], 0, "Hagar was Sarah's Egyptian servant.", "Genesis 16:1"),
+    mc("wob-mc-b-37", "Hagar's son?", ["Isaac", "Ishmael", "Esau", "Jacob"], 1, "Hagar gave birth to Ishmael.", "Genesis 16:15"),
+    mc("wob-mc-b-38", "Rebekah got water for?", ["Abraham", "Isaac", "Camels", "Both B and C"], 3, "She gave water to servant and camels.", "Genesis 24:19"),
+    mc("wob-mc-b-39", "Rachel was?", ["Beautiful", "Shepherd", "Both A and B", "Cook"], 2, "Rachel was beautiful and shepherded sheep.", "Genesis 29:17"),
+    mc("wob-mc-b-40", "Leah had?", ["Weak eyes", "Strong arms", "Beautiful voice", "Long hair"], 0, "Leah had weak or tender eyes.", "Genesis 29:17"),
+    mc("wob-mc-b-41", "Dinah was?", ["Jacob's daughter", "Jacob's wife", "Isaac's daughter", "Abraham's daughter"], 0, "Dinah was Jacob's daughter.", "Genesis 30:21"),
+    mc("wob-mc-b-42", "Jochebed hid baby for?", ["1 month", "3 months", "6 months", "1 year"], 1, "She hid Moses for 3 months.", "Exodus 2:2"),
+    mc("wob-mc-b-43", "Pharaoh's daughter found?", ["Gold", "Baby Moses", "Treasure", "Scroll"], 1, "She found baby Moses in basket.", "Exodus 2:5"),
+    mc("wob-mc-b-44", "Who suggested nurse?", ["Miriam", "Jochebed", "Pharaoh's daughter", "Servant"], 0, "Miriam suggested getting a nurse.", "Exodus 2:7"),
+    mc("wob-mc-b-45", "Zipporah was?", ["Hebrew", "Egyptian", "Midianite", "Canaanite"], 2, "Zipporah was a Midianite.", "Exodus 2:21"),
+    mc("wob-mc-b-46", "Zipporah's father?", ["Aaron", "Jethro", "Moses", "Pharaoh"], 1, "Jethro was Zipporah's father.", "Exodus 2:21"),
+    mc("wob-mc-b-47", "Abigail was?", ["Wise", "Beautiful", "Kind", "All above"], 3, "Abigail was wise, beautiful, and kind.", "1 Samuel 25:3"),
+    mc("wob-mc-b-48", "Abigail's first husband?", ["David", "Nabal", "Saul", "Samuel"], 1, "Abigail was married to Nabal.", "1 Samuel 25:3"),
+])
+
+data["women-of-bible"]["true-false"]["beginner"].extend([
+    tf("wob-tf-b-16", "Lot had two daughters.", True, "True! Lot escaped Sodom with two daughters.", "Genesis 19:15"),
+    tf("wob-tf-b-17", "Leah was Jacob's favorite.", False, "False! Jacob loved Rachel more.", "Genesis 29:30"),
+    tf("wob-tf-b-18", "Zipporah was Moses' wife.", True, "True! Moses married Zipporah.", "Exodus 2:21"),
+    tf("wob-tf-b-19", "All women in Bible were perfect.", False, "False! Like all people, they had flaws.", "Various"),
+    tf("wob-tf-b-20", "Women played important roles.", True, "True! Many women were crucial to God's plan.", "Various"),
+])
+
+# Save expanded file
+print("\n💾 Saving expanded questions file...")
+with open('questions.json', 'w') as f:
+    json.dump(data, f, indent=2)
+
+print("\n✅ EXPANSION COMPLETE!")
+print("\n📊 Updated question counts:")
+for cat, qs in data.items():
+    total = sum(len(q) for qt in qs.values() for q in qt.values())
+    print(f"  {cat}: {total} questions")
+
+total_all = sum(sum(len(q) for qt in qs.values() for q in qt.values()) for qs in data.values())
+print(f"\n🎯 TOTAL: {total_all} questions across all categories!")
+print("\n🎉 Users can now pull-to-refresh to get ALL questions!")
