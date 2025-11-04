@@ -37,19 +37,12 @@ const VERSES_CONFIG = {
   REPO_NAME: 'project-1',
   BRANCH: 'main',
   FILE_PATH: 'fivefold-ios/verses.json',
-  
-  // Remote URL - will be null if not configured yet
-  get URL() {
-    if (this.GITHUB_USERNAME === 'YOUR_USERNAME') {
-      return null; // Not configured yet
-    }
-    return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
-  },
+  URL: 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/verses.json',
   
   // Cache settings
-  CACHE_KEY: 'cached_verses_data_v7', // Fixed GitHub URL - force cache refresh with 360 verses
-  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v7', // Fixed GitHub URL - force cache refresh with 360 verses
-  CACHE_DURATION: 0, // Temporarily disable cache to force fresh fetch of 360 verses
+  CACHE_KEY: 'cached_verses_data_v7',
+  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v7',
+  CACHE_DURATION: 0,
 };
 
 const KeyVerses = ({ visible, onClose }) => {
