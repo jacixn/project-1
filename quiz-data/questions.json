@@ -2,145 +2,4218 @@
   "new-testament": {
     "multiple-choice": {
       "beginner": [
-        {"id": "nt-mc-b-1", "question": "Who wrote the Book of Revelation?", "options": ["Paul", "John", "Peter", "Luke"], "correctAnswer": 1, "explanation": "John, the beloved disciple, wrote Revelation while exiled on the island of Patmos around 95 AD.", "reference": "Revelation 1:9", "points": 10},
-        {"id": "nt-mc-b-2", "question": "In which city was Jesus born?", "options": ["Nazareth", "Jerusalem", "Bethlehem", "Capernaum"], "correctAnswer": 2, "explanation": "Jesus was born in Bethlehem, fulfilling the prophecy in Micah 5:2.", "reference": "Matthew 2:1", "points": 10},
-        {"id": "nt-mc-b-3", "question": "How many disciples did Jesus choose?", "options": ["10", "11", "12", "13"], "correctAnswer": 2, "explanation": "Jesus chose 12 disciples to be His closest followers and apostles.", "reference": "Mark 3:14", "points": 10},
-        {"id": "nt-mc-b-4", "question": "Who baptized Jesus?", "options": ["John the Baptist", "Peter", "James", "Andrew"], "correctAnswer": 0, "explanation": "John the Baptist baptized Jesus in the Jordan River, marking the beginning of His ministry.", "reference": "Matthew 3:13-17", "points": 10},
-        {"id": "nt-mc-b-5", "question": "What was Matthews profession?", "options": ["Fisherman", "Tax collector", "Carpenter", "Farmer"], "correctAnswer": 1, "explanation": "Matthew was a tax collector before Jesus called him.", "reference": "Matthew 9:9", "points": 10},
-        {"id": "nt-mc-b-6", "question": "Which disciple denied Jesus three times?", "options": ["John", "James", "Peter", "Thomas"], "correctAnswer": 2, "explanation": "Peter denied knowing Jesus three times before the rooster crowed.", "reference": "Luke 22:54-62", "points": 10},
-        {"id": "nt-mc-b-7", "question": "On which day did Jesus rise?", "options": ["Friday", "Saturday", "Sunday", "Monday"], "correctAnswer": 2, "explanation": "Jesus rose from the dead on Sunday, the first day of the week.", "reference": "Mark 16:9", "points": 10},
-        {"id": "nt-mc-b-8", "question": "Who first saw Jesus after resurrection?", "options": ["Peter", "John", "Mary Magdalene", "Thomas"], "correctAnswer": 2, "explanation": "Mary Magdalene was the first to see the risen Jesus at the tomb.", "reference": "John 20:11-18", "points": 10},
-        {"id": "nt-mc-b-9", "question": "What is the shortest verse?", "options": ["Jesus wept", "God is love", "Pray always", "Be still"], "correctAnswer": 0, "explanation": "Jesus wept (John 11:35) is the shortest verse in the Bible.", "reference": "John 11:35", "points": 10},
-        {"id": "nt-mc-b-10", "question": "How many NT books?", "options": ["24", "25", "26", "27"], "correctAnswer": 3, "explanation": "The New Testament contains 27 books.", "reference": "Bible Structure", "points": 10},
-        {"id": "nt-mc-b-11", "question": "What was the greatest commandment?", "options": ["Do not steal", "Love God", "Honor parents", "Do not lie"], "correctAnswer": 1, "explanation": "Love the Lord your God with all your heart, soul, and mind.", "reference": "Matthew 22:37-38", "points": 10},
-        {"id": "nt-mc-b-12", "question": "Who betrayed Jesus?", "options": ["Peter", "Judas", "Thomas", "James"], "correctAnswer": 1, "explanation": "Judas Iscariot betrayed Jesus for 30 pieces of silver.", "reference": "Matthew 26:14-16", "points": 10},
-        {"id": "nt-mc-b-13", "question": "Garden where Jesus prayed?", "options": ["Eden", "Gethsemane", "Olivet", "Nazareth"], "correctAnswer": 1, "explanation": "Jesus prayed in the Garden of Gethsemane before His arrest.", "reference": "Matthew 26:36", "points": 10},
-        {"id": "nt-mc-b-14", "question": "Who buried Jesus?", "options": ["Peter", "Joseph of Arimathea", "Nicodemus", "James"], "correctAnswer": 1, "explanation": "Joseph of Arimathea asked for Jesus body and buried Him.", "reference": "Matthew 27:57-60", "points": 10},
-        {"id": "nt-mc-b-15", "question": "Days Jesus in tomb?", "options": ["1", "2", "3", "7"], "correctAnswer": 2, "explanation": "Jesus was in the tomb for three days before rising.", "reference": "Matthew 12:40", "points": 10},
-        {"id": "nt-mc-b-16", "question": "Angel said at tomb?", "options": ["Go home", "He is risen", "Wait here", "Be quiet"], "correctAnswer": 1, "explanation": "The angel told the women He is risen.", "reference": "Matthew 28:6", "points": 10},
-        {"id": "nt-mc-b-17", "question": "Who wrote most NT letters?", "options": ["Peter", "Paul", "John", "James"], "correctAnswer": 1, "explanation": "Paul wrote 13 of the 27 books in the New Testament.", "reference": "Various", "points": 10},
-        {"id": "nt-mc-b-18", "question": "Paul converted where?", "options": ["Jerusalem", "Damascus", "Rome", "Antioch"], "correctAnswer": 1, "explanation": "Paul was traveling to Damascus when Jesus appeared to him.", "reference": "Acts 9:3", "points": 10},
-        {"id": "nt-mc-b-19", "question": "Pauls companion?", "options": ["Luke", "Mark", "Barnabas", "Timothy"], "correctAnswer": 2, "explanation": "Barnabas was Pauls companion on his first missionary journey.", "reference": "Acts 13:2", "points": 10},
-        {"id": "nt-mc-b-20", "question": "Jesus raised in?", "options": ["Bethlehem", "Jerusalem", "Nazareth", "Capernaum"], "correctAnswer": 2, "explanation": "Jesus was raised in Nazareth.", "reference": "Luke 2:39-40", "points": 10},
-        {"id": "nt-mc-b-21", "question": "First four Gospels?", "options": ["Matthew Mark Luke John", "Acts Romans Hebrews James", "Genesis Exodus Numbers Joshua", "Paul Peter John James"], "correctAnswer": 0, "explanation": "The four Gospels are Matthew, Mark, Luke, and John.", "reference": "NT Books", "points": 10},
-        {"id": "nt-mc-b-22", "question": "Holy Spirit came on?", "options": ["Christmas", "Easter", "Pentecost", "Passover"], "correctAnswer": 2, "explanation": "The Holy Spirit came upon the disciples at Pentecost.", "reference": "Acts 2:1-4", "points": 10},
-        {"id": "nt-mc-b-23", "question": "First Christian martyr?", "options": ["Peter", "Paul", "Stephen", "James"], "correctAnswer": 2, "explanation": "Stephen was the first Christian martyr, stoned for his faith.", "reference": "Acts 7:59-60", "points": 10},
-        {"id": "nt-mc-b-24", "question": "Greatest is love in?", "options": ["Romans 8", "1 Corinthians 13", "Ephesians 3", "Hebrews 11"], "correctAnswer": 1, "explanation": "1 Corinthians 13 is known as the love chapter.", "reference": "1 Corinthians 13", "points": 10},
-        {"id": "nt-mc-b-25", "question": "Lords Prayer in?", "options": ["Mark", "Matthew", "Luke", "John"], "correctAnswer": 1, "explanation": "The Lords Prayer is found in Matthew 6:9-13.", "reference": "Matthew 6:9-13", "points": 10},
-        {"id": "nt-mc-b-26", "question": "Beatitudes taught where?", "options": ["Temple", "Mount", "Sea", "Synagogue"], "correctAnswer": 1, "explanation": "Jesus taught the Beatitudes in the Sermon on the Mount.", "reference": "Matthew 5:1-12", "points": 10},
-        {"id": "nt-mc-b-27", "question": "Jesus ascended from?", "options": ["Jerusalem", "Bethlehem", "Mount of Olives", "Galilee"], "correctAnswer": 2, "explanation": "Jesus ascended to heaven from the Mount of Olives.", "reference": "Acts 1:9-12", "points": 10},
-        {"id": "nt-mc-b-28", "question": "Which disciple was a fisherman?", "options": ["Matthew", "Paul", "Peter", "Luke"], "correctAnswer": 2, "explanation": "Peter was a fisherman before Jesus called him.", "reference": "Matthew 4:18", "points": 10},
-        {"id": "nt-mc-b-29", "question": "Zacchaeus was a?", "options": ["Fisherman", "Tax collector", "Pharisee", "Carpenter"], "correctAnswer": 1, "explanation": "Zacchaeus was a chief tax collector.", "reference": "Luke 19:2", "points": 10},
-        {"id": "nt-mc-b-30", "question": "Good Samaritan taught?", "options": ["Faith", "Love neighbor", "Prayer", "Fasting"], "correctAnswer": 1, "explanation": "The Good Samaritan parable teaches us to love our neighbor.", "reference": "Luke 10:30-37", "points": 10},
-        {"id": "nt-mc-b-31", "question": "Prodigal son returned to?", "options": ["Brother", "Friend", "Father", "Mother"], "correctAnswer": 2, "explanation": "The prodigal son returned to his father who welcomed him.", "reference": "Luke 15:20", "points": 10},
-        {"id": "nt-mc-b-32", "question": "Jesus healed how many lepers?", "options": ["5", "10", "12", "20"], "correctAnswer": 1, "explanation": "Jesus healed ten lepers but only one returned to thank Him.", "reference": "Luke 17:12-19", "points": 10},
-        {"id": "nt-mc-b-33", "question": "Woman at well from?", "options": ["Jerusalem", "Samaria", "Galilee", "Judea"], "correctAnswer": 1, "explanation": "The woman at the well was from Samaria.", "reference": "John 4:7", "points": 10},
-        {"id": "nt-mc-b-34", "question": "Last book of NT?", "options": ["Jude", "Revelation", "3 John", "Hebrews"], "correctAnswer": 1, "explanation": "Revelation is the last book of the New Testament.", "reference": "Bible Structure", "points": 10},
-        {"id": "nt-mc-b-35", "question": "Jesus washed disciples?", "options": ["Hands", "Feet", "Face", "Hair"], "correctAnswer": 1, "explanation": "Jesus washed the disciples feet to demonstrate servant leadership.", "reference": "John 13:5", "points": 10},
-        {"id": "nt-mc-b-36", "question": "Doubting disciple?", "options": ["Peter", "John", "Thomas", "James"], "correctAnswer": 2, "explanation": "Thomas doubted Jesus resurrection until he saw Him.", "reference": "John 20:24-29", "points": 10},
-        {"id": "nt-mc-b-37", "question": "Bread of life said in?", "options": ["Matthew", "Mark", "Luke", "John"], "correctAnswer": 3, "explanation": "Jesus declared I am the bread of life in Johns Gospel.", "reference": "John 6:35", "points": 10},
-        {"id": "nt-mc-b-38", "question": "Fruit of Spirit in?", "options": ["Romans", "Galatians", "Ephesians", "Colossians"], "correctAnswer": 1, "explanation": "The fruit of the Spirit is listed in Galatians.", "reference": "Galatians 5:22-23", "points": 10},
-        {"id": "nt-mc-b-39", "question": "Armor of God in?", "options": ["Romans", "Ephesians", "Philippians", "Colossians"], "correctAnswer": 1, "explanation": "The armor of God is described in Ephesians 6.", "reference": "Ephesians 6:11-17", "points": 10},
-        {"id": "nt-mc-b-40", "question": "Faith chapter?", "options": ["Romans 8", "Hebrews 11", "James 2", "1 John 4"], "correctAnswer": 1, "explanation": "Hebrews 11 is known as the faith chapter.", "reference": "Hebrews 11", "points": 10},
-        {"id": "nt-mc-b-41", "question": "Golden rule in?", "options": ["Matthew", "Mark", "Luke", "John"], "correctAnswer": 0, "explanation": "Do to others as you would have them do to you is in Matthew.", "reference": "Matthew 7:12", "points": 10},
-        {"id": "nt-mc-b-42", "question": "Greatest of these is?", "options": ["Faith", "Hope", "Love", "Joy"], "correctAnswer": 2, "explanation": "The greatest of these is love.", "reference": "1 Corinthians 13:13", "points": 10},
-        {"id": "nt-mc-b-43", "question": "Jesus hometown?", "options": ["Bethlehem", "Jerusalem", "Nazareth", "Capernaum"], "correctAnswer": 2, "explanation": "Jesus grew up in Nazareth.", "reference": "Luke 4:16", "points": 10},
-        {"id": "nt-mc-b-44", "question": "Paul was from?", "options": ["Jerusalem", "Tarsus", "Damascus", "Rome"], "correctAnswer": 1, "explanation": "Paul was from Tarsus in Cilicia.", "reference": "Acts 21:39", "points": 10},
-        {"id": "nt-mc-b-45", "question": "Book of Acts written by?", "options": ["Paul", "Luke", "Peter", "John"], "correctAnswer": 1, "explanation": "Luke wrote both the Gospel of Luke and the Book of Acts.", "reference": "Acts 1:1", "points": 10},
-        {"id": "nt-mc-b-46", "question": "Wise men brought?", "options": ["Silver gold frankincense", "Gold frankincense myrrh", "Gems spices oils", "Food wine bread"], "correctAnswer": 1, "explanation": "The wise men brought gold, frankincense, and myrrh.", "reference": "Matthew 2:11", "points": 10},
-        {"id": "nt-mc-b-47", "question": "Jesus tempted how many days?", "options": ["7", "30", "40", "50"], "correctAnswer": 2, "explanation": "Jesus was tempted in the wilderness for 40 days.", "reference": "Matthew 4:2", "points": 10},
-        {"id": "nt-mc-b-48", "question": "Transfiguration witnesses?", "options": ["All disciples", "Peter James John", "Peter John Andrew", "The Pharisees"], "correctAnswer": 1, "explanation": "Peter, James, and John witnessed Jesus transfiguration.", "reference": "Matthew 17:1-2", "points": 10},
-        {"id": "nt-mc-b-49", "question": "Last Supper celebrated?", "options": ["Christmas", "Easter", "Passover", "Pentecost"], "correctAnswer": 2, "explanation": "The Last Supper was a Passover meal.", "reference": "Luke 22:15", "points": 10},
-        {"id": "nt-mc-b-50", "question": "Jesus arrested in?", "options": ["Temple", "Bethany", "Gethsemane", "Jerusalem"], "correctAnswer": 2, "explanation": "Jesus was arrested in the Garden of Gethsemane.", "reference": "Matthew 26:50", "points": 10},
-        {"id": "nt-mc-b-51", "question": "Jesus tried by?", "options": ["Herod", "Pilate", "Caesar", "Both A and B"], "correctAnswer": 3, "explanation": "Jesus was tried by both Herod and Pilate.", "reference": "Luke 23:7-11", "points": 10},
-        {"id": "nt-mc-b-52", "question": "Jesus crucified between?", "options": ["Apostles", "Thieves", "Pharisees", "Romans"], "correctAnswer": 1, "explanation": "Jesus was crucified between two thieves.", "reference": "Luke 23:33", "points": 10},
-        {"id": "nt-mc-b-53", "question": "Jesus last words?", "options": ["It is finished", "Father forgive", "Why forsaken", "I thirst"], "correctAnswer": 0, "explanation": "Jesus said It is finished before dying on the cross.", "reference": "John 19:30", "points": 10},
-        {"id": "nt-mc-b-54", "question": "Great Commission in?", "options": ["Matthew", "Mark", "Luke", "John"], "correctAnswer": 0, "explanation": "The Great Commission is found in Matthew 28:19-20.", "reference": "Matthew 28:19-20", "points": 10},
-        {"id": "nt-mc-b-55", "question": "First miracle?", "options": ["Walking on water", "Healing blind", "Water to wine", "Feeding 5000"], "correctAnswer": 2, "explanation": "Jesus first miracle was turning water into wine at Cana.", "reference": "John 2:1-11", "points": 10},
-        {"id": "nt-mc-b-56", "question": "Fed 5000 with?", "options": ["3 loaves 2 fish", "5 loaves 2 fish", "7 loaves 3 fish", "12 loaves"], "correctAnswer": 1, "explanation": "Jesus fed 5000 with 5 loaves and 2 fish.", "reference": "Matthew 14:17-21", "points": 10},
-        {"id": "nt-mc-b-57", "question": "Walked on water?", "options": ["Sea of Galilee", "Red Sea", "Dead Sea", "Jordan River"], "correctAnswer": 0, "explanation": "Jesus walked on the Sea of Galilee.", "reference": "Matthew 14:25", "points": 10},
-        {"id": "nt-mc-b-58", "question": "Raised from dead?", "options": ["Jairus daughter", "Lazarus", "Widows son", "All above"], "correctAnswer": 3, "explanation": "Jesus raised all three from the dead during His ministry.", "reference": "Various", "points": 10},
-        {"id": "nt-mc-b-59", "question": "Healed blind man with?", "options": ["Touch", "Mud and spit", "Words", "Prayer"], "correctAnswer": 1, "explanation": "Jesus healed a blind man using mud made with spit.", "reference": "John 9:6", "points": 10},
-        {"id": "nt-mc-b-60", "question": "Pentecost how many baptized?", "options": ["100", "500", "1000", "3000"], "correctAnswer": 3, "explanation": "About 3000 were baptized at Pentecost.", "reference": "Acts 2:41", "points": 10}
+        {
+          "id": "nt-mc-b-1",
+          "question": "Who wrote the Book of Revelation?",
+          "options": [
+            "Paul",
+            "John",
+            "Peter",
+            "Luke"
+          ],
+          "correctAnswer": 1,
+          "explanation": "John, the beloved disciple, wrote Revelation while exiled on the island of Patmos around 95 AD.",
+          "reference": "Revelation 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-2",
+          "question": "In which city was Jesus born?",
+          "options": [
+            "Nazareth",
+            "Jerusalem",
+            "Bethlehem",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born in Bethlehem, fulfilling the prophecy in Micah 5:2.",
+          "reference": "Matthew 2:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-3",
+          "question": "How many disciples did Jesus choose?",
+          "options": [
+            "10",
+            "11",
+            "12",
+            "13"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus chose 12 disciples to be His closest followers and apostles.",
+          "reference": "Mark 3:14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-4",
+          "question": "Who baptized Jesus?",
+          "options": [
+            "John the Baptist",
+            "Peter",
+            "James",
+            "Andrew"
+          ],
+          "correctAnswer": 0,
+          "explanation": "John the Baptist baptized Jesus in the Jordan River, marking the beginning of His ministry.",
+          "reference": "Matthew 3:13-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-5",
+          "question": "What was Matthews profession?",
+          "options": [
+            "Fisherman",
+            "Tax collector",
+            "Carpenter",
+            "Farmer"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Matthew was a tax collector before Jesus called him.",
+          "reference": "Matthew 9:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-6",
+          "question": "Which disciple denied Jesus three times?",
+          "options": [
+            "John",
+            "James",
+            "Peter",
+            "Thomas"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter denied knowing Jesus three times before the rooster crowed.",
+          "reference": "Luke 22:54-62",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-7",
+          "question": "On which day did Jesus rise?",
+          "options": [
+            "Friday",
+            "Saturday",
+            "Sunday",
+            "Monday"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus rose from the dead on Sunday, the first day of the week.",
+          "reference": "Mark 16:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-8",
+          "question": "Who first saw Jesus after resurrection?",
+          "options": [
+            "Peter",
+            "John",
+            "Mary Magdalene",
+            "Thomas"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Mary Magdalene was the first to see the risen Jesus at the tomb.",
+          "reference": "John 20:11-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-9",
+          "question": "What is the shortest verse?",
+          "options": [
+            "Jesus wept",
+            "God is love",
+            "Pray always",
+            "Be still"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus wept (John 11:35) is the shortest verse in the Bible.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-10",
+          "question": "How many NT books?",
+          "options": [
+            "24",
+            "25",
+            "26",
+            "27"
+          ],
+          "correctAnswer": 3,
+          "explanation": "The New Testament contains 27 books.",
+          "reference": "Bible Structure",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-11",
+          "question": "What was the greatest commandment?",
+          "options": [
+            "Do not steal",
+            "Love God",
+            "Honor parents",
+            "Do not lie"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Love the Lord your God with all your heart, soul, and mind.",
+          "reference": "Matthew 22:37-38",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-12",
+          "question": "Who betrayed Jesus?",
+          "options": [
+            "Peter",
+            "Judas",
+            "Thomas",
+            "James"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Judas Iscariot betrayed Jesus for 30 pieces of silver.",
+          "reference": "Matthew 26:14-16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-13",
+          "question": "Garden where Jesus prayed?",
+          "options": [
+            "Eden",
+            "Gethsemane",
+            "Olivet",
+            "Nazareth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus prayed in the Garden of Gethsemane before His arrest.",
+          "reference": "Matthew 26:36",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-14",
+          "question": "Who buried Jesus?",
+          "options": [
+            "Peter",
+            "Joseph of Arimathea",
+            "Nicodemus",
+            "James"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Joseph of Arimathea asked for Jesus body and buried Him.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-15",
+          "question": "Days Jesus in tomb?",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "7"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was in the tomb for three days before rising.",
+          "reference": "Matthew 12:40",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-16",
+          "question": "Angel said at tomb?",
+          "options": [
+            "Go home",
+            "He is risen",
+            "Wait here",
+            "Be quiet"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The angel told the women He is risen.",
+          "reference": "Matthew 28:6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-17",
+          "question": "Who wrote most NT letters?",
+          "options": [
+            "Peter",
+            "Paul",
+            "John",
+            "James"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Paul wrote 13 of the 27 books in the New Testament.",
+          "reference": "Various",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-18",
+          "question": "Paul converted where?",
+          "options": [
+            "Jerusalem",
+            "Damascus",
+            "Rome",
+            "Antioch"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Paul was traveling to Damascus when Jesus appeared to him.",
+          "reference": "Acts 9:3",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-19",
+          "question": "Pauls companion?",
+          "options": [
+            "Luke",
+            "Mark",
+            "Barnabas",
+            "Timothy"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Barnabas was Pauls companion on his first missionary journey.",
+          "reference": "Acts 13:2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-20",
+          "question": "Jesus raised in?",
+          "options": [
+            "Bethlehem",
+            "Jerusalem",
+            "Nazareth",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was raised in Nazareth.",
+          "reference": "Luke 2:39-40",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-21",
+          "question": "First four Gospels?",
+          "options": [
+            "Matthew Mark Luke John",
+            "Acts Romans Hebrews James",
+            "Genesis Exodus Numbers Joshua",
+            "Paul Peter John James"
+          ],
+          "correctAnswer": 0,
+          "explanation": "The four Gospels are Matthew, Mark, Luke, and John.",
+          "reference": "NT Books",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-22",
+          "question": "Holy Spirit came on?",
+          "options": [
+            "Christmas",
+            "Easter",
+            "Pentecost",
+            "Passover"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Holy Spirit came upon the disciples at Pentecost.",
+          "reference": "Acts 2:1-4",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-23",
+          "question": "First Christian martyr?",
+          "options": [
+            "Peter",
+            "Paul",
+            "Stephen",
+            "James"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Stephen was the first Christian martyr, stoned for his faith.",
+          "reference": "Acts 7:59-60",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-24",
+          "question": "Greatest is love in?",
+          "options": [
+            "Romans 8",
+            "1 Corinthians 13",
+            "Ephesians 3",
+            "Hebrews 11"
+          ],
+          "correctAnswer": 1,
+          "explanation": "1 Corinthians 13 is known as the love chapter.",
+          "reference": "1 Corinthians 13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-25",
+          "question": "Lords Prayer in?",
+          "options": [
+            "Mark",
+            "Matthew",
+            "Luke",
+            "John"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Lords Prayer is found in Matthew 6:9-13.",
+          "reference": "Matthew 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-26",
+          "question": "Beatitudes taught where?",
+          "options": [
+            "Temple",
+            "Mount",
+            "Sea",
+            "Synagogue"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus taught the Beatitudes in the Sermon on the Mount.",
+          "reference": "Matthew 5:1-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-27",
+          "question": "Jesus ascended from?",
+          "options": [
+            "Jerusalem",
+            "Bethlehem",
+            "Mount of Olives",
+            "Galilee"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus ascended to heaven from the Mount of Olives.",
+          "reference": "Acts 1:9-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-28",
+          "question": "Which disciple was a fisherman?",
+          "options": [
+            "Matthew",
+            "Paul",
+            "Peter",
+            "Luke"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter was a fisherman before Jesus called him.",
+          "reference": "Matthew 4:18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-29",
+          "question": "Zacchaeus was a?",
+          "options": [
+            "Fisherman",
+            "Tax collector",
+            "Pharisee",
+            "Carpenter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Zacchaeus was a chief tax collector.",
+          "reference": "Luke 19:2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-30",
+          "question": "Good Samaritan taught?",
+          "options": [
+            "Faith",
+            "Love neighbor",
+            "Prayer",
+            "Fasting"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Good Samaritan parable teaches us to love our neighbor.",
+          "reference": "Luke 10:30-37",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-31",
+          "question": "Prodigal son returned to?",
+          "options": [
+            "Brother",
+            "Friend",
+            "Father",
+            "Mother"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The prodigal son returned to his father who welcomed him.",
+          "reference": "Luke 15:20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-32",
+          "question": "Jesus healed how many lepers?",
+          "options": [
+            "5",
+            "10",
+            "12",
+            "20"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus healed ten lepers but only one returned to thank Him.",
+          "reference": "Luke 17:12-19",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-33",
+          "question": "Woman at well from?",
+          "options": [
+            "Jerusalem",
+            "Samaria",
+            "Galilee",
+            "Judea"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The woman at the well was from Samaria.",
+          "reference": "John 4:7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-34",
+          "question": "Last book of NT?",
+          "options": [
+            "Jude",
+            "Revelation",
+            "3 John",
+            "Hebrews"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Revelation is the last book of the New Testament.",
+          "reference": "Bible Structure",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-35",
+          "question": "Jesus washed disciples?",
+          "options": [
+            "Hands",
+            "Feet",
+            "Face",
+            "Hair"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus washed the disciples feet to demonstrate servant leadership.",
+          "reference": "John 13:5",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-36",
+          "question": "Doubting disciple?",
+          "options": [
+            "Peter",
+            "John",
+            "Thomas",
+            "James"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Thomas doubted Jesus resurrection until he saw Him.",
+          "reference": "John 20:24-29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-37",
+          "question": "Bread of life said in?",
+          "options": [
+            "Matthew",
+            "Mark",
+            "Luke",
+            "John"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Jesus declared I am the bread of life in Johns Gospel.",
+          "reference": "John 6:35",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-38",
+          "question": "Fruit of Spirit in?",
+          "options": [
+            "Romans",
+            "Galatians",
+            "Ephesians",
+            "Colossians"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The fruit of the Spirit is listed in Galatians.",
+          "reference": "Galatians 5:22-23",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-39",
+          "question": "Armor of God in?",
+          "options": [
+            "Romans",
+            "Ephesians",
+            "Philippians",
+            "Colossians"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The armor of God is described in Ephesians 6.",
+          "reference": "Ephesians 6:11-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-40",
+          "question": "Faith chapter?",
+          "options": [
+            "Romans 8",
+            "Hebrews 11",
+            "James 2",
+            "1 John 4"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Hebrews 11 is known as the faith chapter.",
+          "reference": "Hebrews 11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-41",
+          "question": "Golden rule in?",
+          "options": [
+            "Matthew",
+            "Mark",
+            "Luke",
+            "John"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Do to others as you would have them do to you is in Matthew.",
+          "reference": "Matthew 7:12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-42",
+          "question": "Greatest of these is?",
+          "options": [
+            "Faith",
+            "Hope",
+            "Love",
+            "Joy"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The greatest of these is love.",
+          "reference": "1 Corinthians 13:13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-43",
+          "question": "Jesus hometown?",
+          "options": [
+            "Bethlehem",
+            "Jerusalem",
+            "Nazareth",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus grew up in Nazareth.",
+          "reference": "Luke 4:16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-44",
+          "question": "Paul was from?",
+          "options": [
+            "Jerusalem",
+            "Tarsus",
+            "Damascus",
+            "Rome"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Paul was from Tarsus in Cilicia.",
+          "reference": "Acts 21:39",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-45",
+          "question": "Book of Acts written by?",
+          "options": [
+            "Paul",
+            "Luke",
+            "Peter",
+            "John"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Luke wrote both the Gospel of Luke and the Book of Acts.",
+          "reference": "Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-46",
+          "question": "Wise men brought?",
+          "options": [
+            "Silver gold frankincense",
+            "Gold frankincense myrrh",
+            "Gems spices oils",
+            "Food wine bread"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The wise men brought gold, frankincense, and myrrh.",
+          "reference": "Matthew 2:11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-47",
+          "question": "Jesus tempted how many days?",
+          "options": [
+            "7",
+            "30",
+            "40",
+            "50"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was tempted in the wilderness for 40 days.",
+          "reference": "Matthew 4:2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-48",
+          "question": "Transfiguration witnesses?",
+          "options": [
+            "All disciples",
+            "Peter James John",
+            "Peter John Andrew",
+            "The Pharisees"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Peter, James, and John witnessed Jesus transfiguration.",
+          "reference": "Matthew 17:1-2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-49",
+          "question": "Last Supper celebrated?",
+          "options": [
+            "Christmas",
+            "Easter",
+            "Passover",
+            "Pentecost"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Last Supper was a Passover meal.",
+          "reference": "Luke 22:15",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-50",
+          "question": "Jesus arrested in?",
+          "options": [
+            "Temple",
+            "Bethany",
+            "Gethsemane",
+            "Jerusalem"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was arrested in the Garden of Gethsemane.",
+          "reference": "Matthew 26:50",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-51",
+          "question": "Jesus tried by?",
+          "options": [
+            "Herod",
+            "Pilate",
+            "Caesar",
+            "Both A and B"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Jesus was tried by both Herod and Pilate.",
+          "reference": "Luke 23:7-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-52",
+          "question": "Jesus crucified between?",
+          "options": [
+            "Apostles",
+            "Thieves",
+            "Pharisees",
+            "Romans"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus was crucified between two thieves.",
+          "reference": "Luke 23:33",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-53",
+          "question": "Jesus last words?",
+          "options": [
+            "It is finished",
+            "Father forgive",
+            "Why forsaken",
+            "I thirst"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus said It is finished before dying on the cross.",
+          "reference": "John 19:30",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-54",
+          "question": "Great Commission in?",
+          "options": [
+            "Matthew",
+            "Mark",
+            "Luke",
+            "John"
+          ],
+          "correctAnswer": 0,
+          "explanation": "The Great Commission is found in Matthew 28:19-20.",
+          "reference": "Matthew 28:19-20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-55",
+          "question": "First miracle?",
+          "options": [
+            "Walking on water",
+            "Healing blind",
+            "Water to wine",
+            "Feeding 5000"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus first miracle was turning water into wine at Cana.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-56",
+          "question": "Fed 5000 with?",
+          "options": [
+            "3 loaves 2 fish",
+            "5 loaves 2 fish",
+            "7 loaves 3 fish",
+            "12 loaves"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus fed 5000 with 5 loaves and 2 fish.",
+          "reference": "Matthew 14:17-21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-57",
+          "question": "Walked on water?",
+          "options": [
+            "Sea of Galilee",
+            "Red Sea",
+            "Dead Sea",
+            "Jordan River"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus walked on the Sea of Galilee.",
+          "reference": "Matthew 14:25",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-58",
+          "question": "Raised from dead?",
+          "options": [
+            "Jairus daughter",
+            "Lazarus",
+            "Widows son",
+            "All above"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Jesus raised all three from the dead during His ministry.",
+          "reference": "Various",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-59",
+          "question": "Healed blind man with?",
+          "options": [
+            "Touch",
+            "Mud and spit",
+            "Words",
+            "Prayer"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus healed a blind man using mud made with spit.",
+          "reference": "John 9:6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-60",
+          "question": "Pentecost how many baptized?",
+          "options": [
+            "100",
+            "500",
+            "1000",
+            "3000"
+          ],
+          "correctAnswer": 3,
+          "explanation": "About 3000 were baptized at Pentecost.",
+          "reference": "Acts 2:41",
+          "points": 10
+        }
       ]
     },
     "true-false": {
       "beginner": [
-        {"id": "nt-tf-b-1", "question": "Jesus had 12 disciples.", "correctAnswer": true, "explanation": "True! Jesus chose 12 disciples.", "reference": "Mark 3:14", "points": 5},
-        {"id": "nt-tf-b-2", "question": "Jesus was born in Jerusalem.", "correctAnswer": false, "explanation": "False! Jesus was born in Bethlehem.", "reference": "Matthew 2:1", "points": 5},
-        {"id": "nt-tf-b-3", "question": "Peter walked on water.", "correctAnswer": true, "explanation": "True! Peter walked on water toward Jesus.", "reference": "Matthew 14:29", "points": 5},
-        {"id": "nt-tf-b-4", "question": "Water to wine was first miracle.", "correctAnswer": true, "explanation": "True! This miracle occurred at a wedding in Cana.", "reference": "John 2:1-11", "points": 5},
-        {"id": "nt-tf-b-5", "question": "There are 30 NT books.", "correctAnswer": false, "explanation": "False! There are 27 books in the New Testament.", "reference": "Bible Structure", "points": 5},
-        {"id": "nt-tf-b-6", "question": "John the Baptist baptized Jesus.", "correctAnswer": true, "explanation": "True! John baptized Jesus in the Jordan River.", "reference": "Matthew 3:13", "points": 5},
-        {"id": "nt-tf-b-7", "question": "Jesus was a carpenter.", "correctAnswer": true, "explanation": "True! Jesus worked as a carpenter before His ministry.", "reference": "Mark 6:3", "points": 5},
-        {"id": "nt-tf-b-8", "question": "Matthew was a fisherman.", "correctAnswer": false, "explanation": "False! Matthew was a tax collector.", "reference": "Matthew 9:9", "points": 5},
-        {"id": "nt-tf-b-9", "question": "Jesus rose on Sunday.", "correctAnswer": true, "explanation": "True! Jesus rose on the first day of the week, Sunday.", "reference": "Mark 16:9", "points": 5},
-        {"id": "nt-tf-b-10", "question": "Judas betrayed Jesus for silver.", "correctAnswer": true, "explanation": "True! Judas betrayed Jesus for 30 pieces of silver.", "reference": "Matthew 26:15", "points": 5},
-        {"id": "nt-tf-b-11", "question": "Jesus was 40 when ministry began.", "correctAnswer": false, "explanation": "False! Jesus was about 30 years old.", "reference": "Luke 3:23", "points": 5},
-        {"id": "nt-tf-b-12", "question": "Paul wrote Revelation.", "correctAnswer": false, "explanation": "False! John wrote Revelation.", "reference": "Revelation 1:1", "points": 5},
-        {"id": "nt-tf-b-13", "question": "Jesus wept is shortest verse.", "correctAnswer": true, "explanation": "True! John 11:35 is the shortest verse.", "reference": "John 11:35", "points": 5},
-        {"id": "nt-tf-b-14", "question": "Peter denied Jesus twice.", "correctAnswer": false, "explanation": "False! Peter denied Jesus three times.", "reference": "Luke 22:61", "points": 5},
-        {"id": "nt-tf-b-15", "question": "Pentecost gave Holy Spirit.", "correctAnswer": true, "explanation": "True! The Holy Spirit came at Pentecost.", "reference": "Acts 2:4", "points": 5},
-        {"id": "nt-tf-b-16", "question": "Stephen was first martyr.", "correctAnswer": true, "explanation": "True! Stephen was the first Christian martyr.", "reference": "Acts 7:60", "points": 5},
-        {"id": "nt-tf-b-17", "question": "Paul was born in Rome.", "correctAnswer": false, "explanation": "False! Paul was from Tarsus.", "reference": "Acts 22:3", "points": 5},
-        {"id": "nt-tf-b-18", "question": "Jesus fed 5000 people.", "correctAnswer": true, "explanation": "True! Jesus miraculously fed 5000 with bread and fish.", "reference": "Matthew 14:21", "points": 5},
-        {"id": "nt-tf-b-19", "question": "Mary Magdalene was Jesus mother.", "correctAnswer": false, "explanation": "False! Mary was Jesus mother, Mary Magdalene was a follower.", "reference": "Luke 8:2", "points": 5},
-        {"id": "nt-tf-b-20", "question": "Jesus was tempted 40 days.", "correctAnswer": true, "explanation": "True! Jesus was tempted in the wilderness for 40 days.", "reference": "Matthew 4:2", "points": 5},
-        {"id": "nt-tf-b-21", "question": "Beatitudes are in John.", "correctAnswer": false, "explanation": "False! Beatitudes are in Matthew 5.", "reference": "Matthew 5:3-12", "points": 5},
-        {"id": "nt-tf-b-22", "question": "Lords Prayer is in Matthew.", "correctAnswer": true, "explanation": "True! The Lords Prayer is in Matthew 6.", "reference": "Matthew 6:9-13", "points": 5},
-        {"id": "nt-tf-b-23", "question": "Jesus raised Lazarus.", "correctAnswer": true, "explanation": "True! Jesus raised Lazarus from the dead.", "reference": "John 11:43-44", "points": 5},
-        {"id": "nt-tf-b-24", "question": "Paul wrote 20 NT books.", "correctAnswer": false, "explanation": "False! Paul wrote 13 books.", "reference": "NT Books", "points": 5},
-        {"id": "nt-tf-b-25", "question": "Jesus ascended from Mount of Olives.", "correctAnswer": true, "explanation": "True! Jesus ascended from the Mount of Olives.", "reference": "Acts 1:12", "points": 5},
-        {"id": "nt-tf-b-26", "question": "There are 4 Gospels.", "correctAnswer": true, "explanation": "True! Matthew, Mark, Luke, and John.", "reference": "NT Structure", "points": 5},
-        {"id": "nt-tf-b-27", "question": "Jesus spoke Aramaic.", "correctAnswer": true, "explanation": "True! Aramaic was the common language of Jesus time.", "reference": "Historical", "points": 5},
-        {"id": "nt-tf-b-28", "question": "Zacchaeus was tall.", "correctAnswer": false, "explanation": "False! Zacchaeus was short and climbed a tree to see Jesus.", "reference": "Luke 19:3-4", "points": 5},
-        {"id": "nt-tf-b-29", "question": "Good Samaritan helped injured man.", "correctAnswer": true, "explanation": "True! The Samaritan helped the man beaten by robbers.", "reference": "Luke 10:33-34", "points": 5},
-        {"id": "nt-tf-b-30", "question": "Prodigal son had two brothers.", "correctAnswer": false, "explanation": "False! He had one brother.", "reference": "Luke 15:11", "points": 5},
-        {"id": "nt-tf-b-31", "question": "Jesus washed disciples feet.", "correctAnswer": true, "explanation": "True! Jesus washed their feet as an example of humility.", "reference": "John 13:5", "points": 5},
-        {"id": "nt-tf-b-32", "question": "Thomas doubted resurrection.", "correctAnswer": true, "explanation": "True! Thomas doubted until he saw Jesus.", "reference": "John 20:25", "points": 5},
-        {"id": "nt-tf-b-33", "question": "Jesus was sinless.", "correctAnswer": true, "explanation": "True! Jesus lived a sinless life.", "reference": "Hebrews 4:15", "points": 5},
-        {"id": "nt-tf-b-34", "question": "Paul was always a Christian.", "correctAnswer": false, "explanation": "False! Paul persecuted Christians before his conversion.", "reference": "Acts 9:1", "points": 5},
-        {"id": "nt-tf-b-35", "question": "Jesus calmed a storm.", "correctAnswer": true, "explanation": "True! Jesus calmed a storm on the Sea of Galilee.", "reference": "Mark 4:39", "points": 5},
-        {"id": "nt-tf-b-36", "question": "All disciples were martyred.", "correctAnswer": false, "explanation": "False! John died of natural causes in old age.", "reference": "Historical", "points": 5},
-        {"id": "nt-tf-b-37", "question": "Jesus healed on Sabbath.", "correctAnswer": true, "explanation": "True! Jesus healed on the Sabbath, angering religious leaders.", "reference": "Luke 13:14", "points": 5},
-        {"id": "nt-tf-b-38", "question": "Mary and Martha were sisters.", "correctAnswer": true, "explanation": "True! Mary and Martha were sisters of Lazarus.", "reference": "John 11:1", "points": 5},
-        {"id": "nt-tf-b-39", "question": "Jesus was 50 when crucified.", "correctAnswer": false, "explanation": "False! Jesus was about 33 years old.", "reference": "Historical", "points": 5},
-        {"id": "nt-tf-b-40", "question": "Great Commission says make disciples.", "correctAnswer": true, "explanation": "True! Jesus commanded to make disciples of all nations.", "reference": "Matthew 28:19", "points": 5}
+        {
+          "id": "nt-tf-b-1",
+          "question": "Jesus had 12 disciples.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus chose 12 disciples.",
+          "reference": "Mark 3:14",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-2",
+          "question": "Jesus was born in Jerusalem.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was born in Bethlehem.",
+          "reference": "Matthew 2:1",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-3",
+          "question": "Peter walked on water.",
+          "correctAnswer": true,
+          "explanation": "True! Peter walked on water toward Jesus.",
+          "reference": "Matthew 14:29",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-4",
+          "question": "Water to wine was first miracle.",
+          "correctAnswer": true,
+          "explanation": "True! This miracle occurred at a wedding in Cana.",
+          "reference": "John 2:1-11",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-5",
+          "question": "There are 30 NT books.",
+          "correctAnswer": false,
+          "explanation": "False! There are 27 books in the New Testament.",
+          "reference": "Bible Structure",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-6",
+          "question": "John the Baptist baptized Jesus.",
+          "correctAnswer": true,
+          "explanation": "True! John baptized Jesus in the Jordan River.",
+          "reference": "Matthew 3:13",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-7",
+          "question": "Jesus was a carpenter.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus worked as a carpenter before His ministry.",
+          "reference": "Mark 6:3",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-8",
+          "question": "Matthew was a fisherman.",
+          "correctAnswer": false,
+          "explanation": "False! Matthew was a tax collector.",
+          "reference": "Matthew 9:9",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-9",
+          "question": "Jesus rose on Sunday.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus rose on the first day of the week, Sunday.",
+          "reference": "Mark 16:9",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-10",
+          "question": "Judas betrayed Jesus for silver.",
+          "correctAnswer": true,
+          "explanation": "True! Judas betrayed Jesus for 30 pieces of silver.",
+          "reference": "Matthew 26:15",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-11",
+          "question": "Jesus was 40 when ministry began.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was about 30 years old.",
+          "reference": "Luke 3:23",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-12",
+          "question": "Paul wrote Revelation.",
+          "correctAnswer": false,
+          "explanation": "False! John wrote Revelation.",
+          "reference": "Revelation 1:1",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-13",
+          "question": "Jesus wept is shortest verse.",
+          "correctAnswer": true,
+          "explanation": "True! John 11:35 is the shortest verse.",
+          "reference": "John 11:35",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-14",
+          "question": "Peter denied Jesus twice.",
+          "correctAnswer": false,
+          "explanation": "False! Peter denied Jesus three times.",
+          "reference": "Luke 22:61",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-15",
+          "question": "Pentecost gave Holy Spirit.",
+          "correctAnswer": true,
+          "explanation": "True! The Holy Spirit came at Pentecost.",
+          "reference": "Acts 2:4",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-16",
+          "question": "Stephen was first martyr.",
+          "correctAnswer": true,
+          "explanation": "True! Stephen was the first Christian martyr.",
+          "reference": "Acts 7:60",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-17",
+          "question": "Paul was born in Rome.",
+          "correctAnswer": false,
+          "explanation": "False! Paul was from Tarsus.",
+          "reference": "Acts 22:3",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-18",
+          "question": "Jesus fed 5000 people.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus miraculously fed 5000 with bread and fish.",
+          "reference": "Matthew 14:21",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-19",
+          "question": "Mary Magdalene was Jesus mother.",
+          "correctAnswer": false,
+          "explanation": "False! Mary was Jesus mother, Mary Magdalene was a follower.",
+          "reference": "Luke 8:2",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-20",
+          "question": "Jesus was tempted 40 days.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus was tempted in the wilderness for 40 days.",
+          "reference": "Matthew 4:2",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-21",
+          "question": "Beatitudes are in John.",
+          "correctAnswer": false,
+          "explanation": "False! Beatitudes are in Matthew 5.",
+          "reference": "Matthew 5:3-12",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-22",
+          "question": "Lords Prayer is in Matthew.",
+          "correctAnswer": true,
+          "explanation": "True! The Lords Prayer is in Matthew 6.",
+          "reference": "Matthew 6:9-13",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-23",
+          "question": "Jesus raised Lazarus.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus raised Lazarus from the dead.",
+          "reference": "John 11:43-44",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-24",
+          "question": "Paul wrote 20 NT books.",
+          "correctAnswer": false,
+          "explanation": "False! Paul wrote 13 books.",
+          "reference": "NT Books",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-25",
+          "question": "Jesus ascended from Mount of Olives.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus ascended from the Mount of Olives.",
+          "reference": "Acts 1:12",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-26",
+          "question": "There are 4 Gospels.",
+          "correctAnswer": true,
+          "explanation": "True! Matthew, Mark, Luke, and John.",
+          "reference": "NT Structure",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-27",
+          "question": "Jesus spoke Aramaic.",
+          "correctAnswer": true,
+          "explanation": "True! Aramaic was the common language of Jesus time.",
+          "reference": "Historical",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-28",
+          "question": "Zacchaeus was tall.",
+          "correctAnswer": false,
+          "explanation": "False! Zacchaeus was short and climbed a tree to see Jesus.",
+          "reference": "Luke 19:3-4",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-29",
+          "question": "Good Samaritan helped injured man.",
+          "correctAnswer": true,
+          "explanation": "True! The Samaritan helped the man beaten by robbers.",
+          "reference": "Luke 10:33-34",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-30",
+          "question": "Prodigal son had two brothers.",
+          "correctAnswer": false,
+          "explanation": "False! He had one brother.",
+          "reference": "Luke 15:11",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-31",
+          "question": "Jesus washed disciples feet.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus washed their feet as an example of humility.",
+          "reference": "John 13:5",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-32",
+          "question": "Thomas doubted resurrection.",
+          "correctAnswer": true,
+          "explanation": "True! Thomas doubted until he saw Jesus.",
+          "reference": "John 20:25",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-33",
+          "question": "Jesus was sinless.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus lived a sinless life.",
+          "reference": "Hebrews 4:15",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-34",
+          "question": "Paul was always a Christian.",
+          "correctAnswer": false,
+          "explanation": "False! Paul persecuted Christians before his conversion.",
+          "reference": "Acts 9:1",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-35",
+          "question": "Jesus calmed a storm.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus calmed a storm on the Sea of Galilee.",
+          "reference": "Mark 4:39",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-36",
+          "question": "All disciples were martyred.",
+          "correctAnswer": false,
+          "explanation": "False! John died of natural causes in old age.",
+          "reference": "Historical",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-37",
+          "question": "Jesus healed on Sabbath.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus healed on the Sabbath, angering religious leaders.",
+          "reference": "Luke 13:14",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-38",
+          "question": "Mary and Martha were sisters.",
+          "correctAnswer": true,
+          "explanation": "True! Mary and Martha were sisters of Lazarus.",
+          "reference": "John 11:1",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-39",
+          "question": "Jesus was 50 when crucified.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was about 33 years old.",
+          "reference": "Historical",
+          "points": 5
+        },
+        {
+          "id": "nt-tf-b-40",
+          "question": "Great Commission says make disciples.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus commanded to make disciples of all nations.",
+          "reference": "Matthew 28:19",
+          "points": 5
+        }
       ]
     }
   },
   "old-testament": {
     "multiple-choice": {
       "beginner": [
-        {"id": "ot-mc-b-1", "question": "Who built the ark?", "options": ["Moses", "Noah", "Abraham", "David"], "correctAnswer": 1, "explanation": "Noah built the ark as commanded by God.", "reference": "Genesis 6:14", "points": 10},
-        {"id": "ot-mc-b-2", "question": "Rain during flood?", "options": ["7", "30", "40", "100"], "correctAnswer": 2, "explanation": "It rained for 40 days and 40 nights.", "reference": "Genesis 7:12", "points": 10},
-        {"id": "ot-mc-b-3", "question": "Who was swallowed by fish?", "options": ["Jonah", "Daniel", "Elijah", "Isaiah"], "correctAnswer": 0, "explanation": "Jonah was swallowed by a great fish.", "reference": "Jonah 1:17", "points": 10},
-        {"id": "ot-mc-b-4", "question": "First day creation?", "options": ["Animals", "Light", "Plants", "Humans"], "correctAnswer": 1, "explanation": "On the first day, God created light.", "reference": "Genesis 1:3", "points": 10},
-        {"id": "ot-mc-b-5", "question": "Strongest man?", "options": ["David", "Goliath", "Samson", "Joshua"], "correctAnswer": 2, "explanation": "Samson was known for his supernatural strength.", "reference": "Judges 13-16", "points": 10}
+        {
+          "id": "ot-mc-b-1",
+          "question": "Who built the ark?",
+          "options": [
+            "Moses",
+            "Noah",
+            "Abraham",
+            "David"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Noah built the ark as commanded by God.",
+          "reference": "Genesis 6:14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-2",
+          "question": "Rain during flood?",
+          "options": [
+            "7",
+            "30",
+            "40",
+            "100"
+          ],
+          "correctAnswer": 2,
+          "explanation": "It rained for 40 days and 40 nights.",
+          "reference": "Genesis 7:12",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-3",
+          "question": "Who was swallowed by fish?",
+          "options": [
+            "Jonah",
+            "Daniel",
+            "Elijah",
+            "Isaiah"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jonah was swallowed by a great fish.",
+          "reference": "Jonah 1:17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-4",
+          "question": "First day creation?",
+          "options": [
+            "Animals",
+            "Light",
+            "Plants",
+            "Humans"
+          ],
+          "correctAnswer": 1,
+          "explanation": "On the first day, God created light.",
+          "reference": "Genesis 1:3",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-5",
+          "question": "Strongest man?",
+          "options": [
+            "David",
+            "Goliath",
+            "Samson",
+            "Joshua"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Samson was known for his supernatural strength.",
+          "reference": "Judges 13-16",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-6",
+          "question": "Who led Israelites from Egypt?",
+          "options": [
+            "Abraham",
+            "Moses",
+            "Joshua",
+            "David"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Moses led the Israelites out of Egyptian slavery.",
+          "reference": "Exodus 3:10",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-7",
+          "question": "How many plagues on Egypt?",
+          "options": [
+            "7",
+            "10",
+            "12",
+            "15"
+          ],
+          "correctAnswer": 1,
+          "explanation": "God sent 10 plagues upon Egypt.",
+          "reference": "Exodus 7-12",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-8",
+          "question": "Who received Ten Commandments?",
+          "options": [
+            "Abraham",
+            "Noah",
+            "Moses",
+            "David"
+          ],
+          "correctAnswer": 2,
+          "explanation": "God gave Moses the Ten Commandments on Mount Sinai.",
+          "reference": "Exodus 20:1-17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-9",
+          "question": "What killed Goliath?",
+          "options": [
+            "Sword",
+            "Arrow",
+            "Stone",
+            "Spear"
+          ],
+          "correctAnswer": 2,
+          "explanation": "David killed Goliath with a stone from his sling.",
+          "reference": "1 Samuel 17:49",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-10",
+          "question": "Who was David's son?",
+          "options": [
+            "Saul",
+            "Solomon",
+            "Samuel",
+            "Absalom"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Solomon was David's son who became king.",
+          "reference": "1 Kings 1:13",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-11",
+          "question": "First book of Bible?",
+          "options": [
+            "Exodus",
+            "Genesis",
+            "Leviticus",
+            "Numbers"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Genesis is the first book of the Bible.",
+          "reference": "Genesis 1:1",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-12",
+          "question": "Who interpreted dreams?",
+          "options": [
+            "Moses",
+            "Daniel",
+            "Isaiah",
+            "Jeremiah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Daniel interpreted dreams for kings.",
+          "reference": "Daniel 2:19",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-13",
+          "question": "Who was in lions den?",
+          "options": [
+            "David",
+            "Daniel",
+            "Jonah",
+            "Elijah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Daniel was thrown into the lions den.",
+          "reference": "Daniel 6:16",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-14",
+          "question": "Who was eaten by fish?",
+          "options": [
+            "Jonah",
+            "Daniel",
+            "Elijah",
+            "Elisha"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jonah was swallowed by a great fish.",
+          "reference": "Jonah 1:17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-15",
+          "question": "Days in fish?",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "7"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jonah was in the fish for three days and nights.",
+          "reference": "Jonah 1:17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-16",
+          "question": "Who parted Red Sea?",
+          "options": [
+            "Moses",
+            "Joshua",
+            "Abraham",
+            "Noah"
+          ],
+          "correctAnswer": 0,
+          "explanation": "God parted the Red Sea through Moses.",
+          "reference": "Exodus 14:21",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-17",
+          "question": "Brothers of Joseph?",
+          "options": [
+            "2",
+            "7",
+            "11",
+            "12"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Joseph had 11 brothers (12 sons of Jacob total).",
+          "reference": "Genesis 35:22",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-18",
+          "question": "Who fought walls of Jericho?",
+          "options": [
+            "Moses",
+            "Joshua",
+            "David",
+            "Samson"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Joshua led the battle of Jericho.",
+          "reference": "Joshua 6:20",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-19",
+          "question": "Queen who visited Solomon?",
+          "options": [
+            "Esther",
+            "Ruth",
+            "Sheba",
+            "Deborah"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Queen of Sheba visited Solomon.",
+          "reference": "1 Kings 10:1",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-20",
+          "question": "Who was thrown in fiery furnace?",
+          "options": [
+            "Daniel",
+            "Shadrach Meshach Abednego",
+            "Jeremiah",
+            "Isaiah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Shadrach, Meshach, and Abednego were in the furnace.",
+          "reference": "Daniel 3:20",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-21",
+          "question": "Samson's strength from?",
+          "options": [
+            "Muscles",
+            "Hair",
+            "God",
+            "Training"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Samson's strength came from his uncut hair.",
+          "reference": "Judges 16:17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-22",
+          "question": "Who built temple?",
+          "options": [
+            "David",
+            "Solomon",
+            "Moses",
+            "Joshua"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Solomon built the temple in Jerusalem.",
+          "reference": "1 Kings 6:1",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-23",
+          "question": "Abraham's wife?",
+          "options": [
+            "Rachel",
+            "Sarah",
+            "Rebekah",
+            "Leah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Sarah was Abraham's wife.",
+          "reference": "Genesis 17:15",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-24",
+          "question": "Isaac's son?",
+          "options": [
+            "Joseph",
+            "Jacob",
+            "Esau",
+            "Both B and C"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Isaac had twin sons: Jacob and Esau.",
+          "reference": "Genesis 25:24-26",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-25",
+          "question": "Who sold for silver?",
+          "options": [
+            "Joseph",
+            "David",
+            "Daniel",
+            "Moses"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Joseph was sold by his brothers for silver.",
+          "reference": "Genesis 37:28",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-26",
+          "question": "Days to create world?",
+          "options": [
+            "3",
+            "6",
+            "7",
+            "10"
+          ],
+          "correctAnswer": 1,
+          "explanation": "God created the world in 6 days and rested on the 7th.",
+          "reference": "Genesis 1",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-27",
+          "question": "First woman?",
+          "options": [
+            "Sarah",
+            "Eve",
+            "Mary",
+            "Ruth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Eve was the first woman God created.",
+          "reference": "Genesis 2:22",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-28",
+          "question": "Who built ark?",
+          "options": [
+            "Moses",
+            "Noah",
+            "Abraham",
+            "David"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Noah built the ark as commanded by God.",
+          "reference": "Genesis 6:14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-29",
+          "question": "Animals on ark?",
+          "options": [
+            "One pair each",
+            "Two pairs each",
+            "Seven of some two of others",
+            "Ten each"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Seven pairs of clean animals, two of unclean.",
+          "reference": "Genesis 7:2",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-30",
+          "question": "Sign of covenant with Noah?",
+          "options": [
+            "Star",
+            "Rainbow",
+            "Dove",
+            "Cloud"
+          ],
+          "correctAnswer": 1,
+          "explanation": "God put a rainbow as a sign of His covenant.",
+          "reference": "Genesis 9:13",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-31",
+          "question": "Tower of?",
+          "options": [
+            "Babel",
+            "Jericho",
+            "Jerusalem",
+            "Siloam"
+          ],
+          "correctAnswer": 0,
+          "explanation": "The Tower of Babel was built in rebellion.",
+          "reference": "Genesis 11:4",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-32",
+          "question": "Abraham tested with?",
+          "options": [
+            "Isaac",
+            "Ishmael",
+            "Jacob",
+            "Esau"
+          ],
+          "correctAnswer": 0,
+          "explanation": "God tested Abraham by asking for Isaac.",
+          "reference": "Genesis 22:2",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-33",
+          "question": "Jacob's new name?",
+          "options": [
+            "Israel",
+            "Abraham",
+            "Joseph",
+            "Judah"
+          ],
+          "correctAnswer": 0,
+          "explanation": "God renamed Jacob as Israel.",
+          "reference": "Genesis 32:28",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-34",
+          "question": "Joseph's coat?",
+          "options": [
+            "Red",
+            "Blue",
+            "Many colors",
+            "White"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Joseph had a coat of many colors.",
+          "reference": "Genesis 37:3",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-35",
+          "question": "Burning bush spoke to?",
+          "options": [
+            "Abraham",
+            "Moses",
+            "Noah",
+            "David"
+          ],
+          "correctAnswer": 1,
+          "explanation": "God spoke to Moses from a burning bush.",
+          "reference": "Exodus 3:4",
+          "points": 10
+        }
       ]
     },
     "true-false": {
       "beginner": [
-        {"id": "ot-tf-b-1", "question": "Moses parted Red Sea.", "correctAnswer": true, "explanation": "True! God parted the Red Sea through Moses.", "reference": "Exodus 14:21", "points": 5},
-        {"id": "ot-tf-b-2", "question": "David killed Goliath with sword.", "correctAnswer": false, "explanation": "False! David killed Goliath with a stone from his sling.", "reference": "1 Samuel 17:49", "points": 5},
-        {"id": "ot-tf-b-3", "question": "There are 10 commandments.", "correctAnswer": true, "explanation": "True! God gave Moses the Ten Commandments.", "reference": "Exodus 20:1-17", "points": 5}
+        {
+          "id": "ot-tf-b-1",
+          "question": "Moses parted Red Sea.",
+          "correctAnswer": true,
+          "explanation": "True! God parted the Red Sea through Moses.",
+          "reference": "Exodus 14:21",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-2",
+          "question": "David killed Goliath with sword.",
+          "correctAnswer": false,
+          "explanation": "False! David killed Goliath with a stone from his sling.",
+          "reference": "1 Samuel 17:49",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-3",
+          "question": "There are 10 commandments.",
+          "correctAnswer": true,
+          "explanation": "True! God gave Moses the Ten Commandments.",
+          "reference": "Exodus 20:1-17",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-4",
+          "question": "God created world in 7 days.",
+          "correctAnswer": false,
+          "explanation": "False! God created in 6 days and rested on the 7th.",
+          "reference": "Genesis 1-2",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-5",
+          "question": "Noah had three sons.",
+          "correctAnswer": true,
+          "explanation": "True! Noah's sons were Shem, Ham, and Japheth.",
+          "reference": "Genesis 6:10",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-6",
+          "question": "Moses wrote first 5 books.",
+          "correctAnswer": true,
+          "explanation": "True! Moses wrote Genesis, Exodus, Leviticus, Numbers, and Deuteronomy.",
+          "reference": "Traditional",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-7",
+          "question": "David was youngest son.",
+          "correctAnswer": true,
+          "explanation": "True! David was Jesse's youngest son.",
+          "reference": "1 Samuel 16:11",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-8",
+          "question": "Solomon was wisest king.",
+          "correctAnswer": true,
+          "explanation": "True! God gave Solomon great wisdom.",
+          "reference": "1 Kings 3:12",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-9",
+          "question": "Daniel ate king's food.",
+          "correctAnswer": false,
+          "explanation": "False! Daniel refused the king's food and ate vegetables.",
+          "reference": "Daniel 1:8",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-10",
+          "question": "Jonah went to Nineveh immediately.",
+          "correctAnswer": false,
+          "explanation": "False! Jonah tried to run away first.",
+          "reference": "Jonah 1:3",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-11",
+          "question": "Joseph became ruler in Egypt.",
+          "correctAnswer": true,
+          "explanation": "True! Joseph became second in command in Egypt.",
+          "reference": "Genesis 41:40",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-12",
+          "question": "Abraham had only one son.",
+          "correctAnswer": false,
+          "explanation": "False! Abraham had Ishmael and Isaac (and others).",
+          "reference": "Genesis 25:1-2",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-13",
+          "question": "Ten Commandments written on stone.",
+          "correctAnswer": true,
+          "explanation": "True! God wrote them on stone tablets.",
+          "reference": "Exodus 31:18",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-14",
+          "question": "Samson was a judge.",
+          "correctAnswer": true,
+          "explanation": "True! Samson was one of Israel's judges.",
+          "reference": "Judges 16:31",
+          "points": 5
+        },
+        {
+          "id": "ot-tf-b-15",
+          "question": "Eve ate fruit first.",
+          "correctAnswer": true,
+          "explanation": "True! Eve ate the forbidden fruit before Adam.",
+          "reference": "Genesis 3:6",
+          "points": 5
+        }
       ]
     }
   },
   "life-of-jesus": {
     "multiple-choice": {
       "beginner": [
-        {"id": "loj-mc-b-1", "question": "Jesus earthly parents?", "options": ["Abraham Sarah", "Joseph Mary", "Zechariah Elizabeth", "Boaz Ruth"], "correctAnswer": 1, "explanation": "Joseph and Mary were the earthly parents who raised Jesus.", "reference": "Matthew 1:18-25", "points": 10},
-        {"id": "loj-mc-b-2", "question": "Jesus began ministry at age?", "options": ["20", "25", "30", "35"], "correctAnswer": 2, "explanation": "Jesus was about 30 years old when He began His ministry.", "reference": "Luke 3:23", "points": 10},
-        {"id": "loj-mc-b-3", "question": "Loaves to feed 5000?", "options": ["2", "5", "7", "12"], "correctAnswer": 1, "explanation": "Jesus used 5 loaves and 2 fish to feed the 5000.", "reference": "Matthew 14:17", "points": 10}
+        {
+          "id": "loj-mc-b-1",
+          "question": "Jesus earthly parents?",
+          "options": [
+            "Abraham Sarah",
+            "Joseph Mary",
+            "Zechariah Elizabeth",
+            "Boaz Ruth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Joseph and Mary were the earthly parents who raised Jesus.",
+          "reference": "Matthew 1:18-25",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-2",
+          "question": "Jesus began ministry at age?",
+          "options": [
+            "20",
+            "25",
+            "30",
+            "35"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was about 30 years old when He began His ministry.",
+          "reference": "Luke 3:23",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-3",
+          "question": "Loaves to feed 5000?",
+          "options": [
+            "2",
+            "5",
+            "7",
+            "12"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus used 5 loaves and 2 fish to feed the 5000.",
+          "reference": "Matthew 14:17",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-4",
+          "question": "Jesus born in?",
+          "options": [
+            "Nazareth",
+            "Jerusalem",
+            "Bethlehem",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born in Bethlehem.",
+          "reference": "Matthew 2:1",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-5",
+          "question": "Jesus baptized in?",
+          "options": [
+            "Dead Sea",
+            "Red Sea",
+            "Jordan River",
+            "Sea of Galilee"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was baptized in the Jordan River.",
+          "reference": "Matthew 3:13",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-6",
+          "question": "Jesus tempted days?",
+          "options": [
+            "7",
+            "30",
+            "40",
+            "50"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was tempted for 40 days in the wilderness.",
+          "reference": "Matthew 4:2",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-7",
+          "question": "First disciples called?",
+          "options": [
+            "Matthew and Mark",
+            "Peter and Andrew",
+            "James and John",
+            "Thomas and Philip"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Peter and Andrew were the first called.",
+          "reference": "Matthew 4:18-19",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-8",
+          "question": "Sermon on the?",
+          "options": [
+            "Mount",
+            "Plain",
+            "Sea",
+            "Temple"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus gave the Sermon on the Mount.",
+          "reference": "Matthew 5:1",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-9",
+          "question": "Jesus calmed?",
+          "options": [
+            "Storm",
+            "Crowd",
+            "Demons",
+            "Animals"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus calmed a storm on the sea.",
+          "reference": "Mark 4:39",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-10",
+          "question": "Transfiguration mountain?",
+          "options": [
+            "Sinai",
+            "High mountain",
+            "Olivet",
+            "Zion"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus was transfigured on a high mountain.",
+          "reference": "Matthew 17:1",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-11",
+          "question": "Jesus entered Jerusalem on?",
+          "options": [
+            "Horse",
+            "Donkey",
+            "Camel",
+            "Foot"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus entered on a donkey.",
+          "reference": "Matthew 21:7",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-12",
+          "question": "Last Supper celebrated what?",
+          "options": [
+            "Pentecost",
+            "Passover",
+            "Tabernacles",
+            "Purim"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Last Supper was a Passover meal.",
+          "reference": "Luke 22:15",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-13",
+          "question": "Jesus prayed in?",
+          "options": [
+            "Temple",
+            "Synagogue",
+            "Gethsemane",
+            "Upper room"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus prayed in Gethsemane.",
+          "reference": "Matthew 26:36",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-14",
+          "question": "Peter denied Jesus how many times?",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "7"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter denied Jesus three times.",
+          "reference": "Luke 22:61",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-15",
+          "question": "Jesus carried?",
+          "options": [
+            "Cross",
+            "Sword",
+            "Staff",
+            "Crown"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus carried His cross.",
+          "reference": "John 19:17",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-16",
+          "question": "Jesus crucified at?",
+          "options": [
+            "Bethany",
+            "Calvary",
+            "Bethlehem",
+            "Nazareth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus was crucified at Calvary (Golgotha).",
+          "reference": "Matthew 27:33",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-17",
+          "question": "Jesus side pierced with?",
+          "options": [
+            "Sword",
+            "Arrow",
+            "Spear",
+            "Knife"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A soldier pierced Jesus side with a spear.",
+          "reference": "John 19:34",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-18",
+          "question": "Jesus buried by?",
+          "options": [
+            "Disciples",
+            "Pharisees",
+            "Joseph of Arimathea",
+            "Pilate"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Joseph of Arimathea buried Jesus.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-19",
+          "question": "Empty tomb discovered by?",
+          "options": [
+            "Peter",
+            "John",
+            "Women",
+            "Angels"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Women discovered the empty tomb.",
+          "reference": "Luke 24:1-3",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-20",
+          "question": "Jesus appeared to disciples how many days?",
+          "options": [
+            "3",
+            "7",
+            "40",
+            "50"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus appeared for 40 days after resurrection.",
+          "reference": "Acts 1:3",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-21",
+          "question": "Jesus ascended from?",
+          "options": [
+            "Jerusalem",
+            "Bethlehem",
+            "Mount of Olives",
+            "Galilee"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus ascended from Mount of Olives.",
+          "reference": "Acts 1:12",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-22",
+          "question": "Jesus promised to send?",
+          "options": [
+            "Angels",
+            "Holy Spirit",
+            "Prophets",
+            "More disciples"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus promised the Holy Spirit.",
+          "reference": "John 14:26",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-23",
+          "question": "Jesus performed first miracle at?",
+          "options": [
+            "Jerusalem",
+            "Cana",
+            "Capernaum",
+            "Bethany"
+          ],
+          "correctAnswer": 1,
+          "explanation": "First miracle was at Cana.",
+          "reference": "John 2:1",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-24",
+          "question": "Jesus healed on?",
+          "options": [
+            "Monday",
+            "Friday",
+            "Sabbath",
+            "Sunday"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus often healed on the Sabbath.",
+          "reference": "Luke 13:14",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-25",
+          "question": "Jesus taught using?",
+          "options": [
+            "Parables",
+            "Songs",
+            "Poetry",
+            "Letters"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus taught using parables.",
+          "reference": "Matthew 13:3",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-26",
+          "question": "Jesus chose how many disciples?",
+          "options": [
+            "7",
+            "12",
+            "24",
+            "70"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus chose 12 disciples.",
+          "reference": "Mark 3:14",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-27",
+          "question": "Jesus was carpenter from?",
+          "options": [
+            "Bethlehem",
+            "Jerusalem",
+            "Nazareth",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was a carpenter from Nazareth.",
+          "reference": "Mark 6:3",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-28",
+          "question": "Jesus cleared temple of?",
+          "options": [
+            "Pharisees",
+            "Romans",
+            "Money changers",
+            "Sick people"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus drove out money changers.",
+          "reference": "Matthew 21:12",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-29",
+          "question": "Woman touched Jesus?",
+          "options": [
+            "Robe",
+            "Hand",
+            "Garment hem",
+            "Feet"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The woman touched the hem of His garment.",
+          "reference": "Matthew 9:20",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-30",
+          "question": "Jesus wept over?",
+          "options": [
+            "Jerusalem",
+            "Lazarus",
+            "Disciples",
+            "Temple"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus wept when Lazarus died.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-31",
+          "question": "Jesus said I am the?",
+          "options": [
+            "King",
+            "Prophet",
+            "Way truth life",
+            "Messiah"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said I am the way, truth, and life.",
+          "reference": "John 14:6",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-32",
+          "question": "Jesus called himself?",
+          "options": [
+            "Good shepherd",
+            "Great teacher",
+            "Wise prophet",
+            "Holy king"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus called Himself the good shepherd.",
+          "reference": "John 10:11",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-33",
+          "question": "Jesus raised widow's son in?",
+          "options": [
+            "Cana",
+            "Nain",
+            "Capernaum",
+            "Bethany"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus raised the widow's son in Nain.",
+          "reference": "Luke 7:11-15",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-34",
+          "question": "Jesus healed how many lepers?",
+          "options": [
+            "1",
+            "5",
+            "10",
+            "100"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus healed ten lepers at once.",
+          "reference": "Luke 17:12",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-35",
+          "question": "How many returned to thank?",
+          "options": [
+            "1",
+            "5",
+            "10",
+            "None"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Only one leper returned to thank Jesus.",
+          "reference": "Luke 17:15-16",
+          "points": 10
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "loj-tf-b-1",
+          "question": "Jesus was born in Nazareth.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was born in Bethlehem.",
+          "reference": "Matthew 2:1",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-2",
+          "question": "Mary was Jesus mother.",
+          "correctAnswer": true,
+          "explanation": "True! Mary gave birth to Jesus.",
+          "reference": "Luke 2:7",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-3",
+          "question": "Jesus had brothers and sisters.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus had siblings.",
+          "reference": "Mark 6:3",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-4",
+          "question": "Jesus was baptized by John.",
+          "correctAnswer": true,
+          "explanation": "True! John the Baptist baptized Jesus.",
+          "reference": "Matthew 3:13",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-5",
+          "question": "Jesus chose 10 disciples.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus chose 12 disciples.",
+          "reference": "Mark 3:14",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-6",
+          "question": "Jesus never got angry.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus showed righteous anger in the temple.",
+          "reference": "Matthew 21:12",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-7",
+          "question": "Jesus walked on water.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus walked on the Sea of Galilee.",
+          "reference": "Matthew 14:25",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-8",
+          "question": "Jesus was sinless.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus never sinned.",
+          "reference": "Hebrews 4:15",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-9",
+          "question": "Jesus died by stoning.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus was crucified.",
+          "reference": "Matthew 27:35",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-10",
+          "question": "Jesus rose on third day.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus rose on the third day.",
+          "reference": "1 Corinthians 15:4",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-11",
+          "question": "Jesus ascended to heaven.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus ascended to heaven.",
+          "reference": "Acts 1:9",
+          "points": 5
+        },
+        {
+          "id": "loj-tf-b-12",
+          "question": "Jesus taught in parables.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus used many parables.",
+          "reference": "Matthew 13:3",
+          "points": 5
+        }
       ]
     }
   },
   "miracles": {
     "multiple-choice": {
       "beginner": [
-        {"id": "mir-mc-b-1", "question": "Jesus first miracle?", "options": ["Walking on water", "Healing blind", "Water to wine", "Feeding 5000"], "correctAnswer": 2, "explanation": "Jesus first miracle was turning water into wine at Cana.", "reference": "John 2:1-11", "points": 10},
-        {"id": "mir-mc-b-2", "question": "Raised after 4 days?", "options": ["Jairus daughter", "Lazarus", "Widows son", "Dorcas"], "correctAnswer": 1, "explanation": "Jesus raised Lazarus after four days in the tomb.", "reference": "John 11:38-44", "points": 10}
+        {
+          "id": "mir-mc-b-1",
+          "question": "Jesus first miracle?",
+          "options": [
+            "Walking on water",
+            "Healing blind",
+            "Water to wine",
+            "Feeding 5000"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus first miracle was turning water into wine at Cana.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-2",
+          "question": "Raised after 4 days?",
+          "options": [
+            "Jairus daughter",
+            "Lazarus",
+            "Widows son",
+            "Dorcas"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus raised Lazarus after four days in the tomb.",
+          "reference": "John 11:38-44",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-3",
+          "question": "Feeding 5000 miracle used?",
+          "options": [
+            "3 loaves",
+            "5 loaves 2 fish",
+            "7 loaves",
+            "12 baskets"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus used 5 loaves and 2 fish.",
+          "reference": "Matthew 14:17",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-4",
+          "question": "Baskets left over from 5000?",
+          "options": [
+            "5",
+            "7",
+            "12",
+            "20"
+          ],
+          "correctAnswer": 2,
+          "explanation": "12 baskets were left over.",
+          "reference": "Matthew 14:20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-5",
+          "question": "Jesus walked on?",
+          "options": [
+            "Jordan",
+            "Red Sea",
+            "Sea of Galilee",
+            "Dead Sea"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus walked on the Sea of Galilee.",
+          "reference": "Matthew 14:25",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-6",
+          "question": "Peter walked on water toward?",
+          "options": [
+            "John",
+            "Andrew",
+            "Jesus",
+            "Angel"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter walked toward Jesus.",
+          "reference": "Matthew 14:29",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-7",
+          "question": "Jesus calmed storm with?",
+          "options": [
+            "Touch",
+            "Prayer",
+            "Word",
+            "Staff"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus spoke to calm the storm.",
+          "reference": "Mark 4:39",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-8",
+          "question": "Blind man healed with?",
+          "options": [
+            "Touch",
+            "Mud and spit",
+            "Prayer",
+            "Oil"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus used mud and spit.",
+          "reference": "John 9:6",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-9",
+          "question": "Lazarus was dead for?",
+          "options": [
+            "1 day",
+            "2 days",
+            "4 days",
+            "7 days"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Lazarus was dead 4 days.",
+          "reference": "John 11:17",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-10",
+          "question": "Jesus raised Lazarus with?",
+          "options": [
+            "Touch",
+            "Command",
+            "Prayer",
+            "Song"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus commanded Lazarus to come out.",
+          "reference": "John 11:43",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-11",
+          "question": "Woman healed by touching?",
+          "options": [
+            "Jesus hand",
+            "Jesus robe",
+            "Jesus hem",
+            "Jesus feet"
+          ],
+          "correctAnswer": 2,
+          "explanation": "She touched the hem of His garment.",
+          "reference": "Matthew 9:20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-12",
+          "question": "How long bleeding?",
+          "options": [
+            "5 years",
+            "10 years",
+            "12 years",
+            "20 years"
+          ],
+          "correctAnswer": 2,
+          "explanation": "She had been bleeding for 12 years.",
+          "reference": "Mark 5:25",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-13",
+          "question": "Jairus' daughter was?",
+          "options": [
+            "Sick",
+            "Blind",
+            "Dead",
+            "Lame"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jairus' daughter had died.",
+          "reference": "Mark 5:35",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-14",
+          "question": "Jesus said she was?",
+          "options": [
+            "Dead",
+            "Sleeping",
+            "Sick",
+            "Resting"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said she was sleeping.",
+          "reference": "Mark 5:39",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-15",
+          "question": "Wedding miracle location?",
+          "options": [
+            "Jerusalem",
+            "Cana",
+            "Capernaum",
+            "Bethany"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The wedding was in Cana.",
+          "reference": "John 2:1",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-16",
+          "question": "Water became?",
+          "options": [
+            "Milk",
+            "Wine",
+            "Oil",
+            "Honey"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Water became wine.",
+          "reference": "John 2:9",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-17",
+          "question": "Lepers healed were?",
+          "options": [
+            "5",
+            "7",
+            "10",
+            "12"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Ten lepers were healed.",
+          "reference": "Luke 17:12",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-18",
+          "question": "How many returned?",
+          "options": [
+            "None",
+            "1",
+            "5",
+            "10"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Only one returned to thank Jesus.",
+          "reference": "Luke 17:15",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-19",
+          "question": "Man lowered through?",
+          "options": [
+            "Window",
+            "Roof",
+            "Door",
+            "Wall"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Friends lowered him through the roof.",
+          "reference": "Mark 2:4",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-20",
+          "question": "Jesus told him to?",
+          "options": [
+            "Walk",
+            "Stand",
+            "Rise and walk",
+            "Be healed"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said Rise, take up your bed and walk.",
+          "reference": "Mark 2:11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-21",
+          "question": "Withered hand healed on?",
+          "options": [
+            "Monday",
+            "Friday",
+            "Sabbath",
+            "Passover"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus healed on the Sabbath.",
+          "reference": "Luke 6:6",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-22",
+          "question": "Woman bent over for?",
+          "options": [
+            "5 years",
+            "10 years",
+            "18 years",
+            "30 years"
+          ],
+          "correctAnswer": 2,
+          "explanation": "She was bent for 18 years.",
+          "reference": "Luke 13:11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-23",
+          "question": "Jesus healed servant of?",
+          "options": [
+            "Pharisee",
+            "Centurion",
+            "Tax collector",
+            "Priest"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The centurion's servant was healed.",
+          "reference": "Matthew 8:5",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-24",
+          "question": "Centurion showed great?",
+          "options": [
+            "Wealth",
+            "Power",
+            "Faith",
+            "Wisdom"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The centurion showed great faith.",
+          "reference": "Matthew 8:10",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-25",
+          "question": "Fig tree cursed for?",
+          "options": [
+            "Dead branches",
+            "No fruit",
+            "Wrong place",
+            "Too tall"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The tree had no fruit.",
+          "reference": "Mark 11:13",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-26",
+          "question": "Fig tree did what?",
+          "options": [
+            "Bloomed",
+            "Withered",
+            "Fell",
+            "Grew"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The fig tree withered.",
+          "reference": "Mark 11:20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-27",
+          "question": "Coin found in?",
+          "options": [
+            "Purse",
+            "Road",
+            "Fish mouth",
+            "Temple"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A coin was found in a fish's mouth.",
+          "reference": "Matthew 17:27",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-28",
+          "question": "Widow's son raised in?",
+          "options": [
+            "Cana",
+            "Nain",
+            "Bethany",
+            "Jerusalem"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The widow's son was in Nain.",
+          "reference": "Luke 7:11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-29",
+          "question": "Deaf and mute man?",
+          "options": [
+            "Bethsaida",
+            "Decapolis",
+            "Galilee",
+            "Judea"
+          ],
+          "correctAnswer": 1,
+          "explanation": "This miracle was in Decapolis.",
+          "reference": "Mark 7:31",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-30",
+          "question": "Blind Bartimaeus was in?",
+          "options": [
+            "Jerusalem",
+            "Jericho",
+            "Bethany",
+            "Capernaum"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Bartimaeus was healed in Jericho.",
+          "reference": "Mark 10:46",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-31",
+          "question": "Man at pool waited?",
+          "options": [
+            "10 years",
+            "20 years",
+            "38 years",
+            "50 years"
+          ],
+          "correctAnswer": 2,
+          "explanation": "He waited 38 years.",
+          "reference": "John 5:5",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-32",
+          "question": "Pool name was?",
+          "options": [
+            "Siloam",
+            "Bethesda",
+            "Jordan",
+            "Galilee"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Pool of Bethesda.",
+          "reference": "John 5:2",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-33",
+          "question": "Large catch of fish when?",
+          "options": [
+            "Morning",
+            "Noon",
+            "Night",
+            "After fishing all night"
+          ],
+          "correctAnswer": 3,
+          "explanation": "After fishing unsuccessfully all night.",
+          "reference": "Luke 5:5",
+          "points": 10
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "mir-tf-b-1",
+          "question": "Jesus first miracle was healing.",
+          "correctAnswer": false,
+          "explanation": "False! First miracle was water to wine.",
+          "reference": "John 2:11",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-2",
+          "question": "Jesus raised three people from dead.",
+          "correctAnswer": true,
+          "explanation": "True! Jairus' daughter, widow's son, and Lazarus.",
+          "reference": "Various",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-3",
+          "question": "Jesus fed 5000 people.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus miraculously fed 5000.",
+          "reference": "Matthew 14:21",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-4",
+          "question": "Jesus walked on water in daytime.",
+          "correctAnswer": false,
+          "explanation": "False! It was during the night.",
+          "reference": "Matthew 14:25",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-5",
+          "question": "Peter tried to walk on water.",
+          "correctAnswer": true,
+          "explanation": "True! Peter walked on water toward Jesus.",
+          "reference": "Matthew 14:29",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-6",
+          "question": "Jesus healed a blind man.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus healed many blind people.",
+          "reference": "John 9:6",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-7",
+          "question": "Jesus used medicine to heal.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus healed by His power and word.",
+          "reference": "Various",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-8",
+          "question": "Jesus healed lepers.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus cleansed lepers.",
+          "reference": "Luke 17:14",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-9",
+          "question": "All ten lepers thanked Jesus.",
+          "correctAnswer": false,
+          "explanation": "False! Only one returned to thank Him.",
+          "reference": "Luke 17:15",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-10",
+          "question": "Jesus calmed a storm.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus calmed a storm on the sea.",
+          "reference": "Mark 4:39",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-11",
+          "question": "Jesus could not heal in Nazareth.",
+          "correctAnswer": true,
+          "explanation": "True! Because of their unbelief.",
+          "reference": "Mark 6:5",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-12",
+          "question": "Jesus raised Lazarus after 4 days.",
+          "correctAnswer": true,
+          "explanation": "True! Lazarus had been dead 4 days.",
+          "reference": "John 11:39",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-13",
+          "question": "Woman with bleeding touched Jesus.",
+          "correctAnswer": true,
+          "explanation": "True! She touched His garment hem.",
+          "reference": "Mark 5:27",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-14",
+          "question": "Jesus healed only Jews.",
+          "correctAnswer": false,
+          "explanation": "False! Jesus healed Gentiles too.",
+          "reference": "Matthew 15:28",
+          "points": 5
+        },
+        {
+          "id": "mir-tf-b-15",
+          "question": "Jesus turned water to wine.",
+          "correctAnswer": true,
+          "explanation": "True! At a wedding in Cana.",
+          "reference": "John 2:9",
+          "points": 5
+        }
+      ]
+    }
+  },
+  "parables": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "par-mc-b-1",
+          "question": "Good Samaritan helped?",
+          "options": [
+            "Priest",
+            "Levite",
+            "Injured man",
+            "Innkeeper"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Samaritan helped an injured man.",
+          "reference": "Luke 10:33",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-2",
+          "question": "Prodigal son wasted money on?",
+          "options": [
+            "Business",
+            "Wild living",
+            "Travel",
+            "House"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He wasted it on wild living.",
+          "reference": "Luke 15:13",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-3",
+          "question": "Prodigal son fed?",
+          "options": [
+            "Sheep",
+            "Cattle",
+            "Pigs",
+            "Chickens"
+          ],
+          "correctAnswer": 2,
+          "explanation": "He fed pigs.",
+          "reference": "Luke 15:15",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-4",
+          "question": "Father gave prodigal son?",
+          "options": [
+            "Robe ring sandals",
+            "Money",
+            "House",
+            "Servants"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Father gave robe, ring, and sandals.",
+          "reference": "Luke 15:22",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-5",
+          "question": "Sower's seed fell on?",
+          "options": [
+            "Good soil only",
+            "4 types ground",
+            "3 types ground",
+            "Rocky ground only"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Seed fell on 4 types of ground.",
+          "reference": "Matthew 13:4-8",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-6",
+          "question": "Good soil represents?",
+          "options": [
+            "Rich people",
+            "Smart people",
+            "Hearing and accepting",
+            "Religious people"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Those who hear and accept God's word.",
+          "reference": "Matthew 13:23",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-7",
+          "question": "Mustard seed is?",
+          "options": [
+            "Very large",
+            "Very small",
+            "Medium",
+            "Colorful"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The mustard seed is very small.",
+          "reference": "Matthew 13:31-32",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-8",
+          "question": "Mustard seed grows into?",
+          "options": [
+            "Flower",
+            "Large tree",
+            "Bush",
+            "Vine"
+          ],
+          "correctAnswer": 1,
+          "explanation": "It grows into a large tree.",
+          "reference": "Matthew 13:32",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-9",
+          "question": "Lost sheep out of?",
+          "options": [
+            "50",
+            "75",
+            "100",
+            "1000"
+          ],
+          "correctAnswer": 2,
+          "explanation": "One sheep out of 100 was lost.",
+          "reference": "Luke 15:4",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-10",
+          "question": "Shepherd left how many?",
+          "options": [
+            "99",
+            "50",
+            "75",
+            "None"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Shepherd left the 99 to find one.",
+          "reference": "Luke 15:4",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-11",
+          "question": "Woman lost how many coins?",
+          "options": [
+            "1",
+            "5",
+            "10",
+            "20"
+          ],
+          "correctAnswer": 0,
+          "explanation": "She lost one coin.",
+          "reference": "Luke 15:8",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-12",
+          "question": "Woman had total coins?",
+          "options": [
+            "5",
+            "10",
+            "20",
+            "100"
+          ],
+          "correctAnswer": 1,
+          "explanation": "She had 10 silver coins total.",
+          "reference": "Luke 15:8",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-13",
+          "question": "Wise man built house on?",
+          "options": [
+            "Sand",
+            "Rock",
+            "Wood",
+            "Hill"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The wise man built on rock.",
+          "reference": "Matthew 7:24",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-14",
+          "question": "Foolish man built on?",
+          "options": [
+            "Rock",
+            "Sand",
+            "Grass",
+            "Clay"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The foolish man built on sand.",
+          "reference": "Matthew 7:26",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-15",
+          "question": "Ten virgins had?",
+          "options": [
+            "Lamps",
+            "Candles",
+            "Torches",
+            "Lanterns"
+          ],
+          "correctAnswer": 0,
+          "explanation": "They had lamps.",
+          "reference": "Matthew 25:1",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-16",
+          "question": "How many virgins wise?",
+          "options": [
+            "3",
+            "5",
+            "7",
+            "10"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Five virgins were wise.",
+          "reference": "Matthew 25:2",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-17",
+          "question": "Wise virgins brought?",
+          "options": [
+            "Water",
+            "Food",
+            "Extra oil",
+            "Matches"
+          ],
+          "correctAnswer": 2,
+          "explanation": "They brought extra oil.",
+          "reference": "Matthew 25:4",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-18",
+          "question": "Pharisee and tax collector prayed where?",
+          "options": [
+            "Synagogue",
+            "Temple",
+            "Home",
+            "Mountain"
+          ],
+          "correctAnswer": 1,
+          "explanation": "They prayed in the temple.",
+          "reference": "Luke 18:10",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-19",
+          "question": "Tax collector asked for?",
+          "options": [
+            "Honor",
+            "Mercy",
+            "Money",
+            "Power"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He asked God for mercy.",
+          "reference": "Luke 18:13",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-20",
+          "question": "Persistent widow wanted?",
+          "options": [
+            "Money",
+            "Justice",
+            "Food",
+            "House"
+          ],
+          "correctAnswer": 1,
+          "explanation": "She wanted justice.",
+          "reference": "Luke 18:3",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-21",
+          "question": "Two debtors owed?",
+          "options": [
+            "Same amount",
+            "Different amounts",
+            "Nothing",
+            "Everything"
+          ],
+          "correctAnswer": 1,
+          "explanation": "They owed different amounts.",
+          "reference": "Luke 7:41",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-22",
+          "question": "Creditor did what?",
+          "options": [
+            "Demanded payment",
+            "Forgave both",
+            "Put in prison",
+            "Took property"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He forgave both debts.",
+          "reference": "Luke 7:42",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-23",
+          "question": "Rich man had?",
+          "options": [
+            "Purple fine linen",
+            "Silk robes",
+            "Gold jewelry",
+            "Large house"
+          ],
+          "correctAnswer": 0,
+          "explanation": "He wore purple and fine linen.",
+          "reference": "Luke 16:19",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-24",
+          "question": "Lazarus was?",
+          "options": [
+            "Rich",
+            "Poor beggar",
+            "Servant",
+            "Priest"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Lazarus was a poor beggar.",
+          "reference": "Luke 16:20",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-25",
+          "question": "Hidden treasure found in?",
+          "options": [
+            "Cave",
+            "Field",
+            "House",
+            "Mountain"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Treasure was hidden in a field.",
+          "reference": "Matthew 13:44",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-26",
+          "question": "Man sold all to buy?",
+          "options": [
+            "House",
+            "Treasure",
+            "Field",
+            "Both B and C"
+          ],
+          "correctAnswer": 3,
+          "explanation": "He sold all to buy the field with treasure.",
+          "reference": "Matthew 13:44",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-27",
+          "question": "Pearl merchant found?",
+          "options": [
+            "Many pearls",
+            "One great pearl",
+            "No pearls",
+            "Fake pearls"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He found one pearl of great price.",
+          "reference": "Matthew 13:46",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-28",
+          "question": "Talents given to servants?",
+          "options": [
+            "1 each",
+            "5 each",
+            "Different amounts",
+            "10 each"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Different amounts were given.",
+          "reference": "Matthew 25:15",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-29",
+          "question": "Servant with one talent?",
+          "options": [
+            "Invested",
+            "Buried it",
+            "Spent it",
+            "Lost it"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He buried the talent.",
+          "reference": "Matthew 25:18",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-30",
+          "question": "Workers hired at?",
+          "options": [
+            "Noon only",
+            "Morning only",
+            "Different times",
+            "Night"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Workers hired at different times.",
+          "reference": "Matthew 20:1-16",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-31",
+          "question": "All workers got?",
+          "options": [
+            "Different pay",
+            "Same pay",
+            "No pay",
+            "Half pay"
+          ],
+          "correctAnswer": 1,
+          "explanation": "All received the same wage.",
+          "reference": "Matthew 20:10",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-32",
+          "question": "Wedding feast for?",
+          "options": [
+            "King's son",
+            "King's daughter",
+            "Prince",
+            "Princess"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Feast for the king's son.",
+          "reference": "Matthew 22:2",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-33",
+          "question": "Invited guests did what?",
+          "options": [
+            "Came eagerly",
+            "Made excuses",
+            "Brought gifts",
+            "Sent others"
+          ],
+          "correctAnswer": 1,
+          "explanation": "They made excuses.",
+          "reference": "Matthew 22:3-5",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-34",
+          "question": "Man without wedding garment?",
+          "options": [
+            "Welcomed",
+            "Honored",
+            "Thrown out",
+            "Given robe"
+          ],
+          "correctAnswer": 2,
+          "explanation": "He was thrown out.",
+          "reference": "Matthew 22:13",
+          "points": 10
+        },
+        {
+          "id": "par-mc-b-35",
+          "question": "Friend at midnight needed?",
+          "options": [
+            "Money",
+            "Bread",
+            "Water",
+            "Shelter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "He needed bread.",
+          "reference": "Luke 11:5",
+          "points": 10
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "par-tf-b-1",
+          "question": "Good Samaritan parable teaches love.",
+          "correctAnswer": true,
+          "explanation": "True! It teaches us to love our neighbor.",
+          "reference": "Luke 10:27",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-2",
+          "question": "Prodigal son had two brothers.",
+          "correctAnswer": false,
+          "explanation": "False! He had one brother.",
+          "reference": "Luke 15:11",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-3",
+          "question": "Father welcomed prodigal son back.",
+          "correctAnswer": true,
+          "explanation": "True! The father welcomed him with joy.",
+          "reference": "Luke 15:20",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-4",
+          "question": "Older brother was happy.",
+          "correctAnswer": false,
+          "explanation": "False! The older brother was angry.",
+          "reference": "Luke 15:28",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-5",
+          "question": "Sower parable about God's word.",
+          "correctAnswer": true,
+          "explanation": "True! It's about receiving God's word.",
+          "reference": "Matthew 13:19",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-6",
+          "question": "All soil produced crops.",
+          "correctAnswer": false,
+          "explanation": "False! Only good soil produced crops.",
+          "reference": "Matthew 13:23",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-7",
+          "question": "Shepherd left 99 for 1 sheep.",
+          "correctAnswer": true,
+          "explanation": "True! He went after the one lost sheep.",
+          "reference": "Luke 15:4",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-8",
+          "question": "Woman had 100 coins.",
+          "correctAnswer": false,
+          "explanation": "False! She had 10 coins.",
+          "reference": "Luke 15:8",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-9",
+          "question": "Wise builder built on rock.",
+          "correctAnswer": true,
+          "explanation": "True! The wise builder chose rock.",
+          "reference": "Matthew 7:24",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-10",
+          "question": "Foolish builder's house stood.",
+          "correctAnswer": false,
+          "explanation": "False! It fell when storms came.",
+          "reference": "Matthew 7:27",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-11",
+          "question": "All ten virgins were wise.",
+          "correctAnswer": false,
+          "explanation": "False! Only five were wise.",
+          "reference": "Matthew 25:2",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-12",
+          "question": "Wise virgins shared oil.",
+          "correctAnswer": false,
+          "explanation": "False! They couldn't share their oil.",
+          "reference": "Matthew 25:9",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-13",
+          "question": "Tax collector was humble.",
+          "correctAnswer": true,
+          "explanation": "True! He humbly asked for mercy.",
+          "reference": "Luke 18:13",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-14",
+          "question": "Pharisee thanked God.",
+          "correctAnswer": true,
+          "explanation": "True! But he was proud and self-righteous.",
+          "reference": "Luke 18:11",
+          "points": 5
+        },
+        {
+          "id": "par-tf-b-15",
+          "question": "Hidden treasure represents kingdom.",
+          "correctAnswer": true,
+          "explanation": "True! It represents God's kingdom.",
+          "reference": "Matthew 13:44",
+          "points": 5
+        }
+      ]
+    }
+  },
+  "women-of-bible": {
+    "multiple-choice": {
+      "beginner": [
+        {
+          "id": "wob-mc-b-1",
+          "question": "First woman created?",
+          "options": [
+            "Sarah",
+            "Eve",
+            "Mary",
+            "Ruth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Eve was the first woman.",
+          "reference": "Genesis 2:22",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-2",
+          "question": "Abraham's wife?",
+          "options": [
+            "Rachel",
+            "Sarah",
+            "Rebekah",
+            "Leah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Sarah was Abraham's wife.",
+          "reference": "Genesis 17:15",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-3",
+          "question": "Isaac's wife?",
+          "options": [
+            "Rachel",
+            "Sarah",
+            "Rebekah",
+            "Leah"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Rebekah was Isaac's wife.",
+          "reference": "Genesis 24:67",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-4",
+          "question": "Jacob's wives?",
+          "options": [
+            "Rachel and Leah",
+            "Sarah and Rebekah",
+            "Ruth and Naomi",
+            "Mary and Martha"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jacob married Rachel and Leah.",
+          "reference": "Genesis 29:23-28",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-5",
+          "question": "Moses' mother?",
+          "options": [
+            "Jochebed",
+            "Miriam",
+            "Zipporah",
+            "Sarah"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jochebed was Moses' mother.",
+          "reference": "Exodus 6:20",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-6",
+          "question": "Moses' sister?",
+          "options": [
+            "Miriam",
+            "Deborah",
+            "Hannah",
+            "Ruth"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Miriam was Moses' sister.",
+          "reference": "Exodus 15:20",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-7",
+          "question": "Who was prophetess and judge?",
+          "options": [
+            "Ruth",
+            "Deborah",
+            "Esther",
+            "Hannah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Deborah was a prophetess and judge.",
+          "reference": "Judges 4:4",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-8",
+          "question": "Ruth was from?",
+          "options": [
+            "Israel",
+            "Egypt",
+            "Moab",
+            "Canaan"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Ruth was from Moab.",
+          "reference": "Ruth 1:4",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-9",
+          "question": "Ruth's mother-in-law?",
+          "options": [
+            "Rachel",
+            "Sarah",
+            "Naomi",
+            "Rebekah"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Naomi was Ruth's mother-in-law.",
+          "reference": "Ruth 1:4",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-10",
+          "question": "Ruth married?",
+          "options": [
+            "David",
+            "Boaz",
+            "Judah",
+            "Jesse"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Ruth married Boaz.",
+          "reference": "Ruth 4:13",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-11",
+          "question": "Hannah prayed for?",
+          "options": [
+            "Husband",
+            "Son",
+            "Money",
+            "House"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Hannah prayed for a son.",
+          "reference": "1 Samuel 1:11",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-12",
+          "question": "Hannah's son?",
+          "options": [
+            "David",
+            "Solomon",
+            "Samuel",
+            "Saul"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Hannah gave birth to Samuel.",
+          "reference": "1 Samuel 1:20",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-13",
+          "question": "Queen who saved Jews?",
+          "options": [
+            "Ruth",
+            "Esther",
+            "Deborah",
+            "Sarah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Esther saved the Jewish people.",
+          "reference": "Esther 7:3",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-14",
+          "question": "Esther's cousin?",
+          "options": [
+            "Boaz",
+            "Mordecai",
+            "Haman",
+            "Xerxes"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mordecai was Esther's cousin.",
+          "reference": "Esther 2:7",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-15",
+          "question": "Mary was from?",
+          "options": [
+            "Bethlehem",
+            "Jerusalem",
+            "Nazareth",
+            "Capernaum"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Mary was from Nazareth.",
+          "reference": "Luke 1:26",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-16",
+          "question": "Angel told Mary?",
+          "options": [
+            "Gabriel",
+            "Michael",
+            "Raphael",
+            "Uriel"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Gabriel appeared to Mary.",
+          "reference": "Luke 1:26",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-17",
+          "question": "Mary visited?",
+          "options": [
+            "Anna",
+            "Elizabeth",
+            "Ruth",
+            "Sarah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mary visited Elizabeth.",
+          "reference": "Luke 1:39",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-18",
+          "question": "Elizabeth's son?",
+          "options": [
+            "Jesus",
+            "John the Baptist",
+            "James",
+            "Peter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Elizabeth gave birth to John the Baptist.",
+          "reference": "Luke 1:57",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-19",
+          "question": "Woman at well from?",
+          "options": [
+            "Judea",
+            "Galilee",
+            "Samaria",
+            "Bethlehem"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The woman was from Samaria.",
+          "reference": "John 4:7",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-20",
+          "question": "Mary and Martha's brother?",
+          "options": [
+            "Peter",
+            "John",
+            "Lazarus",
+            "Andrew"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Lazarus was their brother.",
+          "reference": "John 11:1",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-21",
+          "question": "Mary Magdalene saw?",
+          "options": [
+            "Angels",
+            "Risen Jesus",
+            "Empty tomb",
+            "All above"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Mary saw angels, empty tomb, and Jesus.",
+          "reference": "John 20:11-18",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-22",
+          "question": "Priscilla with husband?",
+          "options": [
+            "Paul",
+            "Aquila",
+            "Apollos",
+            "Timothy"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Priscilla's husband was Aquila.",
+          "reference": "Acts 18:2",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-23",
+          "question": "Lydia sold?",
+          "options": [
+            "Food",
+            "Purple cloth",
+            "Pottery",
+            "Jewelry"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Lydia sold purple cloth.",
+          "reference": "Acts 16:14",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-24",
+          "question": "Dorcas was known for?",
+          "options": [
+            "Preaching",
+            "Good works",
+            "Singing",
+            "Teaching"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Dorcas was known for good works.",
+          "reference": "Acts 9:36",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-25",
+          "question": "Peter raised who?",
+          "options": [
+            "Mary",
+            "Dorcas",
+            "Lydia",
+            "Priscilla"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Peter raised Dorcas from death.",
+          "reference": "Acts 9:40",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-26",
+          "question": "Rahab helped?",
+          "options": [
+            "Moses",
+            "Joshua",
+            "Israelite spies",
+            "David"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Rahab helped Israelite spies.",
+          "reference": "Joshua 2:4",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-27",
+          "question": "Rahab's sign was?",
+          "options": [
+            "White cloth",
+            "Red cord",
+            "Blue ribbon",
+            "Yellow rope"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Rahab hung a red cord.",
+          "reference": "Joshua 2:18",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-28",
+          "question": "Jezebel married?",
+          "options": [
+            "David",
+            "Ahab",
+            "Solomon",
+            "Saul"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jezebel married King Ahab.",
+          "reference": "1 Kings 16:31",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-29",
+          "question": "Jezebel opposed?",
+          "options": [
+            "Moses",
+            "David",
+            "Elijah",
+            "Daniel"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jezebel opposed the prophet Elijah.",
+          "reference": "1 Kings 19:1-2",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-30",
+          "question": "Bathsheba's husband?",
+          "options": [
+            "David",
+            "Uriah",
+            "Solomon",
+            "Nathan"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Bathsheba was married to Uriah.",
+          "reference": "2 Samuel 11:3",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-31",
+          "question": "Anna was a?",
+          "options": [
+            "Queen",
+            "Prophetess",
+            "Servant",
+            "Teacher"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Anna was a prophetess.",
+          "reference": "Luke 2:36",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-32",
+          "question": "Anna saw baby?",
+          "options": [
+            "John",
+            "Jesus",
+            "James",
+            "Peter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Anna saw baby Jesus in temple.",
+          "reference": "Luke 2:38",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-33",
+          "question": "Sapphira lied about?",
+          "options": [
+            "Money",
+            "Food",
+            "Property",
+            "Identity"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Sapphira lied about the money.",
+          "reference": "Acts 5:2",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-34",
+          "question": "Woman with alabaster jar?",
+          "options": [
+            "Anointed Jesus",
+            "Washed feet",
+            "Gave money",
+            "Cooked meal"
+          ],
+          "correctAnswer": 0,
+          "explanation": "She anointed Jesus with perfume.",
+          "reference": "Mark 14:3",
+          "points": 10
+        },
+        {
+          "id": "wob-mc-b-35",
+          "question": "Widow gave?",
+          "options": [
+            "Gold",
+            "Two coins",
+            "Bread",
+            "Sheep"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The widow gave two small coins.",
+          "reference": "Mark 12:42",
+          "points": 10
+        }
+      ]
+    },
+    "true-false": {
+      "beginner": [
+        {
+          "id": "wob-tf-b-1",
+          "question": "Eve was first woman.",
+          "correctAnswer": true,
+          "explanation": "True! Eve was created from Adam's rib.",
+          "reference": "Genesis 2:22",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-2",
+          "question": "Sarah had Isaac in youth.",
+          "correctAnswer": false,
+          "explanation": "False! Sarah had Isaac in old age.",
+          "reference": "Genesis 21:2",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-3",
+          "question": "Rachel was Jacob's favorite wife.",
+          "correctAnswer": true,
+          "explanation": "True! Jacob loved Rachel.",
+          "reference": "Genesis 29:30",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-4",
+          "question": "Miriam was a prophetess.",
+          "correctAnswer": true,
+          "explanation": "True! Miriam was Moses' sister and a prophetess.",
+          "reference": "Exodus 15:20",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-5",
+          "question": "Deborah was a judge.",
+          "correctAnswer": true,
+          "explanation": "True! Deborah judged Israel.",
+          "reference": "Judges 4:4",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-6",
+          "question": "Ruth abandoned Naomi.",
+          "correctAnswer": false,
+          "explanation": "False! Ruth stayed with Naomi.",
+          "reference": "Ruth 1:16",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-7",
+          "question": "Esther was a queen.",
+          "correctAnswer": true,
+          "explanation": "True! Esther became Queen of Persia.",
+          "reference": "Esther 2:17",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-8",
+          "question": "Mary was Jesus mother.",
+          "correctAnswer": true,
+          "explanation": "True! Mary gave birth to Jesus.",
+          "reference": "Luke 2:7",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-9",
+          "question": "Elizabeth was barren.",
+          "correctAnswer": true,
+          "explanation": "True! Elizabeth was barren until old age.",
+          "reference": "Luke 1:7",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-10",
+          "question": "Martha was Mary's sister.",
+          "correctAnswer": true,
+          "explanation": "True! Martha and Mary were sisters.",
+          "reference": "Luke 10:38-39",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-11",
+          "question": "Mary Magdalene was demon-possessed.",
+          "correctAnswer": true,
+          "explanation": "True! Jesus cast out seven demons from her.",
+          "reference": "Luke 8:2",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-12",
+          "question": "Priscilla taught Apollos.",
+          "correctAnswer": true,
+          "explanation": "True! Priscilla and Aquila taught Apollos.",
+          "reference": "Acts 18:26",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-13",
+          "question": "Lydia sold food.",
+          "correctAnswer": false,
+          "explanation": "False! Lydia sold purple cloth.",
+          "reference": "Acts 16:14",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-14",
+          "question": "Dorcas made clothing.",
+          "correctAnswer": true,
+          "explanation": "True! Dorcas made clothes for the poor.",
+          "reference": "Acts 9:39",
+          "points": 5
+        },
+        {
+          "id": "wob-tf-b-15",
+          "question": "Rahab was a prostitute.",
+          "correctAnswer": true,
+          "explanation": "True! Rahab was a prostitute who helped spies.",
+          "reference": "Joshua 2:1",
+          "points": 5
+        }
       ]
     }
   }
