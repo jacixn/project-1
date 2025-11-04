@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../theme/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/hapticFeedback';
 
