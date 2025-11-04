@@ -15,7 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Audio } from 'expo-av';
+// import { Audio } from 'expo-av'; // TODO: Install when ready for audio: npx expo install expo-av
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
@@ -52,9 +52,9 @@ const AudioLearning = ({ visible, onClose }) => {
     }
     return () => {
       // Cleanup audio when component unmounts
-      if (sound) {
-        sound.unloadAsync();
-      }
+      // if (sound) {
+      //   sound.unloadAsync();
+      // }
     };
   }, [visible]);
 
