@@ -1,54 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Dimensions,
-  StatusBar,
   Modal,
+  StatusBar,
   Alert,
-  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../contexts/ThemeContext';
 import quizService from '../services/quizService';
-import hapticFeedback from '../utils/hapticFeedback';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const QuizGames = ({ visible, onClose }) => {
-  const { theme, isDark } = useTheme();
-  
-  // State Management
+  // State
   const [currentScreen, setCurrentScreen] = useState('home'); // home, setup, quiz, results
+  const [categories, setCategories] = useState([]);
+  const [questions, setQuestions] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [questionCount, setQuestionCount] = useState(10);
-  const [showAnswerMode, setShowAnswerMode] = useState('after-each'); // 'after-each' or 'end'
+  const [answerMode, setAnswerMode] = useState('after-each'); // 'after-each' or 'at-end'
   const [currentQuiz, setCurrentQuiz] = useState([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [userProgress, setUserProgress] = useState({
-    totalQuizzes: 0,
-    totalCorrect: 0,
-    streak: 0,
-    categoryProgress: {},
-  });
-  const [quizCategories, setQuizCategories] = useState([]);
-  const [quizQuestions, setQuizQuestions] = useState({});
-
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load data on mount
   useEffect(() => {
@@ -57,170 +36,110 @@ const QuizGames = ({ visible, onClose }) => {
     }
   }, [visible]);
 
-  const loadData = async () => {
-    setIsLoadingData(true);
-    try {
-      const [categories, questions, progress] = await Promise.all([
-        quizService.getCategories(),
-        quizService.getQuestions(),
-        loadUserProgress(),
-      ]);
-      
-      setQuizCategories(categories);
-      setQuizQuestions(questions);
-      setUserProgress(progress);
-    } catch (error) {
-      console.error('Error loading quiz data:', error);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
-  const loadUserProgress = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('quizProgress');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Error loading progress:', error);
-    }
-    return {
-      totalQuizzes: 0,
-      totalCorrect: 0,
-      streak: 0,
-      categoryProgress: {},
-    };
-  };
-
-  const saveUserProgress = async (progress) => {
-    try {
-      await AsyncStorage.setItem('quizProgress', JSON.stringify(progress));
-    } catch (error) {
-      console.error('Error saving progress:', error);
-    }
-  };
-
-  const handleCategorySelect = (category) => {
-    hapticFeedback.selection();
-    setSelectedCategory(category);
-    setCurrentScreen('setup');
-  };
-
-  const startQuiz = () => {
-    hapticFeedback.buttonPress();
-    
-    // Get ALL questions from the category (mixed types)
-    const categoryQuestions = quizQuestions[selectedCategory.id];
-    const allQuestions = [];
-    
-    if (categoryQuestions) {
-      Object.keys(categoryQuestions).forEach(quizType => {
-        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
-          const questions = categoryQuestions[quizType][difficulty] || [];
-          allQuestions.push(...questions);
-        });
-      });
-    }
-    
-    if (allQuestions.length === 0) {
-      Alert.alert('No Questions', 'No questions available for this category yet.');
-      return;
-    }
-    
-    // Shuffle and select requested number of questions
-    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
-    const selectedQuestions = shuffled.slice(0, Math.min(questionCount, shuffled.length));
-    
-    setCurrentQuiz(selectedQuestions);
-    setCurrentQuestionIndex(0);
-    setUserAnswers([]);
-    setScore(0);
-    setTimer(0);
-    setShowAnswer(false);
-    setCurrentScreen('quiz');
-  };
-
-  const handleAnswer = (answerIndex) => {
-    hapticFeedback.selection();
-    const currentQuestion = currentQuiz[currentQuestionIndex];
-    
-    // Determine if answer is correct
-    let isCorrect = false;
-    if (typeof currentQuestion.correctAnswer === 'number') {
-      isCorrect = answerIndex === currentQuestion.correctAnswer;
-    } else {
-      // True/False question
-      const userChoseTrue = answerIndex === 0;
-      isCorrect = userChoseTrue === currentQuestion.correctAnswer;
-    }
-    
-    const answerData = {
-      questionId: currentQuestionIndex,
-      userAnswer: answerIndex,
-      isCorrect,
-      timeSpent: timer,
-    };
-    
-    setUserAnswers([...userAnswers, answerData]);
-    if (isCorrect) {
-      setScore(score + 100);
-    }
-    
-    if (showAnswerMode === 'after-each') {
-      setShowAnswer(true);
-    } else {
-      // Move to next question or finish
-      if (currentQuestionIndex < currentQuiz.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setTimer(0);
-      } else {
-        completeQuiz();
-      }
-    }
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < currentQuiz.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setShowAnswer(false);
-      setTimer(0);
-    } else {
-      completeQuiz();
-    }
-  };
-
-  const completeQuiz = () => {
-    hapticFeedback.success();
-    
-    // Update progress
-    const newProgress = {
-      ...userProgress,
-      totalQuizzes: userProgress.totalQuizzes + 1,
-      totalCorrect: userProgress.totalCorrect + userAnswers.filter(a => a.isCorrect).length,
-      categoryProgress: {
-        ...userProgress.categoryProgress,
-        [selectedCategory.id]: {
-          completed: (userProgress.categoryProgress[selectedCategory.id]?.completed || 0) + 1,
-        },
-      },
-    };
-    
-    setUserProgress(newProgress);
-    saveUserProgress(newProgress);
-    setCurrentScreen('results');
-  };
-
-  // Timer effect
+  // Timer
   useEffect(() => {
     let interval;
-    if (currentScreen === 'quiz' && !showAnswer) {
+    if (currentScreen === 'quiz') {
       interval = setInterval(() => {
         setTimer(t => t + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [currentScreen, showAnswer]);
+  }, [currentScreen]);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [cats, ques] = await Promise.all([
+        quizService.getCategories(),
+        quizService.getQuestions(),
+      ]);
+      setCategories(cats);
+      setQuestions(ques);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading quiz data:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setCurrentScreen('setup');
+  };
+
+  const startQuiz = () => {
+    // Get all questions from selected category
+    const categoryQuestions = questions[selectedCategory.id];
+    const allQuestions = [];
+
+    if (categoryQuestions) {
+      Object.keys(categoryQuestions).forEach(quizType => {
+        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+          const qs = categoryQuestions[quizType][difficulty] || [];
+          allQuestions.push(...qs);
+        });
+      });
+    }
+
+    if (allQuestions.length === 0) {
+      Alert.alert('No Questions', 'No questions available for this category.');
+      return;
+    }
+
+    // Shuffle and select
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
+
+    setCurrentQuiz(selected);
+    setCurrentIndex(0);
+    setUserAnswers([]);
+    setScore(0);
+    setTimer(0);
+    setCurrentScreen('quiz');
+  };
+
+  const handleAnswer = (answerIndex) => {
+    const currentQuestion = currentQuiz[currentIndex];
+    
+    // Check if correct
+    const isTrueFalse = typeof currentQuestion.correctAnswer === 'boolean';
+    const isCorrect = isTrueFalse
+      ? answerIndex === (currentQuestion.correctAnswer ? 0 : 1)
+      : answerIndex === currentQuestion.correctAnswer;
+
+    const answer = {
+      questionIndex: currentIndex,
+      userAnswer: answerIndex,
+      isCorrect,
+      question: currentQuestion,
+    };
+
+    const newAnswers = [...userAnswers, answer];
+    setUserAnswers(newAnswers);
+
+    if (isCorrect) {
+      setScore(score + 100);
+    }
+
+    if (answerMode === 'at-end') {
+      // Move to next immediately
+      if (currentIndex < currentQuiz.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        setCurrentScreen('results');
+      }
+    }
+    // If 'after-each', the answer will show in the UI
+  };
+
+  const handleNext = () => {
+    if (currentIndex < currentQuiz.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setCurrentScreen('results');
+    }
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -228,54 +147,45 @@ const QuizGames = ({ visible, onClose }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Render functions
+  // RENDER FUNCTIONS
+
   const renderHeader = () => (
-    <BlurView 
-      intensity={90} 
-      style={[styles.header, { 
-        backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
-        borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-      }]}
-    >
-      <View style={styles.headerContent}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => {
-            if (currentScreen === 'home') {
-              onClose();
-            } else if (currentScreen === 'setup') {
-              setCurrentScreen('home');
-            } else if (currentScreen === 'quiz') {
-              Alert.alert(
-                'Exit Quiz',
-                'Are you sure you want to exit? Your progress will be lost.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Exit', onPress: () => setCurrentScreen('home') },
-                ]
-              );
-            } else {
-              setCurrentScreen('home');
-            }
-          }}
-        >
-          <Text style={[styles.headerButtonText, { color: '#000000' }]}>
-            {currentScreen === 'home' ? 'Close' : 'Back'}
-          </Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: '#000000' }]}>
-          {currentScreen === 'home' && 'Quiz & Games'}
-          {currentScreen === 'setup' && 'Quiz Setup'}
-          {currentScreen === 'quiz' && `Question ${currentQuestionIndex + 1}/${currentQuiz.length}`}
-          {currentScreen === 'results' && 'Results'}
-        </Text>
-        <View style={{ width: 60 }} />
-      </View>
-    </BlurView>
+    <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.headerButton}
+        onPress={() => {
+          if (currentScreen === 'home') {
+            onClose();
+          } else if (currentScreen === 'setup') {
+            setCurrentScreen('home');
+          } else if (currentScreen === 'quiz') {
+            Alert.alert(
+              'Exit Quiz',
+              'Are you sure you want to exit? Your progress will be lost.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Exit', onPress: () => setCurrentScreen('home') },
+              ]
+            );
+          } else {
+            setCurrentScreen('home');
+          }
+        }}
+      >
+        <MaterialIcons name="arrow-back" size={24} color="#000000" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>
+        {currentScreen === 'home' && 'Quiz & Games'}
+        {currentScreen === 'setup' && 'Quiz Setup'}
+        {currentScreen === 'quiz' && `Question ${currentIndex + 1}/${currentQuiz.length}`}
+        {currentScreen === 'results' && 'Results'}
+      </Text>
+      <View style={{ width: 40 }} />
+    </View>
   );
 
   const renderHome = () => {
-    if (isLoadingData) {
+    if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading Quiz Data...</Text>
@@ -284,30 +194,23 @@ const QuizGames = ({ visible, onClose }) => {
     }
 
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>QUIZ CATEGORIES</Text>
-        </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.sectionTitle}>SELECT A CATEGORY</Text>
         
-        {quizCategories.map((category) => (
+        {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
-            style={[styles.categoryCard, { backgroundColor: '#F8F8F8' }]}
+            style={styles.categoryCard}
             onPress={() => handleCategorySelect(category)}
           >
-            <LinearGradient
-              colors={[category.color, category.color + 'DD']}
-              style={styles.categoryIconWrapper}
-            >
-              <MaterialIcons name={category.icon} size={28} color="#FFF" />
-            </LinearGradient>
-            <View style={styles.categoryContent}>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
-              <Text style={styles.categoryDescription} numberOfLines={1}>
-                {category.description}
-              </Text>
+            <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+              <Text style={styles.categoryIconText}>{category.icon}</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color="#000000" />
+            <View style={styles.categoryInfo}>
+              <Text style={styles.categoryTitle}>{category.title}</Text>
+              <Text style={styles.categoryDesc}>{category.description}</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={28} color="#000000" />
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -315,197 +218,178 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   const renderSetup = () => (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.setupCard}>
-        <LinearGradient
-          colors={selectedCategory.gradient}
-          style={styles.setupHeader}
-        >
-          <MaterialIcons name={selectedCategory.icon} size={48} color="#FFF" />
-          <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
-        </LinearGradient>
-        
-        <View style={styles.setupContent}>
-          <Text style={styles.setupSectionTitle}>Number of Questions</Text>
-          <View style={styles.questionCountOptions}>
-            {[5, 10, 15, 20, 30].map((count) => (
-              <TouchableOpacity
-                key={count}
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <LinearGradient
+        colors={[selectedCategory.color, selectedCategory.color + 'CC']}
+        style={styles.setupHeader}
+      >
+        <Text style={styles.setupCategoryIcon}>{selectedCategory.icon}</Text>
+        <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
+      </LinearGradient>
+
+      <View style={styles.setupSection}>
+        <Text style={styles.setupLabel}>Number of Questions</Text>
+        <View style={styles.optionRow}>
+          {[5, 10, 15, 20, 30].map((count) => (
+            <TouchableOpacity
+              key={count}
+              style={[
+                styles.countButton,
+                questionCount === count && { backgroundColor: selectedCategory.color },
+              ]}
+              onPress={() => setQuestionCount(count)}
+            >
+              <Text
                 style={[
-                  styles.questionCountButton,
-                  questionCount === count && { 
-                    backgroundColor: selectedCategory.color,
-                    borderColor: selectedCategory.color,
-                  }
+                  styles.countButtonText,
+                  questionCount === count && { color: '#FFFFFF' },
                 ]}
-                onPress={() => {
-                  setQuestionCount(count);
-                  hapticFeedback.selection();
-                }}
               >
-                <Text style={[
-                  styles.questionCountText,
-                  questionCount === count && { color: '#FFFFFF' }
-                ]}>
-                  {count}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <Text style={styles.setupSectionTitle}>Show Answers</Text>
-          <View style={styles.answerModeOptions}>
-            <TouchableOpacity
-              style={[
-                styles.answerModeButton,
-                showAnswerMode === 'after-each' && {
-                  backgroundColor: selectedCategory.color,
-                  borderColor: selectedCategory.color,
-                }
-              ]}
-              onPress={() => {
-                setShowAnswerMode('after-each');
-                hapticFeedback.selection();
-              }}
-            >
-              <MaterialIcons 
-                name="visibility" 
-                size={24} 
-                color={showAnswerMode === 'after-each' ? '#FFFFFF' : '#000000'} 
-              />
-              <Text style={[
-                styles.answerModeText,
-                showAnswerMode === 'after-each' && { color: '#FFFFFF' }
-              ]}>
-                After Each Question
+                {count}
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.answerModeButton,
-                showAnswerMode === 'end' && {
-                  backgroundColor: selectedCategory.color,
-                  borderColor: selectedCategory.color,
-                }
-              ]}
-              onPress={() => {
-                setShowAnswerMode('end');
-                hapticFeedback.selection();
-              }}
-            >
-              <MaterialIcons 
-                name="format-list-numbered" 
-                size={24} 
-                color={showAnswerMode === 'end' ? '#FFFFFF' : '#000000'} 
-              />
-              <Text style={[
-                styles.answerModeText,
-                showAnswerMode === 'end' && { color: '#FFFFFF' }
-              ]}>
-                At the End
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={startQuiz}
-          >
-            <LinearGradient
-              colors={selectedCategory.gradient}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>START QUIZ</Text>
-              <MaterialIcons name="play-arrow" size={28} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
+          ))}
         </View>
       </View>
+
+      <View style={styles.setupSection}>
+        <Text style={styles.setupLabel}>Show Answers</Text>
+        
+        <TouchableOpacity
+          style={[
+            styles.answerModeButton,
+            answerMode === 'after-each' && { backgroundColor: selectedCategory.color },
+          ]}
+          onPress={() => setAnswerMode('after-each')}
+        >
+          <MaterialIcons
+            name="visibility"
+            size={24}
+            color={answerMode === 'after-each' ? '#FFFFFF' : '#000000'}
+          />
+          <Text
+            style={[
+              styles.answerModeText,
+              answerMode === 'after-each' && { color: '#FFFFFF' },
+            ]}
+          >
+            After Each Question
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.answerModeButton,
+            answerMode === 'at-end' && { backgroundColor: selectedCategory.color },
+          ]}
+          onPress={() => setAnswerMode('at-end')}
+        >
+          <MaterialIcons
+            name="format-list-numbered"
+            size={24}
+            color={answerMode === 'at-end' ? '#FFFFFF' : '#000000'}
+          />
+          <Text
+            style={[
+              styles.answerModeText,
+              answerMode === 'at-end' && { color: '#FFFFFF' },
+            ]}
+          >
+            At the End
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.startButton} onPress={startQuiz}>
+        <LinearGradient
+          colors={[selectedCategory.color, selectedCategory.color + 'CC']}
+          style={styles.startButtonGradient}
+        >
+          <Text style={styles.startButtonText}>START QUIZ</Text>
+          <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </ScrollView>
   );
 
   const renderQuiz = () => {
-    if (currentQuiz.length === 0) return null;
-    
-    const currentQuestion = currentQuiz[currentQuestionIndex];
-    const hasAnswered = userAnswers.length > currentQuestionIndex;
-    const userAnswer = userAnswers[currentQuestionIndex];
-    
+    if (currentQuiz.length === 0 || !currentQuiz[currentIndex]) {
+      return <View style={styles.loadingContainer}><Text style={styles.loadingText}>Loading...</Text></View>;
+    }
+
+    const currentQuestion = currentQuiz[currentIndex];
+    const hasAnswered = userAnswers.length > currentIndex;
+    const userAnswer = hasAnswered ? userAnswers[currentIndex] : null;
+    const progress = (currentIndex + 1) / currentQuiz.length;
+
     return (
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.quizScrollContent}
-      >
-        {/* Progress Bar */}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.quizScrollContent}>
+        {/* Progress */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
-                { 
-                  width: `${((currentQuestionIndex + 1) / currentQuiz.length) * 100}%`,
+                styles.progressFill,
+                {
+                  width: `${progress * 100}%`,
                   backgroundColor: selectedCategory.color,
-                }
-              ]} 
+                },
+              ]}
             />
           </View>
-          <View style={styles.quizStats}>
-            <Text style={styles.quizStatText}>Score: {score}</Text>
-            <Text style={styles.quizStatText}>{formatTime(timer)}</Text>
+          <View style={styles.quizMeta}>
+            <Text style={styles.quizMetaText}>Score: {score}</Text>
+            <Text style={styles.quizMetaText}>⏱️ {formatTime(timer)}</Text>
           </View>
         </View>
-        
-        {/* Question Card */}
+
+        {/* Question */}
         <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>
-            Question {currentQuestionIndex + 1}
-          </Text>
-          
-          <Text style={styles.questionText}>
-            {currentQuestion.question}
-          </Text>
-          
+          <Text style={styles.questionNumber}>Question {currentIndex + 1}</Text>
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+
           {/* Multiple Choice */}
           {typeof currentQuestion.correctAnswer === 'number' && currentQuestion.options && (
-            <View style={styles.optionsContainer}>
+            <View style={styles.answersContainer}>
               {currentQuestion.options.map((option, index) => {
-                const isSelected = hasAnswered && userAnswer?.userAnswer === index;
+                const isSelected = hasAnswered && userAnswer.userAnswer === index;
                 const isCorrect = index === currentQuestion.correctAnswer;
-                const showResult = hasAnswered && (showAnswer || showAnswerMode === 'end');
-                
-                let backgroundColor = '#FFFFFF';
+                const showResult = hasAnswered && answerMode === 'after-each';
+
+                let bgColor = '#FFFFFF';
                 let borderColor = '#000000';
-                let textColor = '#000000';
-                
+
                 if (showResult) {
                   if (isCorrect) {
-                    backgroundColor = '#4CAF50';
+                    bgColor = '#4CAF50';
                     borderColor = '#4CAF50';
-                    textColor = '#FFFFFF';
                   } else if (isSelected) {
-                    backgroundColor = '#F44336';
+                    bgColor = '#F44336';
                     borderColor = '#F44336';
-                    textColor = '#FFFFFF';
                   }
                 }
-                
+
                 return (
                   <TouchableOpacity
                     key={index}
                     style={[
-                      styles.optionButton,
-                      { backgroundColor, borderColor }
+                      styles.answerButton,
+                      { backgroundColor: bgColor, borderColor: borderColor },
                     ]}
                     onPress={() => !hasAnswered && handleAnswer(index)}
                     disabled={hasAnswered}
                   >
-                    <View style={[styles.optionLetter, { backgroundColor: isSelected ? '#FFFFFF' : borderColor }]}>
-                      <Text style={[styles.optionLetterText, { color: isSelected ? borderColor : '#FFFFFF' }]}>
+                    <View style={[styles.answerLetter, { backgroundColor: borderColor }]}>
+                      <Text style={styles.answerLetterText}>
                         {String.fromCharCode(65 + index)}
                       </Text>
                     </View>
-                    <Text style={[styles.optionText, { color: textColor }]}>
+                    <Text
+                      style={[
+                        styles.answerText,
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                      ]}
+                    >
                       {option}
                     </Text>
                   </TouchableOpacity>
@@ -513,7 +397,7 @@ const QuizGames = ({ visible, onClose }) => {
               })}
             </View>
           )}
-          
+
           {/* True/False */}
           {typeof currentQuestion.correctAnswer === 'boolean' && (
             <View style={styles.trueFalseContainer}>
@@ -521,40 +405,49 @@ const QuizGames = ({ visible, onClose }) => {
                 { label: 'TRUE', value: true, icon: '✓' },
                 { label: 'FALSE', value: false, icon: '✗' },
               ].map((option, index) => {
-                const isSelected = hasAnswered && userAnswer?.userAnswer === index;
-                const isCorrect = option.value === currentQuestion.correctAnswer;
-                const showResult = hasAnswered && (showAnswer || showAnswerMode === 'end');
-                
-                let backgroundColor = '#FFFFFF';
+                const isSelected = hasAnswered && userAnswer.userAnswer === index;
+                const isCorrect =
+                  (index === 0 && currentQuestion.correctAnswer) ||
+                  (index === 1 && !currentQuestion.correctAnswer);
+                const showResult = hasAnswered && answerMode === 'after-each';
+
+                let bgColor = '#FFFFFF';
                 let borderColor = '#000000';
-                let textColor = '#000000';
-                
+
                 if (showResult) {
                   if (isCorrect) {
-                    backgroundColor = '#4CAF50';
+                    bgColor = '#4CAF50';
                     borderColor = '#4CAF50';
-                    textColor = '#FFFFFF';
                   } else if (isSelected) {
-                    backgroundColor = '#F44336';
+                    bgColor = '#F44336';
                     borderColor = '#F44336';
-                    textColor = '#FFFFFF';
                   }
                 }
-                
+
                 return (
                   <TouchableOpacity
                     key={index}
                     style={[
                       styles.trueFalseButton,
-                      { backgroundColor, borderColor }
+                      { backgroundColor: bgColor, borderColor: borderColor },
                     ]}
                     onPress={() => !hasAnswered && handleAnswer(index)}
                     disabled={hasAnswered}
                   >
-                    <Text style={[styles.trueFalseIcon, { color: textColor }]}>
+                    <Text
+                      style={[
+                        styles.trueFalseIcon,
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                      ]}
+                    >
                       {option.icon}
                     </Text>
-                    <Text style={[styles.trueFalseText, { color: textColor }]}>
+                    <Text
+                      style={[
+                        styles.trueFalseText,
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
@@ -562,27 +455,29 @@ const QuizGames = ({ visible, onClose }) => {
               })}
             </View>
           )}
-          
-          {/* Explanation */}
-          {showAnswer && hasAnswered && (
-            <View style={styles.explanationCard}>
-              <Text style={[styles.explanationTitle, { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' }]}>
+
+          {/* Explanation (after-each mode) */}
+          {hasAnswered && answerMode === 'after-each' && (
+            <View style={styles.explanationContainer}>
+              <Text
+                style={[
+                  styles.explanationTitle,
+                  { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' },
+                ]}
+              >
                 {userAnswer.isCorrect ? '✅ Correct!' : '❌ Incorrect'}
               </Text>
-              <Text style={styles.explanationText}>
-                {currentQuestion.explanation}
-              </Text>
-              <Text style={styles.explanationReference}>
-                📖 {currentQuestion.reference}
-              </Text>
-              
+              <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
+              <Text style={styles.explanationReference}>📖 {currentQuestion.reference}</Text>
+
               <TouchableOpacity
                 style={[styles.nextButton, { backgroundColor: selectedCategory.color }]}
                 onPress={handleNext}
               >
                 <Text style={styles.nextButtonText}>
-                  {currentQuestionIndex < currentQuiz.length - 1 ? 'Next Question' : 'See Results'}
+                  {currentIndex < currentQuiz.length - 1 ? 'Next Question' : 'See Results'}
                 </Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )}
@@ -592,85 +487,87 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   const renderResults = () => {
-    const correctCount = userAnswers.filter(a => a.isCorrect).length;
+    const correctCount = userAnswers.filter((a) => a.isCorrect).length;
     const percentage = Math.round((correctCount / currentQuiz.length) * 100);
-    
+
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <LinearGradient
+          colors={[selectedCategory.color, selectedCategory.color + 'CC']}
+          style={styles.resultsHeader}
+        >
+          <Text style={styles.resultsEmoji}>🎉</Text>
+          <Text style={styles.resultsTitle}>Quiz Complete!</Text>
+        </LinearGradient>
+
         <View style={styles.resultsCard}>
-          <LinearGradient
-            colors={selectedCategory.gradient}
-            style={styles.resultsHeader}
-          >
-            <Text style={styles.resultsTitle}>Quiz Complete! 🎉</Text>
-          </LinearGradient>
-          
-          <View style={styles.resultsContent}>
-            <View style={styles.scoreCircle}>
-              <Text style={styles.scorePercentage}>{percentage}%</Text>
-              <Text style={styles.scoreLabel}>
-                {correctCount}/{currentQuiz.length} Correct
-              </Text>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scorePercent}>{percentage}%</Text>
+            <Text style={styles.scoreLabel}>
+              {correctCount}/{currentQuiz.length} Correct
+            </Text>
+          </View>
+
+          <View style={styles.resultsStats}>
+            <View style={styles.statBox}>
+              <Text style={styles.statIcon}>🏆</Text>
+              <Text style={styles.statValue}>{score}</Text>
+              <Text style={styles.statLabel}>Points</Text>
             </View>
-            
-            {showAnswerMode === 'end' && (
-              <View style={styles.answersReview}>
-                <Text style={styles.reviewTitle}>Review Answers</Text>
-                {currentQuiz.map((question, index) => {
-                  const userAnswer = userAnswers[index];
-                  const isCorrect = userAnswer?.isCorrect || false;
-                  
-                  return (
-                    <View key={index} style={styles.reviewItem}>
-                      <View style={[
-                        styles.reviewIcon,
-                        { backgroundColor: isCorrect ? '#4CAF50' : '#F44336' }
-                      ]}>
-                        <Text style={styles.reviewIconText}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <View style={styles.reviewContent}>
-                        <Text style={styles.reviewQuestion} numberOfLines={2}>
-                          {question.question}
-                        </Text>
-                        {!isCorrect && (
-                          <Text style={styles.reviewAnswer}>
-                            Correct: {
-                              typeof question.correctAnswer === 'number' 
-                                ? question.options[question.correctAnswer]
-                                : question.correctAnswer ? 'True' : 'False'
-                            }
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-            
-            <View style={styles.resultButtons}>
-              <TouchableOpacity
-                style={[styles.resultButton, { backgroundColor: selectedCategory.color }]}
-                onPress={() => {
-                  setCurrentScreen('setup');
-                  hapticFeedback.buttonPress();
-                }}
-              >
-                <Text style={styles.resultButtonText}>Play Again</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.resultButton, { backgroundColor: '#666666' }]}
-                onPress={() => {
-                  setCurrentScreen('home');
-                  hapticFeedback.buttonPress();
-                }}
-              >
-                <Text style={styles.resultButtonText}>Home</Text>
-              </TouchableOpacity>
+            <View style={styles.statBox}>
+              <Text style={styles.statIcon}>⏱️</Text>
+              <Text style={styles.statValue}>{formatTime(timer)}</Text>
+              <Text style={styles.statLabel}>Time</Text>
             </View>
+          </View>
+
+          {/* Answer Review (if at-end mode) */}
+          {answerMode === 'at-end' && (
+            <View style={styles.reviewSection}>
+              <Text style={styles.reviewTitle}>Answer Review</Text>
+              {userAnswers.map((answer, index) => (
+                <View key={index} style={styles.reviewItem}>
+                  <View
+                    style={[
+                      styles.reviewIcon,
+                      { backgroundColor: answer.isCorrect ? '#4CAF50' : '#F44336' },
+                    ]}
+                  >
+                    <Text style={styles.reviewIconText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.reviewContent}>
+                    <Text style={styles.reviewQuestion} numberOfLines={2}>
+                      {answer.question.question}
+                    </Text>
+                    {!answer.isCorrect && (
+                      <Text style={styles.reviewAnswer}>
+                        Correct:{' '}
+                        {typeof answer.question.correctAnswer === 'number'
+                          ? answer.question.options[answer.question.correctAnswer]
+                          : answer.question.correctAnswer
+                          ? 'True'
+                          : 'False'}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.resultsButtons}>
+            <TouchableOpacity
+              style={[styles.resultButton, { backgroundColor: selectedCategory.color }]}
+              onPress={() => setCurrentScreen('setup')}
+            >
+              <Text style={styles.resultButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.resultButton, { backgroundColor: '#666666' }]}
+              onPress={() => setCurrentScreen('home')}
+            >
+              <Text style={styles.resultButtonText}>Home</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -678,21 +575,14 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        
+        <StatusBar barStyle="dark-content" />
+        {renderHeader()}
         {currentScreen === 'home' && renderHome()}
         {currentScreen === 'setup' && renderSetup()}
         {currentScreen === 'quiz' && renderQuiz()}
         {currentScreen === 'results' && renderResults()}
-        
-        {renderHeader()}
       </View>
     </Modal>
   );
@@ -701,48 +591,36 @@ const QuizGames = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
   },
-  
-  // Header Styles
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
   },
   headerButton: {
     padding: 8,
   },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    color: '#000000',
   },
-  
-  // Common Styles
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingTop: 100,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    padding: 20,
   },
   quizScrollContent: {
-    paddingTop: 120,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    padding: 20,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -751,116 +629,102 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: '#000000',
     fontWeight: '700',
-  },
-  
-  // Home Styles
-  sectionHeader: {
-    marginBottom: 16,
+    color: '#000000',
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '900',
-    color: '#666666',
+    color: '#000000',
+    marginBottom: 20,
     letterSpacing: 1,
   },
   categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: '#000000',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  categoryIconWrapper: {
+  categoryIcon: {
     width: 56,
     height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
+    borderRadius: 28,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  categoryContent: {
+  categoryIconText: {
+    fontSize: 28,
+  },
+  categoryInfo: {
     flex: 1,
-    marginLeft: 16,
   },
   categoryTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#000000',
     marginBottom: 4,
   },
-  categoryDescription: {
+  categoryDesc: {
     fontSize: 14,
-    color: '#666666',
     fontWeight: '600',
-  },
-  
-  // Setup Styles
-  setupCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#000000',
-    backgroundColor: '#FFFFFF',
+    color: '#666666',
   },
   setupHeader: {
     padding: 32,
+    borderRadius: 20,
     alignItems: 'center',
+    marginBottom: 24,
+  },
+  setupCategoryIcon: {
+    fontSize: 64,
+    marginBottom: 12,
   },
   setupCategoryTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: 12,
   },
-  setupContent: {
-    padding: 24,
+  setupSection: {
+    marginBottom: 32,
   },
-  setupSectionTitle: {
+  setupLabel: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#000000',
     marginBottom: 16,
-    marginTop: 8,
   },
-  questionCountOptions: {
+  optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 24,
   },
-  questionCountButton: {
+  countButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 3,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: '#000000',
     backgroundColor: '#FFFFFF',
   },
-  questionCountText: {
+  countButtonText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#000000',
-  },
-  answerModeOptions: {
-    gap: 12,
-    marginBottom: 32,
   },
   answerModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 3,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: '#000000',
     backgroundColor: '#FFFFFF',
+    marginBottom: 12,
     gap: 12,
   },
   answerModeText: {
@@ -884,8 +748,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FFFFFF',
   },
-  
-  // Quiz Styles
   progressContainer: {
     marginBottom: 24,
   },
@@ -896,18 +758,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: '#000000',
+    marginBottom: 12,
   },
   progressFill: {
     height: '100%',
   },
-  quizStats: {
+  quizMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
   },
-  quizStatText: {
+  quizMetaText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#000000',
   },
   questionCard: {
@@ -916,16 +778,11 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 3,
     borderColor: '#000000',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
   },
   questionNumber: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#666666',
+    fontWeight: '900',
+    color: '#000000',
     marginBottom: 12,
   },
   questionText: {
@@ -933,44 +790,45 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#000000',
     lineHeight: 32,
-    marginBottom: 32,
+    marginBottom: 24,
   },
-  optionsContainer: {
+  answersContainer: {
     gap: 12,
   },
-  optionButton: {
+  answerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 3,
     gap: 12,
   },
-  optionLetter: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
+  answerLetter: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  optionLetterText: {
-    fontSize: 18,
+  answerLetterText: {
+    fontSize: 16,
     fontWeight: '900',
+    color: '#FFFFFF',
   },
-  optionText: {
+  answerText: {
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
   },
   trueFalseContainer: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   trueFalseButton: {
     flex: 1,
     alignItems: 'center',
     padding: 24,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 4,
     gap: 8,
   },
@@ -982,11 +840,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
   },
-  explanationCard: {
+  explanationContainer: {
     marginTop: 24,
     padding: 20,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#000000',
   },
@@ -1009,35 +867,39 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    gap: 8,
   },
   nextButtonText: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  
-  // Results Styles
-  resultsCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#000000',
-    backgroundColor: '#FFFFFF',
-  },
-  resultsHeader: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  resultsTitle: {
-    fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
   },
-  resultsContent: {
+  resultsHeader: {
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  resultsEmoji: {
+    fontSize: 64,
+    marginBottom: 12,
+  },
+  resultsTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  resultsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 24,
+    borderWidth: 3,
+    borderColor: '#000000',
   },
   scoreCircle: {
     width: 200,
@@ -1051,7 +913,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: '#000000',
   },
-  scorePercentage: {
+  scorePercent: {
     fontSize: 48,
     fontWeight: '900',
     color: '#000000',
@@ -1061,12 +923,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#666666',
   },
-  answersReview: {
+  resultsStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666666',
+  },
+  reviewSection: {
     marginBottom: 32,
   },
   reviewTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#000000',
     marginBottom: 16,
   },
@@ -1081,15 +972,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   reviewIconText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   reviewContent: {
     flex: 1,
-    marginLeft: 12,
   },
   reviewQuestion: {
     fontSize: 16,
@@ -1102,19 +993,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666666',
   },
-  resultButtons: {
+  resultsButtons: {
+    flexDirection: 'row',
     gap: 12,
   },
   resultButton: {
+    flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   resultButtonText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
   },
 });
 
 export default QuizGames;
+
