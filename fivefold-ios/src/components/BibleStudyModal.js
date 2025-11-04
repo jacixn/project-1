@@ -1442,49 +1442,66 @@ const BibleStudyModal = ({ visible, onClose }) => {
         
         {/* Header - Hide for Bible Characters section completely */}
         {selectedSection !== 'characters' && (
-          <View 
-            style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
+          <BlurView
+            intensity={20}
+            tint={isDark ? 'dark' : 'light'}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
               zIndex: 1000,
-              backgroundColor: 'transparent',
+              borderBottomLeftRadius: 30,
+              borderBottomRightRadius: 30,
+              overflow: 'hidden',
             }}
           >
-            <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
+            <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
             
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingHorizontal: 20,
-              paddingVertical: 12,
+              paddingTop: 8,
+              paddingBottom: 20,
+              backgroundColor: 'transparent',
             }}>
               <TouchableOpacity 
                 onPress={selectedSection === 'main' ? onClose : () => setSelectedSection('main')} 
                 style={{ 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                  paddingHorizontal: 16, 
-                  paddingVertical: 8,
-                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                  paddingHorizontal: 18, 
+                  paddingVertical: 10,
+                  borderRadius: 25,
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2,
                 }}
               >
-                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
+                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '700' }}>
                   {selectedSection === 'main' ? 'Close' : 'Back'}
                 </Text>
               </TouchableOpacity>
               
-              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', textAlign: 'center' }}>
+              <Text style={{ 
+                color: theme.text, 
+                fontSize: 20, 
+                fontWeight: '800', 
+                textAlign: 'center',
+                letterSpacing: 0.5,
+              }}>
                 {selectedSection === 'maps' ? 'Bible Maps' :
                  selectedSection === 'themes' ? 'Thematic Guides' :
                  selectedSection === 'keyverses' ? 'Key Verses' :
                  'Bible Study'}
               </Text>
               
-              <View style={{ width: 60 }} />
+              <View style={{ width: 70 }} />
             </View>
-          </View>
+          </BlurView>
         )}
       </View>
 
