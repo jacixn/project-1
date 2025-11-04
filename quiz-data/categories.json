@@ -1,5 +1,14 @@
 [
   {
+    "id": "all",
+    "title": "All Categories",
+    "icon": "🎯",
+    "color": "#673AB7",
+    "gradient": ["#673AB7", "#512DA8"],
+    "totalQuizzes": 145,
+    "description": "Mixed questions from all Bible categories"
+  },
+  {
     "id": "new-testament",
     "title": "New Testament",
     "icon": "🌟",

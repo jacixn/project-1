@@ -96,17 +96,32 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   const startQuiz = () => {
-    // Get all questions from selected category
-    const categoryQuestions = questions[selectedCategory.id];
     const allQuestions = [];
 
-    if (categoryQuestions) {
-      Object.keys(categoryQuestions).forEach(quizType => {
-        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
-          const qs = categoryQuestions[quizType][difficulty] || [];
-          allQuestions.push(...qs);
-        });
+    // If "All" category, get questions from ALL categories
+    if (selectedCategory.id === 'all') {
+      Object.keys(questions).forEach(categoryId => {
+        const categoryQuestions = questions[categoryId];
+        if (categoryQuestions) {
+          Object.keys(categoryQuestions).forEach(quizType => {
+            Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+              const qs = categoryQuestions[quizType][difficulty] || [];
+              allQuestions.push(...qs);
+            });
+          });
+        }
       });
+    } else {
+      // Get questions from selected category only
+      const categoryQuestions = questions[selectedCategory.id];
+      if (categoryQuestions) {
+        Object.keys(categoryQuestions).forEach(quizType => {
+          Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+            const qs = categoryQuestions[quizType][difficulty] || [];
+            allQuestions.push(...qs);
+          });
+        });
+      }
     }
 
     if (allQuestions.length === 0) {
@@ -260,16 +275,32 @@ const QuizGames = ({ visible, onClose }) => {
 
   const renderSetup = () => {
     // Count total questions in this category
-    const categoryQuestions = questions[selectedCategory.id];
     let totalQuestions = 0;
     
-    if (categoryQuestions) {
-      Object.keys(categoryQuestions).forEach(quizType => {
-        Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
-          const qs = categoryQuestions[quizType][difficulty] || [];
-          totalQuestions += qs.length;
-        });
+    if (selectedCategory.id === 'all') {
+      // Count ALL questions from ALL categories
+      Object.keys(questions).forEach(categoryId => {
+        const categoryQuestions = questions[categoryId];
+        if (categoryQuestions) {
+          Object.keys(categoryQuestions).forEach(quizType => {
+            Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+              const qs = categoryQuestions[quizType][difficulty] || [];
+              totalQuestions += qs.length;
+            });
+          });
+        }
       });
+    } else {
+      // Count questions from selected category only
+      const categoryQuestions = questions[selectedCategory.id];
+      if (categoryQuestions) {
+        Object.keys(categoryQuestions).forEach(quizType => {
+          Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+            const qs = categoryQuestions[quizType][difficulty] || [];
+            totalQuestions += qs.length;
+          });
+        });
+      }
     }
 
     return (
