@@ -460,13 +460,27 @@ const ProfileTab = () => {
         console.log('✅ Completed tasks:', completedHistory);
         
         setCompletedTodosList(completedHistory);
+        
+        // Update userStats with actual count
+        setUserStats(prev => ({
+          ...prev,
+          completedTasks: completedHistory.length
+        }));
       } else {
         console.log('❌ No todos found in storage');
         setCompletedTodosList([]);
+        setUserStats(prev => ({
+          ...prev,
+          completedTasks: 0
+        }));
       }
     } catch (error) {
       console.error('❌ Error loading completed tasks:', error);
       setCompletedTodosList([]);
+      setUserStats(prev => ({
+        ...prev,
+        completedTasks: 0
+      }));
     }
   };
 
@@ -922,18 +936,27 @@ const ProfileTab = () => {
       const totalPoints = await PrayerCompletionManager.getTotalPoints();
       const level = Math.floor(totalPoints / 1000) + 1; // 1000 points per level
       
+      // Get actual completed tasks count from todos
+      const storedTodos = await AsyncStorage.getItem('todos');
+      let actualCompletedCount = 0;
+      if (storedTodos) {
+        const todos = JSON.parse(storedTodos);
+        actualCompletedCount = todos.filter(todo => todo.completed).length;
+      }
+      
       setUserStats({
         points: totalPoints,
         level: level,
-        completedTasks: 0,
+        completedTasks: actualCompletedCount, // Use actual count, not cached
         streak: 0,
         badges: [],
         versesRead: 25,
         prayersCompleted: 12,
         ...storedStats,
+        completedTasks: actualCompletedCount, // Override cached value with actual
       });
       
-      console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}`);
+      console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
