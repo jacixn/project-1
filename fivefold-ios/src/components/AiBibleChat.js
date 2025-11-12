@@ -395,6 +395,19 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     console.log('📖 Loaded conversation from history');
   };
 
+  // Delete a specific conversation
+  const deleteConversation = async (conversationId) => {
+    try {
+      const updatedHistory = chatHistory.filter(conv => conv.id !== conversationId);
+      await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
+      setChatHistory(updatedHistory);
+      hapticFeedback.success();
+      console.log('🗑️ Deleted conversation:', conversationId);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
   // Clear all chat history
   const clearChatHistory = async () => {
     Alert.alert(
@@ -967,35 +980,73 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               </View>
             ) : (
               chatHistory.map((conversation, index) => (
-                <TouchableOpacity
+                <View
                   key={conversation.id}
-                  style={[styles.historyItem, { 
-                    backgroundColor: `${theme.primary}15`,
-                    borderColor: `${theme.primary}30`
-                  }]}
-                  onPress={() => loadConversationFromHistory(conversation)}
-                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                    gap: 8
+                  }}
                 >
-                  <View style={styles.historyItemContent}>
-                    <View style={styles.historyItemHeader}>
-                      <Text style={[styles.historyItemDate, { color: theme.textSecondary }]}>
-                        {formatSmartDate(conversation.timestamp)}
+                  <TouchableOpacity
+                    style={[styles.historyItem, { 
+                      backgroundColor: `${theme.primary}15`,
+                      borderColor: `${theme.primary}30`,
+                      flex: 1
+                    }]}
+                    onPress={() => loadConversationFromHistory(conversation)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.historyItemContent}>
+                      <View style={styles.historyItemHeader}>
+                        <Text style={[styles.historyItemDate, { color: theme.textSecondary }]}>
+                          {formatSmartDate(conversation.timestamp)}
+                        </Text>
+                      </View>
+                      <Text 
+                        style={[styles.historyItemPreview, { color: theme.text }]}
+                        numberOfLines={2}
+                      >
+                        {conversation.preview}
                       </Text>
+                      <View style={styles.historyItemFooter}>
+                        <Text style={[styles.historyItemMessages, { color: theme.textSecondary }]}>
+                          {conversation.messages.length} messages
+                        </Text>
+                        <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                      </View>
                     </View>
-                    <Text 
-                      style={[styles.historyItemPreview, { color: theme.text }]}
-                      numberOfLines={2}
-                    >
-                      {conversation.preview}
-                    </Text>
-                    <View style={styles.historyItemFooter}>
-                      <Text style={[styles.historyItemMessages, { color: theme.textSecondary }]}>
-                        {conversation.messages.length} messages
-                      </Text>
-                      <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                  
+                  {/* Delete Individual Chat Button */}
+                  <TouchableOpacity
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      backgroundColor: `${theme.error}20`,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onPress={() => {
+                      Alert.alert(
+                        'Delete Chat',
+                        'Are you sure you want to delete this conversation?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => deleteConversation(conversation.id)
+                          }
+                        ]
+                      );
+                    }}
+                  >
+                    <MaterialIcons name="delete-outline" size={24} color={theme.error} />
+                  </TouchableOpacity>
+                </View>
               ))
             )}
             
