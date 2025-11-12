@@ -3331,81 +3331,121 @@ const ProfileTab = () => {
                   <View
                     key={verse.verseId + index}
                     style={{
-                      backgroundColor: `${selectedHighlightColor}20`,
-                      borderLeftWidth: 6,
-                      borderLeftColor: selectedHighlightColor,
-                      borderRadius: 16,
-                      padding: 20,
                       marginBottom: 16,
+                      borderRadius: 24,
+                      overflow: 'hidden',
                       shadowColor: selectedHighlightColor,
-                      shadowOffset: { width: 0, height: 3 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 8,
-                      elevation: 3
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: isDark ? 0.4 : 0.2,
+                      shadowRadius: 16,
+                      elevation: 6
                     }}
                   >
-                    {/* Verse Reference Header */}
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: 12,
-                      paddingBottom: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: `${selectedHighlightColor}40`
-                    }}>
-                      <MaterialIcons name="auto-stories" size={20} color={theme.text} style={{ opacity: 0.7 }} />
-                      <Text style={{
-                        fontSize: 17,
-                        fontWeight: '800',
-                        color: theme.text,
-                        marginLeft: 10
+                    <LinearGradient
+                      colors={[
+                        isDark ? `${selectedHighlightColor}30` : `${selectedHighlightColor}18`,
+                        isDark ? `${selectedHighlightColor}20` : `${selectedHighlightColor}12`
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        padding: 22,
+                        borderWidth: 2,
+                        borderColor: `${selectedHighlightColor}50`,
+                        borderRadius: 24
+                      }}
+                    >
+                      {/* Highlight Color Accent Bar */}
+                      <View style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 6,
+                        backgroundColor: selectedHighlightColor
+                      }} />
+                      
+                      {/* Verse Reference Header */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 16,
+                        paddingLeft: 8
                       }}>
-                        {verse.verseReference}
+                        <View style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          backgroundColor: selectedHighlightColor,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          shadowColor: selectedHighlightColor,
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 6,
+                          elevation: 3
+                        }}>
+                          <MaterialIcons name="auto-stories" size={20} color="#FFFFFF" />
+                        </View>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: '800',
+                          color: theme.text,
+                          marginLeft: 12,
+                          flex: 1
+                        }}>
+                          {verse.verseReference}
+                        </Text>
+                      </View>
+                      
+                      {/* Verse Text */}
+                      <Text style={{
+                        fontSize: 16,
+                        color: theme.text,
+                        lineHeight: 28,
+                        marginBottom: 18,
+                        paddingLeft: 8,
+                        fontWeight: '500'
+                      }}>
+                        {verse.text}
                       </Text>
-                    </View>
-                    
-                    {/* Verse Text */}
-                    <Text style={{
-                      fontSize: 16,
-                      color: theme.text,
-                      lineHeight: 26,
-                      marginBottom: 16
-                    }}>
-                      {verse.text}
-                    </Text>
                     
                     {/* Action Buttons Row */}
                     <View style={{
                       flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 12,
-                      gap: 8,
+                      gap: 10,
+                      marginTop: 8,
+                      paddingLeft: 8
                     }}>
                       {/* Go to Verse Button */}
                       <TouchableOpacity
                         style={{
+                          flex: 1,
+                          paddingVertical: 12,
+                          paddingHorizontal: 14,
+                          borderRadius: 16,
+                          backgroundColor: theme.success,
                           flexDirection: 'row',
                           alignItems: 'center',
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 12,
-                          backgroundColor: theme.success + '15',
-                          borderWidth: 1,
-                          borderColor: theme.success + '30',
-                          flex: 1,
                           justifyContent: 'center',
+                          shadowColor: theme.success,
+                          shadowOffset: { width: 0, height: 3 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 6,
+                          elevation: 3
                         }}
                         onPress={() => {
+                          hapticFeedback.medium();
                           handleNavigateToVerse(verse.verseReference);
                         }}
+                        activeOpacity={0.8}
                       >
-                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
+                        <MaterialIcons name="menu-book" size={18} color="#FFFFFF" />
                         <Text style={{
                           fontSize: 14,
-                          fontWeight: '600',
-                          color: theme.success,
-                          marginLeft: 4
+                          fontWeight: '700',
+                          color: '#FFFFFF',
+                          marginLeft: 6
                         }}>
                           Go to Verse
                         </Text>
@@ -3414,16 +3454,19 @@ const ProfileTab = () => {
                       {/* Discuss Button */}
                       <TouchableOpacity
                         style={{
+                          flex: 1,
+                          paddingVertical: 12,
+                          paddingHorizontal: 14,
+                          borderRadius: 16,
+                          backgroundColor: theme.primary,
                           flexDirection: 'row',
                           alignItems: 'center',
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 12,
-                          backgroundColor: theme.primary + '15',
-                          borderWidth: 1,
-                          borderColor: theme.primary + '30',
-                          flex: 1,
                           justifyContent: 'center',
+                          shadowColor: theme.primary,
+                          shadowOffset: { width: 0, height: 3 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 6,
+                          elevation: 3
                         }}
                         onPress={() => {
                           hapticFeedback.medium();
@@ -3436,13 +3479,14 @@ const ProfileTab = () => {
                             setShowAiChat(true);
                           }, 300);
                         }}
+                        activeOpacity={0.8}
                       >
-                        <MaterialIcons name="forum" size={16} color={theme.primary} />
+                        <MaterialIcons name="forum" size={18} color="#FFFFFF" />
                         <Text style={{
                           fontSize: 14,
-                          fontWeight: '600',
-                          color: theme.primary,
-                          marginLeft: 4
+                          fontWeight: '700',
+                          color: '#FFFFFF',
+                          marginLeft: 6
                         }}>
                           Discuss
                         </Text>
@@ -3451,40 +3495,44 @@ const ProfileTab = () => {
                       {/* Remove Button */}
                       <TouchableOpacity
                         style={{
-                          flexDirection: 'row',
+                          width: 50,
+                          height: 50,
+                          borderRadius: 16,
+                          backgroundColor: `${theme.error}20`,
                           alignItems: 'center',
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 12,
-                          backgroundColor: theme.error + '20',
-                          flex: 1,
                           justifyContent: 'center',
+                          borderWidth: 1.5,
+                          borderColor: `${theme.error}30`
                         }}
-                        onPress={async () => {
-                          hapticFeedback.light();
-                          await VerseDataManager.removeHighlight(verse.verseId);
-                          await loadHighlights();
-                          // Remove from current view
-                          setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
-                          // Go back if no verses left
-                          if (highlightVersesWithText.length === 1) {
-                            setSelectedHighlightColor(null);
-                          }
-                          // Notify other parts of the app that highlights have changed
-                          DeviceEventEmitter.emit('highlightsChanged');
+                        onPress={() => {
+                          Alert.alert(
+                            'Remove Highlight',
+                            'Are you sure you want to remove this highlight?',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Remove',
+                                style: 'destructive',
+                                onPress: async () => {
+                                  hapticFeedback.light();
+                                  await VerseDataManager.removeHighlight(verse.verseId);
+                                  await loadHighlights();
+                                  setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
+                                  if (highlightVersesWithText.length === 1) {
+                                    setSelectedHighlightColor(null);
+                                  }
+                                  DeviceEventEmitter.emit('highlightsChanged');
+                                }
+                              }
+                            ]
+                          );
                         }}
+                        activeOpacity={0.8}
                       >
-                        <MaterialIcons name="delete-outline" size={18} color={theme.error} />
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '700',
-                          color: theme.error,
-                          marginLeft: 8
-                        }}>
-                          Remove
-                        </Text>
+                        <MaterialIcons name="delete-outline" size={24} color={theme.error} />
                       </TouchableOpacity>
                     </View>
+                    </LinearGradient>
                   </View>
                 ))
               )}
