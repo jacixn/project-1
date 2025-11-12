@@ -1132,12 +1132,9 @@ const ProfileTab = () => {
     global.liquidGlassUserPreference = enabled;
     hapticFeedback.light();
     
-    // Show alert that app needs refresh
-    Alert.alert(
-      'Liquid Glass Updated',
-      'Close and reopen the app to see the changes take effect.',
-      [{ text: 'OK', style: 'default' }]
-    );
+    // Notify all components about the change
+    DeviceEventEmitter.emit('liquidGlassChanged', enabled);
+    console.log('💎 Broadcast: Liquid glass changed to', enabled);
   };
 
   const handleBibleVersionSelect = async (versionId) => {

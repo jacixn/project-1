@@ -159,6 +159,7 @@ const BiblePrayerTab = () => {
 
   // About modal state
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   
   // Logo animations
   const logoSpin = useRef(new Animated.Value(0)).current;
@@ -189,11 +190,36 @@ const BiblePrayerTab = () => {
     }
   };
 
+  // Load liquid glass setting
+  const loadLiquidGlassSetting = async () => {
+    try {
+      const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+      if (setting !== null) {
+        const enabled = setting === 'true';
+        setLiquidGlassEnabled(enabled);
+        console.log('💎 Loaded liquid glass setting for BiblePrayerTab:', enabled);
+      }
+    } catch (error) {
+      console.error('Failed to load liquid glass setting:', error);
+    }
+  };
+
   useEffect(() => {
     initializePrayerData();
     loadUserName();
+    loadLiquidGlassSetting();
     startLogoAnimations();
     startShimmerAnimation();
+
+    // Listen for liquid glass setting changes
+    const liquidGlassListener = DeviceEventEmitter.addListener('liquidGlassChanged', (enabled) => {
+      console.log('💎 BiblePrayerTab: Liquid glass setting changed to:', enabled);
+      setLiquidGlassEnabled(enabled);
+    });
+
+    return () => {
+      liquidGlassListener.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -700,7 +726,8 @@ const BiblePrayerTab = () => {
   const BibleSection = () => {
     // Liquid Glass Container for Bible Section
     const LiquidGlassBibleContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
+      // Use BlurView if: device doesn't support liquid glass OR user disabled it
+      if (!isLiquidGlassSupported || !liquidGlassEnabled) {
         return (
           <BlurView 
             intensity={18} 
@@ -716,6 +743,7 @@ const BiblePrayerTab = () => {
         );
       }
 
+      // Use Liquid Glass if: device supports it AND user enabled it
       return (
         <LiquidGlassView
           interactive={true}
@@ -807,7 +835,8 @@ const BiblePrayerTab = () => {
   const BibleStudySection = () => {
     // Liquid Glass Container for Bible Study Section
     const LiquidGlassBibleStudyContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
+      // Use BlurView if: device doesn't support liquid glass OR user disabled it
+      if (!isLiquidGlassSupported || !liquidGlassEnabled) {
         return (
           <BlurView 
             intensity={18} 
@@ -823,6 +852,7 @@ const BiblePrayerTab = () => {
         );
       }
 
+      // Use Liquid Glass if: device supports it AND user enabled it
       return (
         <LiquidGlassView
           interactive={true}

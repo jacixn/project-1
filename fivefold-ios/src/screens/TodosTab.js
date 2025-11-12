@@ -135,6 +135,7 @@ const TodosTab = () => {
   const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
   const [completedTask, setCompletedTask] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -467,7 +468,10 @@ const TodosTab = () => {
 
     // Liquid Glass Container for Calendar
     const LiquidGlassCalendarContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
+      // Use BlurView if: device doesn't support liquid glass OR user disabled it
+      const userPrefersBlur = global.liquidGlassUserPreference === false || liquidGlassEnabled === false;
+      
+      if (!isLiquidGlassSupported || userPrefersBlur) {
         return (
           <BlurView 
             intensity={20} 
@@ -483,6 +487,7 @@ const TodosTab = () => {
         );
       }
 
+      // Use Liquid Glass if: device supports it AND user enabled it
       return (
         <LiquidGlassView
           interactive={true}
@@ -580,7 +585,10 @@ const TodosTab = () => {
 
     // Liquid Glass Container for Stats
     const LiquidGlassStatsContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
+      // Use BlurView if: device doesn't support liquid glass OR user disabled it
+      const userPrefersBlur = global.liquidGlassUserPreference === false || liquidGlassEnabled === false;
+      
+      if (!isLiquidGlassSupported || userPrefersBlur) {
         return (
           <BlurView 
             intensity={18} 
@@ -596,6 +604,7 @@ const TodosTab = () => {
         );
       }
 
+      // Use Liquid Glass if: device supports it AND user enabled it
       return (
         <LiquidGlassView
           interactive={true}
@@ -691,7 +700,10 @@ const TodosTab = () => {
 
     // Liquid Glass Container for History
     const LiquidGlassHistoryContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
+      // Use BlurView if: device doesn't support liquid glass OR user disabled it
+      const userPrefersBlur = global.liquidGlassUserPreference === false || liquidGlassEnabled === false;
+      
+      if (!isLiquidGlassSupported || userPrefersBlur) {
         return (
           <BlurView 
             intensity={18} 
@@ -707,6 +719,7 @@ const TodosTab = () => {
         );
       }
 
+      // Use Liquid Glass if: device supports it AND user enabled it
       return (
         <LiquidGlassView
           interactive={true}
