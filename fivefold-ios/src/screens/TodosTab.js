@@ -504,9 +504,7 @@ const TodosTab = () => {
             <Text style={styles.todayButtonText}>Today</Text>
           </AnimatedTodoButton>
           <Text style={[styles.monthYear, { color: theme.text }]}>{currentMonth}</Text>
-          <AnimatedTodoButton style={styles.moreButton}>
-            <MaterialIcons name="more-horiz" size={24} color={theme.textSecondary} />
-          </AnimatedTodoButton>
+          <View style={{ width: 40 }} />
         </View>
 
         {/* Days of Week Header */}
