@@ -84,10 +84,10 @@ class ProductionSmartService {
           // Array format: actual message history
           
           // Smart context management:
-          // - Keep last 10 messages for immediate context
+          // - Keep last 30 messages for immediate context
           // - Summarize older messages if conversation is long
-          const recentMessages = conversationContext.slice(-10);
-          const olderMessages = conversationContext.slice(0, -10);
+          const recentMessages = conversationContext.slice(-30);
+          const olderMessages = conversationContext.slice(0, -30);
           
           // Build context with summary if there are older messages
           if (olderMessages.length > 0) {
