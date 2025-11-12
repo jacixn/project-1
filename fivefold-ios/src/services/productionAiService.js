@@ -82,10 +82,31 @@ class ProductionSmartService {
       if (conversationContext) {
         if (Array.isArray(conversationContext) && conversationContext.length > 0) {
           // Array format: actual message history
-          const recentMessages = conversationContext.slice(-4);
-          contextPrompt = 'Previous messages in this conversation:\n' + 
-            recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Friend'}: ${msg.content.substring(0, 150)}`).join('\n') + 
-            '\n\n';
+          
+          // Smart context management:
+          // - Keep last 10 messages for immediate context
+          // - Summarize older messages if conversation is long
+          const recentMessages = conversationContext.slice(-10);
+          const olderMessages = conversationContext.slice(0, -10);
+          
+          // Build context with summary if there are older messages
+          if (olderMessages.length > 0) {
+            // Create a brief summary of older conversation
+            const oldTopics = olderMessages
+              .filter(msg => msg.role === 'user')
+              .map(msg => msg.content.substring(0, 100))
+              .slice(0, 3); // First 3 user questions
+            
+            contextPrompt = `Earlier in conversation, user asked about: ${oldTopics.join('; ')}\n\nRecent messages:\n` + 
+              recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Friend'}: ${msg.content.substring(0, 150)}`).join('\n') + 
+              '\n\n';
+          } else {
+            // Short conversation - just use recent messages
+            contextPrompt = 'Previous messages in this conversation:\n' + 
+              recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Friend'}: ${msg.content.substring(0, 150)}`).join('\n') + 
+              '\n\n';
+          }
+          
           // If there's any Friend message already in history, it's NOT the first message
           isFirstMessage = !conversationContext.some(msg => msg.role === 'assistant');
         } else if (conversationContext.messageCount !== undefined) {
