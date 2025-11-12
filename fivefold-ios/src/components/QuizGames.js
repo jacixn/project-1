@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizService from '../services/quizService';
+import hapticFeedback from '../utils/haptics';
 
 const QuizGames = ({ visible, onClose }) => {
   // State
@@ -92,6 +93,7 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   const handleCategorySelect = (category) => {
+    hapticFeedback.cardTap(); // Haptic on category selection
     setSelectedCategory(category);
     setCurrentScreen('setup');
   };
@@ -140,9 +142,12 @@ const QuizGames = ({ visible, onClose }) => {
     setScore(0);
     setTimer(0);
     setCurrentScreen('quiz');
+    hapticFeedback.medium(); // Haptic when quiz starts
   };
 
   const handleAnswer = (answerIndex) => {
+    hapticFeedback.light(); // Haptic on selection
+    
     const currentQuestion = currentQuiz[currentIndex];
     
     // Check if correct
@@ -163,6 +168,9 @@ const QuizGames = ({ visible, onClose }) => {
 
     if (isCorrect) {
       setScore(score + 100);
+      hapticFeedback.success(); // Success haptic for correct answer
+    } else {
+      hapticFeedback.error(); // Error haptic for wrong answer
     }
 
     if (answerMode === 'at-end') {
@@ -177,6 +185,7 @@ const QuizGames = ({ visible, onClose }) => {
   };
 
   const handleNext = () => {
+    hapticFeedback.light(); // Haptic on next question
     if (currentIndex < currentQuiz.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -197,6 +206,7 @@ const QuizGames = ({ visible, onClose }) => {
       <TouchableOpacity
         style={styles.headerButton}
         onPress={() => {
+          hapticFeedback.light(); // Haptic on back button
           if (currentScreen === 'home') {
             onClose();
           } else if (currentScreen === 'setup') {
@@ -207,7 +217,10 @@ const QuizGames = ({ visible, onClose }) => {
               'Are you sure you want to exit? Your progress will be lost.',
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Exit', onPress: () => setCurrentScreen('home') },
+                { text: 'Exit', onPress: () => {
+                  hapticFeedback.light();
+                  setCurrentScreen('home');
+                }},
               ]
             );
           } else {
@@ -325,7 +338,10 @@ const QuizGames = ({ visible, onClose }) => {
                 styles.countButton,
                 questionCount === count && { backgroundColor: selectedCategory.color },
               ]}
-              onPress={() => setQuestionCount(count)}
+              onPress={() => {
+                hapticFeedback.selection();
+                setQuestionCount(count);
+              }}
             >
               <Text
                 style={[
@@ -348,7 +364,10 @@ const QuizGames = ({ visible, onClose }) => {
             styles.answerModeButton,
             answerMode === 'after-each' && { backgroundColor: selectedCategory.color },
           ]}
-          onPress={() => setAnswerMode('after-each')}
+          onPress={() => {
+            hapticFeedback.selection();
+            setAnswerMode('after-each');
+          }}
         >
           <MaterialIcons
             name="visibility"
@@ -370,7 +389,10 @@ const QuizGames = ({ visible, onClose }) => {
             styles.answerModeButton,
             answerMode === 'at-end' && { backgroundColor: selectedCategory.color },
           ]}
-          onPress={() => setAnswerMode('at-end')}
+          onPress={() => {
+            hapticFeedback.selection();
+            setAnswerMode('at-end');
+          }}
         >
           <MaterialIcons
             name="format-list-numbered"
