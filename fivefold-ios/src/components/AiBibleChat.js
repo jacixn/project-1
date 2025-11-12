@@ -221,6 +221,39 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   // Suggested questions removed per user request
   const suggestedQuestions = [];
 
+  // Helper function to format date smartly
+  const formatSmartDate = (dateString) => {
+    const chatDate = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Reset time to compare dates only
+    const chatDateOnly = new Date(chatDate.getFullYear(), chatDate.getMonth(), chatDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    
+    const time = chatDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    if (chatDateOnly.getTime() === todayOnly.getTime()) {
+      return `Today at ${time}`;
+    } else if (chatDateOnly.getTime() === yesterdayOnly.getTime()) {
+      return `Yesterday at ${time}`;
+    } else {
+      // Show readable date for older chats
+      const dateStr = chatDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: chatDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+      return `${dateStr} at ${time}`;
+    }
+  };
+
   // Load user name function
   const loadUserName = async () => {
     try {
@@ -945,14 +978,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                 >
                   <View style={styles.historyItemContent}>
                     <View style={styles.historyItemHeader}>
-                      <Text style={[styles.historyItemDate, { color: theme.primary }]}>
-                        {conversation.date}
-                      </Text>
-                      <Text style={[styles.historyItemTime, { color: theme.textSecondary }]}>
-                        {new Date(conversation.timestamp).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                      <Text style={[styles.historyItemDate, { color: theme.textSecondary }]}>
+                        {formatSmartDate(conversation.timestamp)}
                       </Text>
                     </View>
                     <Text 
