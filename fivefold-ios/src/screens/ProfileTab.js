@@ -3597,48 +3597,118 @@ const ProfileTab = () => {
                 </View>
               ) : (
                 completedTodosList.map((task, index) => (
-                  <View
+                  <LinearGradient
                     key={task.id || index}
+                    colors={[
+                      isDark ? `${theme.success}25` : `${theme.success}15`,
+                      isDark ? `${theme.success}15` : `${theme.success}08`
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
                     style={{
-                      backgroundColor: `${theme.primary}15`,
-                      borderRadius: 16,
-                      padding: 16,
-                      marginBottom: 12,
-                      borderLeftWidth: 4,
-                      borderLeftColor: theme.success,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 4,
-                      elevation: 2
+                      borderRadius: 20,
+                      padding: 18,
+                      marginBottom: 14,
+                      shadowColor: theme.success,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isDark ? 0.3 : 0.15,
+                      shadowRadius: 12,
+                      elevation: 4,
+                      borderWidth: 1,
+                      borderColor: `${theme.success}30`,
+                      overflow: 'hidden'
                     }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <MaterialIcons name="check-circle" size={22} color={theme.success} />
+                    {/* Completion Badge */}
+                    <View style={{
+                      position: 'absolute',
+                      top: -10,
+                      right: -10,
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
+                      backgroundColor: `${theme.success}20`,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <View style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: theme.success,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        shadowColor: theme.success,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }}>
+                        <MaterialIcons name="check" size={20} color="#FFFFFF" />
+                      </View>
+                    </View>
+
+                    {/* Task Content */}
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingRight: 30 }}>
+                      <View style={{ flex: 1 }}>
                         <Text style={{
-                          fontSize: 16,
-                          fontWeight: '600',
+                          fontSize: 17,
+                          fontWeight: '700',
                           color: theme.text,
-                          marginLeft: 12,
-                          flex: 1
+                          lineHeight: 24,
+                          marginBottom: 8
                         }}>
                           {task.text || task.title}
                         </Text>
+                        
+                        {/* Date and Points Row */}
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginTop: 4
+                        }}>
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}>
+                            <MaterialIcons name="access-time" size={14} color={theme.textSecondary} />
+                            <Text style={{
+                              fontSize: 13,
+                              color: theme.textSecondary,
+                              marginLeft: 6,
+                              fontWeight: '500'
+                            }}>
+                              {task.completedAt ? formatSmartDate(task.completedAt) : 'Completed'}
+                            </Text>
+                          </View>
+                          
+                          {task.points && (
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: `${theme.success}25`,
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
+                              borderRadius: 12,
+                              borderWidth: 1,
+                              borderColor: `${theme.success}40`
+                            }}>
+                              <MaterialIcons name="stars" size={14} color={theme.success} />
+                              <Text style={{
+                                fontSize: 12,
+                                fontWeight: '700',
+                                color: theme.success,
+                                marginLeft: 4
+                              }}>
+                                +{task.points}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
                     </View>
-                    
-                    {task.completedAt && (
-                      <Text style={{
-                        fontSize: 13,
-                        color: theme.textSecondary,
-                        marginLeft: 34,
-                        marginTop: 6
-                      }}>
-                        {formatSmartDate(task.completedAt)}
-                      </Text>
-                    )}
-                  </View>
+                  </LinearGradient>
                 ))
               )}
             </ScrollView>
