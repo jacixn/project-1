@@ -441,6 +441,39 @@ const ProfileTab = () => {
     }
   };
 
+  // Helper function to format date smartly
+  const formatSmartDate = (dateString) => {
+    const taskDate = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Reset time to compare dates only
+    const taskDateOnly = new Date(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    
+    const time = taskDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    if (taskDateOnly.getTime() === todayOnly.getTime()) {
+      return `Today at ${time}`;
+    } else if (taskDateOnly.getTime() === yesterdayOnly.getTime()) {
+      return `Yesterday at ${time}`;
+    } else {
+      // Show readable date for older tasks
+      const dateStr = taskDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: taskDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+      return `${dateStr} at ${time}`;
+    }
+  };
+
   const loadCompletedTasks = async () => {
     try {
       console.log('🔍 Loading completed tasks from AsyncStorage...');
@@ -3602,12 +3635,7 @@ const ProfileTab = () => {
                         marginLeft: 34,
                         marginTop: 6
                       }}>
-                        {new Date(task.completedAt).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        })}
+                        {formatSmartDate(task.completedAt)}
                       </Text>
                     )}
                   </View>
