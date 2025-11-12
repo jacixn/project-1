@@ -60,7 +60,7 @@
         },
         {
           "id": "nt-mc-b-5",
-          "question": "What did was Matthews profession?",
+          "question": "What was Matthews profession?",
           "options": [
             "Fisherman",
             "Tax collector",
@@ -116,7 +116,7 @@
         },
         {
           "id": "nt-mc-b-9",
-          "question": "What did is the shortest verse?",
+          "question": "What is the shortest verse?",
           "options": [
             "Jesus wept",
             "God is love",
@@ -284,7 +284,7 @@
         },
         {
           "id": "nt-mc-b-21",
-          "question": "What did are the first four books of the New Testament?",
+          "question": "What are the first four books of the New Testament?",
           "options": [
             "Matthew Mark Luke John",
             "Acts Romans Hebrews James",
@@ -410,7 +410,7 @@
         },
         {
           "id": "nt-mc-b-30",
-          "question": "What did the parable of the Good Samaritan teach?",
+          "question": "What does the parable of the Good Samaritan teach?",
           "options": [
             "Faith",
             "Love neighbor",
@@ -466,7 +466,7 @@
         },
         {
           "id": "nt-mc-b-34",
-          "question": "What did is the last book of the New Testament?",
+          "question": "What is the last book of the New Testament?",
           "options": [
             "Jude",
             "Revelation",
@@ -480,7 +480,7 @@
         },
         {
           "id": "nt-mc-b-35",
-          "question": "What did part of the disciples did Jesus wash?",
+          "question": "What part of the disciples did Jesus wash?",
           "options": [
             "Hands",
             "Feet",
@@ -676,7 +676,7 @@
         },
         {
           "id": "nt-mc-b-49",
-          "question": "What did Jewish feast was the Last Supper celebrating?",
+          "question": "What Jewish feast was the Last Supper celebrating?",
           "options": [
             "Christmas",
             "Easter",
@@ -718,7 +718,7 @@
         },
         {
           "id": "nt-mc-b-52",
-          "question": "What did Jesus was crucified between whom?",
+          "question": "Jesus was crucified between whom?",
           "options": [
             "Apostles",
             "Thieves",
@@ -900,7 +900,7 @@
         },
         {
           "id": "nt-mc-b-65",
-          "question": "What did God so loved the what?",
+          "question": "God so loved the what?",
           "options": [
             "Church",
             "World",
@@ -914,7 +914,7 @@
         },
         {
           "id": "nt-mc-b-66",
-          "question": "What did does the parable of the rich man and Lazarus teach?",
+          "question": "What does the parable of the rich man and Lazarus teach?",
           "options": [
             "Money",
             "Afterlife",
@@ -928,7 +928,7 @@
         },
         {
           "id": "nt-mc-b-67",
-          "question": "What did does seventy times seven mean?",
+          "question": "What does seventy times seven mean?",
           "options": [
             "490",
             "Unlimited forgiveness",
@@ -1784,7 +1784,7 @@
         },
         {
           "id": "ot-mc-b-11",
-          "question": "What did is the first book of the Bible?",
+          "question": "What is the first book of the Bible?",
           "options": [
             "Exodus",
             "Genesis",
@@ -2050,7 +2050,7 @@
         },
         {
           "id": "ot-mc-b-30",
-          "question": "What did was the sign of God's covenant with Noah?",
+          "question": "What was the sign of God's covenant with Noah?",
           "options": [
             "Star",
             "Rainbow",
@@ -2064,7 +2064,7 @@
         },
         {
           "id": "ot-mc-b-31",
-          "question": "What did was the name of the tower people built?",
+          "question": "What was the name of the tower people built?",
           "options": [
             "Babel",
             "Jericho",
@@ -2078,7 +2078,7 @@
         },
         {
           "id": "ot-mc-b-32",
-          "question": "How did God test Abraham?",
+          "question": "Who did God ask Abraham to sacrifice?",
           "options": [
             "Isaac",
             "Ishmael",
@@ -2106,7 +2106,7 @@
         },
         {
           "id": "ot-mc-b-34",
-          "question": "What did kind of coat did Joseph have?",
+          "question": "What kind of coat did Joseph have?",
           "options": [
             "Red",
             "Blue",
@@ -2204,7 +2204,7 @@
         },
         {
           "id": "ot-mc-b-11",
-          "question": "What did is the first book of the Bible?",
+          "question": "What is the first book of the Bible?",
           "options": [
             "Exodus",
             "Genesis",
@@ -2470,7 +2470,7 @@
         },
         {
           "id": "ot-mc-b-30",
-          "question": "What did was the sign of God's covenant with Noah?",
+          "question": "What was the sign of God's covenant with Noah?",
           "options": [
             "Star",
             "Rainbow",
@@ -2484,7 +2484,7 @@
         },
         {
           "id": "ot-mc-b-31",
-          "question": "What did was the name of the tower people built?",
+          "question": "What was the name of the tower people built?",
           "options": [
             "Babel",
             "Jericho",
@@ -2498,7 +2498,7 @@
         },
         {
           "id": "ot-mc-b-32",
-          "question": "How did God test Abraham?",
+          "question": "Who did God ask Abraham to sacrifice?",
           "options": [
             "Isaac",
             "Ishmael",
@@ -2526,7 +2526,7 @@
         },
         {
           "id": "ot-mc-b-34",
-          "question": "What did kind of coat did Joseph have?",
+          "question": "What kind of coat did Joseph have?",
           "options": [
             "Red",
             "Blue",
@@ -2610,7 +2610,7 @@
         },
         {
           "id": "ot-mc-b-40",
-          "question": "Why did Moses strike the rock?",
+          "question": "What came out when Moses struck the rock?",
           "options": [
             "Oil",
             "Water",
@@ -6598,7 +6598,7 @@
         },
         {
           "id": "par-mc-b-8",
-          "question": "What did does the mustard seed grow into?",
+          "question": "What does the mustard seed grow into?",
           "options": [
             "Flower",
             "Large tree",
@@ -8236,7 +8236,7 @@
         },
         {
           "id": "wob-mc-b-47",
-          "question": "What did was Abigail known for?",
+          "question": "What was Abigail known for?",
           "options": [
             "Wise",
             "Beautiful",
