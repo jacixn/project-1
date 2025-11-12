@@ -444,7 +444,7 @@ const ProfileTab = () => {
   const loadCompletedTasks = async () => {
     try {
       console.log('🔍 Loading completed tasks from AsyncStorage...');
-      const storedTodos = await AsyncStorage.getItem('todos');
+      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
       console.log('📦 Raw stored todos:', storedTodos);
       
       if (storedTodos) {
@@ -937,7 +937,7 @@ const ProfileTab = () => {
       const level = Math.floor(totalPoints / 1000) + 1; // 1000 points per level
       
       // Get actual completed tasks count from todos
-      const storedTodos = await AsyncStorage.getItem('todos');
+      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
       let actualCompletedCount = 0;
       if (storedTodos) {
         const todos = JSON.parse(storedTodos);
