@@ -86,6 +86,7 @@ const QuizGames = ({ visible, onClose }) => {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
+    await quizService.clearCache(); // Clear cache first
     await loadData(true); // Force refresh from GitHub
     setIsRefreshing(false);
   };
