@@ -3318,42 +3318,117 @@ const ProfileTab = () => {
                       {verse.text}
                     </Text>
                     
-                    {/* Delete Highlight Button */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        alignSelf: 'flex-start',
-                        paddingVertical: 8,
-                        paddingHorizontal: 16,
-                        borderRadius: 12,
-                        backgroundColor: `${theme.error}20`,
-                        marginTop: 8
-                      }}
-                      onPress={async () => {
-                        hapticFeedback.light();
-                        await VerseDataManager.removeHighlight(verse.verseId);
-                        await loadHighlights();
-                        // Remove from current view
-                        setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
-                        // Go back if no verses left
-                        if (highlightVersesWithText.length === 1) {
-                          setSelectedHighlightColor(null);
-                        }
-                        // Notify other parts of the app that highlights have changed
-                        DeviceEventEmitter.emit('highlightsChanged');
-                      }}
-                    >
-                      <MaterialIcons name="delete-outline" size={18} color={theme.error} />
-                      <Text style={{
-                        fontSize: 14,
-                        fontWeight: '700',
-                        color: theme.error,
-                        marginLeft: 8
-                      }}>
-                        Remove
-                      </Text>
-                    </TouchableOpacity>
+                    {/* Action Buttons Row */}
+                    <View style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 12,
+                      gap: 8,
+                    }}>
+                      {/* Go to Verse Button */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: theme.success + '15',
+                          borderWidth: 1,
+                          borderColor: theme.success + '30',
+                          flex: 1,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => {
+                          handleNavigateToVerse(verse.verseReference);
+                        }}
+                      >
+                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: theme.success,
+                          marginLeft: 4
+                        }}>
+                          Go to Verse
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {/* Discuss Button */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: theme.primary + '15',
+                          borderWidth: 1,
+                          borderColor: theme.primary + '30',
+                          flex: 1,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => {
+                          hapticFeedback.medium();
+                          setVerseToInterpret({
+                            text: verse.text,
+                            reference: verse.verseReference
+                          });
+                          setShowHighlights(false);
+                          setTimeout(() => {
+                            setShowAiChat(true);
+                          }, 300);
+                        }}
+                      >
+                        <MaterialIcons name="forum" size={16} color={theme.primary} />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: theme.primary,
+                          marginLeft: 4
+                        }}>
+                          Discuss
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {/* Remove Button */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: theme.error + '20',
+                          flex: 1,
+                          justifyContent: 'center',
+                        }}
+                        onPress={async () => {
+                          hapticFeedback.light();
+                          await VerseDataManager.removeHighlight(verse.verseId);
+                          await loadHighlights();
+                          // Remove from current view
+                          setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
+                          // Go back if no verses left
+                          if (highlightVersesWithText.length === 1) {
+                            setSelectedHighlightColor(null);
+                          }
+                          // Notify other parts of the app that highlights have changed
+                          DeviceEventEmitter.emit('highlightsChanged');
+                        }}
+                      >
+                        <MaterialIcons name="delete-outline" size={18} color={theme.error} />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '700',
+                          color: theme.error,
+                          marginLeft: 8
+                        }}>
+                          Remove
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ))
               )}
