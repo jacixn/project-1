@@ -48,6 +48,7 @@ import { hapticFeedback, updateHapticsSetting } from '../utils/haptics';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } from '../data/bibleVersions';
 import AiBibleChat from '../components/AiBibleChat';
+import BibleReader from '../components/BibleReader';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
 import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
@@ -241,6 +242,8 @@ const ProfileTab = () => {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showBible, setShowBible] = useState(false);
+  const [verseReference, setVerseReference] = useState(null);
 
   const [purchasedVersions, setPurchasedVersions] = useState(['kjv', 'web']); // Free versions
   
@@ -1127,6 +1130,17 @@ const ProfileTab = () => {
       console.error('Failed to handle AI status:', error);
     }
   };
+
+  // Handle navigation to specific Bible verse
+  const handleNavigateToVerse = useCallback((verseRef) => {
+    console.log('📖 ProfileTab: Navigating to verse:', verseRef);
+    hapticFeedback.medium();
+    setVerseReference(verseRef);
+    setShowSavedVerses(false);
+    setTimeout(() => {
+      setShowBible(true);
+    }, 300);
+  }, []);
 
   // These functions are no longer needed as we use the secure proxy server
   // Keeping empty stubs to prevent any reference errors
@@ -2163,6 +2177,17 @@ const ProfileTab = () => {
                     
                     {/* Action buttons */}
                     <View style={styles.savedVerseActions}>
+                      {/* Go to Verse Button */}
+                      <TouchableOpacity
+                        style={[styles.savedVerseButton, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
+                        onPress={() => {
+                          handleNavigateToVerse(verse.reference);
+                        }}
+                      >
+                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
+                        <Text style={[styles.savedVerseButtonText, { color: theme.success }]}>Go to Verse</Text>
+                      </TouchableOpacity>
+                      
                       {/* Discuss Button */}
                       <TouchableOpacity
                         style={[styles.savedVerseButton, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
@@ -2503,8 +2528,19 @@ const ProfileTab = () => {
             setVerseToInterpret(null);
           }}
           initialVerse={verseToInterpret}
+          onNavigateToBible={handleNavigateToVerse}
         />
       )}
+
+      {/* Bible Reader Modal */}
+      <BibleReader
+        visible={showBible}
+        onClose={() => {
+          setShowBible(false);
+          setVerseReference(null);
+        }}
+        initialVerseReference={verseReference}
+      />
 
       {/* Journal Modal - Interactive Dismissal Style */}
       <Modal
