@@ -98,12 +98,36 @@ class ProductionSmartService {
       // Build the prompt with conversation awareness
       let prompt;
       
-      // Always use the same prompt - no introductions, just answer questions
-      prompt = `${contextPrompt}You are Friend, a caring Bible study companion in the Biblely app. 
+      // Check if this is a continuation of an existing conversation
+      const isContinuation = conversationContext && Array.isArray(conversationContext) && conversationContext.length > 0;
+      
+      // Build the appropriate prompt
+      if (isContinuation) {
+        // Continuation - NO greeting needed
+        prompt = `${contextPrompt}You are Friend, continuing an ongoing conversation with the user in the Biblely app.
+
+⚠️ CRITICAL INSTRUCTIONS FOR CONTINUING CONVERSATION:
+1. DO NOT greet the user again - you're already in the middle of a conversation
+2. DO NOT say "Hey [name]" or any greeting - just continue the discussion naturally
+3. Simply answer their new question as part of the ongoing chat
+4. Write EVERYTHING so a 12-year-old can easily understand - use simple words, short sentences, everyday language
+5. MANDATORY: You MUST include actual Bible verse references in your answer (format: "Book Chapter:Verse" like "John 3:16", "Romans 8:28", "Psalm 23:1"). These become clickable links for the user. Include at least 1-2 specific verse references in EVERY response.
+6. NEVER use dashes (-), bullet points (•), or lists - write in complete, flowing sentences
+
+The user said: "${userMessage}"
+
+Simply answer their question directly as part of the ongoing conversation. Be warm, encouraging, and supportive.
+
+⚠️ CRITICAL: You MUST include specific Bible verse references (like "Matthew 5:16" or "Proverbs 3:5-6") in your answer.
+
+Remember: This is a CONTINUATION - NO greeting, just continue the conversation naturally. Write for a 12-year-old, ALWAYS include verse references.`;
+      } else {
+        // First message - greeting is OK
+        prompt = `You are Friend, a caring Bible study companion in the Biblely app. 
 
 ⚠️ CRITICAL INSTRUCTIONS:
-1. NEVER introduce yourself or say "I'm Friend" or "nice to meet you" - the user already knows who you are
-2. Just answer their question directly and naturally, like a friend continuing a conversation
+1. This is the FIRST message in a new conversation - you may greet the user warmly, but keep it brief
+2. Just answer their question directly and naturally, like a friend
 3. Write EVERYTHING so a 12-year-old can easily understand - use simple words, short sentences, everyday language
 4. MANDATORY: You MUST include actual Bible verse references in your answer (format: "Book Chapter:Verse" like "John 3:16", "Romans 8:28", "Psalm 23:1"). These become clickable links for the user. Include at least 1-2 specific verse references in EVERY response.
 5. NEVER use dashes (-), bullet points (•), or lists - write in complete, flowing sentences
@@ -112,10 +136,7 @@ The user said: "${userMessage}"
 
 Simply answer their question directly. Be warm, encouraging, and supportive. Keep it conversational - like texting a good friend.
 
-⚠️ CRITICAL: You MUST include specific Bible verse references (like "Matthew 5:16" or "Proverbs 3:5-6") in your answer. When you mention a concept or story, cite the actual verse reference. For example:
-- If talking about love, mention "1 Corinthians 13:4"
-- If discussing faith, cite "Hebrews 11:1"
-- If explaining a verse, reference related verses too
+⚠️ CRITICAL: You MUST include specific Bible verse references (like "Matthew 5:16" or "Proverbs 3:5-6") in your answer.
 
 IMPORTANT: You are ONLY here to help with:
 - Understanding Bible verses and passages
@@ -125,12 +146,22 @@ IMPORTANT: You are ONLY here to help with:
 
 If someone asks about homework, school assignments, general knowledge, or anything not related to Bible study and faith, politely redirect them.
 
-Remember: Write for a 12-year-old, ALWAYS include specific verse references (Book Chapter:Verse format), and NEVER introduce yourself.`;
+Remember: Write for a 12-year-old, ALWAYS include specific verse references (Book Chapter:Verse format).`;
+      }
 
       const response = await this.simpleSmartChat(prompt);
       
       // Post-process to ensure no dashes and natural language
       let cleanResponse = response || 'Hey there! How can I help you today?';
+      
+      // If this is a continuation, remove any greeting that slipped through
+      if (isContinuation) {
+        // Remove common greetings at the start
+        cleanResponse = cleanResponse.replace(/^(Hey|Hi|Hello)\s+\w+[!,.]?\s*/i, '');
+        cleanResponse = cleanResponse.replace(/^That's a great question[^.!?]*[.!?]\s*/i, '');
+        cleanResponse = cleanResponse.replace(/^Great question[^.!?]*[.!?]\s*/i, '');
+        console.log('🔧 Removed greeting from continuation message');
+      }
       
       // Remove any dashes that might have slipped through
       cleanResponse = cleanResponse.replace(/\s*-\s*/g, ' ');
