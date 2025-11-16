@@ -12,12 +12,12 @@ import {
   RefreshControl,
   Platform,
   Share,
-  Dimensions,
   StatusBar,
   Animated,
   PanResponder,
   KeyboardAvoidingView,
   DeviceEventEmitter,
+  useWindowDimensions,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
@@ -44,6 +44,7 @@ import { GITHUB_CONFIG } from '../../github.config';
 
 const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }) => {
   
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { theme, isDark, isCresviaTheme, currentTheme } = useTheme();
   
   // All themes now get beautiful theme-colored cards for better visual appeal
@@ -97,7 +98,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   
   // Search modal state with interactive dismissal
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const searchModalPanY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const searchModalPanY = useRef(new Animated.Value(windowHeight)).current;
   const searchModalFadeAnim = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef(null);
   
@@ -212,7 +213,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        const screenHeight = Dimensions.get('window').height;
+        const screenHeight = windowHeight;
         const modalHeight = screenHeight * 0.94;
         
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
@@ -248,7 +249,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   
   // Animate search modal
   useEffect(() => {
-    const screenHeight = Dimensions.get('window').height;
+    const screenHeight = windowHeight;
     if (showSearchModal) {
       Animated.parallel([
         Animated.spring(searchModalPanY, {

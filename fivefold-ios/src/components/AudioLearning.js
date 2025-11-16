@@ -11,7 +11,7 @@ import {
   Dimensions,
   RefreshControl,
   Alert,
-} from 'react';
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';

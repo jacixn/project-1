@@ -169,3 +169,8 @@ The Tasks & Goals section now has a beautifully optimized two-tier information d
 - Verify AI analysis section displays beautifully in modal
 - Test confidence bar animation
 - Ensure all themes render the analysis section correctly
+
+### Critical Issue & Recovery (November 15, 2025)
+
+- The previous `fivefold-ios` working tree became unreadable (git refs empty, ~145 `.js/.json/.md` files reported non-zero sizes but returned 0 bytes, Expo CLI crashed with `EmptyJsonFileError` on `package.json`).
+- Resolution: moved the bad tree to `project-1_corrupt_backup`, recloned `https://github.com/jacixn/project-1.git`, and ran `npm install --legacy-peer-deps`. Expo CLI now loads (`npx expo config --type public` succeeds). Note: current environment uses Node 18.14.0, while RN 0.81.x warns it prefers Node ≥20.19.4.
