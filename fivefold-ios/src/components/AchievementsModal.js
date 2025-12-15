@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 // Removed InteractiveSwipeBack import
-import { GlassCard } from './GlassEffect';
+// GlassCard import removed (unused)
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 60) / 3; // 3 cards per row with spacing
@@ -29,331 +29,266 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
 
 
   useEffect(() => {
+    if (!visible) return;
     generateAchievements();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, userStats]);
 
 
 
   const generateAchievements = () => {
-    // Simple, meaningful achievements - no spam!
-    const allAchievements = [
-      // Task achievements - only meaningful milestones
-      { id: 'daily_5', title: 'Daily Warrior', description: 'Complete 5 tasks in a single day', category: 'tasks', icon: 'check-circle', target: 5, progress: Math.min(userStats.todayCompletedTasks || 0, 5), completed: (userStats.todayCompletedTasks || 0) >= 5, points: 1000 },
-      { id: 'daily_10', title: 'Daily Champion', description: 'Complete 10 tasks in a single day', category: 'tasks', icon: 'check-circle', target: 10, progress: Math.min(userStats.todayCompletedTasks || 0, 10), completed: (userStats.todayCompletedTasks || 0) >= 10, points: 1000 },
-      { id: 'daily_15', title: 'Daily Legend', description: 'Complete 15 tasks in a single day', category: 'tasks', icon: 'check-circle', target: 15, progress: Math.min(userStats.todayCompletedTasks || 0, 15), completed: (userStats.todayCompletedTasks || 0) >= 15, points: 1000 },
+    const stats = userStats || {};
+    const completedTasks = stats.completedTasks || 0;
+    const points = stats.points || 0;
+    const level = stats.level || 1;
+    const streakDays = stats.streak || 0;
+    const prayersCompleted = stats.prayersCompleted || 0;
+    const versesRead = stats.versesRead || 0;
+    const savedVerses = stats.savedVerses || 0;
 
-      // Total tasks
-      { id: 'total_25', title: 'Task Master', description: 'Complete 25 total tasks', category: 'tasks', icon: 'assignment-turned-in', target: 25, progress: Math.min(userStats.completedTasks || 0, 25), completed: (userStats.completedTasks || 0) >= 25, points: 1000 },
-      { id: 'total_50', title: 'Task Expert', description: 'Complete 50 total tasks', category: 'tasks', icon: 'assignment-turned-in', target: 50, progress: Math.min(userStats.completedTasks || 0, 50), completed: (userStats.completedTasks || 0) >= 50, points: 1000 },
-      { id: 'total_100', title: 'Task Champion', description: 'Complete 100 total tasks', category: 'tasks', icon: 'assignment-turned-in', target: 100, progress: Math.min(userStats.completedTasks || 0, 100), completed: (userStats.completedTasks || 0) >= 100, points: 1000 },
+    const makeMilestone = ({
+      id,
+      title,
+      description,
+      category,
+      icon,
+      value,
+      current,
+      rewardPoints,
+    }) => ({
+      id,
+      title,
+      description,
+      category,
+      icon,
+      target: value,
+      progress: Math.min(current, value),
+      completed: current >= value,
+      points: rewardPoints,
+    });
 
-      // Streaks
-      { id: 'streak_7', title: 'Week Warrior', description: 'Maintain a 7 day streak', category: 'tasks', icon: 'whatshot', target: 7, progress: Math.min(userStats.streak || 0, 7), completed: (userStats.streak || 0) >= 7, points: 1000 },
-      { id: 'streak_30', title: 'Month Master', description: 'Maintain a 30 day streak', category: 'tasks', icon: 'whatshot', target: 30, progress: Math.min(userStats.streak || 0, 30), completed: (userStats.streak || 0) >= 30, points: 1000 },
+    const tierReward = (i, total) => {
+      // Escalating reward so higher tiers feel meaningfully better
+      if (i >= total - 3) return 10000;
+      if (i >= total - 7) return 5000;
+      if (i >= total - 12) return 2500;
+      if (i >= total - 16) return 1500;
+      return 1000;
+    };
 
-      // Points
-      { id: 'points_500', title: 'Point Collector', description: 'Earn 500 total points', category: 'tasks', icon: 'star', target: 500, progress: Math.min(userStats.points || 0, 500), completed: (userStats.points || 0) >= 500, points: 1000 },
-      { id: 'points_1000', title: 'Point Master', description: 'Earn 1000 total points', category: 'tasks', icon: 'star', target: 1000, progress: Math.min(userStats.points || 0, 1000), completed: (userStats.points || 0) >= 1000, points: 1000 },
-
-      // Prayer achievements
-      { id: 'prayers_25', title: 'Prayer Warrior', description: 'Complete 25 prayers', category: 'prayer', icon: 'healing', target: 25, progress: Math.min(userStats.prayersCompleted || 0, 25), completed: (userStats.prayersCompleted || 0) >= 25, points: 1000 },
-      { id: 'prayers_100', title: 'Prayer Master', description: 'Complete 100 prayers', category: 'prayer', icon: 'healing', target: 100, progress: Math.min(userStats.prayersCompleted || 0, 100), completed: (userStats.prayersCompleted || 0) >= 100, points: 1000 },
-      
-      // Reading achievements  
-      { id: 'verses_50', title: 'Scripture Reader', description: 'Read 50 Bible verses', category: 'reading', icon: 'book', target: 50, progress: Math.min(userStats.versesRead || 0, 50), completed: (userStats.versesRead || 0) >= 50, points: 1000 },
-      { id: 'verses_200', title: 'Scripture Scholar', description: 'Read 200 Bible verses', category: 'reading', icon: 'book', target: 200, progress: Math.min(userStats.versesRead || 0, 200), completed: (userStats.versesRead || 0) >= 200, points: 1000 },
-
-      // Faith levels
-      { id: 'level_5', title: 'Growing Faith', description: 'Reach faith level 5', category: 'faith', icon: 'favorite', target: 5, progress: Math.min(userStats.level || 0, 5), completed: (userStats.level || 0) >= 5, points: 1000 },
-      { id: 'level_10', title: 'Strong Faith', description: 'Reach faith level 10', category: 'faith', icon: 'favorite', target: 10, progress: Math.min(userStats.level || 0, 10), completed: (userStats.level || 0) >= 10, points: 1000 },
-
-      // Special achievements
-      { id: 'first_task', title: 'Getting Started', description: 'Complete your first task', category: 'special', icon: 'emoji-events', target: 1, progress: Math.min(userStats.completedTasks || 0, 1), completed: (userStats.completedTasks || 0) >= 1, points: 1000 },
-      { id: 'first_prayer', title: 'First Prayer', description: 'Complete your first prayer', category: 'special', icon: 'emoji-events', target: 1, progress: Math.min(userStats.prayersCompleted || 0, 1), completed: (userStats.prayersCompleted || 0) >= 1, points: 1000 },
-      { id: 'first_verse', title: 'First Reader', description: 'Read your first Bible verse', category: 'special', icon: 'emoji-events', target: 1, progress: Math.min(userStats.versesRead || 0, 1), completed: (userStats.versesRead || 0) >= 1, points: 1000 },
-
-      // Special task achievements
-      ...Array.from({ length: 20 }, (_, i) => ({
-        id: `task_special_${i + 1}`,
-        title: `Early Bird ${i + 1}`,
-        description: `Complete a task before 6 AM for ${i + 1} day${i > 0 ? 's' : ''}`,
+    const taskMilestones = [
+      1, 10, 25, 50, 75, 100, 150, 200, 300,
+      400, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `tasks_${value}`,
+        title:
+          value === 1 ? 'First Win' :
+          value === 100 ? 'Task Centurion' :
+          value === 1000 ? 'Task Titan' :
+          value === 5000 ? 'Relentless' :
+          `Task Milestone`,
+        description: `Complete ${value} total tasks`,
         category: 'tasks',
-        icon: 'wb-sunny',
-        target: i + 1,
-        progress: 0, // Would need to track this separately
-        completed: false,
-        points: 1000,
-      })),
-
-      // Point-based achievements
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `points_${i + 1}`,
-        title: `Point Collector ${i + 1}`,
-        description: `Earn ${(i + 1) * 100} total points`,
-        category: 'tasks',
-        icon: 'star',
-        target: (i + 1) * 100,
-        progress: Math.min(userStats.points, (i + 1) * 100),
-        completed: userStats.points >= (i + 1) * 100,
-        points: 1000,
-      })),
-    ];
-
-    // Faith-based achievements (200 achievements)
-    const faithAchievements = [
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `verses_read_${i + 1}`,
-        title: `Scripture Scholar ${i + 1}`,
-        description: `Read ${(i + 1) * 10} Bible verses`,
-        category: 'reading',
-        icon: 'book',
-        target: (i + 1) * 10,
-        progress: Math.min(userStats.versesRead, (i + 1) * 10),
-        completed: userStats.versesRead >= (i + 1) * 10,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `prayers_${i + 1}`,
-        title: `Prayer Warrior ${i + 1}`,
-        description: `Complete ${(i + 1) * 5} prayers`,
-        category: 'prayer',
-        icon: 'healing',
-        target: (i + 1) * 5,
-        progress: Math.min(userStats.prayersCompleted, (i + 1) * 5),
-        completed: userStats.prayersCompleted >= (i + 1) * 5,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 30 }, (_, i) => ({
-        id: `faith_level_${i + 1}`,
-        title: `Faith Level ${i + 1}`,
-        description: `Reach faith level ${i + 1}`,
-        category: 'faith',
-        icon: 'favorite',
-        target: i + 1,
-        progress: Math.min(userStats.level, i + 1),
-        completed: userStats.level >= i + 1,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `morning_prayer_${i + 1}`,
-        title: `Morning Devotion ${i + 1}`,
-        description: `Pray for ${i + 1} consecutive morning${i > 0 ? 's' : ''}`,
-        category: 'prayer',
-        icon: 'brightness-5',
-        target: i + 1,
-        progress: 0, // Would need to track separately
-        completed: false,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `evening_prayer_${i + 1}`,
-        title: `Evening Reflection ${i + 1}`,
-        description: `Evening prayer for ${i + 1} consecutive night${i > 0 ? 's' : ''}`,
-        category: 'prayer',
-        icon: 'brightness-3',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 20 }, (_, i) => ({
-        id: `bible_books_${i + 1}`,
-        title: `Book Explorer ${i + 1}`,
-        description: `Read from ${i + 1} different Bible book${i > 0 ? 's' : ''}`,
-        category: 'reading',
-        icon: 'library-books',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-    ];
-
-    // Time-based achievements (200 achievements)
-    const timeAchievements = [
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `daily_login_${i + 1}`,
-        title: `Daily Faithful ${i + 1}`,
-        description: `Open app for ${i + 1} consecutive day${i > 0 ? 's' : ''}`,
-        category: 'time',
-        icon: 'schedule',
-        target: i + 1,
-        progress: Math.min(userStats.streak, i + 1),
-        completed: userStats.streak >= i + 1,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 30 }, (_, i) => ({
-        id: `week_${i + 1}`,
-        title: `Weekly Devotee ${i + 1}`,
-        description: `Stay active for ${i + 1} week${i > 0 ? 's' : ''}`,
-        category: 'time',
-        icon: 'date-range',
-        target: (i + 1) * 7,
-        progress: Math.min(userStats.streak, (i + 1) * 7),
-        completed: userStats.streak >= (i + 1) * 7,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 20 }, (_, i) => ({
-        id: `month_${i + 1}`,
-        title: `Monthly Champion ${i + 1}`,
-        description: `Stay active for ${i + 1} month${i > 0 ? 's' : ''}`,
-        category: 'time',
-        icon: 'calendar-today',
-        target: (i + 1) * 30,
-        progress: Math.min(userStats.streak, (i + 1) * 30),
-        completed: userStats.streak >= (i + 1) * 30,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 100 }, (_, i) => ({
-        id: `session_${i + 1}`,
-        title: `Session Master ${i + 1}`,
-        description: `Complete ${i + 1} app session${i > 0 ? 's' : ''}`,
-        category: 'time',
-        icon: 'access-time',
-        target: i + 1,
-        progress: i + 1, // Assume all completed for demo
-        completed: true,
-        points: 1000,
-      })),
-    ];
-
-    // Social achievements (100 achievements)
-    const socialAchievements = [
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `share_verse_${i + 1}`,
-        title: `Verse Sharer ${i + 1}`,
-        description: `Share ${i + 1} Bible verse${i > 0 ? 's' : ''}`,
-        category: 'social',
-        icon: 'share',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `encourage_${i + 1}`,
-        title: `Encourager ${i + 1}`,
-        description: `Send ${i + 1} encouraging message${i > 0 ? 's' : ''}`,
-        category: 'social',
-        icon: 'favorite',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `prayer_request_${i + 1}`,
-        title: `Prayer Helper ${i + 1}`,
-        description: `Pray for ${i + 1} prayer request${i > 0 ? 's' : ''}`,
-        category: 'social',
-        icon: 'people',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      ...Array.from({ length: 25 }, (_, i) => ({
-        id: `community_${i + 1}`,
-        title: `Community Builder ${i + 1}`,
-        description: `Join ${i + 1} community event${i > 0 ? 's' : ''}`,
-        category: 'social',
-        icon: 'group',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-    ];
-
-    // Special achievements (200 achievements)
-    const specialAchievements = [
-      // Holiday achievements
-      ...['Christmas', 'Easter', 'Thanksgiving', 'New Year', 'Pentecost'].map((holiday, index) => 
-        Array.from({ length: 10 }, (_, i) => ({
-          id: `${holiday.toLowerCase()}_${i + 1}`,
-          title: `${holiday} Spirit ${i + 1}`,
-          description: `Complete special ${holiday} task ${i + 1}`,
-          category: 'special',
-          icon: 'emoji-events',
-          target: 1,
-          progress: 0,
-          completed: false,
-          points: 1000,
-        }))
-      ).flat(),
-
-      // Milestone achievements
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `milestone_${i + 1}`,
-        title: `Milestone ${i + 1}`,
-        description: `Reach special milestone ${i + 1}`,
-        category: 'special',
-        icon: 'flag',
-        target: 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      // Perfect day achievements
-      ...Array.from({ length: 30 }, (_, i) => ({
-        id: `perfect_day_${i + 1}`,
-        title: `Perfect Day ${i + 1}`,
-        description: `Complete all daily goals for ${i + 1} day${i > 0 ? 's' : ''}`,
-        category: 'special',
-        icon: 'diamond',
-        target: i + 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      // Discovery achievements
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `discovery_${i + 1}`,
-        title: `Discovery ${i + 1}`,
-        description: `Discover hidden feature ${i + 1}`,
-        category: 'special',
-        icon: 'explore',
-        target: 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-
-      // Bonus achievements
-      ...Array.from({ length: 20 }, (_, i) => ({
-        id: `bonus_${i + 1}`,
-        title: `Bonus Hunter ${i + 1}`,
-        description: `Unlock bonus achievement ${i + 1}`,
-        category: 'special',
-        icon: 'star-border',
-        target: 1,
-        progress: 0,
-        completed: false,
-        points: 1000,
-      })),
-    ];
-
-    allAchievements.push(
-      ...faithAchievements,
-      ...timeAchievements,
-      ...socialAchievements,
-      ...specialAchievements
+        icon: 'assignment-turned-in',
+        value,
+        current: completedTasks,
+        rewardPoints: tierReward(i, arr.length),
+      })
     );
 
-        setAchievements(allAchievements);
+    const pointMilestones = [
+      1000, 5000, 10000, 15000, 20000, 30000, 40000, 50000,
+      75000, 100000, 150000, 200000, 300000, 400000, 500000, 750000, 1000000, 2000000,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `points_${value}`,
+        title:
+          value === 10000 ? 'Point Builder' :
+          value === 100000 ? 'Point Master' :
+          value === 1000000 ? 'Point Legend' :
+          'Point Milestone',
+        description: `Earn ${value.toLocaleString()} total points`,
+        category: 'points',
+        icon: 'star',
+        value,
+        current: points,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const streakMilestones = [
+      7, 14, 21, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300, 365,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `streak_${value}`,
+        title:
+          value === 7 ? 'Week Strong' :
+          value === 30 ? 'One Month' :
+          value === 180 ? 'Half Year' :
+          value === 365 ? 'One Year' :
+          'Streak Milestone',
+        description: `Maintain a ${value}-day app streak`,
+        category: 'streak',
+        icon: 'whatshot',
+        value,
+        current: streakDays,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const prayerMilestones = [
+      1, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `prayers_${value}`,
+        title:
+          value === 1 ? 'First Prayer' :
+          value === 100 ? 'Prayer Centurion' :
+          value === 1000 ? 'Prayer Veteran' :
+          'Prayer Milestone',
+        description: `Complete ${value} prayers`,
+        category: 'prayer',
+        icon: 'healing',
+        value,
+        current: prayersCompleted,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const verseMilestones = [
+      1, 50, 100, 200, 300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `verses_${value}`,
+        title:
+          value === 1 ? 'First Verse' :
+          value === 500 ? 'Scripture Builder' :
+          value === 2000 ? 'Scripture Scholar' :
+          value === 10000 ? 'Scripture Sage' :
+          'Reading Milestone',
+        description: `Read ${value.toLocaleString()} Bible verses`,
+        category: 'reading',
+        icon: 'menu-book',
+        value,
+        current: versesRead,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const savedVerseMilestones = [
+      1, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `saved_verses_${value}`,
+        title:
+          value === 1 ? 'First Save' :
+          value === 25 ? 'Verse Keeper' :
+          value === 100 ? 'Archive Builder' :
+          value === 300 ? 'Living Library' :
+          'Saved Verses',
+        description: `Save ${value} verses`,
+        category: 'reading',
+        icon: 'bookmark',
+        value,
+        current: savedVerses,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const levelMilestones = [
+      5, 10, 15, 20, 25,
+    ].map((value, i, arr) =>
+      makeMilestone({
+        id: `level_${value}`,
+        title:
+          value === 5 ? 'Getting Stronger' :
+          value === 10 ? 'Built Different' :
+          value === 25 ? 'Elite' :
+          'Level Up',
+        description: `Reach level ${value}`,
+        category: 'level',
+        icon: 'military-tech',
+        value,
+        current: level,
+        rewardPoints: tierReward(i, arr.length),
+      })
+    );
+
+    const special = [
+      {
+        id: 'special_balanced_disciple',
+        title: 'Balanced Disciple',
+        description: '100 tasks, 100 prayers, 500 verses',
+        category: 'special',
+        icon: 'emoji-events',
+        target: 1,
+        progress: (completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500) ? 1 : 0,
+        completed: completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500,
+        points: 5000,
+      },
+      {
+        id: 'special_devoted_builder',
+        title: 'Devoted Builder',
+        description: '500 tasks, 50,000 points, 60-day streak',
+        category: 'special',
+        icon: 'emoji-events',
+        target: 1,
+        progress: (completedTasks >= 500 && points >= 50000 && streakDays >= 60) ? 1 : 0,
+        completed: completedTasks >= 500 && points >= 50000 && streakDays >= 60,
+        points: 7500,
+      },
+      {
+        id: 'special_scripture_and_prayer',
+        title: 'Scripture & Prayer',
+        description: '2,000 verses and 500 prayers',
+        category: 'special',
+        icon: 'emoji-events',
+        target: 1,
+        progress: (versesRead >= 2000 && prayersCompleted >= 500) ? 1 : 0,
+        completed: versesRead >= 2000 && prayersCompleted >= 500,
+        points: 7500,
+      },
+      {
+        id: 'special_deep_rooted',
+        title: 'Deep Rooted',
+        description: '180-day streak, 1,000 prayers, 5,000 verses',
+        category: 'special',
+        icon: 'emoji-events',
+        target: 1,
+        progress: (streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000) ? 1 : 0,
+        completed: streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000,
+        points: 10000,
+      },
+      {
+        id: 'special_fivefold_legend',
+        title: 'Fivefold Legend',
+        description: '2,000 tasks, 250,000 points, 365-day streak',
+        category: 'special',
+        icon: 'emoji-events',
+        target: 1,
+        progress: (completedTasks >= 2000 && points >= 250000 && streakDays >= 365) ? 1 : 0,
+        completed: completedTasks >= 2000 && points >= 250000 && streakDays >= 365,
+        points: 15000,
+      },
+    ];
+
+    const allAchievements = [
+      ...taskMilestones,
+      ...pointMilestones,
+      ...streakMilestones,
+      ...prayerMilestones,
+      ...verseMilestones,
+      ...savedVerseMilestones,
+      ...levelMilestones,
+      ...special,
+    ];
+
+    // Exactly 100 achievements by construction (keep as a guardrail)
+    if (allAchievements.length !== 100) {
+      console.warn(`Achievements list should be 100, got ${allAchievements.length}`);
+    }
+    setAchievements(allAchievements);
   };
 
   const filteredAchievements = achievements.filter(achievement => {
@@ -405,7 +340,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
           />
         </View>
         <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-          {item.progress}/{item.target}
+          {item.progress}/{item.target} · {Number(item.points || 0).toLocaleString()} pts
         </Text>
       </View>
       

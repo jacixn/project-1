@@ -356,6 +356,11 @@ const ProfileTab = () => {
     try {
       const streakData = await AppStreakManager.trackAppOpen();
       setAppStreak(streakData.currentStreak);
+      // Keep userStats in sync so Achievements reflects the real app streak
+      setUserStats(prev => ({
+        ...prev,
+        streak: streakData.currentStreak,
+      }));
       
       // Check for milestone and show animation
       if (streakData.milestoneReached) {
@@ -1190,6 +1195,11 @@ const ProfileTab = () => {
     hapticFeedback.medium();
     setVerseReference(verseRef);
     setShowSavedVerses(false);
+    // IMPORTANT: also close Highlights, otherwise Bible can open "behind" this modal
+    // which makes the button appear broken.
+    setShowHighlights(false);
+    setSelectedHighlightColor(null);
+    setHighlightVersesWithText([]);
     setTimeout(() => {
       setShowBible(true);
     }, 300);
@@ -2230,18 +2240,26 @@ const ProfileTab = () => {
                     
                     {/* Action buttons */}
                     <View style={styles.savedVerseActions}>
-                      {/* Go to Verse Button */}
+                      {/* Remove Button (left) */}
                       <TouchableOpacity
-                        style={[styles.savedVerseButton, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
-                        onPress={() => {
-                          handleNavigateToVerse(verse.reference);
+                        style={[styles.removeButton, { backgroundColor: theme.error + '20' }]}
+                        onPress={async () => {
+                          hapticFeedback.light();
+                          const newList = savedVersesList.filter(v => v.id !== verse.id);
+                          setSavedVersesList(newList);
+                          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
+                          const stats = await AsyncStorage.getItem('userStats');
+                          const userStats = stats ? JSON.parse(stats) : {};
+                          userStats.savedVerses = newList.length;
+                          await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+                          setUserStats(userStats);
                         }}
                       >
-                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
-                        <Text style={[styles.savedVerseButtonText, { color: theme.success }]}>Go to Verse</Text>
+                        <MaterialIcons name="delete-outline" size={18} color={theme.error} />
+                        <Text style={[styles.removeButtonText, { color: theme.error }]}>{t.remove || 'Remove'}</Text>
                       </TouchableOpacity>
-                      
-                      {/* Discuss Button */}
+
+                      {/* Discuss Button (middle) */}
                       <TouchableOpacity
                         style={[styles.savedVerseButton, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
                         onPress={() => {
@@ -2259,24 +2277,16 @@ const ProfileTab = () => {
                         <MaterialIcons name="forum" size={16} color={theme.primary} />
                         <Text style={[styles.savedVerseButtonText, { color: theme.primary }]}>{t.discuss || 'Discuss'}</Text>
                       </TouchableOpacity>
-                      
-                      {/* Remove Button */}
+
+                      {/* Go to Verse Button (right) */}
                       <TouchableOpacity
-                        style={[styles.removeButton, { backgroundColor: theme.error + '20' }]}
-                        onPress={async () => {
-                          hapticFeedback.light();
-                          const newList = savedVersesList.filter(v => v.id !== verse.id);
-                          setSavedVersesList(newList);
-                          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                          const stats = await AsyncStorage.getItem('userStats');
-                          const userStats = stats ? JSON.parse(stats) : {};
-                          userStats.savedVerses = newList.length;
-                          await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-                          setUserStats(userStats);
+                        style={[styles.savedVerseButton, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
+                        onPress={() => {
+                          handleNavigateToVerse(verse.reference);
                         }}
                       >
-                        <MaterialIcons name="delete-outline" size={18} color={theme.error} />
-                        <Text style={[styles.removeButtonText, { color: theme.error }]}>{t.remove || 'Remove'}</Text>
+                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
+                        <Text style={[styles.savedVerseButtonText, { color: theme.success }]}>Go to Verse</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -3414,38 +3424,44 @@ const ProfileTab = () => {
                       marginTop: 8,
                       paddingLeft: 8
                     }}>
-                      {/* Go to Verse Button */}
+                      {/* Remove Button (left) */}
                       <TouchableOpacity
                         style={{
-                          flex: 1,
-                          paddingVertical: 12,
-                          paddingHorizontal: 14,
+                          width: 50,
+                          height: 50,
                           borderRadius: 16,
-                          backgroundColor: theme.success,
-                          flexDirection: 'row',
+                          backgroundColor: `${theme.error}20`,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          shadowColor: theme.success,
-                          shadowOffset: { width: 0, height: 3 },
-                          shadowOpacity: 0.3,
-                          shadowRadius: 6,
-                          elevation: 3
+                          borderWidth: 1.5,
+                          borderColor: `${theme.error}30`
                         }}
                         onPress={() => {
-                          hapticFeedback.medium();
-                          handleNavigateToVerse(verse.verseReference);
+                          Alert.alert(
+                            'Remove Highlight',
+                            'Are you sure you want to remove this highlight?',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Remove',
+                                style: 'destructive',
+                                onPress: async () => {
+                                  hapticFeedback.light();
+                                  await VerseDataManager.removeHighlight(verse.verseId);
+                                  await loadHighlights();
+                                  setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
+                                  if (highlightVersesWithText.length === 1) {
+                                    setSelectedHighlightColor(null);
+                                  }
+                                  DeviceEventEmitter.emit('highlightsChanged');
+                                }
+                              }
+                            ]
+                          );
                         }}
                         activeOpacity={0.8}
                       >
-                        <MaterialIcons name="menu-book" size={18} color="#FFFFFF" />
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '700',
-                          color: '#FFFFFF',
-                          marginLeft: 6
-                        }}>
-                          Go to Verse
-                        </Text>
+                        <MaterialIcons name="delete-outline" size={24} color={theme.error} />
                       </TouchableOpacity>
                       
                       {/* Discuss Button */}
@@ -3489,44 +3505,38 @@ const ProfileTab = () => {
                         </Text>
                       </TouchableOpacity>
                       
-                      {/* Remove Button */}
+                      {/* Go to Verse Button (right) */}
                       <TouchableOpacity
                         style={{
-                          width: 50,
-                          height: 50,
+                          flex: 1,
+                          paddingVertical: 12,
+                          paddingHorizontal: 14,
                           borderRadius: 16,
-                          backgroundColor: `${theme.error}20`,
+                          backgroundColor: theme.success,
+                          flexDirection: 'row',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderWidth: 1.5,
-                          borderColor: `${theme.error}30`
+                          shadowColor: theme.success,
+                          shadowOffset: { width: 0, height: 3 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 6,
+                          elevation: 3
                         }}
                         onPress={() => {
-                          Alert.alert(
-                            'Remove Highlight',
-                            'Are you sure you want to remove this highlight?',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Remove',
-                                style: 'destructive',
-                                onPress: async () => {
-                                  hapticFeedback.light();
-                                  await VerseDataManager.removeHighlight(verse.verseId);
-                                  await loadHighlights();
-                                  setHighlightVersesWithText(prev => prev.filter(v => v.verseId !== verse.verseId));
-                                  if (highlightVersesWithText.length === 1) {
-                                    setSelectedHighlightColor(null);
-                                  }
-                                  DeviceEventEmitter.emit('highlightsChanged');
-                                }
-                              }
-                            ]
-                          );
+                          hapticFeedback.medium();
+                          handleNavigateToVerse(verse.verseReference);
                         }}
                         activeOpacity={0.8}
                       >
-                        <MaterialIcons name="delete-outline" size={24} color={theme.error} />
+                        <MaterialIcons name="menu-book" size={18} color="#FFFFFF" />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '700',
+                          color: '#FFFFFF',
+                          marginLeft: 6
+                        }}>
+                          Go to Verse
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     </LinearGradient>

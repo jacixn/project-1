@@ -31,7 +31,7 @@ class QuizService {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         this.cache = JSON.parse(cached);
-        console.log('✅ Loaded quiz data from cache');
+        console.log('Loaded quiz data from cache');
         return this.cache;
       }
     } catch (error) {
@@ -44,7 +44,7 @@ class QuizService {
     try {
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
       await AsyncStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-      console.log('✅ Saved quiz data to cache');
+      console.log('Saved quiz data to cache');
     } catch (error) {
       errorHandler.silent('Quiz Cache Save', error);
     }
@@ -52,7 +52,7 @@ class QuizService {
 
   async fetchFromGitHub() {
     try {
-      console.log('📥 Fetching quiz data from GitHub...');
+      console.log('Fetching quiz data from GitHub...');
       
       // Fetch all required files
       const [categoriesRes, questionsRes, levelsRes] = await Promise.all([
@@ -80,7 +80,7 @@ class QuizService {
       await this.saveToCache(quizData);
       this.cache = quizData;
       
-      console.log('✅ Successfully fetched and cached quiz data from GitHub');
+      console.log('Successfully fetched and cached quiz data from GitHub');
       return quizData;
     } catch (error) {
       errorHandler.networkError('Quiz GitHub Fetch', error);
@@ -132,7 +132,7 @@ class QuizService {
       // Fall back to cache if GitHub fails
       const cached = await this.loadFromCache();
       if (cached) {
-        console.log('⚠️ Using cached quiz data (GitHub fetch failed)');
+        console.log('Using cached quiz data (GitHub fetch failed)');
         return cached;
       }
       
@@ -156,7 +156,7 @@ class QuizService {
   }
 
   async refreshData() {
-    console.log('🔄 Force refreshing quiz data...');
+    console.log('Force refreshing quiz data...');
     return await this.getQuizData(true);
   }
 
@@ -165,7 +165,7 @@ class QuizService {
       await AsyncStorage.removeItem(CACHE_KEY);
       await AsyncStorage.removeItem(CACHE_TIMESTAMP_KEY);
       this.cache = null;
-      console.log('🗑️ Cleared quiz data cache');
+      console.log('Cleared quiz data cache');
     } catch (error) {
       errorHandler.silent('Quiz Cache Clear', error);
     }

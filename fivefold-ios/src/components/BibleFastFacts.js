@@ -68,6 +68,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
   const randomSpinAnim = useRef(new Animated.Value(0)).current;
   const randomScaleAnim = useRef(new Animated.Value(0)).current;
   const randomFadeAnim = useRef(new Animated.Value(0)).current;
+  const randomSpinLoopRef = useRef(null);
 
   // Modal animation refs for detail view
   const detailSlideAnim = useRef(new Animated.Value(0)).current;
@@ -330,18 +331,21 @@ const BibleFastFacts = ({ visible, onClose }) => {
     setShowRandomFact(true);
     
     // Reset animations
+    randomSpinLoopRef.current?.stop?.();
+    randomSpinLoopRef.current = null;
     randomSpinAnim.setValue(0);
     randomScaleAnim.setValue(0);
     randomFadeAnim.setValue(0);
     
     // Start spinning animation
-    Animated.loop(
+    randomSpinLoopRef.current = Animated.loop(
       Animated.timing(randomSpinAnim, {
         toValue: 1,
         duration: 1000,
         useNativeDriver: true,
       })
-    ).start();
+    );
+    randomSpinLoopRef.current.start();
     
     // Fade in the loading state
     Animated.timing(randomFadeAnim, {
@@ -357,7 +361,10 @@ const BibleFastFacts = ({ visible, onClose }) => {
       setIsLoadingRandom(false);
       
       // Stop spinning and show the card
-      randomSpinAnim.stopAnimation();
+      randomSpinLoopRef.current?.stop?.();
+      randomSpinLoopRef.current = null;
+      // Critical: ensure the card isn't left rotated at a mid-spin angle
+      randomSpinAnim.setValue(0);
       
       Animated.parallel([
         Animated.spring(randomScaleAnim, {
@@ -377,6 +384,8 @@ const BibleFastFacts = ({ visible, onClose }) => {
 
   const closeRandomFact = () => {
     hapticFeedback.light();
+    randomSpinLoopRef.current?.stop?.();
+    randomSpinLoopRef.current = null;
     Animated.parallel([
       Animated.timing(randomScaleAnim, {
         toValue: 0,
@@ -392,6 +401,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
       setShowRandomFact(false);
       setRandomFact(null);
       setIsLoadingRandom(false);
+      randomSpinAnim.setValue(0);
     });
   };
 

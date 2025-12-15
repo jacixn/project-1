@@ -5,7 +5,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVersionById } from '../data/bibleVersions';
 
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/arron-taylor/bible-versions/main/';
+// Files live under versions/{locale}/ in the repo; default to en but derive from version language when possible.
+const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/arron-taylor/bible-versions/main/versions/';
 const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Book name mapping (App ID → GitHub name)
@@ -149,6 +150,34 @@ const BOOK_NAMES_MAP = {
   'rev': 'Revelation'
 };
 
+const getLanguageFolder = (language) => {
+  if (!language) return 'en';
+  const lower = language.toLowerCase();
+  const map = {
+    'en': 'en',
+    'english': 'en',
+    'af': 'af',
+    'afrikaans': 'af',
+    'es': 'es',
+    'spanish': 'es',
+    'pt': 'pt',
+    'portuguese': 'pt',
+    'fr': 'fr',
+    'french': 'fr',
+    'de': 'de',
+    'german': 'de',
+    'it': 'it',
+    'italian': 'it',
+    'nl': 'nl',
+    'dutch': 'nl',
+    'zh': 'zh',
+    'chinese': 'zh',
+    'hi': 'hi',
+    'hindi': 'hi',
+  };
+  return map[lower] || 'en';
+};
+
 class GitHubBibleService {
   constructor() {
     this.versionCache = new Map(); // Cache entire Bible versions
@@ -192,7 +221,8 @@ class GitHubBibleService {
       console.log('   Book name:', bookName);
 
       // Fetch entire Bible version (with caching)
-      const bibleData = await this.fetchBibleVersion(version.githubFile, versionId);
+      const languageFolder = getLanguageFolder(version.language);
+      const bibleData = await this.fetchBibleVersion(version.githubFile, versionId, languageFolder);
       
       // Extract chapter verses
       const bookData = bibleData[bookName];
@@ -230,7 +260,7 @@ class GitHubBibleService {
     }
   }
 
-  async fetchBibleVersion(githubFile, versionId) {
+  async fetchBibleVersion(githubFile, versionId, languageFolder = 'en') {
     try {
       // Check memory cache first
       if (this.versionCache.has(versionId)) {
@@ -253,11 +283,19 @@ class GitHubBibleService {
         }
       }
 
-      // Fetch from GitHub
-      const url = GITHUB_BASE_URL + encodeURIComponent(githubFile);
+      // Fetch from GitHub with locale-aware path; fallback to English if needed
+      const buildUrl = (lang) => `${GITHUB_BASE_URL}${lang}/${encodeURIComponent(githubFile)}`;
+
+      let url = buildUrl(languageFolder);
       console.log('📡 Fetching from GitHub:', url);
       
-      const response = await fetch(url);
+      let response = await fetch(url);
+      if (!response.ok && languageFolder !== 'en') {
+        console.warn(`⚠️ ${languageFolder} fetch failed (${response.status}), retrying en fallback`);
+        url = buildUrl('en');
+        response = await fetch(url);
+      }
+
       if (!response.ok) {
         throw new Error(`GitHub fetch failed: ${response.status}`);
       }

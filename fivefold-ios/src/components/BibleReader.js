@@ -70,6 +70,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [savedVerses, setSavedVerses] = useState(new Set());
+  // Track which version the currently-rendered `verses` were fetched with.
+  // This prevents a mismatch where the UI badge shows the stored version,
+  // but the chapter text was fetched earlier with the default version.
+  const lastLoadedVersesVersionRef = useRef(null);
   
   // Interactive features state
   const [showJournalingModal, setShowJournalingModal] = useState(false);
@@ -525,6 +529,24 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       console.error('Failed to load Bible version:', error);
     }
   };
+
+  // If the selected Bible version changes (or finishes loading) while we're already
+  // viewing a chapter, ensure the visible verses are refetched in that version.
+  // This fixes a real bug: opening BibleReader can fetch verses in default 'kjv'
+  // before AsyncStorage loads e.g. 'nlt', resulting in "NLT" label + KJV text.
+  useEffect(() => {
+    if (!visible) return;
+    if (view !== 'verses' || !currentChapter) return;
+    if (lastLoadedVersesVersionRef.current === selectedBibleVersion) return;
+
+    console.log(
+      '🔄 BibleReader: Version changed/loaded, refetching chapter',
+      currentChapter.id,
+      'as',
+      selectedBibleVersion
+    );
+    loadVersesWithVersion(currentChapter, selectedBibleVersion);
+  }, [visible, view, currentChapter, selectedBibleVersion]);
 
   const loadHighlightedVerses = async () => {
     try {
@@ -1048,6 +1070,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       const service = getBibleService(selectedBibleVersion);
       const versesData = await service.getVerses(chapter.id, selectedBibleVersion);
       setVerses(versesData);
+      lastLoadedVersesVersionRef.current = selectedBibleVersion;
       setCurrentChapter(chapter);
       setView('verses');
       setLoading(false);
@@ -1067,6 +1090,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       const service = getBibleService(versionId);
       const versesData = await service.getVerses(chapter.id, versionId);
       setVerses(versesData);
+      lastLoadedVersesVersionRef.current = versionId;
       setCurrentChapter(chapter);
       setLoading(false);
     } catch (error) {

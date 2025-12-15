@@ -22,6 +22,7 @@ const PrayerDetailModal = ({
   onComplete,
   onSimplify,
   onDiscuss,
+  onNavigateToBible = () => {},
   simpleVerseText,
   loadingSimple,
   timeUntilAvailable,
@@ -139,6 +140,34 @@ const PrayerDetailModal = ({
       }),
     ]).start(() => {
       onClose();
+    });
+  };
+
+  const handleGoToVersePress = (verseRef) => {
+    console.log('📖 PrayerDetailModal: Go to Verse pressed ->', verseRef);
+    hapticFeedback.medium();
+    // Important: close this modal first; otherwise the BibleReader modal can open "behind" it.
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+      // Let the close commit before opening the Bible modal.
+      setTimeout(() => {
+        try {
+          onNavigateToBible(verseRef);
+        } catch (e) {
+          console.error('❌ PrayerDetailModal: onNavigateToBible failed', e);
+        }
+      }, 50);
     });
   };
 
@@ -274,6 +303,26 @@ const PrayerDetailModal = ({
                           <TouchableOpacity
                             style={[styles.verseActionButton, { 
                               backgroundColor: isDark 
+                                ? `${theme.primary}25`
+                                : `${theme.primary}15`,
+                              borderWidth: 1.5,
+                              borderColor: `${theme.primary}50`
+                            }]}
+                            onPress={(e) => {
+                              if (e) e.stopPropagation();
+                              handleGoToVersePress(verse.reference);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="menu-book" size={16} color={theme.primary} />
+                            <Text style={[styles.verseActionText, { color: theme.primary }]}>
+                              Go to Verse
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.verseActionButton, { 
+                              backgroundColor: isDark 
                                 ? 'rgba(255, 255, 255, 0.12)' 
                                 : 'rgba(0, 0, 0, 0.08)',
                               borderWidth: 1.5,
@@ -283,7 +332,24 @@ const PrayerDetailModal = ({
                             }]}
                             onPress={(e) => {
                               if (e) e.stopPropagation();
-                              onDiscuss(verse);
+                              // IMPORTANT:
+                              // The verse cards can display fetched text in the user's selected version
+                              // via `fetchedVerses[reference]`, but `verse.text` may still be the original
+                              // hardcoded text (often KJV). If we pass the raw `verse` object to Friend chat,
+                              // the user sees a different translation in chat than in the UI.
+                              const displayedText = loadingVerses
+                                ? ''
+                                : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
+                              const displayedVersion =
+                                fetchedVerses[verse.reference]?.version || bibleVersion || 'KJV';
+
+                              onDiscuss({
+                                ...verse,
+                                text: displayedText,
+                                content: displayedText,
+                                reference: verse.reference,
+                                version: displayedVersion,
+                              });
                             }}
                             activeOpacity={0.7}
                           >

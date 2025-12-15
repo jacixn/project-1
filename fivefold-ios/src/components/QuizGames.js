@@ -16,6 +16,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
 
+const CATEGORY_ICON_FALLBACK = {
+  all: 'ALL',
+  'new-testament': 'NT',
+  'old-testament': 'OT',
+  'life-of-jesus': 'J',
+  miracles: 'M',
+  parables: 'P',
+  'women-of-bible': 'W',
+};
+
 const QuizGames = ({ visible, onClose }) => {
   // State
   const [currentScreen, setCurrentScreen] = useState('home'); // home, setup, quiz, results
@@ -56,7 +66,7 @@ const QuizGames = ({ visible, onClose }) => {
       
       // Force refresh to get latest questions from GitHub
       if (forceRefresh) {
-        console.log('🔄 Force refreshing quiz data from GitHub...');
+        console.log('Force refreshing quiz data from GitHub...');
         await quizService.refreshData();
       }
       
@@ -65,7 +75,7 @@ const QuizGames = ({ visible, onClose }) => {
         quizService.getQuestions(),
       ]);
       
-      console.log('📊 Loaded quiz data:', {
+      console.log('Loaded quiz data:', {
         categories: cats.length,
         totalQuestions: Object.values(ques).reduce((sum, cat) => {
           return sum + Object.values(cat).reduce((catSum, type) => {
@@ -199,6 +209,16 @@ const QuizGames = ({ visible, onClose }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getSafeCategoryIconText = (category) => {
+    const raw = (category?.icon || '').toString().trim();
+    const upper = raw.toUpperCase();
+
+    // Allow only short alphanumeric tokens (prevents cached emoji icons from rendering).
+    if (/^[A-Z0-9]{1,3}$/.test(upper)) return upper;
+
+    return CATEGORY_ICON_FALLBACK[category?.id] || 'Q';
+  };
+
   // RENDER FUNCTIONS
 
   const renderHeader = () => (
@@ -274,7 +294,9 @@ const QuizGames = ({ visible, onClose }) => {
             onPress={() => handleCategorySelect(category)}
           >
             <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-              <Text style={styles.categoryIconText}>{category.icon}</Text>
+              <Text style={styles.categoryIconText}>
+                {getSafeCategoryIconText(category)}
+              </Text>
             </View>
             <View style={styles.categoryInfo}>
               <Text style={styles.categoryTitle}>{category.title}</Text>
@@ -323,7 +345,9 @@ const QuizGames = ({ visible, onClose }) => {
           colors={[selectedCategory.color, selectedCategory.color + 'CC']}
           style={styles.setupHeader}
         >
-          <Text style={styles.setupCategoryIcon}>{selectedCategory.icon}</Text>
+          <Text style={styles.setupCategoryIcon}>
+            {getSafeCategoryIconText(selectedCategory)}
+          </Text>
           <Text style={styles.setupCategoryTitle}>{selectedCategory.title}</Text>
           <Text style={styles.setupQuestionCount}>{totalQuestions} Questions Available</Text>
         </LinearGradient>
@@ -450,7 +474,7 @@ const QuizGames = ({ visible, onClose }) => {
           </View>
           <View style={styles.quizMeta}>
             <Text style={styles.quizMetaText}>Score: {score}</Text>
-            <Text style={styles.quizMetaText}>⏱️ {formatTime(timer)}</Text>
+            <Text style={styles.quizMetaText}>Time: {formatTime(timer)}</Text>
           </View>
         </View>
 
@@ -576,10 +600,10 @@ const QuizGames = ({ visible, onClose }) => {
                   { color: userAnswer.isCorrect ? '#4CAF50' : '#F44336' },
                 ]}
               >
-                {userAnswer.isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                {userAnswer.isCorrect ? 'Correct' : 'Incorrect'}
               </Text>
               <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
-              <Text style={styles.explanationReference}>📖 {currentQuestion.reference}</Text>
+              <Text style={styles.explanationReference}>Reference: {currentQuestion.reference}</Text>
 
               <TouchableOpacity
                 style={[styles.nextButton, { backgroundColor: selectedCategory.color }]}
@@ -612,7 +636,6 @@ const QuizGames = ({ visible, onClose }) => {
           colors={[selectedCategory.color, selectedCategory.color + 'CC']}
           style={styles.resultsHeader}
         >
-          <Text style={styles.resultsEmoji}>🎉</Text>
           <Text style={styles.resultsTitle}>Quiz Complete!</Text>
         </LinearGradient>
 
@@ -626,12 +649,10 @@ const QuizGames = ({ visible, onClose }) => {
 
           <View style={styles.resultsStats}>
             <View style={styles.statBox}>
-              <Text style={styles.statIcon}>🏆</Text>
               <Text style={styles.statValue}>{score}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statIcon}>⏱️</Text>
               <Text style={styles.statValue}>{formatTime(timer)}</Text>
               <Text style={styles.statLabel}>Time</Text>
             </View>
@@ -781,7 +802,10 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   categoryIconText: {
-    fontSize: 28,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   categoryInfo: {
     flex: 1,
@@ -804,8 +828,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   setupCategoryIcon: {
-    fontSize: 64,
+    fontSize: 48,
     marginBottom: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 2,
   },
   setupCategoryTitle: {
     fontSize: 28,
@@ -1015,10 +1042,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  resultsEmoji: {
-    fontSize: 64,
-    marginBottom: 12,
-  },
   resultsTitle: {
     fontSize: 32,
     fontWeight: '900',
@@ -1066,10 +1089,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#000000',
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8,
   },
   statValue: {
     fontSize: 20,

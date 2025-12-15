@@ -14,6 +14,30 @@ class BibleCharactersService {
     this.error = null;
   }
 
+  // Remove emoji/icon fields from groups so Bible Characters UI never renders emojis
+  sanitizeData(data) {
+    try {
+      if (!data || typeof data !== 'object') return data;
+      const groups = Array.isArray(data.characterGroups) ? data.characterGroups : [];
+
+      const sanitizedGroups = groups.map((group) => {
+        if (!group || typeof group !== 'object') return group;
+        // Drop emoji-based "icon" field entirely
+        // eslint-disable-next-line no-unused-vars
+        const { icon, ...rest } = group;
+        return rest;
+      });
+
+      return {
+        ...data,
+        characterGroups: sanitizedGroups,
+      };
+    } catch (e) {
+      // If anything goes wrong, fail open (do not break loading)
+      return data;
+    }
+  }
+
   // Check if cached data is still valid
   async isCacheValid() {
     try {
@@ -33,7 +57,8 @@ class BibleCharactersService {
     try {
       const cachedData = await AsyncStorage.getItem(CACHE_KEY);
       if (cachedData) {
-        const data = JSON.parse(cachedData);
+        const raw = JSON.parse(cachedData);
+        const data = this.sanitizeData(raw);
         this.characters = data.characters;
         this.characterGroups = data.characterGroups;
         console.log('✅ Loaded Bible characters from cache');
@@ -49,7 +74,8 @@ class BibleCharactersService {
   // Save data to cache
   async saveToCache(data) {
     try {
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      const sanitized = this.sanitizeData(data);
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(sanitized));
       await AsyncStorage.setItem(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
       console.log('✅ Saved Bible characters to cache');
     } catch (error) {
@@ -72,8 +98,9 @@ class BibleCharactersService {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      
+      const raw = await response.json();
+      const data = this.sanitizeData(raw);
+
       this.characters = data.characters;
       this.characterGroups = data.characterGroups;
       

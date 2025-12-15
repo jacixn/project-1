@@ -10,6 +10,7 @@ import TabNavigator from './src/navigation/TabNavigator';
 import notificationService from './src/services/notificationService';
 import OnboardingWrapper from './src/components/OnboardingWrapper';
 import { initializeApiSecurity } from './src/utils/secureApiKey';
+import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
@@ -166,6 +167,25 @@ const ThemedApp = () => {
 
         // Initialize notifications
         await notificationService.initialize();
+        await notificationService.scheduleStoredPrayerReminders();
+        await notificationService.debugListScheduledNotifications('after-app-start');
+
+        // Schedule Daily Check-In if enabled (avoid "instant" fires via next-occurrence logic)
+        const notificationSettings =
+          (await getStoredData('notificationSettings')) || {
+            prayerReminders: true,
+            achievementNotifications: true,
+            streakReminders: true,
+            pushNotifications: true,
+            sound: true,
+            vibration: true,
+          };
+
+        if (notificationSettings.pushNotifications !== false && notificationSettings.streakReminders) {
+          await notificationService.scheduleDailyStreakReminder(20, 0);
+        }
+        await notificationService.debugListScheduledNotifications('after-daily-checkin');
+
         console.log('Notifications initialized successfully');
       } catch (error) {
         console.error('Failed to initialize app:', error);

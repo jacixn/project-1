@@ -25,7 +25,6 @@ import InteractiveBibleMaps from './InteractiveBibleMaps';
 import ThematicGuides from './ThematicGuides';
 import KeyVerses from './KeyVerses';
 import BibleFastFacts from './BibleFastFacts';
-import ReadingPlans from './ReadingPlans';
 import QuizGames from './QuizGames';
 import AudioLearning from './AudioLearning';
 
@@ -447,7 +446,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
                 colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.1)']}
                 style={styles.iconCircleGradient}
               >
-                <Text style={styles.groupIcon}>{group.icon}</Text>
+                <MaterialIcons name="people" size={22} color="#FFFFFF" />
               </LinearGradient>
             </View>
             
@@ -486,6 +485,8 @@ const BibleStudyModal = ({ visible, onClose }) => {
   
   // Ref for character detail ScrollView
   const characterDetailScrollRef = useRef(null);
+  // Ref for character group detail ScrollView (so it always opens at the top)
+  const characterGroupDetailScrollRef = useRef(null);
   
   // Character data state
   const [characterProfiles, setCharacterProfiles] = useState({});
@@ -501,7 +502,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
   const [showKeyVersesModal, setShowKeyVersesModal] = useState(false);
   const [showFactsModal, setShowFactsModal] = useState(false);
   const [showThemesModal, setShowThemesModal] = useState(false);
-  const [showReadingModal, setShowReadingModal] = useState(false);
   const [showParallelsModal, setShowParallelsModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -566,6 +566,16 @@ const BibleStudyModal = ({ visible, onClose }) => {
       }, 100);
     }
   }, [selectedCharacter]);
+
+  // Always start group detail at the top (prevents inheriting prior scroll position)
+  useEffect(() => {
+    if (selectedCharacterGroup && characterGroupDetailScrollRef.current) {
+      // Small delay to ensure hero card/layout mounts before scrolling
+      setTimeout(() => {
+        characterGroupDetailScrollRef.current?.scrollTo({ y: 0, animated: false });
+      }, 50);
+    }
+  }, [selectedCharacterGroup]);
 
   // Pull to refresh handler for Bible Characters
   const onRefreshCharacters = async () => {
@@ -713,14 +723,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
       features: ['Amazing facts', 'Quick summaries', 'Fun trivia', 'Historical insights']
     },
     {
-      id: 'reading',
-      title: 'Reading Plans',
-      icon: 'schedule',
-      description: 'Chronological Bible reading',
-      color: '#F44336', // Vibrant Red
-      features: ['Historical order', 'Daily readings', 'Progress tracking', 'Guided study']
-    },
-    {
       id: 'audio',
       title: 'Audio Learning',
       icon: 'headset',
@@ -777,9 +779,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
         break;
       case 'themes':
         setShowThemesModal(true);
-        break;
-      case 'reading':
-        setShowReadingModal(true);
         break;
       case 'parallels':
         setShowParallelsModal(true);
@@ -1096,6 +1095,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
 
     return (
       <ScrollView 
+        ref={characterGroupDetailScrollRef}
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
@@ -1137,7 +1137,7 @@ const BibleStudyModal = ({ visible, onClose }) => {
                   colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.15)']}
                   style={styles.heroIconGradient}
                 >
-                  <Text style={styles.heroIcon}>{group.icon}</Text>
+                  <MaterialIcons name="people" size={56} color="#FFFFFF" />
                 </LinearGradient>
               </View>
               
@@ -1541,11 +1541,6 @@ const BibleStudyModal = ({ visible, onClose }) => {
         onClose={() => setShowQuizModal(false)}
       />
 
-      {/* Reading Plans - Custom Component */}
-      <ReadingPlans
-        visible={showReadingModal}
-        onClose={() => setShowReadingModal(false)}
-      />
 
       {/* All Other Section Modal Overlays */}
       {renderSectionModalOverlay('characters', showCharactersModal, setShowCharactersModal)}

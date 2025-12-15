@@ -1,0 +1,14 @@
+# Project Intelligence (.cursorrules)
+
+## Workflow
+- Always read `memory-bank/*.md` at the start of work.
+- Prefer small, safe diffs and verify files are non-empty due to prior repo corruption incidents.
+
+## UI / UX conventions
+- **Readability first**: gradients/glass are allowed only if text contrast remains strong.
+- When text is over a gradient, prefer:
+  - dark scrim behind the text block
+  - slightly heavier font weight
+  - subtle text shadow for edge clarity
+- Buttons on pastel backgrounds should not rely on low-opacity white fills; use darker fills or add a scrim.
+

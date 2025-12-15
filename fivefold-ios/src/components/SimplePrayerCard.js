@@ -22,6 +22,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import notificationService from '../services/notificationService';
 import AiBibleChat from './AiBibleChat';
 import AddPrayerModal from './AddPrayerModal';
 import EditPrayerModal from './EditPrayerModal';
@@ -201,6 +202,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const savePrayers = async (prayerList) => {
     try {
       await saveData('simplePrayers', prayerList);
+      // Keep notifications in sync with the latest prayer times
+      await notificationService.scheduleStoredPrayerReminders();
     } catch (error) {
       console.log('Error saving prayers:', error);
     }
@@ -908,6 +911,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         onComplete={() => selectedPrayer && completePrayer(selectedPrayer)}
         onSimplify={handleSimplifyVerse}
         onDiscuss={discussVerse}
+        onNavigateToBible={onNavigateToBible}
         simpleVerseText={simpleVerseText}
         loadingSimple={loadingSimple}
         timeUntilAvailable={selectedPrayer ? getTimeUntilAvailable(selectedPrayer) : null}

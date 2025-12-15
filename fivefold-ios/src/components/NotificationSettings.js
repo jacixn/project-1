@@ -38,7 +38,7 @@ const NotificationSettings = ({ visible, onClose }) => {
       const storedSettings = await getStoredData('notificationSettings');
       
       if (storedSettings) {
-        setSettings({ ...settings, ...storedSettings });
+        setSettings(prev => ({ ...prev, ...storedSettings }));
       }
     } catch (error) {
       console.error('Failed to load notification settings:', error);
@@ -57,6 +57,40 @@ const NotificationSettings = ({ visible, onClose }) => {
     } catch (error) {
       console.error('Failed to save notification settings:', error);
       Alert.alert('Error', 'Failed to save notification settings');
+    }
+  };
+
+  const sendTestNotification = async () => {
+    try {
+      const ok = await notificationService.testNotification();
+      if (ok) {
+        Alert.alert('Test Sent', 'A test notification was scheduled to send immediately.');
+      } else {
+        Alert.alert('Test Failed', 'The app could not schedule a test notification.');
+      }
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      Alert.alert('Test Failed', 'Unexpected error while sending a test notification.');
+    }
+  };
+
+  const debugScheduledNotifications = async () => {
+    try {
+      const scheduled = await notificationService.debugListScheduledNotifications('settings-ui');
+      const types = scheduled
+        .map(n => n?.content?.data?.type)
+        .filter(Boolean);
+
+      const summary =
+        types.length > 0 ? types.join(', ') : '(none)';
+
+      Alert.alert(
+        'Scheduled Notifications',
+        `Count: ${scheduled.length}\nTypes: ${summary}`
+      );
+    } catch (error) {
+      console.error('Failed to debug scheduled notifications:', error);
+      Alert.alert('Debug Failed', 'Could not read scheduled notifications.');
     }
   };
 
@@ -217,6 +251,34 @@ const NotificationSettings = ({ visible, onClose }) => {
               iconColor="#2196F3"
             />
           </View>
+
+          {/* Debug tools */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Diagnostics</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              Use these to verify iOS is scheduling notifications.
+            </Text>
+
+            <TouchableOpacity
+              onPress={sendTestNotification}
+              style={[styles.diagnosticButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <MaterialIcons name="notifications-active" size={20} color={theme.primary} />
+              <Text style={[styles.diagnosticButtonText, { color: theme.text }]}>
+                Send Test Notification Now
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={debugScheduledNotifications}
+              style={[styles.diagnosticButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <MaterialIcons name="list" size={20} color={theme.primary} />
+              <Text style={[styles.diagnosticButtonText, { color: theme.text }]}>
+                Show Scheduled Notifications
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -304,6 +366,20 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  diagnosticButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  diagnosticButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

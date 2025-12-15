@@ -32,6 +32,30 @@ import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 
+// Random, theme-independent color palettes for the Verse of the Day
+const VERSE_COLOR_PALETTES = [
+  { gradient: ['#FF9A9E', '#FAD0C4', '#FECFEF'], accent: '#FF9A9E' },
+  { gradient: ['#A18CD1', '#FBC2EB', '#FEE7F3'], accent: '#A18CD1' },
+  { gradient: ['#84FAB0', '#8FD3F4', '#C6FFDD'], accent: '#84FAB0' },
+  { gradient: ['#FFD3A5', '#FD6585', '#FECFEF'], accent: '#FD6585' },
+  { gradient: ['#89F7FE', '#66A6FF', '#8EC5FC'], accent: '#66A6FF' },
+  { gradient: ['#F6D365', '#FDA085', '#FFCDA5'], accent: '#F6D365' },
+  { gradient: ['#5EE7DF', '#B490CA', '#C9E4FF'], accent: '#5EE7DF' },
+];
+
+const pickRandomPalette = () =>
+  VERSE_COLOR_PALETTES[Math.floor(Math.random() * VERSE_COLOR_PALETTES.length)];
+
+const withOpacity = (hex, opacity = 1) => {
+  if (!hex) return `rgba(255,255,255,${opacity})`;
+  const normalized = hex.replace('#', '');
+  const isShort = normalized.length === 3;
+  const r = parseInt(isShort ? normalized[0] + normalized[0] : normalized.slice(0, 2), 16);
+  const g = parseInt(isShort ? normalized[1] + normalized[1] : normalized.slice(2, 4), 16);
+  const b = parseInt(isShort ? normalized[2] + normalized[2] : normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 // const { width } = Dimensions.get('window');
 
 // Components
@@ -141,6 +165,7 @@ const BiblePrayerTab = () => {
   const [nextPrayer, setNextPrayer] = useState(null);
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
   const [userName, setUserName] = useState('');
+  const [versePalette, setVersePalette] = useState(pickRandomPalette());
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -368,6 +393,11 @@ const BiblePrayerTab = () => {
     return () => clearInterval(interval);
   }, [dailyVerse.reference]);
 
+  // Pick a new random palette whenever the verse changes (or on first load)
+  useEffect(() => {
+    setVersePalette(pickRandomPalette());
+  }, [dailyVerse.reference]);
+
   // Listen for Bible version changes and re-fetch the same verse in the new version
   useEffect(() => {
     const handleVersionChange = async () => {
@@ -585,6 +615,10 @@ const BiblePrayerTab = () => {
     }, 300);
   };
 
+  // Higher-contrast UI for Verse of the Day modal (readability on pastel gradients)
+  const VERSE_MODAL_TEXT_SCRIM = 'rgba(0, 0, 0, 0.38)';
+  const VERSE_MODAL_BUTTON_GRADIENT = ['rgba(0, 0, 0, 0.42)', 'rgba(0, 0, 0, 0.28)'];
+
   // Open share card with animation
   const openShareCard = () => {
     if (shareCardAnimating) {
@@ -650,15 +684,8 @@ const BiblePrayerTab = () => {
     }
   };
 
-  // Get gradient colors for share card - use theme's gradient
-  const getShareCardGradient = () => {
-    // Use the theme's gradient if available
-    if (theme.gradient && Array.isArray(theme.gradient)) {
-      return theme.gradient;
-    }
-    // Fallback to default blue gradient
-    return ['#3B82F6', '#2563EB', '#1D4ED8'];
-  };
+  // Get gradient colors for share card - tie to verse palette, not theme
+  const getShareCardGradient = () => versePalette.gradient;
 
   const handlePrayerPress = useCallback((prayer) => {
     hapticFeedback.medium(); // Medium feedback when opening prayer screen
@@ -798,11 +825,11 @@ const BiblePrayerTab = () => {
         activeOpacity={0.4}
         onPress={openVerseModal}
         style={[styles.transparentVerseOfDay, { 
-          backgroundColor: `${theme.primary}30`,
+          backgroundColor: withOpacity(versePalette.accent, 0.22),
           borderWidth: 0.8,
-          borderColor: `${theme.primary}99`,
+          borderColor: withOpacity(versePalette.accent, 0.65),
           borderRadius: 16,
-          shadowColor: theme.primary,
+          shadowColor: versePalette.accent,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.06,
           shadowRadius: 3,
@@ -1140,17 +1167,7 @@ const BiblePrayerTab = () => {
 
             {/* Main gradient background */}
             <LinearGradient
-              colors={
-                isBlushTheme 
-                  ? ['#FFB6C1', '#FF69B4', '#FF1493']
-                  : isCresviaTheme
-                  ? ['#9370DB', '#8A2BE2', '#6A0DAD']
-                  : isEternaTheme
-                  ? ['#663399', '#4B0082', '#2E0854']
-                  : isDark
-                  ? ['#3B82F6', '#2563EB', '#1D4ED8']
-                  : ['#60A5FA', '#3B82F6', '#2563EB']
-              }
+              colors={versePalette.gradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.verseModalGradient}
@@ -1164,9 +1181,8 @@ const BiblePrayerTab = () => {
                   {/* Close button with backdrop */}
                   <TouchableOpacity 
                     style={[styles.verseModalClose, {
-                      backgroundColor: isDark 
-                        ? 'rgba(255, 255, 255, 0.1)' 
-                        : 'rgba(0, 0, 0, 0.1)'
+                      // Always keep close control high-contrast on pastel backgrounds
+                      backgroundColor: 'rgba(0, 0, 0, 0.35)',
                     }]}
                     onPress={closeVerseModal}
                   >
@@ -1201,7 +1217,7 @@ const BiblePrayerTab = () => {
                   {/* Title with gradient text effect */}
                   <View style={styles.verseModalHeader}>
                     <Text style={styles.verseModalTitle}>
-                      Cantus Verse of the Day
+                      {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
                     </Text>
                     <Text style={styles.verseModalDate}>
                       {new Date().toLocaleDateString('en-US', { 
@@ -1216,9 +1232,7 @@ const BiblePrayerTab = () => {
                   {/* Verse container with subtle backdrop */}
                   <View style={styles.verseModalTextContainer}>
                     <View style={[styles.verseBackdrop, {
-                      backgroundColor: isDark 
-                        ? 'rgba(0, 0, 0, 0.2)' 
-                        : 'rgba(255, 255, 255, 0.25)'
+                      backgroundColor: VERSE_MODAL_TEXT_SCRIM,
                     }]}>
                       <Text style={styles.verseModalQuote}>
                         "{dailyVerse.text}"
@@ -1231,10 +1245,13 @@ const BiblePrayerTab = () => {
                         <Text style={{
                           fontSize: 12,
                           fontWeight: '600',
-                          color: 'rgba(255, 255, 255, 0.5)',
+                          color: 'rgba(255, 255, 255, 0.82)',
                           letterSpacing: 1.2,
                           marginTop: 8,
-                          textAlign: 'center'
+                          textAlign: 'center',
+                          textShadowColor: 'rgba(0, 0, 0, 0.45)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
                         }}>
                           Biblely
                         </Text>
@@ -1251,11 +1268,7 @@ const BiblePrayerTab = () => {
                       activeOpacity={0.8}
                     >
                       <LinearGradient
-                        colors={
-                          isDark
-                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
-                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
-                        }
+                        colors={VERSE_MODAL_BUTTON_GRADIENT}
                         style={styles.buttonGradient}
                       >
                         <View style={styles.buttonContent}>
@@ -1274,11 +1287,7 @@ const BiblePrayerTab = () => {
                       activeOpacity={0.8}
                     >
                       <LinearGradient
-                        colors={
-                          isDark
-                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
-                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
-                        }
+                        colors={VERSE_MODAL_BUTTON_GRADIENT}
                         style={styles.buttonGradient}
                       >
                         <View style={styles.buttonContent}>
@@ -1297,11 +1306,7 @@ const BiblePrayerTab = () => {
                       activeOpacity={0.8}
                     >
                       <LinearGradient
-                        colors={
-                          isDark
-                            ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']
-                            : ['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0.2)']
-                        }
+                        colors={VERSE_MODAL_BUTTON_GRADIENT}
                         style={styles.buttonGradient}
                       >
                         <View style={styles.buttonContent}>
@@ -1369,9 +1374,12 @@ const BiblePrayerTab = () => {
                         <Text style={{
                           fontSize: 10,
                           fontWeight: '600',
-                          color: 'rgba(255, 255, 255, 0.5)',
+                          color: 'rgba(255, 255, 255, 0.85)',
                           letterSpacing: 0.5,
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          textShadowColor: 'rgba(0, 0, 0, 0.35)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
                         }}>
                           {dailyVerse.version || 'NIV'}
                         </Text>
@@ -1395,14 +1403,14 @@ const BiblePrayerTab = () => {
                           textShadowOffset: { width: 0, height: 2 },
                           textShadowRadius: 4
                         }}>
-                          {userName ? `${userName}'s Verse of the Day` : 'Cantus Verse of the Day'}
+                          {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
                         </Text>
 
                         {/* Verse Reference */}
                         <Text style={{
                           fontSize: 16,
                           fontWeight: '700',
-                          color: 'rgba(255, 255, 255, 0.8)',
+                          color: 'rgba(255, 255, 255, 0.92)',
                           marginBottom: 28,
                           textShadowColor: 'rgba(0, 0, 0, 0.15)',
                           textShadowOffset: { width: 0, height: 1 },
@@ -2034,12 +2042,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   verseModalDate: {
     fontSize: 13,
     textAlign: 'center',
     color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   verseModalTextContainer: {
     marginBottom: 18,
@@ -2048,16 +2062,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     paddingVertical: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   verseModalQuote: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 30,
     fontStyle: 'italic',
     marginBottom: 14,
     textAlign: 'center',
     color: '#FFFFFF',
-    fontWeight: '400',
+    fontWeight: '500',
     letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   referenceContainer: {
     alignItems: 'center',
@@ -2066,7 +2085,7 @@ const styles = StyleSheet.create({
   referenceDivider: {
     width: 40,
     height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 1,
   },
   verseModalReference: {
@@ -2075,6 +2094,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   verseModalActions: {
     marginTop: 4,
@@ -2088,7 +2110,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.28)',
   },
   buttonGradient: {
     paddingVertical: 14,
@@ -2106,6 +2128,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   shareCardOverlay: {
     flex: 1,

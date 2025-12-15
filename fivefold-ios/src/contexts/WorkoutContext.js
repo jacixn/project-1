@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import notificationService from '../services/notificationService';
 
 const WorkoutContext = createContext();
 
@@ -35,6 +36,9 @@ export const WorkoutProvider = ({ children }) => {
           const elapsed = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
           setElapsedTime(elapsed);
           setIsWorkoutMinimized(true); // Keep minimized when restoring
+
+          // Schedule overdue reminder based on the restored start time
+          notificationService.scheduleWorkoutOverdueNotification(new Date(startTime));
         }
       } catch (error) {
         console.error('Failed to load persisted workout:', error);
@@ -78,6 +82,7 @@ export const WorkoutProvider = ({ children }) => {
     workoutStartTimeRef.current = new Date();
     setElapsedTime(0);
     setIsWorkoutMinimized(false);
+    notificationService.scheduleWorkoutOverdueNotification(workoutStartTimeRef.current);
     console.log('✅ activeWorkout state updated - hasActiveWorkout should be true');
   };
 
@@ -99,6 +104,7 @@ export const WorkoutProvider = ({ children }) => {
   const endWorkout = () => {
     console.log('❌ WorkoutContext.endWorkout() called - WORKOUT ENDING');
     console.trace('❌ Stack trace for endWorkout call:');
+    notificationService.cancelWorkoutOverdueNotification();
     setActiveWorkout(null);
     setIsWorkoutMinimized(false);
     setElapsedTime(0);

@@ -29,6 +29,7 @@ import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
+const HEADER_STACK_PADDING_TOP = Platform.OS === 'ios' ? 290 : 280;
 
   // Configuration for remote verses
 const VERSES_CONFIG = {
@@ -463,6 +464,20 @@ const KeyVerses = ({ visible, onClose }) => {
     }
     
     return filtered;
+  };
+
+  const openRandomVerse = () => {
+    hapticFeedback.medium();
+
+    const verses = getFilteredVerses();
+    if (!verses || verses.length === 0) {
+      hapticFeedback.light();
+      Alert.alert('No verses found', 'Try adjusting your search or category filter, then try Random again.');
+      return;
+    }
+
+    const verse = verses[Math.floor(Math.random() * verses.length)];
+    setSelectedVerse(verse);
   };
 
   const toggleFavorite = async (verseId) => {
@@ -1054,7 +1069,7 @@ const KeyVerses = ({ visible, onClose }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               viewMode === 'grid' ? styles.versesContentGrid : styles.versesContent,
-              { paddingTop: 260 } // Space for header + filter container (reduced spacing)
+              { paddingTop: HEADER_STACK_PADDING_TOP } // Space for header + filter container
             ]}
             refreshControl={
               <RefreshControl
@@ -1064,7 +1079,7 @@ const KeyVerses = ({ visible, onClose }) => {
                 colors={[theme.primary]}
                 title="Pull to refresh..."
                 titleColor={theme.textSecondary}
-                progressViewOffset={260}
+                progressViewOffset={HEADER_STACK_PADDING_TOP}
               />
             }
           >
@@ -1172,24 +1187,45 @@ const KeyVerses = ({ visible, onClose }) => {
                 {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
               </Text>
               
-              {favoriteVerses.length > 0 && (
+              <View style={styles.resultsActions}>
                 <TouchableOpacity
-                  onPress={() => setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites')}
-                  style={[styles.favoritesButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                  onPress={openRandomVerse}
+                  disabled={filteredVerses.length === 0}
+                  style={[
+                    styles.randomButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : `${theme.primary}16`,
+                      borderColor: isDark ? 'rgba(255,255,255,0.18)' : `${theme.primary}35`,
+                      shadowColor: theme.primary,
+                      opacity: filteredVerses.length === 0 ? 0.5 : 1,
+                    },
+                  ]}
                 >
-                  <MaterialIcons name="favorite" size={16} color="#E91E63" />
-                  <Text style={[styles.favoritesButtonText, { color: theme.text }]}>
-                    {favoriteVerses.length}
+                  <MaterialIcons name="shuffle" size={16} color={theme.primary} />
+                  <Text style={[styles.randomButtonText, { color: theme.primary }]}>
+                    Random
                   </Text>
                 </TouchableOpacity>
-              )}
+
+                {favoriteVerses.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites')}
+                    style={[styles.favoritesButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                  >
+                    <MaterialIcons name="favorite" size={16} color="#E91E63" />
+                    <Text style={[styles.favoritesButtonText, { color: theme.text }]}>
+                      {favoriteVerses.length}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
         </BlurView>
         
         {/* Show error banner if using offline data */}
         {error && versesData && (
-          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800', marginTop: Platform.OS === 'ios' ? 110 : 70 }]}>
+          <View style={[styles.errorBanner, { backgroundColor: theme.warning || '#FF9800', marginTop: Platform.OS === 'ios' ? 140 : 120 }]}>
             <MaterialIcons name="wifi-off" size={16} color="#fff" />
             <Text style={styles.errorBannerText}>Offline mode - {error}</Text>
           </View>
@@ -1277,9 +1313,31 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+  resultsActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   resultsCount: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  randomButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  randomButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   favoritesButton: {
     flexDirection: 'row',

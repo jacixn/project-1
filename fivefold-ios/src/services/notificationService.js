@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -7,6 +8,10 @@ import { getStoredData, saveData } from '../utils/localStorage';
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    // Keep compatibility across expo-notifications versions:
+    // - `shouldShowAlert` is the legacy key (still used by many builds)
+    // - `shouldShowBanner/shouldShowList` are newer iOS presentation options
+    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -19,6 +24,20 @@ class NotificationService {
     this.expoPushToken = null;
     this.notificationListener = null;
     this.responseListener = null;
+  }
+
+  getNextOccurrenceDate(hour, minute) {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+
+    // If the time is now/past for today, schedule for tomorrow instead.
+    if (next <= now) {
+      next.setDate(next.getDate() + 1);
+      next.setHours(hour, minute, 0, 0);
+    }
+
+    return next;
   }
 
   // Initialize notification permissions and token
@@ -47,20 +66,19 @@ class NotificationService {
 
   // Request notification permissions
   async requestPermissions() {
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      
-      return { status: finalStatus };
-    } else {
-      console.log('Must use physical device for Push Notifications');
-      return { status: 'granted' }; // For simulator
+    // IMPORTANT:
+    // - Local notifications work on the iOS simulator, but `Device.isDevice` is false.
+    // - We must still query/request OS permissions on simulator, otherwise we may think
+    //   permissions are granted while iOS is actually blocking delivery.
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
+
+    return { status: finalStatus };
   }
 
   // Get push notification token
@@ -130,7 +148,7 @@ class NotificationService {
 
       // Get current settings if not provided
       if (!settings) {
-        settings = await getStoredData('notificationSettings') || { sound: true, prayerReminders: true };
+        settings = await getStoredData('notificationSettings') || { sound: true, prayerReminders: true, pushNotifications: true };
       }
 
       // Only schedule if prayer reminders are enabled
@@ -139,60 +157,100 @@ class NotificationService {
         return;
       }
 
-      // Get custom prayer times if available
-      const customTimes = await getStoredData('customPrayerTimes') || {};
+      if (settings.pushNotifications === false) {
+        console.log('Push notifications are disabled, skipping prayer scheduling');
+        return;
+      }
 
       for (const [slot, time] of Object.entries(prayerTimes)) {
-        // Use custom time if available, otherwise use default time
-        const prayerTime = customTimes[slot] || time;
-        
-        if (!prayerTime) continue;
+        const displayName =
+          (time && typeof time === 'object' && !(time instanceof Date) ? time.name : null) ||
+          this.getPrayerDisplayName(slot);
 
-        // Parse time string (handle both HH:MM and HHMM formats)
-        let hours, minutes;
-        if (typeof prayerTime === 'string') {
-          if (prayerTime.includes(':')) {
-            [hours, minutes] = prayerTime.split(':').map(Number);
-          } else if (prayerTime.match(/^\d{3,4}$/)) {
-            // Handle HHMM format
-            const paddedTime = prayerTime.padStart(4, '0');
-            hours = parseInt(paddedTime.slice(0, 2));
-            minutes = parseInt(paddedTime.slice(2, 4));
-          } else {
-            continue; // Skip invalid format
-          }
-        } else {
-          continue; // Skip if not a string
+        const normalizedTime = this.normalizePrayerTime(time);
+        if (!normalizedTime) {
+          console.log(`Skipping invalid prayer time for ${slot}:`, time);
+          continue;
         }
 
-        // Calculate 30 minutes before prayer time
-        let reminderMinutes = minutes - 30;
-        let reminderHours = hours;
-        
-        if (reminderMinutes < 0) {
-          reminderMinutes += 60;
-          reminderHours -= 1;
+        const { hours, minutes, originalTime } = normalizedTime;
+
+        // Validate time ranges (protect against user input like "25:99")
+        if (
+          hours < 0 ||
+          hours > 23 ||
+          minutes < 0 ||
+          minutes > 59 ||
+          Number.isNaN(hours) ||
+          Number.isNaN(minutes)
+        ) {
+          console.log(`Skipping out-of-range prayer time for ${slot}:`, { hours, minutes, originalTime });
+          continue;
         }
-        
-        if (reminderHours < 0) {
-          reminderHours += 24; // Handle midnight rollover
+
+        const now = new Date();
+
+        // Build the next occurrence of this prayer time.
+        // CRITICAL: If the prayer time is earlier than "now", it's for tomorrow (cross-midnight support).
+        const nextPrayerDate = new Date(now);
+        nextPrayerDate.setHours(hours, minutes, 0, 0);
+        if (nextPrayerDate <= now) {
+          nextPrayerDate.setDate(nextPrayerDate.getDate() + 1);
+          nextPrayerDate.setHours(hours, minutes, 0, 0);
         }
-        
+
+        // Reminder is always 30 minutes before the next prayer occurrence (Date math handles midnight).
+        const reminderDate = new Date(nextPrayerDate.getTime() - 30 * 60 * 1000);
+
+        const reminderHours = reminderDate.getHours();
+        const reminderMinutes = reminderDate.getMinutes();
+
+        // Always schedule repeating daily reminders for the computed reminder time.
+        // This covers future days; we also handle "today's" upcoming prayer below.
+        const repeatingTrigger = {
+          hour: reminderHours,
+          minute: reminderMinutes,
+          repeats: true,
+        };
+
+        // If today's reminder window has already passed but today's prayer is still upcoming,
+        // send an immediate catch-up notification so the user still gets alerted.
+        if (reminderDate <= now && nextPrayerDate > now) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🕊️ Prayer Reminder',
+              body: `${displayName} in 30 minutes`,
+              data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
+              sound: settings.sound ? 'default' : false,
+            },
+            trigger: null, // immediate catch-up
+          });
+
+          console.log(
+            `Sent immediate catch-up reminder for ${slot} (reminder time already passed, prayer still upcoming at ${hours
+              .toString()
+              .padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`
+          );
+        }
+
+        // Schedule repeating daily reminders (starting today if still in future, otherwise tomorrow)
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '🕊️ Prayer Reminder',
-            body: `${this.getPrayerDisplayName(slot)} prayer in 30 minutes`,
-            data: { type: 'prayer_reminder', prayerSlot: slot },
+            body: `${displayName} in 30 minutes`,
+            data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
           },
-          trigger: {
-            hour: reminderHours,
-            minute: reminderMinutes,
-            repeats: true,
-          },
+          trigger: repeatingTrigger,
         });
 
-        console.log(`Scheduled reminder for ${slot} at ${reminderHours.toString().padStart(2, '0')}:${reminderMinutes.toString().padStart(2, '0')} (30 min before ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`);
+        console.log(
+          `Scheduled reminder for ${slot} at ${reminderHours.toString().padStart(2, '0')}:${reminderMinutes
+            .toString()
+            .padStart(2, '0')} (30 min before ${hours.toString().padStart(2, '0')}:${minutes
+            .toString()
+            .padStart(2, '0')}, source: ${originalTime})`
+        );
       }
 
       console.log('Prayer reminder notifications scheduled 30 minutes before each prayer');
@@ -312,6 +370,12 @@ class NotificationService {
     try {
       await this.cancelNotificationsByType('daily_streak');
 
+      // Important: Some iOS builds can fire repeating calendar triggers immediately
+      // when scheduled after the target time for "today". To avoid "instant" Daily Check-In
+      // when users re-enable notifications at night, schedule only the *next occurrence*
+      // as a Date trigger. We reschedule on app start / settings changes.
+      const nextTriggerDate = this.getNextOccurrenceDate(hour, minute);
+
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '🔥 Daily Check-In',
@@ -319,14 +383,10 @@ class NotificationService {
           data: { type: 'daily_streak' },
           sound: true,
         },
-        trigger: {
-          hour,
-          minute,
-          repeats: true,
-        },
+        trigger: nextTriggerDate,
       });
 
-      console.log('Daily streak reminder scheduled');
+      console.log('Daily streak reminder scheduled for:', nextTriggerDate.toISOString());
     } catch (error) {
       console.error('Failed to schedule daily streak reminder:', error);
     }
@@ -360,6 +420,28 @@ class NotificationService {
     }
   }
 
+  // Debug helper: list all scheduled notifications (safe no-op in production)
+  async debugListScheduledNotifications(label = 'debug') {
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      console.log(`🔔 [${label}] scheduled notifications count:`, scheduled.length);
+      scheduled.forEach(n => {
+        const type = n?.content?.data?.type;
+        const title = n?.content?.title;
+        console.log('🔔 scheduled:', {
+          id: n?.identifier,
+          type,
+          title,
+          trigger: n?.trigger,
+        });
+      });
+      return scheduled;
+    } catch (error) {
+      console.error('🔔 Failed to list scheduled notifications:', error);
+      return [];
+    }
+  }
+
   // Get prayer display name
   getPrayerDisplayName(slot) {
     const names = {
@@ -372,6 +454,9 @@ class NotificationService {
       midday: 'Midday',
       beforeSunset: 'Before Sunset',
       afterSunset: 'After Sunset',
+      pre_dawn: 'Before Sunrise',
+      post_sunrise: 'After Sunrise',
+      pre_sunset: 'Before Sunset',
     };
     return names[slot] || slot.charAt(0).toUpperCase() + slot.slice(1);
   }
@@ -407,6 +492,7 @@ class NotificationService {
       // Update notification handler with current settings
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
+          shouldShowAlert: true,
           shouldShowBanner: true,
           shouldShowList: true,
           shouldPlaySound: settings.sound || false,
@@ -419,17 +505,18 @@ class NotificationService {
         await this.cancelAllNotifications();
         return;
       }
-      
+
       // Reschedule based on new settings
-      if (settings.dailyPrayerTime) {
-        const prayerTimes = await getStoredData('customPrayerTimes') || {};
-        if (Object.keys(prayerTimes).length > 0) {
-          await this.schedulePrayerNotifications(prayerTimes, settings);
-        }
+      if (settings.prayerReminders) {
+        await this.scheduleStoredPrayerReminders();
+      } else {
+        await this.cancelNotificationsByType('prayer_reminder');
       }
-      
+
       if (settings.streakReminders) {
-        await this.scheduleDailyStreakReminder(20, 0, settings);
+        await this.scheduleDailyStreakReminder(20, 0);
+      } else {
+        await this.cancelNotificationsByType('daily_streak');
       }
       
       console.log('Notification settings updated');
@@ -498,6 +585,208 @@ class NotificationService {
     }
     if (this.responseListener) {
       this.responseListener.remove();
+    }
+  }
+
+  normalizePrayerTime(prayerTime) {
+    try {
+      if (!prayerTime) return null;
+
+      // Support objects like { time: '05:00', name: 'Morning Prayer' }
+      if (typeof prayerTime === 'object' && !(prayerTime instanceof Date)) {
+        if (prayerTime && 'time' in prayerTime) {
+          return this.normalizePrayerTime(prayerTime.time);
+        }
+      }
+
+      if (prayerTime instanceof Date) {
+        return {
+          hours: prayerTime.getHours(),
+          minutes: prayerTime.getMinutes(),
+          originalTime: prayerTime.toISOString(),
+        };
+      }
+
+      if (typeof prayerTime === 'string') {
+        const trimmed = prayerTime.trim();
+        let hours, minutes;
+
+        if (trimmed.includes(':')) {
+          [hours, minutes] = trimmed.split(':').map(Number);
+        } else if (trimmed.match(/^\d{3,4}$/)) {
+          const paddedTime = trimmed.padStart(4, '0');
+          hours = parseInt(paddedTime.slice(0, 2), 10);
+          minutes = parseInt(paddedTime.slice(2, 4), 10);
+        } else {
+          return null;
+        }
+
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+        return {
+          hours,
+          minutes,
+          originalTime: trimmed,
+        };
+      }
+
+      // Support numeric minutes since midnight
+      if (typeof prayerTime === 'number' && prayerTime >= 0 && prayerTime <= 1440) {
+        const hours = Math.floor(prayerTime / 60);
+        const minutes = prayerTime % 60;
+        return {
+          hours,
+          minutes,
+          originalTime: `${hours}:${minutes.toString().padStart(2, '0')}`,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Failed to normalize prayer time:', error);
+      return null;
+    }
+  }
+
+  subtractThirtyMinutes(hours, minutes) {
+    let reminderMinutes = minutes - 30;
+    let reminderHours = hours;
+
+    if (reminderMinutes < 0) {
+      reminderMinutes += 60;
+      reminderHours -= 1;
+    }
+
+    if (reminderHours < 0) {
+      reminderHours += 24; // Handle midnight rollover
+    }
+
+    return { reminderHours, reminderMinutes };
+  }
+
+  async getStoredPrayerTimes() {
+    try {
+      // Legacy storage without prefix
+      const legacyCustomTimesRaw = await AsyncStorage.getItem('customPrayerTimes');
+      if (legacyCustomTimesRaw) {
+        const legacyTimes = JSON.parse(legacyCustomTimesRaw);
+        if (legacyTimes && Object.keys(legacyTimes).length > 0) {
+          return legacyTimes;
+        }
+      }
+
+      // Prefixed storage via getStoredData
+      const prefixedTimes = await getStoredData('customPrayerTimes');
+      if (prefixedTimes && Object.keys(prefixedTimes).length > 0) {
+        return prefixedTimes;
+      }
+
+      // Newer prayers system stores prayers under `fivefold_simplePrayers`
+      const simplePrayers = await getStoredData('simplePrayers');
+      if (Array.isArray(simplePrayers) && simplePrayers.length > 0) {
+        const mappedTimes = {};
+        simplePrayers.forEach((prayer, index) => {
+          if (prayer?.time) {
+            const key = prayer.id || `prayer_${index}`;
+            mappedTimes[key] = { time: prayer.time, name: prayer.name || 'Prayer' };
+          }
+        });
+
+        if (Object.keys(mappedTimes).length > 0) {
+          return mappedTimes;
+        }
+      }
+
+      // Fallback to user-defined prayers list
+      const userPrayersRaw = await AsyncStorage.getItem('userPrayers');
+      if (userPrayersRaw) {
+        const userPrayers = JSON.parse(userPrayersRaw);
+        const mappedTimes = {};
+        userPrayers.forEach((prayer, index) => {
+          if (prayer?.time) {
+            const key = prayer.slot || `prayer_${index}`;
+            mappedTimes[key] = { time: prayer.time, name: prayer.name || 'Prayer' };
+          }
+        });
+
+        if (Object.keys(mappedTimes).length > 0) {
+          return mappedTimes;
+        }
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Failed to load stored prayer times:', error);
+      return {};
+    }
+  }
+
+  async scheduleStoredPrayerReminders() {
+    try {
+      const settings = await getStoredData('notificationSettings') || { sound: true, prayerReminders: true, pushNotifications: true };
+
+      if (!settings.prayerReminders || settings.pushNotifications === false) {
+        console.log('Prayer reminders disabled in settings, skipping stored scheduling');
+        return;
+      }
+
+      const storedTimes = await this.getStoredPrayerTimes();
+      if (!storedTimes || Object.keys(storedTimes).length === 0) {
+        console.log('No stored prayer times found to schedule');
+        return;
+      }
+
+      await this.schedulePrayerNotifications(storedTimes, settings);
+    } catch (error) {
+      console.error('Failed to schedule stored prayer reminders:', error);
+    }
+  }
+
+  async scheduleWorkoutOverdueNotification(startTime = new Date()) {
+    try {
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
+
+      if (settings.pushNotifications === false) {
+        console.log('Push notifications are disabled, skipping workout reminder');
+        return;
+      }
+
+      const start = startTime instanceof Date ? startTime : new Date(startTime);
+      if (Number.isNaN(start.getTime())) {
+        console.warn('Invalid workout start time, skipping reminder schedule');
+        return;
+      }
+
+      // Clear any existing workout overdue notifications
+      await this.cancelNotificationsByType('workout_overdue');
+
+      const targetTime = new Date(start.getTime() + 60 * 60 * 1000); // +1 hour
+      const now = new Date();
+      const trigger = targetTime <= now ? null : targetTime;
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '⏱️ Workout Check-In',
+          body: 'You started a workout over an hour ago. Need more time or want to wrap it up?',
+          data: { type: 'workout_overdue' },
+          sound: settings.sound ? 'default' : false,
+        },
+        trigger,
+      });
+
+      console.log(
+        `Workout overdue notification ${trigger ? 'scheduled' : 'sent immediately'} for ${targetTime.toISOString()}`
+      );
+    } catch (error) {
+      console.error('Failed to schedule workout overdue notification:', error);
+    }
+  }
+
+  async cancelWorkoutOverdueNotification() {
+    try {
+      await this.cancelNotificationsByType('workout_overdue');
+    } catch (error) {
+      console.error('Failed to cancel workout overdue notification:', error);
     }
   }
 }

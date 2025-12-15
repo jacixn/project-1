@@ -174,3 +174,11 @@ The Tasks & Goals section now has a beautifully optimized two-tier information d
 
 - The previous `fivefold-ios` working tree became unreadable (git refs empty, ~145 `.js/.json/.md` files reported non-zero sizes but returned 0 bytes, Expo CLI crashed with `EmptyJsonFileError` on `package.json`).
 - Resolution: moved the bad tree to `project-1_corrupt_backup`, recloned `https://github.com/jacixn/project-1.git`, and ran `npm install --legacy-peer-deps`. Expo CLI now loads (`npx expo config --type public` succeeds). Note: current environment uses Node 18.14.0, while RN 0.81.x warns it prefers Node ≥20.19.4.
+
+### Recovery Refresh (November 22, 2025)
+
+- User reported the repo was corrupted again, so the entire `/Users/jz/Desktop/github/project-1` folder was archived to `project-1_corrupt_backup_2025-11-22`.
+- Cloned a fresh copy from `https://github.com/jacixn/project-1.git`.
+- Reinstalled Expo dependencies inside `fivefold-ios` with `npm install --legacy-peer-deps`.
+- Ran `pod install` (first attempt failed due to locale, succeeded when re-running with `LANG=en_US.UTF-8`), which pulled down all 0.81.4 pods.
+- Verified the Expo config is readable by running `npx expo config --type public` (no `EmptyJsonFileError` this time).
