@@ -116,6 +116,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [newPrayerTime, setNewPrayerTime] = useState('');
   const [selectedPrayer, setSelectedPrayer] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null);
+  const [showNotTimeCard, setShowNotTimeCard] = useState(false);
+  const [pendingPrayer, setPendingPrayer] = useState(null);
+  const [timeUntilWindow, setTimeUntilWindow] = useState('');
   
   // NEW Simple verse states - completely fresh
   const [simpleVerseText, setSimpleVerseText] = useState({}); // { 'prayerId-verseIndex': 'simplified text' }
@@ -582,6 +585,35 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     }
   };
 
+  const handlePrayerPress = (prayer) => {
+    const isInTimeWindow = isPrayerTimeAvailable(prayer);
+    
+    if (!isInTimeWindow) {
+      const windowCountdown = getTimeUntilPrayerWindow(prayer);
+      setPendingPrayer(prayer);
+      setTimeUntilWindow(windowCountdown || '');
+      setShowNotTimeCard(true);
+      hapticFeedback.light();
+      return;
+    }
+
+    // FIXED: Set prayer first, THEN show modal after a small delay to ensure state is set
+    setSelectedPrayer(prayer);
+    hapticFeedback.light();
+    // Fetch verses in background (don't block UI)
+    loadPrayerVerses(prayer);
+    // Use requestAnimationFrame to ensure prayer state is set before showing modal
+    requestAnimationFrame(() => {
+      setShowPrayerModal(true);
+    });
+  };
+
+  const closeNotTimeCard = () => {
+    setShowNotTimeCard(false);
+    setPendingPrayer(null);
+    setTimeUntilWindow('');
+  };
+
   // Check if prayer can be completed (both time window and 24-hour cooldown)
   const canCompletePrayer = (prayer) => {
     // Check 24-hour cooldown first
@@ -841,17 +873,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                     shadowRadius: 0, // Remove shadow
                     elevation: 0, // Remove elevation
                   }]}
-                  onPress={() => {
-                    // FIXED: Set prayer first, THEN show modal after a small delay to ensure state is set
-                    setSelectedPrayer(prayer);
-                    hapticFeedback.light();
-                    // Fetch verses in background (don't block UI)
-                    loadPrayerVerses(prayer);
-                    // Use requestAnimationFrame to ensure prayer state is set before showing modal
-                    requestAnimationFrame(() => {
-                      setShowPrayerModal(true);
-                    });
-                  }}
+                  onPress={() => handlePrayerPress(prayer)}
                 >
                   <View style={styles.prayerInfo}>
                     <View style={[styles.prayerIcon, { 
@@ -901,6 +923,49 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           })
         )}
       </ScrollView>
+
+      {/* Not-time-yet card */}
+      {showNotTimeCard && pendingPrayer && (
+        <Modal
+          visible={showNotTimeCard}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeNotTimeCard}
+        >
+          <View style={styles.notTimeOverlay}>
+            <TouchableOpacity 
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={closeNotTimeCard}
+            />
+            <BlurView 
+              intensity={isDark ? 45 : 70} 
+              tint={isDark ? "dark" : "light"} 
+              style={[styles.notTimeCard, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)' }]}
+            >
+              <View style={[styles.notTimeIconWrap, { backgroundColor: theme.primary + '20' }]}>
+                <MaterialIcons name="schedule" size={22} color={theme.primary} />
+              </View>
+              <Text style={[styles.notTimeTitle, { color: theme.text }]}>Not time yet</Text>
+              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
+                {pendingPrayer.time ? `Starts at ${pendingPrayer.time}` : 'This prayer has a set time window.'}
+              </Text>
+              {timeUntilWindow ? (
+                <Text style={[styles.notTimeMeta, { color: theme.textSecondary }]}>
+                  Opens in {timeUntilWindow}
+                </Text>
+              ) : null}
+              <TouchableOpacity 
+                style={[styles.notTimeButton, { backgroundColor: theme.primary }]}
+                onPress={closeNotTimeCard}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.notTimeButtonText}>Got it</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Modal>
+      )}
 
       {/* Prayer Detail Modal */}
       <PrayerDetailModal
@@ -1132,6 +1197,56 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Not-time card styles
+  notTimeOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    padding: 24,
+  },
+  notTimeCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 18,
+    padding: 20,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  notTimeIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  notTimeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  notTimeSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  notTimeMeta: {
+    fontSize: 13,
+    marginBottom: 14,
+  },
+  notTimeButton: {
+    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  notTimeButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   
   // Modal styles
