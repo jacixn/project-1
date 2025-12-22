@@ -200,40 +200,17 @@ class NotificationService {
         }
 
         // Reminder is always 30 minutes before the next prayer occurrence (Date math handles midnight).
-        const reminderDate = new Date(nextPrayerDate.getTime() - 30 * 60 * 1000);
+        let reminderDate = new Date(nextPrayerDate.getTime() - 30 * 60 * 1000);
 
         const reminderHours = reminderDate.getHours();
         const reminderMinutes = reminderDate.getMinutes();
 
-        // Always schedule repeating daily reminders for the computed reminder time.
-        // This covers future days; we also handle "today's" upcoming prayer below.
-        const repeatingTrigger = {
-          hour: reminderHours,
-          minute: reminderMinutes,
-          repeats: true,
-        };
-
-        // If today's reminder window has already passed but today's prayer is still upcoming,
-        // send an immediate catch-up notification so the user still gets alerted.
-        if (reminderDate <= now && nextPrayerDate > now) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: '🕊️ Prayer Reminder',
-              body: `${displayName} in 30 minutes`,
-              data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
-              sound: settings.sound ? 'default' : false,
-            },
-            trigger: null, // immediate catch-up
-          });
-
-          console.log(
-            `Sent immediate catch-up reminder for ${slot} (reminder time already passed, prayer still upcoming at ${hours
-              .toString()
-              .padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`
-          );
+        // If the reminder time has already passed for today, push it to the next day
+        while (reminderDate <= now) {
+          reminderDate = new Date(reminderDate.getTime() + 24 * 60 * 60 * 1000);
         }
 
-        // Schedule repeating daily reminders (starting today if still in future, otherwise tomorrow)
+        // Schedule a single notification for the next occurrence (one per prayer)
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '🕊️ Prayer Reminder',
@@ -241,11 +218,12 @@ class NotificationService {
             data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
           },
-          trigger: repeatingTrigger,
+          trigger: reminderDate,
         });
 
         console.log(
-          `Scheduled reminder for ${slot} at ${reminderHours.toString().padStart(2, '0')}:${reminderMinutes
+          `Scheduled reminder for ${slot} at ${reminderDate.getHours().toString().padStart(2, '0')}:${reminderDate
+            .getMinutes()
             .toString()
             .padStart(2, '0')} (30 min before ${hours.toString().padStart(2, '0')}:${minutes
             .toString()

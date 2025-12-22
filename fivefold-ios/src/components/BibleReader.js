@@ -59,6 +59,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [verses, setVerses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [targetVerseNumber, setTargetVerseNumber] = useState(null); // Track which verse to scroll to
   const [simplifiedSearchResults, setSimplifiedSearchResults] = useState(new Map()); // Track simplified search results
@@ -120,6 +121,33 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const shareCardRef = useRef(null);
   const [shareCardAnimating, setShareCardAnimating] = useState(false);
   
+  // Load recent searches on mount
+  useEffect(() => {
+    const loadRecentSearches = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('recentBibleSearches');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRecentSearches(parsed);
+          }
+        }
+      } catch (err) {
+        console.log('Failed to load recent searches:', err);
+      }
+    };
+    loadRecentSearches();
+  }, []);
+
+  const addRecentSearch = async (reference) => {
+    if (!reference) return;
+    setRecentSearches(prev => {
+      const next = [reference, ...prev.filter(r => r !== reference)].slice(0, 8);
+      AsyncStorage.setItem('recentBibleSearches', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  };
+
   // PanResponder for swipe-to-dismiss (book selector)
   const bookSelectorPanResponder = useRef(
     PanResponder.create({
@@ -2891,6 +2919,50 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         }}>
                           {searchQuery.trim() ? 'Try a different search term' : 'Try: John, John 3, or John 3:16'}
                         </Text>
+                        {recentSearches.length > 0 && (
+                          <View style={{ marginTop: 28, width: '100%' }}>
+                            <Text style={{
+                              fontSize: 14,
+                              fontWeight: '700',
+                              color: theme.textSecondary,
+                              marginBottom: 12,
+                              textAlign: 'left'
+                            }}>
+                              Recent searches
+                            </Text>
+                            {recentSearches.map((ref, idx) => (
+                              <TouchableOpacity
+                                key={`${ref}-${idx}`}
+                                style={{
+                                  backgroundColor: theme.card,
+                                  borderRadius: 10,
+                                  paddingVertical: 12,
+                                  paddingHorizontal: 14,
+                                  marginBottom: 10,
+                                  borderWidth: 1,
+                                  borderColor: theme.border || 'rgba(0,0,0,0.05)',
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between'
+                                }}
+                                onPress={() => {
+                                  setSearchQuery(ref);
+                                  setTimeout(() => searchBibleWithQuery(ref), 50);
+                                }}
+                                activeOpacity={0.85}
+                              >
+                                <Text style={{
+                                  fontSize: 15,
+                                  fontWeight: '600',
+                                  color: theme.primary
+                                }}>
+                                  {ref}
+                                </Text>
+                                <MaterialIcons name="arrow-forward-ios" size={16} color={theme.textSecondary} />
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
                       </View>
                     ) : (
                       // Search Results
@@ -2918,6 +2990,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                             }}
                             onPress={() => {
                               hapticFeedback.light();
+                              addRecentSearch(result.reference);
                               // Navigate to the verse
                               if (result.bookId && result.chapter && result.verse) {
                                 const book = books.find(b => b.id === result.bookId);

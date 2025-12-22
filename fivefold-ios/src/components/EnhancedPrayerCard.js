@@ -734,10 +734,10 @@ const PrayerSection = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     borderRadius: 22,
-    padding: 22,
-    marginHorizontal: 22,
-    marginBottom: 22,
-    maxHeight: 650,
+    padding: 18,          // slightly tighter to fit more items
+    marginHorizontal: 18,
+    marginBottom: 18,
+    maxHeight: 900,       // allow taller list for 5+ prayers visible
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   
   // Prayer List
   scrollArea: {
-    maxHeight: 520,
+    maxHeight: 900, // allow roughly 5 prayers visible before scrolling
   },
   
   // Empty State
@@ -830,20 +830,20 @@ const styles = StyleSheet.create({
   
   // Prayer Card
   prayerContainer: {
-    borderRadius: 18,
-    marginBottom: 15,
+    borderRadius: 16,
+    marginBottom: 10,    // tighter spacing between cards
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 5,
   },
   inactivePrayer: {
     opacity: 0.8,
   },
   prayerMainArea: {
-    padding: 18,
+    padding: 14,         // slightly reduced padding to save vertical space
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
   prayerTitleArea: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,     // tighter gap
   },
   prayerIconCircle: {
     width: 28,

@@ -825,11 +825,11 @@ const BiblePrayerTab = () => {
         activeOpacity={0.4}
         onPress={openVerseModal}
         style={[styles.transparentVerseOfDay, { 
-          backgroundColor: withOpacity(versePalette.accent, 0.22),
+          backgroundColor: `${theme.primary}22`,
           borderWidth: 0.8,
-          borderColor: withOpacity(versePalette.accent, 0.65),
+          borderColor: `${theme.primary}65`,
           borderRadius: 16,
-          shadowColor: versePalette.accent,
+          shadowColor: theme.primary,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.06,
           shadowRadius: 3,

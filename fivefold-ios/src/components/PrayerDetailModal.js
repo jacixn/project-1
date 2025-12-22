@@ -171,6 +171,70 @@ const PrayerDetailModal = ({
     });
   };
 
+  const [guideMode, setGuideMode] = useState('how'); // 'acts' | 'how'
+
+  const actsItems = [
+    {
+      key: 'A',
+      title: 'A — Acknowledging',
+      text: 'Start by praising God for who He is and what He has done.',
+    },
+    {
+      key: 'C',
+      title: 'C — Confession',
+      text: 'Be honest about your sins and shortcomings. Ask for forgiveness and a clean heart.',
+    },
+    {
+      key: 'T',
+      title: 'T — Thanksgiving',
+      text: 'Thank God for specific blessings, answered prayers, and His faithfulness today.',
+    },
+    {
+      key: 'S',
+      title: 'S — Supplication',
+      text: 'Bring your needs and the needs of others before God. Ask for guidance, strength, and peace.',
+    },
+  ];
+
+  const howToPrayItems = [
+    {
+      key: '1',
+      title: 'Address God',
+      ref: 'Matthew 6:9',
+      text: 'Start by acknowledging God as your Father and honoring His name.',
+    },
+    {
+      key: '2',
+      title: 'Praise and Worship',
+      ref: 'Psalm 100:4',
+      text: 'Enter His presence with thanksgiving and praise for who He is.',
+    },
+    {
+      key: '3',
+      title: 'Confess',
+      ref: '1 John 1:9',
+      text: 'Be honest about your sins and ask for forgiveness and purification.',
+    },
+    {
+      key: '4',
+      title: 'Present Requests',
+      ref: 'Philippians 4:6',
+      text: 'Share your needs with God with gratitude, trusting His care.',
+    },
+    {
+      key: '5',
+      title: 'Thank Him',
+      ref: '1 Thessalonians 5:18',
+      text: 'Give thanks in all circumstances—He is faithful in every season.',
+    },
+    {
+      key: '6',
+      title: 'Listen',
+      ref: 'John 10:27',
+      text: 'Be still, listen for His guidance, and respond in faith.',
+    },
+  ];
+
   // FIXED: Don't render modal if prayer is not set (prevents race condition issues)
   if (!prayer || !visible) return null;
 
@@ -362,6 +426,104 @@ const PrayerDetailModal = ({
                       </View>
                     );
                   })}
+
+                  {/* Guide selector */}
+                  <View style={styles.guideSwitchContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.guidePill,
+                        guideMode === 'acts' && [styles.guidePillActive, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}50` }],
+                      ]}
+                      onPress={() => setGuideMode('acts')}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[
+                        styles.guidePillText,
+                        { color: guideMode === 'acts' ? theme.primary : theme.textSecondary }
+                      ]}>
+                        A.C.T.S.
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.guidePill,
+                        guideMode === 'how' && [styles.guidePillActive, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}50` }],
+                      ]}
+                      onPress={() => setGuideMode('how')}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[
+                        styles.guidePillText,
+                        { color: guideMode === 'how' ? theme.primary : theme.textSecondary }
+                      ]}>
+                        How to Pray
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Guide content */}
+                  {guideMode === 'acts' ? (
+                    <View style={[styles.actsCard, { 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    }]}>
+                      <View style={styles.actsHeader}>
+                        <MaterialIcons name="flare" size={18} color={theme.primary} />
+                        <Text style={[styles.actsTitle, { color: theme.text }]}>
+                          Pray with A.C.T.S.
+                        </Text>
+                      </View>
+                      <View style={styles.actsList}>
+                        {actsItems.map((item) => (
+                          <View key={item.key} style={styles.actsRow}>
+                            <View style={[styles.actsBadge, { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}35` }]}>
+                              <Text style={[styles.actsBadgeText, { color: theme.primary }]}>{item.key}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.actsRowTitle, { color: theme.text }]}>{item.title}</Text>
+                              <Text style={[styles.actsRowText, { color: theme.textSecondary }]}>{item.text}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={[styles.actsCard, { 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                    }]}>
+                      <View style={styles.actsHeader}>
+                        <MaterialIcons name="lightbulb-outline" size={18} color={theme.primary} />
+                        <Text style={[styles.actsTitle, { color: theme.text }]}>
+                          How to Pray
+                        </Text>
+                      </View>
+                      <View style={styles.actsList}>
+                        {howToPrayItems.map((item) => (
+                          <View key={item.key} style={styles.actsRow}>
+                            <View style={[styles.actsBadge, { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}35` }]}>
+                              <Text style={[styles.actsBadgeText, { color: theme.primary }]}>{item.key}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.actsRowTitle, { color: theme.text }]}>{item.title}</Text>
+                              <Text style={[styles.actsRowText, { color: theme.textSecondary }]}>{item.text}</Text>
+                              {item.ref ? (
+                                <TouchableOpacity
+                                  onPress={() => handleGoToVersePress(item.ref)}
+                                  activeOpacity={0.8}
+                                  style={{ marginTop: 4 }}
+                                >
+                                  <Text style={[styles.actsRowRef, { color: theme.primary }]}>
+                                    {item.ref}
+                                  </Text>
+                                </TouchableOpacity>
+                              ) : null}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
 
                   {/* Prayer Completion Section */}
               <View style={[styles.completionSection, {
@@ -584,6 +746,82 @@ const styles = StyleSheet.create({
   verseActionText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  actsCard: {
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  actsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  actsTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  actsList: {
+    gap: 12,
+  },
+  actsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  actsBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  actsBadgeText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  actsRowTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  actsRowText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actsRowRef: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  guideSwitchContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 12,
+    justifyContent: 'flex-start',
+  },
+  guidePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  guidePillActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  guidePillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   completionSection: {
     padding: 22,

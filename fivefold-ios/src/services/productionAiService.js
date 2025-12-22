@@ -3,6 +3,29 @@
 
 import { DEEPSEEK_CONFIG } from '../../deepseek.config';
 
+// Helper to perform a Deepseek request with primary key, then fallback on 401
+async function deepseekFetchWithFallback(body) {
+  const makeRequest = async (key) => {
+    return fetch(DEEPSEEK_CONFIG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body,
+      timeout: 15000, // 15s timeout
+    });
+  };
+
+  // Try primary
+  let response = await makeRequest(DEEPSEEK_CONFIG.apiKey);
+  if (response.status === 401 && DEEPSEEK_CONFIG.fallbackApiKey) {
+    console.warn('Deepseek 401 with primary key, retrying with fallback key...');
+    response = await makeRequest(DEEPSEEK_CONFIG.fallbackApiKey);
+  }
+  return response;
+}
+
 class ProductionSmartService {
   constructor() {
     this.requestCount = 0;
@@ -23,25 +46,17 @@ class ProductionSmartService {
     try {
       console.log('🚀 Making chat request to: https://api.deepseek.com');
 
-      const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${DEEPSEEK_CONFIG.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000
-        }),
-        timeout: 15000 // 15 second timeout
-      });
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      }));
 
       console.log('📡 Deepseek response status:', response.status);
 
@@ -259,20 +274,13 @@ Write only the simplified verse, nothing else.`;
 
       console.log('💬 Chat request with', messages.length, 'messages');
 
-      const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${DEEPSEEK_CONFIG.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: messages,
-          stream: stream,
-          temperature: 0.7,
-          max_tokens: 2000
-        })
-      });
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: messages,
+        stream: stream,
+        temperature: 0.7,
+        max_tokens: 2000
+      }));
 
       if (!response.ok) {
         throw new Error(`Chat failed: ${response.status}`);
