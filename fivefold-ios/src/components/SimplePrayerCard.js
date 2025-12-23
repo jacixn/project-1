@@ -629,7 +629,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           simplified = simplifiedResult.simplified;
         }
       } catch (err) {
-        console.log('Simplify verse failed, using original text', err);
+        // Quiet fallback if AI key is missing or service fails
+        simplified = displayedText || 'This verse reminds you to stay close to God and trust Him.';
       }
 
       setStudyContent({
@@ -640,7 +641,13 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       });
       setShowStudyCard(true);
     } catch (err) {
-      console.error('Error preparing study content:', err);
+      setStudyContent({
+        reference: verse.reference,
+        version: verse.version || bibleVersion || 'KJV',
+        explanation: 'This verse reminds you to stay close to God and trust Him.',
+        takeaways: buildTakeaways(),
+      });
+      setShowStudyCard(true);
     } finally {
       setStudyLoading(false);
     }
@@ -1212,6 +1219,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           visible={showStudyCard}
           transparent={true}
           animationType="fade"
+          presentationStyle="overFullScreen"
           onRequestClose={() => setShowStudyCard(false)}
         >
           <View style={styles.notTimeOverlay}>
