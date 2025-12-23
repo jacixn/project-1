@@ -109,6 +109,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   
   const [prayers, setPrayers] = useState([]);
+  const [lastResetDate, setLastResetDate] = useState(new Date().toDateString());
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -132,6 +133,14 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   // Discussion states
   const [showDiscussModal, setShowDiscussModal] = useState(false);
   const [verseToDiscuss, setVerseToDiscuss] = useState(null);
+
+  const isSameDay = (dateA, dateB) => {
+    return (
+      dateA.getFullYear() === dateB.getFullYear() &&
+      dateA.getMonth() === dateB.getMonth() &&
+      dateA.getDate() === dateB.getDate()
+    );
+  };
   
   // Load prayers on start
   useEffect(() => {
@@ -167,6 +176,51 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     };
   }, [selectedPrayer]); // Re-subscribe if selectedPrayer changes
 
+  // Midnight reset so completed prayers reopen without a 24h cooldown when the date rolls over
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const today = new Date().toDateString();
+      if (today !== lastResetDate) {
+        resetCompletedPrayersFromStorage();
+        setLastResetDate(today);
+      }
+    }, 60000); // check every minute
+
+    return () => clearInterval(interval);
+  }, [lastResetDate]);
+
+  const clearStaleCompletions = (prayerList) => {
+    const today = new Date();
+    let changed = false;
+
+    const cleanedPrayers = prayerList.map((prayer) => {
+      if (prayer.completedAt && !isSameDay(new Date(prayer.completedAt), today)) {
+        changed = true;
+        return {
+          ...prayer,
+          completedAt: null,
+          canComplete: true,
+        };
+      }
+      return prayer;
+    });
+
+    return { cleanedPrayers, changed };
+  };
+
+  const resetCompletedPrayersFromStorage = async () => {
+    try {
+      const stored = (await getStoredData('simplePrayers')) || [];
+      const { cleanedPrayers, changed } = clearStaleCompletions(stored);
+      if (changed) {
+        await savePrayers(cleanedPrayers);
+      }
+      setPrayers(cleanedPrayers);
+    } catch (error) {
+      console.log('Error resetting prayers at midnight:', error);
+    }
+  };
+
   // Track modal changes with better debugging
   useEffect(() => {
     if (!showPrayerModal) {
@@ -196,7 +250,11 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         ...prayer,
         type: prayer.type || 'persistent' // Default to persistent for old prayers
       }));
-      setPrayers(prayersWithType);
+      const { cleanedPrayers, changed } = clearStaleCompletions(prayersWithType);
+      if (changed) {
+        await savePrayers(cleanedPrayers);
+      }
+      setPrayers(cleanedPrayers);
     } catch (error) {
       console.log('Error loading prayers:', error);
     }
@@ -620,10 +678,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     if (prayer.completedAt) {
       const completedTime = new Date(prayer.completedAt);
       const now = new Date();
-      const hoursSinceCompletion = (now - completedTime) / (1000 * 60 * 60);
-      
-      if (hoursSinceCompletion < 24) {
-        return false; // Still in cooldown
+
+      // If completed earlier today, block re-completion; if yesterday, allow immediately
+      if (isSameDay(completedTime, now)) {
+        return false; // Completed today, wait for midnight reset
       }
     }
     
@@ -636,12 +694,11 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     // Check 24-hour cooldown first
     if (prayer.completedAt) {
       const completedTime = new Date(prayer.completedAt);
-      const availableTime = new Date(completedTime.getTime() + (24 * 60 * 60 * 1000));
       const now = new Date();
       
-      if (now < availableTime) {
-        const hoursLeft = Math.ceil((availableTime - now) / (1000 * 60 * 60));
-        return `${hoursLeft}h (cooldown)`;
+      // If it was completed today, communicate completion without showing a cooldown timer
+      if (isSameDay(completedTime, now)) {
+        return 'Completed today';
       }
     }
     
@@ -825,9 +882,19 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           </View>
         ) : (
           prayers.map((prayer) => {
-            const canComplete = canCompletePrayer(prayer);
-            const timeUntil = getTimeUntilAvailable(prayer);
+            const completedToday = prayer.completedAt && isSameDay(new Date(prayer.completedAt), new Date());
+            const canComplete = completedToday ? false : canCompletePrayer(prayer);
+            const timeUntil = completedToday ? null : getTimeUntilAvailable(prayer);
             const isInTimeWindow = isPrayerTimeAvailable(prayer);
+            const baseTextColor = completedToday ? '#ffffff' : theme.text;
+            const secondaryTextColor = completedToday ? 'rgba(255,255,255,0.85)' : theme.textSecondary;
+            const metaText = completedToday
+              ? 'Completed today'
+              : timeUntil
+                ? `• ${timeUntil}`
+                : isInTimeWindow
+                  ? '• Available now'
+                  : '';
             
             // Individual Prayer Item Component - Fully transparent
               const PrayerItemCard = ({ children, style, onPress }) => {
@@ -835,9 +902,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               return (
                 <View
                   style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: `${theme.primary}30`,
-                    borderColor: `${theme.primary}99`,
-                    opacity: canComplete ? 1 : 0.7
+                    backgroundColor: completedToday ? theme.success : `${theme.primary}30`,
+                    borderColor: completedToday ? theme.success : `${theme.primary}99`,
+                    opacity: completedToday ? 1 : (canComplete ? 1 : 0.7),
+                    shadowColor: completedToday ? theme.success : '#000'
                   }, style]}
                 >
                   {children}
@@ -877,14 +945,19 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                 >
                   <View style={styles.prayerInfo}>
                     <View style={[styles.prayerIcon, { 
-                      backgroundColor: canComplete ? theme.success : 
-                                     isInTimeWindow ? theme.primary : theme.textSecondary 
+                      backgroundColor: completedToday
+                        ? 'rgba(255,255,255,0.22)'
+                        : canComplete
+                          ? theme.success
+                          : isInTimeWindow
+                            ? theme.primary
+                            : theme.textSecondary 
                     }]}>
                       <MaterialIcons name="favorite" size={16} color="#ffffff" />
                     </View>
                     <View style={styles.prayerDetails}>
                       <View style={styles.prayerNameRow}>
-                        <Text style={[styles.prayerName, { color: theme.text }]}>
+                        <Text style={[styles.prayerName, { color: baseTextColor }]}>
                         {prayer.name}
                         </Text>
                         <View style={[styles.prayerTypeBadge, { 
@@ -904,19 +977,18 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                           </Text>
                         </View>
                       </View>
-                      <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>
-                        {prayer.time} {timeUntil ? `• ${timeUntil}` : 
-                         isInTimeWindow ? '• Available now' : ''}
+                      <Text style={[styles.prayerTime, { color: secondaryTextColor }]}>
+                        {prayer.time} {metaText}
                       </Text>
                     </View>
                   </View>
                 </AnimatedPrayerCard>
                 
                 <AnimatedPrayerButton
-                  style={[styles.editButton, { backgroundColor: theme.primary + '20' }]}
+                  style={[styles.editButton, { backgroundColor: completedToday ? 'rgba(255,255,255,0.25)' : theme.primary + '20' }]}
                   onPress={() => editPrayer(prayer)}
                 >
-                  <MaterialIcons name="edit" size={16} color={theme.primary} />
+                  <MaterialIcons name="edit" size={16} color={completedToday ? '#ffffff' : theme.primary} />
                 </AnimatedPrayerButton>
               </PrayerItemCard>
             );
