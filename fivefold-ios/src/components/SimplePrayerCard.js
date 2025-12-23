@@ -127,6 +127,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [showStudyCard, setShowStudyCard] = useState(false);
   const [studyLoading, setStudyLoading] = useState(false);
   const [studyContent, setStudyContent] = useState(null);
+  const studySlideAnim = useRef(new Animated.Value(0)).current;
+  const studyPanY = useRef(new Animated.Value(0)).current;
+  const studyFade = useRef(new Animated.Value(0)).current;
   
   // NEW Simple verse states - completely fresh
   const [simpleVerseText, setSimpleVerseText] = useState({}); // { 'prayerId-verseIndex': 'simplified text' }
@@ -620,6 +623,14 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setStudyContent(null);
       hapticFeedback.light();
       setShowStudyCard(true);
+      // reset animations
+      studySlideAnim.setValue(0);
+      studyPanY.setValue(0);
+      studyFade.setValue(0);
+      Animated.parallel([
+        Animated.timing(studyFade, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(studySlideAnim, { toValue: 1, tension: 60, friction: 10, useNativeDriver: true })
+      ]).start();
 
       const displayedText = verse.text || '';
       const prompt = `
@@ -675,6 +686,31 @@ Guidelines:
       setStudyLoading(false);
     }
   };
+
+  const studyPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 10,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          studyPanY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120 || gestureState.vy > 1) {
+          Animated.parallel([
+            Animated.timing(studyFade, { toValue: 0, duration: 200, useNativeDriver: true }),
+            Animated.timing(studySlideAnim, { toValue: 0, duration: 200, useNativeDriver: true })
+          ]).start(() => {
+            setShowStudyCard(false);
+            studyPanY.setValue(0);
+          });
+        } else {
+          Animated.spring(studyPanY, { toValue: 0, tension: 70, friction: 11, useNativeDriver: true }).start();
+        }
+      }
+    })
+  ).current;
 
   // Check if prayer is within time window (30 minutes before/after)
   const isPrayerTimeAvailable = (prayer) => {
@@ -1241,23 +1277,34 @@ Guidelines:
         <Modal
           visible={showStudyCard}
           transparent={true}
-          animationType="fade"
           presentationStyle="overFullScreen"
+          statusBarTranslucent
+          hardwareAccelerated
           onRequestClose={() => setShowStudyCard(false)}
         >
-          <View style={styles.notTimeOverlay}>
-            <TouchableOpacity 
-              style={StyleSheet.absoluteFill}
-              activeOpacity={1}
-              onPress={() => setShowStudyCard(false)}
-            />
-            <BlurView 
-              intensity={isDark ? 45 : 70} 
-              tint={isDark ? "dark" : "light"} 
+          <View style={styles.studyOverlay}>
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: studyFade }]}>
+              <TouchableOpacity 
+                style={StyleSheet.absoluteFill}
+                activeOpacity={1}
+                onPress={() => setShowStudyCard(false)}
+              />
+            </Animated.View>
+            <Animated.View
               style={[
                 styles.studyCard,
-                { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.94)' }
+                { backgroundColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.96)' },
+                {
+                  opacity: studyFade,
+                  transform: [{
+                    translateY: Animated.add(
+                      studySlideAnim.interpolate({ inputRange: [0,1], outputRange: [120, 0] }),
+                      studyPanY
+                    )
+                  }]
+                }
               ]}
+              {...studyPanResponder.panHandlers}
             >
               <LinearGradient
                 colors={[
@@ -1306,7 +1353,7 @@ Guidelines:
               >
                 <Text style={styles.notTimeButtonText}>Got it</Text>
               </TouchableOpacity>
-            </BlurView>
+            </Animated.View>
           </View>
         </Modal>
       )}
@@ -1673,6 +1720,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
+  },
+  studyOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 30,
   },
   
   // Modal styles
