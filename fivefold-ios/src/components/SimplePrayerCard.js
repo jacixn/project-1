@@ -121,6 +121,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [showNotTimeCard, setShowNotTimeCard] = useState(false);
   const [pendingPrayer, setPendingPrayer] = useState(null);
   const [timeUntilWindow, setTimeUntilWindow] = useState('');
+  const [showCompletedCard, setShowCompletedCard] = useState(false);
+  const [completedPrayer, setCompletedPrayer] = useState(null);
   
   // NEW Simple verse states - completely fresh
   const [simpleVerseText, setSimpleVerseText] = useState({}); // { 'prayerId-verseIndex': 'simplified text' }
@@ -650,12 +652,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     
     // If completed today, let users view details without the "not time yet" gate
     if (completedToday) {
-      setSelectedPrayer(prayer);
+      setCompletedPrayer(prayer);
+      setShowCompletedCard(true);
       hapticFeedback.light();
-      loadPrayerVerses(prayer);
-      requestAnimationFrame(() => {
-        setShowPrayerModal(true);
-      });
       return;
     }
 
@@ -1088,6 +1087,64 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         bibleVersion={bibleVersion}
         loadingVerses={loadingVerses}
       />
+
+      {/* Completed Today card */}
+      {showCompletedCard && completedPrayer && (
+        <Modal
+          visible={showCompletedCard}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCompletedCard(false)}
+        >
+          <View style={styles.notTimeOverlay}>
+            <TouchableOpacity 
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setShowCompletedCard(false)}
+            />
+            <BlurView 
+              intensity={isDark ? 45 : 70} 
+              tint={isDark ? "dark" : "light"} 
+              style={[
+                styles.notTimeCard,
+                { backgroundColor: isDark ? 'rgba(0,0,0,0.78)' : 'rgba(255,255,255,0.88)' }
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  `${theme.success}33`,
+                  `${theme.success}0A`,
+                  'transparent'
+                ]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.notTimeGradient}
+              />
+              <View style={styles.notTimeHalo} />
+              <View style={[styles.notTimeIconWrap, { borderColor: theme.success + '60', backgroundColor: theme.success + '18' }]}>
+                <MaterialIcons name="check-circle" size={26} color={theme.success} />
+              </View>
+              <Text style={[styles.notTimeTitle, { color: theme.text }]}>Completed</Text>
+              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
+                {completedPrayer.time ? `Finished at ${completedPrayer.time}` : 'Prayer finished today'}
+              </Text>
+              <View style={[styles.notTimePill, { borderColor: theme.success + '50', backgroundColor: theme.success + '12' }]}>
+                <MaterialIcons name="favorite" size={18} color={theme.success} />
+                <Text style={[styles.notTimePillText, { color: theme.text }]}>
+                  Great job staying consistent
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={[styles.notTimeButton, { backgroundColor: theme.success }]}
+                onPress={() => setShowCompletedCard(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.notTimeButtonText}>Awesome</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Modal>
+      )}
 
       {/* Edit Prayer Modal */}
       <EditPrayerModal
