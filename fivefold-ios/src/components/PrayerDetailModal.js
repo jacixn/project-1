@@ -379,7 +379,6 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
-                            <MaterialIcons name="menu-book" size={16} color={theme.primary} />
                             <Text style={[styles.verseActionText, { color: theme.primary }]}>
                               Go to Verse
                             </Text>
@@ -413,7 +412,6 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
-                            <MaterialIcons name="chat" size={16} color={theme.text} />
                             <Text style={[styles.verseActionText, { color: theme.text }]}>
                               Discuss
                             </Text>
@@ -445,7 +443,6 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
-                            <MaterialIcons name="school" size={16} color="#2ecc71" />
                             <Text style={[styles.verseActionText, { color: '#2ecc71' }]}>
                               Study
                             </Text>

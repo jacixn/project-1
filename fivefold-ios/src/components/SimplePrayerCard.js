@@ -629,25 +629,20 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           simplified = simplifiedResult.simplified;
         }
       } catch (err) {
-        // Quiet fallback if AI key is missing or service fails
-        simplified = displayedText || 'This verse reminds you to stay close to God and trust Him.';
+        setStudyLoading(false);
+        Alert.alert('Study unavailable', 'Please configure your AI service in Settings to use Study.');
+        return;
       }
 
       setStudyContent({
         reference: verse.reference,
         version: verse.version || bibleVersion || 'KJV',
-        explanation: simplified || displayedText || 'This verse reminds you to stay close to God and trust Him.',
+        explanation: simplified || displayedText,
         takeaways: buildTakeaways(simplified || displayedText),
       });
       setShowStudyCard(true);
     } catch (err) {
-      setStudyContent({
-        reference: verse.reference,
-        version: verse.version || bibleVersion || 'KJV',
-        explanation: 'This verse reminds you to stay close to God and trust Him.',
-        takeaways: buildTakeaways(),
-      });
-      setShowStudyCard(true);
+      Alert.alert('Study unavailable', 'Please configure your AI service in Settings to use Study.');
     } finally {
       setStudyLoading(false);
     }
