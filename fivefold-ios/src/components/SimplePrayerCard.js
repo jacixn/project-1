@@ -617,6 +617,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const handleStudyVerse = async (verse) => {
     try {
       setStudyLoading(true);
+      setStudyContent(null);
       hapticFeedback.light();
       const displayedText = verse.text || '';
       let simplified = displayedText;
@@ -629,8 +630,14 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           simplified = simplifiedResult.simplified;
         }
       } catch (err) {
-        setStudyLoading(false);
-        Alert.alert('Study unavailable', 'Please configure your AI service in Settings to use Study.');
+        setStudyContent({
+          reference: verse.reference,
+          version: verse.version || bibleVersion || 'KJV',
+          explanation: 'Study needs your AI key. Please open Settings and add your key to use this feature.',
+          takeaways: [],
+          isError: true,
+        });
+        setShowStudyCard(true);
         return;
       }
 
@@ -639,10 +646,18 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         version: verse.version || bibleVersion || 'KJV',
         explanation: simplified || displayedText,
         takeaways: buildTakeaways(simplified || displayedText),
+        isError: false,
       });
       setShowStudyCard(true);
     } catch (err) {
-      Alert.alert('Study unavailable', 'Please configure your AI service in Settings to use Study.');
+      setStudyContent({
+        reference: verse.reference,
+        version: verse.version || bibleVersion || 'KJV',
+        explanation: 'Study needs your AI key. Please open Settings and add your key to use this feature.',
+        takeaways: [],
+        isError: true,
+      });
+      setShowStudyCard(true);
     } finally {
       setStudyLoading(false);
     }
@@ -1227,8 +1242,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               intensity={isDark ? 45 : 70} 
               tint={isDark ? "dark" : "light"} 
               style={[
-                styles.notTimeCard,
-                { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)' }
+                styles.studyCard,
+                { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.94)' }
               ]}
             >
               <LinearGradient
@@ -1256,18 +1271,20 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                 </Text>
               </View>
 
-              <View style={styles.studyTakeaways}>
-                {studyContent.takeaways?.slice(0,5).map((t, idx) => (
-                  <View key={`takeaway-${idx}`} style={[styles.takeawayRow, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
-                    <View style={[styles.takeawayBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}>
-                      <Text style={[styles.takeawayBadgeText, { color: theme.primary }]}>{idx + 1}</Text>
+              {!studyContent.isError && (
+                <View style={styles.studyTakeaways}>
+                  {studyContent.takeaways?.slice(0,5).map((t, idx) => (
+                    <View key={`takeaway-${idx}`} style={[styles.takeawayRow, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+                      <View style={[styles.takeawayBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}>
+                        <Text style={[styles.takeawayBadgeText, { color: theme.primary }]}>{idx + 1}</Text>
+                      </View>
+                      <Text style={[styles.takeawayText, { color: theme.textSecondary }]}>
+                        {t}
+                      </Text>
                     </View>
-                    <Text style={[styles.takeawayText, { color: theme.textSecondary }]}>
-                      {t}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
 
               <TouchableOpacity 
                 style={[styles.notTimeButton, { backgroundColor: theme.primary }]}
@@ -1582,6 +1599,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  studyCard: {
+    width: '90%',
+    maxWidth: 420,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    elevation: 16,
   },
   studyExplanationCard: {
     width: '100%',
