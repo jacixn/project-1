@@ -1160,7 +1160,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   prayerList: {
-    maxHeight: 300,
+    maxHeight: 620, // fits ~5 prayers without scrolling
   },
   emptyState: {
     alignItems: 'center',
