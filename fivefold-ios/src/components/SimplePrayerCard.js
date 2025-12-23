@@ -29,6 +29,7 @@ import EditPrayerModal from './EditPrayerModal';
 import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
 const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
@@ -1013,19 +1014,36 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
             <BlurView 
               intensity={isDark ? 45 : 70} 
               tint={isDark ? "dark" : "light"} 
-              style={[styles.notTimeCard, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)' }]}
+              style={[
+                styles.notTimeCard,
+                { backgroundColor: isDark ? 'rgba(8,8,12,0.82)' : 'rgba(255,255,255,0.82)' }
+              ]}
             >
-              <View style={[styles.notTimeIconWrap, { backgroundColor: theme.primary + '20' }]}>
-                <MaterialIcons name="schedule" size={22} color={theme.primary} />
+              <LinearGradient
+                colors={[
+                  `${theme.primary}33`,
+                  `${theme.primary}0A`,
+                  'transparent'
+                ]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.notTimeGradient}
+              />
+              <View style={styles.notTimeHalo} />
+              <View style={[styles.notTimeIconWrap, { borderColor: theme.primary + '50', backgroundColor: theme.primary + '18' }]}>
+                <MaterialIcons name="schedule" size={26} color={theme.primary} />
               </View>
               <Text style={[styles.notTimeTitle, { color: theme.text }]}>Not time yet</Text>
               <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
                 {pendingPrayer.time ? `Starts at ${pendingPrayer.time}` : 'This prayer has a set time window.'}
               </Text>
               {timeUntilWindow ? (
-                <Text style={[styles.notTimeMeta, { color: theme.textSecondary }]}>
-                  Opens in {timeUntilWindow}
-                </Text>
+                <View style={[styles.notTimePill, { borderColor: theme.primary + '50', backgroundColor: theme.primary + '15' }]}>
+                  <MaterialIcons name="hourglass-bottom" size={18} color={theme.primary} />
+                  <Text style={[styles.notTimePillText, { color: theme.text }]}>
+                    Opens in {timeUntilWindow}
+                  </Text>
+                </View>
               ) : null}
               <TouchableOpacity 
                 style={[styles.notTimeButton, { backgroundColor: theme.primary }]}
@@ -1282,38 +1300,77 @@ const styles = StyleSheet.create({
   notTimeCard: {
     width: '100%',
     maxWidth: 360,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 18,
+  },
+  notTimeGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  notTimeHalo: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    top: -60,
+    opacity: 0.35,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   notTimeIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    borderWidth: 1,
   },
   notTimeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   notTimeSubtitle: {
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   notTimeMeta: {
     fontSize: 13,
     marginBottom: 14,
   },
+  notTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  notTimePillText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   notTimeButton: {
-    marginTop: 4,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
+    marginTop: 8,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 12,
   },
   notTimeButtonText: {
     color: '#fff',
