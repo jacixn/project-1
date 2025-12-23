@@ -167,6 +167,7 @@ const BiblePrayerTab = () => {
   const [userName, setUserName] = useState('');
   const [versePalette, setVersePalette] = useState(pickRandomPalette());
   const initialVerseShown = useRef(false);
+  const [suppressVerseToday, setSuppressVerseToday] = useState(false);
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -399,6 +400,24 @@ const BiblePrayerTab = () => {
     setVersePalette(pickRandomPalette());
   }, [dailyVerse.reference]);
 
+  // Reset daily suppression when the verse changes (new day)
+  useEffect(() => {
+    const refreshSuppression = async () => {
+      try {
+        const dismissedDate = await getStoredData('votd_dismissed_date');
+        const today = new Date().toDateString();
+        const isDismissedToday = dismissedDate === today;
+        setSuppressVerseToday(isDismissedToday);
+        if (!isDismissedToday) {
+          initialVerseShown.current = false; // allow auto-open on new day
+        }
+      } catch (err) {
+        console.error('Error refreshing Verse of the Day suppression state:', err);
+      }
+    };
+    refreshSuppression();
+  }, [dailyVerse.reference]);
+
   // Auto-show Verse of the Day on first app load once the verse is ready
   useEffect(() => {
     if (
@@ -406,7 +425,8 @@ const BiblePrayerTab = () => {
       dailyVerse?.text &&
       dailyVerse.text !== "Daily verse is loading..." &&
       dailyVerse.text !== "Verse is loading..." &&
-      dailyVerse.reference
+      dailyVerse.reference &&
+      !suppressVerseToday
     ) {
       initialVerseShown.current = true;
       // slight delay so the UI is ready before animating
@@ -416,7 +436,7 @@ const BiblePrayerTab = () => {
         }
       }, 450);
     }
-  }, [dailyVerse.text, dailyVerse.reference, showVerseModal, openVerseModal]);
+  }, [dailyVerse.text, dailyVerse.reference, showVerseModal, openVerseModal, suppressVerseToday]);
 
   // Listen for Bible version changes and re-fetch the same verse in the new version
   useEffect(() => {
@@ -474,6 +494,18 @@ const BiblePrayerTab = () => {
       console.error('Failed to initialize prayer data:', error);
     }
   };
+
+  const handleHideVerseToday = useCallback(async () => {
+    try {
+      const today = new Date().toDateString();
+      setSuppressVerseToday(true);
+      initialVerseShown.current = true; // prevent further auto-opens today
+      setShowVerseModal(false);
+      await saveData('votd_dismissed_date', today);
+    } catch (error) {
+      console.error('Failed to save verse suppression state:', error);
+    }
+  }, []);
 
   const openVerseModal = useCallback(() => {
     hapticFeedback.medium();
@@ -1337,6 +1369,17 @@ const BiblePrayerTab = () => {
                         </View>
                       </LinearGradient>
                     </TouchableOpacity>
+
+                    {/* Hide for Today */}
+                    <TouchableOpacity
+                      style={styles.verseModalGhostButton}
+                      onPress={handleHideVerseToday}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.verseModalGhostButtonText}>
+                        Don’t show again today
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </BlurView>
@@ -2151,6 +2194,17 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.35)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  verseModalGhostButton: {
+    marginTop: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  verseModalGhostButtonText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   shareCardOverlay: {
     flex: 1,
