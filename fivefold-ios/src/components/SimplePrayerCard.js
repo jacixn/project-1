@@ -645,6 +645,20 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   };
 
   const handlePrayerPress = (prayer) => {
+    const completedToday =
+      prayer.completedAt && isSameDay(new Date(prayer.completedAt), new Date());
+    
+    // If completed today, let users view details without the "not time yet" gate
+    if (completedToday) {
+      setSelectedPrayer(prayer);
+      hapticFeedback.light();
+      loadPrayerVerses(prayer);
+      requestAnimationFrame(() => {
+        setShowPrayerModal(true);
+      });
+      return;
+    }
+
     const isInTimeWindow = isPrayerTimeAvailable(prayer);
     
     if (!isInTimeWindow) {
