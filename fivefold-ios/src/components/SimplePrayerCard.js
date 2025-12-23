@@ -620,20 +620,16 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setStudyContent(null);
       hapticFeedback.light();
       const displayedText = verse.text || '';
-      let simplified = displayedText;
-      try {
-        const simplifiedResult = await VerseSimplificationService.simplifyVerse({
-          text: displayedText,
-          reference: verse.reference,
-        });
-        if (simplifiedResult?.success && simplifiedResult?.simplified) {
-          simplified = simplifiedResult.simplified;
-        }
-      } catch (err) {
+      const simplifiedResult = await VerseSimplificationService.simplifyVerse({
+        text: displayedText,
+        reference: verse.reference,
+      });
+
+      if (!simplifiedResult?.success || !simplifiedResult?.simplified) {
         setStudyContent({
           reference: verse.reference,
           version: verse.version || bibleVersion || 'KJV',
-          explanation: 'Study needs your AI key. Please open Settings and add your key to use this feature.',
+          explanation: simplifiedResult?.error || 'Study needs your AI key. Please open Settings and add your key to use this feature.',
           takeaways: [],
           isError: true,
         });
@@ -644,8 +640,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setStudyContent({
         reference: verse.reference,
         version: verse.version || bibleVersion || 'KJV',
-        explanation: simplified || displayedText,
-        takeaways: buildTakeaways(simplified || displayedText),
+        explanation: simplifiedResult.simplified,
+        takeaways: buildTakeaways(simplifiedResult.simplified),
         isError: false,
       });
       setShowStudyCard(true);
