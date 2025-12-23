@@ -29,6 +29,7 @@ import EditPrayerModal from './EditPrayerModal';
 import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
+import VerseSimplificationService from '../services/verseSimplificationService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
@@ -123,6 +124,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [timeUntilWindow, setTimeUntilWindow] = useState('');
   const [showCompletedCard, setShowCompletedCard] = useState(false);
   const [completedPrayer, setCompletedPrayer] = useState(null);
+  const [showStudyCard, setShowStudyCard] = useState(false);
+  const [studyLoading, setStudyLoading] = useState(false);
+  const [studyContent, setStudyContent] = useState(null);
   
   // NEW Simple verse states - completely fresh
   const [simpleVerseText, setSimpleVerseText] = useState({}); // { 'prayerId-verseIndex': 'simplified text' }
@@ -585,6 +589,61 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     setTimeout(() => {
       setShowDiscussModal(true); // Then open discussion modal
     }, 300);
+  };
+
+  const buildTakeaways = (text = '') => {
+    const sentences = text
+      .replace(/\s+/g, ' ')
+      .split(/[.!?]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    const picks = sentences.slice(0, 5);
+    const fillers = [
+      'God cares about you and listens when you reach out.',
+      'Trusting God brings peace, even when life feels hard.',
+      'God provides what you need; you can rely on Him.',
+      'You can share hope and kindness with others every day.',
+      'Staying close to God helps you make good choices.'
+    ];
+    const combined = [...picks];
+    let fi = 0;
+    while (combined.length < 5) {
+      combined.push(fillers[fi % fillers.length]);
+      fi += 1;
+    }
+    return combined.slice(0, 5);
+  };
+
+  const handleStudyVerse = async (verse) => {
+    try {
+      setStudyLoading(true);
+      hapticFeedback.light();
+      const displayedText = verse.text || '';
+      let simplified = displayedText;
+      try {
+        const simplifiedResult = await VerseSimplificationService.simplifyVerse({
+          text: displayedText,
+          reference: verse.reference,
+        });
+        if (simplifiedResult?.success && simplifiedResult?.simplified) {
+          simplified = simplifiedResult.simplified;
+        }
+      } catch (err) {
+        console.log('Simplify verse failed, using original text', err);
+      }
+
+      setStudyContent({
+        reference: verse.reference,
+        version: verse.version || bibleVersion || 'KJV',
+        explanation: simplified || displayedText || 'This verse reminds you to stay close to God and trust Him.',
+        takeaways: buildTakeaways(simplified || displayedText),
+      });
+      setShowStudyCard(true);
+    } catch (err) {
+      console.error('Error preparing study content:', err);
+    } finally {
+      setStudyLoading(false);
+    }
   };
 
   // Check if prayer is within time window (30 minutes before/after)
@@ -1079,6 +1138,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         onComplete={() => selectedPrayer && completePrayer(selectedPrayer)}
         onSimplify={handleSimplifyVerse}
         onDiscuss={discussVerse}
+        onStudyVerse={handleStudyVerse}
         onNavigateToBible={onNavigateToBible}
         simpleVerseText={simpleVerseText}
         loadingSimple={loadingSimple}
@@ -1140,6 +1200,78 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                 activeOpacity={0.7}
               >
                 <Text style={styles.notTimeButtonText}>Awesome</Text>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </Modal>
+      )}
+
+      {/* Study card */}
+      {showStudyCard && studyContent && (
+        <Modal
+          visible={showStudyCard}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowStudyCard(false)}
+        >
+          <View style={styles.notTimeOverlay}>
+            <TouchableOpacity 
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setShowStudyCard(false)}
+            />
+            <BlurView 
+              intensity={isDark ? 45 : 70} 
+              tint={isDark ? "dark" : "light"} 
+              style={[
+                styles.notTimeCard,
+                { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)' }
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  `${theme.primary}33`,
+                  `${theme.primary}0A`,
+                  'transparent'
+                ]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.notTimeGradient}
+              />
+              <View style={styles.notTimeHalo} />
+              <View style={[styles.notTimeIconWrap, { borderColor: theme.primary + '60', backgroundColor: theme.primary + '14' }]}>
+                <MaterialIcons name="school" size={26} color={theme.primary} />
+              </View>
+              <Text style={[styles.notTimeTitle, { color: theme.text }]}>Study</Text>
+              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
+                {studyContent.reference} {studyContent.version ? `(${studyContent.version})` : ''}
+              </Text>
+
+              <View style={styles.studyExplanationCard}>
+                <Text style={[styles.studyExplanationText, { color: theme.text }]}>
+                  {studyLoading ? 'Preparing a simple explanation...' : studyContent.explanation}
+                </Text>
+              </View>
+
+              <View style={styles.studyTakeaways}>
+                {studyContent.takeaways?.slice(0,5).map((t, idx) => (
+                  <View key={`takeaway-${idx}`} style={[styles.takeawayRow, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+                    <View style={[styles.takeawayBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}>
+                      <Text style={[styles.takeawayBadgeText, { color: theme.primary }]}>{idx + 1}</Text>
+                    </View>
+                    <Text style={[styles.takeawayText, { color: theme.textSecondary }]}>
+                      {t}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.notTimeButton, { backgroundColor: theme.primary }]}
+                onPress={() => setShowStudyCard(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.notTimeButtonText}>Got it</Text>
               </TouchableOpacity>
             </BlurView>
           </View>
@@ -1447,6 +1579,52 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  studyExplanationCard: {
+    width: '100%',
+    borderRadius: 14,
+    padding: 14,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  studyExplanationText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
+  },
+  studyTakeaways: {
+    width: '100%',
+    gap: 10,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  takeawayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  takeawayBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  takeawayBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  takeawayText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   
   // Modal styles
