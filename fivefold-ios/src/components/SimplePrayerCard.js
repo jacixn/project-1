@@ -902,10 +902,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               return (
                 <View
                   style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: completedToday ? theme.success : `${theme.primary}30`,
-                    borderColor: completedToday ? theme.success : `${theme.primary}99`,
+                    backgroundColor: completedToday ? `${theme.success}30` : `${theme.primary}30`,
+                    borderColor: completedToday ? `${theme.success}99` : `${theme.primary}99`,
                     opacity: completedToday ? 1 : (canComplete ? 1 : 0.7),
-                    shadowColor: completedToday ? theme.success : '#000'
+                    shadowColor: completedToday ? `${theme.success}` : '#000'
                   }, style]}
                 >
                   {children}
@@ -946,7 +946,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                   <View style={styles.prayerInfo}>
                     <View style={[styles.prayerIcon, { 
                       backgroundColor: completedToday
-                        ? 'rgba(255,255,255,0.22)'
+                        ? `${theme.success}55`
                         : canComplete
                           ? theme.success
                           : isInTimeWindow
