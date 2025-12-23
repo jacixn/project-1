@@ -29,7 +29,7 @@ import EditPrayerModal from './EditPrayerModal';
 import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
-import VerseSimplificationService from '../services/verseSimplificationService';
+import productionAiService from '../services/productionAiService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
@@ -619,41 +619,58 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setStudyLoading(true);
       setStudyContent(null);
       hapticFeedback.light();
-      const displayedText = verse.text || '';
-      const simplifiedResult = await VerseSimplificationService.simplifyVerse({
-        text: displayedText,
-        reference: verse.reference,
-      });
+      setShowStudyCard(true);
 
-      if (!simplifiedResult?.success || !simplifiedResult?.simplified) {
+      const displayedText = verse.text || '';
+      const prompt = `
+Explain this Bible verse for a 12-year-old. Return ONLY JSON with shape:
+{
+  "summary": "one short paragraph",
+  "takeaways": ["item1","item2","item3","item4","item5"]
+}
+Verse: "${displayedText}"
+Reference: ${verse.reference}
+Guidelines:
+- Use simple, warm language.
+- Keep summary under 80 words.
+- Takeaways must be 5 concise, practical points.
+- No extra fields, no markdown, no code fences.
+`;
+
+      const aiResponse = await productionAiService.simpleSmartChat(prompt);
+      let parsed = null;
+      try {
+        parsed = JSON.parse(aiResponse);
+      } catch (err) {
+        parsed = null;
+      }
+
+      if (!parsed || !parsed.summary || !Array.isArray(parsed.takeaways)) {
         setStudyContent({
           reference: verse.reference,
           version: verse.version || bibleVersion || 'KJV',
-          explanation: simplifiedResult?.error || 'Study needs your AI key. Please open Settings and add your key to use this feature.',
+          explanation: 'Study is unavailable right now. Please try again in a moment.',
           takeaways: [],
           isError: true,
         });
-        setShowStudyCard(true);
         return;
       }
 
       setStudyContent({
         reference: verse.reference,
         version: verse.version || bibleVersion || 'KJV',
-        explanation: simplifiedResult.simplified,
-        takeaways: buildTakeaways(simplifiedResult.simplified),
+        explanation: parsed.summary,
+        takeaways: parsed.takeaways.slice(0, 5),
         isError: false,
       });
-      setShowStudyCard(true);
     } catch (err) {
       setStudyContent({
         reference: verse.reference,
         version: verse.version || bibleVersion || 'KJV',
-        explanation: 'Study needs your AI key. Please open Settings and add your key to use this feature.',
+        explanation: 'Study is unavailable right now. Please try again in a moment.',
         takeaways: [],
         isError: true,
       });
-      setShowStudyCard(true);
     } finally {
       setStudyLoading(false);
     }
