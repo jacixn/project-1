@@ -166,6 +166,7 @@ const BiblePrayerTab = () => {
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
   const [userName, setUserName] = useState('');
   const [versePalette, setVersePalette] = useState(pickRandomPalette());
+  const initialVerseShown = useRef(false);
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -397,6 +398,25 @@ const BiblePrayerTab = () => {
   useEffect(() => {
     setVersePalette(pickRandomPalette());
   }, [dailyVerse.reference]);
+
+  // Auto-show Verse of the Day on first app load once the verse is ready
+  useEffect(() => {
+    if (
+      !initialVerseShown.current &&
+      dailyVerse?.text &&
+      dailyVerse.text !== "Daily verse is loading..." &&
+      dailyVerse.text !== "Verse is loading..." &&
+      dailyVerse.reference
+    ) {
+      initialVerseShown.current = true;
+      // slight delay so the UI is ready before animating
+      setTimeout(() => {
+        if (!showVerseModal) {
+          openVerseModal();
+        }
+      }, 450);
+    }
+  }, [dailyVerse.text, dailyVerse.reference, showVerseModal, openVerseModal]);
 
   // Listen for Bible version changes and re-fetch the same verse in the new version
   useEffect(() => {
