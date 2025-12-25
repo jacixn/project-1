@@ -255,7 +255,6 @@ const ProfileTab = () => {
   // Journal State
   const [journalNotes, setJournalNotes] = useState([]);
   const [journalVerseTexts, setJournalVerseTexts] = useState({});
-  const [showJournal, setShowJournal] = useState(false);
   const [showAddJournalNote, setShowAddJournalNote] = useState(false);
   const [newJournalNote, setNewJournalNote] = useState({ reference: '', text: '' });
   const [isAddingEntry, setIsAddingEntry] = useState(false); // Track if we're in add mode within journal modal
@@ -270,6 +269,7 @@ const ProfileTab = () => {
   const [showTasksDone, setShowTasksDone] = useState(false);
   const [completedTodosList, setCompletedTodosList] = useState([]);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
+  const [showJournal, setShowJournal] = useState(false);
   
   // Modal animation refs for interactive dismissal
   const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
@@ -823,6 +823,13 @@ const ProfileTab = () => {
     if (!showJournal) {
       setIsAddingEntry(false);
       setNewJournalNote({ reference: '', text: '' });
+    }
+  }, [showJournal]);
+
+  // Ensure journal notes load whenever the journal modal opens
+  useEffect(() => {
+    if (showJournal) {
+      loadJournalNotes();
     }
   }, [showJournal]);
 
