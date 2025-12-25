@@ -269,6 +269,7 @@ const ProfileTab = () => {
   // Tasks Done State
   const [showTasksDone, setShowTasksDone] = useState(false);
   const [completedTodosList, setCompletedTodosList] = useState([]);
+  const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
   
   // Modal animation refs for interactive dismissal
   const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
@@ -2221,7 +2222,7 @@ const ProfileTab = () => {
                   </Text>
                 </View>
               ) : (
-                savedVersesList.map((verse, index) => (
+                (savedVersesSort === 'desc' ? [...savedVersesList].reverse() : savedVersesList).map((verse, index) => (
                   <View key={verse.id || index} style={[styles.savedVerseItem, { 
                     backgroundColor: theme.surface,
                     borderBottomColor: theme.border
@@ -2342,7 +2343,22 @@ const ProfileTab = () => {
                 }}>
                   Saved Verses
                 </Text>
-                <View style={{ width: 60 }} />
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
+                  }}
+                  style={{ 
+                    paddingHorizontal: 12, 
+                    paddingVertical: 6,
+                    borderRadius: 18,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '700' }}>
+                    {savedVersesSort === 'desc' ? 'Newest' : 'Oldest'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </BlurView>
         </View>
