@@ -192,6 +192,7 @@ const GymTab = () => {
     setRefreshing(true);
     try {
       await loadWorkoutHistory();
+      // add any other data reloads here if needed (stats are derived from history)
     } catch (err) {
       console.error('Error refreshing workout history:', err);
     } finally {
@@ -397,6 +398,13 @@ const GymTab = () => {
           style={styles.content} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+          />
+        }
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: false }
