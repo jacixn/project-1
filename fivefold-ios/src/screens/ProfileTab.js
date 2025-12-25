@@ -2770,12 +2770,38 @@ const ProfileTab = () => {
                             borderRadius: 12,
                             backgroundColor: `${theme.error}15`
                           }}
-                          onPress={async () => {
+                          onPress={() => {
                             hapticFeedback.light();
-                            const noteId = note.id;
-                            const verseId = note.verseId;
-                            await VerseDataManager.deleteNote(verseId, noteId);
-                            await loadJournalNotes();
+                            Alert.alert(
+                              'Delete Journal Entry',
+                              'Are you sure you want to delete this note?',
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                  text: 'Delete',
+                                  style: 'destructive',
+                                  onPress: async () => {
+                                    try {
+                                      const noteId = note.id;
+                                      const verseId = note.verseId;
+                                      // Optimistic update to avoid flicker/empty state
+                                      setJournalNotes(prev => prev.filter(n => n.id !== noteId));
+                                      setJournalVerseTexts(prev => {
+                                        const next = { ...prev };
+                                        delete next[noteId];
+                                        return next;
+                                      });
+                                      await VerseDataManager.deleteNote(verseId, noteId);
+                                      await loadJournalNotes();
+                                    } catch (err) {
+                                      console.error('Error deleting journal note:', err);
+                                      // Reload to restore if delete failed
+                                      await loadJournalNotes();
+                                    }
+                                  }
+                                }
+                              ]
+                            );
                           }}
                         >
                           <MaterialIcons name="delete-outline" size={20} color={theme.error} />
