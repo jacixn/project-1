@@ -385,7 +385,7 @@ const GymTab = () => {
             
             {/* Centered text content */}
             <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Gym & Fitness</Text>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Fitness</Text>
               <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
                 Track your workouts
               </Text>

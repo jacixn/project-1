@@ -78,7 +78,7 @@ const TabNavigator = () => {
           name="Gym" 
           component={GymTab}
           options={{
-            title: 'Gym',
+            title: 'Fitness',
             tabBarIcon: ({ color }) => ({
               sfSymbol: "figure.strengthtraining.traditional",
               fill: color,
@@ -131,7 +131,7 @@ const TabNavigator = () => {
         name="Gym" 
         component={GymTab}
         options={{
-          tabBarLabel: 'Gym',
+          tabBarLabel: 'Fitness',
         }}
       />
       <Tab.Screen 
