@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Image,
   Modal,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,6 +47,7 @@ const GymTab = () => {
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showFullHistoryModal, setShowFullHistoryModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -170,6 +173,12 @@ const GymTab = () => {
     }
   }, [templateSelectionVisible]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadWorkoutHistory();
+    }, [])
+  );
+
   const loadWorkoutHistory = async () => {
     try {
       const history = await WorkoutService.getWorkoutHistory();
@@ -178,6 +187,17 @@ const GymTab = () => {
       console.error('Error loading workout history:', error);
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadWorkoutHistory();
+    } catch (err) {
+      console.error('Error refreshing workout history:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   // Calculate workout stats from history
   const calculateWorkoutStats = () => {
@@ -662,6 +682,13 @@ const GymTab = () => {
             style={styles.fullHistoryContent}
             contentContainerStyle={styles.fullHistoryContentContainer}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.primary}
+              />
+            }
           >
             {workoutHistory.map((workout, index) => (
               <TouchableOpacity

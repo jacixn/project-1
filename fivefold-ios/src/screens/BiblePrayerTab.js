@@ -13,6 +13,7 @@ import {
   Modal,
   Dimensions,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 // SafeAreaView removed - using full screen experience
@@ -168,6 +169,7 @@ const BiblePrayerTab = () => {
   const [versePalette, setVersePalette] = useState(pickRandomPalette());
   const initialVerseShown = useRef(false);
   const [suppressVerseToday, setSuppressVerseToday] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -343,6 +345,7 @@ const BiblePrayerTab = () => {
     useCallback(() => {
       console.log('🔄 BiblePrayerTab focused - reloading user name');
       loadUserName();
+      initializePrayerData();
     }, [])
   );
 
@@ -399,6 +402,20 @@ const BiblePrayerTab = () => {
   useEffect(() => {
     setVersePalette(pickRandomPalette());
   }, [dailyVerse.reference]);
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await initializePrayerData();
+      const verse = await getDailyVerse();
+      setDailyVerse(verse);
+    } catch (error) {
+      console.error('Error refreshing BiblePrayerTab:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [initializePrayerData]);
 
   // Reset daily suppression when the verse changes (new day)
   useEffect(() => {
@@ -1066,6 +1083,14 @@ const BiblePrayerTab = () => {
         style={styles.twitterContent} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            title="Refreshing..."
+          />
+        }
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
