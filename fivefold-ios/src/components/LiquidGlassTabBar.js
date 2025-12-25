@@ -115,7 +115,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
       case 'Todos':
         return 'Tasks';
       case 'Gym':
-        return 'Gym';
+        return 'Fitness';
       case 'Profile':
         return 'Profile';
       default:
