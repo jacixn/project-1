@@ -63,6 +63,10 @@ fi
 
 echo "📱 Using iPhone 17 Pro UDID: $UDID"
 
+# Make sure no other simulators stay running (prevents Expo from targeting the wrong sim)
+echo "🧯 Shutting down any other booted simulators..."
+xcrun simctl shutdown all 2>/dev/null || true
+
 echo "📱 Booting simulator..."
 open -a Simulator || true
 xcrun simctl boot "$UDID" 2>/dev/null || true
