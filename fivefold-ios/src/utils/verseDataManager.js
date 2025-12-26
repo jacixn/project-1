@@ -5,6 +5,8 @@ class VerseDataManager {
   static READING_STREAKS_KEY = 'reading_streaks';
   static ACHIEVEMENTS_KEY = 'achievements';
   static DAILY_VERSE_KEY = 'daily_verse';
+  static JOURNAL_NOTES_KEY = 'journal_notes';
+  static JOURNAL_MIGRATION_FLAG = 'journal_notes_migrated';
 
   // Get verse data (notes, highlights, bookmarks)
   static async getVerseData(verseId) {
@@ -355,6 +357,18 @@ class VerseDataManager {
   // Get all notes
   static async getAllNotes() {
     try {
+      // Prefer the dedicated journal store
+      let journalNotes = await this.getJournalNotes();
+      if (!journalNotes || journalNotes.length === 0) {
+        // Try migrating from legacy verse_data if we haven't yet
+        await this.migrateJournalNotes();
+        journalNotes = await this.getJournalNotes();
+      }
+      if (journalNotes && journalNotes.length > 0) {
+        return journalNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+
+      // Fallback: legacy path from verse_data
       const allData = await this.getAllVerseData();
       const allNotes = [];
       
@@ -376,6 +390,55 @@ class VerseDataManager {
     } catch (error) {
       console.error('Error getting all notes:', error);
       return [];
+    }
+  }
+
+  static async getJournalNotes() {
+    try {
+      const data = await AsyncStorage.getItem(this.JOURNAL_NOTES_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error getting journal notes:', error);
+      return [];
+    }
+  }
+
+  static async saveJournalNotes(notes) {
+    try {
+      await AsyncStorage.setItem(this.JOURNAL_NOTES_KEY, JSON.stringify(notes || []));
+    } catch (error) {
+      console.error('Error saving journal notes:', error);
+    }
+  }
+
+  static async migrateJournalNotes() {
+    try {
+      const migrated = await AsyncStorage.getItem(this.JOURNAL_MIGRATION_FLAG);
+      if (migrated === 'true') return;
+
+      const allData = await this.getAllVerseData();
+      const collected = [];
+
+      Object.values(allData).forEach(verseData => {
+        if (!verseData || typeof verseData !== 'object') return;
+        if (verseData.notes && Array.isArray(verseData.notes) && verseData.notes.length > 0) {
+          verseData.notes.forEach(note => {
+            if (!note) return;
+            collected.push({
+              ...note,
+              verseId: verseData.id
+            });
+          });
+        }
+      });
+
+      if (collected.length > 0) {
+        await this.saveJournalNotes(collected);
+        console.log(`🗒️ Migrated ${collected.length} journal notes to dedicated store`);
+      }
+      await AsyncStorage.setItem(this.JOURNAL_MIGRATION_FLAG, 'true');
+    } catch (error) {
+      console.error('Error migrating journal notes:', error);
     }
   }
 
