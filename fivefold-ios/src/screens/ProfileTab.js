@@ -2678,14 +2678,18 @@ const ProfileTab = () => {
           flex: 1,
           backgroundColor: theme.background
         }}>
+            <LinearGradient
+              colors={isDark ? ['#1a1a1a', '#000000'] : ['#fdfbfb', '#ebedee']}
+              style={StyleSheet.absoluteFill}
+            />
             {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 110 : 90 }}>
             
             {/* Journal List View */}
             <ScrollView 
               style={styles.modalScrollView} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
               scrollEventThrottle={16}
             >
               {journalLoading ? (
@@ -2709,159 +2713,182 @@ const ProfileTab = () => {
                 journalNotes.map((note, index) => (
                   <View
                     key={note.id || index}
-                    style={[{
-                      backgroundColor: theme.card,
-                      borderRadius: 20,
+                    style={{
+                      backgroundColor: isDark ? 'rgba(30, 30, 30, 0.7)' : 'rgba(255, 255, 255, 0.85)',
+                      borderRadius: 24,
                       marginBottom: 20,
                       overflow: 'hidden',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 12,
-                      elevation: 5,
-                    }]}
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                      shadowColor: theme.primary,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 16,
+                      elevation: 8,
+                    }}
                   >
-                    {/* Header with date */}
-                    <View style={{
-                      backgroundColor: theme.primary,
-                      paddingHorizontal: 20,
-                      paddingVertical: 12,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
+                    <LinearGradient
+                      colors={[theme.primary, `${theme.primary}CC`]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        paddingHorizontal: 20,
+                        paddingVertical: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
                       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <MaterialIcons name="bookmark" size={18} color="#fff" />
-                        <Text style={{
-                          fontSize: 15,
-                          fontWeight: '700',
-                          color: '#fff',
-                          marginLeft: 8
+                        <View style={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                          borderRadius: 8,
+                          padding: 6,
+                          marginRight: 10
                         }}>
-                          {note.verseReference || 'Unknown Reference'}
+                          <MaterialIcons name="auto-stories" size={16} color="#fff" />
+                        </View>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '800',
+                          color: '#fff',
+                          letterSpacing: 0.3
+                        }}>
+                          {note.verseReference || 'Personal Reflection'}
                         </Text>
                       </View>
-                      <Text style={{
-                        fontSize: 12,
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        fontWeight: '500'
+                      <View style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 20
                       }}>
-                        {new Date(note.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </Text>
-                    </View>
+                        <Text style={{
+                          fontSize: 11,
+                          color: 'rgba(255, 255, 255, 0.95)',
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5
+                        }}>
+                          {new Date(note.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) + ' • ' + new Date(note.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    </LinearGradient>
 
-                    {/* Content */}
                     <View style={{ padding: 20 }}>
-                      {/* Verse Text (if available) */}
                       {journalVerseTexts[note.id] && (
                         <View style={{
-                          backgroundColor: `${theme.textSecondary}08`,
-                          borderRadius: 12,
+                          backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                          borderRadius: 16,
                           padding: 16,
                           marginBottom: 16,
-                          borderLeftWidth: 3,
-                          borderLeftColor: theme.textSecondary
+                          borderLeftWidth: 4,
+                          borderLeftColor: `${theme.primary}60`,
                         }}>
                           <Text style={{
-                            fontSize: 14,
-                            lineHeight: 22,
+                            fontSize: 15,
+                            lineHeight: 24,
                             color: theme.text,
-                            opacity: 0.9
+                            opacity: 0.85,
+                            fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif'
                           }}>
-                            {journalVerseTexts[note.id]}
+                            "{journalVerseTexts[note.id]}"
                           </Text>
                         </View>
                       )}
                       
-                      {/* User's Note */}
                       <View style={{
                         backgroundColor: `${theme.primary}08`,
-                        borderRadius: 12,
-                        padding: 16,
-                        borderLeftWidth: 4,
-                        borderLeftColor: theme.primary
+                        borderRadius: 18,
+                        padding: 20,
+                        borderWidth: 1,
+                        borderColor: `${theme.primary}15`
                       }}>
-                        <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-                          <MaterialIcons name="edit" size={16} color={theme.primary} style={{ opacity: 0.5 }} />
+                        <View style={{ 
+                          flexDirection: 'row', 
+                          alignItems: 'center',
+                          marginBottom: 10,
+                          opacity: 0.8
+                        }}>
+                          <MaterialIcons name="bubble-chart" size={18} color={theme.primary} />
                           <Text style={{
-                            fontSize: 13,
-                            fontWeight: '600',
+                            fontSize: 14,
+                            fontWeight: '700',
                             color: theme.primary,
-                            marginLeft: 6,
-                            opacity: 0.7
+                            marginLeft: 8,
+                            textTransform: 'uppercase',
+                            letterSpacing: 1
                           }}>
-                            My Note
+                            Reflection
                           </Text>
                         </View>
                         <Text style={{
-                          fontSize: 15,
-                          lineHeight: 23,
+                          fontSize: 17,
+                          lineHeight: 26,
                           color: theme.text,
-                          fontStyle: 'italic'
+                          fontWeight: '500',
+                          fontStyle: 'italic',
+                          opacity: 0.95
                         }}>
                           {note.text}
                         </Text>
                       </View>
 
-                      {/* Actions */}
-                      <View style={{
-                        flexDirection: 'row',
-                        marginTop: 16,
-                        gap: 10
-                      }}>
-                        <TouchableOpacity
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 12,
-                            borderRadius: 12,
-                            backgroundColor: `${theme.error}15`
-                          }}
-                          onPress={() => {
-                            hapticFeedback.light();
-                            Alert.alert(
-                              'Delete Journal Entry',
-                              'Are you sure you want to delete this note?',
-                              [
-                                { text: 'Cancel', style: 'cancel' },
-                                {
-                                  text: 'Delete',
-                                  style: 'destructive',
-                                  onPress: async () => {
-                                    const noteId = note.id;
-                                    
-                                    // Read, filter, save
-                                    const raw = await AsyncStorage.getItem('journalNotes');
-                                    const allNotes = raw ? JSON.parse(raw) : [];
-                                    const remaining = allNotes.filter(n => n.id !== noteId);
-                                    await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
-                                    
-                                    // Update UI
-                                    setJournalNotes(remaining);
-                                    hapticFeedback.light();
-                                  }
+                      <TouchableOpacity
+                        style={{
+                          marginTop: 16,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          opacity: 0.6
+                        }}
+                        onPress={() => {
+                          hapticFeedback.light();
+                          Alert.alert(
+                            'Delete Journal Entry',
+                            'Are you sure you want to delete this note?',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Delete',
+                                style: 'destructive',
+                                onPress: async () => {
+                                  const noteId = note.id;
+                                  const raw = await AsyncStorage.getItem('journalNotes');
+                                  const allNotes = raw ? JSON.parse(raw) : [];
+                                  const remaining = allNotes.filter(n => n.id !== noteId);
+                                  await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
+                                  setJournalNotes(remaining);
+                                  hapticFeedback.light();
                                 }
-                              ]
-                            );
-                          }}
-                        >
-                          <MaterialIcons name="delete-outline" size={20} color={theme.error} />
+                              }
+                            ]
+                          );
+                        }}
+                      >
+                        <View style={{
+                          backgroundColor: `${theme.error}10`,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 10,
+                          flexDirection: 'row',
+                          alignItems: 'center'
+                        }}>
+                          <MaterialIcons name="delete-outline" size={16} color={theme.error} />
                           <Text style={{
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: '600',
                             color: theme.error,
-                            marginLeft: 6
+                            marginLeft: 4
                           }}>
                             Delete
                           </Text>
-                        </TouchableOpacity>
-                      </View>
+                        </View>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 ))
@@ -2937,22 +2964,30 @@ const ProfileTab = () => {
                 {/* Bottom Sheet */}
                 <Animated.View style={{
                   backgroundColor: theme.background,
-                  borderTopLeftRadius: 24,
-                  borderTopRightRadius: 24,
-                  paddingBottom: 20,
+                  borderTopLeftRadius: 32,
+                  borderTopRightRadius: 32,
+                  paddingBottom: 40,
                   shadowColor: '#000',
-                  shadowOffset: { width: 0, height: -4 },
+                  shadowOffset: { width: 0, height: -10 },
                   shadowOpacity: 0.3,
-                  shadowRadius: 16,
-                  elevation: 20,
+                  shadowRadius: 20,
+                  elevation: 25,
                   transform: [{ translateY: addJournalSlideAnim }]
                 }}>
                   {/* Drag Handle */}
                   <View 
-                    style={[styles.pullIndicatorContainer, { paddingVertical: 12 }]}
+                    style={{ 
+                      alignItems: 'center',
+                      paddingVertical: 14,
+                    }}
                     {...addJournalPanResponder.panHandlers}
                   >
-                    <View style={[styles.pullIndicator, { backgroundColor: theme.textTertiary, width: 48, height: 5 }]} />
+                    <View style={{ 
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)', 
+                      width: 40, 
+                      height: 5,
+                      borderRadius: 3
+                    }} />
                   </View>
 
                   {/* Header */}
@@ -2960,54 +2995,74 @@ const ProfileTab = () => {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    paddingHorizontal: 20,
-                    paddingBottom: 16
+                    paddingHorizontal: 24,
+                    paddingBottom: 20
                   }}>
-                    <Text style={{
-                      fontSize: 24,
-                      fontWeight: '700',
-                      color: theme.text
-                    }}>
-                      New Journal Entry
-                    </Text>
+                    <View>
+                      <Text style={{
+                        fontSize: 26,
+                        fontWeight: '900',
+                        color: theme.text,
+                        letterSpacing: -0.5
+                      }}>
+                        New Reflection
+                      </Text>
+                      <Text style={{
+                        fontSize: 14,
+                        color: theme.textSecondary,
+                        marginTop: 2,
+                        fontWeight: '500'
+                      }}>
+                        Capture your spiritual journey
+                      </Text>
+                    </View>
                     <TouchableOpacity
                       onPress={() => {
+                        hapticFeedback.light();
                         setIsAddingEntry(false);
                         setNewJournalNote({ reference: '', text: '' });
                       }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                        borderRadius: 20,
+                        padding: 8
+                      }}
                     >
-                      <MaterialIcons name="close" size={28} color={theme.textSecondary} />
+                      <MaterialIcons name="close" size={24} color={theme.textSecondary} />
                     </TouchableOpacity>
                   </View>
 
                   <ScrollView 
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                    contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}
                     keyboardShouldPersistTaps="handled"
-                    style={{ maxHeight: 500 }}
                   >
                       {/* Title Input */}
-                      <View style={{ marginBottom: 20 }}>
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: theme.textSecondary,
-                          marginBottom: 8
-                        }}>
-                          Title (Optional)
-                        </Text>
+                      <View style={{ marginBottom: 24 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                          <MaterialIcons name="label-outline" size={18} color={theme.primary} />
+                          <Text style={{
+                            fontSize: 15,
+                            fontWeight: '700',
+                            color: theme.text,
+                            marginLeft: 8,
+                            letterSpacing: 0.3
+                          }}>
+                            Topic or Reference
+                          </Text>
+                        </View>
                         <TextInput
                           style={{
-                            backgroundColor: theme.surface,
-                            borderRadius: 12,
-                            padding: 16,
-                            fontSize: 16,
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                            borderRadius: 16,
+                            padding: 18,
+                            fontSize: 17,
                             color: theme.text,
+                            fontWeight: '600',
                             borderWidth: 1,
-                            borderColor: theme.border
+                            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
                           }}
-                          placeholder="e.g., Exodus 1:1 or My Thoughts"
+                          placeholder="e.g. My Morning Prayer"
                           placeholderTextColor={theme.textTertiary}
                           value={newJournalNote.reference}
                           onChangeText={(text) => setNewJournalNote({ ...newJournalNote, reference: text })}
@@ -3015,57 +3070,61 @@ const ProfileTab = () => {
                       </View>
 
                       {/* Note Input */}
-                      <View style={{ marginBottom: 24 }}>
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: theme.textSecondary,
-                          marginBottom: 8
-                        }}>
-                          Your Note
-                        </Text>
+                      <View style={{ marginBottom: 30 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                          <MaterialIcons name="create" size={18} color={theme.primary} />
+                          <Text style={{
+                            fontSize: 15,
+                            fontWeight: '700',
+                            color: theme.text,
+                            marginLeft: 8,
+                            letterSpacing: 0.3
+                          }}>
+                            Your Reflection
+                          </Text>
+                        </View>
                         <TextInput
                           style={{
-                            backgroundColor: theme.surface,
-                            borderRadius: 12,
-                            padding: 16,
-                            fontSize: 16,
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                            borderRadius: 18,
+                            padding: 20,
+                            fontSize: 17,
                             color: theme.text,
+                            fontWeight: '500',
                             borderWidth: 1,
-                            borderColor: theme.border,
-                            minHeight: 200,
-                            textAlignVertical: 'top'
+                            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                            minHeight: 220,
+                            textAlignVertical: 'top',
+                            lineHeight: 26
                           }}
-                          placeholder="Write your thoughts, reflections, or prayers..."
+                          placeholder="What is God speaking to you today?"
                           placeholderTextColor={theme.textTertiary}
                           value={newJournalNote.text}
                           onChangeText={(text) => setNewJournalNote({ ...newJournalNote, text: text })}
                           multiline
-                          numberOfLines={8}
+                          numberOfLines={10}
                         />
                       </View>
 
                       {/* Save Button */}
                       <TouchableOpacity
+                        activeOpacity={0.8}
                         style={{
-                          backgroundColor: theme.primary,
-                          borderRadius: 12,
-                          padding: 18,
-                          alignItems: 'center',
+                          borderRadius: 20,
+                          overflow: 'hidden',
                           shadowColor: theme.primary,
-                          shadowOffset: { width: 0, height: 4 },
+                          shadowOffset: { width: 0, height: 10 },
                           shadowOpacity: 0.3,
-                          shadowRadius: 8,
-                          elevation: 6
+                          shadowRadius: 15,
+                          elevation: 10
                         }}
                         onPress={async () => {
                           if (!newJournalNote.text.trim()) {
-                            Alert.alert('Note Required', 'Please write something in your note before saving.');
+                            Alert.alert('Empty Note', 'Please write something before saving.');
                             return;
                           }
 
-                          hapticFeedback.medium();
-
+                          hapticFeedback.success();
                           const newEntry = {
                             id: Date.now().toString(),
                             verseReference: newJournalNote.reference.trim() || 'Personal Reflection',
@@ -3089,23 +3148,35 @@ const ProfileTab = () => {
                           }
                         }}
                       >
-                        <Text style={{
-                          fontSize: 16,
-                          fontWeight: '700',
-                          color: '#fff'
-                        }}>
-                          Save Entry
-                        </Text>
+                        <LinearGradient
+                          colors={[theme.primary, `${theme.primary}DD`]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{
+                            paddingVertical: 20,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexDirection: 'row'
+                          }}
+                        >
+                          <MaterialIcons name="auto-awesome" size={20} color="#fff" style={{ marginRight: 10 }} />
+                          <Text style={{
+                            fontSize: 18,
+                            fontWeight: '800',
+                            color: '#fff',
+                            letterSpacing: 1
+                          }}>
+                            SAVE REFLECTION
+                          </Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                   </ScrollView>
                 </Animated.View>
               </KeyboardAvoidingView>
-            )}
-            </View>
-
+            )}</View>
             {/* Transparent Blurred Header */}
             <BlurView 
-              intensity={20} 
+              intensity={30} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -3114,46 +3185,63 @@ const ProfileTab = () => {
                 right: 0, 
                 zIndex: 1000,
                 backgroundColor: 'transparent',
-                borderBottomLeftRadius: 20,
-                borderBottomRightRadius: 20,
+                borderBottomLeftRadius: 30,
+                borderBottomRightRadius: 30,
                 overflow: 'hidden',
               }}
             >
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+              <View style={{ height: Platform.OS === 'ios' ? 60 : 35, backgroundColor: 'transparent' }} />
               <View style={{ 
                 backgroundColor: 'transparent', 
                 borderBottomWidth: 0, 
-                paddingTop: 8, 
-                paddingBottom: 12,
+                paddingTop: 10, 
+                paddingBottom: 16,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingHorizontal: 20
+                paddingHorizontal: 24
               }}>
                 <TouchableOpacity
                   onPress={() => {
+                    hapticFeedback.light();
                     setShowJournal(false);
                     setIsAddingEntry(false);
                   }}
-                  style={{ 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    paddingHorizontal: 16, 
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    paddingHorizontal: 16,
                     paddingVertical: 8,
-                    borderRadius: 20,
+                    borderRadius: 20
                   }}
                 >
-                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
+                  <Text style={{ 
+                    fontSize: 15, 
+                    fontWeight: '700', 
+                    color: theme.primary 
+                  }}>
+                    Close
+                  </Text>
                 </TouchableOpacity>
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 18, 
-                  fontWeight: '600',
-                  flex: 1,
-                  textAlign: 'center'
-                }}>
-                  Journal
-                </Text>
-                <View style={{ width: 60 }} />
+                
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Text style={{ 
+                    fontSize: 22, 
+                    fontWeight: '900', 
+                    color: theme.text,
+                    letterSpacing: -0.5
+                  }}>
+                    Journal
+                  </Text>
+                  <View style={{ 
+                    width: 20, 
+                    height: 3, 
+                    backgroundColor: theme.primary, 
+                    borderRadius: 2,
+                    marginTop: 4
+                  }} />
+                </View>
+
+                <View style={{ width: 70 }} />
               </View>
             </BlurView>
         </View>
