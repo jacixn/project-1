@@ -270,7 +270,7 @@ const ProfileTab = () => {
   const [completedTodosList, setCompletedTodosList] = useState([]);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
   const [showJournal, setShowJournal] = useState(false);
-  const [journalLoading, setJournalLoading] = useState(false);
+  const [journalLoading, setJournalLoading] = useState(true); // Start true to avoid empty flash
   
   // Modal animation refs for interactive dismissal
   const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
@@ -394,6 +394,21 @@ const ProfileTab = () => {
   const loadJournalNotes = async () => {
     try {
       setJournalLoading(true);
+      
+      // Immediately hydrate from cache to avoid empty flash
+      try {
+        const cached = await AsyncStorage.getItem('journalNotes_cache');
+        if (cached) {
+          const cachedNotes = JSON.parse(cached);
+          if (cachedNotes && cachedNotes.length > 0 && journalNotes.length === 0) {
+            setJournalNotes(cachedNotes);
+            console.log(`📖 Quick-hydrated ${cachedNotes.length} journal notes from cache`);
+          }
+        }
+      } catch (cacheErr) {
+        console.log('Cache hydration skipped:', cacheErr);
+      }
+      
       const notes = await VerseDataManager.getAllNotes();
       setJournalNotes(notes);
       console.log(`📖 Loaded ${notes.length} journal notes`);
