@@ -397,6 +397,7 @@ const ProfileTab = () => {
       const notes = await VerseDataManager.getAllNotes();
       setJournalNotes(notes);
       console.log(`📖 Loaded ${notes.length} journal notes`);
+      console.log('🔍 Raw journal notes preview:', notes.slice(0, 3));
 
       // Persist a lightweight cache in case loading fails later (only if we have data)
       if (notes && notes.length > 0) {
@@ -439,6 +440,7 @@ const ProfileTab = () => {
           if (cachedNotes && cachedNotes.length > 0) {
             setJournalNotes(cachedNotes);
             console.log(`📖 Restored ${cachedNotes.length} journal notes from cache`);
+            console.log('🔍 Cached journal notes preview:', cachedNotes.slice(0, 3));
           }
         }
       } catch (cacheErr) {
