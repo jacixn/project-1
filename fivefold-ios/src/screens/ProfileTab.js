@@ -395,33 +395,31 @@ const ProfileTab = () => {
     try {
       setJournalLoading(true);
       
-      // Immediately hydrate from cache to avoid empty flash
-      try {
-        const cached = await AsyncStorage.getItem('journalNotes_cache');
-        if (cached) {
-          const cachedNotes = JSON.parse(cached);
-          if (cachedNotes && cachedNotes.length > 0 && journalNotes.length === 0) {
-            setJournalNotes(cachedNotes);
-            console.log(`📖 Quick-hydrated ${cachedNotes.length} journal notes from cache`);
-          }
-        }
-      } catch (cacheErr) {
-        console.log('Cache hydration skipped:', cacheErr);
-      }
+      // Read from the CORRECT storage key: 'journalNotes' (where + button saves)
+      const existingNotes = await AsyncStorage.getItem('journalNotes');
+      const notes = existingNotes ? JSON.parse(existingNotes) : [];
       
-      const notes = await VerseDataManager.getAllNotes();
-      setJournalNotes(notes);
-      console.log(`📖 Loaded ${notes.length} journal notes`);
-      console.log('🔍 Raw journal notes preview:', notes.slice(0, 3));
-
-      // Persist a lightweight cache in case loading fails later (only if we have data)
-      if (notes && notes.length > 0) {
-        await AsyncStorage.setItem('journalNotes_cache', JSON.stringify(notes || []));
-      }
+      // Also merge any notes from verse_data (long-press notes)
+      const verseNotes = await VerseDataManager.getAllNotes();
+      
+      // Combine both sources, dedupe by id
+      const allNotes = [...notes];
+      const existingIds = new Set(notes.map(n => n.id));
+      verseNotes.forEach(vn => {
+        if (!existingIds.has(vn.id)) {
+          allNotes.push(vn);
+        }
+      });
+      
+      // Sort by creation date (newest first)
+      allNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setJournalNotes(allNotes);
+      console.log(`📖 Loaded ${allNotes.length} journal notes (${notes.length} from journalNotes, ${verseNotes.length} from verse_data)`);
       
       // Fetch verse texts only for notes with valid Bible references
       const verseTexts = {};
-      for (const note of notes) {
+      for (const note of allNotes) {
         if (isValidBibleReference(note.verseReference)) {
           try {
             console.log(`📖 Fetching verse: ${note.verseReference}`);
@@ -447,19 +445,18 @@ const ProfileTab = () => {
       setJournalVerseTexts(verseTexts);
     } catch (error) {
       console.error('Error loading journal notes:', error);
-      // Attempt a fallback from cache if available
+      // Attempt a fallback from journalNotes directly
       try {
-        const cached = await AsyncStorage.getItem('journalNotes_cache');
-        if (cached) {
-          const cachedNotes = JSON.parse(cached);
-          if (cachedNotes && cachedNotes.length > 0) {
-            setJournalNotes(cachedNotes);
-            console.log(`📖 Restored ${cachedNotes.length} journal notes from cache`);
-            console.log('🔍 Cached journal notes preview:', cachedNotes.slice(0, 3));
+        const existingNotes = await AsyncStorage.getItem('journalNotes');
+        if (existingNotes) {
+          const notes = JSON.parse(existingNotes);
+          if (notes && notes.length > 0) {
+            setJournalNotes(notes);
+            console.log(`📖 Fallback loaded ${notes.length} journal notes`);
           }
         }
-      } catch (cacheErr) {
-        console.error('Error loading cached journal notes:', cacheErr);
+      } catch (fallbackErr) {
+        console.error('Error in fallback load:', fallbackErr);
       }
     }
     setJournalLoading(false);
