@@ -2845,33 +2845,28 @@ const ProfileTab = () => {
                                         return next;
                                       });
                                       
-                                      // Delete from BOTH storage locations to be safe
-                                      console.log(`🗑️ Deleting note: id=${noteId}, verseId=${verseId}`);
+                                      // Delete from journalNotes storage
+                                      const existingNotes = await AsyncStorage.getItem('journalNotes');
+                                      const notes = existingNotes ? JSON.parse(existingNotes) : [];
+                                      const beforeCount = notes.length;
                                       
-                                      // Always try to delete from journalNotes (+ button entries)
-                                      try {
-                                        const existingNotes = await AsyncStorage.getItem('journalNotes');
-                                        if (existingNotes) {
-                                          const notes = JSON.parse(existingNotes);
-                                          const beforeCount = notes.length;
-                                          const filtered = notes.filter(n => String(n.id) !== String(noteId));
-                                          if (filtered.length < beforeCount) {
-                                            await AsyncStorage.setItem('journalNotes', JSON.stringify(filtered));
-                                            console.log(`🗑️ Deleted from journalNotes: ${beforeCount} -> ${filtered.length}`);
-                                          }
-                                        }
-                                      } catch (e) {
-                                        console.log('journalNotes delete error:', e);
-                                      }
+                                      // Filter out the note to delete
+                                      const filtered = notes.filter(n => {
+                                        const match = String(n.id) === String(noteId);
+                                        return !match;
+                                      });
                                       
-                                      // Also try to delete from verse_data (long-press notes)
-                                      try {
-                                        if (verseId) {
-                                          await VerseDataManager.deleteNote(verseId, noteId);
-                                        }
-                                      } catch (e) {
-                                        console.log('verse_data delete error:', e);
-                                      }
+                                      // Always save the filtered result
+                                      await AsyncStorage.setItem('journalNotes', JSON.stringify(filtered));
+                                      
+                                      // Show debug info
+                                      Alert.alert(
+                                        'Delete Debug',
+                                        `Before: ${beforeCount}\nAfter: ${filtered.length}\nDeleted ID: ${noteId}`,
+                                        [{ text: 'OK' }]
+                                      );
+                                      
+                                      // Reload journal
                                       await loadJournalNotes();
                                     } catch (err) {
                                       console.error('Error deleting journal note:', err);
