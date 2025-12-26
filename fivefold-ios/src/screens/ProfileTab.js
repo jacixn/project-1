@@ -1712,7 +1712,7 @@ const ProfileTab = () => {
   // Settings Button - Single button that opens modal
   const SettingsButton = () => (
     <AnimatedSettingsCard 
-      style={styles.settingsCard}
+      style={[styles.aboutCard, { marginTop: 12 }]}
       onPress={() => {
         hapticFeedback.buttonPress();
         setShowSettingsModal(true);
@@ -1721,7 +1721,7 @@ const ProfileTab = () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
           <MaterialIcons name="settings" size={24} color={theme.primary} />
-          <Text style={[styles.settingsButtonText, { color: theme.text }]}>
+          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
             Settings
           </Text>
         </View>
@@ -4544,7 +4544,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 20,
     marginTop: 12,
-    marginBottom: 20,
+    marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
