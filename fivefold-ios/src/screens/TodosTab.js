@@ -304,78 +304,6 @@ const TodosTab = () => {
     await saveData('todos', updatedTodos);
   }, [todos]);
 
-  const checkAndSendAchievements = async (newCompletedTasks, updatedTodos) => {
-    try {
-      const settings = await getStoredData('notificationSettings') || {};
-      
-      console.log('🏆 Checking achievements...');
-      console.log('🏆 Settings:', settings);
-      console.log('🏆 New completed tasks total:', newCompletedTasks);
-
-      // Check for "Daily Warrior" achievements (complete N tasks in a single day)
-      const today = new Date().toDateString();
-      const todayCompletedTodos = updatedTodos.filter(todo => 
-        todo.completed && todo.completedAt && new Date(todo.completedAt).toDateString() === today
-      ).length;
-      
-      // Achievement tracking: tasks completed today
-
-      // Check specific daily achievements
-      const dailyAchievements = [
-        { tasks: 5, title: "Daily Warrior", points: 250000 },
-        { tasks: 10, title: "Daily Champion", points: 500000 },
-        { tasks: 15, title: "Daily Legend", points: 1000000 },
-        { tasks: 25, title: "Daily Master", points: 2500000 },
-      ];
-
-      for (const achievement of dailyAchievements) {
-        if (todayCompletedTodos === achievement.tasks) {
-          console.log(`🏆 Achievement triggered: ${achievement.title}!`);
-          
-          // Always send achievement notification and alert (regardless of settings for testing)
-          await notificationService.sendAchievementNotification(
-            achievement.title,
-            achievement.points
-          );
-          
-          // Also show immediate alert for achievement
-          setTimeout(() => {
-            Alert.alert(
-              '🏆 Achievement Unlocked!',
-              `${achievement.title}\n+${achievement.points.toLocaleString()} bonus points!`,
-              [{ text: 'Awesome!', style: 'default' }]
-            );
-          }, 500);
-          
-          console.log(`✅ Achievement notification sent: ${achievement.title}!`);
-          break; // Only send one achievement per completion
-        }
-      }
-
-      // Check total tasks milestones (less frequent)
-      const totalMilestones = [
-        { tasks: 25, title: "Task Master", points: 500000 },
-        { tasks: 50, title: "Task Expert", points: 1000000 },
-        { tasks: 100, title: "Task Champion", points: 2500000 },
-        { tasks: 250, title: "Task Legend", points: 5000000 },
-        { tasks: 500, title: "Task Master Supreme", points: 10000000 },
-      ];
-
-      for (const milestone of totalMilestones) {
-        if (newCompletedTasks === milestone.tasks) {
-          await notificationService.sendAchievementNotification(
-            milestone.title,
-            milestone.points
-          );
-          console.log(`🏆 Milestone achieved: ${milestone.title}!`);
-          break;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check achievements:', error);
-    }
-  };
-
   const handleTodoComplete = useCallback(async (todoId) => {
     // Find the task before completing it to show in celebration
     const taskToComplete = todos.find(t => t.id === todoId);
@@ -394,7 +322,7 @@ const TodosTab = () => {
       );
       
       const completedTodo = updatedTodos.find(todo => todo.id === todoId);
-      const pointsEarned = 50000; // 50k points per task
+      const pointsEarned = 10000; // 10k points per task (more gradual)
       const newCompletedTasks = userStats.completedTasks + 1;
       
       const updatedStats = {
@@ -411,14 +339,18 @@ const TodosTab = () => {
       await saveData('todos', updatedTodos);
       await saveData('userStats', updatedStats);
 
-      // Global Achievement Check
-      await AchievementService.checkAchievements(updatedStats);
-      
-      await checkAndSendAchievements(newCompletedTasks, updatedTodos);
+      // Global Achievement Check - Handles awarding extra points and showing the alert
+      const statsAfterAchievement = await AchievementService.checkAchievements(updatedStats);
+      if (statsAfterAchievement) {
+        setUserStats(statsAfterAchievement);
+      }
       
       // Notify other components that a task was completed
       DeviceEventEmitter.emit('taskCompleted', {
         taskId: todoId,
+        points: pointsEarned,
+        newCompletedTasks
+      });
         completedCount: newCompletedTasks
       });
     }, 100);

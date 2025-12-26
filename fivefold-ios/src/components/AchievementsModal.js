@@ -84,14 +84,19 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     });
 
     const tierReward = (i, total) => {
-      // MASSIVE rewards as requested: hundreds of thousands to millions
+      // Gradual rewards: starting from 10k and scaling to 10M
       const percent = i / total;
-      if (percent >= 0.95) return 10000000; // 10 Million for the very hardest
+      if (percent >= 0.95) return 10000000; // 10 Million for the very hardest (95th percentile)
       if (percent >= 0.85) return 5000000;  // 5 Million
       if (percent >= 0.7) return 2500000;   // 2.5 Million
-      if (percent >= 0.5) return 1500000;   // 1.5 Million
-      if (percent >= 0.25) return 750000;   // 750k
-      return 500000; // 500k for basic milestones
+      if (percent >= 0.5) return 1000000;   // 1 Million
+      if (percent >= 0.3) return 500000;    // 500k
+      if (percent >= 0.2) return 250000;    // 250k
+      if (percent >= 0.1) return 100000;    // 100k
+      if (i >= 5) return 50000;             // 50k
+      if (i >= 2) return 25000;             // 25k
+      if (i === 1) return 15000;            // 15k
+      return 10000;                         // 10k for the very first one
     };
 
     const taskMilestones = [
