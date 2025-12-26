@@ -5,11 +5,50 @@ import { getStoredData, saveData } from '../utils/localStorage';
 class AchievementService {
   static ACHIEVEMENTS_KEY = 'fivefold_achievements_unlocked';
 
+  static getLevelFromPoints(points) {
+    // Inverse of 1000 * (2^(lvl-1) - 1)
+    // lvl = log2(points/1000 + 1) + 1
+    if (points < 1000) return 1;
+    return Math.floor(Math.log2(points / 1000 + 1)) + 1;
+  }
+
   static async checkAchievements(newStats) {
     try {
       const unlocked = await this.getUnlockedAchievements();
       const newlyUnlocked = [];
       
+      // Streak Rewards Logic
+      const streak = newStats.streak || 0;
+      const streakRewardKey = `streak_reward_${streak}`;
+      if (streak >= 3 && !unlocked.includes(streakRewardKey)) {
+        let streakPoints = 0;
+        let streakTitle = '';
+        
+        if (streak === 3) {
+          streakPoints = 5000;
+          streakTitle = '3-Day Streak!';
+        } else if (streak === 5) {
+          streakPoints = 10000;
+          streakTitle = '5-Day Streak!';
+        } else if (streak === 10) {
+          streakPoints = 20000;
+          streakTitle = '10-Day Streak!';
+        } else if (streak === 15) {
+          streakPoints = 50000;
+          streakTitle = '15-Day Streak!';
+        } else if (streak > 15 && streak % 5 === 0) {
+          // Every 5 days after 15: 100k, 250k, 500k, 1M, etc.
+          const multiplier = (streak - 15) / 5;
+          streakPoints = 50000 * Math.pow(2, multiplier);
+          streakTitle = `${streak}-Day Mega Streak!`;
+        }
+
+        if (streakPoints > 0) {
+          newlyUnlocked.push({ id: streakRewardKey, title: streakTitle, points: streakPoints });
+          unlocked.push(streakRewardKey);
+        }
+      }
+
       const milestones = [
         // Tasks
         { id: 'tasks_1', target: 1, type: 'completedTasks', title: 'First Win', points: 10000 },
@@ -63,8 +102,8 @@ class AchievementService {
           points: (currentStats.points || 0) + totalPointsToAward
         };
         
-        // Level up logic (1 million per level)
-        updatedStats.level = Math.floor(updatedStats.points / 1000000) + 1;
+        // Level up logic (exponential)
+        updatedStats.level = this.getLevelFromPoints(updatedStats.points);
         
         await saveData('userStats', updatedStats);
         

@@ -330,7 +330,7 @@ const TodosTab = () => {
         totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         completedTasks: newCompletedTasks,
-        level: Math.floor(((userStats.totalPoints || userStats.points || 0) + pointsEarned) / 1000000) + 1,
+        level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
       };
       
       setTodos(updatedTodos);
@@ -350,8 +350,6 @@ const TodosTab = () => {
         taskId: todoId,
         points: pointsEarned,
         newCompletedTasks
-      });
-        completedCount: newCompletedTasks
       });
     }, 100);
   }, [todos, userStats]);

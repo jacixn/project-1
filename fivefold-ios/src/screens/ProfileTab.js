@@ -1257,11 +1257,22 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress - Scaled for massive points
-  const pointsPerLevel = 1000000; // 1 Million points per level
-  const currentLevelPoints = (userStats.level - 1) * pointsPerLevel;
-  const nextLevelPoints = userStats.level * pointsPerLevel;
-  const progress = Math.min((userStats.points - currentLevelPoints) / pointsPerLevel, 1);
+  // Calculate level progress - Exponential scaling as requested
+  // Level 1->2: 1k, Level 2->3: 2k, Level 3->4: 4k, etc.
+  const getThresholdForLevel = (lvl) => {
+    if (lvl <= 1) return 0;
+    // Threshold(lvl) = sum of (1000 * 2^(i-1)) for i=1 to lvl-1
+    // Formula: 1000 * (2^(lvl-1) - 1)
+    return 1000 * (Math.pow(2, lvl - 1) - 1);
+  };
+
+  const getPointsNeededForNextLevel = (lvl) => {
+    return 1000 * Math.pow(2, lvl - 1);
+  };
+
+  const currentLevelThreshold = getThresholdForLevel(userStats.level);
+  const nextLevelPoints = getPointsNeededForNextLevel(userStats.level);
+  const progress = Math.min((userStats.points - currentLevelThreshold) / nextLevelPoints, 1);
 
   // Profile Header Component
   const ProfileHeader = () => {
@@ -1360,7 +1371,7 @@ const ProfileTab = () => {
       <View style={styles.progressSection}>
         <View style={styles.progressInfo}>
           <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-            {(userStats.points || 0).toLocaleString()} / {nextLevelPoints.toLocaleString()} {t.points || 'points'}
+            {(userStats.points - currentLevelThreshold).toLocaleString()} / {nextLevelPoints.toLocaleString()} {t.points || 'points'}
           </Text>
           <Text style={[styles.progressLevel, { color: theme.primary }]}>
             {t.level || 'Level'} {userStats.level + 1}

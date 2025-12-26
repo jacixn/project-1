@@ -772,7 +772,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayersCompleted: (currentStats.prayersCompleted || 0) + 1
       };
       
-      updatedStats.level = Math.floor(updatedStats.points / 1000000) + 1;
+      updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
       await saveData('userStats', updatedStats);
       
       // Global Achievement Check
