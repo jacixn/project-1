@@ -359,8 +359,10 @@ class VerseDataManager {
       const allNotes = [];
       
       Object.values(allData).forEach(verseData => {
-        if (verseData.notes && verseData.notes.length > 0) {
+        if (!verseData || typeof verseData !== 'object') return;
+        if (verseData.notes && Array.isArray(verseData.notes) && verseData.notes.length > 0) {
           verseData.notes.forEach(note => {
+            if (!note) return;
             allNotes.push({
               ...note,
               verseId: verseData.id

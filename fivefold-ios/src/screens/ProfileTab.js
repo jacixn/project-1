@@ -396,8 +396,10 @@ const ProfileTab = () => {
       setJournalNotes(notes);
       console.log(`📖 Loaded ${notes.length} journal notes`);
 
-      // Persist a lightweight cache in case loading fails later
-      await AsyncStorage.setItem('journalNotes_cache', JSON.stringify(notes || []));
+      // Persist a lightweight cache in case loading fails later (only if we have data)
+      if (notes && notes.length > 0) {
+        await AsyncStorage.setItem('journalNotes_cache', JSON.stringify(notes || []));
+      }
       
       // Fetch verse texts only for notes with valid Bible references
       const verseTexts = {};
@@ -432,8 +434,10 @@ const ProfileTab = () => {
         const cached = await AsyncStorage.getItem('journalNotes_cache');
         if (cached) {
           const cachedNotes = JSON.parse(cached);
-          setJournalNotes(cachedNotes);
-          console.log(`📖 Restored ${cachedNotes.length} journal notes from cache`);
+          if (cachedNotes && cachedNotes.length > 0) {
+            setJournalNotes(cachedNotes);
+            console.log(`📖 Restored ${cachedNotes.length} journal notes from cache`);
+          }
         }
       } catch (cacheErr) {
         console.error('Error loading cached journal notes:', cacheErr);
