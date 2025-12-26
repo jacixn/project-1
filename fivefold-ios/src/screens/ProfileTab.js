@@ -2834,45 +2834,27 @@ const ProfileTab = () => {
                                   text: 'Delete',
                                   style: 'destructive',
                                   onPress: async () => {
-                                    try {
-                                      const noteId = note.id;
-                                      const verseId = note.verseId;
-                                      // Optimistic update to avoid flicker/empty state
-                                      setJournalNotes(prev => prev.filter(n => n.id !== noteId));
-                                      setJournalVerseTexts(prev => {
-                                        const next = { ...prev };
-                                        delete next[noteId];
-                                        return next;
-                                      });
-                                      
-                                      // Delete from journalNotes storage
-                                      const existingNotes = await AsyncStorage.getItem('journalNotes');
-                                      const notes = existingNotes ? JSON.parse(existingNotes) : [];
-                                      const beforeCount = notes.length;
-                                      
-                                      // Filter out the note to delete
-                                      const filtered = notes.filter(n => {
-                                        const match = String(n.id) === String(noteId);
-                                        return !match;
-                                      });
-                                      
-                                      // Always save the filtered result
-                                      await AsyncStorage.setItem('journalNotes', JSON.stringify(filtered));
-                                      
-                                      // Show debug info
-                                      Alert.alert(
-                                        'Delete Debug',
-                                        `Before: ${beforeCount}\nAfter: ${filtered.length}\nDeleted ID: ${noteId}`,
-                                        [{ text: 'OK' }]
-                                      );
-                                      
-                                      // Reload journal
-                                      await loadJournalNotes();
-                                    } catch (err) {
-                                      console.error('Error deleting journal note:', err);
-                                      // Reload to restore if delete failed
-                                      await loadJournalNotes();
-                                    }
+                                    const noteId = note.id;
+                                    console.log('🗑️ DELETE STARTING for id:', noteId);
+                                    
+                                    // Read current notes
+                                    const raw = await AsyncStorage.getItem('journalNotes');
+                                    const allNotes = raw ? JSON.parse(raw) : [];
+                                    console.log('🗑️ Before delete, notes count:', allNotes.length);
+                                    console.log('🗑️ All note IDs:', allNotes.map(n => n.id));
+                                    
+                                    // Filter out the note
+                                    const remaining = allNotes.filter(n => n.id !== noteId);
+                                    console.log('🗑️ After filter, notes count:', remaining.length);
+                                    
+                                    // Save back
+                                    await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
+                                    console.log('🗑️ Saved to storage');
+                                    
+                                    // Update UI directly without reload
+                                    setJournalNotes(remaining);
+                                    
+                                    Alert.alert('Deleted', `Removed 1 note. ${remaining.length} remaining.`);
                                   }
                                 }
                               ]
