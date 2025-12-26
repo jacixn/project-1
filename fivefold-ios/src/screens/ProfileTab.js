@@ -2707,6 +2707,32 @@ const ProfileTab = () => {
                   <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22, textAlign: 'center' }]}>
                     Long-press any verse in the Bible to add your personal notes and reflections
                   </Text>
+                  <TouchableOpacity
+                    style={{ marginTop: 20, padding: 12, backgroundColor: theme.primary, borderRadius: 8 }}
+                    onPress={async () => {
+                      try {
+                        const raw = await AsyncStorage.getItem('verse_data');
+                        const parsed = raw ? JSON.parse(raw) : {};
+                        const keys = Object.keys(parsed);
+                        let noteCount = 0;
+                        keys.forEach(k => {
+                          if (parsed[k]?.notes?.length) noteCount += parsed[k].notes.length;
+                        });
+                        Alert.alert(
+                          'Storage Debug',
+                          `verse_data keys: ${keys.length}\nTotal notes in storage: ${noteCount}\n\nFirst 3 keys: ${keys.slice(0, 3).join(', ') || 'none'}`,
+                          [
+                            { text: 'Reload', onPress: () => loadJournalNotes() },
+                            { text: 'OK' }
+                          ]
+                        );
+                      } catch (e) {
+                        Alert.alert('Error', e.message);
+                      }
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}>Debug Storage</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 journalNotes.map((note, index) => (

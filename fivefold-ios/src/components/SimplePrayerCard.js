@@ -29,7 +29,6 @@ import EditPrayerModal from './EditPrayerModal';
 import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
-import productionAiService from '../services/productionAiService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
@@ -124,12 +123,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [timeUntilWindow, setTimeUntilWindow] = useState('');
   const [showCompletedCard, setShowCompletedCard] = useState(false);
   const [completedPrayer, setCompletedPrayer] = useState(null);
-  const [showStudyCard, setShowStudyCard] = useState(false);
-  const [studyLoading, setStudyLoading] = useState(false);
-  const [studyContent, setStudyContent] = useState(null);
-  const studySlideAnim = useRef(new Animated.Value(0)).current;
-  const studyPanY = useRef(new Animated.Value(0)).current;
-  const studyFade = useRef(new Animated.Value(0)).current;
   
   // NEW Simple verse states - completely fresh
   const [simpleVerseText, setSimpleVerseText] = useState({}); // { 'prayerId-verseIndex': 'simplified text' }
@@ -593,124 +586,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setShowDiscussModal(true); // Then open discussion modal
     }, 300);
   };
-
-  const buildTakeaways = (text = '') => {
-    const sentences = text
-      .replace(/\s+/g, ' ')
-      .split(/[.!?]/)
-      .map(s => s.trim())
-      .filter(Boolean);
-    const picks = sentences.slice(0, 5);
-    const fillers = [
-      'God cares about you and listens when you reach out.',
-      'Trusting God brings peace, even when life feels hard.',
-      'God provides what you need; you can rely on Him.',
-      'You can share hope and kindness with others every day.',
-      'Staying close to God helps you make good choices.'
-    ];
-    const combined = [...picks];
-    let fi = 0;
-    while (combined.length < 5) {
-      combined.push(fillers[fi % fillers.length]);
-      fi += 1;
-    }
-    return combined.slice(0, 5);
-  };
-
-  const handleStudyVerse = async (verse) => {
-    try {
-      setStudyLoading(true);
-      setStudyContent(null);
-      hapticFeedback.light();
-      setShowStudyCard(true);
-      // reset animations
-      studySlideAnim.setValue(0);
-      studyPanY.setValue(0);
-      studyFade.setValue(0);
-      Animated.parallel([
-        Animated.timing(studyFade, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.spring(studySlideAnim, { toValue: 1, tension: 60, friction: 10, useNativeDriver: true })
-      ]).start();
-
-      const displayedText = verse.text || '';
-      const prompt = `
-Explain this Bible verse for a 12-year-old. Return ONLY JSON with shape:
-{
-  "summary": "one short paragraph",
-  "takeaways": ["item1","item2","item3","item4","item5"]
-}
-Verse: "${displayedText}"
-Reference: ${verse.reference}
-Guidelines:
-- Use simple, warm language.
-- Keep summary under 80 words.
-- Takeaways must be 5 concise, practical points.
-- No extra fields, no markdown, no code fences.
-`;
-
-      const aiResponse = await productionAiService.simpleSmartChat(prompt);
-      let parsed = null;
-      try {
-        parsed = JSON.parse(aiResponse);
-      } catch (err) {
-        parsed = null;
-      }
-
-      if (!parsed || !parsed.summary || !Array.isArray(parsed.takeaways)) {
-        setStudyContent({
-          reference: verse.reference,
-          version: verse.version || bibleVersion || 'KJV',
-          explanation: 'Study is unavailable right now. Please try again in a moment.',
-          takeaways: [],
-          isError: true,
-        });
-        return;
-      }
-
-      setStudyContent({
-        reference: verse.reference,
-        version: verse.version || bibleVersion || 'KJV',
-        explanation: parsed.summary,
-        takeaways: parsed.takeaways.slice(0, 5),
-        isError: false,
-      });
-    } catch (err) {
-      setStudyContent({
-        reference: verse.reference,
-        version: verse.version || bibleVersion || 'KJV',
-        explanation: 'Study is unavailable right now. Please try again in a moment.',
-        takeaways: [],
-        isError: true,
-      });
-    } finally {
-      setStudyLoading(false);
-    }
-  };
-
-  const studyPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 10,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          studyPanY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 120 || gestureState.vy > 1) {
-          Animated.parallel([
-            Animated.timing(studyFade, { toValue: 0, duration: 200, useNativeDriver: true }),
-            Animated.timing(studySlideAnim, { toValue: 0, duration: 200, useNativeDriver: true })
-          ]).start(() => {
-            setShowStudyCard(false);
-            studyPanY.setValue(0);
-          });
-        } else {
-          Animated.spring(studyPanY, { toValue: 0, tension: 70, friction: 11, useNativeDriver: true }).start();
-        }
-      }
-    })
-  ).current;
 
   // Check if prayer is within time window (30 minutes before/after)
   const isPrayerTimeAvailable = (prayer) => {
@@ -1204,7 +1079,6 @@ Guidelines:
         onComplete={() => selectedPrayer && completePrayer(selectedPrayer)}
         onSimplify={handleSimplifyVerse}
         onDiscuss={discussVerse}
-        onStudyVerse={handleStudyVerse}
         onNavigateToBible={onNavigateToBible}
         simpleVerseText={simpleVerseText}
         loadingSimple={loadingSimple}
@@ -1268,92 +1142,6 @@ Guidelines:
                 <Text style={styles.notTimeButtonText}>Awesome</Text>
               </TouchableOpacity>
             </BlurView>
-          </View>
-        </Modal>
-      )}
-
-      {/* Study card */}
-      {showStudyCard && studyContent && (
-        <Modal
-          visible={showStudyCard}
-          transparent={true}
-          presentationStyle="overFullScreen"
-          statusBarTranslucent
-          hardwareAccelerated
-          onRequestClose={() => setShowStudyCard(false)}
-        >
-          <View style={styles.studyOverlay}>
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: studyFade }]}>
-              <TouchableOpacity 
-                style={StyleSheet.absoluteFill}
-                activeOpacity={1}
-                onPress={() => setShowStudyCard(false)}
-              />
-            </Animated.View>
-            <Animated.View
-              style={[
-                styles.studyCard,
-                { backgroundColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.96)' },
-                {
-                  opacity: studyFade,
-                  transform: [{
-                    translateY: Animated.add(
-                      studySlideAnim.interpolate({ inputRange: [0,1], outputRange: [120, 0] }),
-                      studyPanY
-                    )
-                  }]
-                }
-              ]}
-              {...studyPanResponder.panHandlers}
-            >
-              <LinearGradient
-                colors={[
-                  `${theme.primary}33`,
-                  `${theme.primary}0A`,
-                  'transparent'
-                ]}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={styles.notTimeGradient}
-              />
-              <View style={styles.notTimeHalo} />
-              <View style={[styles.notTimeIconWrap, { borderColor: theme.primary + '60', backgroundColor: theme.primary + '14' }]}>
-                <MaterialIcons name="school" size={26} color={theme.primary} />
-              </View>
-              <Text style={[styles.notTimeTitle, { color: theme.text }]}>Study</Text>
-              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
-                {studyContent.reference} {studyContent.version ? `(${studyContent.version})` : ''}
-              </Text>
-
-              <View style={styles.studyExplanationCard}>
-                <Text style={[styles.studyExplanationText, { color: theme.text }]}>
-                  {studyLoading ? 'Preparing a simple explanation...' : studyContent.explanation}
-                </Text>
-              </View>
-
-              {!studyContent.isError && (
-                <View style={styles.studyTakeaways}>
-                  {studyContent.takeaways?.slice(0,5).map((t, idx) => (
-                    <View key={`takeaway-${idx}`} style={[styles.takeawayRow, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
-                      <View style={[styles.takeawayBadge, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '40' }]}>
-                        <Text style={[styles.takeawayBadgeText, { color: theme.primary }]}>{idx + 1}</Text>
-                      </View>
-                      <Text style={[styles.takeawayText, { color: theme.textSecondary }]}>
-                        {t}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <TouchableOpacity 
-                style={[styles.notTimeButton, { backgroundColor: theme.primary }]}
-                onPress={() => setShowStudyCard(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.notTimeButtonText}>Got it</Text>
-              </TouchableOpacity>
-            </Animated.View>
           </View>
         </Modal>
       )}
@@ -1659,74 +1447,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     letterSpacing: 0.2,
-  },
-  studyCard: {
-    width: '90%',
-    maxWidth: 420,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 22,
-    elevation: 16,
-  },
-  studyExplanationCard: {
-    width: '100%',
-    borderRadius: 14,
-    padding: 14,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  studyExplanationText: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '600',
-  },
-  studyTakeaways: {
-    width: '100%',
-    gap: 10,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  takeawayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  takeawayBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  takeawayBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  takeawayText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  studyOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 30,
   },
   
   // Modal styles

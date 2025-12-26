@@ -22,7 +22,6 @@ const PrayerDetailModal = ({
   onComplete,
   onSimplify,
   onDiscuss,
-  onStudyVerse,
   onNavigateToBible = () => {},
   simpleVerseText,
   loadingSimple,
@@ -379,6 +378,7 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
+                            <MaterialIcons name="menu-book" size={16} color={theme.primary} />
                             <Text style={[styles.verseActionText, { color: theme.primary }]}>
                               Go to Verse
                             </Text>
@@ -396,6 +396,11 @@ const PrayerDetailModal = ({
                             }]}
                             onPress={(e) => {
                               if (e) e.stopPropagation();
+                              // IMPORTANT:
+                              // The verse cards can display fetched text in the user's selected version
+                              // via `fetchedVerses[reference]`, but `verse.text` may still be the original
+                              // hardcoded text (often KJV). If we pass the raw `verse` object to Friend chat,
+                              // the user sees a different translation in chat than in the UI.
                               const displayedText = loadingVerses
                                 ? ''
                                 : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
@@ -412,39 +417,9 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
+                            <MaterialIcons name="chat" size={16} color={theme.text} />
                             <Text style={[styles.verseActionText, { color: theme.text }]}>
                               Discuss
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.verseActionButton, { 
-                              backgroundColor: isDark 
-                                ? 'rgba(46, 204, 113, 0.18)' 
-                                : 'rgba(46, 204, 113, 0.12)',
-                              borderWidth: 1.5,
-                              borderColor: 'rgba(46, 204, 113, 0.6)'
-                            }]}
-                            onPress={(e) => {
-                              if (e) e.stopPropagation();
-                              const displayedText = loadingVerses
-                                ? ''
-                                : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
-                              const displayedVersion =
-                                fetchedVerses[verse.reference]?.version || bibleVersion || 'KJV';
-                              onStudyVerse &&
-                                onStudyVerse({
-                                  ...verse,
-                                  text: displayedText,
-                                  content: displayedText,
-                                  reference: verse.reference,
-                                  version: displayedVersion,
-                                });
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={[styles.verseActionText, { color: '#2ecc71' }]}>
-                              Study
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -756,23 +731,17 @@ const styles = StyleSheet.create({
   },
   verseActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-    rowGap: 12,
+    justifyContent: 'space-around',
     marginTop: 18,
     paddingTop: 18,
   },
   verseActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 24,
-    minWidth: '30%',
-    flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
+    gap: 7,
   },
   verseActionText: {
     fontSize: 14,

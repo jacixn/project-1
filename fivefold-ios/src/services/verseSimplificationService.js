@@ -7,12 +7,7 @@ class VerseSimplificationService {
       const apiKey = await getStoredData('groqApiKey');
       
       if (!apiKey) {
-        return {
-          success: false,
-          error: 'API key not configured. Please set up your AI service in Settings.',
-          simplified: null,
-          original: verse
-        };
+        throw new Error('API key not configured. Please set up your AI service in Settings.');
       }
 
       const prompt = `Please simplify this Bible verse so that a 12-year-old child can easily understand it. Keep the core meaning but use simple words and concepts:
@@ -50,12 +45,7 @@ Format your response as a friendly explanation that starts with "This verse mean
       });
 
       if (!response.ok) {
-        return {
-          success: false,
-          error: `API request failed: ${response.status}`,
-          simplified: null,
-          original: verse
-        };
+        throw new Error(`API request failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -67,9 +57,23 @@ Format your response as a friendly explanation that starts with "This verse mean
         original: verse
       };
     } catch (error) {
+      console.error('Error simplifying verse:', error);
+      
+      // Fallback simplified explanations for common verses
+      const fallbackSimplifications = {
+        'Jeremiah 29:11': 'This verse means God has good plans for your life! He wants you to be happy and successful, and He will help you have hope for the future. It\'s like having a loving parent who always wants the best for you.',
+        'Proverbs 3:5-6': 'This verse means you should trust God completely, even when you don\'t understand everything. It\'s like following a GPS - even if you don\'t know the way, God does! When you trust Him, He will guide you on the right path.',
+        'Joshua 1:9': 'This verse means you can be brave because God is always with you! You don\'t have to be scared or worried because God is like the strongest, most loving friend who never leaves your side.',
+        '1 Peter 5:7': 'This verse means when you\'re worried or scared about something, you can tell God about it and He will take care of you. It\'s like giving your heavy backpack to a strong adult who can carry it for you.',
+        'Romans 8:28': 'This verse means that even when bad things happen, God can turn them into something good for people who love Him. It\'s like how a puzzle piece might look weird by itself, but it fits perfectly in the big picture.'
+      };
+
+      const fallback = fallbackSimplifications[verse.reference] || 
+        `This verse means God loves you very much! Even though we couldn't get a detailed explanation right now, remember that every Bible verse teaches us about God's love and care for us.`;
+
       return {
         success: false,
-        simplified: null,
+        simplified: fallback,
         original: verse,
         error: error.message
       };

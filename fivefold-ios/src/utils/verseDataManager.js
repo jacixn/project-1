@@ -37,7 +37,13 @@ class VerseDataManager {
   static async getAllVerseData() {
     try {
       const data = await AsyncStorage.getItem(this.VERSE_DATA_KEY);
-      return data ? JSON.parse(data) : {};
+      console.log('🗄️ Raw verse_data from storage:', data ? `${data.length} chars` : 'null/empty');
+      if (data) {
+        const parsed = JSON.parse(data);
+        console.log('🗄️ Parsed verse_data keys:', Object.keys(parsed).length);
+        return parsed;
+      }
+      return {};
     } catch (error) {
       console.error('Error getting all verse data:', error);
       return {};
