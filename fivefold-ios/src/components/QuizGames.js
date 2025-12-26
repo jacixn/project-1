@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
 import AchievementService from '../services/achievementService';
+import { getStoredData, saveData } from '../utils/localStorage';
 
 const CATEGORY_ICON_FALLBACK = {
   all: 'ALL',
@@ -222,9 +223,8 @@ const QuizGames = ({ visible, onClose }) => {
       const pointsEarned = numQuestions * 100; // 5 questions = 500, 10 = 1000, etc.
       setBonusPointsEarned(pointsEarned);
       
-      // Get current stats
-      const statsData = await AsyncStorage.getItem('userStats');
-      const currentStats = statsData ? JSON.parse(statsData) : {
+      // Get current stats using the correct storage wrapper (fivefold_ prefix)
+      const currentStats = await getStoredData('userStats') || {
         points: 0,
         level: 1,
         completedTasks: 0,
@@ -242,13 +242,13 @@ const QuizGames = ({ visible, onClose }) => {
       // Recalculate level
       updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
       
-      // Save updated stats
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      // Save updated stats using the correct storage wrapper
+      await saveData('userStats', updatedStats);
       
       // Check achievements
       await AchievementService.checkAchievements(updatedStats);
       
-      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions`);
+      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${updatedStats.points}`);
       hapticFeedback.success(); // Haptic for earning points!
       
       return pointsEarned;
