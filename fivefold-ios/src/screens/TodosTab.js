@@ -321,7 +321,6 @@ const TodosTab = () => {
           : todo
       );
       
-      const completedTodo = updatedTodos.find(todo => todo.id === todoId);
       const pointsEarned = 10000; // 10k points per task (more gradual)
       const newCompletedTasks = userStats.completedTasks + 1;
       

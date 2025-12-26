@@ -84,9 +84,9 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     });
 
     const tierReward = (i, total) => {
-      // Gradual rewards: starting from 10k and scaling to 10M
+      // Gradual rewards matching AchievementService
       const percent = i / total;
-      if (percent >= 0.95) return 10000000; // 10 Million for the very hardest (95th percentile)
+      if (percent >= 0.95) return 10000000; // 10 Million
       if (percent >= 0.85) return 5000000;  // 5 Million
       if (percent >= 0.7) return 2500000;   // 2.5 Million
       if (percent >= 0.5) return 1000000;   // 1 Million
@@ -415,7 +415,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
           <BlurView intensity={Platform.OS === 'ios' ? 20 : 100} tint={isDark ? 'dark' : 'light'} style={styles.headerContainer}>
             <View style={styles.header}>
               <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 8 }}>
+                <View style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderRadius: 20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
                   <MaterialIcons name="arrow-back" size={24} color={theme.text} />
                 </View>
               </TouchableOpacity>
@@ -471,21 +471,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 11,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-    marginRight: 40, // Balance the back button
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: -0.5,
+    textAlign: 'center',
   },
   headerRight: {
     width: 40,

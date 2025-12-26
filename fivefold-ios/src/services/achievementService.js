@@ -6,10 +6,12 @@ class AchievementService {
   static ACHIEVEMENTS_KEY = 'fivefold_achievements_unlocked';
 
   static getLevelFromPoints(points) {
-    // Inverse of 1000 * (2^(lvl-1) - 1)
-    // lvl = log2(points/1000 + 1) + 1
+    // Linear progression: L1->2: 1k, L2->3: 2k, L3->4: 3k...
+    // TotalPoints(L) = 500 * L * (L-1)
+    // L^2 - L - P/500 = 0
+    // L = (1 + sqrt(1 + P/125)) / 2  (since 4*P/500 = P/125)
     if (points < 1000) return 1;
-    return Math.floor(Math.log2(points / 1000 + 1)) + 1;
+    return Math.floor((1 + Math.sqrt(1 + points / 125)) / 2);
   }
 
   static async checkAchievements(newStats) {
@@ -37,9 +39,10 @@ class AchievementService {
           streakPoints = 50000;
           streakTitle = '15-Day Streak!';
         } else if (streak > 15 && streak % 5 === 0) {
-          // Every 5 days after 15: 100k, 250k, 500k, 1M, etc.
-          const multiplier = (streak - 15) / 5;
-          streakPoints = 50000 * Math.pow(2, multiplier);
+          // Every 5 days after 15: scale up
+          // 20 days: 100k, 25 days: 250k, 30 days: 500k...
+          const milestoneCount = (streak - 15) / 5;
+          streakPoints = 50000 + (milestoneCount * 50000); // 100k, 150k, 200k...
           streakTitle = `${streak}-Day Mega Streak!`;
         }
 
