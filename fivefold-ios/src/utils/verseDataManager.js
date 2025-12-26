@@ -354,36 +354,29 @@ class VerseDataManager {
     }
   }
 
-  // Get all notes
+  // Get all notes - ALWAYS reads from verse_data (the source of truth)
   static async getAllNotes() {
     try {
-      // Prefer the dedicated journal store
-      let journalNotes = await this.getJournalNotes();
-      if (!journalNotes || journalNotes.length === 0) {
-        // Try migrating from legacy verse_data if we haven't yet
-        await this.migrateJournalNotes();
-        journalNotes = await this.getJournalNotes();
-      }
-      if (journalNotes && journalNotes.length > 0) {
-        return journalNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      }
-
-      // Fallback: legacy path from verse_data
+      // Always read directly from verse_data since addNote() saves there
       const allData = await this.getAllVerseData();
       const allNotes = [];
       
-      Object.values(allData).forEach(verseData => {
+      console.log('🔍 getAllNotes: Reading from verse_data, keys:', Object.keys(allData).length);
+      
+      Object.entries(allData).forEach(([key, verseData]) => {
         if (!verseData || typeof verseData !== 'object') return;
         if (verseData.notes && Array.isArray(verseData.notes) && verseData.notes.length > 0) {
           verseData.notes.forEach(note => {
             if (!note) return;
             allNotes.push({
               ...note,
-              verseId: verseData.id
+              verseId: verseData.id || key
             });
           });
         }
       });
+      
+      console.log(`📖 getAllNotes: Found ${allNotes.length} notes`);
       
       // Sort by creation date (newest first)
       return allNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
