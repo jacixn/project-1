@@ -344,7 +344,7 @@ class NotificationService {
   }
 
   // Schedule daily streak maintenance reminder
-  async scheduleDailyStreakReminder(hour = 20, minute = 0) {
+  async scheduleDailyStreakReminder(hour = 8, minute = 0) {
     try {
       await this.cancelNotificationsByType('daily_streak');
 
@@ -354,11 +354,15 @@ class NotificationService {
       // as a Date trigger. We reschedule on app start / settings changes.
       const nextTriggerDate = this.getNextOccurrenceDate(hour, minute);
 
+      const userStats = await getStoredData('userStats') || {};
+      const streakCount = userStats.streak || userStats.prayerStreak || 0;
+      const streakText = streakCount > 0 ? `${streakCount}-day streak` : 'your streak';
+
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🔥 Daily Check-In',
-          body: 'How did your spiritual journey go today? Complete your daily goals!',
-          data: { type: 'daily_streak' },
+          title: '🔥 Keep Your Streak',
+          body: `You're on ${streakText}. Open Biblely to stay consistent today.`,
+          data: { type: 'daily_streak', streakCount },
           sound: true,
         },
         trigger: nextTriggerDate,
@@ -492,7 +496,7 @@ class NotificationService {
       }
 
       if (settings.streakReminders) {
-        await this.scheduleDailyStreakReminder(20, 0);
+        await this.scheduleDailyStreakReminder(8, 0);
       } else {
         await this.cancelNotificationsByType('daily_streak');
       }

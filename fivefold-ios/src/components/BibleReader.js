@@ -120,6 +120,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const shareCardFadeAnim = useRef(new Animated.Value(0)).current;
   const shareCardRef = useRef(null);
   const [shareCardAnimating, setShareCardAnimating] = useState(false);
+  const [shareCardTextMode, setShareCardTextMode] = useState('quoted'); // 'quoted' | 'full'
+  const [shareCardText, setShareCardText] = useState('');
+  const [shareCardEndVerseNumber, setShareCardEndVerseNumber] = useState(null);
   
   // Load recent searches on mount
   useEffect(() => {
@@ -887,12 +890,88 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     return shareCardGradients[randomIndex];
   };
 
+  const getFullVerseText = (verse) => (verse?.content || verse?.text || '').replace(/\s+/g, ' ').trim();
+
+  // Get a verse from the currently loaded chapter by its verse number
+  const getVerseByNumber = (verseNumber) => {
+    if (!verseNumber || !Array.isArray(verses)) return null;
+    const target = Number(verseNumber);
+    return verses.find(v => Number(v.number ?? v.verse) === target) || null;
+  };
+
+  // Choose the most share-worthy slice of the verse:
+  // prefer an inner quoted phrase (e.g., the memorable clause) and
+  // fall back to the full verse text if no quotes are present.
+  const getShareCardText = (verse) => {
+    if (!verse) return '';
+
+    const fullText = getFullVerseText(verse);
+    const quotedSegments = fullText.match(/“([^”]+)”/g) || fullText.match(/"([^"]+)"/g);
+
+    if (quotedSegments && quotedSegments.length) {
+      const lastQuoted = quotedSegments[quotedSegments.length - 1]
+        .replace(/[“”"]/g, '')
+        .trim();
+
+      if (lastQuoted.length > 0 && lastQuoted.length < fullText.length) {
+        return lastQuoted;
+      }
+    }
+
+    return fullText;
+  };
+
+  const getShareCardBaseTextForRange = (startNumber, endNumber, mode) => {
+    if (!startNumber) return '';
+    const start = Number(startNumber);
+    const safeEnd = Math.max(start, Number(endNumber || startNumber));
+    const collected = [];
+    for (let i = start; i <= safeEnd; i++) {
+      const v = getVerseByNumber(i);
+      if (!v) break;
+      collected.push(mode === 'full' ? getFullVerseText(v) : getShareCardText(v));
+    }
+    // Use a single newline so multi-verse cards flow naturally
+    return collected.join('\n');
+  };
+
+  // Scale verse text size to fit when multiple verses are included
+  const getShareCardTextSizing = (text) => {
+    const length = text.length;
+    if (length > 620) return { fontSize: 15, lineHeight: 26 };
+    if (length > 560) return { fontSize: 16, lineHeight: 27 };
+    if (length > 500) return { fontSize: 17, lineHeight: 28 };
+    if (length > 440) return { fontSize: 18, lineHeight: 29 };
+    if (length > 380) return { fontSize: 19, lineHeight: 30 };
+    if (length > 320) return { fontSize: 20, lineHeight: 32 };
+    if (length > 260) return { fontSize: 21, lineHeight: 34 };
+    return { fontSize: 22, lineHeight: 36 };
+  };
+
+  const getShareCardDisplayText = () => {
+    if (!selectedVerseForMenu) return '';
+    const selectedVerseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+    const baseText = getShareCardBaseTextForRange(
+      selectedVerseNumber,
+      shareCardEndVerseNumber || selectedVerseNumber,
+      shareCardTextMode
+    );
+    return shareCardText.trim() || baseText;
+  };
+
   // Save verse to saved verses
   // Share verse function
   const shareVerse = () => {
     if (!selectedVerseForMenu) return;
     
     hapticFeedback.medium();
+
+    // Default to FULL verse when opening the card and seed editable text
+    const defaultFull = getFullVerseText(selectedVerseForMenu);
+    setShareCardTextMode('full');
+    const baseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+    setShareCardEndVerseNumber(baseNumber);
+    setShareCardText(defaultFull);
     
     // Close verse menu first
     Animated.parallel([
@@ -3820,25 +3899,42 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           marginBottom: 32,
                           textShadowColor: 'rgba(0, 0, 0, 0.2)',
                           textShadowOffset: { width: 0, height: 2 },
-                          textShadowRadius: 4
+                          textShadowRadius: 4,
+                          textAlign: 'center'
                         }}>
-                          {currentBook?.name} {currentChapter?.number}:{selectedVerseForMenu.number || selectedVerseForMenu.verse}
+                          {currentBook?.name} {currentChapter?.number}:
+                          {selectedVerseForMenu.number || selectedVerseForMenu.verse}
+                          {shareCardEndVerseNumber &&
+                            (shareCardEndVerseNumber !== (selectedVerseForMenu.number || selectedVerseForMenu.verse)) &&
+                            `-${shareCardEndVerseNumber}`}
                         </Text>
 
                         {/* Verse Text - The Focus */}
-                        <Text style={{
-                          fontSize: 22,
-                          fontWeight: '500',
-                          color: '#fff',
-                          lineHeight: 36,
-                          textAlign: 'center',
-                          fontStyle: 'italic',
-                          textShadowColor: 'rgba(0, 0, 0, 0.15)',
-                          textShadowOffset: { width: 0, height: 1 },
-                          textShadowRadius: 3
-                        }}>
-                          "{(selectedVerseForMenu.content || selectedVerseForMenu.text || '').replace(/\s+/g, ' ').trim()}"
-                        </Text>
+                        {(() => {
+                          const shareText = getShareCardDisplayText();
+                          const sizing = getShareCardTextSizing(shareText);
+                          return (
+                            <Text
+                              style={{
+                                fontSize: sizing.fontSize,
+                                fontWeight: '500',
+                                color: '#fff',
+                                lineHeight: sizing.lineHeight,
+                                textAlign: 'center',
+                                fontStyle: 'italic',
+                                textShadowColor: 'rgba(0, 0, 0, 0.15)',
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 3
+                              }}
+                              numberOfLines={12}
+                              adjustsFontSizeToFit
+                              minimumFontScale={0.82}
+                              allowFontScaling
+                            >
+                              {shareText}
+                            </Text>
+                          );
+                        })()}
                       </View>
 
                       {/* Biblely - Bottom, Subtle */}
@@ -3857,6 +3953,159 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                       </View>
                     </LinearGradient>
                   </ViewShot>
+
+                  {/* Text mode controls (outside of capture) */}
+                  <View style={{ marginTop: 14, marginHorizontal: 6 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                      {[
+                        { key: 'quoted', label: 'Quoted' },
+                        { key: 'full', label: 'Full Verse' },
+                      ].map(option => {
+                        const isActive = shareCardTextMode === option.key;
+                        return (
+                          <TouchableOpacity
+                            key={option.key}
+                            onPress={() => {
+                              setShareCardTextMode(option.key);
+                              const baseText =
+                                option.key === 'full'
+                                  ? getFullVerseText(selectedVerseForMenu)
+                                  : getShareCardText(selectedVerseForMenu);
+                              setShareCardText(baseText);
+                            }}
+                            style={{
+                              paddingVertical: 10,
+                              paddingHorizontal: 14,
+                              borderRadius: 12,
+                              backgroundColor: isActive ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
+                              borderWidth: isActive ? 1.4 : 1,
+                              borderColor: isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
+                              marginHorizontal: 4
+                            }}
+                          >
+                            <Text style={{
+                              color: '#fff',
+                              fontSize: 13,
+                              fontWeight: isActive ? '800' : '600',
+                              letterSpacing: 0.3
+                            }}>
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 10, alignItems: 'center' }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (!selectedVerseForMenu) return;
+                          const baseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+                          const newEnd = Math.max(baseNumber, (shareCardEndVerseNumber || baseNumber) - 1);
+                          setShareCardEndVerseNumber(newEnd);
+                          setShareCardText(
+                            getShareCardBaseTextForRange(baseNumber, newEnd, shareCardTextMode)
+                          );
+                        }}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 10,
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                          borderWidth: 1,
+                          borderColor: 'rgba(255,255,255,0.2)',
+                          marginRight: 8
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>−</Text>
+                      </TouchableOpacity>
+
+                      <View style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(255,255,255,0.08)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.2)',
+                        marginRight: 8
+                      }}>
+                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
+                          Verse range:{' '}
+                          {(selectedVerseForMenu?.number || selectedVerseForMenu?.verse || '')}
+                          {shareCardEndVerseNumber &&
+                            shareCardEndVerseNumber !== (selectedVerseForMenu?.number || selectedVerseForMenu?.verse)
+                            ? `-${shareCardEndVerseNumber}`
+                            : ''}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (!selectedVerseForMenu || !Array.isArray(verses)) return;
+                          const baseNumber = Number(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+                          const maxVerseNumber = verses.reduce((max, v) => Math.max(max, Number(v.number ?? v.verse) || 0), baseNumber);
+                          const nextEnd = Math.min(maxVerseNumber, Number(shareCardEndVerseNumber || baseNumber) + 1);
+                          setShareCardEndVerseNumber(nextEnd);
+                          setShareCardText(
+                            getShareCardBaseTextForRange(baseNumber, nextEnd, shareCardTextMode)
+                          );
+                        }}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 10,
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                          borderWidth: 1,
+                          borderColor: 'rgba(255,255,255,0.2)',
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={{ marginTop: 10 }}>
+                        <TextInput
+                        value={shareCardText}
+                        onChangeText={setShareCardText}
+                        multiline
+                        placeholder="Edit the text for this card"
+                        placeholderTextColor="rgba(255,255,255,0.65)"
+                        style={{
+                          minHeight: 90,
+                          padding: 14,
+                          borderRadius: 14,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255,255,255,0.35)',
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                          color: '#fff',
+                          fontSize: 15,
+                          lineHeight: 22
+                        }}
+                      />
+                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <TouchableOpacity onPress={() => setShareCardText('')}>
+                          <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Clear</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            const baseTextSingle =
+                              shareCardTextMode === 'full'
+                                ? getFullVerseText(selectedVerseForMenu)
+                                : getShareCardText(selectedVerseForMenu);
+                            const baseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+                            const endNumber = shareCardEndVerseNumber || baseNumber;
+                            const combined = getShareCardBaseTextForRange(baseNumber, endNumber, shareCardTextMode);
+                            setShareCardText(combined);
+                          }}
+                          style={{ marginLeft: 14 }}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: '700' }}>
+                            Reset to {shareCardTextMode === 'full' ? 'full verse' : 'quoted'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
 
                   {/* Save Button - Outside the ViewShot */}
                   <TouchableOpacity

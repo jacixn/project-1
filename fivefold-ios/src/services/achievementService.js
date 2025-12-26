@@ -6,10 +6,36 @@ class AchievementService {
   static ACHIEVEMENTS_KEY = 'fivefold_achievements_unlocked';
 
   static getLevelFromPoints(points) {
-    // Exponential progression as requested: L1->2: 1k, L2->3: 2k, L3->4: 4k, etc.
-    // Points needed for Level L = 1000 * (2^(L-1) - 1)
-    if (points < 1000) return 1;
-    return Math.floor(Math.log2(points / 1000 + 1)) + 1;
+    // Levels 1-9 keep the exponential curve; level 9 starts at 255k total.
+    // After level 9, each new level requires a flat +128k points.
+    const thresholds = [
+      0,      // Level 1
+      1000,   // Level 2
+      3000,   // Level 3
+      7000,   // Level 4
+      15000,  // Level 5
+      31000,  // Level 6
+      63000,  // Level 7
+      127000, // Level 8
+      255000, // Level 9
+    ];
+
+    if (points <= thresholds[1]) return 1;
+
+    // Within the first 9 levels, find the highest threshold not exceeding points
+    if (points < thresholds[thresholds.length - 1]) {
+      for (let i = thresholds.length - 1; i >= 0; i--) {
+        if (points >= thresholds[i]) {
+          return i + 1;
+        }
+      }
+      return 1;
+    }
+
+    // After level 9: flat 128k per additional level
+    const extraPoints = points - thresholds[thresholds.length - 1];
+    const extraLevels = Math.floor(extraPoints / 128000);
+    return thresholds.length + extraLevels;
   }
 
   static async checkAchievements(newStats) {
@@ -76,10 +102,6 @@ class AchievementService {
         { id: 'verses_1000', target: 1000, type: 'versesRead', title: 'Word Warrior', points: 1000000 },
         { id: 'verses_10000', target: 10000, type: 'versesRead', title: 'Scripture Sage', points: 5000000 },
         
-        // Points (High milestones)
-        { id: 'points_100000', target: 100000, type: 'points', title: 'Point Builder', points: 1000000 },
-        { id: 'points_1000000', target: 1000000, type: 'points', title: 'Point Master', points: 5000000 },
-        { id: 'points_10000000', target: 10000000, type: 'points', title: 'Point Legend', points: 10000000 },
       ];
 
       for (const m of milestones) {

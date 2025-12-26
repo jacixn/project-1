@@ -62,16 +62,25 @@ const ThemeModal = ({ visible, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={[styles.doneButton, { color: theme.primary }]}>Done</Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>Theme</Text>
-          <View style={{ width: 50 }} />
-        </View>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Enhanced Header */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity 
+              onPress={onClose}
+              style={[styles.closeCircle, { backgroundColor: theme.surface }]}
+            >
+              <MaterialIcons name="close" size={20} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.mainTitle, { color: theme.text }]}>Appearance</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={[styles.doneText, { color: theme.primary }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Current Theme Display */}
           <GlassCard style={styles.currentThemeCard} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
             <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current Theme</Text>
@@ -300,26 +309,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  doneButton: {
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
   content: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    marginTop: 10,
+  },
+  closeCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mainTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  doneText: {
+    fontSize: 17,
+    fontWeight: '700',
   },
   // Current Theme Card
   currentThemeCard: {

@@ -765,7 +765,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayersCompleted: 0
       };
       
-      const pointsEarned = 100000; // 100k points per prayer
+      const pointsEarned = 5000; // 5k points per prayer
       const updatedStats = {
         ...currentStats,
         points: (currentStats.points || 0) + pointsEarned,
@@ -905,8 +905,15 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
             const canComplete = completedToday ? false : canCompletePrayer(prayer);
             const timeUntil = completedToday ? null : getTimeUntilAvailable(prayer);
             const isInTimeWindow = isPrayerTimeAvailable(prayer);
-            const baseTextColor = completedToday ? '#ffffff' : theme.text;
-            const secondaryTextColor = completedToday ? 'rgba(255,255,255,0.85)' : theme.textSecondary;
+            const successColor = (() => {
+              const success = (theme.success || '').toLowerCase();
+              const primary = (theme.primary || '').toLowerCase();
+              // If the theme makes success the same as primary (e.g., blush), force a consistent green.
+              const isSameAsPrimary = success && primary && success === primary;
+              return isSameAsPrimary ? '#10B981' : (theme.success || '#32C48D');
+            })();
+            const baseTextColor = completedToday ? theme.text : theme.text;
+            const secondaryTextColor = completedToday ? theme.textSecondary : theme.textSecondary;
             const metaText = completedToday
               ? 'Completed today'
               : timeUntil
@@ -921,10 +928,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               return (
                 <View
                   style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: completedToday ? `${theme.success}30` : `${theme.primary}30`,
-                    borderColor: completedToday ? `${theme.success}99` : `${theme.primary}99`,
+                    backgroundColor: completedToday ? `${successColor}30` : `${theme.primary}30`,
+                    borderColor: completedToday ? `${successColor}99` : `${theme.primary}99`,
                     opacity: completedToday ? 1 : (canComplete ? 1 : 0.7),
-                    shadowColor: completedToday ? `${theme.success}` : '#000'
+                    shadowColor: completedToday ? `${successColor}` : '#000'
                   }, style]}
                 >
                   {children}
@@ -965,9 +972,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                   <View style={styles.prayerInfo}>
                     <View style={[styles.prayerIcon, { 
                       backgroundColor: completedToday
-                        ? `${theme.success}55`
+                        ? `${successColor}55`
                         : canComplete
-                          ? theme.success
+                          ? successColor
                           : isInTimeWindow
                             ? theme.primary
                             : theme.textSecondary 
@@ -1004,7 +1011,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                 </AnimatedPrayerCard>
                 
                 <AnimatedPrayerButton
-                  style={[styles.editButton, { backgroundColor: completedToday ? 'rgba(255,255,255,0.25)' : theme.primary + '20' }]}
+                  style={[styles.editButton, { backgroundColor: completedToday ? `${successColor}30` : theme.primary + '20' }]}
                   onPress={() => editPrayer(prayer)}
                 >
                   <MaterialIcons name="edit" size={16} color={completedToday ? '#ffffff' : theme.primary} />

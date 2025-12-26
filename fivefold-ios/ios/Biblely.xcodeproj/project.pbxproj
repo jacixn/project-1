@@ -13,8 +13,8 @@
 		18AB099E4B148ED7282A9CFD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D0F1A1000000000000000010 /* BiblelyVerseWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F1A1000000000000000002 /* BiblelyVerseWidget.swift */; };
-		D0F1A1000000000000000011 /* BiblelyVerseWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F1A1000000000000000003 /* BiblelyVerseWidgetBundle.swift */; };
+		D0F1A1000000000000000010 /* BiblelyVerseWidget/BiblelyVerseWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F1A1000000000000000002 /* BiblelyVerseWidget/BiblelyVerseWidget.swift */; };
+		D0F1A1000000000000000011 /* BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F1A1000000000000000003 /* BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift */; };
 		D0F1A1000000000000000012 /* daily-verses-references.json in Resources */ = {isa = PBXBuildFile; fileRef = D0F1A1000000000000000006 /* daily-verses-references.json */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -30,10 +30,10 @@
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Biblely/SplashScreen.storyboard; sourceTree = "<group>"; };
 		AA474CE11BAB48A19D17D265 /* Pods_Biblely.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Biblely.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D0F1A1000000000000000002 /* BiblelyVerseWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiblelyVerseWidget/BiblelyVerseWidget.swift; sourceTree = "<group>"; };
-		D0F1A1000000000000000003 /* BiblelyVerseWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift; sourceTree = "<group>"; };
-		D0F1A1000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = BiblelyVerseWidget/Info.plist; sourceTree = "<group>"; };
-		D0F1A1000000000000000005 /* BiblelyVerseWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BiblelyVerseWidget/BiblelyVerseWidget.entitlements; sourceTree = "<group>"; };
+		D0F1A1000000000000000002 /* BiblelyVerseWidget/BiblelyVerseWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiblelyVerseWidget/BiblelyVerseWidget.swift; sourceTree = "<group>"; };
+		D0F1A1000000000000000003 /* BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift; sourceTree = "<group>"; };
+		D0F1A1000000000000000004 /* BiblelyVerseWidget/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = BiblelyVerseWidget/Info.plist; sourceTree = "<group>"; };
+		D0F1A1000000000000000005 /* BiblelyVerseWidget/BiblelyVerseWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BiblelyVerseWidget/BiblelyVerseWidget.entitlements; sourceTree = "<group>"; };
 		D0F1A1000000000000000006 /* daily-verses-references.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "daily-verses-references.json"; path = "../daily-verses-references.json"; sourceTree = "<group>"; };
 		D0F1A1000000000000000007 /* BiblelyVerseWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BiblelyVerseWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -136,11 +136,11 @@
 		D0F1A1000000000000000001 /* BiblelyVerseWidget */ = {
 			isa = PBXGroup;
 			children = (
-				D0F1A1000000000000000002 /* BiblelyVerseWidget.swift */,
-				D0F1A1000000000000000003 /* BiblelyVerseWidgetBundle.swift */,
-				D0F1A1000000000000000005 /* BiblelyVerseWidget.entitlements */,
+				D0F1A1000000000000000002 /* BiblelyVerseWidget/BiblelyVerseWidget.swift */,
+				D0F1A1000000000000000003 /* BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift */,
+				D0F1A1000000000000000005 /* BiblelyVerseWidget/BiblelyVerseWidget.entitlements */,
 				D0F1A1000000000000000006 /* daily-verses-references.json */,
-				D0F1A1000000000000000004 /* Info.plist */,
+				D0F1A1000000000000000004 /* BiblelyVerseWidget/Info.plist */,
 			);
 			path = BiblelyVerseWidget;
 			sourceTree = "<group>";
@@ -444,8 +444,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0F1A1000000000000000010 /* BiblelyVerseWidget.swift in Sources */,
-				D0F1A1000000000000000011 /* BiblelyVerseWidgetBundle.swift in Sources */,
+				D0F1A1000000000000000010 /* BiblelyVerseWidget/BiblelyVerseWidget.swift in Sources */,
+				D0F1A1000000000000000011 /* BiblelyVerseWidget/BiblelyVerseWidgetBundle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -459,7 +459,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -474,7 +474,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.11;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -498,7 +498,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				INFOPLIST_FILE = Biblely/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Biblely;
@@ -508,7 +508,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.11;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

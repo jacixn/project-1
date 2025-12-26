@@ -54,6 +54,7 @@ import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
 import ThemeModal from '../components/ThemeModal';
+import AchievementService from '../services/achievementService';
 
 
 // Animated Profile Card Components (follows Rules of Hooks)
@@ -1019,7 +1020,7 @@ const ProfileTab = () => {
       
       // Load actual points from PrayerCompletionManager
       const totalPoints = await PrayerCompletionManager.getTotalPoints();
-      const level = Math.floor(totalPoints / 1000) + 1; // 1000 points per level
+      const level = AchievementService.getLevelFromPoints(totalPoints);
       
       // Get actual completed tasks count from todos
       const storedTodos = await AsyncStorage.getItem('fivefold_todos');
@@ -1257,22 +1258,32 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress - Exponential scaling as requested
-  // Level 1->2: 1k, Level 2->3: 2k, Level 3->4: 4k, etc.
+  // Calculate level progress - mirrors AchievementService (exp to 9, flat after)
+  const levelThresholds = [0, 1000, 3000, 7000, 15000, 31000, 63000, 127000, 255000]; // Level 1..9
+
   const getThresholdForLevel = (lvl) => {
     if (lvl <= 1) return 0;
-    // Formula: 1000 * (2^(lvl-1) - 1)
-    return 1000 * (Math.pow(2, lvl - 1) - 1);
+    if (lvl <= levelThresholds.length) return levelThresholds[lvl - 1];
+    const extraLevels = lvl - levelThresholds.length;
+    return levelThresholds[levelThresholds.length - 1] + extraLevels * 128000;
   };
 
   const getPointsNeededForNextLevel = (lvl) => {
-    // Gap(lvl) = 1000 * 2^(lvl-1)
-    return 1000 * Math.pow(2, lvl - 1);
+    if (lvl < 1) return 1000;
+    if (lvl < levelThresholds.length) {
+      return levelThresholds[lvl] - levelThresholds[lvl - 1];
+    }
+    return 128000; // flat after level 9
   };
 
+  const currentPoints = Math.max(userStats.points || 0, 0);
   const currentLevelThreshold = getThresholdForLevel(userStats.level);
   const nextLevelPoints = getPointsNeededForNextLevel(userStats.level);
-  const progress = Math.min((userStats.points - currentLevelThreshold) / nextLevelPoints, 1);
+  const nextTarget = currentLevelThreshold + nextLevelPoints;
+  const progress = Math.min(
+    nextLevelPoints > 0 ? (currentPoints - currentLevelThreshold) / nextLevelPoints : 0,
+    1
+  );
 
   // Profile Header Component
   const ProfileHeader = () => {
@@ -1371,7 +1382,7 @@ const ProfileTab = () => {
       <View style={styles.progressSection}>
         <View style={styles.progressInfo}>
           <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-            {(userStats.points - currentLevelThreshold).toLocaleString()} / {nextLevelPoints.toLocaleString()} {t.points || 'points'}
+            {currentPoints.toLocaleString()} / {nextTarget.toLocaleString()} {t.points || 'points'}
           </Text>
           <Text style={[styles.progressLevel, { color: theme.primary }]}>
             {t.level || 'Level'} {userStats.level + 1}
@@ -1715,7 +1726,28 @@ const ProfileTab = () => {
       style={[styles.aboutCard, { marginTop: 12 }]}
       onPress={() => {
         hapticFeedback.buttonPress();
-        setShowSettingsModal(true);
+        Alert.alert('New tools coming soon', 'Fresh controls and shortcuts are on the way.');
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+        <View style={styles.settingLeft}>
+          <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
+          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
+            New tools coming soon
+          </Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+      </View>
+    </AnimatedSettingsCard>
+  );
+
+  // Changes Button - sits between Settings and About
+  const ChangesButton = () => (
+    <AnimatedSettingsCard 
+      style={styles.aboutCard}
+      onPress={() => {
+        hapticFeedback.buttonPress();
+        setShowSettingsModal(true); // Open the settings modal
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
@@ -1860,6 +1892,7 @@ const ProfileTab = () => {
         {/* Badges Section */}
         <BadgesSection />
         <SettingsButton />
+        <ChangesButton />
         <AboutSection />
       </Animated.ScrollView>
 

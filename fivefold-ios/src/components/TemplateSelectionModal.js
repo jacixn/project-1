@@ -11,6 +11,7 @@ import {
   Alert,
   Animated,
   DeviceEventEmitter,
+  KeyboardAvoidingView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -1287,6 +1288,11 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           presentationStyle="fullScreen"
           onRequestClose={handleCancelEditor}
         >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+          >
           <View style={[styles.container, { backgroundColor: theme.background }]}>
             {/* Header */}
             <View style={[styles.editorHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
@@ -1301,7 +1307,12 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.editorContent} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.editorContent} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.editorContentContainer}
+            >
               {/* Template Name */}
               <View style={styles.editorSection}>
                 <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>Template Name</Text>
@@ -1511,6 +1522,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
               <View style={{ height: 100 }} />
             </ScrollView>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Mini Workout Player - Shows in template selection screen */}
@@ -1980,6 +1992,9 @@ const styles = StyleSheet.create({
   },
   editorContent: {
     flex: 1,
+  },
+  editorContentContainer: {
+    paddingBottom: 260, // Keeps fields visible above iOS number pad
   },
   editorSection: {
     padding: 20,

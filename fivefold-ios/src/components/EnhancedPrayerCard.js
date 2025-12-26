@@ -21,6 +21,7 @@ import TimePicker from './TimePicker';
 import AiBibleChat from './AiBibleChat';
 import VerseSimplificationService from '../services/verseSimplificationService';
 import PrayerManagementService from '../services/prayerManagementService';
+import AchievementService from '../services/achievementService';
 
 const PrayerSection = () => {
   const { theme } = useTheme();
@@ -294,7 +295,7 @@ const PrayerSection = () => {
         prayersCompleted: (stats.prayersCompleted || 0) + 1
       };
       
-      newStats.level = Math.floor(newStats.points / 1000) + 1;
+      newStats.level = AchievementService.getLevelFromPoints(newStats.points);
       await saveData('userStats', newStats);
     } catch (error) {
       console.error('❌ ERROR GIVING POINTS:', error);
@@ -679,7 +680,7 @@ const PrayerSection = () => {
                     <MaterialIcons name="check-circle" size={30} color="#ffffff" />
                     <Text style={styles.completeBtnText}>Complete Prayer</Text>
                     <View style={styles.pointsTag}>
-                      <Text style={styles.pointsTagText}>+500 pts</Text>
+                      <Text style={styles.pointsTagText}>+5,000 pts</Text>
                     </View>
                   </Pressable>
                 </ScrollView>

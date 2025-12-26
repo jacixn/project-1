@@ -1519,7 +1519,7 @@ const BiblePrayerTab = () => {
                           textShadowOffset: { width: 0, height: 1 },
                           textShadowRadius: 3
                         }}>
-                          "{dailyVerse.text}"
+                          {dailyVerse.text}
                         </Text>
                       </View>
 

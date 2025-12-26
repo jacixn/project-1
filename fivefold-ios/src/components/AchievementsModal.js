@@ -120,26 +120,6 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
       })
     );
 
-    const pointMilestones = [
-      1000, 5000, 10000, 15000, 20000, 30000, 40000, 50000,
-      75000, 100000, 150000, 200000, 300000, 400000, 500000, 750000, 1000000, 2000000,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `points_${value}`,
-        title:
-          value === 10000 ? 'Point Builder' :
-          value === 100000 ? 'Point Master' :
-          value === 1000000 ? 'Point Legend' :
-          'Point Milestone',
-        description: `Earn ${value.toLocaleString()} total points`,
-        category: 'points',
-        icon: 'star',
-        value,
-        current: points,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
     const streakMilestones = [
       7, 14, 21, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300, 365,
     ].map((value, i, arr) =>
@@ -298,7 +278,6 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
 
     const allAchievements = [
       ...taskMilestones,
-      ...pointMilestones,
       ...streakMilestones,
       ...prayerMilestones,
       ...verseMilestones,
@@ -379,7 +358,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                 ]} 
               />
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ gap: 4 }}>
               <Text style={[styles.progressText, { color: theme.textTertiary }]}>
                 {item.progress.toLocaleString()}/{item.target.toLocaleString()}
               </Text>
