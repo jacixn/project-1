@@ -270,6 +270,7 @@ const ProfileTab = () => {
   const [completedTodosList, setCompletedTodosList] = useState([]);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
   const [showJournal, setShowJournal] = useState(false);
+  const [journalLoading, setJournalLoading] = useState(false);
   
   // Modal animation refs for interactive dismissal
   const savedVersesSlideAnim = useRef(new Animated.Value(0)).current;
@@ -392,6 +393,7 @@ const ProfileTab = () => {
 
   const loadJournalNotes = async () => {
     try {
+      setJournalLoading(true);
       const notes = await VerseDataManager.getAllNotes();
       setJournalNotes(notes);
       console.log(`📖 Loaded ${notes.length} journal notes`);
@@ -443,6 +445,7 @@ const ProfileTab = () => {
         console.error('Error loading cached journal notes:', cacheErr);
       }
     }
+    setJournalLoading(false);
   };
 
   const loadHighlights = async () => {
@@ -2671,7 +2674,14 @@ const ProfileTab = () => {
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
               scrollEventThrottle={16}
             >
-              {journalNotes.length === 0 ? (
+              {journalLoading ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="hourglass-bottom" size={48} color={theme.textTertiary} />
+                  <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                    Loading your notes...
+                  </Text>
+                </View>
+              ) : journalNotes.length === 0 ? (
                 <View style={styles.emptyState}>
                   <MaterialIcons name="menu-book" size={64} color={theme.textTertiary} />
                   <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
