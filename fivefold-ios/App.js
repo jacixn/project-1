@@ -14,6 +14,7 @@ import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
+import AchievementToast from './src/components/AchievementToast';
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -103,6 +104,7 @@ const AppNavigation = () => {
   const { hasActiveWorkout, maximizeWorkout } = useWorkout();
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [modalTemplateData, setModalTemplateData] = useState(null);
+  const achievementToastRef = React.useRef(null);
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('openWorkoutModal', (payload = {}) => {
@@ -117,8 +119,16 @@ const AppNavigation = () => {
       setWorkoutModalVisible(true);
     });
 
+    const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
+      console.log('🏆 Achievement unlocked listener triggered:', data);
+      if (achievementToastRef.current) {
+        achievementToastRef.current.show(data.title, data.points);
+      }
+    });
+
     return () => {
       subscription.remove();
+      achievementSubscription.remove();
     };
   }, [hasActiveWorkout, maximizeWorkout]);
 
@@ -147,6 +157,9 @@ const AppNavigation = () => {
         }}
         templateData={modalTemplateData}
       />
+
+      {/* Global Achievement Notification */}
+      <AchievementToast ref={achievementToastRef} />
     </>
   );
 };

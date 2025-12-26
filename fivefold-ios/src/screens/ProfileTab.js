@@ -1257,10 +1257,11 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress
-  const currentLevelPoints = (userStats.level - 1) * 1000;
-  const nextLevelPoints = userStats.level * 1000;
-  const progress = Math.min((userStats.points - currentLevelPoints) / 1000, 1);
+  // Calculate level progress - Scaled for massive points
+  const pointsPerLevel = 1000000; // 1 Million points per level
+  const currentLevelPoints = (userStats.level - 1) * pointsPerLevel;
+  const nextLevelPoints = userStats.level * pointsPerLevel;
+  const progress = Math.min((userStats.points - currentLevelPoints) / pointsPerLevel, 1);
 
   // Profile Header Component
   const ProfileHeader = () => {
@@ -1359,7 +1360,7 @@ const ProfileTab = () => {
       <View style={styles.progressSection}>
         <View style={styles.progressInfo}>
           <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-            {userStats.points} / {nextLevelPoints} {t.points || 'points'}
+            {(userStats.points || 0).toLocaleString()} / {nextLevelPoints.toLocaleString()} {t.points || 'points'}
           </Text>
           <Text style={[styles.progressLevel, { color: theme.primary }]}>
             {t.level || 'Level'} {userStats.level + 1}

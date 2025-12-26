@@ -39,6 +39,7 @@ import TaskCompletionCelebration from '../components/TaskCompletionCelebration';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
+import AchievementService from '../services/achievementService';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 
 // Animated Todo Components (follows Rules of Hooks)
@@ -321,10 +322,10 @@ const TodosTab = () => {
 
       // Check specific daily achievements
       const dailyAchievements = [
-        { tasks: 5, title: "Daily Warrior", points: 50 },
-        { tasks: 10, title: "Daily Champion", points: 100 },
-        { tasks: 15, title: "Daily Legend", points: 200 },
-        { tasks: 25, title: "Daily Master", points: 300 },
+        { tasks: 5, title: "Daily Warrior", points: 250000 },
+        { tasks: 10, title: "Daily Champion", points: 500000 },
+        { tasks: 15, title: "Daily Legend", points: 1000000 },
+        { tasks: 25, title: "Daily Master", points: 2500000 },
       ];
 
       for (const achievement of dailyAchievements) {
@@ -341,7 +342,7 @@ const TodosTab = () => {
           setTimeout(() => {
             Alert.alert(
               '🏆 Achievement Unlocked!',
-              `${achievement.title}\n+${achievement.points} bonus points!`,
+              `${achievement.title}\n+${achievement.points.toLocaleString()} bonus points!`,
               [{ text: 'Awesome!', style: 'default' }]
             );
           }, 500);
@@ -353,11 +354,11 @@ const TodosTab = () => {
 
       // Check total tasks milestones (less frequent)
       const totalMilestones = [
-        { tasks: 25, title: "Task Master", points: 100 },
-        { tasks: 50, title: "Task Expert", points: 250 },
-        { tasks: 100, title: "Task Champion", points: 500 },
-        { tasks: 250, title: "Task Legend", points: 1000 },
-        { tasks: 500, title: "Task Master Supreme", points: 2000 },
+        { tasks: 25, title: "Task Master", points: 500000 },
+        { tasks: 50, title: "Task Expert", points: 1000000 },
+        { tasks: 100, title: "Task Champion", points: 2500000 },
+        { tasks: 250, title: "Task Legend", points: 5000000 },
+        { tasks: 500, title: "Task Master Supreme", points: 10000000 },
       ];
 
       for (const milestone of totalMilestones) {
@@ -393,7 +394,7 @@ const TodosTab = () => {
       );
       
       const completedTodo = updatedTodos.find(todo => todo.id === todoId);
-      const pointsEarned = completedTodo?.points || 0;
+      const pointsEarned = 50000; // 50k points per task
       const newCompletedTasks = userStats.completedTasks + 1;
       
       const updatedStats = {
@@ -401,7 +402,7 @@ const TodosTab = () => {
         totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         completedTasks: newCompletedTasks,
-        level: Math.floor(((userStats.totalPoints || userStats.points || 0) + pointsEarned) / 1000) + 1,
+        level: Math.floor(((userStats.totalPoints || userStats.points || 0) + pointsEarned) / 1000000) + 1,
       };
       
       setTodos(updatedTodos);
@@ -409,6 +410,9 @@ const TodosTab = () => {
       
       await saveData('todos', updatedTodos);
       await saveData('userStats', updatedStats);
+
+      // Global Achievement Check
+      await AchievementService.checkAchievements(updatedStats);
       
       await checkAndSendAchievements(newCompletedTasks, updatedTodos);
       

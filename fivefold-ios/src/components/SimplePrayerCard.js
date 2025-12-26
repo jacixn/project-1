@@ -29,6 +29,7 @@ import EditPrayerModal from './EditPrayerModal';
 import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
+import AchievementService from '../services/achievementService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
@@ -755,7 +756,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         return;
       }
 
-      // Award 500 points
+      // Award massive points
       const currentStats = await getStoredData('userStats') || {
         points: 0,
         level: 1,
@@ -764,14 +765,18 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayersCompleted: 0
       };
       
+      const pointsEarned = 100000; // 100k points per prayer
       const updatedStats = {
         ...currentStats,
-        points: currentStats.points + 500,
+        points: (currentStats.points || 0) + pointsEarned,
         prayersCompleted: (currentStats.prayersCompleted || 0) + 1
       };
       
-      updatedStats.level = Math.floor(updatedStats.points / 1000) + 1;
+      updatedStats.level = Math.floor(updatedStats.points / 1000000) + 1;
       await saveData('userStats', updatedStats);
+      
+      // Global Achievement Check
+      await AchievementService.checkAchievements(updatedStats);
 
       // Mark prayer as completed with timestamp
       // For one-time prayers, remove them; for persistent prayers, mark as completed AND fetch new verses
@@ -823,8 +828,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       }
       
       const message = prayer.type === 'one-time' 
-        ? 'Wonderful! You earned 500 points. This one-time prayer has been completed and removed.'
-        : 'Wonderful! You earned 500 points. You can complete this prayer again in 24 hours.';
+        ? `Wonderful! You earned ${pointsEarned.toLocaleString()} points. This one-time prayer has been completed and removed.`
+        : `Wonderful! You earned ${pointsEarned.toLocaleString()} points. You can complete this prayer again in 24 hours.`;
       
         Alert.alert(
           'Prayer Completed! 🙏',

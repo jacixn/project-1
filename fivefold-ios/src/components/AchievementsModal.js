@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,35 +6,51 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
+  View as SafeAreaView, // Switched to View to ignore bottom safe area as requested
   TextInput,
   FlatList,
   Dimensions,
+  Platform,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-// Removed InteractiveSwipeBack import
-// GlassCard import removed (unused)
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
-const { width } = Dimensions.get('window');
-const CARD_SIZE = (width - 60) / 3; // 3 cards per row with spacing
+const { width, height } = Dimensions.get('window');
+const CARD_SIZE = (width - 50) / 2; // 2 cards per row for more impact and space
 
 const AchievementsModal = ({ visible, onClose, userStats }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-
   const [achievements, setAchievements] = useState([]);
-
-
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
-    if (!visible) return;
-    generateAchievements();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        })
+      ]).start();
+      generateAchievements();
+    } else {
+      fadeAnim.setValue(0);
+      slideAnim.setValue(50);
+    }
   }, [visible, userStats]);
-
-
 
   const generateAchievements = () => {
     const stats = userStats || {};
@@ -68,12 +84,14 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     });
 
     const tierReward = (i, total) => {
-      // Escalating reward so higher tiers feel meaningfully better
-      if (i >= total - 3) return 10000;
-      if (i >= total - 7) return 5000;
-      if (i >= total - 12) return 2500;
-      if (i >= total - 16) return 1500;
-      return 1000;
+      // MASSIVE rewards as requested: hundreds of thousands to millions
+      const percent = i / total;
+      if (percent >= 0.95) return 10000000; // 10 Million for the very hardest
+      if (percent >= 0.85) return 5000000;  // 5 Million
+      if (percent >= 0.7) return 2500000;   // 2.5 Million
+      if (percent >= 0.5) return 1500000;   // 1.5 Million
+      if (percent >= 0.25) return 750000;   // 750k
+      return 500000; // 500k for basic milestones
     };
 
     const taskMilestones = [
@@ -225,7 +243,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
         target: 1,
         progress: (completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500) ? 1 : 0,
         completed: completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500,
-        points: 5000,
+        points: 1000000,
       },
       {
         id: 'special_devoted_builder',
@@ -236,7 +254,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
         target: 1,
         progress: (completedTasks >= 500 && points >= 50000 && streakDays >= 60) ? 1 : 0,
         completed: completedTasks >= 500 && points >= 50000 && streakDays >= 60,
-        points: 7500,
+        points: 2500000,
       },
       {
         id: 'special_scripture_and_prayer',
@@ -247,7 +265,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
         target: 1,
         progress: (versesRead >= 2000 && prayersCompleted >= 500) ? 1 : 0,
         completed: versesRead >= 2000 && prayersCompleted >= 500,
-        points: 7500,
+        points: 2500000,
       },
       {
         id: 'special_deep_rooted',
@@ -258,7 +276,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
         target: 1,
         progress: (streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000) ? 1 : 0,
         completed: streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000,
-        points: 10000,
+        points: 5000000,
       },
       {
         id: 'special_fivefold_legend',
@@ -269,7 +287,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
         target: 1,
         progress: (completedTasks >= 2000 && points >= 250000 && streakDays >= 365) ? 1 : 0,
         completed: completedTasks >= 2000 && points >= 250000 && streakDays >= 365,
-        points: 15000,
+        points: 10000000,
       },
     ];
 
@@ -284,10 +302,6 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
       ...special,
     ];
 
-    // Exactly 100 achievements by construction (keep as a guardrail)
-    if (allAchievements.length !== 100) {
-      console.warn(`Achievements list should be 100, got ${allAchievements.length}`);
-    }
     setAchievements(allAchievements);
   };
 
@@ -297,105 +311,142 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     return matchesSearch;
   });
 
-
-
   const renderAchievement = ({ item }) => (
-    <TouchableOpacity 
-      style={[
-        styles.achievementCard, 
-        { 
-          backgroundColor: item.completed ? theme.primary + '20' : theme.card,
-          borderColor: item.completed ? theme.primary : theme.border,
-        }
-      ]}
+    <Animated.View
+      style={{
+        transform: [{ scale: item.completed ? 1 : 0.98 }],
+        opacity: item.completed ? 1 : 0.8
+      }}
     >
-      <View style={[styles.achievementIcon, { 
-        backgroundColor: item.completed ? theme.primary : theme.surface 
-      }]}>
-        <MaterialIcons 
-          name={item.icon} 
-          size={24} 
-          color={item.completed ? '#FFFFFF' : theme.primary} 
-        />
-      </View>
-      
-      <Text style={[styles.achievementTitle, { color: theme.text }]} numberOfLines={2}>
-        {item.title}
-      </Text>
-      
-      <Text style={[styles.achievementDesc, { color: theme.textSecondary }]} numberOfLines={3}>
-        {item.description}
-      </Text>
-      
-      <View style={styles.achievementProgress}>
-        <View style={[styles.progressBar, { backgroundColor: theme.surface }]}>
-          <View 
-            style={[
-              styles.progressFill, 
-              { 
-                backgroundColor: theme.primary,
-                width: `${Math.min((item.progress / item.target) * 100, 100)}%`
-              }
-            ]} 
+      <TouchableOpacity 
+        activeOpacity={0.8}
+        style={[
+          styles.achievementCard, 
+          { 
+            backgroundColor: item.completed ? `${theme.primary}15` : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+            borderColor: item.completed ? theme.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+          }
+        ]}
+      >
+        {item.completed && (
+          <LinearGradient
+            colors={[`${theme.primary}20`, 'transparent']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        )}
+
+        <View style={[styles.achievementIcon, { 
+          backgroundColor: item.completed ? theme.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+          shadowColor: theme.primary,
+          shadowOpacity: item.completed ? 0.5 : 0,
+          shadowRadius: 10,
+          elevation: item.completed ? 10 : 0
+        }]}>
+          <MaterialIcons 
+            name={item.icon} 
+            size={28} 
+            color={item.completed ? '#FFFFFF' : theme.textTertiary} 
           />
         </View>
-        <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-          {item.progress}/{item.target} · {Number(item.points || 0).toLocaleString()} pts
-        </Text>
-      </View>
-      
-
-      
-      {item.completed && (
-        <View style={[styles.completedBadge, { backgroundColor: theme.primary }]}>
-          <MaterialIcons name="check" size={16} color="#FFFFFF" />
+        
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.achievementTitle, { color: theme.text }]} numberOfLines={1}>
+            {item.title}
+          </Text>
+          
+          <Text style={[styles.achievementDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+            {item.description}
+          </Text>
+          
+          <View style={styles.achievementProgress}>
+            <View style={[styles.progressBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+              <LinearGradient
+                colors={[theme.primary, `${theme.primary}80`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${Math.min((item.progress / item.target) * 100, 100)}%`
+                  }
+                ]} 
+              />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={[styles.progressText, { color: theme.textTertiary }]}>
+                {item.progress.toLocaleString()}/{item.target.toLocaleString()}
+              </Text>
+              <Text style={[styles.pointsText, { color: item.completed ? theme.primary : theme.textTertiary, fontWeight: '800' }]}>
+                +{Number(item.points || 0).toLocaleString()} PTS
+              </Text>
+            </View>
+          </View>
         </View>
-      )}
-    </TouchableOpacity>
+        
+        {item.completed && (
+          <View style={[styles.completedBadge, { backgroundColor: theme.primary }]}>
+            <MaterialIcons name="check" size={12} color="#FFFFFF" />
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-            </TouchableOpacity>
-          <View style={styles.headerCenter}>
-                          <Text style={[styles.headerTitle, { color: theme.text }]}>
-                Achievements
-              </Text>
-          </View>
-          <View style={styles.headerRight} />
-        </View>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <View style={[styles.searchBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-            <TextInput
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search achievements..."
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-        </View>
-
-
-
-        {/* Achievements Grid */}
-        <FlatList
-          data={filteredAchievements}
-          renderItem={renderAchievement}
-          keyExtractor={item => item.id}
-          numColumns={3}
-          contentContainerStyle={styles.achievementsContainer}
-          showsVerticalScrollIndicator={false}
+    <Modal visible={visible} animationType="none" transparent>
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <LinearGradient
+          colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
+          style={StyleSheet.absoluteFill}
         />
-      </SafeAreaView>
+        
+        <Animated.View style={[styles.container, { 
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}>
+          {/* Header */}
+          <BlurView intensity={Platform.OS === 'ios' ? 20 : 100} tint={isDark ? 'dark' : 'light'} style={styles.headerContainer}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 8 }}>
+                  <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.headerCenter}>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Achievements</Text>
+                <View style={{ width: 30, height: 4, backgroundColor: theme.primary, borderRadius: 2, marginTop: 4 }} />
+              </View>
+              <View style={styles.headerRight} />
+            </View>
+
+            {/* Search */}
+            <View style={styles.searchContainer}>
+              <View style={[styles.searchBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, { color: theme.text }]}
+                  placeholder="Search milestones..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+            </View>
+          </BlurView>
+
+          <FlatList
+            data={filteredAchievements}
+            renderItem={renderAchievement}
+            keyExtractor={item => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.achievementsContainer}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+          />
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -403,105 +454,126 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 0 : 0, // HeaderContainer handles blur and padding
+  },
+  headerContainer: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+    zIndex: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 10,
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    zIndex: 11,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
+    marginRight: 40, // Balance the back button
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
-
   headerRight: {
     width: 40,
   },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
     fontSize: 16,
+    fontWeight: '600',
   },
-
   achievementsContainer: {
-    padding: 20,
+    padding: 16,
+    paddingTop: 20,
+    paddingBottom: 100, // Space for bottom of list
   },
   achievementCard: {
     width: CARD_SIZE,
-    marginRight: 10,
     marginBottom: 16,
-    padding: 12,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 24,
     borderWidth: 1,
     position: 'relative',
+    overflow: 'hidden',
   },
   achievementIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   achievementTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
     marginBottom: 4,
-    minHeight: 34,
+    letterSpacing: -0.2,
   },
   achievementDesc: {
-    fontSize: 11,
-    marginBottom: 8,
-    minHeight: 33,
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+    opacity: 0.7,
   },
   achievementProgress: {
-    marginBottom: 8,
+    marginTop: 'auto',
   },
   progressBar: {
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 4,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 8,
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 10,
+    fontWeight: '700',
+    opacity: 0.6,
   },
-
+  pointsText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
   completedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     width: 20,
     height: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  // Removed preview styles
 });
 
 export default AchievementsModal;
