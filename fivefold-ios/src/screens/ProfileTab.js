@@ -2905,15 +2905,18 @@ const ProfileTab = () => {
 
             {/* Add Entry Bottom Sheet Modal - Appears on top */}
             {isAddingEntry && (
-              <View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                justifyContent: 'flex-end',
-                zIndex: 2000
-              }}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  justifyContent: 'flex-end',
+                  zIndex: 2000
+                }}
+              >
                 {/* Backdrop */}
                 <TouchableOpacity
                   activeOpacity={1}
@@ -3096,7 +3099,7 @@ const ProfileTab = () => {
                       </TouchableOpacity>
                   </ScrollView>
                 </Animated.View>
-              </View>
+              </KeyboardAvoidingView>
             )}
             </View>
 
