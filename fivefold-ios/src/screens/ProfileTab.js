@@ -2835,26 +2835,16 @@ const ProfileTab = () => {
                                   style: 'destructive',
                                   onPress: async () => {
                                     const noteId = note.id;
-                                    console.log('🗑️ DELETE STARTING for id:', noteId);
                                     
-                                    // Read current notes
+                                    // Read, filter, save
                                     const raw = await AsyncStorage.getItem('journalNotes');
                                     const allNotes = raw ? JSON.parse(raw) : [];
-                                    console.log('🗑️ Before delete, notes count:', allNotes.length);
-                                    console.log('🗑️ All note IDs:', allNotes.map(n => n.id));
-                                    
-                                    // Filter out the note
                                     const remaining = allNotes.filter(n => n.id !== noteId);
-                                    console.log('🗑️ After filter, notes count:', remaining.length);
-                                    
-                                    // Save back
                                     await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
-                                    console.log('🗑️ Saved to storage');
                                     
-                                    // Update UI directly without reload
+                                    // Update UI
                                     setJournalNotes(remaining);
-                                    
-                                    Alert.alert('Deleted', `Removed 1 note. ${remaining.length} remaining.`);
+                                    hapticFeedback.light();
                                   }
                                 }
                               ]
