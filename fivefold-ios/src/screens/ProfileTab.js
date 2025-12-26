@@ -395,6 +395,9 @@ const ProfileTab = () => {
       const notes = await VerseDataManager.getAllNotes();
       setJournalNotes(notes);
       console.log(`📖 Loaded ${notes.length} journal notes`);
+
+      // Persist a lightweight cache in case loading fails later
+      await AsyncStorage.setItem('journalNotes_cache', JSON.stringify(notes || []));
       
       // Fetch verse texts only for notes with valid Bible references
       const verseTexts = {};
@@ -412,6 +415,10 @@ const ProfileTab = () => {
             }
           } catch (error) {
             console.error(`Error fetching verse for ${note.verseReference}:`, error);
+            // Keep existing text if already cached
+            if (journalVerseTexts[note.id]) {
+              verseTexts[note.id] = journalVerseTexts[note.id];
+            }
           }
         } else {
           console.log(`📝 Skipping non-verse reference: ${note.verseReference}`);
@@ -420,6 +427,17 @@ const ProfileTab = () => {
       setJournalVerseTexts(verseTexts);
     } catch (error) {
       console.error('Error loading journal notes:', error);
+      // Attempt a fallback from cache if available
+      try {
+        const cached = await AsyncStorage.getItem('journalNotes_cache');
+        if (cached) {
+          const cachedNotes = JSON.parse(cached);
+          setJournalNotes(cachedNotes);
+          console.log(`📖 Restored ${cachedNotes.length} journal notes from cache`);
+        }
+      } catch (cacheErr) {
+        console.error('Error loading cached journal notes:', cacheErr);
+      }
     }
   };
 
