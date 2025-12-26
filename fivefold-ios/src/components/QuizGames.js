@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
+import AchievementService from '../services/achievementService';
 
 const CATEGORY_ICON_FALLBACK = {
   all: 'ALL',
@@ -41,6 +42,7 @@ const QuizGames = ({ visible, onClose }) => {
   const [timer, setTimer] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [bonusPointsEarned, setBonusPointsEarned] = useState(0);
 
   // Load data on mount
   useEffect(() => {
@@ -151,6 +153,7 @@ const QuizGames = ({ visible, onClose }) => {
     setUserAnswers([]);
     setScore(0);
     setTimer(0);
+    setBonusPointsEarned(0);
     setCurrentScreen('quiz');
     hapticFeedback.medium(); // Haptic when quiz starts
   };
@@ -188,6 +191,8 @@ const QuizGames = ({ visible, onClose }) => {
       if (currentIndex < currentQuiz.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
+        // Award points for completing the quiz
+        awardQuizPoints(currentQuiz.length);
         setCurrentScreen('results');
       }
     }
@@ -199,6 +204,8 @@ const QuizGames = ({ visible, onClose }) => {
     if (currentIndex < currentQuiz.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
+      // Award points for completing the quiz
+      awardQuizPoints(currentQuiz.length);
       setCurrentScreen('results');
     }
   };
@@ -207,6 +214,48 @@ const QuizGames = ({ visible, onClose }) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Award points when quiz is completed (100 points per question)
+  const awardQuizPoints = async (numQuestions) => {
+    try {
+      const pointsEarned = numQuestions * 100; // 5 questions = 500, 10 = 1000, etc.
+      setBonusPointsEarned(pointsEarned);
+      
+      // Get current stats
+      const statsData = await AsyncStorage.getItem('userStats');
+      const currentStats = statsData ? JSON.parse(statsData) : {
+        points: 0,
+        level: 1,
+        completedTasks: 0,
+        streak: 0,
+        quizzesCompleted: 0
+      };
+      
+      // Update stats
+      const updatedStats = {
+        ...currentStats,
+        points: (currentStats.points || 0) + pointsEarned,
+        quizzesCompleted: (currentStats.quizzesCompleted || 0) + 1,
+      };
+      
+      // Recalculate level
+      updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
+      
+      // Save updated stats
+      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      
+      // Check achievements
+      await AchievementService.checkAchievements(updatedStats);
+      
+      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions`);
+      hapticFeedback.success(); // Haptic for earning points!
+      
+      return pointsEarned;
+    } catch (error) {
+      console.error('Error awarding quiz points:', error);
+      return 0;
+    }
   };
 
   const getSafeCategoryIconText = (category) => {
@@ -650,11 +699,20 @@ const QuizGames = ({ visible, onClose }) => {
           <View style={styles.resultsStats}>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{score}</Text>
-              <Text style={styles.statLabel}>Points</Text>
+              <Text style={styles.statLabel}>Quiz Score</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{formatTime(timer)}</Text>
               <Text style={styles.statLabel}>Time</Text>
+            </View>
+          </View>
+          
+          {/* Bonus Points Earned */}
+          <View style={[styles.bonusPointsCard, { backgroundColor: selectedCategory.color + '20' }]}>
+            <MaterialIcons name="stars" size={28} color={selectedCategory.color} />
+            <View style={styles.bonusPointsText}>
+              <Text style={[styles.bonusPointsValue, { color: selectedCategory.color }]}>+{bonusPointsEarned.toLocaleString()}</Text>
+              <Text style={styles.bonusPointsLabel}>Points Earned!</Text>
             </View>
           </View>
 
@@ -1079,7 +1137,28 @@ const styles = StyleSheet.create({
   resultsStats: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+  bonusPointsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  bonusPointsText: {
+    alignItems: 'flex-start',
+  },
+  bonusPointsValue: {
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  bonusPointsLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666666',
   },
   statBox: {
     flex: 1,
