@@ -1257,17 +1257,17 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress - Arithmetic scaling as requested
-  // Level 1->2: 1k, Level 2->3: 2k, Level 3->4: 3k, etc.
+  // Calculate level progress - Exponential scaling as requested
+  // Level 1->2: 1k, Level 2->3: 2k, Level 3->4: 4k, etc.
   const getThresholdForLevel = (lvl) => {
     if (lvl <= 1) return 0;
-    // Threshold(lvl) = 500 * lvl * (lvl - 1)
-    return 500 * lvl * (lvl - 1);
+    // Formula: 1000 * (2^(lvl-1) - 1)
+    return 1000 * (Math.pow(2, lvl - 1) - 1);
   };
 
   const getPointsNeededForNextLevel = (lvl) => {
-    // Gap(lvl) = 1000 * lvl
-    return 1000 * lvl;
+    // Gap(lvl) = 1000 * 2^(lvl-1)
+    return 1000 * Math.pow(2, lvl - 1);
   };
 
   const currentLevelThreshold = getThresholdForLevel(userStats.level);
