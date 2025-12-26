@@ -2845,19 +2845,32 @@ const ProfileTab = () => {
                                         return next;
                                       });
                                       
-                                      // Delete from the correct storage location
-                                      if (verseId && verseId.startsWith('custom_')) {
-                                        // This is a + button entry, delete from journalNotes
+                                      // Delete from BOTH storage locations to be safe
+                                      console.log(`🗑️ Deleting note: id=${noteId}, verseId=${verseId}`);
+                                      
+                                      // Always try to delete from journalNotes (+ button entries)
+                                      try {
                                         const existingNotes = await AsyncStorage.getItem('journalNotes');
                                         if (existingNotes) {
                                           const notes = JSON.parse(existingNotes);
-                                          const filtered = notes.filter(n => n.id !== noteId);
-                                          await AsyncStorage.setItem('journalNotes', JSON.stringify(filtered));
-                                          console.log(`🗑️ Deleted journal entry ${noteId} from journalNotes`);
+                                          const beforeCount = notes.length;
+                                          const filtered = notes.filter(n => String(n.id) !== String(noteId));
+                                          if (filtered.length < beforeCount) {
+                                            await AsyncStorage.setItem('journalNotes', JSON.stringify(filtered));
+                                            console.log(`🗑️ Deleted from journalNotes: ${beforeCount} -> ${filtered.length}`);
+                                          }
                                         }
-                                      } else {
-                                        // This is a long-press verse note, delete from verse_data
-                                        await VerseDataManager.deleteNote(verseId, noteId);
+                                      } catch (e) {
+                                        console.log('journalNotes delete error:', e);
+                                      }
+                                      
+                                      // Also try to delete from verse_data (long-press notes)
+                                      try {
+                                        if (verseId) {
+                                          await VerseDataManager.deleteNote(verseId, noteId);
+                                        }
+                                      } catch (e) {
+                                        console.log('verse_data delete error:', e);
                                       }
                                       await loadJournalNotes();
                                     } catch (err) {
