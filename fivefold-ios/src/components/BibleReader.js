@@ -3492,6 +3492,76 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                 ) : (
                   /* Main Menu Options */
                   <View style={{ paddingHorizontal: 20 }}>
+                    {/* Listen Option */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.card,
+                        borderRadius: 12,
+                        marginBottom: 12
+                      }}
+                      onPress={listenToVerse}
+                    >
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: `${theme.primary}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12
+                      }}>
+                        <MaterialIcons name="volume-up" size={20} color={theme.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                          Listen
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                          Hear this verse read aloud
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Listen Auto-Play Option */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.card,
+                        borderRadius: 12,
+                        marginBottom: 12
+                      }}
+                      onPress={listenWithAutoPlay}
+                    >
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: `${theme.primary}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12
+                      }}>
+                        <MaterialIcons name="playlist-play" size={22} color={theme.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                          Listen Continuously
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                          Keep reading from this verse
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
                     {/* Discuss Option */}
                     <TouchableOpacity
                       style={{
@@ -3631,76 +3701,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         </Text>
                         <Text style={{ fontSize: 13, color: theme.textSecondary }}>
                           {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Already in your saved verses' : 'Add to your saved verses'}
-                        </Text>
-                      </View>
-                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Listen Option */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 16,
-                        backgroundColor: theme.card,
-                        borderRadius: 12,
-                        marginBottom: 12
-                      }}
-                      onPress={listenToVerse}
-                    >
-                      <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: `${theme.primary}20`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12
-                      }}>
-                        <MaterialIcons name="volume-up" size={20} color={theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          Listen
-                        </Text>
-                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          Hear this verse read aloud
-                        </Text>
-                      </View>
-                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Listen Auto-Play Option */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 16,
-                        backgroundColor: theme.card,
-                        borderRadius: 12,
-                        marginBottom: 12
-                      }}
-                      onPress={listenWithAutoPlay}
-                    >
-                      <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: `${theme.primary}20`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12
-                      }}>
-                        <MaterialIcons name="playlist-play" size={22} color={theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          Listen Continuously
-                        </Text>
-                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          Keep reading from this verse
                         </Text>
                       </View>
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
