@@ -448,6 +448,11 @@ const BiblePrayerTab = () => {
       initialVerseShown.current = true;
       // slight delay so the UI is ready before animating
       setTimeout(() => {
+        // Skip if launched from widget (user wants specific verse, not daily verse)
+        if (global.__WIDGET_LAUNCH__) {
+          console.log('📱 Skipping Verse of the Day - launched from widget');
+          return;
+        }
         if (!showVerseModal) {
           openVerseModal();
         }
@@ -497,7 +502,12 @@ const BiblePrayerTab = () => {
     const handleWidgetNavigation = (verseReference) => {
       console.log('📱 Widget navigation received:', verseReference);
       
-      // Open Bible reader and navigate to the verse
+      // Close Verse of the Day modal if somehow open
+      if (showVerseModal) {
+        setShowVerseModal(false);
+      }
+      
+      // Navigate to the verse
       setTimeout(() => {
         handleNavigateToVerse(verseReference, 'navigate');
       }, 300);
@@ -508,7 +518,7 @@ const BiblePrayerTab = () => {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [showVerseModal]);
 
   const initializePrayerData = async () => {
     try {

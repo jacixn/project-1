@@ -187,10 +187,19 @@ const ThemedApp = () => {
           const decodedRef = decodeURIComponent(reference);
           console.log('📖 Widget tap - navigating to verse:', decodedRef);
           
+          // Set global flag to suppress Verse of the Day
+          // (user tapped widget for a specific verse, they don't need daily verse)
+          global.__WIDGET_LAUNCH__ = true;
+          
           // Small delay to ensure app is ready
           setTimeout(() => {
             // Navigate to Bible/Prayer tab and open verse
             DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
+            
+            // Clear the flag after navigation
+            setTimeout(() => {
+              global.__WIDGET_LAUNCH__ = false;
+            }, 1000);
           }, 500);
         }
       }
