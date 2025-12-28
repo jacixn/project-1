@@ -40,6 +40,8 @@ import VerseJournalingModal from './VerseJournalingModal';
 import bibleReferenceParser from '../utils/bibleReferenceParser';
 import productionAiService from '../services/productionAiService';
 import { GITHUB_CONFIG } from '../../github.config';
+import bibleAudioService from '../services/bibleAudioService';
+import AudioPlayerBar from './AudioPlayerBar';
 // Removed InteractiveSwipeBack import
 
 const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }) => {
@@ -123,6 +125,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [shareCardTextMode, setShareCardTextMode] = useState('quoted'); // 'quoted' | 'full'
   const [shareCardText, setShareCardText] = useState('');
   const [shareCardEndVerseNumber, setShareCardEndVerseNumber] = useState(null);
+  
+  // Audio player state
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isAudioPaused, setIsAudioPaused] = useState(false);
+  const [audioAutoPlayEnabled, setAudioAutoPlayEnabled] = useState(false);
+  const [currentAudioVerse, setCurrentAudioVerse] = useState(null);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   
   // Load recent searches on mount
   useEffect(() => {
@@ -970,6 +979,143 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   };
 
   // Save verse to saved verses
+  
+  // ========== AUDIO FUNCTIONS ==========
+  
+  // Setup audio service callbacks
+  useEffect(() => {
+    bibleAudioService.onPlaybackStateChange = (state) => {
+      setIsAudioPlaying(state.isPlaying);
+      setIsAudioPaused(state.isPaused);
+      setAudioAutoPlayEnabled(state.autoPlayEnabled);
+      if (state.currentVerse) {
+        setCurrentAudioVerse(state.currentVerse.verse);
+      }
+    };
+    
+    bibleAudioService.onVerseChange = (verse, index) => {
+      setCurrentAudioVerse(verse);
+    };
+    
+    bibleAudioService.onComplete = () => {
+      setShowAudioPlayer(false);
+      setCurrentAudioVerse(null);
+    };
+    
+    return () => {
+      bibleAudioService.onPlaybackStateChange = null;
+      bibleAudioService.onVerseChange = null;
+      bibleAudioService.onComplete = null;
+    };
+  }, []);
+  
+  // Listen to a single verse
+  const listenToVerse = async () => {
+    if (!selectedVerseForMenu || !currentBook || !currentChapter) return;
+    
+    hapticFeedback.medium();
+    
+    // Close verse menu first
+    closeVerseMenu();
+    
+    // Show the audio player
+    setShowAudioPlayer(true);
+    setCurrentAudioVerse(selectedVerseForMenu);
+    
+    try {
+      await bibleAudioService.speakVerse({
+        book: currentBook.name,
+        chapter: currentChapter.number,
+        verse: selectedVerseForMenu,
+        announceReference: true,
+      });
+    } catch (error) {
+      console.error('Failed to play verse audio:', error);
+      Alert.alert('Audio Error', 'Failed to play verse audio. Please try again.');
+      setShowAudioPlayer(false);
+    }
+  };
+  
+  // Listen with auto-play (continuous reading)
+  const listenWithAutoPlay = async () => {
+    if (!selectedVerseForMenu || !currentBook || !currentChapter || !verses.length) return;
+    
+    hapticFeedback.medium();
+    
+    // Close verse menu first
+    closeVerseMenu();
+    
+    // Find the index of the selected verse
+    const verseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+    const startIndex = verses.findIndex(v => 
+      (v.number || v.verse) === verseNumber
+    );
+    
+    if (startIndex === -1) {
+      Alert.alert('Error', 'Could not find the selected verse.');
+      return;
+    }
+    
+    // Show the audio player
+    setShowAudioPlayer(true);
+    setCurrentAudioVerse(selectedVerseForMenu);
+    setAudioAutoPlayEnabled(true);
+    
+    try {
+      await bibleAudioService.startAutoPlay({
+        book: currentBook.name,
+        chapter: currentChapter.number,
+        verses: verses,
+        startIndex: startIndex,
+      });
+    } catch (error) {
+      console.error('Failed to start auto-play:', error);
+      Alert.alert('Audio Error', 'Failed to start audio playback. Please try again.');
+      setShowAudioPlayer(false);
+    }
+  };
+  
+  // Stop audio playback
+  const stopAudio = async () => {
+    await bibleAudioService.stop();
+    setShowAudioPlayer(false);
+    setCurrentAudioVerse(null);
+    setAudioAutoPlayEnabled(false);
+  };
+  
+  // Toggle auto-play mode
+  const toggleAutoPlay = async () => {
+    if (audioAutoPlayEnabled) {
+      // Disable auto-play, just let current verse finish
+      bibleAudioService.autoPlayEnabled = false;
+      setAudioAutoPlayEnabled(false);
+    } else {
+      // Enable auto-play from current position
+      if (currentAudioVerse && currentBook && currentChapter) {
+        const verseNumber = currentAudioVerse.number || currentAudioVerse.verse;
+        const startIndex = verses.findIndex(v => 
+          (v.number || v.verse) === verseNumber
+        );
+        
+        if (startIndex !== -1) {
+          await bibleAudioService.startAutoPlay({
+            book: currentBook.name,
+            chapter: currentChapter.number,
+            verses: verses,
+            startIndex: startIndex,
+          });
+        }
+      }
+    }
+  };
+  
+  // Close audio player
+  const closeAudioPlayer = async () => {
+    await stopAudio();
+  };
+  
+  // ========== END AUDIO FUNCTIONS ==========
+  
   // Share verse function
   const shareVerse = () => {
     if (!selectedVerseForMenu) return;
@@ -3490,6 +3636,76 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
 
+                    {/* Listen Option */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.card,
+                        borderRadius: 12,
+                        marginBottom: 12
+                      }}
+                      onPress={listenToVerse}
+                    >
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: `${theme.primary}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12
+                      }}>
+                        <MaterialIcons name="volume-up" size={20} color={theme.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                          Listen
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                          Hear this verse read aloud
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Listen Auto-Play Option */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.card,
+                        borderRadius: 12,
+                        marginBottom: 12
+                      }}
+                      onPress={listenWithAutoPlay}
+                    >
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: `${theme.primary}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12
+                      }}>
+                        <MaterialIcons name="playlist-play" size={22} color={theme.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                          Listen Continuously
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                          Keep reading from this verse
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
                     {/* Share Option */}
                     <TouchableOpacity
                       style={{
@@ -4190,6 +4406,20 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
               </KeyboardAvoidingView>
             </View>
           )}
+          
+          {/* Audio Player Bar */}
+          <AudioPlayerBar
+            visible={showAudioPlayer}
+            currentVerse={currentAudioVerse}
+            bookName={currentBook?.name || ''}
+            chapterNumber={currentChapter?.number || 1}
+            isPlaying={isAudioPlaying}
+            isPaused={isAudioPaused}
+            autoPlayEnabled={audioAutoPlayEnabled}
+            onStop={stopAudio}
+            onToggleAutoPlay={toggleAutoPlay}
+            onClose={closeAudioPlayer}
+          />
           
         </View>
       </Modal>

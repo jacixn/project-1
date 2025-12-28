@@ -48,6 +48,7 @@ import { hapticFeedback, updateHapticsSetting } from '../utils/haptics';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } from '../data/bibleVersions';
 import AiBibleChat from '../components/AiBibleChat';
+import bibleAudioService from '../services/bibleAudioService';
 import BibleReader from '../components/BibleReader';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
 import AppStreakManager from '../utils/appStreakManager';
@@ -235,6 +236,7 @@ const ProfileTab = () => {
   const [showBibleVersionModal, setShowBibleVersionModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
+  const [audioVoiceGender, setAudioVoiceGender] = useState('female'); // 'male' or 'female'
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
@@ -1012,6 +1014,10 @@ const ProfileTab = () => {
       } else {
         setWeightUnit('kg'); // Default to kg
       }
+      
+      // Load audio voice preference
+      const audioSettings = bibleAudioService.getSettings();
+      setAudioVoiceGender(audioSettings.voiceGender || 'female');
 
       const storedPurchasedVersions = await AsyncStorage.getItem('purchasedBibleVersions');
       if (storedPurchasedVersions) {
@@ -2540,6 +2546,30 @@ const ProfileTab = () => {
               <View style={styles.settingRight}>
                 <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
                   {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+            
+            {/* Audio Voice Setting */}
+            <TouchableOpacity 
+              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
+                setAudioVoiceGender(newGender);
+                await bibleAudioService.setVoiceGender(newGender);
+              }}
+            >
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
+                <Text style={[styles.settingLabel, { color: theme.text }]}>
+                  Bible Audio Voice
+                </Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                  {audioVoiceGender === 'female' ? 'Female' : 'Male'}
                 </Text>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </View>
