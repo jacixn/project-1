@@ -476,7 +476,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 };
 
 
-const BibleStudyModal = ({ visible, onClose }) => {
+const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
@@ -1527,6 +1527,14 @@ const BibleStudyModal = ({ visible, onClose }) => {
       <KeyVerses
         visible={showKeyVersesModal}
         onClose={() => setShowKeyVersesModal(false)}
+        onNavigateToVerse={(reference) => {
+          setShowKeyVersesModal(false);
+          onNavigateToVerse?.(reference);
+        }}
+        onDiscussVerse={(payload) => {
+          setShowKeyVersesModal(false);
+          onDiscussVerse?.(payload);
+        }}
       />
 
       {/* Bible Fast Facts - Custom Component */}

@@ -1090,6 +1090,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                   onPress={() => {
                     hapticFeedback.success();
                     setShowNoSetsAlert(false);
+                    endWorkout(); // End workout to remove mini player and discard everything
                     onClose();
                   }}
                 >
@@ -1106,7 +1107,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                   }}
                 >
                   <Text style={{ color: theme.text, fontSize: 17, fontWeight: '600', textAlign: 'center' }}>
-                    Keep Editing
+                    Keep Working Out
                   </Text>
                 </TouchableOpacity>
               </View>

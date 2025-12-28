@@ -46,7 +46,7 @@ const VERSES_CONFIG = {
   CACHE_DURATION: 0,
 };
 
-const KeyVerses = ({ visible, onClose }) => {
+const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   const { theme, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVerse, setSelectedVerse] = useState(null);
@@ -72,6 +72,51 @@ const KeyVerses = ({ visible, onClose }) => {
   const detailSlideAnim = useRef(new Animated.Value(0)).current;
   const detailFadeAnim = useRef(new Animated.Value(0)).current;
   const detailPanY = useRef(new Animated.Value(0)).current;
+
+  const handleGoToVerse = () => {
+    if (!selectedVerse?.reference) return;
+    hapticFeedback.medium();
+    const reference = selectedVerse.reference;
+    
+    // Clear local state first
+    setSelectedVerse(null);
+    
+    // Use setTimeout to let state settle before navigation
+    setTimeout(() => {
+      if (typeof onNavigateToVerse === 'function') {
+        onNavigateToVerse(reference);
+      } else {
+        DeviceEventEmitter.emit('navigateToVerse', reference);
+        onClose?.();
+      }
+    }, 100);
+  };
+
+  const handleDiscussVerse = () => {
+    if (!selectedVerse) return;
+    hapticFeedback.medium();
+    const reference = selectedVerse.reference;
+    const verseText =
+      fetchedVerses[reference]?.text ||
+      selectedVerse.text ||
+      selectedVerse.content ||
+      '';
+
+    const payload = { reference, text: verseText, content: verseText };
+
+    // Clear local state first
+    setSelectedVerse(null);
+
+    // Use setTimeout to let state settle before navigation
+    setTimeout(() => {
+      if (typeof onDiscussVerse === 'function') {
+        onDiscussVerse(payload);
+      } else {
+        DeviceEventEmitter.emit('discussVerse', payload);
+        onClose?.();
+      }
+    }, 100);
+  };
 
   // Function to check if cache is still valid
   const isCacheValid = async () => {
@@ -653,19 +698,17 @@ const KeyVerses = ({ visible, onClose }) => {
                     {bibleVersion}
                   </Text>
                 </View>
-                
-                <View style={styles.verseActionsGrid}>
-                  <TouchableOpacity
-                    onPress={() => toggleFavorite(verse.id)}
-                    style={styles.actionButtonGrid}
-                  >
-                    <MaterialIcons 
-                      name={isFavorite ? 'favorite' : 'favorite-border'} 
-                      size={18} 
-                      color={isFavorite ? '#E91E63' : theme.textSecondary} 
-                    />
-                  </TouchableOpacity>
-                </View>
+
+                <TouchableOpacity
+                  onPress={() => toggleFavorite(verse.id)}
+                  style={[styles.actionButtonGrid, { alignSelf: 'flex-start', marginTop: 8 }]}
+                >
+                  <MaterialIcons 
+                    name={isFavorite ? 'favorite' : 'favorite-border'} 
+                    size={18} 
+                    color={isFavorite ? '#E91E63' : theme.textSecondary} 
+                  />
+                </TouchableOpacity>
               </View>
             </View>
           </TouchableOpacity>
@@ -734,18 +777,16 @@ const KeyVerses = ({ visible, onClose }) => {
                 </Text>
               </View>
               
-              <View style={styles.verseActions}>
-                <TouchableOpacity
-                  onPress={() => toggleFavorite(verse.id)}
-                  style={styles.actionButton}
-                >
-                  <MaterialIcons 
-                    name={isFavorite ? 'favorite' : 'favorite-border'} 
-                    size={20} 
-                    color={isFavorite ? '#E91E63' : theme.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => toggleFavorite(verse.id)}
+                style={[styles.actionButton, { alignSelf: 'flex-start', marginTop: 8 }]}
+              >
+                <MaterialIcons 
+                  name={isFavorite ? 'favorite' : 'favorite-border'} 
+                  size={20} 
+                  color={isFavorite ? '#E91E63' : theme.textSecondary} 
+                />
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
@@ -959,6 +1000,30 @@ const KeyVerses = ({ visible, onClose }) => {
                       size={24} 
                       color="#FFFFFF" 
                     />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Actions */}
+                <View style={styles.heroActionsRow}>
+                  <TouchableOpacity
+                    onPress={handleGoToVerse}
+                    style={[
+                      styles.heroActionButton,
+                      { borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.15)' }
+                    ]}
+                  >
+                    <MaterialIcons name="menu-book" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.heroActionText}>Go to Verse</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleDiscussVerse}
+                    style={[
+                      styles.heroActionButton,
+                      { borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.15)' }
+                    ]}
+                  >
+                    <MaterialIcons name="forum" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.heroActionText}>Discuss</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1398,9 +1463,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   verseFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
   },
   verseReference: {
     fontSize: 13,
@@ -1484,11 +1549,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   verseGridFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginTop: 8,
-    gap: 12,
+    gap: 8,
   },
   verseReferenceGrid: {
     fontSize: 11,
@@ -1578,6 +1642,29 @@ const styles = StyleSheet.create({
   favoriteButton: {
     padding: 12,
     borderRadius: 12,
+  },
+  heroActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 16,
+    gap: 12,
+  },
+  heroActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  heroActionText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
   contextSection: {
     marginHorizontal: 20,

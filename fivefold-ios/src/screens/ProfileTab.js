@@ -2978,7 +2978,8 @@ const ProfileTab = () => {
             {/* Add Entry Bottom Sheet Modal - Appears on top */}
             {isAddingEntry && (
               <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'position' : 'height'}
+                keyboardVerticalOffset={0}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -3002,7 +3003,7 @@ const ProfileTab = () => {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)'
+                    backgroundColor: 'transparent'
                   }}
                 />
 
@@ -3011,7 +3012,7 @@ const ProfileTab = () => {
                   backgroundColor: theme.background,
                   borderTopLeftRadius: 32,
                   borderTopRightRadius: 32,
-                  paddingBottom: 40,
+                  paddingBottom: Platform.OS === 'ios' ? 12 : 24,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: -10 },
                   shadowOpacity: 0.3,
@@ -3079,7 +3080,7 @@ const ProfileTab = () => {
 
                   <ScrollView 
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}
+                    contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
                     keyboardShouldPersistTaps="handled"
                   >
                       {/* Title Input */}

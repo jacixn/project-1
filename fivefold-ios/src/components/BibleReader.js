@@ -935,17 +935,27 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     return collected.join('\n');
   };
 
-  // Scale verse text size to fit when multiple verses are included
+  // Scale verse text size gradually based on text length
   const getShareCardTextSizing = (text) => {
     const length = text.length;
-    if (length > 620) return { fontSize: 15, lineHeight: 26 };
-    if (length > 560) return { fontSize: 16, lineHeight: 27 };
-    if (length > 500) return { fontSize: 17, lineHeight: 28 };
-    if (length > 440) return { fontSize: 18, lineHeight: 29 };
+    // Very long text (4+ verses)
+    if (length > 800) return { fontSize: 14, lineHeight: 24 };
+    if (length > 700) return { fontSize: 15, lineHeight: 25 };
+    if (length > 600) return { fontSize: 16, lineHeight: 26 };
+    if (length > 520) return { fontSize: 17, lineHeight: 28 };
+    if (length > 450) return { fontSize: 18, lineHeight: 29 };
+    // Medium text (2-3 verses)
     if (length > 380) return { fontSize: 19, lineHeight: 30 };
-    if (length > 320) return { fontSize: 20, lineHeight: 32 };
-    if (length > 260) return { fontSize: 21, lineHeight: 34 };
-    return { fontSize: 22, lineHeight: 36 };
+    if (length > 320) return { fontSize: 20, lineHeight: 31 };
+    if (length > 270) return { fontSize: 21, lineHeight: 32 };
+    if (length > 220) return { fontSize: 22, lineHeight: 34 };
+    // Short text (1-2 verses)
+    if (length > 180) return { fontSize: 24, lineHeight: 36 };
+    if (length > 140) return { fontSize: 26, lineHeight: 40 };
+    if (length > 100) return { fontSize: 28, lineHeight: 42 };
+    if (length > 60) return { fontSize: 30, lineHeight: 44 };
+    // Very short text
+    return { fontSize: 32, lineHeight: 48 };
   };
 
   const getShareCardDisplayText = () => {
@@ -3829,19 +3839,56 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                 }} />
               </TouchableOpacity>
 
-              {/* Card Content - Centered, blocks backdrop touches */}
-              <View
-                pointerEvents="box-none"
+              {/* Close Button - Top Right, Always Visible */}
+              <Animated.View 
+                style={{
+                  position: 'absolute',
+                  top: Platform.OS === 'ios' ? 60 : 40,
+                  right: 20,
+                  zIndex: 10,
+                  opacity: shareCardFadeAnim
+                }}
+              >
+                <TouchableOpacity
+                  onPress={closeShareCard}
+                  disabled={shareCardAnimating}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <MaterialIcons name="close" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* Card Content - Scrollable with keyboard avoiding */}
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  justifyContent: 'center',
-                  alignItems: 'center',
                 }}
+                pointerEvents="box-none"
               >
+                <ScrollView
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingTop: Platform.OS === 'ios' ? 100 : 80,
+                    paddingBottom: 120,
+                  }}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  pointerEvents="box-none"
+                >
                 <Animated.View 
                   style={{
                     width: '90%',
@@ -3863,8 +3910,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                       end={{ x: 1, y: 1 }}
                       style={{
                         borderRadius: 28,
-                        padding: 50,
-                        minHeight: 500
+                        padding: 40,
+                        minHeight: 380
                       }}
                     >
                       {/* Version Badge - Top Right, Subtle */}
@@ -3905,7 +3952,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           {currentBook?.name} {currentChapter?.number}:
                           {selectedVerseForMenu.number || selectedVerseForMenu.verse}
                           {shareCardEndVerseNumber &&
-                            (shareCardEndVerseNumber !== (selectedVerseForMenu.number || selectedVerseForMenu.verse)) &&
+                            (Number(shareCardEndVerseNumber) !== Number(selectedVerseForMenu.number || selectedVerseForMenu.verse)) &&
                             `-${shareCardEndVerseNumber}`}
                         </Text>
 
@@ -4033,7 +4080,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           Verse range:{' '}
                           {(selectedVerseForMenu?.number || selectedVerseForMenu?.verse || '')}
                           {shareCardEndVerseNumber &&
-                            shareCardEndVerseNumber !== (selectedVerseForMenu?.number || selectedVerseForMenu?.verse)
+                            Number(shareCardEndVerseNumber) !== Number(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)
                             ? `-${shareCardEndVerseNumber}`
                             : ''}
                         </Text>
@@ -4139,7 +4186,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   </TouchableOpacity>
                 </View>
               </Animated.View>
-              </View>
+              </ScrollView>
+              </KeyboardAvoidingView>
             </View>
           )}
           

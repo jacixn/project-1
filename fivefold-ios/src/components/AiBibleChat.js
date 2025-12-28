@@ -470,12 +470,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         // Auto-start interpretation with user's name
         const verseText = initialVerse.text || initialVerse.content || '';
         const verseReference = initialVerse.reference || '';
-        const interpretationRequest = `Please help me understand this Bible verse: "${verseText}" - ${verseReference}. My name is ${userName}.`;
+        const interpretationRequest = `Please help me understand this Bible verse in 100 words, explain to me clearly in a way I'll understand: "${verseText}" - ${verseReference}. My name is ${userName}.`;
         
         // Add user message first
         const userMessage = {
           id: Date.now().toString(),
-          text: `Please help me understand this Bible verse: "${verseText}" - ${verseReference}`,
+          text: `Please help me understand this Bible verse in 100 words, explain to me clearly in a way I'll understand: "${verseText}" - ${verseReference}`,
           isAi: false,
           timestamp: new Date(),
         };

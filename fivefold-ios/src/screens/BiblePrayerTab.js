@@ -1144,6 +1144,23 @@ const BiblePrayerTab = () => {
         <BibleStudyModal
           visible={showBibleStudy}
           onClose={() => setShowBibleStudy(false)}
+          onNavigateToVerse={(reference) => {
+            // Close BibleStudy first, then open Bible after a delay
+            setShowBibleStudy(false);
+            setTimeout(() => {
+              handleNavigateToVerse(reference);
+            }, 200);
+          }}
+          onDiscussVerse={(versePayload) => {
+            // Close BibleStudy first, then open chat after a delay
+            setShowBibleStudy(false);
+            setShowBible(false);
+            setVerseReference(null);
+            setTimeout(() => {
+              setVerseToInterpret(versePayload);
+              setShowFriendChat(true);
+            }, 200);
+          }}
         />
       )}
 

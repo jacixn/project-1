@@ -12,6 +12,7 @@ import {
   Animated,
   DeviceEventEmitter,
   KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -224,13 +225,17 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
     };
 
     // Set up editor for new template
+    Keyboard.dismiss();
     setEditorTemplate(newTemplate);
     setEditorExercises([]);
     setNewTemplateName("");
     setSelectedFolderId(null);
     setShowCreateModal(false);
-    setShowTemplateEditor(true);
     hapticFeedback.success();
+    // Open the full editor after a short delay to let the create modal fully close
+    setTimeout(() => {
+      setShowTemplateEditor(true);
+    }, 150);
   };
 
   const handleAddExerciseToTemplate = (exercise) => {
@@ -1288,11 +1293,6 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           presentationStyle="fullScreen"
           onRequestClose={handleCancelEditor}
         >
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-          >
           <View style={[styles.container, { backgroundColor: theme.background }]}>
             {/* Header */}
             <View style={[styles.editorHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
@@ -1414,7 +1414,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
                               onChangeText={(text) => handleUpdateExerciseInEditor(index, 'weight', text)}
                               placeholder="0"
                               placeholderTextColor={theme.textSecondary}
-                              keyboardType="numeric"
+                              keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
                             />
                           </View>
 
@@ -1430,7 +1430,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
                               onChangeText={(text) => handleUpdateExerciseInEditor(index, 'reps', text)}
                               placeholder="0"
                               placeholderTextColor={theme.textSecondary}
-                              keyboardType="numeric"
+                              keyboardType="number-pad"
                             />
                           </View>
                         </View>
@@ -1522,7 +1522,6 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
               <View style={{ height: 100 }} />
             </ScrollView>
           </View>
-          </KeyboardAvoidingView>
         </Modal>
 
         {/* Mini Workout Player - Shows in template selection screen */}
@@ -1994,7 +1993,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   editorContentContainer: {
-    paddingBottom: 260, // Keeps fields visible above iOS number pad
+    paddingBottom: Platform.OS === "ios" ? 40 : 60, // Minimal inset so keyboard does not leave a gap
   },
   editorSection: {
     padding: 20,
@@ -2026,6 +2025,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
+  },
+  editorKeyboardAvoider: {
+    flex: 1,
   },
   addExerciseButtonText: {
     color: "#FFFFFF",
