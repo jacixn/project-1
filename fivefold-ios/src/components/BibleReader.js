@@ -1089,15 +1089,18 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       // Disable auto-play, just let current verse finish
       bibleAudioService.autoPlayEnabled = false;
       setAudioAutoPlayEnabled(false);
+      hapticFeedback.light();
     } else {
       // Enable auto-play from current position
-      if (currentAudioVerse && currentBook && currentChapter) {
+      hapticFeedback.medium();
+      if (currentAudioVerse && currentBook && currentChapter && verses.length > 0) {
         const verseNumber = currentAudioVerse.number || currentAudioVerse.verse;
         const startIndex = verses.findIndex(v => 
           (v.number || v.verse) === verseNumber
         );
         
         if (startIndex !== -1) {
+          setAudioAutoPlayEnabled(true);
           await bibleAudioService.startAutoPlay({
             book: currentBook.name,
             chapter: currentChapter.number,
@@ -3524,42 +3527,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           Hear this verse read aloud
                         </Text>
                       </View>
-                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Listen Auto-Play Option */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 16,
-                        backgroundColor: theme.card,
-                        borderRadius: 12,
-                        marginBottom: 12
-                      }}
-                      onPress={listenWithAutoPlay}
-                    >
-                      <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: `${theme.primary}20`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12
-                      }}>
-                        <MaterialIcons name="playlist-play" size={22} color={theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          Listen Continuously
-                        </Text>
-                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          Keep reading from this verse
-                        </Text>
-                      </View>
-                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                      <MaterialIcons name="play-arrow" size={24} color={theme.primary} />
                     </TouchableOpacity>
 
                     {/* Discuss Option */}
