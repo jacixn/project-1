@@ -492,6 +492,24 @@ const BiblePrayerTab = () => {
     };
   }, []);
 
+  // Listen for widget verse navigation (deep link from home/lock screen widget)
+  useEffect(() => {
+    const handleWidgetNavigation = (verseReference) => {
+      console.log('📱 Widget navigation received:', verseReference);
+      
+      // Open Bible reader and navigate to the verse
+      setTimeout(() => {
+        handleNavigateToVerse(verseReference, 'navigate');
+      }, 300);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('widgetVerseNavigation', handleWidgetNavigation);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const initializePrayerData = async () => {
     try {
       // Initialize daily reset system first

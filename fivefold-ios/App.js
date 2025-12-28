@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { LogBox } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { LogBox, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
 
@@ -169,6 +169,54 @@ const ThemedApp = () => {
   const { theme, isDark } = useTheme();
   const [isReloading, setIsReloading] = useState(false);
   const [appKey, setAppKey] = useState(0); // Used to force remount
+  const navigationRef = useRef(null);
+  
+  // Handle deep links from widgets
+  const handleDeepLink = (url) => {
+    if (!url) return;
+    
+    console.log('🔗 Deep link received:', url);
+    
+    try {
+      // Parse biblely://verse?ref=Proverbs%2012:2
+      if (url.startsWith('biblely://verse')) {
+        const urlObj = new URL(url);
+        const reference = urlObj.searchParams.get('ref');
+        
+        if (reference) {
+          const decodedRef = decodeURIComponent(reference);
+          console.log('📖 Widget tap - navigating to verse:', decodedRef);
+          
+          // Small delay to ensure app is ready
+          setTimeout(() => {
+            // Navigate to Bible/Prayer tab and open verse
+            DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
+          }, 500);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error parsing deep link:', error);
+    }
+  };
+  
+  // Listen for deep links
+  useEffect(() => {
+    // Handle initial URL (app launched from widget)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+    
+    // Handle URLs while app is running
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
   
   // Initialize notifications and API security on app start
   useEffect(() => {

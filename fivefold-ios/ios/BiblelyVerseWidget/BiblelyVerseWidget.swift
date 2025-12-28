@@ -91,6 +91,12 @@ struct VerseWidgetView: View {
     var entry: VerseEntry
     @Environment(\.widgetFamily) var family
     
+    // Generate deep link URL for the verse
+    private var verseURL: URL? {
+        let encoded = entry.reference.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return URL(string: "biblely://verse?ref=\(encoded)")
+    }
+    
     var body: some View {
         if #available(iOS 16.0, *) {
             switch family {
@@ -106,6 +112,7 @@ struct VerseWidgetView: View {
                         .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .widgetURL(verseURL)
                 
             case .accessoryCircular:
                 // Lock screen circular widget
@@ -117,10 +124,12 @@ struct VerseWidgetView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
+                .widgetURL(verseURL)
                 
             case .accessoryInline:
                 // Lock screen inline widget (single line of text)
                 Text("\(entry.reference)")
+                    .widgetURL(verseURL)
                 
             default:
                 homeScreenView
@@ -171,6 +180,7 @@ struct VerseWidgetView: View {
                 .padding(family == .systemSmall ? 12 : 16)
             }
         }
+        .widgetURL(verseURL)
     }
     
     private func getFontSize() -> CGFloat {

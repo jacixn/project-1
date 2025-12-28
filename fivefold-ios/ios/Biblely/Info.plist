@@ -32,6 +32,12 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>biblely</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
           <string>com.jesusxoi.biblely</string>
         </array>
       </dict>
