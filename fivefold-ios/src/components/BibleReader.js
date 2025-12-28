@@ -1015,62 +1015,28 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     
     hapticFeedback.medium();
     
+    // Capture verse data before closing menu (closeVerseMenu clears selectedVerseForMenu)
+    const verseToPlay = selectedVerseForMenu;
+    const bookToPlay = currentBook;
+    const chapterToPlay = currentChapter;
+    
     // Close verse menu first
     closeVerseMenu();
     
     // Show the audio player
     setShowAudioPlayer(true);
-    setCurrentAudioVerse(selectedVerseForMenu);
+    setCurrentAudioVerse(verseToPlay);
     
     try {
       await bibleAudioService.speakVerse({
-        book: currentBook.name,
-        chapter: currentChapter.number,
-        verse: selectedVerseForMenu,
+        book: bookToPlay.name,
+        chapter: chapterToPlay.number,
+        verse: verseToPlay,
         announceReference: true,
       });
     } catch (error) {
       console.error('Failed to play verse audio:', error);
       Alert.alert('Audio Error', 'Failed to play verse audio. Please try again.');
-      setShowAudioPlayer(false);
-    }
-  };
-  
-  // Listen with auto-play (continuous reading)
-  const listenWithAutoPlay = async () => {
-    if (!selectedVerseForMenu || !currentBook || !currentChapter || !verses.length) return;
-    
-    hapticFeedback.medium();
-    
-    // Close verse menu first
-    closeVerseMenu();
-    
-    // Find the index of the selected verse
-    const verseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
-    const startIndex = verses.findIndex(v => 
-      (v.number || v.verse) === verseNumber
-    );
-    
-    if (startIndex === -1) {
-      Alert.alert('Error', 'Could not find the selected verse.');
-      return;
-    }
-    
-    // Show the audio player
-    setShowAudioPlayer(true);
-    setCurrentAudioVerse(selectedVerseForMenu);
-    setAudioAutoPlayEnabled(true);
-    
-    try {
-      await bibleAudioService.startAutoPlay({
-        book: currentBook.name,
-        chapter: currentChapter.number,
-        verses: verses,
-        startIndex: startIndex,
-      });
-    } catch (error) {
-      console.error('Failed to start auto-play:', error);
-      Alert.alert('Audio Error', 'Failed to start audio playback. Please try again.');
       setShowAudioPlayer(false);
     }
   };
