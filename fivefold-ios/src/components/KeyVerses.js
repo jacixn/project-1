@@ -634,97 +634,34 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     );
   };
 
+  // Get unique gradient for each verse based on category
+  const getVerseGradient = (categoryId) => {
+    const gradients = {
+      faith: ['#6366f1', '#8b5cf6', '#a855f7'],
+      love: ['#ec4899', '#f43f5e', '#fb7185'],
+      hope: ['#10b981', '#14b8a6', '#06b6d4'],
+      wisdom: ['#f59e0b', '#f97316', '#ef4444'],
+      peace: ['#06b6d4', '#0ea5e9', '#3b82f6'],
+      strength: ['#8b5cf6', '#a855f7', '#d946ef'],
+      joy: ['#fbbf24', '#f59e0b', '#fb923c'],
+      comfort: ['#a855f7', '#ec4899', '#f43f5e'],
+    };
+    return gradients[categoryId] || ['#6366f1', '#8b5cf6', '#a855f7'];
+  };
+
   const renderVerseCard = (verse, index) => {
     const isFavorite = favoriteVerses.includes(verse.id);
     const category = categories.find(cat => cat.id === verse.category);
+    const cardGradient = getVerseGradient(verse.category);
     
     if (viewMode === 'grid') {
+      // Premium Grid Card Design
       return (
         <Animated.View
           key={verse.id}
-          style={[
-            styles.verseCardGrid,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              transform: [
-                {
-                  scale: scaleAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.9, 1],
-                  })
-                }
-              ],
-              opacity: fadeAnim,
-            }
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedVerse(verse);
-              hapticFeedback.light();
-            }}
-            style={styles.verseCardGridContent}
-          >
-            {/* Category header */}
-            <LinearGradient
-              colors={category?.gradient || [theme.primary, theme.primaryDark]}
-              style={styles.categoryHeader}
-            >
-              <MaterialIcons name={category?.icon || 'auto-awesome'} size={16} color="#FFFFFF" />
-              <Text style={styles.categoryHeaderText} numberOfLines={1}>
-                {category?.name || 'Verse'}
-              </Text>
-            </LinearGradient>
-            
-            {/* Verse content */}
-            <View style={styles.verseGridContent}>
-              <Text style={[styles.verseTextGrid, { color: theme.text }]} numberOfLines={4}>
-                "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
-              </Text>
-              
-              <View style={styles.verseGridFooter}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.verseReferenceGrid, { color: category?.color || theme.primary }]}>
-                    {verse.reference}
-                  </Text>
-                  <Text style={[styles.versionBadge, { 
-                    color: category?.color || theme.primary,
-                    backgroundColor: isDark 
-                      ? `${category?.color || theme.primary}15` 
-                      : `${category?.color || theme.primary}10`,
-                    borderColor: `${category?.color || theme.primary}30`
-                  }]}>
-                    {bibleVersion}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => toggleFavorite(verse.id)}
-                  style={[styles.actionButtonGrid, { alignSelf: 'flex-start', marginTop: 8 }]}
-                >
-                  <MaterialIcons 
-                    name={isFavorite ? 'favorite' : 'favorite-border'} 
-                    size={18} 
-                    color={isFavorite ? '#E91E63' : theme.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      );
-    }
-    
-    // List view (original design)
-    return (
-      <Animated.View
-        key={verse.id}
-        style={[
-          styles.verseCard,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
+          style={{
+            width: (width - 48) / 2,
+            marginBottom: 20,
             transform: [
               {
                 scale: scaleAnim.interpolate({
@@ -734,61 +671,311 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
               }
             ],
             opacity: fadeAnim,
-          }
-        ]}
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.95}
+            onPress={() => {
+              setSelectedVerse(verse);
+              hapticFeedback.light();
+            }}
+            style={{
+              borderRadius: 24,
+              overflow: 'hidden',
+              shadowColor: cardGradient[0],
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.35,
+              shadowRadius: 16,
+              elevation: 10,
+            }}
+          >
+            {/* Gradient Background */}
+            <LinearGradient
+              colors={cardGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                padding: 18,
+                minHeight: 200,
+                position: 'relative',
+              }}
+            >
+              {/* Decorative Circle */}
+              <View style={{
+                position: 'absolute',
+                top: -40,
+                right: -40,
+                width: 120,
+                height: 120,
+                borderRadius: 60,
+                backgroundColor: 'rgba(255,255,255,0.1)',
+              }} />
+              <View style={{
+                position: 'absolute',
+                bottom: -30,
+                left: -30,
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(255,255,255,0.08)',
+              }} />
+
+              {/* Category Badge */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 12,
+                alignSelf: 'flex-start',
+                marginBottom: 12,
+              }}>
+                <MaterialIcons name={category?.icon || 'auto-awesome'} size={12} color="#fff" />
+                <Text style={{
+                  fontSize: 10,
+                  fontWeight: '700',
+                  color: '#fff',
+                  marginLeft: 4,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>
+                  {category?.name?.split(' ')[0] || 'Verse'}
+                </Text>
+              </View>
+
+              {/* Verse Text */}
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#fff',
+                lineHeight: 21,
+                marginBottom: 16,
+                flex: 1,
+              }} numberOfLines={5}>
+                "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
+              </Text>
+
+              {/* Footer */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+              }}>
+                <View>
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: '800',
+                    color: '#fff',
+                    marginBottom: 4,
+                  }}>
+                    {verse.reference}
+                  </Text>
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 6,
+                  }}>
+                    <Text style={{
+                      fontSize: 9,
+                      fontWeight: '700',
+                      color: '#fff',
+                      textTransform: 'uppercase',
+                    }}>
+                      {bibleVersion}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Favorite Button */}
+                <TouchableOpacity
+                  onPress={() => toggleFavorite(verse.id)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: isFavorite ? '#fff' : 'rgba(255,255,255,0.2)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <MaterialIcons 
+                    name={isFavorite ? 'favorite' : 'favorite-border'} 
+                    size={18} 
+                    color={isFavorite ? '#E91E63' : '#fff'} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+    
+    // Premium List View Design
+    return (
+      <Animated.View
+        key={verse.id}
+        style={{
+          marginBottom: 20,
+          transform: [
+            {
+              scale: scaleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              })
+            }
+          ],
+          opacity: fadeAnim,
+        }}
       >
         <TouchableOpacity
+          activeOpacity={0.95}
           onPress={() => {
             setSelectedVerse(verse);
             hapticFeedback.light();
           }}
-          style={styles.verseCardContent}
+          style={{
+            borderRadius: 24,
+            overflow: 'hidden',
+            shadowColor: cardGradient[0],
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
         >
-          {/* Category indicator */}
           <LinearGradient
-            colors={category?.gradient || [theme.primary, theme.primaryDark]}
-            style={styles.categoryIndicator}
-          />
-          
-          {/* Verse content */}
-          <View style={styles.verseContent}>
-            <Text style={[styles.verseText, { color: theme.text }]} numberOfLines={3}>
-              "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
-            </Text>
-            
-            <View style={styles.verseFooter}>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={[styles.verseReference, { color: category?.color || theme.primary }]}>
-                    {verse.reference}
-                  </Text>
-                  <Text style={[styles.versionBadge, { 
-                    color: category?.color || theme.primary,
-                    backgroundColor: isDark 
-                      ? `${category?.color || theme.primary}15` 
-                      : `${category?.color || theme.primary}10`,
-                    borderColor: `${category?.color || theme.primary}30`
-                  }]}>
-                    {bibleVersion}
-                  </Text>
-                </View>
-                <Text style={[styles.verseTheme, { color: theme.textSecondary }]}>
-                  {verse.theme}
+            colors={cardGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{
+              padding: 22,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Decorative Elements */}
+            <View style={{
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+            }} />
+            <View style={{
+              position: 'absolute',
+              bottom: -40,
+              left: '30%',
+              width: 100,
+              height: 100,
+              borderRadius: 50,
+              backgroundColor: 'rgba(255,255,255,0.05)',
+            }} />
+
+            {/* Top Row - Category & Favorite */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 14,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 14,
+              }}>
+                <MaterialIcons name={category?.icon || 'auto-awesome'} size={14} color="#fff" />
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: '#fff',
+                  marginLeft: 6,
+                }}>
+                  {category?.name || 'Verse'}
                 </Text>
               </View>
-              
+
               <TouchableOpacity
                 onPress={() => toggleFavorite(verse.id)}
-                style={[styles.actionButton, { alignSelf: 'flex-start', marginTop: 8 }]}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isFavorite ? '#fff' : 'rgba(255,255,255,0.15)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
               >
                 <MaterialIcons 
                   name={isFavorite ? 'favorite' : 'favorite-border'} 
                   size={20} 
-                  color={isFavorite ? '#E91E63' : theme.textSecondary} 
+                  color={isFavorite ? '#E91E63' : '#fff'} 
                 />
               </TouchableOpacity>
             </View>
-          </View>
+
+            {/* Verse Text */}
+            <Text style={{
+              fontSize: 17,
+              fontWeight: '600',
+              color: '#fff',
+              lineHeight: 26,
+              marginBottom: 18,
+            }} numberOfLines={4}>
+              "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verse.reference]?.text || verse.text)}"
+            </Text>
+
+            {/* Bottom Row - Reference, Version, Arrow */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{
+                  fontSize: 15,
+                  fontWeight: '800',
+                  color: '#fff',
+                }}>
+                  {verse.reference}
+                </Text>
+                <View style={{
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    fontWeight: '700',
+                    color: '#fff',
+                    textTransform: 'uppercase',
+                  }}>
+                    {bibleVersion}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Arrow Button */}
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <MaterialIcons name="arrow-forward" size={18} color="#fff" />
+              </View>
+            </View>
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
     );
@@ -903,6 +1090,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
       });
     };
     
+    const detailGradient = getVerseGradient(selectedVerse.category);
+
     return (
       <Modal
         visible={!!selectedVerse}
@@ -928,132 +1117,353 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
               {
                 transform: [{ translateY: combinedTranslateY }],
                 opacity: detailFadeAnim,
-                backgroundColor: theme.background,
+                backgroundColor: isDark ? theme.background : '#F8FAFC',
                 height: '94%',
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
                 overflow: 'hidden',
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
-                elevation: 10
+                shadowOffset: { width: 0, height: -8 },
+                shadowOpacity: 0.4,
+                shadowRadius: 20,
+                elevation: 15
               }
             ]}
           >
             <View style={styles.verseDetailSafeArea}>
               {/* Drag Handle */}
               <View
-                style={[styles.modalHandle, { paddingTop: 12, paddingBottom: 4 }]}
+                style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}
                 {...detailPanResponder.panHandlers}
               >
-                <View style={[styles.handleBar, {
-                  width: 40,
+                <View style={{
+                  width: 48,
                   height: 5,
                   borderRadius: 3,
-                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'
-                }]} />
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'
+                }} />
               </View>
               
-              {/* Header */}
-              <View 
-                style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
-                {...detailPanResponder.panHandlers}
+              <ScrollView 
+                style={{ flex: 1 }} 
+                showsVerticalScrollIndicator={false} 
+                bounces={true}
+                contentContainerStyle={{ paddingBottom: 40 }}
               >
-                <View style={{ width: 40 }} />
-                <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
-                  Key Verse
-                </Text>
-                <View style={{ width: 40 }} />
-              </View>
-              
-              <ScrollView style={styles.verseDetailContent} showsVerticalScrollIndicator={false} bounces={false}>
-            {/* Verse Hero */}
-            <LinearGradient
-              colors={category?.gradient || [theme.primary, theme.primaryDark]}
-              style={styles.verseHero}
-            >
-              <View style={styles.verseHeroContent}>
-                <Text style={styles.verseDetailText}>
-                  "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text)}"
-                </Text>
-                
-                <View style={styles.verseDetailFooter}>
-                  <View>
-                    <Text style={styles.verseDetailReference}>
-                      {selectedVerse.reference}
-                    </Text>
-                    <Text style={[styles.versionBadgeModal, { 
-                      backgroundColor: 'rgba(255,255,255,0.3)',
-                      borderColor: 'rgba(255,255,255,0.5)'
-                    }]}>
-                      {bibleVersion}
+                {/* Hero Section with Gradient */}
+                <LinearGradient
+                  colors={detailGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    marginHorizontal: 20,
+                    marginTop: 8,
+                    marginBottom: 28,
+                    borderRadius: 28,
+                    padding: 28,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Decorative Elements */}
+                  <View style={{
+                    position: 'absolute',
+                    top: -60,
+                    right: -60,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 90,
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                  }} />
+                  <View style={{
+                    position: 'absolute',
+                    bottom: -40,
+                    left: -40,
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                  }} />
+
+                  {/* Category Badge */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 16,
+                    alignSelf: 'flex-start',
+                    marginBottom: 20,
+                  }}>
+                    <MaterialIcons name={category?.icon || 'auto-awesome'} size={16} color="#fff" />
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: '#fff',
+                      marginLeft: 8,
+                    }}>
+                      {category?.name || 'Key Verse'}
                     </Text>
                   </View>
-                  
-                  <TouchableOpacity
-                    onPress={() => toggleFavorite(selectedVerse.id)}
-                    style={[styles.favoriteButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
-                  >
-                    <MaterialIcons 
-                      name={isFavorite ? 'favorite' : 'favorite-border'} 
-                      size={24} 
-                      color="#FFFFFF" 
-                    />
-                  </TouchableOpacity>
+
+                  {/* Large Quote Icon */}
+                  <MaterialIcons 
+                    name="format-quote" 
+                    size={40} 
+                    color="rgba(255,255,255,0.3)" 
+                    style={{ marginBottom: 8 }}
+                  />
+
+                  {/* Verse Text */}
+                  <Text style={{
+                    fontSize: 22,
+                    fontWeight: '700',
+                    color: '#fff',
+                    lineHeight: 34,
+                    marginBottom: 24,
+                  }}>
+                    {loadingDynamicVerses ? 'Loading...' : (fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text)}
+                  </Text>
+
+                  {/* Reference & Version */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 20,
+                  }}>
+                    <View>
+                      <Text style={{
+                        fontSize: 18,
+                        fontWeight: '800',
+                        color: '#fff',
+                        marginBottom: 6,
+                      }}>
+                        {selectedVerse.reference}
+                      </Text>
+                      <View style={{
+                        backgroundColor: 'rgba(255,255,255,0.25)',
+                        paddingHorizontal: 12,
+                        paddingVertical: 5,
+                        borderRadius: 8,
+                        alignSelf: 'flex-start',
+                      }}>
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: '700',
+                          color: '#fff',
+                          textTransform: 'uppercase',
+                        }}>
+                          {bibleVersion}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Favorite Button */}
+                    <TouchableOpacity
+                      onPress={() => toggleFavorite(selectedVerse.id)}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
+                        backgroundColor: isFavorite ? '#fff' : 'rgba(255,255,255,0.2)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <MaterialIcons 
+                        name={isFavorite ? 'favorite' : 'favorite-border'} 
+                        size={28} 
+                        color={isFavorite ? '#E91E63' : '#fff'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={{
+                    flexDirection: 'row',
+                    gap: 12,
+                  }}>
+                    <TouchableOpacity
+                      onPress={handleGoToVerse}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        paddingVertical: 14,
+                        borderRadius: 16,
+                        gap: 8,
+                      }}
+                    >
+                      <MaterialIcons name="menu-book" size={20} color={detailGradient[0]} />
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: detailGradient[0],
+                      }}>
+                        Read in Bible
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleDiscussVerse}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        paddingVertical: 14,
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        gap: 8,
+                      }}
+                    >
+                      <MaterialIcons name="chat-bubble-outline" size={20} color="#fff" />
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: '#fff',
+                      }}>
+                        Discuss
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </LinearGradient>
+
+                {/* Context Section Card */}
+                <View style={{
+                  marginHorizontal: 20,
+                  marginBottom: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+                  borderRadius: 24,
+                  padding: 24,
+                  shadowColor: detailGradient[0],
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 12,
+                  elevation: 4,
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 16,
+                  }}>
+                    <View style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: `${detailGradient[0]}15`,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 14,
+                    }}>
+                      <MaterialIcons name="info-outline" size={24} color={detailGradient[0]} />
+                    </View>
+                    <Text style={{
+                      fontSize: 20,
+                      fontWeight: '700',
+                      color: theme.text,
+                    }}>
+                      Context
+                    </Text>
+                  </View>
+                  <Text style={{
+                    fontSize: 16,
+                    color: theme.text,
+                    lineHeight: 26,
+                  }}>
+                    {selectedVerse.context}
+                  </Text>
                 </View>
 
-                {/* Actions */}
-                <View style={styles.heroActionsRow}>
-                  <TouchableOpacity
-                    onPress={handleGoToVerse}
-                    style={[
-                      styles.heroActionButton,
-                      { borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.15)' }
-                    ]}
+                {/* Theme Section Card */}
+                <View style={{
+                  marginHorizontal: 20,
+                  marginBottom: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+                  borderRadius: 24,
+                  padding: 24,
+                  shadowColor: detailGradient[0],
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 12,
+                  elevation: 4,
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 16,
+                  }}>
+                    <View style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: `${detailGradient[0]}15`,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 14,
+                    }}>
+                      <MaterialIcons name="local-offer" size={24} color={detailGradient[0]} />
+                    </View>
+                    <Text style={{
+                      fontSize: 20,
+                      fontWeight: '700',
+                      color: theme.text,
+                    }}>
+                      Theme
+                    </Text>
+                  </View>
+                  <LinearGradient
+                    colors={[`${detailGradient[0]}20`, `${detailGradient[1]}15`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      paddingHorizontal: 18,
+                      paddingVertical: 12,
+                      borderRadius: 16,
+                      alignSelf: 'flex-start',
+                      borderWidth: 1,
+                      borderColor: `${detailGradient[0]}30`,
+                    }}
                   >
-                    <MaterialIcons name="menu-book" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.heroActionText}>Go to Verse</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleDiscussVerse}
-                    style={[
-                      styles.heroActionButton,
-                      { borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.15)' }
-                    ]}
-                  >
-                    <MaterialIcons name="forum" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.heroActionText}>Discuss</Text>
-                  </TouchableOpacity>
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: '700',
+                      color: detailGradient[0],
+                    }}>
+                      {selectedVerse.theme}
+                    </Text>
+                  </LinearGradient>
                 </View>
-              </View>
-            </LinearGradient>
-            
-            {/* Context Section */}
-            <View style={styles.contextSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="info" size={24} color={category?.color || theme.primary} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Context</Text>
-              </View>
-              <Text style={[styles.contextText, { color: theme.text }]}>
-                {selectedVerse.context}
-              </Text>
-            </View>
-            
-            {/* Theme Section */}
-            <View style={styles.contextSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="category" size={24} color={category?.color || theme.primary} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Theme</Text>
-              </View>
-              <View style={[styles.themeTag, { backgroundColor: category?.color + '20', borderColor: category?.color }]}>
-                <Text style={[styles.themeTagText, { color: category?.color }]}>
-                  {selectedVerse.theme}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={{ height: 40 }} />
+
+                {/* Share Button */}
+                <TouchableOpacity
+                  onPress={() => shareVerse(selectedVerse)}
+                  style={{
+                    marginHorizontal: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9',
+                    paddingVertical: 16,
+                    borderRadius: 16,
+                    gap: 10,
+                  }}
+                >
+                  <MaterialIcons name="share" size={22} color={theme.textSecondary} />
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: theme.textSecondary,
+                  }}>
+                    Share This Verse
+                  </Text>
+                </TouchableOpacity>
               </ScrollView>
             </View>
           </Animated.View>
