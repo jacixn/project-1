@@ -87,7 +87,9 @@ const AnimatedStatCard = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
+        delayPressIn={0}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         {...props}
       >
         {children}
@@ -156,7 +158,8 @@ const AnimatedSettingsCard = ({ children, onPress, style, ...props }) => {
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          activeOpacity={0.4} // Reduced brightness by 50% (was 0.8, now 0.4)
+          activeOpacity={0.7}
+          delayPressIn={0}
           style={{ flex: 1 }}
           {...props}
         >
@@ -194,7 +197,8 @@ const AnimatedModalButton = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
+        delayPressIn={0}
         style={style}
         {...props}
       >
@@ -1471,10 +1475,10 @@ const ProfileTab = () => {
             shadowRadius: 3,
             elevation: 1,
           }]}
-          onPress={async () => {
+          onPress={() => {
             hapticFeedback.light();
-            await loadCompletedTasks();
             setShowTasksDone(true);
+            loadCompletedTasks(); // Load data in background after modal opens
           }}
         >
           <MaterialIcons name="check-circle" size={24} color={theme.success} />
@@ -1500,9 +1504,8 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            // Refresh saved verses before showing modal
-            loadSavedVerses();
             setShowSavedVerses(true);
+            loadSavedVerses(); // Load data in background after modal opens
           }}
         >
           <MaterialIcons name="bookmark" size={24} color={theme.info} />
@@ -1528,8 +1531,8 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            loadHighlights();
             setShowHighlights(true);
+            loadHighlights(); // Load data in background after modal opens
           }}
         >
           <MaterialIcons name="palette" size={24} color={theme.warning} />
@@ -1586,8 +1589,8 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            loadJournalNotes();
             setShowJournal(true);
+            loadJournalNotes(); // Load data in background after modal opens
           }}
         >
           <MaterialIcons name="book" size={24} color={theme.info} />
