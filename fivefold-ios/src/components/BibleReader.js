@@ -73,6 +73,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [savedVerses, setSavedVerses] = useState(new Set());
+  const [rangeVersesSet, setRangeVersesSet] = useState(new Set()); // Track verses that are part of saved ranges (for purple heart)
   // Track which version the currently-rendered `verses` were fetched with.
   // This prevents a mismatch where the UI badge shows the stored version,
   // but the chapter text was fetched earlier with the default version.
@@ -519,26 +520,30 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       if (savedVersesData) {
         const versesArray = JSON.parse(savedVersesData);
         const allSavedVerseIds = new Set();
+        const rangeVerseIds = new Set(); // Track verses that are part of ranges
         
         versesArray.forEach(v => {
           // Add the main ID
           allSavedVerseIds.add(v.id);
           
-          // If it's a range, also add all individual verse IDs
-          if (v.isRange && v.startVerse && v.endVerse && v.book) {
+          // If it's a range, also add all individual verse IDs to both sets
+          if (v.isRange && v.startVerse && v.endVerse) {
             // Extract book ID from the main ID (format: bookId_chapter_start-end)
             const idParts = v.id.split('_');
             if (idParts.length >= 2) {
               const bookId = idParts[0];
               const chapter = idParts[1];
               for (let i = v.startVerse; i <= v.endVerse; i++) {
-                allSavedVerseIds.add(`${bookId}_${chapter}_${i}`);
+                const individualId = `${bookId}_${chapter}_${i}`;
+                allSavedVerseIds.add(individualId);
+                rangeVerseIds.add(individualId); // Mark as range verse for purple heart
               }
             }
           }
         });
         
         setSavedVerses(allSavedVerseIds);
+        setRangeVersesSet(rangeVerseIds);
       }
     } catch (error) {
       console.error('Error loading saved verses:', error);
@@ -1423,12 +1428,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       
       // Mark all verses in the range as saved
       const newSavedVersesSet = new Set([...savedVerses]);
+      const newRangeVersesSet = new Set([...rangeVersesSet]);
       for (let i = actualStart; i <= actualEnd; i++) {
         const individualVerseId = `${currentBook.id}_${currentChapter.number}_${i}`;
         newSavedVersesSet.add(individualVerseId);
+        newRangeVersesSet.add(individualVerseId); // Mark as range verse for purple heart
       }
       newSavedVersesSet.add(rangeId);
       setSavedVerses(newSavedVersesSet);
+      setRangeVersesSet(newRangeVersesSet);
       
       console.log(`✅ Saved verse range: ${rangeReference}`);
       hapticFeedback.success();
@@ -1514,13 +1522,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       
       // Mark all verses in the range as saved (for heart icon display)
       const newSavedVersesSet = new Set([...savedVerses]);
+      const newRangeVersesSet = new Set([...rangeVersesSet]);
       for (let i = actualStart; i <= actualEnd; i++) {
         const individualVerseId = `${currentBook.id}_${currentChapter.number}_${i}`;
         newSavedVersesSet.add(individualVerseId);
+        newRangeVersesSet.add(individualVerseId); // Mark as range verse for purple heart
       }
       // Also add the range ID itself
       newSavedVersesSet.add(rangeId);
       setSavedVerses(newSavedVersesSet);
+      setRangeVersesSet(newRangeVersesSet);
       
       console.log(`✅ Saved verse range: ${rangeReference}`);
       hapticFeedback.success();
@@ -2769,7 +2780,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                     <MaterialIcons 
                       name="favorite" 
                       size={16} 
-                      color={highlightColor ? (isColorBright(highlightColor) ? '#000' : '#fff') : '#FF6B9D'} 
+                      color={highlightColor 
+                        ? (isColorBright(highlightColor) ? '#000' : '#fff') 
+                        : (rangeVersesSet.has(verseId) ? '#9B59B6' : '#FF6B9D')} 
                       style={{ marginLeft: 6, marginTop: 2 }}
                     />
                   )}
