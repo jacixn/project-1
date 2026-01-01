@@ -282,6 +282,7 @@ const ProfileTab = () => {
   const [showTasksDone, setShowTasksDone] = useState(false);
   const [completedTodosList, setCompletedTodosList] = useState([]);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
+  const [savedVersesSearch, setSavedVersesSearch] = useState('');
   const [showJournal, setShowJournal] = useState(false);
   const [journalLoading, setJournalLoading] = useState(true); // Start true to avoid empty flash
   
@@ -2395,7 +2396,10 @@ const ProfileTab = () => {
       <Modal
         visible={showSavedVerses}
         animationType="none"
-        onRequestClose={() => setShowSavedVerses(false)}
+        onRequestClose={() => {
+          setShowSavedVerses(false);
+          setSavedVersesSearch('');
+        }}
         presentationStyle="fullScreen"
       >
         <View style={{
@@ -2408,6 +2412,7 @@ const ProfileTab = () => {
             <ScrollView 
               style={styles.modalScrollView} 
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingSavedVerses}
@@ -2417,87 +2422,321 @@ const ProfileTab = () => {
                 />
               }
             >
-              {savedVersesList.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MaterialIcons name="bookmark-border" size={48} color={theme.textTertiary} />
-                  <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
-                    {t.noSavedVerses || 'No saved verses yet'}
+              {/* Search Bar */}
+              <View style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.2 : 0.08,
+                shadowRadius: 8,
+                elevation: 3,
+                borderWidth: isDark ? 1 : 0,
+                borderColor: 'rgba(255,255,255,0.1)'
+              }}>
+                <MaterialIcons name="search" size={22} color={theme.textSecondary} />
+                <TextInput
+                  value={savedVersesSearch}
+                  onChangeText={setSavedVersesSearch}
+                  placeholder="Search verses or references..."
+                  placeholderTextColor={theme.textTertiary}
+                  style={{
+                    flex: 1,
+                    fontSize: 16,
+                    color: theme.text,
+                    marginLeft: 12,
+                    paddingVertical: 4
+                  }}
+                />
+                {savedVersesSearch.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSavedVersesSearch('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <MaterialIcons name="close" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Stats Row */}
+              {savedVersesList.length > 0 && (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16
+                }}>
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: theme.textSecondary,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5
+                  }}>
+                    {(() => {
+                      const filtered = savedVersesList.filter(v => {
+                        if (!savedVersesSearch.trim()) return true;
+                        const searchLower = savedVersesSearch.toLowerCase();
+                        const text = (v.text || v.content || '').toLowerCase();
+                        const ref = (v.reference || '').toLowerCase();
+                        return text.includes(searchLower) || ref.includes(searchLower);
+                      });
+                      return `${filtered.length} ${filtered.length === 1 ? 'verse' : 'verses'}${savedVersesSearch ? ' found' : ''}`;
+                    })()}
                   </Text>
-                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary }]}>
-                    {t.tapToSave || 'Tap the bookmark icon on any verse to save it'}
+                </View>
+              )}
+
+              {savedVersesList.length === 0 ? (
+                <View style={{
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 60
+                }}>
+                  <View style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: `${theme.primary}15`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 20
+                  }}>
+                    <MaterialIcons name="bookmark-border" size={40} color={theme.primary} />
+                  </View>
+                  <Text style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: theme.text,
+                    marginBottom: 8
+                  }}>
+                    No Saved Verses Yet
+                  </Text>
+                  <Text style={{
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    textAlign: 'center',
+                    lineHeight: 22
+                  }}>
+                    Tap the bookmark icon on any verse{'\n'}to save it for later
                   </Text>
                 </View>
               ) : (
-                (savedVersesSort === 'desc' ? [...savedVersesList].reverse() : savedVersesList).map((verse, index) => (
-                  <View key={verse.id || index} style={[styles.savedVerseItem, { 
-                    backgroundColor: theme.surface,
-                    borderBottomColor: theme.border
-                  }]}>
-                    <View style={styles.savedVerseHeader}>
-                      <Text style={[styles.savedVerseReference, { color: theme.primary }]}>
-                        {verse.reference}
+                // Filter and map verses
+                (() => {
+                  const filteredVerses = savedVersesList.filter(v => {
+                    if (!savedVersesSearch.trim()) return true;
+                    const searchLower = savedVersesSearch.toLowerCase();
+                    const text = (v.text || v.content || '').toLowerCase();
+                    const ref = (v.reference || '').toLowerCase();
+                    return text.includes(searchLower) || ref.includes(searchLower);
+                  });
+                  
+                  const sortedVerses = savedVersesSort === 'desc' ? [...filteredVerses].reverse() : filteredVerses;
+                  
+                  if (sortedVerses.length === 0 && savedVersesSearch) {
+                    return (
+                      <View style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingVertical: 40
+                      }}>
+                        <MaterialIcons name="search-off" size={48} color={theme.textTertiary} />
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: theme.textSecondary,
+                          marginTop: 16
+                        }}>
+                          No results for "{savedVersesSearch}"
+                        </Text>
+                      </View>
+                    );
+                  }
+                  
+                  return sortedVerses.map((verse, index) => (
+                    <View 
+                      key={verse.id || index} 
+                      style={{
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                        borderRadius: 20,
+                        padding: 20,
+                        marginBottom: 14,
+                        shadowColor: theme.primary,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: isDark ? 0.15 : 0.08,
+                        shadowRadius: 12,
+                        elevation: 4,
+                        borderWidth: isDark ? 1 : 0,
+                        borderColor: 'rgba(255,255,255,0.08)'
+                      }}
+                    >
+                      {/* Header Row */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 14
+                      }}>
+                        {/* Bookmark Icon */}
+                        <View style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                          backgroundColor: `${theme.primary}15`,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 12
+                        }}>
+                          <MaterialIcons name="bookmark" size={22} color={theme.primary} />
+                        </View>
+                        
+                        {/* Reference and Version */}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            fontSize: 17,
+                            fontWeight: '700',
+                            color: theme.primary,
+                            letterSpacing: 0.3
+                          }}>
+                            {verse.reference}
+                          </Text>
+                          <Text style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: theme.textTertiary,
+                            marginTop: 2,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5
+                          }}>
+                            {verse.version?.toUpperCase() || 'KJV'}
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      {/* Verse Text */}
+                      <Text style={{
+                        fontSize: 16,
+                        color: theme.text,
+                        lineHeight: 26,
+                        marginBottom: 18,
+                        fontWeight: '500'
+                      }}>
+                        {verse.text || verse.content}
                       </Text>
-                      <Text style={[styles.savedVerseVersion, { color: theme.textTertiary }]}>
-                        {verse.version?.toUpperCase() || 'KJV'}
-                      </Text>
-                    </View>
-                    <Text style={[styles.savedVerseContent, { color: theme.text }]}>
-                      {verse.text || verse.content}
-                    </Text>
-                    
-                    {/* Action buttons */}
-                    <View style={styles.savedVerseActions}>
-                      {/* Remove Button (left) */}
-                      <TouchableOpacity
-                        style={[styles.removeButton, { backgroundColor: theme.error + '20' }]}
-                        onPress={async () => {
-                          hapticFeedback.light();
-                          const newList = savedVersesList.filter(v => v.id !== verse.id);
-                          setSavedVersesList(newList);
-                          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                          const stats = await AsyncStorage.getItem('userStats');
-                          const userStats = stats ? JSON.parse(stats) : {};
-                          userStats.savedVerses = newList.length;
-                          await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-                          setUserStats(userStats);
-                        }}
-                      >
-                        <MaterialIcons name="delete-outline" size={18} color={theme.error} />
-                        <Text style={[styles.removeButtonText, { color: theme.error }]}>{t.remove || 'Remove'}</Text>
-                      </TouchableOpacity>
+                      
+                      {/* Action Buttons Row */}
+                      <View style={{
+                        flexDirection: 'row',
+                        gap: 10
+                      }}>
+                        {/* Remove Button */}
+                        <TouchableOpacity
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            backgroundColor: `${theme.error}15`,
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onPress={async () => {
+                            hapticFeedback.light();
+                            const newList = savedVersesList.filter(v => v.id !== verse.id);
+                            setSavedVersesList(newList);
+                            await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
+                            const stats = await AsyncStorage.getItem('userStats');
+                            const userStats = stats ? JSON.parse(stats) : {};
+                            userStats.savedVerses = newList.length;
+                            await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+                            setUserStats(userStats);
+                          }}
+                          activeOpacity={0.7}
+                          delayPressIn={0}
+                        >
+                          <MaterialIcons name="delete-outline" size={20} color={theme.error} />
+                        </TouchableOpacity>
 
-                      {/* Discuss Button (middle) */}
-                      <TouchableOpacity
-                        style={[styles.savedVerseButton, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
-                        onPress={() => {
-                          hapticFeedback.medium();
-                          setVerseToInterpret({
-                            text: verse.text || verse.content,
-                            reference: verse.reference
-                          });
-                          setShowSavedVerses(false);
-                          setTimeout(() => {
-                            setShowAiChat(true);
-                          }, 300);
-                        }}
-                      >
-                        <MaterialIcons name="forum" size={16} color={theme.primary} />
-                        <Text style={[styles.savedVerseButtonText, { color: theme.primary }]}>{t.discuss || 'Discuss'}</Text>
-                      </TouchableOpacity>
+                        {/* Discuss Button */}
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            height: 44,
+                            borderRadius: 22,
+                            backgroundColor: theme.primary,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            shadowColor: theme.primary,
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 8
+                          }}
+                          onPress={() => {
+                            hapticFeedback.medium();
+                            setVerseToInterpret({
+                              text: verse.text || verse.content,
+                              reference: verse.reference
+                            });
+                            setShowSavedVerses(false);
+                            setSavedVersesSearch('');
+                            setTimeout(() => {
+                              setShowAiChat(true);
+                            }, 300);
+                          }}
+                          activeOpacity={0.7}
+                          delayPressIn={0}
+                        >
+                          <MaterialIcons name="forum" size={18} color="#FFFFFF" />
+                          <Text style={{
+                            fontSize: 14,
+                            fontWeight: '700',
+                            color: '#FFFFFF'
+                          }}>
+                            Discuss
+                          </Text>
+                        </TouchableOpacity>
 
-                      {/* Go to Verse Button (right) */}
-                      <TouchableOpacity
-                        style={[styles.savedVerseButton, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
-                        onPress={() => {
-                          handleNavigateToVerse(verse.reference);
-                        }}
-                      >
-                        <MaterialIcons name="menu-book" size={16} color={theme.success} />
-                        <Text style={[styles.savedVerseButtonText, { color: theme.success }]}>Go to Verse</Text>
-                      </TouchableOpacity>
+                        {/* Go to Verse Button */}
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            height: 44,
+                            borderRadius: 22,
+                            backgroundColor: theme.success,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            shadowColor: theme.success,
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 8
+                          }}
+                          onPress={() => {
+                            handleNavigateToVerse(verse.reference);
+                          }}
+                          activeOpacity={0.7}
+                          delayPressIn={0}
+                        >
+                          <MaterialIcons name="menu-book" size={18} color="#FFFFFF" />
+                          <Text style={{
+                            fontSize: 14,
+                            fontWeight: '700',
+                            color: '#FFFFFF'
+                          }}>
+                            Read
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                ))
+                  ));
+                })()
               )}
             </ScrollView>
             </View>
@@ -2530,13 +2769,18 @@ const ProfileTab = () => {
                 paddingHorizontal: 20
               }}>
                 <TouchableOpacity
-                  onPress={() => setShowSavedVerses(false)}
+                  onPress={() => {
+                    setShowSavedVerses(false);
+                    setSavedVersesSearch('');
+                  }}
                   style={{ 
                     backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                     paddingHorizontal: 16, 
                     paddingVertical: 8,
                     borderRadius: 20,
                   }}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
                 >
                   <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
                 </TouchableOpacity>
@@ -2560,6 +2804,8 @@ const ProfileTab = () => {
                     borderRadius: 18,
                     backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
                   }}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
                 >
                   <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '700' }}>
                     {savedVersesSort === 'desc' ? 'Newest' : 'Oldest'}
