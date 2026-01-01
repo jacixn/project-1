@@ -131,6 +131,82 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [shareCardTextMode, setShareCardTextMode] = useState('quoted'); // 'quoted' | 'full'
   const [shareCardText, setShareCardText] = useState('');
   const [shareCardEndVerseNumber, setShareCardEndVerseNumber] = useState(null);
+  const [shareCardActiveBg, setShareCardActiveBg] = useState(0);
+  const [shareCardActiveLayout, setShareCardActiveLayout] = useState('centered'); // Layout template
+  const [shareCardTextAlign, setShareCardTextAlign] = useState('center'); // Text alignment
+  const [shareCardAspect, setShareCardAspect] = useState('portrait'); // Aspect ratio
+  const [shareCardFont, setShareCardFont] = useState('serif'); // Font style
+  const [shareCardShowBranding, setShareCardShowBranding] = useState(true); // Show Biblely
+  const [shareCardControlsTab, setShareCardControlsTab] = useState('bg'); // Active controls tab
+
+  // Premium Background Presets - Extensive Collection
+  const bgPresets = [
+    // Dark & Moody
+    { colors: ['#0F0F0F', '#1a1a2e'], name: 'Midnight', isLight: false },
+    { colors: ['#1e1e28', '#2d2d3a'], name: 'Onyx', isLight: false },
+    { colors: ['#0F2027', '#203A43', '#2C5364'], name: 'Deep Ocean', isLight: false },
+    { colors: ['#000428', '#004e92'], name: 'Navy Depths', isLight: false },
+    { colors: ['#232526', '#414345'], name: 'Dark Matter', isLight: false },
+    // Vibrant Gradients
+    { colors: ['#6366F1', '#8B5CF6'], name: 'Indigo', isLight: false },
+    { colors: ['#EC4899', '#F43F5E'], name: 'Rose', isLight: false },
+    { colors: ['#8B5CF6', '#D946EF'], name: 'Violet', isLight: false },
+    { colors: ['#ee0979', '#ff6a00'], name: 'Flamingo', isLight: false },
+    { colors: ['#F97316', '#FBBF24'], name: 'Sunset', isLight: false },
+    // Nature
+    { colors: ['#10B981', '#34D399'], name: 'Emerald', isLight: false },
+    { colors: ['#11998e', '#38ef7d'], name: 'Forest', isLight: false },
+    { colors: ['#06B6D4', '#3B82F6'], name: 'Azure', isLight: false },
+    { colors: ['#134E5E', '#71B280'], name: 'Pine', isLight: false },
+    // Warm Tones
+    { colors: ['#F59E0B', '#EF4444'], name: 'Fire', isLight: false },
+    { colors: ['#3a1c71', '#d76d77', '#ffaf7b'], name: 'Twilight', isLight: false },
+    { colors: ['#642B73', '#C6426E'], name: 'Plum', isLight: false },
+    { colors: ['#C33764', '#1D2671'], name: 'Dusk', isLight: false },
+    // Light & Clean
+    { colors: ['#ffffff', '#f3f4f6'], name: 'Arctic', isLight: true },
+    { colors: ['#fdfcfb', '#e2d1c3'], name: 'Cream', isLight: true },
+    { colors: ['#e0c3fc', '#8ec5fc'], name: 'Lilac', isLight: true },
+    { colors: ['#a8edea', '#fed6e3'], name: 'Cotton', isLight: true },
+    // Solid Colors
+    { colors: ['#000000', '#000000'], name: 'Black', isLight: false },
+    { colors: ['#1F2937', '#1F2937'], name: 'Charcoal', isLight: false },
+    { colors: ['#7C3AED', '#7C3AED'], name: 'Purple', isLight: false },
+    { colors: ['#DC2626', '#DC2626'], name: 'Red', isLight: false },
+  ];
+
+  // Layout Templates
+  const layoutPresets = [
+    { id: 'centered', name: 'Centered', description: 'Classic centered layout' },
+    { id: 'bottom-ref', name: 'Bottom Ref', description: 'Reference at bottom' },
+    { id: 'top-ref', name: 'Top Ref', description: 'Reference at top, verse below' },
+    { id: 'split', name: 'Split', description: 'Reference left, version right' },
+    { id: 'minimal', name: 'Minimal', description: 'Just the verse' },
+    { id: 'bold', name: 'Bold', description: 'Large impactful text' },
+  ];
+
+  // Aspect Ratios
+  const aspectPresets = [
+    { id: 'portrait', label: '4:5', name: 'Portrait', ratio: 4/5 },
+    { id: 'square', label: '1:1', name: 'Square', ratio: 1 },
+    { id: 'story', label: '9:16', name: 'Story', ratio: 9/16 },
+    { id: 'wide', label: '16:9', name: 'Wide', ratio: 16/9 },
+  ];
+
+  // Font Styles
+  const fontPresets = [
+    { id: 'serif', name: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' } },
+    { id: 'sans', name: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif' } },
+    { id: 'script', name: 'Script', style: { fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive', fontStyle: 'italic' } },
+    { id: 'mono', name: 'Mono', style: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' } },
+  ];
+
+  // Text Alignment Options
+  const alignPresets = [
+    { id: 'left', icon: 'format-align-left' },
+    { id: 'center', icon: 'format-align-center' },
+    { id: 'right', icon: 'format-align-right' },
+  ];
   
   // Audio player state
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -1221,6 +1297,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     setShareCardEndVerseNumber(baseNumber);
     setShareCardText(defaultFull);
     
+    // Reset customization options to defaults
+    setShareCardActiveBg(0);
+    setShareCardActiveLayout('centered');
+    setShareCardTextAlign('center');
+    setShareCardAspect('portrait');
+    setShareCardFont('serif');
+    setShareCardShowBranding(true);
+    setShareCardControlsTab('bg');
+    
     // Close verse menu first
     Animated.parallel([
       Animated.timing(verseMenuSlideAnim, {
@@ -1264,8 +1349,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       useNativeDriver: true,
     }).start(() => {
       setShowShareCard(false);
-      setSelectedVerseForMenu(null); // Clear the selected verse
+      setSelectedVerseForMenu(null);
       setShareCardAnimating(false);
+      // Reset customization state
+      setShareCardText('');
+      setShareCardEndVerseNumber(null);
     });
   };
 
@@ -4472,388 +4560,498 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       )}
 
           {/* Share Card Modal */}
-          {showShareCard && selectedVerseForMenu && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1000001,
-              }}
-            >
-              {/* Backdrop - Separate TouchableOpacity */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={closeShareCard}
-                disabled={shareCardAnimating}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-              >
-                <Animated.View style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                  opacity: shareCardFadeAnim
-                }} />
-              </TouchableOpacity>
+          {showShareCard && selectedVerseForMenu && (() => {
+            // Calculate dimensions based on aspect ratio
+            const currentAspect = aspectPresets.find(a => a.id === shareCardAspect) || aspectPresets[0];
+            const cardWidth = Math.min(windowWidth * 0.85, 360);
+            const cardHeight = cardWidth / currentAspect.ratio;
+            const currentBg = bgPresets[shareCardActiveBg] || bgPresets[0];
+            const isLightBg = currentBg.isLight;
+            const textColor = isLightBg ? '#1F2937' : '#FFFFFF';
+            const subtleColor = isLightBg ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)';
+            const currentFont = fontPresets.find(f => f.id === shareCardFont) || fontPresets[0];
+            
+            // Get verse reference text
+            const baseVerseNum = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+            const endVerseNum = shareCardEndVerseNumber || baseVerseNum;
+            const hasRange = Number(endVerseNum) !== Number(baseVerseNum);
+            const verseRef = `${currentBook?.name} ${currentChapter?.number}:${baseVerseNum}${hasRange ? `-${endVerseNum}` : ''}`;
+            const versionName = getVersionById(selectedBibleVersion)?.abbreviation || 'KJV';
+            const shareText = getShareCardDisplayText();
+            const sizing = getShareCardTextSizing(shareText);
 
-              {/* Close Button - Top Right, Always Visible */}
-              <Animated.View 
-                style={{
-                  position: 'absolute',
-                  top: Platform.OS === 'ios' ? 60 : 40,
-                  right: 20,
-                  zIndex: 10,
-                  opacity: shareCardFadeAnim
-                }}
-              >
+            // Render card content based on layout
+            const renderCardContent = () => {
+              const verseTextStyle = {
+                fontSize: shareCardActiveLayout === 'bold' ? sizing.fontSize + 6 : sizing.fontSize,
+                fontWeight: shareCardActiveLayout === 'bold' ? '700' : '500',
+                color: textColor,
+                lineHeight: sizing.lineHeight,
+                textAlign: shareCardTextAlign,
+                fontStyle: shareCardActiveLayout === 'bold' ? 'normal' : 'italic',
+                ...currentFont.style,
+              };
+
+              const refStyle = {
+                fontSize: shareCardActiveLayout === 'bold' ? 20 : 18,
+                fontWeight: '700',
+                color: textColor,
+                textAlign: shareCardTextAlign,
+                ...currentFont.style,
+              };
+
+              const versionStyle = {
+                fontSize: 11,
+                fontWeight: '600',
+                color: subtleColor,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+              };
+
+              const brandStyle = {
+                fontSize: 13,
+                fontWeight: '700',
+                color: subtleColor,
+                letterSpacing: 1.5,
+              };
+
+              switch (shareCardActiveLayout) {
+                case 'bottom-ref':
+                  return (
+                    <View style={{ flex: 1, padding: 32, justifyContent: 'space-between' }}>
+                      <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <Text style={verseTextStyle} numberOfLines={10} adjustsFontSizeToFit minimumFontScale={0.7}>
+                          {shareText}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 20 }}>
+                        <View>
+                          <Text style={refStyle}>{verseRef}</Text>
+                          <Text style={[versionStyle, { marginTop: 4 }]}>{versionName}</Text>
+                        </View>
+                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                      </View>
+                    </View>
+                  );
+
+                case 'top-ref':
+                  return (
+                    <View style={{ flex: 1, padding: 32, justifyContent: 'space-between' }}>
+                      <View>
+                        <Text style={refStyle}>{verseRef}</Text>
+                        <Text style={[versionStyle, { marginTop: 4 }]}>{versionName}</Text>
+                      </View>
+                      <View style={{ flex: 1, justifyContent: 'center', marginVertical: 16 }}>
+                        <Text style={verseTextStyle} numberOfLines={10} adjustsFontSizeToFit minimumFontScale={0.7}>
+                          {shareText}
+                        </Text>
+                      </View>
+                      {shareCardShowBranding && (
+                        <View style={{ alignItems: shareCardTextAlign === 'left' ? 'flex-start' : shareCardTextAlign === 'right' ? 'flex-end' : 'center' }}>
+                          <Text style={brandStyle}>Biblely</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+
+                case 'split':
+                  return (
+                    <View style={{ flex: 1, padding: 32, justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Text style={[versionStyle]}>{versionName}</Text>
+                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                      </View>
+                      <View style={{ flex: 1, justifyContent: 'center', marginVertical: 20 }}>
+                        <Text style={verseTextStyle} numberOfLines={10} adjustsFontSizeToFit minimumFontScale={0.7}>
+                          {shareText}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-start' }}>
+                        <Text style={refStyle}>{verseRef}</Text>
+                      </View>
+                    </View>
+                  );
+
+                case 'minimal':
+                  return (
+                    <View style={{ flex: 1, padding: 40, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={[verseTextStyle, { textAlign: 'center' }]} numberOfLines={12} adjustsFontSizeToFit minimumFontScale={0.7}>
+                        {shareText}
+                      </Text>
+                    </View>
+                  );
+
+                case 'bold':
+                  return (
+                    <View style={{ flex: 1, padding: 28, justifyContent: 'space-between' }}>
+                      <Text style={[versionStyle, { textAlign: 'center' }]}>{versionName}</Text>
+                      <View style={{ flex: 1, justifyContent: 'center', marginVertical: 16 }}>
+                        <Text style={[verseTextStyle, { textAlign: 'center', fontWeight: '800' }]} numberOfLines={8} adjustsFontSizeToFit minimumFontScale={0.6}>
+                          {shareText}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={[refStyle, { textAlign: 'center', marginBottom: 8 }]}>{verseRef}</Text>
+                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                      </View>
+                    </View>
+                  );
+
+                case 'centered':
+                default:
+                  return (
+                    <View style={{ flex: 1, padding: 32, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={[refStyle, { textAlign: 'center', marginBottom: 24 }]}>{verseRef}</Text>
+                      <Text style={[verseTextStyle, { textAlign: 'center' }]} numberOfLines={10} adjustsFontSizeToFit minimumFontScale={0.7}>
+                        {shareText}
+                      </Text>
+                      <View style={{ marginTop: 24, alignItems: 'center' }}>
+                        <Text style={[versionStyle, { marginBottom: 8 }]}>{versionName}</Text>
+                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                      </View>
+                    </View>
+                  );
+              }
+            };
+
+            return (
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000001 }}>
+                {/* Backdrop */}
                 <TouchableOpacity
+                  activeOpacity={1}
                   onPress={closeShareCard}
                   disabled={shareCardAnimating}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  style={StyleSheet.absoluteFill}
                 >
-                  <MaterialIcons name="close" size={28} color="#FFFFFF" />
+                  <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)', opacity: shareCardFadeAnim }} />
                 </TouchableOpacity>
-              </Animated.View>
 
-              {/* Card Content - Scrollable with keyboard avoiding */}
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-                pointerEvents="box-none"
-              >
-                <ScrollView
-                  contentContainerStyle={{
-                    flexGrow: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingTop: Platform.OS === 'ios' ? 100 : 80,
-                    paddingBottom: 120,
-                  }}
-                  keyboardShouldPersistTaps="handled"
-                  showsVerticalScrollIndicator={false}
-                  pointerEvents="box-none"
-                >
-                <Animated.View 
-                  style={{
-                    width: '90%',
-                    maxWidth: 400,
-                    opacity: shareCardFadeAnim,
-                    transform: [{
-                      scale: shareCardFadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1]
-                      })
-                    }]
-                  }}
-                >
-                  <View>
-                    <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
-                    <LinearGradient
-                      colors={getShareCardGradient()}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={{
-                        borderRadius: 28,
-                        padding: 40,
-                        minHeight: 380
-                      }}
-                    >
-                      {/* Version Badge - Top Right, Subtle */}
-                      <View style={{
-                        position: 'absolute',
-                        top: 20,
-                        right: 20,
-                      }}>
-                        <Text style={{
-                          fontSize: 10,
-                          fontWeight: '600',
-                          color: 'rgba(255, 255, 255, 0.5)',
-                          letterSpacing: 0.5,
-                          textTransform: 'uppercase'
-                        }}>
-                          {getVersionById(selectedBibleVersion)?.name || 'KJV'}
-                        </Text>
-                      </View>
+                {/* Close Button */}
+                <Animated.View style={{ position: 'absolute', top: Platform.OS === 'ios' ? 56 : 36, right: 16, zIndex: 10, opacity: shareCardFadeAnim }}>
+                  <TouchableOpacity
+                    onPress={closeShareCard}
+                    disabled={shareCardAnimating}
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    <MaterialIcons name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </Animated.View>
 
-                      {/* Main Content - Centered */}
-                      <View style={{
-                        flex: 1,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        paddingVertical: 40
-                      }}>
-                        {/* Verse Reference */}
-                        <Text style={{
-                          fontSize: 24,
-                          fontWeight: '800',
-                          color: '#fff',
-                          marginBottom: 32,
-                          textShadowColor: 'rgba(0, 0, 0, 0.2)',
-                          textShadowOffset: { width: 0, height: 2 },
-                          textShadowRadius: 4,
-                          textAlign: 'center'
-                        }}>
-                          {currentBook?.name} {currentChapter?.number}:
-                          {selectedVerseForMenu.number || selectedVerseForMenu.verse}
-                          {shareCardEndVerseNumber &&
-                            (Number(shareCardEndVerseNumber) !== Number(selectedVerseForMenu.number || selectedVerseForMenu.verse)) &&
-                            `-${shareCardEndVerseNumber}`}
-                        </Text>
+                {/* Main Content */}
+                <Animated.View style={{ flex: 1, opacity: shareCardFadeAnim, transform: [{ scale: shareCardFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }}>
+                  <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80, paddingBottom: 40 }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {/* Card Preview */}
+                    <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                      <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
+                        <LinearGradient
+                          colors={currentBg.colors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{ width: cardWidth, height: cardHeight, borderRadius: 24, overflow: 'hidden' }}
+                        >
+                          {renderCardContent()}
+                        </LinearGradient>
+                      </ViewShot>
+                    </View>
 
-                        {/* Verse Text - The Focus */}
-                        {(() => {
-                          const shareText = getShareCardDisplayText();
-                          const sizing = getShareCardTextSizing(shareText);
-                          return (
-                            <Text
-                              style={{
-                                fontSize: sizing.fontSize,
-                                fontWeight: '500',
-                                color: '#fff',
-                                lineHeight: sizing.lineHeight,
-                                textAlign: 'center',
-                                fontStyle: 'italic',
-                                textShadowColor: 'rgba(0, 0, 0, 0.15)',
-                                textShadowOffset: { width: 0, height: 1 },
-                                textShadowRadius: 3
-                              }}
-                              numberOfLines={12}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.82}
-                              allowFontScaling
-                            >
-                              {shareText}
-                            </Text>
-                          );
-                        })()}
-                      </View>
-
-                      {/* Biblely - Bottom, Subtle */}
-                      <View style={{
-                        alignItems: 'center',
-                        marginTop: 24
-                      }}>
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '700',
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          letterSpacing: 1.2,
-                        }}>
-                          Biblely
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                  </ViewShot>
-
-                  {/* Text mode controls (outside of capture) */}
-                  <View style={{ marginTop: 14, marginHorizontal: 6 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                      {[
-                        { key: 'quoted', label: 'Quoted' },
-                        { key: 'full', label: 'Full Verse' },
-                      ].map(option => {
-                        const isActive = shareCardTextMode === option.key;
-                        return (
+                    {/* Control Panel */}
+                    <View style={{ paddingHorizontal: 16 }}>
+                      {/* Control Tabs */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+                        {[
+                          { id: 'bg', label: 'Color', icon: 'palette' },
+                          { id: 'layout', label: 'Layout', icon: 'dashboard' },
+                          { id: 'text', label: 'Text', icon: 'text-fields' },
+                          { id: 'size', label: 'Size', icon: 'aspect-ratio' },
+                        ].map(tab => (
                           <TouchableOpacity
-                            key={option.key}
-                            onPress={() => {
-                              setShareCardTextMode(option.key);
-                              const baseText =
-                                option.key === 'full'
-                                  ? getFullVerseText(selectedVerseForMenu)
-                                  : getShareCardText(selectedVerseForMenu);
-                              setShareCardText(baseText);
-                            }}
+                            key={tab.id}
+                            onPress={() => setShareCardControlsTab(tab.id)}
                             style={{
                               paddingVertical: 10,
-                              paddingHorizontal: 14,
+                              paddingHorizontal: 16,
                               borderRadius: 12,
-                              backgroundColor: isActive ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
-                              borderWidth: isActive ? 1.4 : 1,
-                              borderColor: isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
-                              marginHorizontal: 4
+                              backgroundColor: shareCardControlsTab === tab.id ? 'rgba(255,255,255,0.2)' : 'transparent',
+                              marginHorizontal: 4,
+                              flexDirection: 'row',
+                              alignItems: 'center',
                             }}
                           >
-                            <Text style={{
-                              color: '#fff',
-                              fontSize: 13,
-                              fontWeight: isActive ? '800' : '600',
-                              letterSpacing: 0.3
-                            }}>
-                              {option.label}
+                            <MaterialIcons name={tab.icon} size={18} color={shareCardControlsTab === tab.id ? '#fff' : 'rgba(255,255,255,0.6)'} />
+                            <Text style={{ color: shareCardControlsTab === tab.id ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
+                              {tab.label}
                             </Text>
                           </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                        ))}
+                      </View>
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 10, alignItems: 'center' }}>
+                      {/* Tab Content */}
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 16, marginBottom: 16 }}>
+                        {/* Background Tab */}
+                        {shareCardControlsTab === 'bg' && (
+                          <View>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Background Color
+                            </Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -8 }}>
+                              <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
+                                {bgPresets.map((preset, idx) => (
+                                  <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => setShareCardActiveBg(idx)}
+                                    style={{ marginRight: 10, alignItems: 'center' }}
+                                  >
+                                    <LinearGradient
+                                      colors={preset.colors}
+                                      style={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: 24,
+                                        borderWidth: shareCardActiveBg === idx ? 3 : 0,
+                                        borderColor: '#fff',
+                                      }}
+                                    />
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, marginTop: 4, textAlign: 'center', width: 50 }} numberOfLines={1}>
+                                      {preset.name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+
+                        {/* Layout Tab */}
+                        {shareCardControlsTab === 'layout' && (
+                          <View>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Card Layout
+                            </Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                              {layoutPresets.map(layout => (
+                                <TouchableOpacity
+                                  key={layout.id}
+                                  onPress={() => setShareCardActiveLayout(layout.id)}
+                                  style={{
+                                    width: '31%',
+                                    margin: '1%',
+                                    paddingVertical: 14,
+                                    paddingHorizontal: 8,
+                                    borderRadius: 12,
+                                    backgroundColor: shareCardActiveLayout === layout.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                    borderWidth: shareCardActiveLayout === layout.id ? 1.5 : 1,
+                                    borderColor: shareCardActiveLayout === layout.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: shareCardActiveLayout === layout.id ? '700' : '500', textAlign: 'center' }}>
+                                    {layout.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                            
+                            {/* Branding Toggle */}
+                            <TouchableOpacity
+                              onPress={() => setShareCardShowBranding(!shareCardShowBranding)}
+                              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}
+                            >
+                              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '500' }}>Show Biblely Branding</Text>
+                              <View style={{ width: 44, height: 26, borderRadius: 13, backgroundColor: shareCardShowBranding ? '#6366F1' : 'rgba(255,255,255,0.2)', padding: 2 }}>
+                                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', marginLeft: shareCardShowBranding ? 18 : 0 }} />
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        {/* Text Tab */}
+                        {shareCardControlsTab === 'text' && (
+                          <View>
+                            {/* Text Alignment */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Text Alignment
+                            </Text>
+                            <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                              {alignPresets.map(align => (
+                                <TouchableOpacity
+                                  key={align.id}
+                                  onPress={() => setShareCardTextAlign(align.id)}
+                                  style={{
+                                    flex: 1,
+                                    paddingVertical: 12,
+                                    marginHorizontal: 4,
+                                    borderRadius: 10,
+                                    backgroundColor: shareCardTextAlign === align.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                    borderWidth: shareCardTextAlign === align.id ? 1.5 : 1,
+                                    borderColor: shareCardTextAlign === align.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <MaterialIcons name={align.icon} size={22} color={shareCardTextAlign === align.id ? '#fff' : 'rgba(255,255,255,0.5)'} />
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+
+                            {/* Font Style */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Font Style
+                            </Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                              {fontPresets.map(font => (
+                                <TouchableOpacity
+                                  key={font.id}
+                                  onPress={() => setShareCardFont(font.id)}
+                                  style={{
+                                    width: '48%',
+                                    margin: '1%',
+                                    paddingVertical: 14,
+                                    borderRadius: 12,
+                                    backgroundColor: shareCardFont === font.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                    borderWidth: shareCardFont === font.id ? 1.5 : 1,
+                                    borderColor: shareCardFont === font.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: shareCardFont === font.id ? '600' : '400', ...font.style }}>
+                                    {font.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+
+                            {/* Text Mode */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, marginTop: 20, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Verse Text
+                            </Text>
+                            <View style={{ flexDirection: 'row' }}>
+                              {[{ key: 'quoted', label: 'Quoted' }, { key: 'full', label: 'Full Verse' }].map(opt => (
+                                <TouchableOpacity
+                                  key={opt.key}
+                                  onPress={() => {
+                                    setShareCardTextMode(opt.key);
+                                    setShareCardText('');
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    paddingVertical: 12,
+                                    marginHorizontal: 4,
+                                    borderRadius: 10,
+                                    backgroundColor: shareCardTextMode === opt.key ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                    borderWidth: shareCardTextMode === opt.key ? 1.5 : 1,
+                                    borderColor: shareCardTextMode === opt.key ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: shareCardTextMode === opt.key ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' }}>
+                                    {opt.label}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        )}
+
+                        {/* Size Tab */}
+                        {shareCardControlsTab === 'size' && (
+                          <View>
+                            {/* Aspect Ratio */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Aspect Ratio
+                            </Text>
+                            <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                              {aspectPresets.map(aspect => (
+                                <TouchableOpacity
+                                  key={aspect.id}
+                                  onPress={() => setShareCardAspect(aspect.id)}
+                                  style={{
+                                    flex: 1,
+                                    paddingVertical: 14,
+                                    marginHorizontal: 4,
+                                    borderRadius: 12,
+                                    backgroundColor: shareCardAspect === aspect.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                    borderWidth: shareCardAspect === aspect.id ? 1.5 : 1,
+                                    borderColor: shareCardAspect === aspect.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{aspect.label}</Text>
+                                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 }}>{aspect.name}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+
+                            {/* Verse Range */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Verse Range
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (!selectedVerseForMenu) return;
+                                  const baseNum = Number(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+                                  const newEnd = Math.max(baseNum, (Number(shareCardEndVerseNumber) || baseNum) - 1);
+                                  setShareCardEndVerseNumber(newEnd);
+                                  setShareCardText('');
+                                }}
+                                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                              >
+                                <MaterialIcons name="remove" size={24} color="#fff" />
+                              </TouchableOpacity>
+                              <View style={{ marginHorizontal: 16, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+                                  {baseVerseNum}{hasRange ? ` - ${endVerseNum}` : ''}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (!selectedVerseForMenu || !Array.isArray(verses)) return;
+                                  const baseNum = Number(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+                                  const maxVerse = verses.reduce((m, v) => Math.max(m, Number(v.number ?? v.verse) || 0), baseNum);
+                                  const newEnd = Math.min(maxVerse, (Number(shareCardEndVerseNumber) || baseNum) + 1);
+                                  setShareCardEndVerseNumber(newEnd);
+                                  setShareCardText('');
+                                }}
+                                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                              >
+                                <MaterialIcons name="add" size={24} color="#fff" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Save Button */}
                       <TouchableOpacity
-                        onPress={() => {
-                          if (!selectedVerseForMenu) return;
-                          const baseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
-                          const newEnd = Math.max(baseNumber, (shareCardEndVerseNumber || baseNumber) - 1);
-                          setShareCardEndVerseNumber(newEnd);
-                          setShareCardText(
-                            getShareCardBaseTextForRange(baseNumber, newEnd, shareCardTextMode)
-                          );
-                        }}
+                        onPress={saveVerseCard}
+                        activeOpacity={0.8}
                         style={{
-                          paddingVertical: 8,
-                          paddingHorizontal: 12,
-                          borderRadius: 10,
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          borderWidth: 1,
-                          borderColor: 'rgba(255,255,255,0.2)',
-                          marginRight: 8
+                          backgroundColor: '#fff',
+                          paddingVertical: 16,
+                          borderRadius: 16,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 12,
                         }}
                       >
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>−</Text>
-                      </TouchableOpacity>
-
-                      <View style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        borderRadius: 12,
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.2)',
-                        marginRight: 8
-                      }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
-                          Verse range:{' '}
-                          {(selectedVerseForMenu?.number || selectedVerseForMenu?.verse || '')}
-                          {shareCardEndVerseNumber &&
-                            Number(shareCardEndVerseNumber) !== Number(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)
-                            ? `-${shareCardEndVerseNumber}`
-                            : ''}
+                        <MaterialIcons name="download" size={22} color="#000" />
+                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginLeft: 10 }}>
+                          Save to Photos
                         </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          if (!selectedVerseForMenu || !Array.isArray(verses)) return;
-                          const baseNumber = Number(selectedVerseForMenu.number || selectedVerseForMenu.verse);
-                          const maxVerseNumber = verses.reduce((max, v) => Math.max(max, Number(v.number ?? v.verse) || 0), baseNumber);
-                          const nextEnd = Math.min(maxVerseNumber, Number(shareCardEndVerseNumber || baseNumber) + 1);
-                          setShareCardEndVerseNumber(nextEnd);
-                          setShareCardText(
-                            getShareCardBaseTextForRange(baseNumber, nextEnd, shareCardTextMode)
-                          );
-                        }}
-                        style={{
-                          paddingVertical: 8,
-                          paddingHorizontal: 12,
-                          borderRadius: 10,
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          borderWidth: 1,
-                          borderColor: 'rgba(255,255,255,0.2)',
-                        }}
-                      >
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>+</Text>
                       </TouchableOpacity>
                     </View>
-
-                    <View style={{ marginTop: 10 }}>
-                        <TextInput
-                        value={shareCardText}
-                        onChangeText={setShareCardText}
-                        multiline
-                        placeholder="Edit the text for this card"
-                        placeholderTextColor="rgba(255,255,255,0.65)"
-                        style={{
-                          minHeight: 90,
-                          padding: 14,
-                          borderRadius: 14,
-                          borderWidth: 1,
-                          borderColor: 'rgba(255,255,255,0.35)',
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          color: '#fff',
-                          fontSize: 15,
-                          lineHeight: 22
-                        }}
-                      />
-                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-                        <TouchableOpacity onPress={() => setShareCardText('')}>
-                          <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Clear</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            const baseTextSingle =
-                              shareCardTextMode === 'full'
-                                ? getFullVerseText(selectedVerseForMenu)
-                                : getShareCardText(selectedVerseForMenu);
-                            const baseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
-                            const endNumber = shareCardEndVerseNumber || baseNumber;
-                            const combined = getShareCardBaseTextForRange(baseNumber, endNumber, shareCardTextMode);
-                            setShareCardText(combined);
-                          }}
-                          style={{ marginLeft: 14 }}
-                        >
-                          <Text style={{ color: '#fff', fontWeight: '700' }}>
-                            Reset to {shareCardTextMode === 'full' ? 'full verse' : 'quoted'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Save Button - Outside the ViewShot */}
-                  <TouchableOpacity
-                    onPress={saveVerseCard}
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      paddingVertical: 16,
-                      paddingHorizontal: 32,
-                      borderRadius: 28,
-                      marginTop: 24,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 12,
-                      elevation: 8
-                    }}
-                  >
-                    <MaterialIcons name="download" size={22} color="#000" />
-                    <Text style={{
-                      fontSize: 16,
-                      fontWeight: '700',
-                      color: '#000',
-                      marginLeft: 10,
-                      letterSpacing: 0.5
-                    }}>
-                      Save to Photos
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
-              </ScrollView>
-              </KeyboardAvoidingView>
-            </View>
-          )}
+                  </ScrollView>
+                </Animated.View>
+              </View>
+            );
+          })()}
           
           {/* Audio Player Bar */}
           <AudioPlayerBar
