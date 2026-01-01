@@ -776,6 +776,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
     if (!selectedFact || !factsData) return null;
 
     const category = factsData.categories.find(c => c.id === selectedFact.category);
+    const catTheme = CATEGORY_THEMES[selectedFact.category] || CATEGORY_THEMES.all;
     const isFavorite = favorites.includes(selectedFact.id);
 
     const modalTranslateY = detailSlideAnim.interpolate({
@@ -828,146 +829,174 @@ const BibleFastFacts = ({ visible, onClose }) => {
                 transform: [{ translateY: combinedTranslateY }],
                 opacity: detailFadeAnim,
                 backgroundColor: theme.background,
-                maxHeight: '85%',
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                maxHeight: '90%',
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32,
                 overflow: 'hidden',
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -4 },
+                shadowOffset: { width: 0, height: -10 },
                 shadowOpacity: 0.3,
-                shadowRadius: 12,
-                elevation: 10,
+                shadowRadius: 20,
+                elevation: 20,
               },
             ]}
           >
             <View style={styles.detailSafeArea}>
-              {/* Drag Handle */}
+              {/* Custom Handle */}
               <View
-                style={[styles.modalHandle, { paddingTop: 12, paddingBottom: 4 }]}
+                style={styles.modalHandleWrapper}
                 {...detailPanResponder.panHandlers}
               >
-                <View
-                  style={[
-                    styles.handleBar,
-                    {
-                      width: 40,
-                      height: 5,
-                      borderRadius: 3,
-                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
-                    },
-                  ]}
-                />
-              </View>
-
-              {/* Header */}
-              <View
-                style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
-                {...detailPanResponder.panHandlers}
-              >
-                <View style={{ width: 40 }} />
-                <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
-                  Fast Fact
-                </Text>
-                <View style={{ width: 40 }} />
+                <View style={[styles.modalHandleBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]} />
               </View>
 
               <ScrollView
                 style={styles.detailContent}
                 showsVerticalScrollIndicator={false}
-                bounces={false}
+                bounces={true}
               >
-                {/* Fact Hero with Gradient */}
+                {/* Immersive Hero Header */}
                 <LinearGradient
-                  colors={category?.gradient || [theme.primary, theme.primary]}
+                  colors={catTheme.gradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.factHero}
+                  style={styles.factHeroPremium}
                 >
-                  <View style={styles.factHeroContent}>
-                    <View style={[styles.factHeroIconContainer, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                      <MaterialIcons name={selectedFact.icon} size={48} color="#FFFFFF" />
+                  {/* Decorative Background Icon */}
+                  <View style={styles.factHeroBgIcon}>
+                    <Ionicons 
+                      name={catTheme.bgIcon || 'sparkles'} 
+                      size={200} 
+                      color="rgba(255,255,255,0.07)" 
+                    />
+                  </View>
+
+                  <View style={styles.factHeroContentPremium}>
+                    {/* Category Badge */}
+                    <View style={styles.factHeroBadgePremium}>
+                      <MaterialIcons name={category?.icon} size={14} color="#FFFFFF" />
+                      <Text style={styles.factHeroBadgeTextPremium}>{category?.name}</Text>
                     </View>
 
-                    <Text style={styles.factHeroTitle}>{selectedFact.title}</Text>
-
-                    <View style={styles.factHeroBadge}>
-                      <MaterialIcons name={category?.icon} size={16} color="#FFFFFF" />
-                      <Text style={styles.factHeroBadgeText}>{category?.name}</Text>
+                    {/* Main Icon with Glow */}
+                    <View style={styles.factHeroIconWrapperPremium}>
+                      <View style={styles.factHeroIconInnerPremium}>
+                        <MaterialIcons name={selectedFact.icon} size={48} color="#FFFFFF" />
+                      </View>
+                      <View style={styles.factHeroIconGlowPremium} />
                     </View>
 
-                    <View style={styles.factHeroActions}>
+                    <Text style={styles.factHeroTitlePremium}>{selectedFact.title}</Text>
+                    
+                    {/* Quick Actions */}
+                    <View style={styles.factHeroActionsPremium}>
                       <TouchableOpacity
                         onPress={() => toggleFavorite(selectedFact.id)}
-                        style={[styles.factHeroActionButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                        activeOpacity={0.7}
+                        delayPressIn={0}
+                        style={styles.factHeroActionBtnPremium}
                       >
-                        <MaterialIcons
-                          name={isFavorite ? 'favorite' : 'favorite-border'}
-                          size={24}
-                          color="#FFFFFF"
-                        />
+                        <BlurView intensity={20} tint="light" style={styles.actionBtnBlur}>
+                          <Ionicons
+                            name={isFavorite ? 'heart' : 'heart-outline'}
+                            size={24}
+                            color={isFavorite ? '#FF6B9D' : '#FFFFFF'}
+                          />
+                        </BlurView>
                       </TouchableOpacity>
+
                       <TouchableOpacity
                         onPress={() => handleShare(selectedFact)}
-                        style={[styles.factHeroActionButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                        activeOpacity={0.7}
+                        delayPressIn={0}
+                        style={styles.factHeroActionBtnPremium}
                       >
-                        <MaterialIcons name="share" size={24} color="#FFFFFF" />
+                        <BlurView intensity={20} tint="light" style={styles.actionBtnBlur}>
+                          <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+                        </BlurView>
                       </TouchableOpacity>
                     </View>
                   </View>
                 </LinearGradient>
 
-                {/* Did You Know Section */}
-                <View style={styles.detailContentContainer}>
-                  <View style={[styles.detailSection, { backgroundColor: theme.card }]}>
-                    <View style={styles.detailSectionHeader}>
-                      <MaterialIcons name="lightbulb" size={24} color={category?.color} />
-                      <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                        Did You Know?
+                {/* Floating Content Cards */}
+                <View style={styles.detailContentContainerPremium}>
+                  {/* Did You Know? - High Emphasis */}
+                  <View style={[styles.premiumDetailCard, { backgroundColor: theme.card }]}>
+                    <LinearGradient
+                      colors={[`${catTheme.gradient[0]}15`, `${catTheme.gradient[1]}05`]}
+                      style={styles.cardHeaderGradient}
+                    >
+                      <View style={[styles.cardHeaderIcon, { backgroundColor: `${catTheme.gradient[0]}20` }]}>
+                        <MaterialIcons name="lightbulb" size={20} color={catTheme.gradient[0]} />
+                      </View>
+                      <Text style={[styles.cardHeaderTitle, { color: theme.text }]}>Did You Know?</Text>
+                    </LinearGradient>
+                    <View style={styles.cardBodyPremium}>
+                      <Text style={[styles.cardDescriptionPremium, { color: theme.text }]}>
+                        {selectedFact.description}
                       </Text>
                     </View>
-                    <Text style={[styles.detailDescription, { color: theme.text }]}>
-                      {selectedFact.description}
-                    </Text>
                   </View>
 
-                  {/* The Fact Section */}
-                  <View style={[styles.detailSection, { backgroundColor: theme.card }]}>
-                    <View style={styles.detailSectionHeader}>
-                      <MaterialIcons name="info" size={24} color={theme.primary} />
-                      <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                        The Fact
-                      </Text>
+                  {/* The Fact - Focus Card */}
+                  <View style={[styles.premiumDetailCard, { backgroundColor: theme.card }]}>
+                    <View style={styles.cardHeaderPremium}>
+                      <View style={[styles.cardHeaderIcon, { backgroundColor: `${theme.primary}20` }]}>
+                        <Ionicons name="information-circle" size={20} color={theme.primary} />
+                      </View>
+                      <Text style={[styles.cardHeaderTitle, { color: theme.text }]}>The Fact</Text>
                     </View>
-                    <Text style={[styles.detailDidYouKnow, { color: theme.text }]}>
-                      {selectedFact.didYouKnow}
-                    </Text>
+                    <View style={styles.cardBodyPremium}>
+                      <View style={[styles.factQuoteWrapper, { borderLeftColor: theme.primary }]}>
+                        <Text style={[styles.factQuoteText, { color: theme.text }]}>
+                          {selectedFact.didYouKnow}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
-                  {/* Tags Section */}
-                  <View style={[styles.detailSection, { backgroundColor: theme.card }]}>
-                    <View style={styles.detailSectionHeader}>
-                      <MaterialIcons name="label" size={24} color={theme.textSecondary} />
-                      <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                        Tags
-                      </Text>
+                  {/* Context/Tags */}
+                  <View style={[styles.premiumDetailCard, { backgroundColor: theme.card }]}>
+                    <View style={styles.cardHeaderPremium}>
+                      <View style={[styles.cardHeaderIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Ionicons name="pricetags" size={18} color={theme.textSecondary} />
+                      </View>
+                      <Text style={[styles.cardHeaderTitle, { color: theme.text }]}>Keywords</Text>
                     </View>
-                    <View style={styles.detailTagsContainer}>
-                      {selectedFact.tags.map((tag, idx) => (
-                        <View
-                          key={idx}
-                          style={[styles.detailTag, { backgroundColor: `${category?.color}20` }]}
-                        >
-                          <Text style={[styles.detailTagText, { color: category?.color }]}>
-                            {tag}
-                          </Text>
-                        </View>
-                      ))}
+                    <View style={styles.cardBodyPremium}>
+                      <View style={styles.premiumTagsGrid}>
+                        {selectedFact.tags.map((tag, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.premiumTag, { 
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                            }]}
+                          >
+                            <Text style={[styles.premiumTagText, { color: theme.textSecondary }]}>
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
                   </View>
                 </View>
 
-                <View style={{ height: 40 }} />
+                <View style={{ height: 60 }} />
               </ScrollView>
+              
+              {/* Bottom Action Bar */}
+              <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.bottomActionBar}>
+                <TouchableOpacity
+                  onPress={handleBackdropClose}
+                  activeOpacity={0.8}
+                  style={[styles.closeModalBtn, { backgroundColor: theme.primary }]}
+                >
+                  <Text style={styles.closeModalBtnText}>Got it!</Text>
+                </TouchableOpacity>
+              </BlurView>
             </View>
           </Animated.View>
         </View>
@@ -1837,137 +1866,209 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 14,
   },
-  // Detail Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  detailSafeArea: {
-    flex: 1,
-  },
-  modalHandle: {
+  // Premium Detail Modal Styles
+  modalHandleWrapper: {
     alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
+    paddingTop: 14,
+    paddingBottom: 6,
+    zIndex: 10,
   },
-  handleBar: {
-    width: 40,
+  modalHandleBar: {
+    width: 36,
     height: 5,
     borderRadius: 3,
   },
-  modalHeader: {
+  factHeroPremium: {
+    paddingTop: 10,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  factHeroBgIcon: {
+    position: 'absolute',
+    top: -20,
+    right: -30,
+    opacity: 1,
+  },
+  factHeroContentPremium: {
+    alignItems: 'center',
+    zIndex: 2,
+    width: '100%',
+  },
+  factHeroBadgePremium: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  factHero: {
-    padding: 30,
-  },
-  factHeroContent: {
-    alignItems: 'center',
-  },
-  factHeroIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  factHeroTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    lineHeight: 32,
-    textAlign: 'center',
-  },
-  factHeroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
     gap: 6,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  factHeroBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
+  factHeroBadgeTextPremium: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  factHeroActions: {
+  factHeroIconWrapperPremium: {
+    position: 'relative',
+    width: 90,
+    height: 90,
+    marginBottom: 24,
+  },
+  factHeroIconInnerPremium: {
+    width: 90,
+    height: 90,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  factHeroIconGlowPremium: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    right: 5,
+    bottom: 5,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.25,
+    filter: 'blur(15px)',
+  },
+  factHeroTitlePremium: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 36,
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    marginBottom: 24,
+  },
+  factHeroActionsPremium: {
     flexDirection: 'row',
+    gap: 16,
+  },
+  factHeroActionBtnPremium: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    overflow: 'hidden',
+  },
+  actionBtnBlur: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  detailContentContainerPremium: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    gap: 16,
+  },
+  premiumDetailCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  cardHeaderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     gap: 12,
   },
-  factHeroActionButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  cardHeaderPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  cardHeaderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailContent: {
-    flex: 1,
+  cardHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
   },
-  detailContentContainer: {
-    padding: 20,
+  cardBodyPremium: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
-  detailSection: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  detailSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  detailSectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  detailDescription: {
+  cardDescriptionPremium: {
     fontSize: 16,
     lineHeight: 24,
+    opacity: 0.9,
   },
-  detailDidYouKnow: {
+  factQuoteWrapper: {
+    borderLeftWidth: 4,
+    paddingLeft: 16,
+    paddingVertical: 4,
+  },
+  factQuoteText: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '600',
     fontStyle: 'italic',
   },
-  detailTagsContainer: {
+  premiumTagsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
-  detailTag: {
+  premiumTag: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    borderWidth: 1,
   },
-  detailTagText: {
-    fontSize: 14,
-    fontWeight: '600',
+  premiumTagText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
+  bottomActionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  closeModalBtn: {
+    paddingVertical: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  closeModalBtnText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+});
   // Random Fact Modal Styles
   randomModalOverlay: {
     flex: 1,
