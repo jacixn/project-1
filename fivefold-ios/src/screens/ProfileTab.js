@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Platform,
   StatusBar,
@@ -305,40 +306,8 @@ const ProfileTab = () => {
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
         
-        // Get user's current preferred Bible version
-        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'kjv';
-        console.log(`📖 Loading ${verses.length} saved verses in preferred version: ${preferredVersion.toUpperCase()}`);
-        
-        // Fetch each verse in the user's preferred version
-        const versesWithPreferredVersion = await Promise.all(
-          verses.map(async (verse) => {
-            try {
-              // Skip if this is a Key Verse (special identifier)
-              if (verse.version === 'KEY_VERSES') {
-                return verse; // Keep Key Verses as-is
-              }
-              
-              // Fetch the verse in the user's preferred version
-              const { text, version } = await verseByReferenceService.getVerseByReference(
-                verse.reference,
-                preferredVersion
-              );
-              
-              return {
-                ...verse,
-                text: text,
-                version: version.toLowerCase(),
-                originalVersion: verse.version, // Keep track of original version
-              };
-            } catch (error) {
-              console.warn(`⚠️ Could not fetch ${verse.reference} in ${preferredVersion}, using saved text:`, error.message);
-              // If fetching fails, keep the original saved text
-              return verse;
-            }
-          })
-        );
-        
-        setSavedVersesList(versesWithPreferredVersion);
+        // First, immediately set the verses from storage (no API calls) - prevents crash
+        setSavedVersesList(verses);
         
         // Update the stats count
         setUserStats(prev => ({
@@ -346,13 +315,44 @@ const ProfileTab = () => {
           savedVerses: verses.length
         }));
         
-        // Also update in AsyncStorage
+        // Update stats in AsyncStorage
         const stats = await AsyncStorage.getItem('userStats');
         const userStatsData = stats ? JSON.parse(stats) : {};
         userStatsData.savedVerses = verses.length;
         await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
         
-        console.log(`✅ Loaded ${verses.length} saved verses in ${preferredVersion.toUpperCase()}`);
+        // Only fetch updated text for first 15 verses to prevent crashes with large lists
+        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'kjv';
+        console.log(`📖 Loading ${verses.length} saved verses (refreshing first 15 in ${preferredVersion.toUpperCase()})`);
+        
+        const BATCH_SIZE = 15;
+        const versesToFetch = verses.slice(0, BATCH_SIZE);
+        const updatedVerses = [...verses];
+        
+        // Fetch one by one with small delays to prevent overwhelming network
+        for (let i = 0; i < versesToFetch.length; i++) {
+          const verse = versesToFetch[i];
+          try {
+            if (verse.version === 'KEY_VERSES') continue;
+            
+            const { text, version } = await verseByReferenceService.getVerseByReference(
+              verse.reference,
+              preferredVersion
+            );
+            
+            updatedVerses[i] = {
+              ...verse,
+              text: text,
+              version: version.toLowerCase(),
+              originalVersion: verse.version,
+            };
+          } catch (fetchError) {
+            console.log(`⚠️ Could not fetch verse:`, verse.reference);
+          }
+        }
+        
+        setSavedVersesList(updatedVerses);
+        console.log(`✅ Loaded ${verses.length} saved verses`);
       } else {
         setSavedVersesList([]);
         console.log('📖 No saved verses found');
@@ -1678,7 +1678,7 @@ const ProfileTab = () => {
           onPress={() => {
             hapticFeedback.light();
             setShowSavedVerses(true);
-            loadSavedVerses(); // Load data in background after modal opens
+            loadSavedVersesQuick(); // Quick load from storage - no API calls to prevent crash
           }}
         >
           <MaterialIcons name="bookmark" size={24} color={theme.info} />
