@@ -2732,7 +2732,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         const verseNumber = parseInt(verse.number || verse.verse || index + 1);
         // Always construct verseId consistently for saved verse matching
         const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNumber}`;
-        const highlightColor = highlightedVerses[verse.id || verseId];
+        // Use consistent verseId for highlight lookup (not verse.id which may have different format)
+        const highlightColor = highlightedVerses[verseId];
         
         // Check if this verse is in the current range selection
         const isInRangeSelection = rangeSelectionMode && rangeStartVerse && rangeEndVerseNum && (() => {
