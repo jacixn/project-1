@@ -730,6 +730,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
     
     const themeColor = themeCategories.find(cat => cat.id === selectedGuide.theme)?.color || theme.primary;
     const isCompleted = completedGuides.includes(selectedGuide.id);
+    const gradientColors = getThemeGradient(selectedGuide.theme, themeColor);
+    const themeIcon = getThemeIcon(selectedGuide.theme);
 
     const modalTranslateY = guideSlideAnim.interpolate({
       inputRange: [0, 1],
@@ -754,6 +756,51 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
         setSelectedGuide(null);
       });
     };
+
+    // Premium Section Card Component
+    const SectionCard = ({ icon, title, children, accent = false }) => (
+      <View style={{
+        marginHorizontal: 20,
+        marginBottom: 24,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: accent ? themeColor : '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: accent ? 0.2 : 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+        borderWidth: accent ? 1 : 0,
+        borderColor: `${themeColor}30`,
+      }}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}>
+          <View style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: `${themeColor}15`,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 14,
+          }}>
+            <MaterialIcons name={icon} size={24} color={themeColor} />
+          </View>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: '700',
+            color: theme.text,
+            letterSpacing: -0.3,
+          }}>
+            {title}
+          </Text>
+        </View>
+        {children}
+      </View>
+    );
 
     return (
       <Modal 
@@ -780,230 +827,455 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
               {
                 transform: [{ translateY: combinedTranslateY }],
                 opacity: guideFadeAnim,
-                backgroundColor: theme.background,
+                backgroundColor: isDark ? theme.background : '#F8F9FD',
                 height: '94%',
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
                 overflow: 'hidden',
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
-                elevation: 10
+                shadowOffset: { width: 0, height: -8 },
+                shadowOpacity: 0.4,
+                shadowRadius: 20,
+                elevation: 15
               }
             ]}
           >
             <View style={styles.guideDetailSafeArea}>
               {/* Drag Handle */}
               <View
-                style={[styles.modalHandle, { paddingTop: 12, paddingBottom: 4 }]}
+                style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}
                 {...guidePanResponder.panHandlers}
               >
-                <View style={[styles.handleBar, {
-                  width: 40,
+                <View style={{
+                  width: 48,
                   height: 5,
                   borderRadius: 3,
-                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'
-                }]} />
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'
+                }} />
               </View>
-              
-              {/* Header */}
-              <View 
-                style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
-                {...guidePanResponder.panHandlers}
+
+              <ScrollView 
+                style={{ flex: 1 }} 
+                showsVerticalScrollIndicator={false} 
+                bounces={true}
+                contentContainerStyle={{ paddingBottom: 40 }}
               >
-                <View style={{ width: 40 }} />
-                <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={1}>
-                  Thematic Guide
-                </Text>
-                <TouchableOpacity
-                  onPress={() => onNavigateToVerse && onNavigateToVerse(selectedGuide.passage)}
-                  style={styles.closeButton}
+                {/* Hero Header with Gradient */}
+                <LinearGradient
+                  colors={gradientColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    marginHorizontal: 20,
+                    marginTop: 8,
+                    marginBottom: 28,
+                    borderRadius: 24,
+                    padding: 28,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
                 >
-                  <MaterialIcons name="menu-book" size={24} color={theme.primary} />
-                </TouchableOpacity>
-              </View>
+                  {/* Decorative Background Icon */}
+                  <View style={{
+                    position: 'absolute',
+                    top: -30,
+                    right: -30,
+                    opacity: 0.15,
+                  }}>
+                    <MaterialIcons name={themeIcon} size={180} color="#fff" />
+                  </View>
 
-              <ScrollView style={styles.guideDetailContent} showsVerticalScrollIndicator={false} bounces={false}>
-            {/* Guide Header */}
-            <LinearGradient
-              colors={[`${themeColor}20`, `${themeColor}10`, 'transparent']}
-              style={styles.guideDetailHeader}
-            >
-              <View style={styles.guideDetailTitleSection}>
-                <Text style={[styles.guideDetailTitle, { color: theme.text }]}>
-                  {selectedGuide.title}
-                </Text>
-                <Text style={[styles.guideDetailHook, { color: theme.textSecondary }]}>
-                  {selectedGuide.hook}
-                </Text>
-                
-                <View style={styles.guideDetailMeta}>
-                  <View style={[styles.detailTimeBadge, { backgroundColor: `${themeColor}20` }]}>
-                    <MaterialIcons name="schedule" size={16} color={themeColor} />
-                    <Text style={[styles.detailTimeText, { color: themeColor }]}>
-                      {selectedGuide.timeMinutes} min read
+                  {/* Category Badge */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    alignSelf: 'flex-start',
+                    marginBottom: 18,
+                  }}>
+                    <MaterialIcons name={themeIcon} size={16} color="#fff" />
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: '#fff',
+                      marginLeft: 8,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}>
+                      {themeCategories.find(cat => cat.id === selectedGuide.theme)?.name || selectedGuide.theme}
                     </Text>
                   </View>
-                </View>
-              </View>
 
-            </LinearGradient>
-
-            {/* Introduction Section */}
-            {selectedGuide.intro && (
-              <View style={styles.guideSection}>
-                <View style={styles.sectionHeader}>
-                  <MaterialIcons name="campaign" size={24} color={themeColor} />
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Introduction</Text>
-                </View>
-                <Text style={[styles.introParagraph, { color: theme.text }]}>
-                  {selectedGuide.intro}
-                </Text>
-              </View>
-            )}
-
-            {/* Story Section */}
-            <View style={styles.guideSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="auto-stories" size={24} color={themeColor} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Bible Moments</Text>
-              </View>
-              {selectedGuide.story.map((paragraph, index) => (
-                <View key={index} style={styles.storyItem}>
-                  <View style={[styles.storyNumber, { backgroundColor: `${themeColor}20`, borderColor: themeColor }]}>
-                    <Text style={[styles.storyNumberText, { color: themeColor }]}>{index + 1}</Text>
-                  </View>
-                  <Text style={[styles.storyParagraph, { color: theme.text }]}>
-                    {paragraph}
+                  {/* Title */}
+                  <Text style={{
+                    fontSize: 28,
+                    fontWeight: '800',
+                    color: '#fff',
+                    marginBottom: 12,
+                    letterSpacing: -0.5,
+                    lineHeight: 34,
+                  }}>
+                    {selectedGuide.title}
                   </Text>
-                </View>
-              ))}
-            </View>
 
-            {/* Key Verses Section */}
-            {selectedGuide.keyVerses && (
-              <View style={styles.guideSection}>
-                <View style={styles.sectionHeader}>
-                  <MaterialIcons name="menu-book" size={24} color={themeColor} />
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Key Verses</Text>
-                </View>
-                {selectedGuide.keyVerses.map((verseItem, index) => (
-                  <View key={index} style={[styles.verseCard, { backgroundColor: theme.surface, borderColor: `${themeColor}20` }]}>
-                    <Text style={[styles.verseText, { color: theme.text }]}>
-                      "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verseItem.verse]?.text || verseItem.text)}"
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                      <Text style={[styles.verseReference, { color: themeColor }]}>
-                        {verseItem.verse}
-                      </Text>
-                      <Text style={[styles.versionBadge, { 
-                        color: themeColor,
-                        backgroundColor: isDark 
-                          ? `${themeColor}15` 
-                          : `${themeColor}10`,
-                        borderColor: `${themeColor}30`
-                      }]}>
-                        {bibleVersion}
+                  {/* Description */}
+                  <Text style={{
+                    fontSize: 16,
+                    color: 'rgba(255,255,255,0.9)',
+                    lineHeight: 24,
+                    marginBottom: 20,
+                  }}>
+                    {selectedGuide.hook}
+                  </Text>
+
+                  {/* Meta Row */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                    }}>
+                      <MaterialIcons name="schedule" size={18} color="#fff" />
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: '#fff',
+                        marginLeft: 8,
+                      }}>
+                        {selectedGuide.timeMinutes} min read
                       </Text>
                     </View>
+
+                    {isCompleted && (
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                      }}>
+                        <MaterialIcons name="check-circle" size={18} color={themeColor} />
+                        <Text style={{
+                          fontSize: 13,
+                          fontWeight: '700',
+                          color: themeColor,
+                          marginLeft: 6,
+                        }}>
+                          Completed
+                        </Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={() => onNavigateToVerse && onNavigateToVerse(selectedGuide.passage)}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: 'rgba(255,255,255,0.25)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <MaterialIcons name="menu-book" size={24} color="#fff" />
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-            )}
+                </LinearGradient>
 
-            {/* Insights Section */}
-            <View style={styles.guideSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="lightbulb" size={24} color={themeColor} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Insights</Text>
-              </View>
-              {selectedGuide.insights.map((insight, index) => (
-                <View key={index} style={styles.insightItem}>
-                  <View style={[styles.insightBullet, { backgroundColor: themeColor }]} />
-                  <Text style={[styles.insightText, { color: theme.text }]}>
-                    {insight}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Reflect Section */}
-            <View style={styles.guideSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="psychology" size={24} color={themeColor} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Reflect</Text>
-              </View>
-              {selectedGuide.reflectQuestions.map((question, index) => (
-                <View key={index} style={styles.reflectItem}>
-                  <Text style={[styles.reflectQuestion, { color: theme.text }]}>
-                    {question}
-                  </Text>
-                  <TextInput
-                    style={[styles.reflectInput, { 
-                      backgroundColor: theme.surface,
+                {/* Introduction Section */}
+                {selectedGuide.intro && (
+                  <SectionCard icon="campaign" title="Introduction" accent>
+                    <Text style={{
+                      fontSize: 17,
                       color: theme.text,
-                      borderColor: theme.border
-                    }]}
-                    placeholder="Write your thoughts..."
-                    placeholderTextColor={theme.textSecondary}
-                    multiline
-                    value={reflectionNotes[`${selectedGuide.id}-${index}`] || ''}
-                    onChangeText={(text) => saveReflection(selectedGuide.id, index, text)}
-                  />
-                </View>
-              ))}
-            </View>
+                      lineHeight: 28,
+                      fontStyle: 'italic',
+                    }}>
+                      {selectedGuide.intro}
+                    </Text>
+                  </SectionCard>
+                )}
 
-            {/* Practice Section */}
-            <View style={styles.guideSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="directions-walk" size={24} color={themeColor} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Practice</Text>
-              </View>
-              <View style={[styles.practiceCard, { backgroundColor: `${themeColor}10`, borderColor: `${themeColor}30` }]}>
-                <Text style={[styles.practiceText, { color: theme.text }]}>
-                  {selectedGuide.practice}
-                </Text>
-              </View>
-            </View>
+                {/* Bible Moments Section */}
+                <SectionCard icon="auto-stories" title="Bible Moments">
+                  {selectedGuide.story.map((paragraph, index) => (
+                    <View key={index} style={{
+                      flexDirection: 'row',
+                      marginBottom: index < selectedGuide.story.length - 1 ? 20 : 0,
+                    }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: themeColor,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 14,
+                        marginTop: 2,
+                      }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: '#fff',
+                        }}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <Text style={{
+                        flex: 1,
+                        fontSize: 16,
+                        color: theme.text,
+                        lineHeight: 26,
+                      }}>
+                        {paragraph}
+                      </Text>
+                    </View>
+                  ))}
+                </SectionCard>
 
-            {/* Prayer Section */}
-            <View style={styles.guideSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="church" size={24} color={themeColor} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Prayer</Text>
-              </View>
-              <View style={[styles.prayerCard, { backgroundColor: theme.surface, borderColor: `${themeColor}20` }]}>
-                <Text style={[styles.prayerText, { color: theme.text, fontStyle: 'italic' }]}>
-                  "{selectedGuide.prayer}"
-                </Text>
-              </View>
-            </View>
+                {/* Key Verses Section */}
+                {selectedGuide.keyVerses && (
+                  <SectionCard icon="menu-book" title="Key Verses" accent>
+                    {selectedGuide.keyVerses.map((verseItem, index) => (
+                      <View key={index} style={{
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : `${themeColor}08`,
+                        borderRadius: 16,
+                        padding: 18,
+                        marginBottom: index < selectedGuide.keyVerses.length - 1 ? 14 : 0,
+                        borderLeftWidth: 4,
+                        borderLeftColor: themeColor,
+                      }}>
+                        <Text style={{
+                          fontSize: 17,
+                          color: theme.text,
+                          lineHeight: 28,
+                          fontStyle: 'italic',
+                          marginBottom: 12,
+                        }}>
+                          "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verseItem.verse]?.text || verseItem.text)}"
+                        </Text>
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}>
+                          <Text style={{
+                            fontSize: 15,
+                            fontWeight: '700',
+                            color: themeColor,
+                          }}>
+                            {verseItem.verse}
+                          </Text>
+                          <View style={{
+                            backgroundColor: `${themeColor}20`,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 8,
+                          }}>
+                            <Text style={{
+                              fontSize: 11,
+                              fontWeight: '700',
+                              color: themeColor,
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.5,
+                            }}>
+                              {bibleVersion}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </SectionCard>
+                )}
 
-            {/* Complete Button */}
-            {!isCompleted && (
-              <TouchableOpacity
-                style={[styles.completeButton, { backgroundColor: themeColor }]}
-                onPress={() => handleGuideComplete(selectedGuide.id)}
-              >
-                <MaterialIcons name="check-circle" size={24} color="white" />
-                <Text style={styles.completeButtonText}>
-                  Save Reflection & Mark Complete
-                </Text>
-              </TouchableOpacity>
-            )}
+                {/* Insights Section */}
+                <SectionCard icon="lightbulb" title="Insights">
+                  {selectedGuide.insights.map((insight, index) => (
+                    <View key={index} style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      marginBottom: index < selectedGuide.insights.length - 1 ? 14 : 0,
+                    }}>
+                      <View style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: themeColor,
+                        marginTop: 8,
+                        marginRight: 14,
+                      }} />
+                      <Text style={{
+                        flex: 1,
+                        fontSize: 16,
+                        color: theme.text,
+                        lineHeight: 26,
+                      }}>
+                        {insight}
+                      </Text>
+                    </View>
+                  ))}
+                </SectionCard>
 
-            {isCompleted && (
-              <View style={[styles.completedIndicator, { backgroundColor: `${themeColor}20`, borderColor: themeColor }]}>
-                <MaterialIcons name="check-circle" size={24} color={themeColor} />
-                <Text style={[styles.completedText, { color: themeColor }]}>
-                  Guide Completed
-                </Text>
-              </View>
-            )}
+                {/* Reflect Section */}
+                <SectionCard icon="psychology" title="Reflect" accent>
+                  {selectedGuide.reflectQuestions.map((question, index) => (
+                    <View key={index} style={{
+                      marginBottom: index < selectedGuide.reflectQuestions.length - 1 ? 20 : 0,
+                    }}>
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        color: theme.text,
+                        marginBottom: 12,
+                        lineHeight: 24,
+                      }}>
+                        {question}
+                      </Text>
+                      <TextInput
+                        style={{
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F7FA',
+                          borderRadius: 16,
+                          padding: 16,
+                          fontSize: 16,
+                          color: theme.text,
+                          minHeight: 100,
+                          textAlignVertical: 'top',
+                          borderWidth: 1,
+                          borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E8ECF2',
+                        }}
+                        placeholder="Write your thoughts..."
+                        placeholderTextColor={theme.textSecondary}
+                        multiline
+                        value={reflectionNotes[`${selectedGuide.id}-${index}`] || ''}
+                        onChangeText={(text) => saveReflection(selectedGuide.id, index, text)}
+                      />
+                    </View>
+                  ))}
+                </SectionCard>
 
-            <View style={{ height: 40 }} />
+                {/* Practice Section */}
+                <SectionCard icon="directions-walk" title="Practice">
+                  <LinearGradient
+                    colors={[`${themeColor}15`, `${themeColor}08`]}
+                    style={{
+                      borderRadius: 16,
+                      padding: 20,
+                      borderWidth: 1,
+                      borderColor: `${themeColor}25`,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 16,
+                      color: theme.text,
+                      lineHeight: 26,
+                      fontWeight: '500',
+                    }}>
+                      {selectedGuide.practice}
+                    </Text>
+                  </LinearGradient>
+                </SectionCard>
+
+                {/* Prayer Section */}
+                <SectionCard icon="self-improvement" title="Prayer" accent>
+                  <View style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FEFCF8',
+                    borderRadius: 16,
+                    padding: 24,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#F5EFE6',
+                  }}>
+                    <MaterialIcons 
+                      name="format-quote" 
+                      size={32} 
+                      color={`${themeColor}40`} 
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text style={{
+                      fontSize: 17,
+                      color: theme.text,
+                      lineHeight: 28,
+                      fontStyle: 'italic',
+                      textAlign: 'center',
+                    }}>
+                      {selectedGuide.prayer}
+                    </Text>
+                  </View>
+                </SectionCard>
+
+                {/* Complete Button */}
+                {!isCompleted && (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={{
+                      marginHorizontal: 20,
+                      marginTop: 8,
+                      marginBottom: 20,
+                      borderRadius: 20,
+                      overflow: 'hidden',
+                    }}
+                    onPress={() => handleGuideComplete(selectedGuide.id)}
+                  >
+                    <LinearGradient
+                      colors={gradientColors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingVertical: 18,
+                        paddingHorizontal: 24,
+                      }}
+                    >
+                      <MaterialIcons name="check-circle" size={24} color="#fff" />
+                      <Text style={{
+                        fontSize: 17,
+                        fontWeight: '700',
+                        color: '#fff',
+                        marginLeft: 10,
+                      }}>
+                        Mark Complete
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+
+                {isCompleted && (
+                  <View style={{
+                    marginHorizontal: 20,
+                    marginTop: 8,
+                    marginBottom: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: `${themeColor}15`,
+                    paddingVertical: 18,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor: themeColor,
+                  }}>
+                    <MaterialIcons name="check-circle" size={24} color={themeColor} />
+                    <Text style={{
+                      fontSize: 17,
+                      fontWeight: '700',
+                      color: themeColor,
+                      marginLeft: 10,
+                    }}>
+                      Guide Completed
+                    </Text>
+                  </View>
+                )}
               </ScrollView>
             </View>
           </Animated.View>
