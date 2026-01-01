@@ -602,7 +602,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
     const isFavorite = favorites.includes(fact.id);
 
     if (viewMode === 'list') {
-      // Premium List View Card
+      // Amazingly Better Looking List Card
       return (
         <Animated.View
           key={fact.id}
@@ -621,58 +621,70 @@ const BibleFastFacts = ({ visible, onClose }) => {
             onPress={() => handleFactPress(fact)}
             style={styles.listCardContent}
           >
-            {/* Left accent bar */}
+            {/* Left accent bar - thicker and more vibrant */}
             <LinearGradient
               colors={catTheme.gradient}
               style={styles.listCardAccent}
             />
             
-            {/* Icon */}
-            <LinearGradient
-              colors={catTheme.gradient}
-              style={styles.listCardIcon}
-            >
-              <MaterialIcons name={fact.icon} size={24} color="#FFFFFF" />
-            </LinearGradient>
+            {/* Beautiful Icon Container with subtle glow */}
+            <View style={styles.listCardIconWrapper}>
+              <LinearGradient
+                colors={catTheme.gradient}
+                style={styles.listCardIconGradient}
+              >
+                <MaterialIcons name={fact.icon} size={28} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={[styles.listCardIconGlow, { backgroundColor: catTheme.gradient[0] }]} />
+            </View>
             
-            {/* Content */}
+            {/* Content Area */}
             <View style={styles.listCardBody}>
-              <Text style={[styles.listCardTitle, { color: theme.text }]} numberOfLines={2}>
-                {fact.title}
-              </Text>
+              <View style={styles.listCardTitleRow}>
+                <Text style={[styles.listCardTitle, { color: theme.text }]} numberOfLines={1}>
+                  {fact.title}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => toggleFavorite(fact.id)}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
+                  style={styles.listCardFavorite}
+                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                >
+                  <Ionicons
+                    name={isFavorite ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={isFavorite ? '#EC4899' : theme.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
               <Text style={[styles.listCardDescription, { color: theme.textSecondary }]} numberOfLines={2}>
                 {fact.description}
               </Text>
-              <View style={styles.listCardTags}>
-                {fact.tags.slice(0, 2).map((tag, idx) => (
-                  <View 
-                    key={idx} 
-                    style={[styles.listCardTag, { 
-                      backgroundColor: `${catTheme.gradient[0]}15`,
-                    }]}
-                  >
-                    <Text style={[styles.listCardTagText, { color: catTheme.gradient[0] }]}>
-                      {tag}
-                    </Text>
-                  </View>
-                ))}
+              
+              <View style={styles.listCardFooter}>
+                <View style={styles.listCardTags}>
+                  {fact.tags.slice(0, 3).map((tag, idx) => (
+                    <View 
+                      key={idx} 
+                      style={[styles.listCardTag, { 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      }]}
+                    >
+                      <Text style={[styles.listCardTagText, { color: theme.textSecondary }]}>
+                        {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                
+                <View style={styles.listCardLearnMore}>
+                  <Text style={[styles.learnMoreText, { color: catTheme.gradient[0] }]}>Details</Text>
+                  <Ionicons name="arrow-forward" size={12} color={catTheme.gradient[0]} />
+                </View>
               </View>
             </View>
-            
-            {/* Favorite button */}
-            <TouchableOpacity
-              onPress={() => toggleFavorite(fact.id)}
-              activeOpacity={0.7}
-              delayPressIn={0}
-              style={styles.listCardFavorite}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isFavorite ? '#EC4899' : theme.textSecondary}
-              />
-            </TouchableOpacity>
           </TouchableOpacity>
         </Animated.View>
       );
@@ -1697,64 +1709,102 @@ const styles = StyleSheet.create({
   },
   // Premium List Card Styles
   listCard: {
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 5,
+    width: '100%',
   },
   listCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    gap: 12,
+    padding: 16,
+    gap: 16,
   },
   listCardAccent: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    width: 6,
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
   },
-  listCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  listCardIconWrapper: {
+    position: 'relative',
+    width: 56,
+    height: 56,
+  },
+  listCardIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
+  },
+  listCardIconGlow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 18,
+    opacity: 0.3,
+    filter: 'blur(8px)',
   },
   listCardBody: {
     flex: 1,
-    gap: 4,
+    gap: 6,
+  },
+  listCardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   listCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
+    fontSize: 17,
+    fontWeight: '800',
+    flex: 1,
+    marginRight: 8,
   },
   listCardDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  listCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
   },
   listCardTags: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
   },
   listCardTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   listCardTagText: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  listCardLearnMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  learnMoreText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   listCardFavorite: {
-    padding: 4,
+    padding: 2,
   },
   emptyState: {
     alignItems: 'center',
