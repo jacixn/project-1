@@ -489,7 +489,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       if (verses && verses.length > 0) {
         const notes = {};
         for (const verse of verses) {
-          const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+          const verseNum = parseInt(verse.number || verse.verse);
+          const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
           const note = await VerseDataManager.getNote(verseId);
           if (note) {
             notes[verseId] = note;
@@ -692,8 +693,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const highlightVerse = async (color) => {
     if (!selectedVerseForMenu) return;
     
-    const verseId = selectedVerseForMenu.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu.number}`;
-    const verseReference = `${currentBook?.name} ${currentChapter?.number}:${selectedVerseForMenu.number || selectedVerseForMenu.verse}`;
+    const verseNum = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+    const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
+    const verseReference = `${currentBook?.name} ${currentChapter?.number}:${verseNum}`;
     
     // Use VerseDataManager to store highlight
     await VerseDataManager.addHighlight(verseId, color, verseReference);
@@ -713,7 +715,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const removeHighlight = async () => {
     if (!selectedVerseForMenu) return;
     
-    const verseId = selectedVerseForMenu.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu.number}`;
+    const verseNum = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+    const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
     
     // Use VerseDataManager to remove highlight
     await VerseDataManager.removeHighlight(verseId);
@@ -751,11 +754,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const addNoteToVerse = async () => {
     if (!selectedVerseForMenu) return;
     
-    const verseId = selectedVerseForMenu.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu.number}`;
+    const verseNum = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+    const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
     const journalData = {
       ...selectedVerseForMenu,
       id: verseId,
-      reference: `${currentBook?.name} ${currentChapter?.number}:${selectedVerseForMenu.number || selectedVerseForMenu.verse}`,
+      reference: `${currentBook?.name} ${currentChapter?.number}:${verseNum}`,
       text: selectedVerseForMenu.content || selectedVerseForMenu.text || ''
     };
     
@@ -1274,8 +1278,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const saveVerseToProfile = async () => {
     if (!selectedVerseForMenu) return;
     
-    const verseId = selectedVerseForMenu.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu.number}`;
-    const verseReference = `${currentBook?.name} ${currentChapter?.number}:${selectedVerseForMenu.number || selectedVerseForMenu.verse}`;
+    // Always construct verseId consistently for proper matching
+    const verseNumber = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
+    const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNumber}`;
+    const verseReference = `${currentBook?.name} ${currentChapter?.number}:${verseNumber}`;
     const verseText = (selectedVerseForMenu.content || selectedVerseForMenu.text || '').replace(/\s+/g, ' ').trim();
     
     try {
@@ -2070,10 +2076,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   // Interactive Features Handlers
   const handleJournalVerse = (verse) => {
     console.log('📝 Journal button tapped!', verse);
-    const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+    const verseNum = parseInt(verse.number || verse.verse);
+    const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
     const bookName = currentBook?.name || 'Book';
     const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
-    const verseNum = verse.number || verse.verse || '';
     const reference = `${bookName} ${chapterNum}:${verseNum}`;
     
     console.log('📝 Generated verseId:', verseId);
@@ -2235,10 +2241,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       
     const bookName = currentBook?.name || 'Book';
     const chapterNum = currentChapter?.number || currentChapter?.id?.split('_').pop() || '';
-    const verseNum = verse.number || verse.verse || '';
+    const verseNum = parseInt(verse.number || verse.verse);
     const reference = `${bookName} ${chapterNum}:${verseNum}`;
     const verseText = verse.content || verse.text || '';
-      const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+      const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
       
       // Get current saved verses
       const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
@@ -3894,7 +3900,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                     </ScrollView>
 
                     {/* Remove Highlight Option */}
-                    {highlightedVerses[selectedVerseForMenu.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu.number}`] && (
+                    {highlightedVerses[`${currentBook?.id}_${currentChapter?.number}_${parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse)}`] && (
                       <TouchableOpacity
                         style={{
                           marginTop: 12,
@@ -4012,7 +4018,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          {verseNotes[selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`] ? 'Edit Note' : 'Add Note'}
+                          {verseNotes[`${currentBook?.id}_${currentChapter?.number}_${parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)}`] ? 'Edit Note' : 'Add Note'}
                         </Text>
                         <Text style={{ fontSize: 13, color: theme.textSecondary }}>
                           Write your thoughts about this verse
@@ -4068,7 +4074,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         marginBottom: 12
                       }}
                       onPress={() => {
-                        const verseId = selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`;
+                        const verseNum = parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse);
+                        const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
                         const isAlreadySaved = savedVerses.has(verseId);
                         
                         if (isAlreadySaved) {
@@ -4107,17 +4114,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         marginRight: 12
                       }}>
                         <MaterialIcons 
-                          name={savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? "favorite" : "bookmark"} 
+                          name={savedVerses.has(`${currentBook?.id}_${currentChapter?.number}_${parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)}`) ? "favorite" : "bookmark"} 
                           size={20} 
                           color={theme.primary} 
                         />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Saved' : 'Save Verse'}
+                          {savedVerses.has(`${currentBook?.id}_${currentChapter?.number}_${parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)}`) ? 'Saved' : 'Save Verse'}
                         </Text>
                         <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Already in your saved verses' : 'Save this verse or a range of verses'}
+                          {savedVerses.has(`${currentBook?.id}_${currentChapter?.number}_${parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse)}`) ? 'Already in your saved verses' : 'Save this verse or a range of verses'}
                         </Text>
                       </View>
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
