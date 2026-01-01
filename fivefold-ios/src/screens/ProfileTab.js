@@ -2412,6 +2412,7 @@ const ProfileTab = () => {
             {/* Sticky Search Bar - Outside ScrollView */}
             <View style={{
               paddingHorizontal: 16,
+              paddingTop: 8,
               paddingBottom: 12,
               backgroundColor: theme.background
             }}>
