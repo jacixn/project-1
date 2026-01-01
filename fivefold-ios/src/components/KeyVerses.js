@@ -103,10 +103,6 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   const [loadingDynamicVerses, setLoadingDynamicVerses] = useState(false);
   const [bibleVersion, setBibleVersion] = useState('KJV');
 
-  const detailSlideAnim = useRef(new Animated.Value(0)).current;
-  const detailFadeAnim = useRef(new Animated.Value(0)).current;
-  const detailPanY = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     const initializeData = async () => {
       await loadVerses();
@@ -118,8 +114,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
         const savedFavorites = await getStoredData('favoriteVerses') || [];
         const allFavorites = [...new Set([...keyVerseIds, ...savedFavorites])];
         setFavoriteVerses(allFavorites);
-      } catch (error) {
-        console.error('Error loading favorite verses:', error);
+      } catch (err) {
+        console.error('Error loading favorite verses:', err);
       }
     };
 
@@ -224,7 +220,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   };
 
   const toggleFavorite = async (id) => {
-    const verse = (versesData ? Object.values(versesData.verses).flat() : []).find(v => v.id === id);
+    const all = versesData ? Object.values(versesData.verses).flat() : [];
+    const verse = all.find(v => v.id === id);
     if (!verse) return;
     const saved = await getStoredData('savedBibleVerses') || [];
     const idx = saved.findIndex(v => v.id === id);
@@ -305,13 +302,23 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     extrapolate: 'clamp',
   });
 
-  if (loading) return <Modal visible={visible}><SimplePercentageLoader isVisible loadingText="Loading..." /></Modal>;
+  if (loading) {
+    return (
+      <Modal visible={visible}>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <SimplePercentageLoader isVisible loadingText="Loading..." />
+        </View>
+      </Modal>
+    );
+  }
 
   const filtered = getFilteredVerses();
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
+        
         <Animated.ScrollView
           ref={scrollViewRef}
           onScroll={handleScroll}
@@ -328,7 +335,10 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
             <LinearGradient colors={isDark ? ['#1e1e28', '#1e1e28'] : ['#ffffff', '#f8fafc']} style={styles.headerGradient}>
               <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
               <View style={styles.headerRow}>
-                <TouchableOpacity style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} onPress={onClose}>
+                <TouchableOpacity 
+                  style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} 
+                  onPress={onClose}
+                >
                   <Text style={{ color: theme.primary, fontWeight: '600' }}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
@@ -343,10 +353,11 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
                   <TextInput
                     style={[styles.searchInput, { color: theme.text }]}
                     placeholder="Search verses..."
+                    placeholderTextColor={theme.textSecondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                   />
-                </Animated.View>
+                </View>
                 <View style={styles.resultsRow}>
                   <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{filtered.length}</Text>
                   <Text style={{ color: theme.textSecondary }}> verses</Text>
@@ -369,7 +380,7 @@ const styles = StyleSheet.create({
   cardText: { color: '#fff', fontSize: 14, fontWeight: '600', lineHeight: 20 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardRef: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  backBtn: { backgroundColor: 'rgba(0,0,0,0.05)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  backBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   headerContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, overflow: 'hidden' },
   headerGradient: { flex: 1, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
