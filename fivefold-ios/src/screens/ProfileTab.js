@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -915,6 +916,19 @@ const ProfileTab = () => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Force refresh all data when Profile tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('👤 Profile tab focused - refreshing all data');
+      loadUserData();
+      loadSavedVerses();
+      loadAppStreak();
+      loadJournalNotes();
+      loadHighlights();
+      loadCompletedTasks();
+    }, [])
+  );
 
   useEffect(() => {
     if (showAboutModal) {
