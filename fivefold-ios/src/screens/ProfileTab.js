@@ -335,20 +335,20 @@ const ProfileTab = () => {
           try {
             if (verse.version === 'KEY_VERSES') continue;
             
-            const { text, version } = await verseByReferenceService.getVerseByReference(
-              verse.reference,
-              preferredVersion
-            );
-            
+              const { text, version } = await verseByReferenceService.getVerseByReference(
+                verse.reference,
+                preferredVersion
+              );
+              
             updatedVerses[i] = {
-              ...verse,
-              text: text,
-              version: version.toLowerCase(),
+                ...verse,
+                text: text,
+                version: version.toLowerCase(),
               originalVersion: verse.version,
-            };
+              };
           } catch (fetchError) {
             console.log(`⚠️ Could not fetch verse:`, verse.reference);
-          }
+            }
         }
         
         setSavedVersesList(updatedVerses);
@@ -710,21 +710,21 @@ const ProfileTab = () => {
 
   // Default color names lookup
   const defaultColorNames = {
-    '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
-    '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
-    '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
-    '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
-    '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
-    '#B2DFDB': 'Teal', '#FFB3B3': 'Salmon', '#CCCCFF': 'Periwinkle', '#F7E7CE': 'Champagne',
-    '#AFEEEE': 'Turquoise', '#FFE4E1': 'Blush', '#98FF98': 'Mint Green', '#89CFF0': 'Baby Blue',
-    '#FFB6C1': 'Powder', '#FFFFCC': 'Butter', '#93E9BE': 'Seafoam', '#DA70D6': 'Orchid',
-    '#FFD700': 'Honey', '#C1E1EC': 'Ice Blue', '#DE3163': 'Cherry', '#93C572': 'Pistachio',
-    '#DDA0DD': 'Plum', '#FFCC00': 'Tangerine', '#F5DEB3': 'Sand', '#7FFFD4': 'Cyan',
-    '#FF77FF': 'Magenta', '#FFDEAD': 'Melon', '#C4C3D0': 'Iris', '#FFE5B4': 'Gold',
-    '#AFE1AF': 'Celadon', '#C9A0DC': 'Wisteria', '#FFEA00': 'Citrus', '#B0E0E6': 'Azure',
-    '#F3E5AB': 'Vanilla', '#50C878': 'Emerald', '#9966CC': 'Amethyst', '#F0EAD6': 'Pearl',
-    '#00A86B': 'Jade'
-  };
+      '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
+      '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
+      '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
+      '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
+      '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
+      '#B2DFDB': 'Teal', '#FFB3B3': 'Salmon', '#CCCCFF': 'Periwinkle', '#F7E7CE': 'Champagne',
+      '#AFEEEE': 'Turquoise', '#FFE4E1': 'Blush', '#98FF98': 'Mint Green', '#89CFF0': 'Baby Blue',
+      '#FFB6C1': 'Powder', '#FFFFCC': 'Butter', '#93E9BE': 'Seafoam', '#DA70D6': 'Orchid',
+      '#FFD700': 'Honey', '#C1E1EC': 'Ice Blue', '#DE3163': 'Cherry', '#93C572': 'Pistachio',
+      '#DDA0DD': 'Plum', '#FFCC00': 'Tangerine', '#F5DEB3': 'Sand', '#7FFFD4': 'Cyan',
+      '#FF77FF': 'Magenta', '#FFDEAD': 'Melon', '#C4C3D0': 'Iris', '#FFE5B4': 'Gold',
+      '#AFE1AF': 'Celadon', '#C9A0DC': 'Wisteria', '#FFEA00': 'Citrus', '#B0E0E6': 'Azure',
+      '#F3E5AB': 'Vanilla', '#50C878': 'Emerald', '#9966CC': 'Amethyst', '#F0EAD6': 'Pearl',
+      '#00A86B': 'Jade'
+    };
 
   // Get color name from hex - checks custom names first, then default
   const getColorName = (hexColor) => {
@@ -2531,7 +2531,7 @@ const ProfileTab = () => {
                 )}
               </View>
             </View>
-
+            
             <ScrollView 
               style={styles.modalScrollView} 
               showsVerticalScrollIndicator={false}
@@ -2685,8 +2685,8 @@ const ProfileTab = () => {
                             color: theme.primary,
                             letterSpacing: 0.3
                           }}>
-                            {verse.reference}
-                          </Text>
+                        {verse.reference}
+                      </Text>
                           <Text style={{
                             fontSize: 12,
                             fontWeight: '600',
@@ -2695,9 +2695,9 @@ const ProfileTab = () => {
                             textTransform: 'uppercase',
                             letterSpacing: 0.5
                           }}>
-                            {verse.version?.toUpperCase() || 'KJV'}
-                          </Text>
-                        </View>
+                        {verse.version?.toUpperCase() || 'KJV'}
+                      </Text>
+                    </View>
                       </View>
                       
                       {/* Verse Text */}
@@ -2708,16 +2708,16 @@ const ProfileTab = () => {
                         marginBottom: 18,
                         fontWeight: '500'
                       }}>
-                        {verse.text || verse.content}
-                      </Text>
-                      
+                      {verse.text || verse.content}
+                    </Text>
+                    
                       {/* Action Buttons Row */}
                       <View style={{
                         flexDirection: 'row',
                         gap: 10
                       }}>
                         {/* Remove Button */}
-                        <TouchableOpacity
+                      <TouchableOpacity
                           style={{
                             width: 44,
                             height: 44,
@@ -2727,7 +2727,7 @@ const ProfileTab = () => {
                             justifyContent: 'center'
                           }}
                           onPress={() => {
-                            hapticFeedback.light();
+                          hapticFeedback.light();
                             Alert.alert(
                               'Remove Saved Verse',
                               `Are you sure you want to remove "${verse.reference}" from your saved verses?`,
@@ -2738,27 +2738,27 @@ const ProfileTab = () => {
                                   style: 'destructive',
                                   onPress: async () => {
                                     hapticFeedback.medium();
-                                    const newList = savedVersesList.filter(v => v.id !== verse.id);
-                                    setSavedVersesList(newList);
-                                    await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                                    const stats = await AsyncStorage.getItem('userStats');
-                                    const userStats = stats ? JSON.parse(stats) : {};
-                                    userStats.savedVerses = newList.length;
-                                    await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-                                    setUserStats(userStats);
+                          const newList = savedVersesList.filter(v => v.id !== verse.id);
+                          setSavedVersesList(newList);
+                          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
+                          const stats = await AsyncStorage.getItem('userStats');
+                          const userStats = stats ? JSON.parse(stats) : {};
+                          userStats.savedVerses = newList.length;
+                          await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+                          setUserStats(userStats);
                                   }
                                 }
                               ]
                             );
-                          }}
+                        }}
                           activeOpacity={0.7}
                           delayPressIn={0}
-                        >
+                      >
                           <MaterialIcons name="delete-outline" size={20} color={theme.error} />
-                        </TouchableOpacity>
+                      </TouchableOpacity>
 
                         {/* Discuss Button */}
-                        <TouchableOpacity
+                      <TouchableOpacity
                           style={{
                             flex: 1,
                             height: 44,
@@ -2773,21 +2773,21 @@ const ProfileTab = () => {
                             shadowOpacity: 0.3,
                             shadowRadius: 8
                           }}
-                          onPress={() => {
-                            hapticFeedback.medium();
-                            setVerseToInterpret({
-                              text: verse.text || verse.content,
-                              reference: verse.reference
-                            });
-                            setShowSavedVerses(false);
+                        onPress={() => {
+                          hapticFeedback.medium();
+                          setVerseToInterpret({
+                            text: verse.text || verse.content,
+                            reference: verse.reference
+                          });
+                          setShowSavedVerses(false);
                             setSavedVersesSearch('');
-                            setTimeout(() => {
-                              setShowAiChat(true);
-                            }, 300);
-                          }}
+                          setTimeout(() => {
+                            setShowAiChat(true);
+                          }, 300);
+                        }}
                           activeOpacity={0.7}
                           delayPressIn={0}
-                        >
+                      >
                           <MaterialIcons name="forum" size={18} color="#FFFFFF" />
                           <Text style={{
                             fontSize: 14,
@@ -2796,10 +2796,10 @@ const ProfileTab = () => {
                           }}>
                             Discuss
                           </Text>
-                        </TouchableOpacity>
+                      </TouchableOpacity>
 
                         {/* Go to Verse Button */}
-                        <TouchableOpacity
+                      <TouchableOpacity
                           style={{
                             flex: 1,
                             height: 44,
@@ -2814,12 +2814,12 @@ const ProfileTab = () => {
                             shadowOpacity: 0.3,
                             shadowRadius: 8
                           }}
-                          onPress={() => {
-                            handleNavigateToVerse(verse.reference);
-                          }}
+                        onPress={() => {
+                          handleNavigateToVerse(verse.reference);
+                        }}
                           activeOpacity={0.7}
                           delayPressIn={0}
-                        >
+                      >
                           <MaterialIcons name="menu-book" size={18} color="#FFFFFF" />
                           <Text style={{
                             fontSize: 14,
@@ -2828,9 +2828,9 @@ const ProfileTab = () => {
                           }}>
                             Read
                           </Text>
-                        </TouchableOpacity>
-                      </View>
+                      </TouchableOpacity>
                     </View>
+                  </View>
                   ));
                 })()
               )}
@@ -3997,9 +3997,9 @@ const ProfileTab = () => {
                   {Object.entries(groupHighlightsByColor()).map(([color, verses], index) => (
                   highlightViewMode === 'compact' ? (
                     // COMPACT VIEW - Premium card design
-                    <TouchableOpacity
-                      key={color}
-                      style={{
+                  <TouchableOpacity
+                    key={color}
+                    style={{
                         backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
                         borderRadius: 20,
                         paddingVertical: 16,
@@ -4007,7 +4007,7 @@ const ProfileTab = () => {
                         marginBottom: 12,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        shadowColor: color,
+                      shadowColor: color,
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: isDark ? 0.3 : 0.15,
                         shadowRadius: 12,
@@ -4123,7 +4123,7 @@ const ProfileTab = () => {
                         overflow: 'hidden',
                         shadowColor: color,
                         shadowOffset: { width: 0, height: 8 },
-                        shadowOpacity: 0.25,
+                      shadowOpacity: 0.25,
                         shadowRadius: 20,
                         elevation: 8
                       }}
@@ -4146,12 +4146,12 @@ const ProfileTab = () => {
                         <TouchableOpacity
                           style={{
                             width: '100%',
-                            alignItems: 'center'
-                          }}
-                          onPress={() => {
-                            hapticFeedback.medium();
-                            loadVersesForColor(color);
-                          }}
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      hapticFeedback.medium();
+                      loadVersesForColor(color);
+                    }}
                           onLongPress={() => {
                             hapticFeedback.medium();
                             setRenameHighlightColor(color);
@@ -4192,13 +4192,13 @@ const ProfileTab = () => {
                           </TouchableOpacity>
                           
                           {/* Large Color Circle */}
-                          <View style={{
+                    <View style={{
                             width: 72,
                             height: 72,
                             borderRadius: 36,
-                            backgroundColor: color,
+                      backgroundColor: color,
                             marginBottom: 16,
-                            shadowColor: color,
+                      shadowColor: color,
                             shadowOffset: { width: 0, height: 6 },
                             shadowOpacity: 0.6,
                             shadowRadius: 16,
@@ -4211,15 +4211,15 @@ const ProfileTab = () => {
                             <MaterialIcons name="format-paint" size={28} color="rgba(255,255,255,0.95)" />
                           </View>
                           
-                          <Text style={{
+                    <Text style={{
                             fontSize: 22,
-                            fontWeight: '800',
-                            color: theme.text,
+                      fontWeight: '800',
+                      color: theme.text,
                             marginBottom: 8,
                             letterSpacing: 0.5
-                          }}>
-                            {getColorName(color)}
-                          </Text>
+                    }}>
+                      {getColorName(color)}
+                    </Text>
                           
                           {customHighlightNames[color] && (
                             <Text style={{
@@ -4232,7 +4232,7 @@ const ProfileTab = () => {
                             </Text>
                           )}
                           
-                          <View style={{
+                    <View style={{
                             backgroundColor: color,
                             paddingHorizontal: 20,
                             paddingVertical: 10,
@@ -4241,17 +4241,17 @@ const ProfileTab = () => {
                             shadowOffset: { width: 0, height: 4 },
                             shadowOpacity: 0.4,
                             shadowRadius: 8
-                          }}>
-                            <Text style={{
+                    }}>
+                      <Text style={{
                               fontSize: 14,
-                              fontWeight: '700',
+                        fontWeight: '700',
                               color: '#FFFFFF',
                               letterSpacing: 0.5
-                            }}>
-                              {verses.length} {verses.length === 1 ? 'verse' : 'verses'}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
+                      }}>
+                        {verses.length} {verses.length === 1 ? 'verse' : 'verses'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                       </LinearGradient>
                     </View>
                   )
@@ -4563,7 +4563,7 @@ const ProfileTab = () => {
                     />
                   </TouchableOpacity>
                 ) : (
-                  <View style={{ width: 60 }} />
+                <View style={{ width: 60 }} />
                 )}
               </View>
             </BlurView>

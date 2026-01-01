@@ -29,7 +29,7 @@ import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
-const HEADER_STACK_PADDING_TOP = Platform.OS === 'ios' ? 340 : 320;
+const HEADER_STACK_PADDING_TOP = Platform.OS === 'ios' ? 290 : 280;
 
   // Configuration for remote verses
 const VERSES_CONFIG = {
@@ -1580,288 +1580,123 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
           </ScrollView>
         </Animated.View>
         
-        {/* Premium Header with Gradient */}
-        <View style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 1000,
-        }}>
-          <LinearGradient
-            colors={isDark 
-              ? ['#1a1a2e', '#16213e', '#0f0f23'] 
-              : ['#667eea', '#764ba2', '#f093fb']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              paddingTop: Platform.OS === 'ios' ? 60 : 35,
-              paddingBottom: 20,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
-              shadowColor: '#667eea',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
-              elevation: 12,
-            }}
-          >
-            {/* Decorative Elements */}
-            <View style={{
-              position: 'absolute',
-              top: -40,
-              right: -40,
-              width: 150,
-              height: 150,
-              borderRadius: 75,
-              backgroundColor: 'rgba(255,255,255,0.08)',
-            }} />
-            <View style={{
-              position: 'absolute',
-              bottom: 20,
-              left: -30,
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-            }} />
-
-            {/* Header Row */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 20,
-              marginBottom: 20,
-            }}>
-              <TouchableOpacity 
-                onPress={onClose} 
-                style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  paddingHorizontal: 16, 
-                  paddingVertical: 10,
-                  borderRadius: 20,
-                  gap: 6,
-                }}
-              >
-                <MaterialIcons name="arrow-back-ios" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Back</Text>
-              </TouchableOpacity>
-
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ 
-                  color: '#fff', 
-                  fontSize: 22, 
-                  fontWeight: '800',
-                  letterSpacing: -0.5,
-                }}>
-                  Key Verses
-                </Text>
-                <Text style={{ 
-                  color: 'rgba(255,255,255,0.7)', 
-                  fontSize: 12, 
-                  fontWeight: '600',
-                  marginTop: 2,
-                }}>
-                  Discover God's Word
-                </Text>
-              </View>
-
-              <TouchableOpacity 
-                onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                style={{ 
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <MaterialIcons 
-                  name={viewMode === 'grid' ? 'view-list' : 'grid-view'} 
-                  size={22} 
-                  color="#fff" 
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Premium Search Bar */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              marginHorizontal: 20,
-              paddingHorizontal: 18,
-              paddingVertical: 14,
+        {/* Combined Header + Filter Container with Blur */}
+        <BlurView 
+          intensity={20} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            backgroundColor: 'transparent',
+          }}
+        >
+          {/* Header Section */}
+          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 4 }]}>
+            <TouchableOpacity onPress={onClose} style={{ 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+              paddingHorizontal: 16, 
+              paddingVertical: 8,
               borderRadius: 20,
-              marginBottom: 18,
             }}>
-              <MaterialIcons name="search" size={22} color="rgba(255,255,255,0.8)" />
+              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
+            <TouchableOpacity 
+              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <MaterialIcons 
+                name={viewMode === 'grid' ? 'view-list' : 'view-module'} 
+                size={24} 
+                color={theme.text} 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Filter Section */}
+          <View style={{ backgroundColor: 'transparent', paddingBottom: 4 }}>
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <MaterialIcons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 ref={searchRef}
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: '#fff',
-                  marginLeft: 12,
-                }}
-                placeholder="Search verses, themes..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder="Search verses, themes, or references..."
+                placeholderTextColor={theme.textSecondary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.7)" />
+                  <MaterialIcons name="clear" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
-
-            {/* Category Pills - Premium Style */}
+            
+            {/* Categories */}
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+              style={styles.categoriesContainer}
+              contentContainerStyle={styles.categoriesContent}
             >
-              {categories.map((category) => {
-                const isSelected = selectedCategory === category.id;
-                return (
-                  <TouchableOpacity
-                    key={category.id}
-                    onPress={() => {
-                      setSelectedCategory(category.id);
-                      hapticFeedback.light();
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: isSelected ? '#fff' : 'rgba(255,255,255,0.15)',
-                      paddingHorizontal: 16,
-                      paddingVertical: 10,
-                      borderRadius: 20,
-                      gap: 8,
-                    }}
-                  >
-                    <MaterialIcons 
-                      name={category.icon} 
-                      size={16} 
-                      color={isSelected ? category.color : '#fff'} 
-                    />
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '700',
-                      color: isSelected ? category.color : '#fff',
-                    }}>
-                      {category.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {categories.map(renderCategoryChip)}
             </ScrollView>
-
-            {/* Stats Row */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginHorizontal: 20,
-              marginTop: 18,
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-              }}>
-                <View style={{
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                }}>
-                  <Text style={{
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: '700',
-                  }}>
-                    {filteredVerses.length} verses
-                  </Text>
-                </View>
-                {selectedCategory !== 'all' && selectedCategory !== 'favorites' && (
-                  <Text style={{
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: 13,
-                  }}>
-                    in {categories.find(c => c.id === selectedCategory)?.name}
-                  </Text>
-                )}
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {/* Random Button */}
+            
+            {/* Results Count */}
+            <View style={styles.resultsHeader}>
+              <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
+                {filteredVerses.length} {filteredVerses.length === 1 ? 'verse' : 'verses'}
+                {selectedCategory === 'favorites' && ' in Favorites'}
+                {selectedCategory !== 'all' && selectedCategory !== 'favorites' && ` in ${categories.find(c => c.id === selectedCategory)?.name}`}
+              </Text>
+              
+              <View style={styles.resultsActions}>
                 <TouchableOpacity
                   onPress={openRandomVerse}
                   disabled={filteredVerses.length === 0}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: '#fff',
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    borderRadius: 16,
-                    gap: 6,
-                    opacity: filteredVerses.length === 0 ? 0.5 : 1,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 8,
-                  }}
+                  style={[
+                    styles.randomButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : `${theme.primary}16`,
+                      borderColor: isDark ? 'rgba(255,255,255,0.18)' : `${theme.primary}35`,
+                      shadowColor: theme.primary,
+                      opacity: filteredVerses.length === 0 ? 0.5 : 1,
+                    },
+                  ]}
                 >
-                  <MaterialIcons name="shuffle" size={18} color="#667eea" />
-                  <Text style={{
-                    color: '#667eea',
-                    fontSize: 14,
-                    fontWeight: '700',
-                  }}>
+                  <MaterialIcons name="shuffle" size={16} color={theme.primary} />
+                  <Text style={[styles.randomButtonText, { color: theme.primary }]}>
                     Random
                   </Text>
                 </TouchableOpacity>
 
-                {/* Favorites Button */}
                 {favoriteVerses.length > 0 && (
                   <TouchableOpacity
                     onPress={() => setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites')}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: selectedCategory === 'favorites' ? '#fff' : 'rgba(255,255,255,0.15)',
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderRadius: 16,
-                      gap: 6,
-                    }}
+                    style={[styles.favoritesButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
                   >
-                    <MaterialIcons 
-                      name="favorite" 
-                      size={18} 
-                      color={selectedCategory === 'favorites' ? '#E91E63' : '#fff'} 
-                    />
-                    <Text style={{
-                      color: selectedCategory === 'favorites' ? '#E91E63' : '#fff',
-                      fontSize: 14,
-                      fontWeight: '700',
-                    }}>
+                    <MaterialIcons name="favorite" size={16} color="#E91E63" />
+                    <Text style={[styles.favoritesButtonText, { color: theme.text }]}>
                       {favoriteVerses.length}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
-          </LinearGradient>
-        </View>
+          </View>
+        </BlurView>
         
         {/* Show error banner if using offline data */}
         {error && versesData && (

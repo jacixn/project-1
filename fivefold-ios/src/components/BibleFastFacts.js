@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -41,6 +41,23 @@ const FACTS_CONFIG = {
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
+// Category theme colors for premium design
+const CATEGORY_THEMES = {
+  all: { gradient: ['#6366F1', '#8B5CF6'], icon: 'auto-awesome', bgIcon: 'sparkles' },
+  numbers: { gradient: ['#3B82F6', '#06B6D4'], icon: 'calculate', bgIcon: 'calculator' },
+  history: { gradient: ['#F59E0B', '#EF4444'], icon: 'history-edu', bgIcon: 'time' },
+  geography: { gradient: ['#10B981', '#34D399'], icon: 'public', bgIcon: 'earth' },
+  people: { gradient: ['#EC4899', '#F472B6'], icon: 'people', bgIcon: 'people' },
+  objects: { gradient: ['#8B5CF6', '#A78BFA'], icon: 'category', bgIcon: 'cube' },
+  languages: { gradient: ['#14B8A6', '#5EEAD4'], icon: 'translate', bgIcon: 'language' },
+  animals: { gradient: ['#22C55E', '#86EFAC'], icon: 'pets', bgIcon: 'paw' },
+  prophecy: { gradient: ['#6366F1', '#818CF8'], icon: 'auto-stories', bgIcon: 'eye' },
+  miracles: { gradient: ['#F97316', '#FBBF24'], icon: 'auto-fix-high', bgIcon: 'flash' },
+};
+
+const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
+const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 290 : 260;
+
 const BibleFastFacts = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -63,6 +80,12 @@ const BibleFastFacts = ({ visible, onClose }) => {
   const scrollViewRef = useRef(null);
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  
+  // Collapsible header animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const headerVisible = useRef(new Animated.Value(1)).current;
+  const isScrollingDown = useRef(false);
   
   // Random fact animation refs
   const randomSpinAnim = useRef(new Animated.Value(0)).current;
@@ -278,6 +301,45 @@ const BibleFastFacts = ({ visible, onClose }) => {
       detailFadeAnim.setValue(0);
     }
   }, [selectedFact]);
+
+  // Handle scroll for collapsible header
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+        
+        // Only trigger if scrolled more than threshold
+        if (Math.abs(diff) > 5) {
+          if (diff > 0 && currentScrollY > 50) {
+            // Scrolling down - collapse header
+            if (!isScrollingDown.current) {
+              isScrollingDown.current = true;
+              Animated.timing(headerVisible, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: false,
+              }).start();
+            }
+          } else if (diff < 0) {
+            // Scrolling up - expand header
+            if (isScrollingDown.current) {
+              isScrollingDown.current = false;
+              Animated.timing(headerVisible, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: false,
+              }).start();
+            }
+          }
+        }
+        
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
 
   const loadFavorites = async () => {
     try {
@@ -536,69 +598,161 @@ const BibleFastFacts = ({ visible, onClose }) => {
     if (!factsData || !factsData.categories) return null;
     
     const category = factsData.categories.find(c => c.id === fact.category);
+    const catTheme = CATEGORY_THEMES[fact.category] || CATEGORY_THEMES.all;
     const isFavorite = favorites.includes(fact.id);
 
+    if (viewMode === 'list') {
+      // Premium List View Card
+      return (
+        <Animated.View
+          key={fact.id}
+          style={[
+            styles.listCard,
+            {
+              opacity: fadeAnim,
+              backgroundColor: theme.card,
+              shadowColor: catTheme.gradient[0],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            delayPressIn={0}
+            onPress={() => handleFactPress(fact)}
+            style={styles.listCardContent}
+          >
+            {/* Left accent bar */}
+            <LinearGradient
+              colors={catTheme.gradient}
+              style={styles.listCardAccent}
+            />
+            
+            {/* Icon */}
+            <LinearGradient
+              colors={catTheme.gradient}
+              style={styles.listCardIcon}
+            >
+              <MaterialIcons name={fact.icon} size={24} color="#FFFFFF" />
+            </LinearGradient>
+            
+            {/* Content */}
+            <View style={styles.listCardBody}>
+              <Text style={[styles.listCardTitle, { color: theme.text }]} numberOfLines={2}>
+                {fact.title}
+              </Text>
+              <Text style={[styles.listCardDescription, { color: theme.textSecondary }]} numberOfLines={2}>
+                {fact.description}
+              </Text>
+              <View style={styles.listCardTags}>
+                {fact.tags.slice(0, 2).map((tag, idx) => (
+                  <View 
+                    key={idx} 
+                    style={[styles.listCardTag, { 
+                      backgroundColor: `${catTheme.gradient[0]}15`,
+                    }]}
+                  >
+                    <Text style={[styles.listCardTagText, { color: catTheme.gradient[0] }]}>
+                      {tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            
+            {/* Favorite button */}
+            <TouchableOpacity
+              onPress={() => toggleFavorite(fact.id)}
+              activeOpacity={0.7}
+              delayPressIn={0}
+              style={styles.listCardFavorite}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={22}
+                color={isFavorite ? '#EC4899' : theme.textSecondary}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+
+    // Premium Grid View Card
     return (
       <Animated.View
         key={fact.id}
         style={[
-          styles.factCard,
-          viewMode === 'list' && styles.factCardList,
+          styles.gridCard,
           {
             opacity: fadeAnim,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-            ],
+            shadowColor: catTheme.gradient[0],
           },
         ]}
       >
         <TouchableOpacity
-          activeOpacity={0.7}
+          activeOpacity={0.8}
+          delayPressIn={0}
           onPress={() => handleFactPress(fact)}
+          style={{ flex: 1 }}
         >
           <LinearGradient
-            colors={category?.gradient || [theme.primary, theme.primary]}
+            colors={catTheme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.factCardGradient}
+            style={styles.gridCardGradient}
           >
-            <View style={styles.factCardHeader}>
-              <View style={[styles.factIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <MaterialIcons name={fact.icon} size={28} color="#FFFFFF" />
+            {/* Background decorative icon */}
+            <View style={styles.gridCardBgIcon}>
+              <Ionicons 
+                name={catTheme.bgIcon || 'sparkles'} 
+                size={80} 
+                color="rgba(255,255,255,0.08)" 
+              />
+            </View>
+            
+            {/* Header */}
+            <View style={styles.gridCardHeader}>
+              <View style={styles.gridCardIconContainer}>
+                <MaterialIcons name={fact.icon} size={26} color="#FFFFFF" />
               </View>
               <TouchableOpacity
                 onPress={() => toggleFavorite(fact.id)}
-                style={styles.favoriteButton}
+                activeOpacity={0.7}
+                delayPressIn={0}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.gridCardFavorite}
               >
-                <MaterialIcons
-                  name={isFavorite ? 'favorite' : 'favorite-border'}
-                  size={22}
+                <Ionicons
+                  name={isFavorite ? 'heart' : 'heart-outline'}
+                  size={20}
                   color="#FFFFFF"
                 />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.factTitle} numberOfLines={2}>
+            {/* Title */}
+            <Text style={styles.gridCardTitle} numberOfLines={2}>
               {fact.title}
             </Text>
 
-            <Text style={styles.factDescription} numberOfLines={3}>
+            {/* Description */}
+            <Text style={styles.gridCardDescription} numberOfLines={3}>
               {fact.description}
             </Text>
 
-            <View style={styles.factFooter}>
-              <View style={styles.factTags}>
-                {fact.tags.slice(0, 2).map((tag, idx) => (
-                  <View key={idx} style={styles.factTag}>
-                    <Text style={styles.factTagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
+            {/* Tags */}
+            <View style={styles.gridCardTags}>
+              {fact.tags.slice(0, 2).map((tag, idx) => (
+                <View key={idx} style={styles.gridCardTag}>
+                  <Text style={styles.gridCardTagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+            
+            {/* Arrow indicator */}
+            <View style={styles.gridCardArrow}>
+              <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -859,6 +1013,30 @@ const BibleFastFacts = ({ visible, onClose }) => {
     );
   }
 
+  // Get current category theme
+  const currentCategoryTheme = CATEGORY_THEMES[selectedCategory] || CATEGORY_THEMES.all;
+  
+  // Animated header height
+  const headerHeight = headerVisible.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLLAPSED_HEADER_HEIGHT, EXPANDED_HEADER_HEIGHT],
+    extrapolate: 'clamp',
+  });
+  
+  // Animated content padding
+  const contentPaddingTop = headerVisible.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLLAPSED_HEADER_HEIGHT + 20, EXPANDED_HEADER_HEIGHT + 20],
+    extrapolate: 'clamp',
+  });
+  
+  // Animated opacity for collapsible sections
+  const expandedOpacity = headerVisible.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
   return (
     <Modal
       visible={visible}
@@ -869,168 +1047,197 @@ const BibleFastFacts = ({ visible, onClose }) => {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-        {/* Transparent Blurred Header */}
-        <BlurView
-          intensity={20}
-          tint={isDark ? 'dark' : 'light'}
-          style={styles.headerBlur}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                onClose();
-              }}
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                paddingHorizontal: 16, 
-                paddingVertical: 8,
-                borderRadius: 20,
-              }}
-            >
-              <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Fast Facts</Text>
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                setViewMode(viewMode === 'grid' ? 'list' : 'grid');
-              }}
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <MaterialIcons
-                name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
-                size={24}
-                color={theme.text}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Bar */}
-          <View style={[styles.searchContainerHeader, { backgroundColor: theme.card }]}>
-            <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-            <TextInput
-              ref={searchRef}
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search facts..."
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcons name="close" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Category Filters */}
-          <View style={styles.categoriesContainerHeader}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesScroll}
-            >
-              {factsData?.categories?.map((category) => {
-                const isSelected = selectedCategory === category.id;
-                return (
-                  <TouchableOpacity
-                    key={category.id}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setSelectedCategory(category.id);
-                      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                    }}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: isSelected
-                          ? `${category.color}20`
-                          : isDark
-                          ? 'rgba(255,255,255,0.1)'
-                          : 'rgba(0,0,0,0.05)',
-                        borderColor: isSelected ? category.color : theme.border,
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={category.icon}
-                      size={18}
-                      color={isSelected ? category.color : theme.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        {
-                          color: isSelected ? category.color : theme.textSecondary,
-                        },
-                      ]}
-                    >
-                      {category.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Random Button & Results Count */}
-          <View style={{ 
-            paddingHorizontal: 20, 
-            paddingBottom: 12,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-              {filteredFacts.length} {filteredFacts.length === 1 ? 'fact' : 'facts'}
-            </Text>
+        {/* Collapsible Header */}
+        <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
+          <LinearGradient
+            colors={isDark 
+              ? ['rgba(30,30,40,0.98)', 'rgba(30,30,40,0.95)']
+              : ['rgba(255,255,255,0.98)', 'rgba(248,250,252,0.95)']
+            }
+            style={styles.headerGradient}
+          >
+            {/* Safe area spacer */}
+            <View style={{ height: Platform.OS === 'ios' ? 55 : 25 }} />
             
-            <TouchableOpacity
-              onPress={showRandomFactCard}
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-            >
-              <MaterialIcons name="shuffle" size={18} color={theme.primary} />
-              <Text style={{ color: theme.primary, fontSize: 14, fontWeight: '600' }}>
-                Random
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </BlurView>
+            {/* Fixed Header Row - Always visible */}
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  onClose();
+                }}
+                activeOpacity={0.7}
+                delayPressIn={0}
+                style={[styles.backButton, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
+                }]}
+              >
+                <Ionicons name="chevron-back" size={20} color={theme.primary} />
+                <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
+              </TouchableOpacity>
+              
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Fast Facts</Text>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  setViewMode(viewMode === 'grid' ? 'list' : 'grid');
+                }}
+                activeOpacity={0.7}
+                delayPressIn={0}
+                style={[styles.viewModeBtn, { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
+                }]}
+              >
+                <MaterialIcons
+                  name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
+                  size={22}
+                  color={theme.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Expandable Section */}
+            <Animated.View style={{ opacity: expandedOpacity, overflow: 'hidden' }}>
+              {/* Search Bar */}
+              <View style={[styles.searchBar, { 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+              }]}>
+                <Ionicons name="search" size={18} color={theme.textSecondary} />
+                <TextInput
+                  ref={searchRef}
+                  style={[styles.searchInput, { color: theme.text }]}
+                  placeholder="Search facts, topics, or keywords..."
+                  placeholderTextColor={theme.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity 
+                    onPress={() => setSearchQuery('')}
+                    activeOpacity={0.7}
+                    style={styles.clearSearchBtn}
+                  >
+                    <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Category Chips */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScroll}
+                style={styles.categoriesContainer}
+              >
+                {factsData?.categories?.map((category) => {
+                  const isSelected = selectedCategory === category.id;
+                  const catTheme = CATEGORY_THEMES[category.id] || CATEGORY_THEMES.all;
+                  return (
+                    <TouchableOpacity
+                      key={category.id}
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setSelectedCategory(category.id);
+                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                      }}
+                      activeOpacity={0.7}
+                      delayPressIn={0}
+                      style={styles.categoryChipWrapper}
+                    >
+                      {isSelected ? (
+                        <LinearGradient
+                          colors={catTheme.gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.categoryChipGradient}
+                        >
+                          <MaterialIcons name={category.icon} size={16} color="#FFFFFF" />
+                          <Text style={styles.categoryChipTextActive}>{category.name}</Text>
+                        </LinearGradient>
+                      ) : (
+                        <View style={[styles.categoryChipInactive, {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                        }]}>
+                          <MaterialIcons name={category.icon} size={16} color={theme.textSecondary} />
+                          <Text style={[styles.categoryChipTextInactive, { color: theme.textSecondary }]}>
+                            {category.name}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Results Count & Random */}
+              <View style={styles.resultsRow}>
+                <View style={styles.resultsCountContainer}>
+                  <Text style={[styles.resultsCount, { color: theme.text }]}>
+                    {filteredFacts.length}
+                  </Text>
+                  <Text style={[styles.resultsLabel, { color: theme.textSecondary }]}>
+                    {filteredFacts.length === 1 ? 'fact' : 'facts'}
+                  </Text>
+                </View>
+                
+                <View style={styles.resultsActions}>
+                  <TouchableOpacity
+                    onPress={showRandomFactCard}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
+                    style={styles.randomButton}
+                  >
+                    <LinearGradient
+                      colors={currentCategoryTheme.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.randomButtonGradient}
+                    >
+                      <MaterialIcons name="shuffle" size={16} color="#FFFFFF" />
+                      <Text style={styles.randomButtonText}>Random</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  
+                  <View style={[styles.favoritesCount, {
+                    backgroundColor: isDark ? 'rgba(236,72,153,0.15)' : 'rgba(236,72,153,0.1)',
+                  }]}>
+                    <Ionicons name="heart" size={14} color="#EC4899" />
+                    <Text style={{ color: '#EC4899', fontSize: 13, fontWeight: '600' }}>
+                      {favorites.length}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+          </LinearGradient>
+          
+          {/* Bottom border accent */}
+          <LinearGradient
+            colors={currentCategoryTheme.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.headerBottomAccent}
+          />
+        </Animated.View>
 
         {/* Main Content */}
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollViewRef}
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, { paddingTop: EXPANDED_HEADER_HEIGHT + 20 }]}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={refreshFacts}
               tintColor={theme.primary}
               colors={[theme.primary]}
+              progressViewOffset={EXPANDED_HEADER_HEIGHT}
             />
           }
         >
@@ -1040,8 +1247,10 @@ const BibleFastFacts = ({ visible, onClose }) => {
               filteredFacts.map((fact, index) => renderFactCard(fact, index))
             ) : (
               <View style={styles.emptyState}>
-                <MaterialIcons name="search-off" size={64} color={theme.textSecondary} />
-                <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                <View style={[styles.emptyStateIcon, { backgroundColor: `${theme.primary}15` }]}>
+                  <MaterialIcons name="search-off" size={48} color={theme.primary} />
+                </View>
+                <Text style={[styles.emptyStateText, { color: theme.text }]}>
                   No facts found
                 </Text>
                 <Text style={[styles.emptyStateSubtext, { color: theme.textSecondary }]}>
@@ -1050,7 +1259,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
               </View>
             )}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
 
         {/* Fact Detail Modal */}
         {renderFactDetail()}
@@ -1232,196 +1441,342 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  headerBlur: {
+  // New Collapsible Header Styles
+  headerContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor: 'transparent',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
     overflow: 'hidden',
   },
-  header: {
+  headerGradient: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  headerBottomAccent: {
+    height: 2,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'transparent',
+    marginBottom: 12,
   },
   backButton: {
-    minWidth: 60,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 2,
   },
   backButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
   },
-  viewModeButton: {
-    width: 48,
-    alignItems: 'flex-end',
+  viewModeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    padding: 0,
+  },
+  clearSearchBtn: {
+    padding: 2,
+  },
+  categoriesContainer: {
+    marginBottom: 12,
+  },
+  categoriesScroll: {
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  categoryChipWrapper: {
+    marginRight: 8,
+  },
+  categoryChipGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  categoryChipTextActive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  categoryChipInactive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+  },
+  categoryChipTextInactive: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  resultsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  resultsCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  resultsCount: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  resultsLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  resultsActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  randomButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  randomButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  randomButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  favoritesCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 4,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingTop: Platform.OS === 'ios' ? 310 : 280,
-    paddingBottom: 30,
-  },
-  searchContainerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  categoriesContainerHeader: {
-    marginBottom: 12,
-  },
-  categoriesScroll: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    gap: 6,
-    marginRight: 8,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  resultsCount: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  favoritesLink: {
-    fontSize: 14,
-    fontWeight: '600',
+    paddingBottom: 40,
   },
   factsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 12,
   },
   factsContainerList: {
     flexDirection: 'column',
+    gap: 10,
   },
-  factCard: {
-    width: (width - 56) / 2,
-    marginBottom: 0,
-    borderRadius: 16,
+  // Premium Grid Card Styles
+  gridCard: {
+    width: (width - 44) / 2,
+    borderRadius: 20,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  factCardList: {
-    width: '100%',
-  },
-  factCardGradient: {
+  gridCardGradient: {
     padding: 16,
-    minHeight: 220,
+    minHeight: 200,
+    position: 'relative',
   },
-  factCardHeader: {
+  gridCardBgIcon: {
+    position: 'absolute',
+    bottom: -10,
+    right: -10,
+    opacity: 0.8,
+  },
+  gridCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  factIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  gridCardIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  favoriteButton: {
-    padding: 4,
+  gridCardFavorite: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  factTitle: {
-    fontSize: 18,
+  gridCardTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 8,
-    lineHeight: 24,
-  },
-  factDescription: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    marginBottom: 12,
+    marginBottom: 6,
     lineHeight: 20,
+  },
+  gridCardDescription: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 16,
     flex: 1,
+    marginBottom: 10,
   },
-  factFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  factTags: {
+  gridCardTags: {
     flexDirection: 'row',
     gap: 6,
-    flex: 1,
+    flexWrap: 'wrap',
   },
-  factTag: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+  gridCardTag: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 8,
   },
-  factTagText: {
-    fontSize: 11,
+  gridCardTagText: {
+    fontSize: 10,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  gridCardArrow: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Premium List Card Styles
+  listCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  listCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  listCardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  listCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listCardBody: {
+    flex: 1,
+    gap: 4,
+  },
+  listCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  listCardDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  listCardTags: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+  },
+  listCardTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  listCardTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  listCardFavorite: {
+    padding: 4,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
     width: '100%',
+  },
+  emptyStateIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyStateText: {
     fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    marginTop: 8,
   },
   // Detail Modal Styles
   modalOverlay: {
