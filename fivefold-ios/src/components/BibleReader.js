@@ -430,11 +430,18 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     }
   }, [showJournalingModal]);
 
-  // Load saved verses on mount
+  // Load saved verses on mount and when chapter changes
   useEffect(() => {
     loadSavedVerses();
     loadInteractiveData();
   }, []);
+  
+  // Reload saved verses when viewing a chapter (to catch newly saved ranges)
+  useEffect(() => {
+    if (currentChapter && currentBook) {
+      loadSavedVerses();
+    }
+  }, [currentChapter, currentBook]);
 
   // Listen for highlights changes from other parts of the app
   useEffect(() => {
@@ -2612,7 +2619,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         const isHighlighted = highlightedVerse === parseInt(verse.number || verse.verse);
         
         const verseNumber = parseInt(verse.number || verse.verse || index + 1);
-        const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
+        const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verseNumber}`;
         const highlightColor = highlightedVerses[verseId];
         
         const isRangeStartVerse = rangeSelectionMode && rangeStartVerse && 
