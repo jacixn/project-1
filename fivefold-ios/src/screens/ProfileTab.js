@@ -276,6 +276,7 @@ const ProfileTab = () => {
   const [showRenameHighlight, setShowRenameHighlight] = useState(false);
   const [renameHighlightColor, setRenameHighlightColor] = useState(null);
   const [renameHighlightText, setRenameHighlightText] = useState('');
+  const [highlightViewMode, setHighlightViewMode] = useState('compact'); // 'compact' or 'expanded'
   
   // Tasks Done State
   const [showTasksDone, setShowTasksDone] = useState(false);
@@ -484,6 +485,27 @@ const ProfileTab = () => {
     }
   };
 
+  const loadHighlightViewMode = async () => {
+    try {
+      const mode = await AsyncStorage.getItem('highlightViewMode');
+      if (mode) {
+        setHighlightViewMode(mode);
+      }
+    } catch (error) {
+      console.error('Error loading highlight view mode:', error);
+    }
+  };
+
+  const saveHighlightViewMode = async (mode) => {
+    try {
+      await AsyncStorage.setItem('highlightViewMode', mode);
+      setHighlightViewMode(mode);
+      hapticFeedback.light();
+    } catch (error) {
+      console.error('Error saving highlight view mode:', error);
+    }
+  };
+
   const loadHighlights = async () => {
     try {
       const allData = await VerseDataManager.getAllVerseData();
@@ -503,8 +525,9 @@ const ProfileTab = () => {
       
       setHighlightedVerses(highlights);
       
-      // Also load custom highlight names
+      // Also load custom highlight names and view preference
       await loadCustomHighlightNames();
+      await loadHighlightViewMode();
       
       console.log(`🎨 Loaded ${highlights.length} highlighted verses`);
     } catch (error) {
@@ -3615,111 +3638,219 @@ const ProfileTab = () => {
                   </Text>
                 </View>
               ) : !selectedHighlightColor ? (
-                // Show color cards
+                // Show color cards - Compact or Expanded view
                 Object.entries(groupHighlightsByColor()).map(([color, verses]) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={{
-                      backgroundColor: `${color}30`,
-                      borderRadius: 16,
-                      padding: 19,
-                      marginBottom: 13,
-                      borderWidth: 3,
-                      borderColor: color,
-                      shadowColor: color,
-                      shadowOffset: { width: 0, height: 3 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 6,
-                      elevation: 5,
-                      alignItems: 'center',
-                      position: 'relative'
-                    }}
-                    onPress={() => {
-                      hapticFeedback.medium();
-                      loadVersesForColor(color);
-                    }}
-                    onLongPress={() => {
-                      hapticFeedback.medium();
-                      setRenameHighlightColor(color);
-                      setRenameHighlightText(getColorName(color));
-                      setShowRenameHighlight(true);
-                    }}
-                    activeOpacity={0.7}
-                    delayPressIn={0}
-                  >
-                    {/* Edit Button */}
+                  highlightViewMode === 'compact' ? (
+                    // COMPACT VIEW - Horizontal row layout
                     <TouchableOpacity
+                      key={color}
                       style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : `${color}15`,
+                        borderRadius: 14,
+                        paddingVertical: 14,
+                        paddingHorizontal: 16,
+                        marginBottom: 10,
+                        borderLeftWidth: 4,
+                        borderLeftColor: color,
+                        flexDirection: 'row',
                         alignItems: 'center',
-                        justifyContent: 'center'
                       }}
                       onPress={() => {
-                        hapticFeedback.light();
+                        hapticFeedback.medium();
+                        loadVersesForColor(color);
+                      }}
+                      onLongPress={() => {
+                        hapticFeedback.medium();
                         setRenameHighlightColor(color);
                         setRenameHighlightText(getColorName(color));
                         setShowRenameHighlight(true);
                       }}
                       activeOpacity={0.7}
                       delayPressIn={0}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <MaterialIcons name="edit" size={16} color={theme.text} />
-                    </TouchableOpacity>
-                    
-                    <View style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: 26,
-                      backgroundColor: color,
-                      marginBottom: 13,
-                      shadowColor: color,
-                      shadowOffset: { width: 0, height: 3 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 6,
-                      elevation: 6
-                    }} />
-                    <Text style={{
-                      fontSize: 19,
-                      fontWeight: '800',
-                      color: theme.text,
-                      marginBottom: 6
-                    }}>
-                      {getColorName(color)}
-                    </Text>
-                    {/* Show original color name if custom name is set */}
-                    {customHighlightNames[color] && (
-                      <Text style={{
-                        fontSize: 12,
-                        fontWeight: '500',
-                        color: theme.textSecondary,
-                        marginBottom: 6,
-                        opacity: 0.7
-                      }}>
-                        ({getDefaultColorName(color)})
-                      </Text>
-                    )}
-                    <View style={{
-                      backgroundColor: `${theme.primary}20`,
-                      paddingHorizontal: 13,
-                      paddingVertical: 6,
-                      borderRadius: 16
-                    }}>
+                      {/* Color Dot */}
+                      <View style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: color,
+                        marginRight: 14,
+                        shadowColor: color,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }} />
+                      
+                      {/* Name */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: theme.text
+                        }}>
+                          {getColorName(color)}
+                        </Text>
+                        {customHighlightNames[color] && (
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '500',
+                            color: theme.textSecondary,
+                            opacity: 0.7,
+                            marginTop: 1
+                          }}>
+                            {getDefaultColorName(color)}
+                          </Text>
+                        )}
+                      </View>
+                      
+                      {/* Verse Count */}
                       <Text style={{
                         fontSize: 13,
-                        fontWeight: '700',
-                        color: theme.primary
+                        fontWeight: '600',
+                        color: theme.textSecondary,
+                        marginRight: 10
                       }}>
                         {verses.length} {verses.length === 1 ? 'verse' : 'verses'}
                       </Text>
-                    </View>
-                  </TouchableOpacity>
+                      
+                      {/* Edit Button */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setRenameHighlightColor(color);
+                          setRenameHighlightText(getColorName(color));
+                          setShowRenameHighlight(true);
+                        }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        activeOpacity={0.7}
+                        delayPressIn={0}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <MaterialIcons name="edit" size={14} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                      
+                      {/* Arrow */}
+                      <MaterialIcons 
+                        name="chevron-right" 
+                        size={22} 
+                        color={theme.textTertiary} 
+                        style={{ marginLeft: 4 }}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    // EXPANDED VIEW - Original large card layout
+                    <TouchableOpacity
+                      key={color}
+                      style={{
+                        backgroundColor: `${color}30`,
+                        borderRadius: 16,
+                        padding: 19,
+                        marginBottom: 13,
+                        borderWidth: 3,
+                        borderColor: color,
+                        shadowColor: color,
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 6,
+                        elevation: 5,
+                        alignItems: 'center',
+                        position: 'relative'
+                      }}
+                      onPress={() => {
+                        hapticFeedback.medium();
+                        loadVersesForColor(color);
+                      }}
+                      onLongPress={() => {
+                        hapticFeedback.medium();
+                        setRenameHighlightColor(color);
+                        setRenameHighlightText(getColorName(color));
+                        setShowRenameHighlight(true);
+                      }}
+                      activeOpacity={0.7}
+                      delayPressIn={0}
+                    >
+                      {/* Edit Button */}
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setRenameHighlightColor(color);
+                          setRenameHighlightText(getColorName(color));
+                          setShowRenameHighlight(true);
+                        }}
+                        activeOpacity={0.7}
+                        delayPressIn={0}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <MaterialIcons name="edit" size={16} color={theme.text} />
+                      </TouchableOpacity>
+                      
+                      <View style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 26,
+                        backgroundColor: color,
+                        marginBottom: 13,
+                        shadowColor: color,
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.5,
+                        shadowRadius: 6,
+                        elevation: 6
+                      }} />
+                      <Text style={{
+                        fontSize: 19,
+                        fontWeight: '800',
+                        color: theme.text,
+                        marginBottom: 6
+                      }}>
+                        {getColorName(color)}
+                      </Text>
+                      {/* Show original color name if custom name is set */}
+                      {customHighlightNames[color] && (
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: '500',
+                          color: theme.textSecondary,
+                          marginBottom: 6,
+                          opacity: 0.7
+                        }}>
+                          ({getDefaultColorName(color)})
+                        </Text>
+                      )}
+                      <View style={{
+                        backgroundColor: `${theme.primary}20`,
+                        paddingHorizontal: 13,
+                        paddingVertical: 6,
+                        borderRadius: 16
+                      }}>
+                        <Text style={{
+                          fontSize: 13,
+                          fontWeight: '700',
+                          color: theme.primary
+                        }}>
+                          {verses.length} {verses.length === 1 ? 'verse' : 'verses'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )
                 ))
               ) : (
                 // Show verses with full text for selected color
@@ -4004,7 +4135,31 @@ const ProfileTab = () => {
                 }}>
                   {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
                 </Text>
-                <View style={{ width: 60 }} />
+                {/* View Toggle Button - only show on main list */}
+                {!selectedHighlightColor ? (
+                  <TouchableOpacity
+                    onPress={() => saveHighlightViewMode(highlightViewMode === 'compact' ? 'expanded' : 'compact')}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      paddingHorizontal: 12, 
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
+                  >
+                    <MaterialIcons 
+                      name={highlightViewMode === 'compact' ? 'view-agenda' : 'view-list'} 
+                      size={16} 
+                      color={theme.primary} 
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{ width: 60 }} />
+                )}
               </View>
             </BlurView>
         </View>
