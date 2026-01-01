@@ -510,7 +510,27 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
       if (savedVersesData) {
         const versesArray = JSON.parse(savedVersesData);
-        setSavedVerses(new Set(versesArray.map(v => v.id)));
+        const allSavedVerseIds = new Set();
+        
+        versesArray.forEach(v => {
+          // Add the main ID
+          allSavedVerseIds.add(v.id);
+          
+          // If it's a range, also add all individual verse IDs
+          if (v.isRange && v.startVerse && v.endVerse && v.book) {
+            // Extract book ID from the main ID (format: bookId_chapter_start-end)
+            const idParts = v.id.split('_');
+            if (idParts.length >= 2) {
+              const bookId = idParts[0];
+              const chapter = idParts[1];
+              for (let i = v.startVerse; i <= v.endVerse; i++) {
+                allSavedVerseIds.add(`${bookId}_${chapter}_${i}`);
+              }
+            }
+          }
+        });
+        
+        setSavedVerses(allSavedVerseIds);
       }
     } catch (error) {
       console.error('Error loading saved verses:', error);
@@ -1375,6 +1395,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       const userStats = stats ? JSON.parse(stats) : {};
       userStats.savedVerses = currentSavedVerses.length;
       await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      
+      // Mark all verses in the range as saved (for heart icon display)
+      const newSavedVersesSet = new Set([...savedVerses]);
+      for (let i = actualStart; i <= actualEnd; i++) {
+        const individualVerseId = `${currentBook.id}_${currentChapter.number}_${i}`;
+        newSavedVersesSet.add(individualVerseId);
+      }
+      // Also add the range ID itself
+      newSavedVersesSet.add(rangeId);
+      setSavedVerses(newSavedVersesSet);
       
       console.log(`✅ Saved verse range: ${rangeReference}`);
       hapticFeedback.success();
@@ -3821,7 +3851,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
 
-                    {/* Save Option */}
+                    {/* Save Option - Now shows choice between single verse or range */}
                     <TouchableOpacity
                       style={{
                         flexDirection: 'row',
@@ -3832,7 +3862,35 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={saveVerseToProfile}
+                      onPress={() => {
+                        const verseId = selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`;
+                        const isAlreadySaved = savedVerses.has(verseId);
+                        
+                        if (isAlreadySaved) {
+                          hapticFeedback.light();
+                          Alert.alert('Already Saved', 'This verse is already in your saved verses');
+                          closeVerseMenu();
+                          return;
+                        }
+                        
+                        Alert.alert(
+                          'Save Verse',
+                          'How would you like to save this verse?',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Just This Verse',
+                              onPress: () => saveVerseToProfile()
+                            },
+                            {
+                              text: 'Save a Range',
+                              onPress: () => startRangeSelection()
+                            }
+                          ]
+                        );
+                      }}
+                      activeOpacity={0.7}
+                      delayPressIn={0}
                     >
                       <View style={{
                         width: 40,
@@ -3854,44 +3912,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                           {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Saved' : 'Save Verse'}
                         </Text>
                         <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Already in your saved verses' : 'Add to your saved verses'}
-                        </Text>
-                      </View>
-                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Save Range Option */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 16,
-                        backgroundColor: theme.card,
-                        borderRadius: 12,
-                        marginBottom: 12
-                      }}
-                      onPress={startRangeSelection}
-                      activeOpacity={0.7}
-                      delayPressIn={0}
-                    >
-                      <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: `${theme.success}20`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12
-                      }}>
-                        <MaterialIcons name="select-all" size={20} color={theme.success} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
-                          Save Range
-                        </Text>
-                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
-                          Select multiple verses to save together
+                          {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Already in your saved verses' : 'Save this verse or a range of verses'}
                         </Text>
                       </View>
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
