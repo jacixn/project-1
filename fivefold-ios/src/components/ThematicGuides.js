@@ -415,51 +415,233 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
     }, 1000);
   };
 
-  const renderGuideCard = (guide) => {
+  // Get theme icon for each category
+  const getThemeIcon = (themeId) => {
+    const icons = {
+      faith: 'brightness-7',
+      love: 'favorite',
+      wisdom: 'psychology',
+      hope: 'wb-sunny',
+      prayer: 'self-improvement',
+      courage: 'shield',
+      peace: 'spa',
+      joy: 'celebration',
+      grace: 'card-giftcard',
+      trust: 'verified',
+    };
+    return icons[themeId] || 'auto-awesome';
+  };
+
+  // Get gradient colors for each theme
+  const getThemeGradient = (themeId, themeColor) => {
+    const gradients = {
+      faith: ['#667eea', '#764ba2'],
+      love: ['#f093fb', '#f5576c'],
+      wisdom: ['#4facfe', '#00f2fe'],
+      hope: ['#43e97b', '#38f9d7'],
+      prayer: ['#fa709a', '#fee140'],
+      courage: ['#a8edea', '#fed6e3'],
+      peace: ['#d299c2', '#fef9d7'],
+      joy: ['#ffecd2', '#fcb69f'],
+      grace: ['#a18cd1', '#fbc2eb'],
+      trust: ['#667eea', '#764ba2'],
+    };
+    return gradients[themeId] || [themeColor, `${themeColor}88`];
+  };
+
+  const renderGuideCard = (guide, index) => {
     const themeColor = themeCategories.find(cat => cat.id === guide.theme)?.color || theme.primary;
     const isCompleted = completedGuides.includes(guide.id);
+    const gradientColors = getThemeGradient(guide.theme, themeColor);
+    const themeIcon = getThemeIcon(guide.theme);
 
     return (
       <TouchableOpacity
         key={guide.id}
-        style={[styles.guideCard, { 
-          backgroundColor: theme.card,
-          borderColor: isCompleted ? themeColor : theme.border,
-          borderWidth: isCompleted ? 2 : 1
-        }]}
+        activeOpacity={0.9}
+        style={{
+          marginBottom: 20,
+          borderRadius: 24,
+          overflow: 'hidden',
+          shadowColor: themeColor,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.25,
+          shadowRadius: 16,
+          elevation: 8,
+        }}
         onPress={() => {
           hapticFeedback.light();
           setSelectedGuide(guide);
         }}
       >
-        <View style={styles.guideHeader}>
-          <View style={styles.guideInfo}>
-            <Text style={[styles.guideTitle, { color: theme.text }]}>
+        {/* Gradient Background */}
+        <LinearGradient
+          colors={isDark ? [`${themeColor}30`, `${themeColor}10`] : gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            padding: 24,
+            position: 'relative',
+          }}
+        >
+          {/* Decorative Icon - Top Right */}
+          <View style={{
+            position: 'absolute',
+            top: -20,
+            right: -20,
+            width: 120,
+            height: 120,
+            opacity: isDark ? 0.15 : 0.2,
+          }}>
+            <MaterialIcons 
+              name={themeIcon} 
+              size={120} 
+              color={isDark ? '#fff' : '#fff'} 
+            />
+          </View>
+
+          {/* Content */}
+          <View style={{ position: 'relative', zIndex: 1 }}>
+            {/* Category & Completed Badge Row */}
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: 14 
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.4)',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}>
+                <MaterialIcons 
+                  name={themeIcon} 
+                  size={14} 
+                  color={isDark ? '#fff' : '#fff'} 
+                />
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: isDark ? '#fff' : '#fff',
+                  marginLeft: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>
+                  {themeCategories.find(cat => cat.id === guide.theme)?.name || guide.theme}
+                </Text>
+              </View>
+              
+              {isCompleted && (
+                <View style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <MaterialIcons name="check-circle" size={24} color={themeColor} />
+                </View>
+              )}
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 22,
+              fontWeight: '800',
+              color: isDark ? theme.text : '#fff',
+              marginBottom: 8,
+              letterSpacing: -0.3,
+            }}>
               {guide.title}
             </Text>
-            <Text style={[styles.guideHook, { color: theme.textSecondary }]}>
+
+            {/* Description */}
+            <Text style={{
+              fontSize: 15,
+              color: isDark ? theme.textSecondary : 'rgba(255,255,255,0.9)',
+              lineHeight: 22,
+              marginBottom: 18,
+            }}>
               {guide.hook}
             </Text>
-          </View>
-          {isCompleted && (
-            <View style={[styles.completedBadge, { backgroundColor: themeColor }]}>
-              <MaterialIcons name="check" size={16} color="white" />
-            </View>
-          )}
-        </View>
 
-        <View style={styles.guideFooter}>
-          <View style={[styles.timeBadge, { backgroundColor: `${themeColor}20` }]}>
-            <MaterialIcons name="schedule" size={14} color={themeColor} />
-            <Text style={[styles.timeText, { color: themeColor }]}>
-              {guide.timeMinutes} min
-            </Text>
+            {/* Divider Line */}
+            <View style={{
+              height: 1,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.3)',
+              marginBottom: 16,
+            }} />
+
+            {/* Footer Row */}
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              {/* Time Badge */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.35)',
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}>
+                <MaterialIcons 
+                  name="schedule" 
+                  size={16} 
+                  color={isDark ? theme.text : '#fff'} 
+                />
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '700',
+                  color: isDark ? theme.text : '#fff',
+                  marginLeft: 6,
+                }}>
+                  {guide.timeMinutes} min
+                </Text>
+              </View>
+
+              {/* Arrow Indicator */}
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.3)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <MaterialIcons 
+                  name="arrow-forward" 
+                  size={20} 
+                  color={isDark ? theme.text : '#fff'} 
+                />
+              </View>
+            </View>
+
+            {/* Quote - Bottom */}
+            <View style={{
+              marginTop: 16,
+              paddingTop: 14,
+              borderTopWidth: 1,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.25)',
+            }}>
+              <Text style={{
+                fontSize: 13,
+                fontStyle: 'italic',
+                color: isDark ? theme.textSecondary : 'rgba(255,255,255,0.85)',
+                textAlign: 'center',
+                lineHeight: 20,
+              }}>
+                "{guide.anchorVerse}"
+              </Text>
+            </View>
           </View>
-          
-          <Text style={[styles.anchorVerse, { color: theme.textSecondary }]}>
-            "{guide.anchorVerse}"
-          </Text>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -954,7 +1136,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
                themeCategories.find(cat => cat.id === selectedTheme)?.name + ' Guides'}
             </Text>
             
-            {getFilteredGuides().map(renderGuideCard)}
+            {getFilteredGuides().map((guide, index) => renderGuideCard(guide, index))}
           </View>
 
           <View style={{ height: 40 }} />
