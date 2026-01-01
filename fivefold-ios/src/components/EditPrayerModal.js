@@ -206,7 +206,7 @@ const EditPrayerModal = ({ visible, onClose, onSavePrayer, onDeletePrayer, praye
         <View style={styles.backdrop}>
           <TouchableOpacity 
             style={styles.backdropTouchable}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={handleBackdropClose}
           />
         </View>

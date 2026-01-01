@@ -753,7 +753,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           <View style={styles.createModalOverlay}>
             <TouchableOpacity
               style={styles.createModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowCreateModal(false)}
             />
             <View
@@ -903,7 +903,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           <View style={styles.createModalOverlay}>
             <TouchableOpacity
               style={styles.createModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowCreateFolderModal(false)}
             />
             <View
@@ -981,7 +981,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           <View style={styles.menuModalOverlay}>
             <TouchableOpacity
               style={styles.menuModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setSelectedFolderForMenu(null)}
             />
             <View
@@ -1034,7 +1034,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           <Animated.View style={[styles.detailModalOverlay, { opacity: fadeAnim }]}>
             <TouchableOpacity
               style={styles.detailModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowTemplateDetail(false)}
             />
             <Animated.View
@@ -1185,7 +1185,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           <View style={styles.setsModalOverlay}>
             <TouchableOpacity
               style={styles.setsModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => {
                 setShowSetsModal(false);
                 setPendingExercise(null);

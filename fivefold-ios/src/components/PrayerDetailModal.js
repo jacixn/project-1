@@ -251,7 +251,7 @@ const PrayerDetailModal = ({
         <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim }}>
           <TouchableOpacity 
             style={styles.backdrop}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={handleBackdropClose}
           />
         </Animated.View>

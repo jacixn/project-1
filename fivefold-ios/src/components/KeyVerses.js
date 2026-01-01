@@ -916,7 +916,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
           <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: detailFadeAnim }}>
             <TouchableOpacity 
               style={styles.verseModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={handleBackdropClose}
             />
           </Animated.View>

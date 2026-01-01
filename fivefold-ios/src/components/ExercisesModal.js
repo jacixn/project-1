@@ -455,7 +455,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         >
           <TouchableOpacity 
             style={styles.pickerOverlay}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={() => {
               hapticFeedback.light();
               setShowBodyPartPicker(false);
@@ -504,7 +504,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         >
           <TouchableOpacity 
             style={styles.pickerOverlay}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={() => {
               hapticFeedback.light();
               setShowCategoryPicker(false);

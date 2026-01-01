@@ -586,7 +586,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
           <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: guideFadeAnim }}>
             <TouchableOpacity 
               style={styles.guideModalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={handleBackdropClose}
             />
           </Animated.View>

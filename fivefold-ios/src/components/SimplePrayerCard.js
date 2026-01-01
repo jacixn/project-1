@@ -1033,7 +1033,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           <View style={styles.notTimeOverlay}>
             <TouchableOpacity 
               style={StyleSheet.absoluteFill}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={closeNotTimeCard}
             />
             <BlurView 
@@ -1111,7 +1111,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           <View style={styles.notTimeOverlay}>
             <TouchableOpacity 
               style={StyleSheet.absoluteFill}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowCompletedCard(false)}
             />
             <BlurView 

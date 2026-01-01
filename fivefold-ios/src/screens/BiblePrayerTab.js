@@ -1229,7 +1229,7 @@ const BiblePrayerTab = () => {
         <View style={styles.verseModalOverlay}>
           <TouchableOpacity 
             style={styles.verseModalBackdrop}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={closeVerseModal}
           >
             <Animated.View style={{ 
@@ -1470,7 +1470,7 @@ const BiblePrayerTab = () => {
           <View style={styles.shareCardOverlay}>
             <TouchableOpacity 
               style={StyleSheet.absoluteFill} 
-              activeOpacity={1} 
+              activeOpacity={0.7} 
               onPress={closeShareCard}
             />
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

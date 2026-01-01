@@ -202,7 +202,7 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
         <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim }}>
           <TouchableOpacity 
             style={styles.modalBackdrop}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={handleClose}
           />
         </Animated.View>

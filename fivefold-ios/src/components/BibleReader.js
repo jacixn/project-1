@@ -3036,7 +3036,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                     right: 0,
                     bottom: 0
                   }}
-                  activeOpacity={1}
+                  activeOpacity={0.7}
                   onPress={() => {
                     hapticFeedback.light();
                     setShowSearchModal(false);
@@ -3352,7 +3352,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
               }}>
                 <TouchableOpacity 
                   style={{ flex: 1 }}
-                  activeOpacity={1}
+                  activeOpacity={0.7}
                   onPress={closeVerseMenu}
                 />
               </Animated.View>
@@ -3756,7 +3756,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         >
           {/* Backdrop */}
           <TouchableOpacity
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={saveAndCloseNote}
             style={{
               position: 'absolute',
@@ -4031,7 +4031,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
             >
               {/* Backdrop - Separate TouchableOpacity */}
               <TouchableOpacity
-                activeOpacity={1}
+                activeOpacity={0.7}
                 onPress={closeShareCard}
                 disabled={shareCardAnimating}
                 style={{
@@ -5822,7 +5822,7 @@ const BookSelectorModal = ({ visible, onClose, currentBook, books, onSelectBook,
       <View style={bookModalStyles.overlay}>
         <TouchableOpacity 
           style={bookModalStyles.backdrop} 
-          activeOpacity={1} 
+          activeOpacity={0.7} 
           onPress={handleClose}
         />
         

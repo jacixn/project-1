@@ -649,7 +649,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
           <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: detailFadeAnim }}>
             <TouchableOpacity
               style={styles.modalBackdrop}
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={handleBackdropClose}
             />
           </Animated.View>
@@ -1068,7 +1068,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
               {/* Backdrop */}
               <TouchableOpacity 
                 style={styles.randomModalBackdrop}
-                activeOpacity={1}
+                activeOpacity={0.7}
                 onPress={closeRandomFact}
               />
               

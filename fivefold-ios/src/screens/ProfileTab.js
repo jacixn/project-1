@@ -3039,7 +3039,7 @@ const ProfileTab = () => {
               >
                 {/* Backdrop */}
                 <TouchableOpacity
-                  activeOpacity={1}
+                  activeOpacity={0.7}
                   onPress={() => {
                     setIsAddingEntry(false);
                     setNewJournalNote({ reference: '', text: '' });

@@ -130,7 +130,7 @@ const LiquidGlassDemo = () => {
           <TouchableOpacity
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            activeOpacity={1}
+            activeOpacity={0.7}
           >
             <LiquidGlassView
               interactive={true}

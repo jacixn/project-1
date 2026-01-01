@@ -908,7 +908,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       <Modal visible={showMenu} transparent animationType="fade">
         <TouchableOpacity 
           style={styles.menuOverlay} 
-          activeOpacity={1} 
+          activeOpacity={0.7} 
           onPress={() => setShowMenu(false)}
         >
           <View style={[styles.menuContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>

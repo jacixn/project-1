@@ -66,7 +66,7 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
       >
         <LinearGradient
           colors={isDark ? 
@@ -230,7 +230,7 @@ const AnimatedIndividualCharacterCard = ({ character, section, group, onPress, i
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
         disabled={!isAvailable}
       >
         {/* Shimmer overlay */}
@@ -404,7 +404,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
       >
         {/* Animated shimmer overlay */}
         <Animated.View 

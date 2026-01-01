@@ -977,7 +977,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
         <View style={{ ...StyleSheet.absoluteFillObject }}>
           <TouchableOpacity 
             style={styles.modalBackdrop}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={handleCloseModal}
           />
         </View>
@@ -1721,7 +1721,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           <View style={styles.timerModalOverlay}>
             <TouchableOpacity 
               style={styles.timerModalBackdrop} 
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => {
                 setShowRestTimer(false);
                 setShowTimerPicker(true);
@@ -1963,7 +1963,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           <View style={styles.restCompleteOverlay}>
             <TouchableOpacity 
               style={styles.restCompleteBackdrop} 
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowRestComplete(false)}
             />
             
@@ -2004,7 +2004,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           <View style={styles.restCompleteOverlay}>
             <TouchableOpacity 
               style={styles.restCompleteBackdrop} 
-              activeOpacity={1}
+              activeOpacity={0.7}
               onPress={() => setShowFinishConfirm(false)}
             />
             

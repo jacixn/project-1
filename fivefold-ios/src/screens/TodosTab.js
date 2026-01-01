@@ -70,7 +70,7 @@ const AnimatedTodoButton = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
         style={style}
         {...props}
       >
@@ -107,7 +107,7 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.7}
         style={style}
         {...props}
       >

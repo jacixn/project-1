@@ -112,7 +112,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
       <View style={styles.overlay}>
         <TouchableOpacity 
           style={styles.backdrop} 
-          activeOpacity={1}
+          activeOpacity={0.7}
           onPress={onClose}
         />
         

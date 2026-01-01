@@ -187,7 +187,7 @@ const AddPrayerModal = ({ visible, onClose, onSave }) => {
         <View style={styles.backdrop}>
               <TouchableOpacity 
             style={styles.backdropTouchable}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={handleBackdropClose}
           />
               </View>
