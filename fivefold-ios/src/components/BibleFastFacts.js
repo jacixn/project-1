@@ -1073,40 +1073,44 @@ const BibleFastFacts = ({ visible, onClose }) => {
             
             {/* Fixed Header Row - Always visible */}
             <View style={styles.headerRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.light();
-                  onClose();
-                }}
-                activeOpacity={0.7}
-                delayPressIn={0}
-                style={[styles.backButton, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
-                }]}
-              >
-                <Ionicons name="chevron-back" size={20} color={theme.primary} />
-                <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
-              </TouchableOpacity>
+              <View style={styles.headerSideContainer}>
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    onClose();
+                  }}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
+                  style={[styles.backButton, { 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
+                  }]}
+                >
+                  <Ionicons name="chevron-back" size={20} color={theme.primary} />
+                  <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
+                </TouchableOpacity>
+              </View>
               
               <Text style={[styles.headerTitle, { color: theme.text }]}>Fast Facts</Text>
               
-              <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.light();
-                  setViewMode(viewMode === 'grid' ? 'list' : 'grid');
-                }}
-                activeOpacity={0.7}
-                delayPressIn={0}
-                style={[styles.viewModeBtn, { 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
-                }]}
-              >
-                <MaterialIcons
-                  name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
-                  size={22}
-                  color={theme.primary}
-                />
-              </TouchableOpacity>
+              <View style={[styles.headerSideContainer, { alignItems: 'flex-end' }]}>
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setViewMode(viewMode === 'grid' ? 'list' : 'grid');
+                  }}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
+                  style={[styles.viewModeBtn, { 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
+                  }]}
+                >
+                  <MaterialIcons
+                    name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
+                    size={22}
+                    color={theme.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Expandable Section */}
@@ -1479,10 +1483,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  headerSideContainer: {
+    width: 80, // Equal width for both sides to force title to exact center
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 2,
