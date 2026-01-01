@@ -173,8 +173,10 @@ const GymTab = () => {
     }
   }, [templateSelectionVisible]);
 
+  // Force refresh all data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      console.log('🏋️ GymTab focused - refreshing workout history');
       loadWorkoutHistory();
     }, [])
   );

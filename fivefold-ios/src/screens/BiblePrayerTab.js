@@ -340,12 +340,13 @@ const BiblePrayerTab = () => {
     ).start();
   };
 
-  // Reload userName every time the screen comes into focus
+  // Force refresh all data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 BiblePrayerTab focused - reloading user name');
+      console.log('🔄 BiblePrayerTab focused - refreshing all data');
       loadUserName();
       initializePrayerData();
+      loadLiquidGlassSetting();
     }, [])
   );
 
