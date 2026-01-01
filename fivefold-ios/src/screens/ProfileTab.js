@@ -368,6 +368,29 @@ const ProfileTab = () => {
     setRefreshingSavedVerses(false);
   };
 
+  // Quick version that just loads from storage without API calls (for focus refresh)
+  const loadSavedVersesQuick = async () => {
+    try {
+      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      if (savedVersesData) {
+        const verses = JSON.parse(savedVersesData);
+        setSavedVersesList(verses);
+        
+        // Update the stats count
+        setUserStats(prev => ({
+          ...prev,
+          savedVerses: verses.length
+        }));
+        
+        console.log(`📖 Quick loaded ${verses.length} saved verses (no API calls)`);
+      } else {
+        setSavedVersesList([]);
+      }
+    } catch (error) {
+      console.error('Error quick loading saved verses:', error);
+    }
+  };
+
   const loadAppStreak = async () => {
     try {
       const streakData = await AppStreakManager.trackAppOpen();
@@ -474,6 +497,35 @@ const ProfileTab = () => {
       }
     }
     setJournalLoading(false);
+  };
+
+  // Quick version that just loads from storage without API calls (for focus refresh)
+  const loadJournalNotesQuick = async () => {
+    try {
+      // Read from storage without making API calls
+      const existingNotes = await AsyncStorage.getItem('journalNotes');
+      const notes = existingNotes ? JSON.parse(existingNotes) : [];
+      
+      // Also merge any notes from verse_data (long-press notes)
+      const verseNotes = await VerseDataManager.getAllNotes();
+      
+      // Combine both sources, dedupe by id
+      const allNotes = [...notes];
+      const existingIds = new Set(notes.map(n => n.id));
+      verseNotes.forEach(vn => {
+        if (!existingIds.has(vn.id)) {
+          allNotes.push(vn);
+        }
+      });
+      
+      // Sort by creation date (newest first)
+      allNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setJournalNotes(allNotes);
+      console.log(`📖 Quick loaded ${allNotes.length} journal notes (no API calls)`);
+    } catch (error) {
+      console.error('Error quick loading journal notes:', error);
+    }
   };
 
   const loadCustomHighlightNames = async () => {
@@ -1018,12 +1070,40 @@ const ProfileTab = () => {
   useFocusEffect(
     useCallback(() => {
       console.log('👤 Profile tab focused - refreshing all data');
-      loadUserData();
-      loadSavedVerses();
-      loadAppStreak();
-      loadJournalNotes();
-      loadHighlights();
-      loadCompletedTasks();
+      // Wrap each call in try-catch to prevent crashes
+      const safeRefresh = async () => {
+        try {
+          await loadUserData();
+        } catch (e) {
+          console.error('Error loading user data:', e);
+        }
+        try {
+          await loadSavedVersesQuick(); // Use quick version that doesn't refetch from API
+        } catch (e) {
+          console.error('Error loading saved verses:', e);
+        }
+        try {
+          await loadAppStreak();
+        } catch (e) {
+          console.error('Error loading app streak:', e);
+        }
+        try {
+          await loadJournalNotesQuick(); // Use quick version that doesn't refetch from API
+        } catch (e) {
+          console.error('Error loading journal notes:', e);
+        }
+        try {
+          await loadHighlights();
+        } catch (e) {
+          console.error('Error loading highlights:', e);
+        }
+        try {
+          await loadCompletedTasks();
+        } catch (e) {
+          console.error('Error loading completed tasks:', e);
+        }
+      };
+      safeRefresh();
     }, [])
   );
 
