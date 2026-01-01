@@ -117,6 +117,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const verseMenuSlideAnim = useRef(new Animated.Value(0)).current;
   const verseMenuFadeAnim = useRef(new Animated.Value(0)).current;
   
+  // Range selection state for saving multiple verses
+  const [rangeSelectionMode, setRangeSelectionMode] = useState(false);
+  const [rangeStartVerse, setRangeStartVerse] = useState(null);
+  
   // Share card state
   const [showShareCard, setShowShareCard] = useState(false);
   const shareCardFadeAnim = useRef(new Animated.Value(0)).current;
@@ -1290,6 +1294,106 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     }
   };
 
+  // Start range selection mode
+  const startRangeSelection = () => {
+    if (!selectedVerseForMenu) return;
+    
+    setRangeStartVerse(selectedVerseForMenu);
+    setRangeSelectionMode(true);
+    closeVerseMenu();
+    hapticFeedback.medium();
+  };
+
+  // Complete range selection and save
+  const completeRangeSelection = async (endVerse) => {
+    if (!rangeStartVerse || !endVerse || !currentBook || !currentChapter) return;
+    
+    const startNum = parseInt(rangeStartVerse.number || rangeStartVerse.verse);
+    const endNum = parseInt(endVerse.number || endVerse.verse);
+    
+    // Ensure start is before end
+    const actualStart = Math.min(startNum, endNum);
+    const actualEnd = Math.max(startNum, endNum);
+    
+    // Get all verses in the range
+    const versesInRange = verses.filter(v => {
+      const num = parseInt(v.number || v.verse);
+      return num >= actualStart && num <= actualEnd;
+    }).sort((a, b) => parseInt(a.number || a.verse) - parseInt(b.number || b.verse));
+    
+    if (versesInRange.length === 0) {
+      setRangeSelectionMode(false);
+      setRangeStartVerse(null);
+      return;
+    }
+    
+    // Create combined reference and text
+    const rangeReference = actualStart === actualEnd 
+      ? `${currentBook.name} ${currentChapter.number}:${actualStart}`
+      : `${currentBook.name} ${currentChapter.number}:${actualStart}-${actualEnd}`;
+    
+    const combinedText = versesInRange
+      .map(v => (v.content || v.text || '').replace(/\s+/g, ' ').trim())
+      .join(' ');
+    
+    const rangeId = `${currentBook.id}_${currentChapter.number}_${actualStart}-${actualEnd}`;
+    
+    try {
+      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const currentSavedVerses = savedVersesData ? JSON.parse(savedVersesData) : [];
+      
+      // Check if already saved
+      const alreadySaved = currentSavedVerses.some(v => v.id === rangeId);
+      if (alreadySaved) {
+        hapticFeedback.light();
+        Alert.alert('Already Saved', 'This verse range is already in your saved verses');
+        setRangeSelectionMode(false);
+        setRangeStartVerse(null);
+        return;
+      }
+      
+      // Add new verse range
+      const newVerse = {
+        id: rangeId,
+        reference: rangeReference,
+        text: combinedText,
+        book: currentBook.name,
+        chapter: currentChapter.number,
+        verse: `${actualStart}-${actualEnd}`,
+        version: selectedBibleVersion,
+        timestamp: Date.now(),
+        isRange: true,
+        startVerse: actualStart,
+        endVerse: actualEnd
+      };
+      
+      currentSavedVerses.push(newVerse);
+      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
+      
+      // Update stats
+      const stats = await AsyncStorage.getItem('userStats');
+      const userStats = stats ? JSON.parse(stats) : {};
+      userStats.savedVerses = currentSavedVerses.length;
+      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      
+      console.log(`✅ Saved verse range: ${rangeReference}`);
+      hapticFeedback.success();
+      Alert.alert('Saved', `${rangeReference} saved successfully`);
+    } catch (error) {
+      console.error('Error saving verse range:', error);
+    }
+    
+    setRangeSelectionMode(false);
+    setRangeStartVerse(null);
+  };
+
+  // Cancel range selection
+  const cancelRangeSelection = () => {
+    setRangeSelectionMode(false);
+    setRangeStartVerse(null);
+    hapticFeedback.light();
+  };
+
   const handleVersionChange = async (versionId) => {
     try {
       console.log('📖 Changing version to:', versionId);
@@ -2432,6 +2536,46 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
           directionalLockEnabled={true}
         >
       
+      {/* Range Selection Banner */}
+      {rangeSelectionMode && (
+        <View style={{
+          backgroundColor: theme.success,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          marginHorizontal: 16,
+          marginBottom: 16,
+          borderRadius: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          shadowColor: theme.success,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        }}>
+          <MaterialIcons name="touch-app" size={22} color="#FFFFFF" />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
+              Selecting Range from Verse {rangeStartVerse?.number || rangeStartVerse?.verse}
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2 }}>
+              Tap another verse to complete the selection
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={cancelRangeSelection}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.25)',
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 18
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.youversionVersesContainer}>
         {verses.map((verse, index) => {
         const isSimplified = verse.isSimplified && verse.simplifiedContent;
@@ -2441,12 +2585,18 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verse.number}`;
         const highlightColor = highlightedVerses[verseId];
         
+        const isRangeStartVerse = rangeSelectionMode && rangeStartVerse && 
+          (rangeStartVerse.number || rangeStartVerse.verse) === (verse.number || verse.verse);
+        
         return (
                       <TouchableOpacity
             key={verse.id}
             activeOpacity={0.9}
                           onPress={() => {
               // Handle verse tap
+              if (rangeSelectionMode) {
+                completeRangeSelection(verse);
+              }
             }}
             onLongPress={() => handleVerseLongPress(verse)}
             delayLongPress={500}
@@ -2467,6 +2617,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   borderLeftWidth: 3,
                   borderLeftColor: theme.primary,
                   paddingLeft: 12
+                },
+                isRangeStartVerse && {
+                  backgroundColor: `${theme.success}30`,
+                  borderRadius: 8,
+                  borderWidth: 2,
+                  borderColor: theme.success,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  marginLeft: -4,
+                  marginRight: -4,
                 }
               ]}
               ref={(el) => (verseRefs.current[verseNumber] = el)}
@@ -3695,6 +3855,43 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                         </Text>
                         <Text style={{ fontSize: 13, color: theme.textSecondary }}>
                           {savedVerses.has(selectedVerseForMenu?.id || `${currentBook?.id}_${currentChapter?.number}_${selectedVerseForMenu?.number}`) ? 'Already in your saved verses' : 'Add to your saved verses'}
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Save Range Option */}
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.card,
+                        borderRadius: 12,
+                        marginBottom: 12
+                      }}
+                      onPress={startRangeSelection}
+                      activeOpacity={0.7}
+                      delayPressIn={0}
+                    >
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: `${theme.success}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12
+                      }}>
+                        <MaterialIcons name="select-all" size={20} color={theme.success} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                          Save Range
+                        </Text>
+                        <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                          Select multiple verses to save together
                         </Text>
                       </View>
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
