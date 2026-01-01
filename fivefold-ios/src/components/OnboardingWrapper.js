@@ -52,10 +52,10 @@ const OnboardingWrapper = ({ children }) => {
     }
   };
 
-  // Show loading state while checking
+  // Show loading state while checking - use white as fallback to be visible
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme?.background || '#FFFFFF' }]} />
     );
   }
 

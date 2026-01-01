@@ -1009,8 +1009,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     };
   }, []);
   
-  // Listen to a single verse
-  const listenToVerse = async () => {
+  // Listen to verse - prompt user to choose single or continuous mode
+  const listenToVerse = () => {
     if (!selectedVerseForMenu || !currentBook || !currentChapter) return;
     
     hapticFeedback.medium();
@@ -1019,13 +1019,42 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     const verseToPlay = selectedVerseForMenu;
     const bookToPlay = currentBook;
     const chapterToPlay = currentChapter;
+    const verseNumber = verseToPlay.number || verseToPlay.verse;
+    
+    // Find start index for auto-play
+    const startIndex = verses.findIndex(v => 
+      (v.number || v.verse) === verseNumber
+    );
     
     // Close verse menu first
     closeVerseMenu();
     
-    // Show the audio player
+    // Show options to user
+    Alert.alert(
+      'Listen Mode',
+      `How would you like to listen to ${bookToPlay.name} ${chapterToPlay.number}:${verseNumber}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'This Verse Only',
+          onPress: () => playSingleVerse(bookToPlay, chapterToPlay, verseToPlay),
+        },
+        {
+          text: 'Continue Reading',
+          onPress: () => playAutoMode(bookToPlay, chapterToPlay, verseToPlay, startIndex),
+        },
+      ]
+    );
+  };
+  
+  // Play single verse only
+  const playSingleVerse = async (bookToPlay, chapterToPlay, verseToPlay) => {
     setShowAudioPlayer(true);
     setCurrentAudioVerse(verseToPlay);
+    setAudioAutoPlayEnabled(false);
     
     try {
       await bibleAudioService.speakVerse({
@@ -1038,6 +1067,37 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       console.error('Failed to play verse audio:', error);
       Alert.alert('Audio Error', 'Failed to play verse audio. Please try again.');
       setShowAudioPlayer(false);
+    }
+  };
+  
+  // Play auto-continue mode (reads through chapter)
+  const playAutoMode = async (bookToPlay, chapterToPlay, verseToPlay, startIndex) => {
+    setShowAudioPlayer(true);
+    setCurrentAudioVerse(verseToPlay);
+    setAudioAutoPlayEnabled(true);
+    
+    try {
+      if (startIndex !== -1 && verses.length > 0) {
+        await bibleAudioService.startAutoPlay({
+          book: bookToPlay.name,
+          chapter: chapterToPlay.number,
+          verses: verses,
+          startIndex: startIndex,
+        });
+      } else {
+        // Fallback to single verse if can't find index
+        await bibleAudioService.speakVerse({
+          book: bookToPlay.name,
+          chapter: chapterToPlay.number,
+          verse: verseToPlay,
+          announceReference: true,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to play verse audio:', error);
+      Alert.alert('Audio Error', 'Failed to play verse audio. Please try again.');
+      setShowAudioPlayer(false);
+      setAudioAutoPlayEnabled(false);
     }
   };
   

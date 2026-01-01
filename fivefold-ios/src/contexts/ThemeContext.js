@@ -198,6 +198,11 @@ export const ThemeProvider = ({ children }) => {
   const getActiveTheme = () => {
     const baseTheme = themes[currentTheme];
     
+    // Safety fallback if theme is somehow undefined
+    if (!baseTheme) {
+      return themes.dark;
+    }
+    
     // Handle dual-mode themes (Blush Bloom, Cresvia, Eterna)
     if (baseTheme && typeof baseTheme === 'object' && baseTheme.light && baseTheme.dark) {
       return isDarkMode ? baseTheme.dark : baseTheme.light;

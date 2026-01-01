@@ -1,23 +1,8 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialIcons } from '@expo/vector-icons';
+import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
 import { Platform } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useWorkout } from '../contexts/WorkoutContext';
-import { hapticFeedback } from '../utils/haptics';
-
-// Import native bottom tabs with fallback
-let createNativeBottomTabNavigator;
-try {
-  const { createNativeBottomTabNavigator: nativeTabNavigator } = require('react-native-bottom-tabs');
-  createNativeBottomTabNavigator = nativeTabNavigator;
-} catch (error) {
-  console.log('Native bottom tabs not available, using fallback');
-  createNativeBottomTabNavigator = null;
-}
-
-// Custom Liquid Glass Tab Bar
-import LiquidGlassTabBar from '../components/LiquidGlassTabBar';
 
 // Tab screens
 import BiblePrayerTab from '../screens/BiblePrayerTab';
@@ -25,120 +10,65 @@ import TodosTab from '../screens/TodosTab';
 import GymTab from '../screens/GymTab';
 import ProfileTab from '../screens/ProfileTab';
 
+const Tab = createNativeBottomTabNavigator();
+
 const TabNavigator = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { hasActiveWorkout } = useWorkout();
 
-  // Debug log
-  console.log('🏋️ TabNavigator - hasActiveWorkout:', hasActiveWorkout);
+  // Get the active tint color based on theme
+  const getActiveTintColor = () => {
+    if (theme.name === 'blush') return '#FF69B4';
+    if (theme.name === 'cresvia') return '#8A2BE2';
+    if (theme.name === 'eterna') return '#4B0082';
+    if (theme.name === 'spiderman') return '#E31E24';
+    if (theme.name === 'faith') return '#4A90E2';
+    if (theme.name === 'sailormoon') return '#C8A2D0';
+    return theme.primary || '#007AFF';
+  };
 
-  // Use native tabs for iOS if available - with native iOS 26 Liquid Glass effect
-  // Falls back to custom themed tabs for Android or if native tabs unavailable
-  if (createNativeBottomTabNavigator && Platform.OS === 'ios') {
-    const NativeTab = createNativeBottomTabNavigator();
-    
-    return (
-      <NativeTab.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-        appearance={{
-          // Native iOS 26 Liquid Glass effect
-          translucent: true,
-          blur: true,
-          // Let iOS handle the blur automatically based on system appearance
-          // This ensures proper blur even when modals are opened/closed
-        }}
-      >
-        <NativeTab.Screen 
-          name="BiblePrayer" 
-          component={BiblePrayerTab}
-          options={{
-            title: 'Bible',
-            tabBarIcon: ({ color }) => ({
-              sfSymbol: "book.fill",
-              fill: color,
-            }),
-            scrollToTopOnPress: true,
-          }}
-        />
-        <NativeTab.Screen 
-          name="Todos" 
-          component={TodosTab}
-          options={{
-            title: 'Tasks',
-            tabBarIcon: ({ color }) => ({
-              sfSymbol: "checkmark.circle.fill",
-              fill: color,
-            }),
-            scrollToTopOnPress: false,
-          }}
-        />
-        <NativeTab.Screen 
-          name="Gym" 
-          component={GymTab}
-          options={{
-            title: 'Fitness',
-            tabBarIcon: ({ color }) => ({
-              sfSymbol: "figure.strengthtraining.traditional",
-              fill: color,
-            }),
-            tabBarBadge: hasActiveWorkout ? 1 : undefined,
-            scrollToTopOnPress: false,
-          }}
-        />
-        <NativeTab.Screen 
-          name="Profile" 
-          component={ProfileTab}
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => ({
-              sfSymbol: "person.fill",
-              fill: color,
-            }),
-            scrollToTopOnPress: true,
-          }}
-        />
-      </NativeTab.Navigator>
-    );
-  }
-
-  // Fallback to custom themed Liquid Glass tab bar for Android or unsupported devices
-  const Tab = createBottomTabNavigator();
-  
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: getActiveTintColor(),
       }}
-      tabBar={(props) => <LiquidGlassTabBar {...props} />}
+      // Native iOS tab bar settings
+      translucent={true}
+      hapticFeedbackEnabled={true}
+      sidebarAdaptable={true}
     >
       <Tab.Screen 
         name="BiblePrayer" 
         component={BiblePrayerTab}
         options={{
-          tabBarLabel: 'Bible',
+          title: 'Bible',
+          tabBarIcon: () => ({ sfSymbol: 'book.fill' }),
         }}
       />
       <Tab.Screen 
         name="Todos" 
         component={TodosTab}
         options={{
-          tabBarLabel: 'Tasks',
+          title: 'Tasks',
+          tabBarIcon: () => ({ sfSymbol: 'checkmark.circle.fill' }),
         }}
       />
       <Tab.Screen 
         name="Gym" 
         component={GymTab}
         options={{
-          tabBarLabel: 'Fitness',
+          title: 'Fitness',
+          tabBarIcon: () => ({ sfSymbol: 'figure.strengthtraining.traditional' }),
+          tabBarBadge: hasActiveWorkout ? '' : undefined,
         }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ProfileTab}
         options={{
-          tabBarLabel: 'Profile',
+          title: 'Profile',
+          tabBarIcon: () => ({ sfSymbol: 'person.fill' }),
         }}
       />
     </Tab.Navigator>
