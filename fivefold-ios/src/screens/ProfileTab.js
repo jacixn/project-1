@@ -2071,14 +2071,10 @@ const ProfileTab = () => {
             tintColor={theme.primary}
             colors={[theme.primary]}
             progressBackgroundColor={theme.background}
-            title={t.pullToRefresh || "Pull to refresh"}
-            titleColor={theme.textSecondary}
+            progressViewOffset={130}
           />
         }
       >
-        {/* Header spacing to prevent overlap when header is visible */}
-        <View style={styles.headerSpacer} />
-        
         {/* Profile Header */}
         <ProfileHeader />
         
