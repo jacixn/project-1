@@ -7,6 +7,7 @@ class VerseDataManager {
   static DAILY_VERSE_KEY = 'daily_verse';
   static JOURNAL_NOTES_KEY = 'journal_notes';
   static JOURNAL_MIGRATION_FLAG = 'journal_notes_migrated';
+  static HIGHLIGHT_NAMES_KEY = 'highlight_custom_names';
 
   // Get verse data (notes, highlights, bookmarks)
   static async getVerseData(verseId) {
@@ -615,6 +616,45 @@ class VerseDataManager {
       }
     } catch (error) {
       console.error('Error removing bookmark:', error);
+    }
+  }
+
+  // Get all custom highlight names
+  static async getHighlightNames() {
+    try {
+      const data = await AsyncStorage.getItem(this.HIGHLIGHT_NAMES_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      console.error('Error getting highlight names:', error);
+      return {};
+    }
+  }
+
+  // Set custom name for a highlight color
+  static async setHighlightName(hexColor, customName) {
+    try {
+      const names = await this.getHighlightNames();
+      names[hexColor] = customName;
+      await AsyncStorage.setItem(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      console.log(`🏷️ Custom highlight name set: ${hexColor} -> ${customName}`);
+      return names;
+    } catch (error) {
+      console.error('Error setting highlight name:', error);
+      throw error;
+    }
+  }
+
+  // Remove custom name for a highlight color (revert to default)
+  static async removeHighlightName(hexColor) {
+    try {
+      const names = await this.getHighlightNames();
+      delete names[hexColor];
+      await AsyncStorage.setItem(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      console.log(`🏷️ Custom highlight name removed for: ${hexColor}`);
+      return names;
+    } catch (error) {
+      console.error('Error removing highlight name:', error);
+      throw error;
     }
   }
 }

@@ -272,6 +272,10 @@ const ProfileTab = () => {
   const [showHighlights, setShowHighlights] = useState(false);
   const [selectedHighlightColor, setSelectedHighlightColor] = useState(null); // Track selected color for drill-down
   const [highlightVersesWithText, setHighlightVersesWithText] = useState([]); // Store verses with full text
+  const [customHighlightNames, setCustomHighlightNames] = useState({}); // Store custom names for highlight colors
+  const [showRenameHighlight, setShowRenameHighlight] = useState(false);
+  const [renameHighlightColor, setRenameHighlightColor] = useState(null);
+  const [renameHighlightText, setRenameHighlightText] = useState('');
   
   // Tasks Done State
   const [showTasksDone, setShowTasksDone] = useState(false);
@@ -470,6 +474,16 @@ const ProfileTab = () => {
     setJournalLoading(false);
   };
 
+  const loadCustomHighlightNames = async () => {
+    try {
+      const names = await VerseDataManager.getHighlightNames();
+      setCustomHighlightNames(names);
+      console.log(`🏷️ Loaded custom highlight names:`, Object.keys(names).length);
+    } catch (error) {
+      console.error('Error loading custom highlight names:', error);
+    }
+  };
+
   const loadHighlights = async () => {
     try {
       const allData = await VerseDataManager.getAllVerseData();
@@ -488,6 +502,10 @@ const ProfileTab = () => {
       });
       
       setHighlightedVerses(highlights);
+      
+      // Also load custom highlight names
+      await loadCustomHighlightNames();
+      
       console.log(`🎨 Loaded ${highlights.length} highlighted verses`);
     } catch (error) {
       console.error('Error loading highlights:', error);
@@ -614,25 +632,76 @@ const ProfileTab = () => {
     return grouped;
   };
 
-  // Get color name from hex
+  // Default color names lookup
+  const defaultColorNames = {
+    '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
+    '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
+    '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
+    '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
+    '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
+    '#B2DFDB': 'Teal', '#FFB3B3': 'Salmon', '#CCCCFF': 'Periwinkle', '#F7E7CE': 'Champagne',
+    '#AFEEEE': 'Turquoise', '#FFE4E1': 'Blush', '#98FF98': 'Mint Green', '#89CFF0': 'Baby Blue',
+    '#FFB6C1': 'Powder', '#FFFFCC': 'Butter', '#93E9BE': 'Seafoam', '#DA70D6': 'Orchid',
+    '#FFD700': 'Honey', '#C1E1EC': 'Ice Blue', '#DE3163': 'Cherry', '#93C572': 'Pistachio',
+    '#DDA0DD': 'Plum', '#FFCC00': 'Tangerine', '#F5DEB3': 'Sand', '#7FFFD4': 'Cyan',
+    '#FF77FF': 'Magenta', '#FFDEAD': 'Melon', '#C4C3D0': 'Iris', '#FFE5B4': 'Gold',
+    '#AFE1AF': 'Celadon', '#C9A0DC': 'Wisteria', '#FFEA00': 'Citrus', '#B0E0E6': 'Azure',
+    '#F3E5AB': 'Vanilla', '#50C878': 'Emerald', '#9966CC': 'Amethyst', '#F0EAD6': 'Pearl',
+    '#00A86B': 'Jade'
+  };
+
+  // Get color name from hex - checks custom names first, then default
   const getColorName = (hexColor) => {
-    const colorNames = {
-      '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
-      '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
-      '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
-      '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
-      '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
-      '#B2DFDB': 'Teal', '#FFB3B3': 'Salmon', '#CCCCFF': 'Periwinkle', '#F7E7CE': 'Champagne',
-      '#AFEEEE': 'Turquoise', '#FFE4E1': 'Blush', '#98FF98': 'Mint Green', '#89CFF0': 'Baby Blue',
-      '#FFB6C1': 'Powder', '#FFFFCC': 'Butter', '#93E9BE': 'Seafoam', '#DA70D6': 'Orchid',
-      '#FFD700': 'Honey', '#C1E1EC': 'Ice Blue', '#DE3163': 'Cherry', '#93C572': 'Pistachio',
-      '#DDA0DD': 'Plum', '#FFCC00': 'Tangerine', '#F5DEB3': 'Sand', '#7FFFD4': 'Cyan',
-      '#FF77FF': 'Magenta', '#FFDEAD': 'Melon', '#C4C3D0': 'Iris', '#FFE5B4': 'Gold',
-      '#AFE1AF': 'Celadon', '#C9A0DC': 'Wisteria', '#FFEA00': 'Citrus', '#B0E0E6': 'Azure',
-      '#F3E5AB': 'Vanilla', '#50C878': 'Emerald', '#9966CC': 'Amethyst', '#F0EAD6': 'Pearl',
-      '#00A86B': 'Jade'
-    };
-    return colorNames[hexColor] || 'Custom';
+    // Check for custom name first
+    if (customHighlightNames[hexColor]) {
+      return customHighlightNames[hexColor];
+    }
+    return defaultColorNames[hexColor] || 'Custom';
+  };
+
+  // Get the default name for a color (used in rename modal)
+  const getDefaultColorName = (hexColor) => {
+    return defaultColorNames[hexColor] || 'Custom';
+  };
+
+  // Handle renaming a highlight color
+  const handleRenameHighlight = async () => {
+    if (!renameHighlightColor || !renameHighlightText.trim()) return;
+    
+    try {
+      hapticFeedback.success();
+      await VerseDataManager.setHighlightName(renameHighlightColor, renameHighlightText.trim());
+      
+      // Update local state
+      setCustomHighlightNames(prev => ({
+        ...prev,
+        [renameHighlightColor]: renameHighlightText.trim()
+      }));
+      
+      setShowRenameHighlight(false);
+      setRenameHighlightColor(null);
+      setRenameHighlightText('');
+    } catch (error) {
+      console.error('Error renaming highlight:', error);
+      Alert.alert('Error', 'Failed to rename highlight. Please try again.');
+    }
+  };
+
+  // Reset highlight name to default
+  const handleResetHighlightName = async (hexColor) => {
+    try {
+      hapticFeedback.light();
+      await VerseDataManager.removeHighlightName(hexColor);
+      
+      // Update local state
+      setCustomHighlightNames(prev => {
+        const updated = { ...prev };
+        delete updated[hexColor];
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error resetting highlight name:', error);
+    }
   };
 
   // PanResponders for interactive dismissal
@@ -3562,13 +3631,48 @@ const ProfileTab = () => {
                       shadowOpacity: 0.25,
                       shadowRadius: 6,
                       elevation: 5,
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      position: 'relative'
                     }}
                     onPress={() => {
                       hapticFeedback.medium();
                       loadVersesForColor(color);
                     }}
+                    onLongPress={() => {
+                      hapticFeedback.medium();
+                      setRenameHighlightColor(color);
+                      setRenameHighlightText(getColorName(color));
+                      setShowRenameHighlight(true);
+                    }}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
                   >
+                    {/* Edit Button */}
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setRenameHighlightColor(color);
+                        setRenameHighlightText(getColorName(color));
+                        setShowRenameHighlight(true);
+                      }}
+                      activeOpacity={0.7}
+                      delayPressIn={0}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialIcons name="edit" size={16} color={theme.text} />
+                    </TouchableOpacity>
+                    
                     <View style={{
                       width: 52,
                       height: 52,
@@ -3589,6 +3693,18 @@ const ProfileTab = () => {
                     }}>
                       {getColorName(color)}
                     </Text>
+                    {/* Show original color name if custom name is set */}
+                    {customHighlightNames[color] && (
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: '500',
+                        color: theme.textSecondary,
+                        marginBottom: 6,
+                        opacity: 0.7
+                      }}>
+                        ({getDefaultColorName(color)})
+                      </Text>
+                    )}
                     <View style={{
                       backgroundColor: `${theme.primary}20`,
                       paddingHorizontal: 13,
@@ -3892,6 +4008,173 @@ const ProfileTab = () => {
               </View>
             </BlurView>
         </View>
+      </Modal>
+
+      {/* Rename Highlight Modal */}
+      <Modal
+        visible={showRenameHighlight}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowRenameHighlight(false);
+          setRenameHighlightColor(null);
+          setRenameHighlightText('');
+        }}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 24
+            }}
+            activeOpacity={1}
+            onPress={() => {
+              setShowRenameHighlight(false);
+              setRenameHighlightColor(null);
+              setRenameHighlightText('');
+            }}
+          >
+            <TouchableOpacity 
+              activeOpacity={1}
+              style={{
+                backgroundColor: theme.card,
+                borderRadius: 24,
+                padding: 24,
+                width: '100%',
+                maxWidth: 340,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+                elevation: 10
+              }}
+            >
+              {/* Header */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 20
+              }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: renameHighlightColor || theme.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                  shadowColor: renameHighlightColor || theme.primary,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 6
+                }}>
+                  <MaterialIcons name="edit" size={22} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: theme.text
+                  }}>
+                    Rename Highlight
+                  </Text>
+                  <Text style={{
+                    fontSize: 13,
+                    color: theme.textSecondary,
+                    marginTop: 2
+                  }}>
+                    {getDefaultColorName(renameHighlightColor)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Input */}
+              <TextInput
+                value={renameHighlightText}
+                onChangeText={setRenameHighlightText}
+                placeholder="Enter custom name"
+                placeholderTextColor={theme.textTertiary}
+                style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                  borderRadius: 14,
+                  padding: 16,
+                  fontSize: 16,
+                  color: theme.text,
+                  borderWidth: 2,
+                  borderColor: renameHighlightColor || theme.primary,
+                  marginBottom: 20
+                }}
+                autoFocus={true}
+                selectTextOnFocus={true}
+              />
+
+              {/* Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {/* Reset to Default Button */}
+                {customHighlightNames[renameHighlightColor] && (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                      borderRadius: 14,
+                      padding: 14,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      handleResetHighlightName(renameHighlightColor);
+                      setShowRenameHighlight(false);
+                      setRenameHighlightColor(null);
+                      setRenameHighlightText('');
+                    }}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
+                  >
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: '600',
+                      color: theme.textSecondary
+                    }}>
+                      Reset
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Save Button */}
+                <TouchableOpacity
+                  style={{
+                    flex: customHighlightNames[renameHighlightColor] ? 1.5 : 1,
+                    backgroundColor: renameHighlightColor || theme.primary,
+                    borderRadius: 14,
+                    padding: 14,
+                    alignItems: 'center',
+                    shadowColor: renameHighlightColor || theme.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8
+                  }}
+                  onPress={handleRenameHighlight}
+                  activeOpacity={0.7}
+                  delayPressIn={0}
+                  disabled={!renameHighlightText.trim()}
+                >
+                  <Text style={{
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: '#fff'
+                  }}>
+                    Save Name
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Tasks Done Modal */}
