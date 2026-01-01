@@ -2409,26 +2409,17 @@ const ProfileTab = () => {
             {/* Content */}
             <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
             
-            <ScrollView 
-              style={styles.modalScrollView} 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshingSavedVerses}
-                  onRefresh={refreshSavedVerses}
-                  tintColor={theme.primary}
-                  colors={[theme.primary]}
-                />
-              }
-            >
-              {/* Search Bar */}
+            {/* Sticky Search Bar - Outside ScrollView */}
+            <View style={{
+              paddingHorizontal: 16,
+              paddingBottom: 12,
+              backgroundColor: theme.background
+            }}>
               <View style={{
                 backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
                 borderRadius: 16,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
-                marginBottom: 16,
                 flexDirection: 'row',
                 alignItems: 'center',
                 shadowColor: '#000',
@@ -2462,7 +2453,21 @@ const ProfileTab = () => {
                   </TouchableOpacity>
                 )}
               </View>
+            </View>
 
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshingSavedVerses}
+                  onRefresh={refreshSavedVerses}
+                  tintColor={theme.primary}
+                  colors={[theme.primary]}
+                />
+              }
+            >
               {/* Stats Row */}
               {savedVersesList.length > 0 && (
                 <View style={{
@@ -2644,16 +2649,30 @@ const ProfileTab = () => {
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}
-                          onPress={async () => {
+                          onPress={() => {
                             hapticFeedback.light();
-                            const newList = savedVersesList.filter(v => v.id !== verse.id);
-                            setSavedVersesList(newList);
-                            await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                            const stats = await AsyncStorage.getItem('userStats');
-                            const userStats = stats ? JSON.parse(stats) : {};
-                            userStats.savedVerses = newList.length;
-                            await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-                            setUserStats(userStats);
+                            Alert.alert(
+                              'Remove Saved Verse',
+                              `Are you sure you want to remove "${verse.reference}" from your saved verses?`,
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                  text: 'Remove',
+                                  style: 'destructive',
+                                  onPress: async () => {
+                                    hapticFeedback.medium();
+                                    const newList = savedVersesList.filter(v => v.id !== verse.id);
+                                    setSavedVersesList(newList);
+                                    await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
+                                    const stats = await AsyncStorage.getItem('userStats');
+                                    const userStats = stats ? JSON.parse(stats) : {};
+                                    userStats.savedVerses = newList.length;
+                                    await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+                                    setUserStats(userStats);
+                                  }
+                                }
+                              ]
+                            );
                           }}
                           activeOpacity={0.7}
                           delayPressIn={0}
