@@ -1791,7 +1791,6 @@ const styles = StyleSheet.create({
     bottom: 4,
     borderRadius: 18,
     opacity: 0.3,
-    filter: 'blur(8px)',
   },
   listCardBody: {
     flex: 1,
@@ -1942,7 +1941,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
     opacity: 0.25,
-    filter: 'blur(15px)',
   },
   factHeroTitlePremium: {
     fontSize: 28,
@@ -2068,7 +2066,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
   },
-});
   // Random Fact Modal Styles
   randomModalOverlay: {
     flex: 1,
