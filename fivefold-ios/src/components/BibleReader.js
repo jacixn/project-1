@@ -120,6 +120,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   // Range selection state for saving multiple verses
   const [rangeSelectionMode, setRangeSelectionMode] = useState(false);
   const [rangeStartVerse, setRangeStartVerse] = useState(null);
+  const [rangeEndVerseNum, setRangeEndVerseNum] = useState(null); // Track end verse number for +/- controls
   
   // Share card state
   const [showShareCard, setShowShareCard] = useState(false);
@@ -1325,10 +1326,118 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const startRangeSelection = () => {
     if (!selectedVerseForMenu) return;
     
+    const startNum = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
     setRangeStartVerse(selectedVerseForMenu);
+    setRangeEndVerseNum(startNum); // Start with just the one verse
     setRangeSelectionMode(true);
     closeVerseMenu();
     hapticFeedback.medium();
+  };
+  
+  // Add verse to range (plus button)
+  const extendRange = () => {
+    if (!rangeEndVerseNum || !verses.length) return;
+    const maxVerse = Math.max(...verses.map(v => parseInt(v.number || v.verse)));
+    if (rangeEndVerseNum < maxVerse) {
+      setRangeEndVerseNum(rangeEndVerseNum + 1);
+      hapticFeedback.light();
+    }
+  };
+  
+  // Remove verse from range (minus button)
+  const shrinkRange = () => {
+    if (!rangeEndVerseNum || !rangeStartVerse) return;
+    const startNum = parseInt(rangeStartVerse.number || rangeStartVerse.verse);
+    if (rangeEndVerseNum > startNum) {
+      setRangeEndVerseNum(rangeEndVerseNum - 1);
+      hapticFeedback.light();
+    }
+  };
+  
+  // Save the current range
+  const saveCurrentRange = async () => {
+    if (!rangeStartVerse || !rangeEndVerseNum || !currentBook || !currentChapter) return;
+    
+    const startNum = parseInt(rangeStartVerse.number || rangeStartVerse.verse);
+    const actualStart = Math.min(startNum, rangeEndVerseNum);
+    const actualEnd = Math.max(startNum, rangeEndVerseNum);
+    
+    // Get all verses in the range
+    const versesInRange = verses.filter(v => {
+      const num = parseInt(v.number || v.verse);
+      return num >= actualStart && num <= actualEnd;
+    }).sort((a, b) => parseInt(a.number || a.verse) - parseInt(b.number || b.verse));
+    
+    if (versesInRange.length === 0) {
+      cancelRangeSelection();
+      return;
+    }
+    
+    // Create combined reference and text
+    const rangeReference = actualStart === actualEnd 
+      ? `${currentBook.name} ${currentChapter.number}:${actualStart}`
+      : `${currentBook.name} ${currentChapter.number}:${actualStart}-${actualEnd}`;
+    
+    const combinedText = versesInRange
+      .map(v => (v.content || v.text || '').replace(/\s+/g, ' ').trim())
+      .join(' ');
+    
+    const rangeId = `${currentBook.id}_${currentChapter.number}_${actualStart}-${actualEnd}`;
+    
+    try {
+      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const currentSavedVerses = savedVersesData ? JSON.parse(savedVersesData) : [];
+      
+      // Check if already saved
+      const alreadySaved = currentSavedVerses.some(v => v.id === rangeId);
+      if (alreadySaved) {
+        hapticFeedback.light();
+        Alert.alert('Already Saved', 'This verse range is already in your saved verses');
+        cancelRangeSelection();
+        return;
+      }
+      
+      // Add new verse range
+      const newVerse = {
+        id: rangeId,
+        reference: rangeReference,
+        text: combinedText,
+        book: currentBook.name,
+        chapter: currentChapter.number,
+        verse: `${actualStart}-${actualEnd}`,
+        version: selectedBibleVersion,
+        timestamp: Date.now(),
+        isRange: true,
+        startVerse: actualStart,
+        endVerse: actualEnd
+      };
+      
+      currentSavedVerses.push(newVerse);
+      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
+      
+      // Update stats
+      const stats = await AsyncStorage.getItem('userStats');
+      const userStats = stats ? JSON.parse(stats) : {};
+      userStats.savedVerses = currentSavedVerses.length;
+      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      
+      // Mark all verses in the range as saved
+      const newSavedVersesSet = new Set([...savedVerses]);
+      for (let i = actualStart; i <= actualEnd; i++) {
+        const individualVerseId = `${currentBook.id}_${currentChapter.number}_${i}`;
+        newSavedVersesSet.add(individualVerseId);
+      }
+      newSavedVersesSet.add(rangeId);
+      setSavedVerses(newSavedVersesSet);
+      
+      console.log(`✅ Saved verse range: ${rangeReference}`);
+      hapticFeedback.success();
+      Alert.alert('Saved', `${rangeReference} saved successfully`);
+    } catch (error) {
+      console.error('Error saving verse range:', error);
+    }
+    
+    cancelRangeSelection();
   };
 
   // Complete range selection and save
@@ -1428,6 +1537,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const cancelRangeSelection = () => {
     setRangeSelectionMode(false);
     setRangeStartVerse(null);
+    setRangeEndVerseNum(null);
     hapticFeedback.light();
   };
 
@@ -2573,45 +2683,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
           directionalLockEnabled={true}
         >
       
-      {/* Range Selection Banner */}
-      {rangeSelectionMode && (
-        <View style={{
-          backgroundColor: theme.success,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          marginHorizontal: 16,
-          marginBottom: 16,
-          borderRadius: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          shadowColor: theme.success,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-        }}>
-          <MaterialIcons name="touch-app" size={22} color="#FFFFFF" />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
-              Selecting Range from Verse {rangeStartVerse?.number || rangeStartVerse?.verse}
-            </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2 }}>
-              Tap another verse to complete the selection
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={cancelRangeSelection}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.25)',
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 18
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       <View style={styles.youversionVersesContainer}>
         {verses.map((verse, index) => {
@@ -2622,18 +2693,20 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         const verseId = verse.id || `${currentBook?.id}_${currentChapter?.number}_${verseNumber}`;
         const highlightColor = highlightedVerses[verseId];
         
-        const isRangeStartVerse = rangeSelectionMode && rangeStartVerse && 
-          (rangeStartVerse.number || rangeStartVerse.verse) === (verse.number || verse.verse);
+        // Check if this verse is in the current range selection
+        const isInRangeSelection = rangeSelectionMode && rangeStartVerse && rangeEndVerseNum && (() => {
+          const startNum = parseInt(rangeStartVerse.number || rangeStartVerse.verse);
+          const actualStart = Math.min(startNum, rangeEndVerseNum);
+          const actualEnd = Math.max(startNum, rangeEndVerseNum);
+          return verseNumber >= actualStart && verseNumber <= actualEnd;
+        })();
         
         return (
                       <TouchableOpacity
             key={verse.id}
             activeOpacity={0.9}
                           onPress={() => {
-              // Handle verse tap
-              if (rangeSelectionMode) {
-                completeRangeSelection(verse);
-              }
+              // Handle verse tap - no action needed in range mode since we use +/- buttons
             }}
             onLongPress={() => handleVerseLongPress(verse)}
             delayLongPress={500}
@@ -2655,8 +2728,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   borderLeftColor: theme.primary,
                   paddingLeft: 12
                 },
-                isRangeStartVerse && {
-                  backgroundColor: `${theme.success}30`,
+                isInRangeSelection && {
+                  backgroundColor: `${theme.success}25`,
                   borderRadius: 8,
                   borderWidth: 2,
                   borderColor: theme.success,
@@ -2708,6 +2781,117 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       })}
     </View>
     </ScrollView>
+    
+      {/* Sticky Bottom Bar for Range Selection */}
+      {rangeSelectionMode && rangeStartVerse && rangeEndVerseNum && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: theme.success,
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 12,
+          elevation: 10,
+        }}>
+          {/* Range Info */}
+          <View style={{ alignItems: 'center', marginBottom: 14 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', opacity: 0.9 }}>
+              SAVING RANGE
+            </Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginTop: 4 }}>
+              {currentBook?.name} {currentChapter?.number}:{parseInt(rangeStartVerse.number || rangeStartVerse.verse)}-{rangeEndVerseNum}
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 }}>
+              {rangeEndVerseNum - parseInt(rangeStartVerse.number || rangeStartVerse.verse) + 1} verses selected
+            </Text>
+          </View>
+          
+          {/* Controls Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Cancel Button */}
+            <TouchableOpacity
+              onPress={cancelRangeSelection}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 22
+              }}
+              activeOpacity={0.7}
+              delayPressIn={0}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Cancel</Text>
+            </TouchableOpacity>
+            
+            {/* Plus/Minus Controls */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              {/* Minus Button */}
+              <TouchableOpacity
+                onPress={shrinkRange}
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: rangeEndVerseNum > parseInt(rangeStartVerse.number || rangeStartVerse.verse) 
+                    ? 'rgba(255,255,255,0.3)' 
+                    : 'rgba(255,255,255,0.1)',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                activeOpacity={0.7}
+                delayPressIn={0}
+                disabled={rangeEndVerseNum <= parseInt(rangeStartVerse.number || rangeStartVerse.verse)}
+              >
+                <MaterialIcons name="remove" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              {/* Plus Button */}
+              <TouchableOpacity
+                onPress={extendRange}
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: 'rgba(255,255,255,0.3)',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                activeOpacity={0.7}
+                delayPressIn={0}
+              >
+                <MaterialIcons name="add" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Save Button */}
+            <TouchableOpacity
+              onPress={saveCurrentRange}
+              style={{
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 22,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 4
+              }}
+              activeOpacity={0.7}
+              delayPressIn={0}
+            >
+              <Text style={{ color: theme.success, fontWeight: '800', fontSize: 15 }}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       </View>
     );
   };
