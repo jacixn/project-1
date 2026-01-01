@@ -524,10 +524,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         const rangeVerseIds = new Set(); // Track verses that are part of ranges
         
         versesArray.forEach(v => {
-          // Add the main ID
-          allSavedVerseIds.add(v.id);
-          
-          // If it's a range, also add all individual verse IDs to both sets
+          // If it's a range, add all individual verse IDs to both sets
           if (v.isRange && v.startVerse && v.endVerse) {
             // Extract book ID from the main ID (format: bookId_chapter_start-end)
             const idParts = v.id.split('_');
@@ -538,6 +535,31 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                 const individualId = `${bookId}_${chapter}_${i}`;
                 allSavedVerseIds.add(individualId);
                 rangeVerseIds.add(individualId); // Mark as range verse for purple heart
+              }
+            }
+          } else {
+            // For single verses, construct consistent ID if we have the data
+            if (v.bookId && v.chapter && v.verse) {
+              const consistentId = `${v.bookId}_${v.chapter}_${parseInt(v.verse)}`;
+              allSavedVerseIds.add(consistentId);
+            } else {
+              // Fallback: add the original ID and try to parse it
+              allSavedVerseIds.add(v.id);
+              // Also try to construct from chapter/verse if available
+              // This handles legacy data without bookId
+              if (v.chapter && v.verse && v.id) {
+                // Try extracting bookId from the stored id (format might be bookId_chapter_verse or bookId.chapter.verse)
+                const underscoreParts = v.id.split('_');
+                const dotParts = v.id.split('.');
+                if (underscoreParts.length >= 2) {
+                  const bookId = underscoreParts[0];
+                  const consistentId = `${bookId}_${v.chapter}_${parseInt(v.verse)}`;
+                  allSavedVerseIds.add(consistentId);
+                } else if (dotParts.length >= 2) {
+                  const bookId = dotParts[0];
+                  const consistentId = `${bookId}_${v.chapter}_${parseInt(v.verse)}`;
+                  allSavedVerseIds.add(consistentId);
+                }
               }
             }
           }
@@ -1305,8 +1327,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         reference: verseReference,
         text: verseText,
         book: currentBook?.name,
+        bookId: currentBook?.id, // Store bookId for consistent ID reconstruction
         chapter: currentChapter?.number,
-        verse: selectedVerseForMenu.number || selectedVerseForMenu.verse,
+        verse: verseNumber,
         version: selectedBibleVersion,
         timestamp: Date.now()
       };
