@@ -4,7 +4,7 @@
  * Data persists across devices and app reinstalls
  */
 
-import { CloudStorage, CloudStorageProvider, CloudStorageScope } from 'react-native-cloud-storage';
+import { CloudStorage, CloudStorageProvider, CloudStorageScope } from 'react-native-cloud-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
