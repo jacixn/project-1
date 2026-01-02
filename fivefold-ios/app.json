@@ -26,12 +26,24 @@
         ],
         "UIBackgroundModes": [
           "remote-notification",
-          "processing"
+          "processing",
+          "fetch"
         ],
         "UIStatusBarHidden": false,
         "UIViewControllerBasedStatusBarAppearance": false,
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "entitlements": {
+        "com.apple.developer.icloud-container-identifiers": [
+          "iCloud.com.jesusxoi.biblely"
+        ],
+        "com.apple.developer.icloud-services": [
+          "CloudKit",
+          "CloudDocuments"
+        ],
+        "com.apple.developer.ubiquity-kvstore-identifier": "$(TeamIdentifierPrefix)com.jesusxoi.biblely"
+      },
+      "usesIcloudStorage": true
     },
     "android": {
       "adaptiveIcon": {

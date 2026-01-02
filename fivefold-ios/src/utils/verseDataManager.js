@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import iCloudSyncService from '../services/iCloudSyncService';
 
 class VerseDataManager {
   static VERSE_DATA_KEY = 'verse_data';
@@ -61,6 +62,12 @@ class VerseDataManager {
         lastUpdated: new Date().toISOString()
       };
       await AsyncStorage.setItem(this.VERSE_DATA_KEY, JSON.stringify(allData));
+      
+      // Sync to iCloud
+      iCloudSyncService.syncToCloud(this.VERSE_DATA_KEY, allData).catch(err => {
+        console.warn('☁️ Background sync failed:', err.message);
+      });
+      
       return allData[verseId];
     } catch (error) {
       console.error('Error saving verse data:', error);
@@ -253,6 +260,11 @@ class VerseDataManager {
         
         await AsyncStorage.setItem(this.READING_STREAKS_KEY, JSON.stringify(streaks));
         
+        // Sync to iCloud
+        iCloudSyncService.syncToCloud(this.READING_STREAKS_KEY, streaks).catch(err => {
+          console.warn('☁️ Background sync failed:', err.message);
+        });
+        
         // Check for achievements
         await this.checkReadingAchievements(streaks);
       }
@@ -312,6 +324,12 @@ class VerseDataManager {
       if (newAchievements.length > 0) {
         const updatedAchievements = [...achievements, ...newAchievements];
         await AsyncStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(updatedAchievements));
+        
+        // Sync to iCloud
+        iCloudSyncService.syncToCloud(this.ACHIEVEMENTS_KEY, updatedAchievements).catch(err => {
+          console.warn('☁️ Background sync failed:', err.message);
+        });
+        
         console.log('🏆 New achievements unlocked:', newAchievements);
         return newAchievements;
       }
@@ -406,6 +424,11 @@ class VerseDataManager {
   static async saveJournalNotes(notes) {
     try {
       await AsyncStorage.setItem(this.JOURNAL_NOTES_KEY, JSON.stringify(notes || []));
+      
+      // Sync to iCloud
+      iCloudSyncService.syncToCloud(this.JOURNAL_NOTES_KEY, notes || []).catch(err => {
+        console.warn('☁️ Background sync failed:', err.message);
+      });
     } catch (error) {
       console.error('Error saving journal notes:', error);
     }
@@ -636,6 +659,12 @@ class VerseDataManager {
       const names = await this.getHighlightNames();
       names[hexColor] = customName;
       await AsyncStorage.setItem(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      
+      // Sync to iCloud
+      iCloudSyncService.syncToCloud(this.HIGHLIGHT_NAMES_KEY, names).catch(err => {
+        console.warn('☁️ Background sync failed:', err.message);
+      });
+      
       console.log(`🏷️ Custom highlight name set: ${hexColor} -> ${customName}`);
       return names;
     } catch (error) {

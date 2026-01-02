@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import iCloudSyncService from '../services/iCloudSyncService';
 
 class PrayerCompletionManager {
   static COMPLETION_KEY = 'prayer_completions';
@@ -48,6 +49,11 @@ class PrayerCompletionManager {
       const completions = await this.getCompletions();
       completions[prayerId] = completionData;
       await AsyncStorage.setItem(this.COMPLETION_KEY, JSON.stringify(completions));
+      
+      // Sync to iCloud
+      iCloudSyncService.syncToCloud(this.COMPLETION_KEY, completions).catch(err => {
+        console.warn('☁️ Background sync failed:', err.message);
+      });
 
       // Add points to total
       await this.addPoints(points);
@@ -77,6 +83,12 @@ class PrayerCompletionManager {
       const currentPoints = await this.getTotalPoints();
       const newTotal = currentPoints + points;
       await AsyncStorage.setItem(this.POINTS_KEY, newTotal.toString());
+      
+      // Sync to iCloud
+      iCloudSyncService.syncToCloud(this.POINTS_KEY, newTotal).catch(err => {
+        console.warn('☁️ Background sync failed:', err.message);
+      });
+      
       console.log(`💰 Points updated: ${currentPoints} + ${points} = ${newTotal}`);
       return newTotal;
     } catch (error) {

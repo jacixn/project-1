@@ -12,6 +12,7 @@ import OnboardingWrapper from './src/components/OnboardingWrapper';
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import iCloudSyncService from './src/services/iCloudSyncService';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
@@ -234,6 +235,10 @@ const ThemedApp = () => {
         // Initialize API security
         await initializeApiSecurity();
         console.log('API security initialized');
+
+        // Initialize iCloud sync
+        const iCloudAvailable = await iCloudSyncService.initialize();
+        console.log('☁️ iCloud sync initialized:', iCloudAvailable ? 'available' : 'not available');
 
         // Initialize notifications
         await notificationService.initialize();
