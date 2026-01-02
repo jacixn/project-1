@@ -10,6 +10,37 @@ import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
 
+// Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
+const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
+  if (!isLiquidGlassSupported) {
+    return (
+      <BlurView 
+        intensity={18} 
+        tint={isDark ? "dark" : "light"} 
+        style={[styles.container, { 
+          backgroundColor: isDark 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : `${theme.primary}15`
+        }]}
+      >
+        {children}
+      </BlurView>
+    );
+  }
+
+  return (
+    <LiquidGlassView
+      interactive={true}
+      effect="clear"
+      colorScheme="system"
+      tintColor="rgba(255, 255, 255, 0.08)"
+      style={styles.liquidGlassTodoCard}
+    >
+      {children}
+    </LiquidGlassView>
+  );
+};
+
 const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll }) => {
   const { theme, isDark } = useTheme();
   const [newTodo, setNewTodo] = useState('');
@@ -88,43 +119,12 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     return diffDays <= 7;
   });
 
-  // Liquid Glass Container for TodoList
-  const LiquidGlassTodoContainer = ({ children }) => {
-    if (!isLiquidGlassSupported) {
-      return (
-        <BlurView 
-          intensity={18} 
-          tint={isDark ? "dark" : "light"} 
-          style={[styles.container, { 
-            backgroundColor: isDark 
-              ? 'rgba(255, 255, 255, 0.05)' 
-              : `${theme.primary}15`
-          }]}
-        >
-          {children}
-        </BlurView>
-      );
-    }
-
-    return (
-      <LiquidGlassView
-        interactive={true}
-        effect="clear"
-        colorScheme="system"
-        tintColor="rgba(255, 255, 255, 0.08)"
-        style={styles.liquidGlassTodoCard}
-      >
-        {children}
-      </LiquidGlassView>
-    );
-  };
-
   // Count all active tasks (not just the filtered ones)
   const totalActiveTasks = todos.filter(t => !t.completed).length;
   const hiddenTasksCount = totalActiveTasks - activeTodos.length;
 
   return (
-    <LiquidGlassTodoContainer>
+    <LiquidGlassTodoContainer isDark={isDark} theme={theme}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Tasks</Text>
         {totalActiveTasks > 0 && (
