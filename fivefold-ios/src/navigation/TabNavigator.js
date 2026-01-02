@@ -36,7 +36,7 @@ const TabNavigator = () => {
       // Native iOS tab bar settings
       translucent={true}
       hapticFeedbackEnabled={true}
-      sidebarAdaptable={true}
+      sidebarAdaptable={false}
     >
       <Tab.Screen 
         name="BiblePrayer" 
