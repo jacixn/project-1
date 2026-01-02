@@ -136,8 +136,47 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [shareCardTextAlign, setShareCardTextAlign] = useState('center'); // Text alignment
   const [shareCardAspect, setShareCardAspect] = useState('portrait'); // Aspect ratio
   const [shareCardFont, setShareCardFont] = useState('georgia'); // Font style
+  const [shareCardFontSizeAdjust, setShareCardFontSizeAdjust] = useState(0); // Font size adjustment (-10 to +10)
   const [shareCardShowBranding, setShareCardShowBranding] = useState(true); // Show Biblely
   const [shareCardControlsTab, setShareCardControlsTab] = useState('bg'); // Active controls tab
+  const shareCardPrefsLoaded = useRef(false);
+
+  // Load saved share card preferences
+  useEffect(() => {
+    const loadShareCardPrefs = async () => {
+      try {
+        const prefs = await AsyncStorage.getItem('shareCardPreferences');
+        if (prefs) {
+          const parsed = JSON.parse(prefs);
+          if (parsed.activeBg !== undefined) setShareCardActiveBg(parsed.activeBg);
+          if (parsed.activeLayout) setShareCardActiveLayout(parsed.activeLayout);
+          if (parsed.textAlign) setShareCardTextAlign(parsed.textAlign);
+          if (parsed.aspect) setShareCardAspect(parsed.aspect);
+          if (parsed.font) setShareCardFont(parsed.font);
+          if (parsed.fontSizeAdjust !== undefined) setShareCardFontSizeAdjust(parsed.fontSizeAdjust);
+          if (parsed.showBranding !== undefined) setShareCardShowBranding(parsed.showBranding);
+        }
+        shareCardPrefsLoaded.current = true;
+      } catch (err) {
+        console.log('Failed to load share card prefs:', err);
+        shareCardPrefsLoaded.current = true;
+      }
+    };
+    loadShareCardPrefs();
+  }, []);
+
+  // Save share card preferences when they change
+  const saveShareCardPrefs = async (updates) => {
+    if (!shareCardPrefsLoaded.current) return;
+    try {
+      const current = await AsyncStorage.getItem('shareCardPreferences');
+      const parsed = current ? JSON.parse(current) : {};
+      const newPrefs = { ...parsed, ...updates };
+      await AsyncStorage.setItem('shareCardPreferences', JSON.stringify(newPrefs));
+    } catch (err) {
+      console.log('Failed to save share card prefs:', err);
+    }
+  };
 
   // Premium Background Presets - 200+ Options
   const bgPresets = [
@@ -1571,13 +1610,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     setShareCardEndVerseNumber(baseNumber);
     setShareCardText(defaultFull);
     
-    // Reset customization options to defaults
-    setShareCardActiveBg(0);
-    setShareCardActiveLayout('centered');
-    setShareCardTextAlign('center');
-    setShareCardAspect('portrait');
-    setShareCardFont('georgia');
-    setShareCardShowBranding(true);
+    // Only reset temporary state, keep user's saved preferences (bg, layout, font, etc.)
     setShareCardControlsTab('bg');
     
     // Close verse menu first
@@ -4856,11 +4889,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
 
             // Render card content based on layout
             const renderCardContent = () => {
+              const baseFontSize = shareCardActiveLayout === 'bold' ? sizing.fontSize + 6 : sizing.fontSize;
+              const adjustedFontSize = Math.max(10, Math.min(50, baseFontSize + shareCardFontSizeAdjust));
+              const adjustedLineHeight = Math.max(14, sizing.lineHeight + shareCardFontSizeAdjust);
+              
               const verseTextStyle = {
-                fontSize: shareCardActiveLayout === 'bold' ? sizing.fontSize + 6 : sizing.fontSize,
+                fontSize: adjustedFontSize,
                 fontWeight: shareCardActiveLayout === 'bold' ? '700' : '500',
                 color: textColor,
-                lineHeight: sizing.lineHeight,
+                lineHeight: adjustedLineHeight,
                 textAlign: shareCardTextAlign,
                 fontStyle: shareCardActiveLayout === 'bold' ? 'normal' : 'italic',
                 ...currentFont.style,
@@ -5076,7 +5113,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                                 {bgPresets.map((preset, idx) => (
                                   <TouchableOpacity
                                     key={idx}
-                                    onPress={() => setShareCardActiveBg(idx)}
+                                    onPress={() => {
+                                      setShareCardActiveBg(idx);
+                                      saveShareCardPrefs({ activeBg: idx });
+                                    }}
                                     style={{ marginRight: 10, alignItems: 'center' }}
                                   >
                                     <LinearGradient
@@ -5109,7 +5149,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                               {layoutPresets.map(layout => (
                                 <TouchableOpacity
                                   key={layout.id}
-                                  onPress={() => setShareCardActiveLayout(layout.id)}
+                                  onPress={() => {
+                                    setShareCardActiveLayout(layout.id);
+                                    saveShareCardPrefs({ activeLayout: layout.id });
+                                  }}
                                   style={{
                                     width: '31%',
                                     margin: '1%',
@@ -5131,7 +5174,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                             
                             {/* Branding Toggle */}
                             <TouchableOpacity
-                              onPress={() => setShareCardShowBranding(!shareCardShowBranding)}
+                              onPress={() => {
+                                const newVal = !shareCardShowBranding;
+                                setShareCardShowBranding(newVal);
+                                saveShareCardPrefs({ showBranding: newVal });
+                              }}
                               style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}
                             >
                               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '500' }}>Show Biblely Branding</Text>
@@ -5153,7 +5200,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                               {alignPresets.map(align => (
                                 <TouchableOpacity
                                   key={align.id}
-                                  onPress={() => setShareCardTextAlign(align.id)}
+                                  onPress={() => {
+                                    setShareCardTextAlign(align.id);
+                                    saveShareCardPrefs({ textAlign: align.id });
+                                  }}
                                   style={{
                                     flex: 1,
                                     paddingVertical: 12,
@@ -5174,27 +5224,65 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
                               Font Style
                             </Text>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                              {fontPresets.map(font => (
-                                <TouchableOpacity
-                                  key={font.id}
-                                  onPress={() => setShareCardFont(font.id)}
-                                  style={{
-                                    width: '48%',
-                                    margin: '1%',
-                                    paddingVertical: 14,
-                                    borderRadius: 12,
-                                    backgroundColor: shareCardFont === font.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
-                                    borderWidth: shareCardFont === font.id ? 1.5 : 1,
-                                    borderColor: shareCardFont === font.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: shareCardFont === font.id ? '600' : '400', ...font.style }}>
-                                    {font.name}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -8, marginBottom: 20 }}>
+                              <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
+                                {fontPresets.map(font => (
+                                  <TouchableOpacity
+                                    key={font.id}
+                                    onPress={() => {
+                                      setShareCardFont(font.id);
+                                      saveShareCardPrefs({ font: font.id });
+                                    }}
+                                    style={{
+                                      paddingVertical: 12,
+                                      paddingHorizontal: 16,
+                                      marginRight: 8,
+                                      borderRadius: 12,
+                                      backgroundColor: shareCardFont === font.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                      borderWidth: shareCardFont === font.id ? 1.5 : 1,
+                                      borderColor: shareCardFont === font.id ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                      alignItems: 'center',
+                                      minWidth: 80,
+                                    }}
+                                  >
+                                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: shareCardFont === font.id ? '600' : '400', ...font.style }} numberOfLines={1}>
+                                      {font.name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </ScrollView>
+
+                            {/* Font Size */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Font Size
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  const newSize = Math.max(-16, shareCardFontSizeAdjust - 2);
+                                  setShareCardFontSizeAdjust(newSize);
+                                  saveShareCardPrefs({ fontSizeAdjust: newSize });
+                                }}
+                                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                              >
+                                <MaterialIcons name="remove" size={24} color="#fff" />
+                              </TouchableOpacity>
+                              <View style={{ marginHorizontal: 20, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', minWidth: 100, alignItems: 'center' }}>
+                                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                                  {shareCardFontSizeAdjust >= 0 ? '+' : ''}{shareCardFontSizeAdjust}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  const newSize = Math.min(16, shareCardFontSizeAdjust + 2);
+                                  setShareCardFontSizeAdjust(newSize);
+                                  saveShareCardPrefs({ fontSizeAdjust: newSize });
+                                }}
+                                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                              >
+                                <MaterialIcons name="add" size={24} color="#fff" />
+                              </TouchableOpacity>
                             </View>
 
                             {/* Text Mode */}
@@ -5240,7 +5328,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                               {aspectPresets.map(aspect => (
                                 <TouchableOpacity
                                   key={aspect.id}
-                                  onPress={() => setShareCardAspect(aspect.id)}
+                                  onPress={() => {
+                                    setShareCardAspect(aspect.id);
+                                    saveShareCardPrefs({ aspect: aspect.id });
+                                  }}
                                   style={{
                                     flex: 1,
                                     paddingVertical: 14,
