@@ -162,6 +162,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
       }
       const remote = await fetchVersesFromRemote();
       setVersesData(remote);
+      setLoading(false);
       await loadDynamicVerses(remote);
     } catch {
       setError('Using offline data');

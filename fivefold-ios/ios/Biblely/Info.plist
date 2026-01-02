@@ -24,17 +24,11 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.9</string>
+    <string>1.0.19</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
     <array>
-      <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>biblely</string>
-        </array>
-      </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
@@ -49,7 +43,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>10</string>
+    <string>19</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
