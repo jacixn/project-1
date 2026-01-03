@@ -2886,7 +2886,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const renderBooks = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      contentContainerStyle={{ paddingTop: 100, paddingHorizontal: 20, paddingBottom: 40 }}
+      contentContainerStyle={{ 
+        paddingHorizontal: 20, 
+        paddingBottom: 40,
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingTop: 80,
+      }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
