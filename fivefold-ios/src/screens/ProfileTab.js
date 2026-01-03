@@ -3473,14 +3473,15 @@ const ProfileTab = () => {
               colors={isDark ? ['#1a1a1a', '#000000'] : ['#fdfbfb', '#ebedee']}
               style={StyleSheet.absoluteFill}
             />
-            {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 110 : 90 }}>
-            
-            {/* Journal List View */}
+            {/* Journal List View - ScrollView starts from top */}
             <ScrollView 
-              style={styles.modalScrollView} 
+              style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+              contentContainerStyle={{ 
+                paddingHorizontal: 20, 
+                paddingBottom: 120,
+                paddingTop: Platform.OS === 'ios' ? 130 : 100,
+              }}
               scrollEventThrottle={16}
             >
               {journalLoading ? (
@@ -3965,10 +3966,11 @@ const ProfileTab = () => {
                   </ScrollView>
                 </Animated.View>
               </KeyboardAvoidingView>
-            )}</View>
-            {/* Transparent Blurred Header */}
+            )}
+
+            {/* Premium Transparent Header */}
             <BlurView 
-              intensity={30} 
+              intensity={50} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -3976,64 +3978,54 @@ const ProfileTab = () => {
                 left: 0, 
                 right: 0, 
                 zIndex: 1000,
-                backgroundColor: 'transparent',
-                borderBottomLeftRadius: 30,
-                borderBottomRightRadius: 30,
-                overflow: 'hidden',
               }}
             >
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 35, backgroundColor: 'transparent' }} />
-              <View style={{ 
-                backgroundColor: 'transparent', 
-                borderBottomWidth: 0, 
-                paddingTop: 10, 
-                paddingBottom: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 24
-              }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    hapticFeedback.light();
-                    setShowJournal(false);
-                    setIsAddingEntry(false);
-                  }}
-                  style={{
-                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20
-                  }}
-                >
-                  <Text style={{ 
-                    fontSize: 15, 
-                    fontWeight: '700', 
-                    color: theme.primary 
-                  }}>
-                    Close
-                  </Text>
-                </TouchableOpacity>
-                
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <Text style={{ 
-                    fontSize: 22, 
-                    fontWeight: '900', 
-                    color: theme.text,
-                    letterSpacing: -0.5
-                  }}>
-                    Journal
-                  </Text>
-                  <View style={{ 
-                    width: 20, 
-                    height: 3, 
-                    backgroundColor: theme.primary, 
-                    borderRadius: 2,
-                    marginTop: 4
-                  }} />
+              <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                <View style={{ 
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      hapticFeedback.light();
+                      setShowJournal(false);
+                      setIsAddingEntry(false);
+                    }}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      paddingHorizontal: 18, 
+                      paddingVertical: 10,
+                      borderRadius: 22,
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      fontSize: 17, 
+                      fontWeight: '700',
+                      letterSpacing: 0.3,
+                    }}>
+                      Journal
+                    </Text>
+                    <View style={{ 
+                      width: 20, 
+                      height: 3, 
+                      backgroundColor: theme.primary, 
+                      borderRadius: 2,
+                      marginTop: 4
+                    }} />
+                  </View>
+                  
+                  <View style={{ width: 70 }} />
                 </View>
-
-                <View style={{ width: 70 }} />
               </View>
             </BlurView>
         </View>
@@ -4226,13 +4218,15 @@ const ProfileTab = () => {
           flex: 1,
           backgroundColor: theme.background
         }}>
-            {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
-            
+            {/* Content - ScrollView starts from top */}
             <ScrollView 
-              style={styles.modalScrollView} 
+              style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+              contentContainerStyle={{ 
+                paddingHorizontal: 16, 
+                paddingBottom: 40,
+                paddingTop: Platform.OS === 'ios' ? 120 : 100,
+              }}
             >
               {highlightedVerses.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -4734,11 +4728,10 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-            </View>
 
-            {/* Transparent Blurred Header */}
+            {/* Premium Transparent Header */}
             <BlurView 
-              intensity={20} 
+              intensity={50} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -4746,90 +4739,99 @@ const ProfileTab = () => {
                 left: 0, 
                 right: 0, 
                 zIndex: 1000,
-                backgroundColor: 'transparent',
-                borderBottomLeftRadius: 20,
-                borderBottomRightRadius: 20,
-                overflow: 'hidden',
               }}
             >
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-              <View style={{ 
-                backgroundColor: 'transparent', 
-                borderBottomWidth: 0, 
-                paddingTop: 8, 
-                paddingBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 20
-              }}>
-                {selectedHighlightColor ? (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedHighlightColor(null);
-                      setHighlightVersesWithText([]);
-                      hapticFeedback.light();
-                    }}
-                    style={{ 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                      paddingHorizontal: 16, 
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                    }}
-                  >
-                    <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Back</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowHighlights(false);
-                      setSelectedHighlightColor(null);
-                      setHighlightVersesWithText([]);
-                    }}
-                    style={{ 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                      paddingHorizontal: 16, 
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                    }}
-                  >
-                    <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
-                  </TouchableOpacity>
-                )}
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 18, 
-                  fontWeight: '600',
-                  flex: 1,
-                  textAlign: 'center'
+              <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                <View style={{ 
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                 }}>
-                  {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
-                </Text>
-                {/* View Toggle Button - only show on main list */}
-                {!selectedHighlightColor ? (
-                  <TouchableOpacity
-                    onPress={() => saveHighlightViewMode(highlightViewMode === 'compact' ? 'expanded' : 'compact')}
-                    style={{ 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                      paddingHorizontal: 12, 
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                    activeOpacity={0.7}
-                    delayPressIn={0}
-                  >
-                    <MaterialIcons 
-                      name={highlightViewMode === 'compact' ? 'view-agenda' : 'view-list'} 
-                      size={16} 
-                      color={theme.primary} 
-                    />
-                  </TouchableOpacity>
-                ) : (
-                <View style={{ width: 60 }} />
-                )}
+                  {selectedHighlightColor ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedHighlightColor(null);
+                        setHighlightVersesWithText([]);
+                        hapticFeedback.light();
+                      }}
+                      style={{ 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                        paddingHorizontal: 18, 
+                        paddingVertical: 10,
+                        borderRadius: 22,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Back</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowHighlights(false);
+                        setSelectedHighlightColor(null);
+                        setHighlightVersesWithText([]);
+                      }}
+                      style={{ 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                        paddingHorizontal: 18, 
+                        paddingVertical: 10,
+                        borderRadius: 22,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      fontSize: 17, 
+                      fontWeight: '700',
+                      letterSpacing: 0.3,
+                    }}>
+                      {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
+                    </Text>
+                    <Text style={{
+                      color: theme.textTertiary,
+                      fontSize: 12,
+                      fontWeight: '500',
+                      marginTop: 2,
+                    }}>
+                      {selectedHighlightColor 
+                        ? `${highlightVersesWithText.length} verses` 
+                        : `${Object.keys(groupHighlightsByColor()).length} categories`}
+                    </Text>
+                  </View>
+                  
+                  {!selectedHighlightColor ? (
+                    <TouchableOpacity
+                      onPress={() => saveHighlightViewMode(highlightViewMode === 'compact' ? 'expanded' : 'compact')}
+                      style={{ 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                        paddingHorizontal: 14, 
+                        paddingVertical: 10,
+                        borderRadius: 22,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons 
+                        name={highlightViewMode === 'compact' ? 'view-agenda' : 'view-list'} 
+                        size={18} 
+                        color={theme.primary} 
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ width: 70 }} />
+                  )}
+                </View>
               </View>
             </BlurView>
             
@@ -5016,13 +5018,15 @@ const ProfileTab = () => {
           flex: 1,
           backgroundColor: theme.background
         }}>
-            {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
-            
+            {/* Content - ScrollView starts from top, content has paddingTop */}
             <ScrollView 
-              style={styles.modalScrollView} 
+              style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              contentContainerStyle={{ 
+                paddingHorizontal: 16, 
+                paddingBottom: 120,
+                paddingTop: Platform.OS === 'ios' ? 120 : 100,
+              }}
             >
               {completedTodosList.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -5151,10 +5155,10 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-            
-            {/* Transparent Blurred Header */}
+
+            {/* Premium Transparent Header */}
             <BlurView 
-              intensity={20} 
+              intensity={50} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -5162,47 +5166,53 @@ const ProfileTab = () => {
                 left: 0, 
                 right: 0, 
                 zIndex: 1000,
-                backgroundColor: 'transparent',
-                borderBottomLeftRadius: 20,
-                borderBottomRightRadius: 20,
-                overflow: 'hidden',
               }}
             >
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-              <View style={{ 
-                backgroundColor: 'transparent', 
-                borderBottomWidth: 0, 
-                paddingTop: 8, 
-                paddingBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 20
-              }}>
-                <TouchableOpacity
-                  onPress={() => setShowTasksDone(false)}
-                  style={{ 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    paddingHorizontal: 16, 
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                  }}
-                >
-                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
-                </TouchableOpacity>
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 18, 
-                  fontWeight: '600',
-                  flex: 1,
-                  textAlign: 'center'
+              <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                <View style={{ 
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                 }}>
-                  Tasks Done
-                </Text>
-                <View style={{ width: 60 }} />
+                  <TouchableOpacity
+                    onPress={() => setShowTasksDone(false)}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      paddingHorizontal: 18, 
+                      paddingVertical: 10,
+                      borderRadius: 22,
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      fontSize: 17, 
+                      fontWeight: '700',
+                      letterSpacing: 0.3,
+                    }}>
+                      Tasks Done
+                    </Text>
+                    <Text style={{
+                      color: theme.textTertiary,
+                      fontSize: 12,
+                      fontWeight: '500',
+                      marginTop: 2,
+                    }}>
+                      {completedTodosList.length} {completedTodosList.length === 1 ? 'task' : 'tasks'}
+                    </Text>
+                  </View>
+                  
+                  <View style={{ width: 70 }} />
+                </View>
               </View>
             </BlurView>
-            </View>
         </View>
       </Modal>
 

@@ -380,7 +380,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
 
   return (
     <Modal visible={visible} animationType="none" transparent>
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <LinearGradient
           colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
           style={StyleSheet.absoluteFill}
@@ -390,45 +390,121 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }]
         }]}>
-          {/* Header */}
-          <BlurView intensity={Platform.OS === 'ios' ? 20 : 100} tint={isDark ? 'dark' : 'light'} style={styles.headerContainer}>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                <View style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderRadius: 20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
-                  <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-                </View>
-              </TouchableOpacity>
-              <View style={styles.headerCenter}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Achievements</Text>
-                <View style={{ width: 30, height: 4, backgroundColor: theme.primary, borderRadius: 2, marginTop: 4 }} />
-              </View>
-              <View style={styles.headerRight} />
-            </View>
-
-            {/* Search */}
-            <View style={styles.searchContainer}>
-              <View style={[styles.searchBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-                <TextInput
-                  style={[styles.searchInput, { color: theme.text }]}
-                  placeholder="Search milestones..."
-                  placeholderTextColor={theme.textTertiary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-              </View>
-            </View>
-          </BlurView>
-
+          {/* Content - FlatList starts from top */}
           <FlatList
             data={filteredAchievements}
             renderItem={renderAchievement}
             keyExtractor={item => item.id}
             numColumns={2}
-            contentContainerStyle={styles.achievementsContainer}
+            contentContainerStyle={{
+              padding: 16,
+              paddingTop: Platform.OS === 'ios' ? 170 : 140,
+              paddingBottom: 100,
+            }}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
           />
+
+          {/* Premium Transparent Header */}
+          <BlurView 
+            intensity={50} 
+            tint={isDark ? 'dark' : 'light'} 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              zIndex: 1000,
+            }}
+          >
+            <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              <View style={{ 
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+              }}>
+                <TouchableOpacity 
+                  onPress={onClose} 
+                  style={{ 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    paddingHorizontal: 18, 
+                    paddingVertical: 10,
+                    borderRadius: 22,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                </TouchableOpacity>
+                
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ 
+                    color: theme.text, 
+                    fontSize: 17, 
+                    fontWeight: '700',
+                    letterSpacing: 0.3,
+                  }}>
+                    Achievements
+                  </Text>
+                  <View style={{ 
+                    width: 30, 
+                    height: 3, 
+                    backgroundColor: theme.primary, 
+                    borderRadius: 2,
+                    marginTop: 4
+                  }} />
+                </View>
+                
+                <View style={{ width: 70 }} />
+              </View>
+              
+              {/* Search bar in header */}
+              <View style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                borderRadius: 14,
+                paddingHorizontal: 14,
+                paddingVertical: 11,
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              }}>
+                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginLeft: 10,
+                    paddingVertical: 2,
+                  }}
+                  placeholder="Search milestones..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MaterialIcons name="close" size={14} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </BlurView>
         </Animated.View>
       </View>
     </Modal>
