@@ -2792,7 +2792,7 @@ const ProfileTab = () => {
 
             {/* Premium Transparent Header */}
             <BlurView 
-              intensity={80} 
+              intensity={50} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -2802,16 +2802,6 @@ const ProfileTab = () => {
                 zIndex: 1000,
               }}
             >
-              {/* Subtle gradient overlay for depth */}
-              <View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)',
-              }} />
-              
               {/* Safe area spacer */}
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               
