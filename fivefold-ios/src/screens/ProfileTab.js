@@ -297,6 +297,30 @@ const ProfileTab = () => {
   const journalFadeAnim = useRef(new Animated.Value(0)).current;
   const highlightsFadeAnim = useRef(new Animated.Value(0)).current;
   
+  // Collapsible search bar animation for Saved Verses
+  const savedVersesSearchHeight = useRef(new Animated.Value(1)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('up');
+  
+  const handleSavedVersesScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
+    
+    // Only animate if direction changed and scrolled enough
+    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
+      scrollDirection.current = direction;
+      
+      Animated.spring(savedVersesSearchHeight, {
+        toValue: direction === 'down' ? 0 : 1,
+        useNativeDriver: false,
+        tension: 100,
+        friction: 12,
+      }).start();
+    }
+    
+    lastScrollY.current = currentScrollY;
+  };
+  
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
 
@@ -1677,6 +1701,10 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
+            // Reset search bar animation
+            savedVersesSearchHeight.setValue(1);
+            lastScrollY.current = 0;
+            scrollDirection.current = 'up';
             setShowSavedVerses(true);
             loadSavedVersesQuick(); // Quick load from storage - no API calls to prevent crash
           }}
@@ -2491,6 +2519,8 @@ const ProfileTab = () => {
                 paddingBottom: 40,
                 paddingTop: Platform.OS === 'ios' ? 170 : 140,
               }}
+              onScroll={handleSavedVersesScroll}
+              scrollEventThrottle={16}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingSavedVerses}
@@ -2884,48 +2914,61 @@ const ProfileTab = () => {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Search bar in header */}
-                <View style={{
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                  borderRadius: 14,
-                  paddingHorizontal: 14,
-                  paddingVertical: 11,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                {/* Collapsible Search bar */}
+                <Animated.View style={{
+                  height: savedVersesSearchHeight.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 48],
+                  }),
+                  opacity: savedVersesSearchHeight,
+                  marginTop: savedVersesSearchHeight.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 16],
+                  }),
+                  overflow: 'hidden',
                 }}>
-                  <MaterialIcons name="search" size={20} color={theme.textTertiary} />
-                  <TextInput
-                    value={savedVersesSearch}
-                    onChangeText={setSavedVersesSearch}
-                    placeholder="Search verses or references..."
-                    placeholderTextColor={theme.textTertiary}
-                    style={{
-                      flex: 1,
-                      fontSize: 15,
-                      color: theme.text,
-                      marginLeft: 10,
-                      paddingVertical: 2,
-                    }}
-                  />
-                  {savedVersesSearch.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSavedVersesSearch('')}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  <View style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  }}>
+                    <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                    <TextInput
+                      value={savedVersesSearch}
+                      onChangeText={setSavedVersesSearch}
+                      placeholder="Search verses or references..."
+                      placeholderTextColor={theme.textTertiary}
                       style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        flex: 1,
+                        fontSize: 15,
+                        color: theme.text,
+                        marginLeft: 10,
+                        paddingVertical: 2,
                       }}
-                    >
-                      <MaterialIcons name="close" size={14} color={theme.text} />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                    />
+                    {savedVersesSearch.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => setSavedVersesSearch('')}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <MaterialIcons name="close" size={14} color={theme.text} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </Animated.View>
               </View>
             </BlurView>
         </View>
