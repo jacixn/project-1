@@ -2514,7 +2514,7 @@ const ProfileTab = () => {
               style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
-                paddingHorizontal: 16, 
+              paddingHorizontal: 16,
                 paddingBottom: 40,
               }}
               onScroll={handleSavedVersesScroll}
@@ -2848,39 +2848,39 @@ const ProfileTab = () => {
               }}>
                 {/* Top row with buttons */}
                 <View style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
                   {/* Close button */}
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowSavedVerses(false);
-                      setSavedVersesSearch('');
-                    }}
-                    style={{ 
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowSavedVerses(false);
+                    setSavedVersesSearch('');
+                  }}
+                  style={{ 
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                       paddingHorizontal: 18, 
                       paddingVertical: 10,
                       borderRadius: 22,
                       borderWidth: 1,
                       borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    }}
-                    activeOpacity={0.7}
-                  >
+                  }}
+                  activeOpacity={0.7}
+                >
                     <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
-                  </TouchableOpacity>
+                </TouchableOpacity>
                   
                   {/* Title */}
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ 
-                      color: theme.text, 
+                <Text style={{ 
+                  color: theme.text, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
-                    }}>
-                      Saved Verses
-                    </Text>
+                }}>
+                  Saved Verses
+                </Text>
                     <Text style={{
                       color: theme.textTertiary,
                       fontSize: 12,
@@ -2892,12 +2892,12 @@ const ProfileTab = () => {
                   </View>
                   
                   {/* Sort button */}
-                  <TouchableOpacity
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
-                    }}
-                    style={{ 
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
+                  }}
+                  style={{ 
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                       paddingHorizontal: 14, 
                       paddingVertical: 10,
@@ -2907,8 +2907,8 @@ const ProfileTab = () => {
                       gap: 6,
                       borderWidth: 1,
                       borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    }}
-                    activeOpacity={0.7}
+                  }}
+                  activeOpacity={0.7}
                   >
                     <MaterialIcons 
                       name={savedVersesSort === 'desc' ? 'arrow-downward' : 'arrow-upward'} 
@@ -2917,8 +2917,8 @@ const ProfileTab = () => {
                     />
                     <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>
                       {savedVersesSort === 'desc' ? 'New' : 'Old'}
-                    </Text>
-                  </TouchableOpacity>
+                  </Text>
+                </TouchableOpacity>
                 </View>
                 
                 {/* Collapsible Search bar */}
@@ -3034,7 +3034,7 @@ const ProfileTab = () => {
               overflow: 'hidden',
             }}>
               {/* Theme */}
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -3043,13 +3043,13 @@ const ProfileTab = () => {
                   borderBottomWidth: 1,
                   borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowSettingsModal(false);
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
                   setTimeout(() => setShowThemeModal(true), 300);
-                }}
-                activeOpacity={0.7}
-              >
+              }}
+              activeOpacity={0.7}
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3059,18 +3059,18 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="palette" size={20} color={theme.primary} />
-                  </View>
+                <MaterialIcons name="palette" size={20} color={theme.primary} />
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Theme</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
                     {isBlushTheme ? 'Blush' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : 'Default'}
-                  </Text>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-                </View>
-              </TouchableOpacity>
-
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+            
               {/* Liquid Glass Toggle */}
               {isLiquidGlassSupportedByDevice && (
                 <View style={{
@@ -3121,7 +3121,7 @@ const ProfileTab = () => {
               overflow: 'hidden',
             }}>
               {/* Bible Version */}
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -3130,13 +3130,13 @@ const ProfileTab = () => {
                   borderBottomWidth: 1,
                   borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowSettingsModal(false);
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
                   setTimeout(() => setShowBibleVersionModal(true), 300);
-                }}
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3146,20 +3146,20 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="menu-book" size={20} color={theme.primary} />
-                  </View>
+                <MaterialIcons name="menu-book" size={20} color={theme.primary} />
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Bible Version</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    {getVersionById(selectedBibleVersion).abbreviation}
-                  </Text>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-                </View>
-              </TouchableOpacity>
-
+                  {getVersionById(selectedBibleVersion).abbreviation}
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+            
               {/* Language */}
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -3168,13 +3168,13 @@ const ProfileTab = () => {
                   borderBottomWidth: 1,
                   borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowSettingsModal(false);
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
                   setTimeout(() => setShowLanguageModal(true), 300);
-                }}
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3184,34 +3184,34 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="language" size={20} color={theme.primary} />
-                  </View>
+                <MaterialIcons name="language" size={20} color={theme.primary} />
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Language</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
-                  </Text>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-                </View>
-              </TouchableOpacity>
-
+                  {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+            
               {/* Audio Voice */}
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: 16,
                 }}
-                onPress={async () => {
-                  hapticFeedback.buttonPress();
-                  const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
-                  setAudioVoiceGender(newGender);
-                  await bibleAudioService.setVoiceGender(newGender);
-                }}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
+                setAudioVoiceGender(newGender);
+                await bibleAudioService.setVoiceGender(newGender);
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3221,17 +3221,17 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
-                  </View>
+                <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Audio Voice</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    {audioVoiceGender === 'female' ? 'Female' : 'Male'}
-                  </Text>
+                  {audioVoiceGender === 'female' ? 'Female' : 'Male'}
+                </Text>
                   <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
-                </View>
-              </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
             </View>
 
             {/* PREFERENCES SECTION */}
@@ -3253,7 +3253,7 @@ const ProfileTab = () => {
               overflow: 'hidden',
             }}>
               {/* Weight Unit */}
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -3262,20 +3262,20 @@ const ProfileTab = () => {
                   borderBottomWidth: 1,
                   borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
-                onPress={async () => {
-                  hapticFeedback.buttonPress();
-                  const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
-                  setWeightUnit(newUnit);
-                  await AsyncStorage.setItem('weightUnit', newUnit);
-                  const storedProfile = await AsyncStorage.getItem('userProfile');
-                  if (storedProfile) {
-                    const profile = JSON.parse(storedProfile);
-                    profile.weightUnit = newUnit;
-                    await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-                  }
-                }}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
+                setWeightUnit(newUnit);
+                await AsyncStorage.setItem('weightUnit', newUnit);
+                const storedProfile = await AsyncStorage.getItem('userProfile');
+                if (storedProfile) {
+                  const profile = JSON.parse(storedProfile);
+                  profile.weightUnit = newUnit;
+                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                }
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3285,17 +3285,17 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
-                  </View>
+                <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Weight Unit</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    {weightUnit.toUpperCase()}
-                  </Text>
+                  {weightUnit.toUpperCase()}
+                </Text>
                   <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
-                </View>
-              </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
 
               {/* Haptic Feedback */}
               <View style={{
@@ -3318,14 +3318,14 @@ const ProfileTab = () => {
                     <MaterialIcons name="vibration" size={20} color={theme.primary} />
                   </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Haptics</Text>
-                </View>
-                <Switch
-                  value={vibrationEnabled}
-                  onValueChange={handleVibrationToggle}
+              </View>
+              <Switch
+                value={vibrationEnabled}
+                onValueChange={handleVibrationToggle}
                   trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
                   thumbColor="#fff"
-                />
-              </View>
+              />
+            </View>
 
               {/* Verse Popup */}
               <TouchableOpacity 
@@ -3364,27 +3364,27 @@ const ProfileTab = () => {
                     justifyContent: 'center',
                   }}>
                     <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Daily Verse Popup</Text>
                 </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Daily Verse Popup</Text>
+              </View>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </TouchableOpacity>
-
-              {/* Notifications */}
-              <TouchableOpacity 
+            
+            {/* Notifications */}
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: 16,
                 }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowNotificationSettings(true);
-                  setShowSettingsModal(false);
-                }}
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowNotificationSettings(true);
+                setShowSettingsModal(false);
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3397,11 +3397,11 @@ const ProfileTab = () => {
                     <MaterialIcons name="notifications-none" size={20} color={theme.primary} />
                   </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Notifications</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </TouchableOpacity>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+            </TouchableOpacity>
             </View>
-
+            
             {/* DANGER ZONE */}
             <Text style={{
               fontSize: 12,
@@ -3423,45 +3423,45 @@ const ProfileTab = () => {
               borderWidth: 1,
               borderColor: 'rgba(255, 59, 48, 0.2)',
             }}>
-              <TouchableOpacity 
+            <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: 16,
                 }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowSettingsModal(false);
-                  setTimeout(() => {
-                    Alert.alert(
-                      'Delete Account',
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => {
+                  Alert.alert(
+                    'Delete Account',
                       'This will permanently delete your account and all your data. This action cannot be undone.',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { 
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
                           text: 'Delete', 
-                          style: 'destructive',
-                          onPress: async () => {
-                            try {
-                              hapticFeedback.buttonPress();
-                              const { deleteAccountCompletely } = await import('../utils/onboardingReset');
-                              const success = await deleteAccountCompletely();
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            hapticFeedback.buttonPress();
+                            const { deleteAccountCompletely } = await import('../utils/onboardingReset');
+                            const success = await deleteAccountCompletely();
                               if (!success) {
                                 Alert.alert('Error', 'Failed to delete account.');
-                              }
-                            } catch (error) {
-                              console.error('Delete account error:', error);
-                              Alert.alert('Error', 'Failed to delete account.');
                             }
+                          } catch (error) {
+                            console.error('Delete account error:', error);
+                              Alert.alert('Error', 'Failed to delete account.');
                           }
                         }
-                      ]
-                    );
-                  }, 300);
-                }}
+                      }
+                    ]
+                  );
+                }, 300);
+              }}
                 activeOpacity={0.7}
-              >
+            >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
@@ -3472,11 +3472,11 @@ const ProfileTab = () => {
                     justifyContent: 'center',
                   }}>
                     <MaterialIcons name="delete-outline" size={20} color="#FF3B30" />
-                  </View>
+              </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF3B30' }}>Delete Account</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={20} color="#FF3B30" />
-              </TouchableOpacity>
+            </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
@@ -4029,49 +4029,49 @@ const ProfileTab = () => {
             >
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                <View style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setShowJournal(false);
-                      setIsAddingEntry(false);
-                    }}
-                    style={{ 
+              <View style={{ 
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setShowJournal(false);
+                    setIsAddingEntry(false);
+                  }}
+                  style={{
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                       paddingHorizontal: 18, 
                       paddingVertical: 10,
                       borderRadius: 22,
                       borderWidth: 1,
                       borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    }}
+                  }}
                     activeOpacity={0.7}
-                  >
+                >
                     <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
-                  </TouchableOpacity>
-                  
+                </TouchableOpacity>
+                
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ 
-                      color: theme.text, 
+                  <Text style={{ 
+                    color: theme.text,
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
-                    }}>
-                      Journal
-                    </Text>
-                    <View style={{ 
-                      width: 20, 
-                      height: 3, 
-                      backgroundColor: theme.primary, 
-                      borderRadius: 2,
-                      marginTop: 4
-                    }} />
-                  </View>
-                  
-                  <View style={{ width: 70 }} />
+                  }}>
+                    Journal
+                  </Text>
+                  <View style={{ 
+                    width: 20, 
+                    height: 3, 
+                    backgroundColor: theme.primary, 
+                    borderRadius: 2,
+                    marginTop: 4
+                  }} />
+                </View>
+
+                <View style={{ width: 70 }} />
                 </View>
               </View>
             </BlurView>
@@ -4790,60 +4790,60 @@ const ProfileTab = () => {
             >
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                <View style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  {selectedHighlightColor ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedHighlightColor(null);
-                        setHighlightVersesWithText([]);
-                        hapticFeedback.light();
-                      }}
-                      style={{ 
+              <View style={{ 
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                {selectedHighlightColor ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedHighlightColor(null);
+                      setHighlightVersesWithText([]);
+                      hapticFeedback.light();
+                    }}
+                    style={{ 
                         backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                         paddingHorizontal: 18, 
                         paddingVertical: 10,
                         borderRadius: 22,
                         borderWidth: 1,
                         borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                      }}
+                    }}
                       activeOpacity={0.7}
-                    >
+                  >
                       <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Back</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowHighlights(false);
-                        setSelectedHighlightColor(null);
-                        setHighlightVersesWithText([]);
-                      }}
-                      style={{ 
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowHighlights(false);
+                      setSelectedHighlightColor(null);
+                      setHighlightVersesWithText([]);
+                    }}
+                    style={{ 
                         backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                         paddingHorizontal: 18, 
                         paddingVertical: 10,
                         borderRadius: 22,
                         borderWidth: 1,
                         borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                      }}
+                    }}
                       activeOpacity={0.7}
-                    >
+                  >
                       <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
-                    </TouchableOpacity>
-                  )}
+                  </TouchableOpacity>
+                )}
                   
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ 
-                      color: theme.text, 
+                <Text style={{ 
+                  color: theme.text, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
-                    }}>
-                      {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
-                    </Text>
+                }}>
+                  {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
+                </Text>
                     <Text style={{
                       color: theme.textTertiary,
                       fontSize: 12,
@@ -4856,36 +4856,36 @@ const ProfileTab = () => {
                     </Text>
                   </View>
                   
-                  {!selectedHighlightColor ? (
-                    <TouchableOpacity
-                      onPress={() => saveHighlightViewMode(highlightViewMode === 'compact' ? 'expanded' : 'compact')}
-                      style={{ 
+                {!selectedHighlightColor ? (
+                  <TouchableOpacity
+                    onPress={() => saveHighlightViewMode(highlightViewMode === 'compact' ? 'expanded' : 'compact')}
+                    style={{ 
                         backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                         paddingHorizontal: 14, 
                         paddingVertical: 10,
                         borderRadius: 22,
                         borderWidth: 1,
                         borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <MaterialIcons 
-                        name={highlightViewMode === 'compact' ? 'view-agenda' : 'view-list'} 
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons 
+                      name={highlightViewMode === 'compact' ? 'view-agenda' : 'view-list'} 
                         size={18} 
-                        color={theme.primary} 
-                      />
-                    </TouchableOpacity>
-                  ) : (
+                      color={theme.primary} 
+                    />
+                  </TouchableOpacity>
+                ) : (
                     <View style={{ width: 70 }} />
-                  )}
-                </View>
+                )}
               </View>
+        </View>
             </BlurView>
-            
+
             {/* Rename Highlight Overlay - Inside Highlights Modal */}
             {showRenameHighlight && (
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -4894,162 +4894,162 @@ const ProfileTab = () => {
                   bottom: 0,
                   zIndex: 1000
                 }}
-              >
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 24
+            }}
+            activeOpacity={1}
+            onPress={() => {
+              setShowRenameHighlight(false);
+              setRenameHighlightColor(null);
+              setRenameHighlightText('');
+            }}
+          >
+            <TouchableOpacity 
+              activeOpacity={1}
+              style={{
+                backgroundColor: theme.card,
+                borderRadius: 24,
+                padding: 24,
+                width: '100%',
+                maxWidth: 340,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+                elevation: 10
+              }}
+            >
+              {/* Header */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 20
+              }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: renameHighlightColor || theme.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                  shadowColor: renameHighlightColor || theme.primary,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 6
+                }}>
+                  <MaterialIcons name="edit" size={22} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: theme.text
+                  }}>
+                    Rename Highlight
+                  </Text>
+                  <Text style={{
+                    fontSize: 13,
+                    color: theme.textSecondary,
+                    marginTop: 2
+                  }}>
+                    {getDefaultColorName(renameHighlightColor)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Input */}
+              <TextInput
+                value={renameHighlightText}
+                onChangeText={setRenameHighlightText}
+                placeholder="Enter custom name"
+                placeholderTextColor={theme.textTertiary}
+                style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                  borderRadius: 14,
+                  padding: 16,
+                  fontSize: 16,
+                  color: theme.text,
+                  borderWidth: 2,
+                  borderColor: renameHighlightColor || theme.primary,
+                  marginBottom: 20
+                }}
+                autoFocus={true}
+                selectTextOnFocus={true}
+              />
+
+              {/* Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {/* Reset to Default Button */}
+                {customHighlightNames[renameHighlightColor] && (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                      borderRadius: 14,
+                      padding: 14,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      handleResetHighlightName(renameHighlightColor);
+                      setShowRenameHighlight(false);
+                      setRenameHighlightColor(null);
+                      setRenameHighlightText('');
+                    }}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
+                  >
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: '600',
+                      color: theme.textSecondary
+                    }}>
+                      Reset
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Save Button */}
                 <TouchableOpacity
                   style={{
-                    flex: 1,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    justifyContent: 'center',
+                    flex: customHighlightNames[renameHighlightColor] ? 1.5 : 1,
+                    backgroundColor: renameHighlightColor || theme.primary,
+                    borderRadius: 14,
+                    padding: 14,
                     alignItems: 'center',
-                    padding: 24
+                    shadowColor: renameHighlightColor || theme.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8
                   }}
-                  activeOpacity={1}
-                  onPress={() => {
-                    setShowRenameHighlight(false);
-                    setRenameHighlightColor(null);
-                    setRenameHighlightText('');
-                  }}
-                >
-                  <TouchableOpacity 
-                    activeOpacity={1}
-                    style={{
-                      backgroundColor: theme.card,
-                      borderRadius: 24,
-                      padding: 24,
-                      width: '100%',
-                      maxWidth: 340,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 10 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 20,
-                      elevation: 10
-                    }}
-                  >
-                    {/* Header */}
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: 20
-                    }}>
-                      <View style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: renameHighlightColor || theme.primary,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 14,
-                        shadowColor: renameHighlightColor || theme.primary,
-                        shadowOffset: { width: 0, height: 3 },
-                        shadowOpacity: 0.4,
-                        shadowRadius: 6
-                      }}>
-                        <MaterialIcons name="edit" size={22} color="#fff" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{
-                          fontSize: 18,
-                          fontWeight: '700',
-                          color: theme.text
-                        }}>
-                          Rename Highlight
-                        </Text>
-                        <Text style={{
-                          fontSize: 13,
-                          color: theme.textSecondary,
-                          marginTop: 2
-                        }}>
-                          {getDefaultColorName(renameHighlightColor)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Input */}
-                    <TextInput
-                      value={renameHighlightText}
-                      onChangeText={setRenameHighlightText}
-                      placeholder="Enter custom name"
-                      placeholderTextColor={theme.textTertiary}
-                      style={{
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                        borderRadius: 14,
-                        padding: 16,
-                        fontSize: 16,
-                        color: theme.text,
-                        borderWidth: 2,
-                        borderColor: renameHighlightColor || theme.primary,
-                        marginBottom: 20
-                      }}
-                      autoFocus={true}
-                      selectTextOnFocus={true}
-                    />
-
-                    {/* Buttons */}
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                      {/* Reset to Default Button */}
-                      {customHighlightNames[renameHighlightColor] && (
-                        <TouchableOpacity
-                          style={{
-                            flex: 1,
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-                            borderRadius: 14,
-                            padding: 14,
-                            alignItems: 'center'
-                          }}
-                          onPress={() => {
-                            handleResetHighlightName(renameHighlightColor);
-                            setShowRenameHighlight(false);
-                            setRenameHighlightColor(null);
-                            setRenameHighlightText('');
-                          }}
-                          activeOpacity={0.7}
-                          delayPressIn={0}
-                        >
-                          <Text style={{
-                            fontSize: 15,
-                            fontWeight: '600',
-                            color: theme.textSecondary
-                          }}>
-                            Reset
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-
-                      {/* Save Button */}
-                      <TouchableOpacity
-                        style={{
-                          flex: customHighlightNames[renameHighlightColor] ? 1.5 : 1,
-                          backgroundColor: renameHighlightColor || theme.primary,
-                          borderRadius: 14,
-                          padding: 14,
-                          alignItems: 'center',
-                          shadowColor: renameHighlightColor || theme.primary,
-                          shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.3,
-                          shadowRadius: 8
-                        }}
                         onPress={() => {
                           handleRenameHighlight();
                           setShowRenameHighlight(false);
                           setRenameHighlightColor(null);
                           setRenameHighlightText('');
                         }}
-                        activeOpacity={0.7}
-                        delayPressIn={0}
-                        disabled={!renameHighlightText.trim()}
-                      >
-                        <Text style={{
-                          fontSize: 15,
-                          fontWeight: '700',
-                          color: '#fff'
-                        }}>
-                          Save Name
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
+                  activeOpacity={0.7}
+                  delayPressIn={0}
+                  disabled={!renameHighlightText.trim()}
+                >
+                  <Text style={{
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: '#fff'
+                  }}>
+                    Save Name
+                  </Text>
                 </TouchableOpacity>
-              </KeyboardAvoidingView>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
             )}
         </View>
       </Modal>
@@ -5202,7 +5202,7 @@ const ProfileTab = () => {
                 ))
               )}
             </ScrollView>
-
+            
             {/* Premium Transparent Header */}
             <BlurView 
               intensity={50} 
@@ -5217,35 +5217,35 @@ const ProfileTab = () => {
             >
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                <View style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <TouchableOpacity
-                    onPress={() => setShowTasksDone(false)}
-                    style={{ 
+              <View style={{ 
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <TouchableOpacity
+                  onPress={() => setShowTasksDone(false)}
+                  style={{ 
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                       paddingHorizontal: 18, 
                       paddingVertical: 10,
                       borderRadius: 22,
                       borderWidth: 1,
                       borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    }}
+                  }}
                     activeOpacity={0.7}
-                  >
+                >
                     <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
-                  </TouchableOpacity>
+                </TouchableOpacity>
                   
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ 
-                      color: theme.text, 
+                <Text style={{ 
+                  color: theme.text, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
-                    }}>
-                      Tasks Done
-                    </Text>
+                }}>
+                  Tasks Done
+                </Text>
                     <Text style={{
                       color: theme.textTertiary,
                       fontSize: 12,
@@ -5254,10 +5254,10 @@ const ProfileTab = () => {
                     }}>
                       {completedTodosList.length} {completedTodosList.length === 1 ? 'task' : 'tasks'}
                     </Text>
-                  </View>
+              </View>
                   
                   <View style={{ width: 70 }} />
-                </View>
+            </View>
               </View>
             </BlurView>
         </View>

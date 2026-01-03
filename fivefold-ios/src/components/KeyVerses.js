@@ -29,7 +29,7 @@ import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
 const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
-const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 340 : 310;
+const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 260 : 230;
 
 // Configuration for remote verses
 const VERSES_CONFIG = {
