@@ -422,12 +422,33 @@ const BiblePrayerTab = () => {
   useEffect(() => {
     const refreshSuppression = async () => {
       try {
+        const dismissType = await getStoredData('votd_dismiss_type');
         const dismissedDate = await getStoredData('votd_dismissed_date');
-        const today = new Date().toDateString();
-        const isDismissedToday = dismissedDate === today;
-        setSuppressVerseToday(isDismissedToday);
-        if (!isDismissedToday) {
-          initialVerseShown.current = false; // allow auto-open on new day
+        const now = new Date();
+        
+        let shouldSuppress = false;
+        
+        if (dismissType === 'forever') {
+          shouldSuppress = true;
+        } else if (dismissType === 'month' && dismissedDate) {
+          const dismissed = new Date(dismissedDate);
+          const monthLater = new Date(dismissed);
+          monthLater.setMonth(monthLater.getMonth() + 1);
+          shouldSuppress = now < monthLater;
+        } else if (dismissType === 'week' && dismissedDate) {
+          const dismissed = new Date(dismissedDate);
+          const weekLater = new Date(dismissed);
+          weekLater.setDate(weekLater.getDate() + 7);
+          shouldSuppress = now < weekLater;
+        } else if (dismissType === 'today' && dismissedDate) {
+          const today = now.toDateString();
+          const dismissedDay = new Date(dismissedDate).toDateString();
+          shouldSuppress = today === dismissedDay;
+        }
+        
+        setSuppressVerseToday(shouldSuppress);
+        if (!shouldSuppress) {
+          initialVerseShown.current = false; // allow auto-open
         }
       } catch (err) {
         console.error('Error refreshing Verse of the Day suppression state:', err);
@@ -541,15 +562,31 @@ const BiblePrayerTab = () => {
     }
   };
 
-  const handleHideVerseToday = useCallback(async () => {
+  const [showDismissOptions, setShowDismissOptions] = useState(false);
+  
+  const handleDismissVerse = useCallback(async (type) => {
     try {
-      const today = new Date().toDateString();
       setSuppressVerseToday(true);
-      initialVerseShown.current = true; // prevent further auto-opens today
+      initialVerseShown.current = true;
+      setShowDismissOptions(false);
       setShowVerseModal(false);
-      await saveData('votd_dismissed_date', today);
+      await saveData('votd_dismiss_type', type);
+      await saveData('votd_dismissed_date', new Date().toISOString());
+      hapticFeedback.success();
     } catch (error) {
       console.error('Failed to save verse suppression state:', error);
+    }
+  }, []);
+  
+  const handleReenableVerse = useCallback(async () => {
+    try {
+      await saveData('votd_dismiss_type', null);
+      await saveData('votd_dismissed_date', null);
+      setSuppressVerseToday(false);
+      initialVerseShown.current = false;
+      hapticFeedback.success();
+    } catch (error) {
+      console.error('Failed to re-enable verse:', error);
     }
   }, []);
 
@@ -637,6 +674,7 @@ const BiblePrayerTab = () => {
 
   const closeVerseModal = useCallback(() => {
     hapticFeedback.light();
+    setShowDismissOptions(false);
     
     // Animate out
     Animated.parallel([
@@ -1441,16 +1479,107 @@ const BiblePrayerTab = () => {
                       </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Hide for Today */}
-                    <TouchableOpacity
-                      style={styles.verseModalGhostButton}
-                      onPress={handleHideVerseToday}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.verseModalGhostButtonText}>
-                        Don’t show again today
-                      </Text>
-                    </TouchableOpacity>
+                    {/* Dismiss Options */}
+                    {!showDismissOptions ? (
+                      <TouchableOpacity
+                        style={styles.verseModalGhostButton}
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setShowDismissOptions(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.verseModalGhostButtonText}>
+                          Hide verse popup
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                        borderRadius: 16,
+                        padding: 12,
+                        marginTop: 8,
+                      }}>
+                        <Text style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          textAlign: 'center',
+                          marginBottom: 10,
+                        }}>
+                          Hide for how long
+                        </Text>
+                        <View style={{ gap: 8 }}>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                              borderRadius: 12,
+                              paddingVertical: 12,
+                              paddingHorizontal: 16,
+                            }}
+                            onPress={() => handleDismissVerse('today')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
+                              Just today
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                              borderRadius: 12,
+                              paddingVertical: 12,
+                              paddingHorizontal: 16,
+                            }}
+                            onPress={() => handleDismissVerse('week')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
+                              For a week
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                              borderRadius: 12,
+                              paddingVertical: 12,
+                              paddingHorizontal: 16,
+                            }}
+                            onPress={() => handleDismissVerse('month')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
+                              For a month
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: 'rgba(255, 80, 80, 0.25)',
+                              borderRadius: 12,
+                              paddingVertical: 12,
+                              paddingHorizontal: 16,
+                            }}
+                            onPress={() => handleDismissVerse('forever')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: '#ff9999', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
+                              Permanently
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              paddingVertical: 10,
+                            }}
+                            onPress={() => setShowDismissOptions(false)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 14, fontWeight: '500', textAlign: 'center' }}>
+                              Cancel
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 </View>
               </BlurView>

@@ -3100,6 +3100,35 @@ const ProfileTab = () => {
               </View>
             )}
             
+            {/* Verse of the Day Toggle */}
+            <TouchableOpacity 
+              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                try {
+                  const dismissType = await getStoredData('votd_dismiss_type');
+                  if (dismissType) {
+                    // Re-enable it
+                    await saveData('votd_dismiss_type', null);
+                    await saveData('votd_dismissed_date', null);
+                    Alert.alert('Enabled', 'Verse of the Day popup will show again when you open the app.');
+                  } else {
+                    Alert.alert('Already Enabled', 'The Verse of the Day popup is already enabled.');
+                  }
+                } catch (error) {
+                  console.error('Error toggling verse popup:', error);
+                }
+              }}
+            >
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                <Text style={[styles.settingLabel, { color: theme.text }]}>
+                  Enable Verse Popup
+                </Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+            </TouchableOpacity>
+
             {/* Notifications */}
             <TouchableOpacity 
               style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
