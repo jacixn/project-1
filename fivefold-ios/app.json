@@ -2,7 +2,7 @@
   "expo": {
     "name": "Biblely",
     "slug": "fivefold-ios",
-    "version": "1.0.24",
+    "version": "1.0.25",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jesusxoi.biblely",
-      "buildNumber": "24",
+      "buildNumber": "25",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library so you can choose a profile picture to personalize your spiritual journey.",
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",

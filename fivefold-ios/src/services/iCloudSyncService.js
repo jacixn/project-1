@@ -24,6 +24,7 @@ const SYNC_KEYS = [
   'prayer_completions',   // Prayer completions
   'total_points',         // Total user points
   'user_profile',         // User profile data
+  'userName',             // User display name
   'app_settings',         // App settings
   'onboarding_complete',  // Onboarding status
   'theme_preference',     // Theme preference
@@ -65,15 +66,24 @@ class ICloudSyncService {
       if (this.isAvailable) {
         console.log('☁️ iCloud sync initialized successfully');
         
-        // Check if this is first time setup (migration needed)
+        // ALWAYS try to sync from cloud first - this handles new devices
+        const syncResult = await this.syncFromCloud();
+        console.log('☁️ Sync from cloud result:', syncResult);
+        
+        // Check if this device has local data that hasn't been uploaded yet
         const migrationComplete = await AsyncStorage.getItem(MIGRATION_COMPLETE_KEY);
         
         if (!migrationComplete) {
-          console.log('☁️ First time iCloud setup - migrating existing data...');
-          await this.migrateExistingData();
-        } else {
-          // Normal sync - pull from cloud first
-          await this.syncFromCloud();
+          // Check if we have local data worth uploading
+          const hasLocalData = await this.hasSignificantLocalData();
+          
+          if (hasLocalData) {
+            console.log('☁️ Found local data - uploading to iCloud...');
+            await this.syncAllToCloud();
+          }
+          
+          // Mark migration complete for this device
+          await AsyncStorage.setItem(MIGRATION_COMPLETE_KEY, new Date().toISOString());
         }
       } else {
         console.log('☁️ iCloud not available - user may not be signed in');
@@ -101,6 +111,43 @@ class ICloudSyncService {
       return true;
     } catch (error) {
       console.log('☁️ iCloud availability check failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Check if this device has significant local data worth uploading
+   */
+  async hasSignificantLocalData() {
+    try {
+      // Check for key data that indicates real usage
+      const verseData = await AsyncStorage.getItem('verse_data');
+      const totalPoints = await AsyncStorage.getItem('total_points');
+      const userProfile = await AsyncStorage.getItem('user_profile');
+      
+      // If we have verse data with content, or points > 0, we have real data
+      if (verseData) {
+        const parsed = JSON.parse(verseData);
+        if (Object.keys(parsed).length > 0) {
+          console.log('☁️ Found local verse data');
+          return true;
+        }
+      }
+      
+      if (totalPoints && parseInt(totalPoints) > 0) {
+        console.log('☁️ Found local points:', totalPoints);
+        return true;
+      }
+      
+      if (userProfile) {
+        console.log('☁️ Found local user profile');
+        return true;
+      }
+      
+      console.log('☁️ No significant local data found');
+      return false;
+    } catch (error) {
+      console.log('☁️ Error checking local data:', error.message);
       return false;
     }
   }
