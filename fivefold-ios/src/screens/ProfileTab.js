@@ -2517,7 +2517,7 @@ const ProfileTab = () => {
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
-                paddingTop: Platform.OS === 'ios' ? 170 : 140,
+                paddingTop: Platform.OS === 'ios' ? 120 : 100,
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
