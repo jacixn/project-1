@@ -30,8 +30,8 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
-  // Search bar fade animation (no height change)
-  const searchBarOpacity = useRef(new Animated.Value(1)).current;
+  // Collapsible search bar animation
+  const searchBarAnim = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   
@@ -42,10 +42,10 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
       
-      Animated.timing(searchBarOpacity, {
+      Animated.timing(searchBarAnim, {
         toValue: direction === 'down' ? 0 : 1,
-        duration: 200,
-        useNativeDriver: true,
+        duration: 250,
+        useNativeDriver: false,
       }).start();
     }
     
@@ -55,7 +55,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
   useEffect(() => {
     if (visible) {
       // Reset search bar animation
-      searchBarOpacity.setValue(1);
+      searchBarAnim.setValue(1);
       lastScrollY.current = 0;
       scrollDirection.current = 'up';
       
@@ -418,20 +418,27 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
           transform: [{ translateY: slideAnim }]
         }]}>
           {/* Content - FlatList starts from top */}
-          <FlatList
+          <Animated.FlatList
             data={filteredAchievements}
             renderItem={renderAchievement}
             keyExtractor={item => item.id}
             numColumns={2}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: Platform.OS === 'ios' ? 175 : 145,
               paddingBottom: 100,
             }}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            ListHeaderComponent={
+              <Animated.View style={{
+                height: searchBarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [Platform.OS === 'ios' ? 100 : 80, Platform.OS === 'ios' ? 158 : 128],
+                }),
+              }} />
+            }
           />
 
           {/* Premium Transparent Header */}
@@ -489,10 +496,14 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                 <View style={{ width: 70 }} />
               </View>
               
-              {/* Search bar with fade animation */}
+              {/* Collapsible Search bar */}
               <Animated.View style={{
-                opacity: searchBarOpacity,
-                marginTop: 16,
+                height: searchBarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 58],
+                }),
+                opacity: searchBarAnim,
+                overflow: 'hidden',
               }}>
                 <View style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -503,6 +514,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                   alignItems: 'center',
                   borderWidth: 1,
                   borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  marginTop: 16,
                 }}>
                   <MaterialIcons name="search" size={20} color={theme.textTertiary} />
                   <TextInput
