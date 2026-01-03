@@ -297,8 +297,8 @@ const ProfileTab = () => {
   const journalFadeAnim = useRef(new Animated.Value(0)).current;
   const highlightsFadeAnim = useRef(new Animated.Value(0)).current;
   
-  // Search bar fade animation for Saved Verses (no height change)
-  const savedVersesSearchOpacity = useRef(new Animated.Value(1)).current;
+  // Collapsible search bar animation for Saved Verses
+  const savedVersesSearchAnim = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   
@@ -310,10 +310,10 @@ const ProfileTab = () => {
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
       
-      Animated.timing(savedVersesSearchOpacity, {
+      Animated.timing(savedVersesSearchAnim, {
         toValue: direction === 'down' ? 0 : 1,
-        duration: 200,
-        useNativeDriver: true,
+        duration: 250,
+        useNativeDriver: false,
       }).start();
     }
     
@@ -1701,7 +1701,7 @@ const ProfileTab = () => {
           onPress={() => {
             hapticFeedback.light();
             // Reset search bar animation
-            savedVersesSearchOpacity.setValue(1);
+            savedVersesSearchAnim.setValue(1);
             lastScrollY.current = 0;
             scrollDirection.current = 'up';
             setShowSavedVerses(true);
@@ -2510,13 +2510,12 @@ const ProfileTab = () => {
           backgroundColor: theme.background
         }}>
             {/* Content - ScrollView starts from top */}
-            <ScrollView 
+            <Animated.ScrollView 
               style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
-                paddingTop: Platform.OS === 'ios' ? 175 : 145,
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
@@ -2529,6 +2528,13 @@ const ProfileTab = () => {
                 />
               }
             >
+              {/* Animated spacer that shrinks with search bar */}
+              <Animated.View style={{
+                height: savedVersesSearchAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [Platform.OS === 'ios' ? 115 : 95, Platform.OS === 'ios' ? 173 : 143],
+                }),
+              }} />
               {/* Stats Row */}
               {savedVersesList.length > 0 && (
                 <View style={{
@@ -2818,7 +2824,7 @@ const ProfileTab = () => {
                   ));
                 })()
               )}
-            </ScrollView>
+            </Animated.ScrollView>
 
             {/* Premium Transparent Header */}
             <BlurView 
@@ -2915,10 +2921,14 @@ const ProfileTab = () => {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Search bar with fade animation */}
+                {/* Collapsible Search bar */}
                 <Animated.View style={{
-                  opacity: savedVersesSearchOpacity,
-                  marginTop: 16,
+                  height: savedVersesSearchAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 58],
+                  }),
+                  opacity: savedVersesSearchAnim,
+                  overflow: 'hidden',
                 }}>
                   <View style={{
                     backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -2929,6 +2939,7 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     borderWidth: 1,
                     borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    marginTop: 16,
                   }}>
                     <MaterialIcons name="search" size={20} color={theme.textTertiary} />
                     <TextInput
