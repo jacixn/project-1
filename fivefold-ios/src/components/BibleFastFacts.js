@@ -36,8 +36,8 @@ const FACTS_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'bible_facts_data_v1',
-  CACHE_TIMESTAMP_KEY: 'bible_facts_timestamp_v1',
+  CACHE_KEY: 'bible_facts_data_v2',
+  CACHE_TIMESTAMP_KEY: 'bible_facts_timestamp_v2',
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
