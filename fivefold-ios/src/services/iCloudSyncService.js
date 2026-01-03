@@ -32,10 +32,12 @@ const SYNC_KEYS = [
   'prayer_history',       // Prayer history
   'prayer_completions',   // Prayer completions
   'total_points',         // Total user points
-  'user_profile',         // User profile data
+  'user_profile',         // User profile data (legacy)
+  'userProfile',          // User profile data (current)
   'userName',             // User display name
   'app_settings',         // App settings
-  'onboarding_complete',  // Onboarding status
+  'onboarding_complete',  // Onboarding status (legacy)
+  'onboardingCompleted',  // Onboarding status (current)
   'theme_preference',     // Theme preference
   'app_streak_data',      // App usage streak
 ];
