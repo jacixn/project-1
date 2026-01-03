@@ -299,7 +299,6 @@ const ProfileTab = () => {
   
   // Collapsible search bar animation for Saved Verses
   const savedVersesSearchHeight = useRef(new Animated.Value(1)).current;
-  const [isSearchCollapsed, setIsSearchCollapsed] = useState(false);
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   
@@ -310,11 +309,9 @@ const ProfileTab = () => {
     // Only animate if direction changed and scrolled enough
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
-      const collapsed = direction === 'down';
-      setIsSearchCollapsed(collapsed);
       
       Animated.spring(savedVersesSearchHeight, {
-        toValue: collapsed ? 0 : 1,
+        toValue: direction === 'down' ? 0 : 1,
         useNativeDriver: false,
         tension: 100,
         friction: 12,
@@ -1706,7 +1703,6 @@ const ProfileTab = () => {
             hapticFeedback.light();
             // Reset search bar animation
             savedVersesSearchHeight.setValue(1);
-            setIsSearchCollapsed(false);
             lastScrollY.current = 0;
             scrollDirection.current = 'up';
             setShowSavedVerses(true);
@@ -2514,13 +2510,14 @@ const ProfileTab = () => {
           flex: 1,
           backgroundColor: theme.background
         }}>
-            {/* Content - ScrollView starts from top */}
+            {/* Content - ScrollView starts from top, content has paddingTop */}
             <ScrollView 
               style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
+                paddingTop: Platform.OS === 'ios' ? 120 : 100,
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
@@ -2533,13 +2530,6 @@ const ProfileTab = () => {
                 />
               }
             >
-              {/* Animated spacer that adjusts with header */}
-              <Animated.View style={{
-                height: savedVersesSearchHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Platform.OS === 'ios' ? 115 : 95, Platform.OS === 'ios' ? 175 : 145],
-                }),
-              }} />
               {/* Stats Row */}
               {savedVersesList.length > 0 && (
                 <View style={{

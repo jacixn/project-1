@@ -29,9 +29,37 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  
+  // Collapsible search bar animation
+  const searchBarHeight = useRef(new Animated.Value(1)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('up');
+  
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
+    
+    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
+      scrollDirection.current = direction;
+      
+      Animated.spring(searchBarHeight, {
+        toValue: direction === 'down' ? 0 : 1,
+        useNativeDriver: false,
+        tension: 100,
+        friction: 12,
+      }).start();
+    }
+    
+    lastScrollY.current = currentScrollY;
+  };
 
   useEffect(() => {
     if (visible) {
+      // Reset search bar animation
+      searchBarHeight.setValue(1);
+      lastScrollY.current = 0;
+      scrollDirection.current = 'up';
+      
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -398,11 +426,13 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
             numColumns={2}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: Platform.OS === 'ios' ? 170 : 140,
+              paddingTop: Platform.OS === 'ios' ? 120 : 100,
               paddingBottom: 100,
             }}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           />
 
           {/* Premium Transparent Header */}
@@ -418,12 +448,11 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
             }}
           >
             <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
               <View style={{ 
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 16,
               }}>
                 <TouchableOpacity 
                   onPress={onClose} 
@@ -461,49 +490,59 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                 <View style={{ width: 70 }} />
               </View>
               
-              {/* Search bar in header */}
-              <View style={{
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                borderRadius: 14,
-                paddingHorizontal: 14,
-                paddingVertical: 11,
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              {/* Collapsible Search bar */}
+              <Animated.View style={{
+                height: searchBarHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 60],
+                }),
+                opacity: searchBarHeight,
+                overflow: 'hidden',
               }}>
-                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
-                <TextInput
-                  style={{
-                    flex: 1,
-                    fontSize: 15,
-                    color: theme.text,
-                    marginLeft: 10,
-                    paddingVertical: 2,
-                  }}
-                  placeholder="Search milestones..."
-                  placeholderTextColor={theme.textTertiary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchQuery('')}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                <View style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  marginTop: 16,
+                }}>
+                  <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                  <TextInput
                     style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      flex: 1,
+                      fontSize: 15,
+                      color: theme.text,
+                      marginLeft: 10,
+                      paddingVertical: 2,
                     }}
-                  >
-                    <MaterialIcons name="close" size={14} color={theme.text} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                    placeholder="Search milestones..."
+                    placeholderTextColor={theme.textTertiary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery('')}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MaterialIcons name="close" size={14} color={theme.text} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </Animated.View>
+            </Animated.View>
           </BlurView>
         </Animated.View>
       </View>
