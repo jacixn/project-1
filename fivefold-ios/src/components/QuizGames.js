@@ -17,6 +17,7 @@ import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
 import AchievementService from '../services/achievementService';
 import { getStoredData, saveData } from '../utils/localStorage';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CATEGORY_ICON_FALLBACK = {
   all: 'ALL',
@@ -29,6 +30,8 @@ const CATEGORY_ICON_FALLBACK = {
 };
 
 const QuizGames = ({ visible, onClose }) => {
+  const { theme, isDark } = useTheme();
+  
   // State
   const [currentScreen, setCurrentScreen] = useState('home'); // home, setup, quiz, results
   const [categories, setCategories] = useState([]);
@@ -271,7 +274,7 @@ const QuizGames = ({ visible, onClose }) => {
   // RENDER FUNCTIONS
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: isDark ? theme.border : '#000000' }]}>
       <TouchableOpacity
         style={styles.headerButton}
         onPress={() => {
@@ -297,9 +300,9 @@ const QuizGames = ({ visible, onClose }) => {
           }
         }}
       >
-        <MaterialIcons name="arrow-back" size={24} color="#000000" />
+        <MaterialIcons name="arrow-back" size={24} color={theme.text} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>
+      <Text style={[styles.headerTitle, { color: theme.text }]}>
         {currentScreen === 'home' && 'Quiz & Games'}
         {currentScreen === 'setup' && 'Quiz Setup'}
         {currentScreen === 'quiz' && `Question ${currentIndex + 1}/${currentQuiz.length}`}
@@ -313,7 +316,7 @@ const QuizGames = ({ visible, onClose }) => {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading Quiz Data...</Text>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Loading Quiz Data...</Text>
         </View>
       );
     }
@@ -326,20 +329,20 @@ const QuizGames = ({ visible, onClose }) => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={['#2196F3']}
-            tintColor="#2196F3"
+            colors={[theme.primary]}
+            tintColor={theme.primary}
             title="Pull to refresh"
-            titleColor="#666666"
+            titleColor={theme.textSecondary}
           />
         }
       >
-        <Text style={styles.sectionTitle}>SELECT A CATEGORY</Text>
-        <Text style={styles.pullToRefreshHint}>Pull down to refresh</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>SELECT A CATEGORY</Text>
+        <Text style={[styles.pullToRefreshHint, { color: theme.primary }]}>Pull down to refresh</Text>
         
         {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
-            style={styles.categoryCard}
+            style={[styles.categoryCard, { backgroundColor: theme.card, borderColor: isDark ? theme.border : '#000000' }]}
             onPress={() => handleCategorySelect(category)}
           >
             <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
@@ -348,10 +351,10 @@ const QuizGames = ({ visible, onClose }) => {
               </Text>
             </View>
             <View style={styles.categoryInfo}>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
-              <Text style={styles.categoryDesc}>{category.description}</Text>
+              <Text style={[styles.categoryTitle, { color: theme.text }]}>{category.title}</Text>
+              <Text style={[styles.categoryDesc, { color: theme.textSecondary }]}>{category.description}</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={28} color="#000000" />
+            <MaterialIcons name="chevron-right" size={28} color={theme.textSecondary} />
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -402,13 +405,14 @@ const QuizGames = ({ visible, onClose }) => {
         </LinearGradient>
 
       <View style={styles.setupSection}>
-        <Text style={styles.setupLabel}>Number of Questions</Text>
+        <Text style={[styles.setupLabel, { color: theme.text }]}>Number of Questions</Text>
         <View style={styles.optionRow}>
           {[5, 10, 15, 20, 30].map((count) => (
             <TouchableOpacity
               key={count}
               style={[
                 styles.countButton,
+                { backgroundColor: theme.card, borderColor: isDark ? theme.border : '#000000' },
                 questionCount === count && { backgroundColor: selectedCategory.color },
               ]}
               onPress={() => {
@@ -419,6 +423,7 @@ const QuizGames = ({ visible, onClose }) => {
               <Text
                 style={[
                   styles.countButtonText,
+                  { color: theme.text },
                   questionCount === count && { color: '#FFFFFF' },
                 ]}
               >
@@ -430,11 +435,12 @@ const QuizGames = ({ visible, onClose }) => {
       </View>
 
       <View style={styles.setupSection}>
-        <Text style={styles.setupLabel}>Show Answers</Text>
+        <Text style={[styles.setupLabel, { color: theme.text }]}>Show Answers</Text>
         
         <TouchableOpacity
           style={[
             styles.answerModeButton,
+            { backgroundColor: theme.card, borderColor: isDark ? theme.border : '#000000' },
             answerMode === 'after-each' && { backgroundColor: selectedCategory.color },
           ]}
           onPress={() => {
@@ -445,11 +451,12 @@ const QuizGames = ({ visible, onClose }) => {
           <MaterialIcons
             name="visibility"
             size={24}
-            color={answerMode === 'after-each' ? '#FFFFFF' : '#000000'}
+            color={answerMode === 'after-each' ? '#FFFFFF' : theme.text}
           />
           <Text
             style={[
               styles.answerModeText,
+              { color: theme.text },
               answerMode === 'after-each' && { color: '#FFFFFF' },
             ]}
           >
@@ -460,6 +467,7 @@ const QuizGames = ({ visible, onClose }) => {
         <TouchableOpacity
           style={[
             styles.answerModeButton,
+            { backgroundColor: theme.card, borderColor: isDark ? theme.border : '#000000' },
             answerMode === 'at-end' && { backgroundColor: selectedCategory.color },
           ]}
           onPress={() => {
@@ -470,11 +478,12 @@ const QuizGames = ({ visible, onClose }) => {
           <MaterialIcons
             name="format-list-numbered"
             size={24}
-            color={answerMode === 'at-end' ? '#FFFFFF' : '#000000'}
+            color={answerMode === 'at-end' ? '#FFFFFF' : theme.text}
           />
           <Text
             style={[
               styles.answerModeText,
+              { color: theme.text },
               answerMode === 'at-end' && { color: '#FFFFFF' },
             ]}
           >
@@ -498,7 +507,7 @@ const QuizGames = ({ visible, onClose }) => {
 
   const renderQuiz = () => {
     if (currentQuiz.length === 0 || !currentQuiz[currentIndex]) {
-      return <View style={styles.loadingContainer}><Text style={styles.loadingText}>Loading...</Text></View>;
+      return <View style={styles.loadingContainer}><Text style={[styles.loadingText, { color: theme.text }]}>Loading...</Text></View>;
     }
 
     const currentQuestion = currentQuiz[currentIndex];
@@ -510,7 +519,7 @@ const QuizGames = ({ visible, onClose }) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.quizScrollContent}>
         {/* Progress */}
         <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
+          <View style={[styles.progressBar, { backgroundColor: isDark ? theme.border : '#E0E0E0', borderColor: isDark ? theme.border : '#000000' }]}>
             <View
               style={[
                 styles.progressFill,
@@ -522,15 +531,15 @@ const QuizGames = ({ visible, onClose }) => {
             />
           </View>
           <View style={styles.quizMeta}>
-            <Text style={styles.quizMetaText}>Score: {score}</Text>
-            <Text style={styles.quizMetaText}>Time: {formatTime(timer)}</Text>
+            <Text style={[styles.quizMetaText, { color: theme.text }]}>Score: {score}</Text>
+            <Text style={[styles.quizMetaText, { color: theme.text }]}>Time: {formatTime(timer)}</Text>
           </View>
         </View>
 
         {/* Question */}
-        <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>Question {currentIndex + 1}</Text>
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+        <View style={[styles.questionCard, { backgroundColor: theme.card, borderColor: isDark ? theme.border : '#000000' }]}>
+          <Text style={[styles.questionNumber, { color: theme.textSecondary }]}>Question {currentIndex + 1}</Text>
+          <Text style={[styles.questionText, { color: theme.text }]}>{currentQuestion.question}</Text>
 
           {/* Multiple Choice */}
           {typeof currentQuestion.correctAnswer === 'number' && currentQuestion.options && (
@@ -540,8 +549,8 @@ const QuizGames = ({ visible, onClose }) => {
                 const isCorrect = index === currentQuestion.correctAnswer;
                 const showResult = hasAnswered && answerMode === 'after-each';
 
-                let bgColor = '#FFFFFF';
-                let borderColor = '#000000';
+                let bgColor = theme.card;
+                let borderColor = isDark ? theme.border : '#000000';
 
                 if (showResult) {
                   if (isCorrect) {
@@ -571,7 +580,7 @@ const QuizGames = ({ visible, onClose }) => {
                     <Text
                       style={[
                         styles.answerText,
-                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : theme.text },
                       ]}
                     >
                       {option}
@@ -595,8 +604,8 @@ const QuizGames = ({ visible, onClose }) => {
                   (index === 1 && !currentQuestion.correctAnswer);
                 const showResult = hasAnswered && answerMode === 'after-each';
 
-                let bgColor = '#FFFFFF';
-                let borderColor = '#000000';
+                let bgColor = theme.card;
+                let borderColor = isDark ? theme.border : '#000000';
 
                 if (showResult) {
                   if (isCorrect) {
@@ -621,7 +630,7 @@ const QuizGames = ({ visible, onClose }) => {
                     <Text
                       style={[
                         styles.trueFalseIcon,
-                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : theme.text },
                       ]}
                     >
                       {option.icon}
@@ -629,7 +638,7 @@ const QuizGames = ({ visible, onClose }) => {
                     <Text
                       style={[
                         styles.trueFalseText,
-                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : '#000000' },
+                        { color: showResult && (isCorrect || isSelected) ? '#FFFFFF' : theme.text },
                       ]}
                     >
                       {option.label}
@@ -642,7 +651,7 @@ const QuizGames = ({ visible, onClose }) => {
 
           {/* Explanation (after-each mode) */}
           {hasAnswered && answerMode === 'after-each' && (
-            <View style={styles.explanationContainer}>
+            <View style={[styles.explanationContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F5F5F5' }]}>
               <Text
                 style={[
                   styles.explanationTitle,
@@ -651,8 +660,8 @@ const QuizGames = ({ visible, onClose }) => {
               >
                 {userAnswer.isCorrect ? 'Correct' : 'Incorrect'}
               </Text>
-              <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
-              <Text style={styles.explanationReference}>Reference: {currentQuestion.reference}</Text>
+              <Text style={[styles.explanationText, { color: theme.text }]}>{currentQuestion.explanation}</Text>
+              <Text style={[styles.explanationReference, { color: theme.textSecondary }]}>Reference: {currentQuestion.reference}</Text>
 
               <TouchableOpacity
                 style={[styles.nextButton, { backgroundColor: selectedCategory.color }]}
@@ -771,8 +780,8 @@ const QuizGames = ({ visible, onClose }) => {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         {renderHeader()}
         {currentScreen === 'home' && renderHome()}
         {currentScreen === 'setup' && renderSetup()}
