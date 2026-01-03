@@ -426,7 +426,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
             numColumns={2}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: Platform.OS === 'ios' ? 120 : 100,
+              paddingTop: Platform.OS === 'ios' ? 180 : 150,
               paddingBottom: 100,
             }}
             showsVerticalScrollIndicator={false}
