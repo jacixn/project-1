@@ -2836,12 +2836,9 @@ const ProfileTab = () => {
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               
               {/* Header content */}
-              <Animated.View style={{ 
+              <View style={{ 
                 paddingHorizontal: 16, 
-                paddingBottom: savedVersesSearchHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [16, 16],
-                }),
+                paddingBottom: 16,
               }}>
                 {/* Top row with buttons */}
                 <View style={{ 
@@ -2965,7 +2962,7 @@ const ProfileTab = () => {
                     )}
                   </View>
                 </Animated.View>
-              </Animated.View>
+              </View>
             </BlurView>
         </View>
       </Modal>
