@@ -536,7 +536,7 @@ const PrayerDetailModal = ({
                       : 'rgba(0, 0, 0, 0.08)',
                   }]}>
                   <View style={styles.completionHeader}>
-                      <MaterialIcons name="auto-awesome" size={20} color={theme.text} />
+                      <MaterialIcons name="stars" size={20} color={theme.text} />
                     <Text style={[styles.completionTitle, { color: theme.text }]}>
                         Ready to Complete?
                     </Text>

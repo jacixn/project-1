@@ -2,8 +2,8 @@
   "themeCategories": [
     { "id": "all", "name": "All Themes", "color": "#667eea", "icon": "star" },
     { "id": "faith", "name": "Faith", "color": "#4A90E2", "icon": "favorite" },
-    { "id": "love", "name": "Love", "color": "#E91E63", "icon": "favorite_border" },
-    { "id": "wisdom", "name": "Wisdom", "color": "#8B572A", "icon": "lightbulb_outline" },
+    { "id": "love", "name": "Love", "color": "#E91E63", "icon": "favorite-border" },
+    { "id": "wisdom", "name": "Wisdom", "color": "#8B572A", "icon": "lightbulb-outline" },
     { "id": "prayer", "name": "Prayer", "color": "#50E3C2", "icon": "place" },
     { "id": "courage", "name": "Courage", "color": "#FF5722", "icon": "security" },
     { "id": "grace", "name": "Grace", "color": "#9C27B0", "icon": "favorite" },
@@ -14,7 +14,7 @@
     { "id": "suffering", "name": "Suffering", "color": "#B8860B", "icon": "healing" },
     { "id": "justice", "name": "Justice", "color": "#D0021B", "icon": "gavel" },
     { "id": "relationships", "name": "Relationships", "color": "#795548", "icon": "people" },
-    { "id": "integrity", "name": "Integrity", "color": "#607D8B", "icon": "verified_user" },
+    { "id": "integrity", "name": "Integrity", "color": "#607D8B", "icon": "verified-user" },
     { "id": "calling", "name": "Calling", "color": "#FF9800", "icon": "explore" },
     { "id": "generosity", "name": "Generosity", "color": "#4CAF50", "icon": "favorite" }
   ],

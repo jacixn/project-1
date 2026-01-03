@@ -1954,7 +1954,7 @@ const ProfileTab = () => {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
-          <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
+          <MaterialIcons name="stars" size={24} color={theme.primary} />
           <Text style={[styles.aboutButtonText, { color: theme.text }]}>
             New tools coming soon
           </Text>
@@ -3363,7 +3363,7 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                    <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                    <MaterialIcons name="stars" size={20} color={theme.primary} />
                 </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Daily Verse Popup</Text>
               </View>
@@ -3999,7 +3999,7 @@ const ProfileTab = () => {
                             flexDirection: 'row'
                           }}
                         >
-                          <MaterialIcons name="auto-awesome" size={20} color="#fff" style={{ marginRight: 10 }} />
+                          <MaterialIcons name="stars" size={20} color="#fff" style={{ marginRight: 10 }} />
                           <Text style={{
                             fontSize: 18,
                             fontWeight: '800',
@@ -5379,7 +5379,7 @@ const ProfileTab = () => {
               style={styles.heroGradient}
             >
               <Text style={styles.heroTitle}>About Biblely</Text>
-              <MaterialIcons name="auto-awesome" size={28} color="#FFFFFF" style={styles.heroIcon} />
+              <MaterialIcons name="stars" size={28} color="#FFFFFF" style={styles.heroIcon} />
             </LinearGradient>
           </Animated.View>
 

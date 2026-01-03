@@ -817,7 +817,7 @@ const GymTab = () => {
                 style={styles.heroGradient}
               >
                 <Text style={styles.heroTitle}>About Biblely</Text>
-                <MaterialIcons name="auto-awesome" size={32} color="#FFFFFF" style={styles.heroIcon} />
+                <MaterialIcons name="stars" size={32} color="#FFFFFF" style={styles.heroIcon} />
               </LinearGradient>
             </Animated.View>
 

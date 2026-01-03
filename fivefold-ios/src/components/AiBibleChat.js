@@ -1090,7 +1090,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               backgroundColor: theme.primary || '#7C3AED',
               marginRight: 10,
             }]}>
-              <MaterialIcons name="auto-awesome" size={20} color="#FFFFFF" />
+              <MaterialIcons name="stars" size={20} color="#FFFFFF" />
             </View>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               Friend

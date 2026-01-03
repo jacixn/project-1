@@ -1352,7 +1352,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
                     style={styles.randomLoadingCard}
                   >
                     <View style={[styles.randomLoadingIcon, { backgroundColor: `${theme.primary}30` }]}>
-                      <MaterialIcons name="auto-awesome" size={48} color={theme.primary} />
+                      <MaterialIcons name="stars" size={48} color={theme.primary} />
                     </View>
                     <Text style={[styles.randomLoadingText, { color: theme.text }]}>
                       Finding a random fact...

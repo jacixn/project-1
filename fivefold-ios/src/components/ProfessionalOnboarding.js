@@ -369,7 +369,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
         
         <View style={styles.welcomeFeatures}>
           <View style={styles.welcomeFeature}>
-            <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
+            <MaterialIcons name="stars" size={24} color={theme.primary} />
             <Text style={[styles.welcomeFeatureText, { color: theme.textSecondary }]}>
               {t('welcome.smartTasks')}
             </Text>
@@ -470,7 +470,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
             colors={[theme.primary + '20', theme.primary + '10']}
             style={styles.smartIconContainer}
           >
-            <MaterialIcons name="auto-awesome" size={60} color={theme.primary} />
+            <MaterialIcons name="stars" size={60} color={theme.primary} />
           </LinearGradient>
           
           <Text style={[styles.smartTitle, { color: theme.text }]}>

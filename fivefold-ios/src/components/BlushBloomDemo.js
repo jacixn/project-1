@@ -124,7 +124,7 @@ const BlushBloomDemo = ({ visible, onClose }) => {
             </GlassCard>
             
             <GlassCard style={styles.miniCard} blushMode={isBlushTheme}>
-              <MaterialIcons name="auto-awesome" size={24} color={theme.info} />
+              <MaterialIcons name="stars" size={24} color={theme.info} />
               <Text style={[styles.miniText, { color: theme.text }]}>Hope</Text>
             </GlassCard>
           </View>
