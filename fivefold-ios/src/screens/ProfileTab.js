@@ -2483,54 +2483,7 @@ const ProfileTab = () => {
           backgroundColor: theme.background
         }}>
             {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 100 : 80 }}>
-            
-            {/* Sticky Search Bar - Outside ScrollView */}
-            <View style={{
-              paddingHorizontal: 16,
-              paddingTop: 8,
-              paddingBottom: 12,
-              backgroundColor: theme.background
-            }}>
-              <View style={{
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0.2 : 0.08,
-                shadowRadius: 8,
-                elevation: 3,
-                borderWidth: isDark ? 1 : 0,
-                borderColor: 'rgba(255,255,255,0.1)'
-              }}>
-                <MaterialIcons name="search" size={22} color={theme.textSecondary} />
-                <TextInput
-                  value={savedVersesSearch}
-                  onChangeText={setSavedVersesSearch}
-                  placeholder="Search verses or references..."
-                  placeholderTextColor={theme.textTertiary}
-                  style={{
-                    flex: 1,
-                    fontSize: 16,
-                    color: theme.text,
-                    marginLeft: 12,
-                    paddingVertical: 4
-                  }}
-                />
-                {savedVersesSearch.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSavedVersesSearch('')}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <MaterialIcons name="close" size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 160 : 130 }}>
             
             <ScrollView 
               style={styles.modalScrollView} 
@@ -2837,9 +2790,9 @@ const ProfileTab = () => {
             </ScrollView>
             </View>
 
-            {/* Transparent Blurred Header */}
+            {/* Premium Transparent Header */}
             <BlurView 
-              intensity={20} 
+              intensity={80} 
               tint={isDark ? 'dark' : 'light'} 
               style={{ 
                 position: 'absolute', 
@@ -2847,66 +2800,141 @@ const ProfileTab = () => {
                 left: 0, 
                 right: 0, 
                 zIndex: 1000,
-                backgroundColor: 'transparent',
-                borderBottomLeftRadius: 20,
-                borderBottomRightRadius: 20,
-                overflow: 'hidden',
               }}
             >
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-              <View style={{ 
-                backgroundColor: 'transparent', 
-                borderBottomWidth: 0, 
-                paddingTop: 8, 
-                paddingBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 20
-              }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowSavedVerses(false);
-                    setSavedVersesSearch('');
-                  }}
-                  style={{ 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    paddingHorizontal: 16, 
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                  }}
-                  activeOpacity={0.7}
-                  delayPressIn={0}
-                >
-                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Close</Text>
-                </TouchableOpacity>
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 18, 
-                  fontWeight: '600',
-                  flex: 1,
-                  textAlign: 'center'
+              {/* Subtle gradient overlay for depth */}
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)',
+              }} />
+              
+              {/* Safe area spacer */}
+              <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+              
+              {/* Header content */}
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                {/* Top row with buttons */}
+                <View style={{ 
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 16,
                 }}>
-                  Saved Verses
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    hapticFeedback.light();
-                    setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
-                  }}
-                  style={{ 
-                    paddingHorizontal: 12, 
-                    paddingVertical: 6,
-                    borderRadius: 18,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
-                  }}
-                  activeOpacity={0.7}
-                  delayPressIn={0}
-                >
-                  <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '700' }}>
-                    {savedVersesSort === 'desc' ? 'Newest' : 'Oldest'}
-                  </Text>
-                </TouchableOpacity>
+                  {/* Close button */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowSavedVerses(false);
+                      setSavedVersesSearch('');
+                    }}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      paddingHorizontal: 18, 
+                      paddingVertical: 10,
+                      borderRadius: 22,
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                  </TouchableOpacity>
+                  
+                  {/* Title */}
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      fontSize: 17, 
+                      fontWeight: '700',
+                      letterSpacing: 0.3,
+                    }}>
+                      Saved Verses
+                    </Text>
+                    <Text style={{
+                      color: theme.textTertiary,
+                      fontSize: 12,
+                      fontWeight: '500',
+                      marginTop: 2,
+                    }}>
+                      {savedVersesList.length} {savedVersesList.length === 1 ? 'verse' : 'verses'}
+                    </Text>
+                  </View>
+                  
+                  {/* Sort button */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      hapticFeedback.light();
+                      setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
+                    }}
+                    style={{ 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      paddingHorizontal: 14, 
+                      paddingVertical: 10,
+                      borderRadius: 22,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons 
+                      name={savedVersesSort === 'desc' ? 'arrow-downward' : 'arrow-upward'} 
+                      size={14} 
+                      color={theme.primary} 
+                    />
+                    <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>
+                      {savedVersesSort === 'desc' ? 'New' : 'Old'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                
+                {/* Search bar in header */}
+                <View style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                }}>
+                  <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                  <TextInput
+                    value={savedVersesSearch}
+                    onChangeText={setSavedVersesSearch}
+                    placeholder="Search verses or references..."
+                    placeholderTextColor={theme.textTertiary}
+                    style={{
+                      flex: 1,
+                      fontSize: 15,
+                      color: theme.text,
+                      marginLeft: 10,
+                      paddingVertical: 2,
+                    }}
+                  />
+                  {savedVersesSearch.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSavedVersesSearch('')}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MaterialIcons name="close" size={14} color={theme.text} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             </BlurView>
         </View>
