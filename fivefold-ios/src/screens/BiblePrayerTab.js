@@ -1339,145 +1339,216 @@ const BiblePrayerTab = () => {
                 style={styles.verseModalBlur}
               >
                 <View style={styles.verseModalContent}>
-                  {/* Close button with backdrop */}
+                  {/* Close button */}
                   <TouchableOpacity 
                     style={[styles.verseModalClose, {
-                      // Always keep close control high-contrast on pastel backgrounds
-                      backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.15)',
                     }]}
                     onPress={closeVerseModal}
                   >
-                    <MaterialIcons name="close" size={22} color="#FFFFFF" />
+                    <MaterialIcons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
                   </TouchableOpacity>
 
-                  {/* Animated icon with glow */}
-                  <Animated.View style={[
-                    styles.verseModalIconContainer,
-                    {
-                      transform: [{ scale: iconPulse }],
-                      shadowColor: isBlushTheme 
-                        ? '#FF69B4' 
-                        : isCresviaTheme 
-                        ? '#8A2BE2' 
-                        : isEternaTheme 
-                        ? '#4B0082' 
-                        : '#3B82F6',
-                      shadowOpacity: 0.3,
-                      shadowRadius: 20,
-                      shadowOffset: { width: 0, height: 0 }
-                    }
-                  ]}>
-                    <LinearGradient
-                      colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
-                      style={styles.iconGradient}
-                    >
-                      <MaterialIcons name="auto-awesome" size={36} color="#FFFFFF" />
-                    </LinearGradient>
-                  </Animated.View>
+                  {/* Decorative top accent */}
+                  <View style={{
+                    width: 40,
+                    height: 4,
+                    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                    borderRadius: 2,
+                    alignSelf: 'center',
+                    marginBottom: 20,
+                  }} />
 
-                  {/* Title with gradient text effect */}
-                  <View style={styles.verseModalHeader}>
-                    <Text style={styles.verseModalTitle}>
-                      {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
+                  {/* Title Section */}
+                  <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      letterSpacing: 2,
+                      textTransform: 'uppercase',
+                      marginBottom: 6,
+                    }}>
+                      {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                     </Text>
-                    <Text style={styles.verseModalDate}>
-                      {new Date().toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'long', 
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
+                    <Text style={{
+                      fontSize: 26,
+                      fontWeight: '800',
+                      color: '#FFFFFF',
+                      textAlign: 'center',
+                      letterSpacing: 0.5,
+                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowOffset: { width: 0, height: 2 },
+                      textShadowRadius: 4,
+                    }}>
+                      {userName ? `${userName}'s Verse` : 'Your Verse'}
+                    </Text>
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '500',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      marginTop: 4,
+                    }}>
+                      {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </Text>
                   </View>
 
-                  {/* Verse container with subtle backdrop */}
-                  <View style={styles.verseModalTextContainer}>
-                    <View style={[styles.verseBackdrop, {
-                      backgroundColor: VERSE_MODAL_TEXT_SCRIM,
-                    }]}>
-                      <Text style={styles.verseModalQuote}>
-                        "{dailyVerse.text}"
+                  {/* Verse Card */}
+                  <View style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    borderRadius: 20,
+                    padding: 24,
+                    marginBottom: 24,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.15)',
+                  }}>
+                    {/* Opening quote mark */}
+                    <Text style={{
+                      fontSize: 48,
+                      fontWeight: '300',
+                      color: 'rgba(255, 255, 255, 0.25)',
+                      position: 'absolute',
+                      top: 8,
+                      left: 16,
+                      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+                    }}>
+                      "
+                    </Text>
+                    
+                    <Text style={{
+                      fontSize: 18,
+                      lineHeight: 28,
+                      fontStyle: 'italic',
+                      color: '#FFFFFF',
+                      textAlign: 'center',
+                      fontWeight: '500',
+                      paddingHorizontal: 8,
+                      paddingTop: 12,
+                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 3,
+                    }}>
+                      {dailyVerse.text}
+                    </Text>
+                    
+                    {/* Reference */}
+                    <View style={{
+                      marginTop: 20,
+                      alignItems: 'center',
+                    }}>
+                      <View style={{
+                        width: 32,
+                        height: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                        borderRadius: 1,
+                        marginBottom: 12,
+                      }} />
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: '#FFFFFF',
+                        letterSpacing: 0.5,
+                      }}>
+                        {dailyVerse.reference}
                       </Text>
-                      <View style={styles.referenceContainer}>
-                        <View style={styles.referenceDivider} />
-                        <Text style={styles.verseModalReference}>
-                          {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
-                        </Text>
+                      {dailyVerse.version && (
                         <Text style={{
                           fontSize: 12,
-                          fontWeight: '600',
-                          color: 'rgba(255, 255, 255, 0.82)',
-                          letterSpacing: 1.2,
-                          marginTop: 8,
-                          textAlign: 'center',
-                          textShadowColor: 'rgba(0, 0, 0, 0.45)',
-                          textShadowOffset: { width: 0, height: 1 },
-                          textShadowRadius: 2,
+                          fontWeight: '500',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          marginTop: 4,
                         }}>
-                          Biblely
+                          {dailyVerse.version}
                         </Text>
-                      </View>
+                      )}
                     </View>
                   </View>
 
-                  {/* Action buttons with gradient */}
-                  <View style={styles.verseModalActions}>
-                    {/* Go to Verse Button */}
+                  {/* Action buttons */}
+                  <View style={{ gap: 10 }}>
+                    {/* Go to Verse Button - Primary */}
                     <TouchableOpacity
-                      style={[styles.verseModalButton, { marginBottom: 10 }]}
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderRadius: 14,
+                        paddingVertical: 14,
+                        paddingHorizontal: 20,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                      }}
                       onPress={handleGoToVerse}
                       activeOpacity={0.8}
                     >
-                      <LinearGradient
-                        colors={VERSE_MODAL_BUTTON_GRADIENT}
-                        style={styles.buttonGradient}
-                      >
-                        <View style={styles.buttonContent}>
-                          <MaterialIcons name="menu-book" size={20} color="#FFFFFF" />
-                          <Text style={styles.verseModalButtonText}>
-                            Go to Verse
-                          </Text>
-                        </View>
-                      </LinearGradient>
+                      <MaterialIcons name="menu-book" size={20} color={versePalette.gradient[0]} />
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: '700',
+                        color: versePalette.gradient[0],
+                      }}>
+                        Read in Bible
+                      </Text>
                     </TouchableOpacity>
 
-                    {/* Discuss with Friend Button */}
-                    <TouchableOpacity
-                      style={[styles.verseModalButton, { marginBottom: 10 }]}
-                      onPress={handleDiscussVerse}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={VERSE_MODAL_BUTTON_GRADIENT}
-                        style={styles.buttonGradient}
+                    {/* Secondary buttons row */}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      {/* Discuss Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          borderRadius: 14,
+                          paddingVertical: 14,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                        }}
+                        onPress={handleDiscussVerse}
+                        activeOpacity={0.8}
                       >
-                        <View style={styles.buttonContent}>
-                          <MaterialIcons name="chat-bubble" size={20} color="#FFFFFF" />
-                          <Text style={styles.verseModalButtonText}>
-                            Discuss with Friend
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                        <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: '#FFFFFF',
+                        }}>
+                          Discuss
+                        </Text>
+                      </TouchableOpacity>
 
-                    {/* Share Button */}
-                    <TouchableOpacity
-                      style={styles.verseModalButton}
-                      onPress={handleShareVerse}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={VERSE_MODAL_BUTTON_GRADIENT}
-                        style={styles.buttonGradient}
+                      {/* Share Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          borderRadius: 14,
+                          paddingVertical: 14,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                        }}
+                        onPress={handleShareVerse}
+                        activeOpacity={0.8}
                       >
-                        <View style={styles.buttonContent}>
-                          <MaterialIcons name="share" size={20} color="#FFFFFF" />
-                          <Text style={styles.verseModalButtonText}>
-                            Share
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                        <MaterialIcons name="ios-share" size={18} color="#FFFFFF" />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: '#FFFFFF',
+                        }}>
+                          Share
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
 
                     {/* Dismiss Options */}
                     {!showDismissOptions ? (
