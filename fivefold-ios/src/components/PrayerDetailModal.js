@@ -493,7 +493,7 @@ const PrayerDetailModal = ({
                       borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                     }]}>
                       <View style={styles.actsHeader}>
-                        <MaterialIcons name="lightbulb-outline" size={18} color={theme.primary} />
+                        <MaterialIcons name="lightbulb" size={18} color={theme.primary} />
                         <Text style={[styles.actsTitle, { color: theme.text }]}>
                           How to Pray
                         </Text>

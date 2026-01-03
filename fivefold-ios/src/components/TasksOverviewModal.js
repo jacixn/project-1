@@ -220,7 +220,7 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
                               
                               {todo.reasoning && (
                                 <View style={styles.analysisItem}>
-                                  <MaterialIcons name="lightbulb-outline" size={14} color={theme.textSecondary} />
+                                  <MaterialIcons name="lightbulb" size={14} color={theme.textSecondary} />
                                   <Text style={[styles.analysisText, { color: theme.text }]}>
                                     {todo.reasoning}
                                   </Text>

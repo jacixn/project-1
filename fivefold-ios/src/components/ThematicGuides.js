@@ -40,8 +40,8 @@ const GUIDES_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'thematic_guides_data_v3',
-  CACHE_TIMESTAMP_KEY: 'thematic_guides_timestamp_v3',
+  CACHE_KEY: 'thematic_guides_data_v4',
+  CACHE_TIMESTAMP_KEY: 'thematic_guides_timestamp_v4',
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 };
 
@@ -119,7 +119,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
       themeCategories: [
         { id: 'all', name: 'All Themes', color: theme.primary, icon: 'stars' },
         { id: 'faith', name: 'Faith', color: '#4A90E2', icon: 'favorite' },
-        { id: 'love', name: 'Love', color: '#E91E63', icon: 'favorite_border' },
+        { id: 'love', name: 'Love', color: '#E91E63', icon: 'favorite-border' },
         { id: 'wisdom', name: 'Wisdom', color: '#8B572A', icon: 'psychology' }
       ],
       thematicGuides: [
