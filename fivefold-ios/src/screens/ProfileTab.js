@@ -4023,7 +4023,8 @@ const ProfileTab = () => {
                         hapticFeedback.medium();
                         setRenameHighlightColor(color);
                         setRenameHighlightText(getColorName(color));
-                        setShowRenameHighlight(true);
+                        setShowHighlights(false);
+                        setTimeout(() => setShowRenameHighlight(true), 300);
                       }}
                       activeOpacity={0.8}
                       delayPressIn={0}
@@ -4084,7 +4085,8 @@ const ProfileTab = () => {
                             hapticFeedback.light();
                             setRenameHighlightColor(color);
                             setRenameHighlightText(getColorName(color));
-                            setShowRenameHighlight(true);
+                            setShowHighlights(false);
+                            setTimeout(() => setShowRenameHighlight(true), 300);
                           }}
                           style={{
                             width: 36,
@@ -4156,7 +4158,8 @@ const ProfileTab = () => {
                             hapticFeedback.medium();
                             setRenameHighlightColor(color);
                             setRenameHighlightText(getColorName(color));
-                            setShowRenameHighlight(true);
+                            setShowHighlights(false);
+                            setTimeout(() => setShowRenameHighlight(true), 300);
                           }}
                           activeOpacity={0.8}
                           delayPressIn={0}
@@ -4182,7 +4185,8 @@ const ProfileTab = () => {
                               hapticFeedback.light();
                               setRenameHighlightColor(color);
                               setRenameHighlightText(getColorName(color));
-                              setShowRenameHighlight(true);
+                              setShowHighlights(false);
+                              setTimeout(() => setShowRenameHighlight(true), 300);
                             }}
                             activeOpacity={0.7}
                             delayPressIn={0}
