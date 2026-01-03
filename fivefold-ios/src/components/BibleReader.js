@@ -2886,164 +2886,271 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const renderBooks = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      contentContainerStyle={{ paddingTop: 120 }}
+      contentContainerStyle={{ paddingTop: 100, paddingHorizontal: 20, paddingBottom: 40 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Clean Header with theme colors */}
-      <View style={[styles.cleanHeader, { 
-        backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
-        borderColor: useThemeColors ? `${theme.primary}60` : theme.border 
-      }]}>
-          <Text style={[styles.beautifulTitle, { color: theme.text }]}>Books of the Bible</Text>
-          <Text style={[styles.beautifulSubtitle, { color: theme.textSecondary }]}>
-            Explore the sacred texts with modern clarity
-          </Text>
-      </View>
-      
-      {/* Clean Testament Cards with theme colors */}
-      <View style={styles.testamentsContainer}>
+      {/* Premium Testament Cards */}
+      <View style={{ gap: 16 }}>
+        
         {/* Old Testament Card */}
-        <View style={styles.testamentSection}>
-      <TouchableOpacity
-          style={styles.modernTestamentCard}
+        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             hapticFeedback.buttonPress();
-              setExpandedTestament(expandedTestament === 'old' ? null : 'old');
+            setExpandedTestament(expandedTestament === 'old' ? null : 'old');
           }}
         >
-          <View style={[styles.cleanTestamentCard, { 
-            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
-            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
-          }]}>
-            <View style={[styles.modernTestamentIcon, { backgroundColor: `${theme.primary}20` }]}>
+          <LinearGradient
+            colors={isDark 
+              ? [`${theme.primary}30`, `${theme.primary}15`] 
+              : [`${theme.primary}20`, `${theme.primary}08`]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: 24,
+              padding: 20,
+              borderWidth: 1,
+              borderColor: `${theme.primary}40`,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Icon */}
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                backgroundColor: `${theme.primary}25`,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 16,
+              }}>
                 <MaterialIcons name="menu-book" size={28} color={theme.primary} />
-        </View>
-              <View style={styles.modernTestamentInfo}>
-                <Text style={[styles.modernTestamentTitle, { color: theme.text }]}>Old Testament</Text>
-                <Text style={[styles.modernTestamentSubtitle, { color: theme.textSecondary }]}>
-                  {books.filter(book => book.testament === 'old').length} books • Ancient Wisdom
-          </Text>
-                <View style={styles.testamentStats}>
-                <View style={[styles.statBadge, { backgroundColor: `${theme.primary}15` }]}>
-                    <Text style={[styles.statText, { color: theme.primary }]}>Genesis to Malachi</Text>
-        </View>
-                </View>
               </View>
-              <View style={styles.modernChevron}>
+              
+              {/* Content */}
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: '800',
+                  color: theme.text,
+                  letterSpacing: -0.3,
+                }}>
+                  Old Testament
+                </Text>
+                <Text style={{
+                  fontSize: 14,
+                  color: theme.textSecondary,
+                  marginTop: 2,
+                  fontWeight: '500',
+                }}>
+                  {books.filter(book => book.testament === 'old').length} books
+                </Text>
+              </View>
+              
+              {/* Arrow */}
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
                 <MaterialIcons 
                   name={expandedTestament === 'old' ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                  size={28} 
-                  color={theme.primary} 
+                  size={24} 
+                  color={theme.text} 
                 />
               </View>
-          </View>
-      </TouchableOpacity>
-
-          {/* Old Testament Dropdown */}
-          {expandedTestament === 'old' && (
-            <View style={[styles.dropdownContainer, {
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-              borderColor: useThemeColors ? `${theme.primary}30` : theme.border
-            }]}>
-              {books.filter(book => book.testament === 'old').map((book, index) => (
-                <TouchableOpacity
-                  key={book.id}
-                  style={[styles.dropdownBookItem, {
-                    borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-                  }]}
-                  onPress={() => {
-                    hapticFeedback.buttonPress();
-                    loadChapters(book);
-                    setExpandedTestament(null); // Close dropdown after selection
-                  }}
-                >
-                  <View style={styles.dropdownBookIcon}>
-                    <MaterialIcons name="book" size={22} color={theme.primary} />
-                  </View>
-                  <View style={styles.dropdownBookInfo}>
-                    <Text style={[styles.dropdownBookName, { color: theme.text }]}>{book.name}</Text>
-                    <Text style={[styles.dropdownBookDetails, { color: theme.textSecondary }]}>
-                      {book.chapters} chapters • {index < 5 ? 'Torah' : index < 17 ? 'History' : index < 22 ? 'Wisdom' : index < 27 ? 'Major Prophets' : 'Minor Prophets'}
-                    </Text>
-                  </View>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                </TouchableOpacity>
-              ))}
             </View>
-          )}
-        </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Old Testament Dropdown */}
+        {expandedTestament === 'old' && (
+          <View style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+            borderRadius: 20,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          }}>
+            {books.filter(book => book.testament === 'old').map((book, index, arr) => (
+              <TouchableOpacity
+                key={book.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  paddingHorizontal: 18,
+                  borderBottomWidth: index < arr.length - 1 ? 1 : 0,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  loadChapters(book);
+                  setExpandedTestament(null);
+                }}
+                activeOpacity={0.6}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: `${theme.primary}15`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.primary }}>
+                    {index + 1}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                    {book.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>
+                    {book.chapters} chapters
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* New Testament Card */}
-        <View style={styles.testamentSection}>
-      <TouchableOpacity
-          style={styles.modernTestamentCard}
+        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             hapticFeedback.buttonPress();
-              setExpandedTestament(expandedTestament === 'new' ? null : 'new');
+            setExpandedTestament(expandedTestament === 'new' ? null : 'new');
           }}
         >
-          <View style={[styles.cleanTestamentCard, { 
-            backgroundColor: useThemeColors ? `${theme.primary}25` : theme.card,
-            borderColor: useThemeColors ? `${theme.primary}60` : theme.border
-          }]}>
-            <View style={[styles.modernTestamentIcon, { backgroundColor: `${theme.primary}20` }]}>
+          <LinearGradient
+            colors={isDark 
+              ? [`${theme.primary}30`, `${theme.primary}15`] 
+              : [`${theme.primary}20`, `${theme.primary}08`]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: 24,
+              padding: 20,
+              borderWidth: 1,
+              borderColor: `${theme.primary}40`,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Icon */}
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                backgroundColor: `${theme.primary}25`,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 16,
+              }}>
                 <MaterialIcons name="auto-stories" size={28} color={theme.primary} />
-        </View>
-              <View style={styles.modernTestamentInfo}>
-                <Text style={[styles.modernTestamentTitle, { color: theme.text }]}>New Testament</Text>
-                <Text style={[styles.modernTestamentSubtitle, { color: theme.textSecondary }]}>
-                  {books.filter(book => book.testament === 'new').length} books • Gospel & Letters
-          </Text>
-                <View style={styles.testamentStats}>
-                <View style={[styles.statBadge, { backgroundColor: `${theme.primary}15` }]}>
-                    <Text style={[styles.statText, { color: theme.primary }]}>Matthew to Revelation</Text>
-        </View>
-                </View>
               </View>
-              <View style={styles.modernChevron}>
+              
+              {/* Content */}
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: '800',
+                  color: theme.text,
+                  letterSpacing: -0.3,
+                }}>
+                  New Testament
+                </Text>
+                <Text style={{
+                  fontSize: 14,
+                  color: theme.textSecondary,
+                  marginTop: 2,
+                  fontWeight: '500',
+                }}>
+                  {books.filter(book => book.testament === 'new').length} books
+                </Text>
+              </View>
+              
+              {/* Arrow */}
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
                 <MaterialIcons 
                   name={expandedTestament === 'new' ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                  size={28} 
-                  color={theme.primary} 
+                  size={24} 
+                  color={theme.text} 
                 />
               </View>
-          </View>
-      </TouchableOpacity>
-
-          {/* New Testament Dropdown */}
-          {expandedTestament === 'new' && (
-            <View style={[styles.dropdownContainer, {
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-              borderColor: useThemeColors ? `${theme.primary}30` : theme.border
-            }]}>
-              {books.filter(book => book.testament === 'new').map((book, index) => (
-                <TouchableOpacity
-                  key={book.id}
-                  style={[styles.dropdownBookItem, {
-                    borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-                  }]}
-                  onPress={() => {
-                    hapticFeedback.buttonPress();
-                    loadChapters(book);
-                    setExpandedTestament(null); // Close dropdown after selection
-                  }}
-                >
-                  <View style={styles.dropdownBookIcon}>
-                    <MaterialIcons name="book" size={22} color={theme.primary} />
-                  </View>
-                  <View style={styles.dropdownBookInfo}>
-                    <Text style={[styles.dropdownBookName, { color: theme.text }]}>{book.name}</Text>
-                    <Text style={[styles.dropdownBookDetails, { color: theme.textSecondary }]}>
-                      {book.chapters} chapters • {index < 4 ? 'Gospels' : index < 5 ? 'History' : index < 14 ? 'Paul\'s Letters' : index < 22 ? 'General Letters' : 'Prophecy'}
-                    </Text>
-                  </View>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                </TouchableOpacity>
-              ))}
             </View>
-          )}
-        </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* New Testament Dropdown */}
+        {expandedTestament === 'new' && (
+          <View style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+            borderRadius: 20,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          }}>
+            {books.filter(book => book.testament === 'new').map((book, index, arr) => (
+              <TouchableOpacity
+                key={book.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  paddingHorizontal: 18,
+                  borderBottomWidth: index < arr.length - 1 ? 1 : 0,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  loadChapters(book);
+                  setExpandedTestament(null);
+                }}
+                activeOpacity={0.6}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: `${theme.primary}15`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.primary }}>
+                    {index + 1}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>
+                    {book.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>
+                    {book.chapters} chapters
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        
       </View>
     </ScrollView>
   );
