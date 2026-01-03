@@ -4,7 +4,16 @@
  * Data persists across devices and app reinstalls
  */
 
-import { CloudStorage, CloudStorageProvider, CloudStorageScope } from 'react-native-cloud-store';
+import {
+  isICloudAvailable,
+  getDefaultICloudContainerPath,
+  writeFile,
+  readFile,
+  exist,
+  unlink,
+  createDir,
+  download,
+} from 'react-native-cloud-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -41,7 +50,7 @@ class ICloudSyncService {
     this.isAvailable = false;
     this.isSyncing = false;
     this.syncListeners = [];
-    this.cloudStorage = null;
+    this.containerPath = null;
   }
 
   /**
@@ -52,23 +61,40 @@ class ICloudSyncService {
     try {
       // Only available on iOS
       if (Platform.OS !== 'ios') {
-        console.log('☁️ iCloud sync is only available on iOS');
+        console.log('iCloud sync is only available on iOS');
         this.isAvailable = false;
         return false;
       }
 
-      // Create iCloud storage instance
-      this.cloudStorage = new CloudStorage(CloudStorageProvider.ICloud);
-      
       // Check if iCloud is available (user logged in)
       this.isAvailable = await this.checkAvailability();
       
       if (this.isAvailable) {
-        console.log('☁️ iCloud sync initialized successfully');
+        // Get the container path
+        this.containerPath = await getDefaultICloudContainerPath();
+        
+        if (!this.containerPath) {
+          console.log('iCloud container path not available');
+          this.isAvailable = false;
+          return false;
+        }
+        
+        // Ensure our data directory exists
+        try {
+          const dataDir = `${this.containerPath}/Documents/biblely_data`;
+          const dirExists = await exist(dataDir);
+          if (!dirExists) {
+            await createDir(dataDir);
+          }
+        } catch (dirError) {
+          console.log('Could not create data directory:', dirError.message);
+        }
+        
+        console.log('iCloud sync initialized successfully');
         
         // ALWAYS try to sync from cloud first - this handles new devices
         const syncResult = await this.syncFromCloud();
-        console.log('☁️ Sync from cloud result:', syncResult);
+        console.log('Sync from cloud result:', syncResult);
         
         // Check if this device has local data that hasn't been uploaded yet
         const migrationComplete = await AsyncStorage.getItem(MIGRATION_COMPLETE_KEY);
@@ -78,7 +104,7 @@ class ICloudSyncService {
           const hasLocalData = await this.hasSignificantLocalData();
           
           if (hasLocalData) {
-            console.log('☁️ Found local data - uploading to iCloud...');
+            console.log('Found local data - uploading to iCloud...');
             await this.syncAllToCloud();
           }
           
@@ -86,12 +112,12 @@ class ICloudSyncService {
           await AsyncStorage.setItem(MIGRATION_COMPLETE_KEY, new Date().toISOString());
         }
       } else {
-        console.log('☁️ iCloud not available - user may not be signed in');
+        console.log('iCloud not available - user may not be signed in');
       }
 
       return this.isAvailable;
     } catch (error) {
-      console.error('☁️ Error initializing iCloud sync:', error);
+      console.error('Error initializing iCloud sync:', error);
       this.isAvailable = false;
       return false;
     }
@@ -102,15 +128,10 @@ class ICloudSyncService {
    */
   async checkAvailability() {
     try {
-      if (!this.cloudStorage) return false;
-      
-      // Try to write a test file to check availability
-      const testPath = '/.icloud_test';
-      await this.cloudStorage.writeFile(testPath, 'test', CloudStorageScope.AppData);
-      await this.cloudStorage.unlink(testPath, CloudStorageScope.AppData);
-      return true;
+      const available = await isICloudAvailable();
+      return available;
     } catch (error) {
-      console.log('☁️ iCloud availability check failed:', error.message);
+      console.log('iCloud availability check failed:', error.message);
       return false;
     }
   }
@@ -129,25 +150,25 @@ class ICloudSyncService {
       if (verseData) {
         const parsed = JSON.parse(verseData);
         if (Object.keys(parsed).length > 0) {
-          console.log('☁️ Found local verse data');
+          console.log('Found local verse data');
           return true;
         }
       }
       
       if (totalPoints && parseInt(totalPoints) > 0) {
-        console.log('☁️ Found local points:', totalPoints);
+        console.log('Found local points:', totalPoints);
         return true;
       }
       
       if (userProfile) {
-        console.log('☁️ Found local user profile');
+        console.log('Found local user profile');
         return true;
       }
       
-      console.log('☁️ No significant local data found');
+      console.log('No significant local data found');
       return false;
     } catch (error) {
-      console.log('☁️ Error checking local data:', error.message);
+      console.log('Error checking local data:', error.message);
       return false;
     }
   }
@@ -156,7 +177,8 @@ class ICloudSyncService {
    * Get the file path for a storage key
    */
   getFilePath(key) {
-    return `/biblely_data/${key}.json`;
+    if (!this.containerPath) return null;
+    return `${this.containerPath}/Documents/biblely_data/${key}.json`;
   }
 
   /**
@@ -171,7 +193,7 @@ class ICloudSyncService {
     this.notifyListeners('migration_started');
 
     try {
-      console.log('☁️ Starting data migration to iCloud...');
+      console.log('Starting data migration to iCloud...');
       
       let migratedCount = 0;
       let skippedCount = 0;
@@ -183,21 +205,24 @@ class ICloudSyncService {
           if (localData) {
             // Check if data already exists in cloud
             const filePath = this.getFilePath(key);
+            if (!filePath) continue;
+            
             let cloudExists = false;
             
             try {
-              cloudExists = await this.cloudStorage.exists(filePath, CloudStorageScope.AppData);
+              cloudExists = await exist(filePath);
             } catch {
               cloudExists = false;
             }
 
             if (cloudExists) {
               // Cloud has data - need to merge
-              console.log(`☁️ Key ${key} exists in cloud - merging...`);
+              console.log(`Key ${key} exists in cloud - merging...`);
               
               try {
-                await this.cloudStorage.triggerSync(filePath, CloudStorageScope.AppData);
-                const cloudData = await this.cloudStorage.readFile(filePath, CloudStorageScope.AppData);
+                // Download if needed
+                await download(filePath);
+                const cloudData = await readFile(filePath);
                 const cloudParsed = JSON.parse(cloudData);
                 const localParsed = JSON.parse(localData);
                 
@@ -212,7 +237,7 @@ class ICloudSyncService {
                 
                 migratedCount++;
               } catch (mergeError) {
-                console.warn(`☁️ Error merging ${key}, uploading local:`, mergeError.message);
+                console.warn(`Error merging ${key}, uploading local:`, mergeError.message);
                 // If merge fails, just upload local data
                 const parsed = JSON.parse(localData);
                 await this.syncToCloud(key, parsed);
@@ -223,13 +248,13 @@ class ICloudSyncService {
               const parsed = JSON.parse(localData);
               await this.syncToCloud(key, parsed);
               migratedCount++;
-              console.log(`☁️ Migrated ${key} to iCloud`);
+              console.log(`Migrated ${key} to iCloud`);
             }
           } else {
             skippedCount++;
           }
         } catch (keyError) {
-          console.warn(`☁️ Error migrating key ${key}:`, keyError.message);
+          console.warn(`Error migrating key ${key}:`, keyError.message);
         }
       }
 
@@ -237,12 +262,12 @@ class ICloudSyncService {
       await AsyncStorage.setItem(MIGRATION_COMPLETE_KEY, new Date().toISOString());
       await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 
-      console.log(`☁️ Migration complete: ${migratedCount} keys migrated, ${skippedCount} skipped`);
+      console.log(`Migration complete: ${migratedCount} keys migrated, ${skippedCount} skipped`);
       this.notifyListeners('migration_completed', { migratedCount, skippedCount });
       
       return { success: true, migratedCount, skippedCount };
     } catch (error) {
-      console.error('☁️ Error during migration:', error);
+      console.error('Error during migration:', error);
       this.notifyListeners('migration_error', { error: error.message });
       return { success: false, error: error.message };
     }
@@ -261,7 +286,7 @@ class ICloudSyncService {
     this.notifyListeners('sync_started');
 
     try {
-      console.log('☁️ Starting sync from iCloud...');
+      console.log('Starting sync from iCloud...');
       
       let syncedCount = 0;
       let conflictCount = 0;
@@ -269,16 +294,21 @@ class ICloudSyncService {
       for (const key of SYNC_KEYS) {
         try {
           const filePath = this.getFilePath(key);
+          if (!filePath) continue;
           
           // Check if file exists in iCloud
-          const exists = await this.cloudStorage.exists(filePath, CloudStorageScope.AppData);
+          const fileExists = await exist(filePath);
           
-          if (exists) {
-            // Trigger sync to ensure file is downloaded
-            await this.cloudStorage.triggerSync(filePath, CloudStorageScope.AppData);
+          if (fileExists) {
+            // Download if needed
+            try {
+              await download(filePath);
+            } catch (downloadErr) {
+              // File might already be downloaded
+            }
             
             // Read from iCloud
-            const cloudData = await this.cloudStorage.readFile(filePath, CloudStorageScope.AppData);
+            const cloudData = await readFile(filePath);
             const cloudParsed = JSON.parse(cloudData);
             
             // Get local data
@@ -300,7 +330,7 @@ class ICloudSyncService {
         } catch (keyError) {
           // File might not exist yet, that's okay
           if (!keyError.message?.includes('not found') && !keyError.message?.includes('does not exist')) {
-            console.warn(`☁️ Error syncing key ${key}:`, keyError.message);
+            console.warn(`Error syncing key ${key}:`, keyError.message);
           }
         }
       }
@@ -308,12 +338,12 @@ class ICloudSyncService {
       // Update last sync time
       await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 
-      console.log(`☁️ Sync from iCloud complete: ${syncedCount} synced, ${conflictCount} merged`);
+      console.log(`Sync from iCloud complete: ${syncedCount} synced, ${conflictCount} merged`);
       this.notifyListeners('sync_completed', { syncedCount, conflictCount });
       
       return { success: true, syncedCount, conflictCount };
     } catch (error) {
-      console.error('☁️ Error syncing from iCloud:', error);
+      console.error('Error syncing from iCloud:', error);
       this.notifyListeners('sync_error', { error: error.message });
       return { success: false, error: error.message };
     } finally {
@@ -336,6 +366,9 @@ class ICloudSyncService {
 
     try {
       const filePath = this.getFilePath(key);
+      if (!filePath) {
+        return { success: false, reason: 'No container path' };
+      }
       
       // Wrap data with metadata
       const cloudData = {
@@ -345,16 +378,12 @@ class ICloudSyncService {
         version: 1
       };
 
-      await this.cloudStorage.writeFile(
-        filePath, 
-        JSON.stringify(cloudData), 
-        CloudStorageScope.AppData
-      );
+      await writeFile(filePath, JSON.stringify(cloudData));
 
-      console.log(`☁️ Synced ${key} to iCloud`);
+      console.log(`Synced ${key} to iCloud`);
       return { success: true };
     } catch (error) {
-      console.error(`☁️ Error syncing ${key} to iCloud:`, error);
+      console.error(`Error syncing ${key} to iCloud:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -372,7 +401,7 @@ class ICloudSyncService {
     this.notifyListeners('sync_started');
 
     try {
-      console.log('☁️ Starting full sync to iCloud...');
+      console.log('Starting full sync to iCloud...');
       
       let syncedCount = 0;
       let errorCount = 0;
@@ -392,7 +421,7 @@ class ICloudSyncService {
             }
           }
         } catch (keyError) {
-          console.warn(`☁️ Error syncing key ${key}:`, keyError.message);
+          console.warn(`Error syncing key ${key}:`, keyError.message);
           errorCount++;
         }
       }
@@ -400,12 +429,12 @@ class ICloudSyncService {
       // Update last sync time
       await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 
-      console.log(`☁️ Full sync to iCloud complete: ${syncedCount} synced, ${errorCount} errors`);
+      console.log(`Full sync to iCloud complete: ${syncedCount} synced, ${errorCount} errors`);
       this.notifyListeners('sync_completed', { syncedCount, errorCount });
       
       return { success: true, syncedCount, errorCount };
     } catch (error) {
-      console.error('☁️ Error in full sync to iCloud:', error);
+      console.error('Error in full sync to iCloud:', error);
       this.notifyListeners('sync_error', { error: error.message });
       return { success: false, error: error.message };
     } finally {
@@ -465,7 +494,7 @@ class ICloudSyncService {
       // For primitives, prefer cloud (newer sync wins)
       return { action: 'use_cloud', data: cloudData };
     } catch (error) {
-      console.warn('☁️ Error merging data, using cloud:', error);
+      console.warn('Error merging data, using cloud:', error);
       return { action: 'use_cloud', data: cloudData };
     }
   }
@@ -619,7 +648,7 @@ class ICloudSyncService {
             const parsed = JSON.parse(value);
             await self.syncToCloud(key, parsed);
           } catch (error) {
-            console.warn('☁️ Auto-sync failed for', key, error.message);
+            console.warn('Auto-sync failed for', key, error.message);
           }
         }
       },
@@ -631,7 +660,9 @@ class ICloudSyncService {
         if (SYNC_KEYS.includes(key) && self.isAvailable) {
           try {
             const filePath = self.getFilePath(key);
-            await self.cloudStorage.unlink(filePath, CloudStorageScope.AppData);
+            if (filePath) {
+              await unlink(filePath);
+            }
           } catch (error) {
             // File might not exist, that's okay
           }
