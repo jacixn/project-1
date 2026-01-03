@@ -2915,286 +2915,503 @@ const ProfileTab = () => {
       {/* Settings Modal */}
       <Modal visible={showSettingsModal} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
-              <Text style={[styles.modalCancel, { color: theme.primary }]}>Done</Text>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 16,
+          }}>
+            <TouchableOpacity 
+              onPress={() => setShowSettingsModal(false)}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                borderRadius: 20,
+              }}
+            >
+              <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Done</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>{t.settings || 'Settings'}</Text>
-            <View style={{ width: 50 }} />
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: '700', 
+              color: theme.text,
+              letterSpacing: 0.3,
+            }}>Settings</Text>
+            <View style={{ width: 60 }} />
           </View>
 
-          <ScrollView style={styles.modalContent}>
-            {/* Theme Selection Button */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={() => {
-                console.log('Theme button pressed');
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                setTimeout(() => {
-                  setShowThemeModal(true);
-                }, 300);
-                console.log('showThemeModal set to true');
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="palette" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.theme || 'Theme'}
-                </Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                  {isBlushTheme ? 'Blush Bloom' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : 'Default'}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-            
-            {/* Bible Version Setting */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                setTimeout(() => {
-                  setShowBibleVersionModal(true);
-                }, 300);
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="menu-book" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.bibleVersion || 'Bible Version'}
-                </Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                  {getVersionById(selectedBibleVersion).abbreviation}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-            
-            {/* Language Setting */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                setTimeout(() => {
-                  setShowLanguageModal(true);
-                }, 300);
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="language" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.language || 'Language'}
-                </Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                  {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-            
-            {/* Audio Voice Setting */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
-                setAudioVoiceGender(newGender);
-                await bibleAudioService.setVoiceGender(newGender);
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  Bible Audio Voice
-                </Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                  {audioVoiceGender === 'female' ? 'Female' : 'Male'}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 20, paddingTop: 8 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* APPEARANCE SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: theme.textTertiary,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Appearance
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              {/* Theme */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowThemeModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="palette" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Theme</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    {isBlushTheme ? 'Blush' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : 'Default'}
+                  </Text>
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
 
-            {/* Weight Unit Setting */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
-                setWeightUnit(newUnit);
-                await AsyncStorage.setItem('weightUnit', newUnit);
-                
-                // Update in user profile
-                const storedProfile = await AsyncStorage.getItem('userProfile');
-                if (storedProfile) {
-                  const profile = JSON.parse(storedProfile);
-                  profile.weightUnit = newUnit;
-                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-                }
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  Weight Unit
-                </Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                  {weightUnit.toUpperCase()}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-
-            {/* Haptic Feedback Toggle */}
-            <View style={[styles.modalSettingItem, { backgroundColor: theme.card }]}>
-              <View style={styles.settingLeft}>
-                <MaterialIcons 
-                  name="vibration" 
-                  size={20} 
-                  color={theme.primary} 
-                />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.hapticFeedback || 'Haptic Feedback'}
-                </Text>
-              </View>
-              <Switch
-                value={vibrationEnabled}
-                onValueChange={handleVibrationToggle}
-                trackColor={{ false: theme.border, true: theme.primary }}
-                thumbColor={vibrationEnabled ? "#FFFFFF" : "#F4F3F4"}
-              />
+              {/* Liquid Glass Toggle */}
+              {isLiquidGlassSupportedByDevice && (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <View style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: `${theme.primary}20`,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <MaterialIcons name="blur-on" size={20} color={theme.primary} />
+                    </View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Glass Effect</Text>
+                  </View>
+                  <Switch
+                    value={liquidGlassEnabled}
+                    onValueChange={handleLiquidGlassToggle}
+                    trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              )}
             </View>
 
-            {/* Liquid Glass Toggle - Only show if device supports it */}
-            {isLiquidGlassSupportedByDevice && (
-              <View style={[styles.modalSettingItem, { backgroundColor: theme.card }]}>
-                <View style={styles.settingLeft}>
-                  <MaterialIcons 
-                    name="gradient" 
-                    size={20} 
-                    color={theme.primary} 
-                  />
-                  <Text style={[styles.settingLabel, { color: theme.text }]}>
-                    Liquid Glass Effect
+            {/* CONTENT SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: theme.textTertiary,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Content
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              {/* Bible Version */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowBibleVersionModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="menu-book" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Bible Version</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    {getVersionById(selectedBibleVersion).abbreviation}
                   </Text>
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Language */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowLanguageModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="language" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Language</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
+                  </Text>
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Audio Voice */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={async () => {
+                  hapticFeedback.buttonPress();
+                  const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
+                  setAudioVoiceGender(newGender);
+                  await bibleAudioService.setVoiceGender(newGender);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Audio Voice</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    {audioVoiceGender === 'female' ? 'Female' : 'Male'}
+                  </Text>
+                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* PREFERENCES SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: theme.textTertiary,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Preferences
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              {/* Weight Unit */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={async () => {
+                  hapticFeedback.buttonPress();
+                  const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
+                  setWeightUnit(newUnit);
+                  await AsyncStorage.setItem('weightUnit', newUnit);
+                  const storedProfile = await AsyncStorage.getItem('userProfile');
+                  if (storedProfile) {
+                    const profile = JSON.parse(storedProfile);
+                    profile.weightUnit = newUnit;
+                    await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Weight Unit</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                    {weightUnit.toUpperCase()}
+                  </Text>
+                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Haptic Feedback */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="vibration" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Haptics</Text>
                 </View>
                 <Switch
-                  value={liquidGlassEnabled}
-                  onValueChange={handleLiquidGlassToggle}
-                  trackColor={{ false: theme.border, true: theme.primary }}
-                  thumbColor={liquidGlassEnabled ? "#FFFFFF" : "#F4F3F4"}
+                  value={vibrationEnabled}
+                  onValueChange={handleVibrationToggle}
+                  trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+                  thumbColor="#fff"
                 />
               </View>
-            )}
-            
-            {/* Verse of the Day Toggle */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                try {
-                  const dismissType = await getStoredData('votd_dismiss_type');
-                  if (dismissType) {
-                    // Re-enable it
-                    await saveData('votd_dismiss_type', null);
-                    await saveData('votd_dismissed_date', null);
-                    Alert.alert('Enabled', 'Verse of the Day popup will show again when you open the app.');
-                  } else {
-                    Alert.alert('Already Enabled', 'The Verse of the Day popup is already enabled.');
+
+              {/* Verse Popup */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={async () => {
+                  hapticFeedback.buttonPress();
+                  try {
+                    const dismissType = await getStoredData('votd_dismiss_type');
+                    if (dismissType) {
+                      await saveData('votd_dismiss_type', null);
+                      await saveData('votd_dismissed_date', null);
+                      Alert.alert('Enabled', 'Verse of the Day popup will show again.');
+                    } else {
+                      Alert.alert('Already Enabled', 'The popup is already enabled.');
+                    }
+                  } catch (error) {
+                    console.error('Error toggling verse popup:', error);
                   }
-                } catch (error) {
-                  console.error('Error toggling verse popup:', error);
-                }
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  Enable Verse Popup
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-            </TouchableOpacity>
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Daily Verse Popup</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
 
-            {/* Notifications */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card }]}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowNotificationSettings(true);
-                setShowSettingsModal(false);
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="notifications" size={20} color={theme.primary} />
-                <Text style={[styles.settingLabel, { color: theme.text }]}>
-                  {t.notifications || 'Notifications'}
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-            </TouchableOpacity>
+              {/* Notifications */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowNotificationSettings(true);
+                  setShowSettingsModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="notifications-none" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Notifications</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
+            </View>
 
-            
-            {/* Delete Account */}
-            <TouchableOpacity 
-              style={[styles.modalSettingItem, { backgroundColor: theme.card, marginTop: 20 }]}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                setTimeout(() => {
-                  Alert.alert(
-                    'Delete Account',
-                    'This will permanently delete your account and all your data. This action cannot be undone. Are you sure?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { 
-                        text: 'Delete Account', 
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            hapticFeedback.buttonPress();
-                            
-                            const { deleteAccountCompletely } = await import('../utils/onboardingReset');
-                            const success = await deleteAccountCompletely();
-                            
-                            if (success) {
-                              // Account successfully deleted - onboarding will restart automatically
-                              console.log('✅ Account deletion completed - returning to onboarding');
-                            } else {
-                              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            {/* DANGER ZONE */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: '#FF6B6B',
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Danger Zone
+            </Text>
+
+            <View style={{
+              backgroundColor: 'rgba(255, 59, 48, 0.1)',
+              borderRadius: 16,
+              marginBottom: 40,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 59, 48, 0.2)',
+            }}>
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => {
+                    Alert.alert(
+                      'Delete Account',
+                      'This will permanently delete your account and all your data. This action cannot be undone.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Delete', 
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              hapticFeedback.buttonPress();
+                              const { deleteAccountCompletely } = await import('../utils/onboardingReset');
+                              const success = await deleteAccountCompletely();
+                              if (!success) {
+                                Alert.alert('Error', 'Failed to delete account.');
+                              }
+                            } catch (error) {
+                              console.error('Delete account error:', error);
+                              Alert.alert('Error', 'Failed to delete account.');
                             }
-                          } catch (error) {
-                            console.error('Delete account error:', error);
-                            Alert.alert('Error', 'Failed to delete account. Please try again.');
                           }
                         }
-                      }
-                    ]
-                  );
-                }, 300);
-              }}
-            >
-              <View style={styles.settingLeft}>
-                <MaterialIcons name="delete-forever" size={20} color="#FF3B30" />
-                <Text style={[styles.settingLabel, { color: '#FF3B30' }]}>
-                  {t.deleteAccount || 'Delete Account'}
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-            </TouchableOpacity>
+                      ]
+                    );
+                  }, 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="delete-outline" size={20} color="#FF3B30" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF3B30' }}>Delete Account</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color="#FF3B30" />
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </Modal>
