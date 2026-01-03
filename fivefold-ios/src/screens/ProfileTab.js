@@ -297,8 +297,8 @@ const ProfileTab = () => {
   const journalFadeAnim = useRef(new Animated.Value(0)).current;
   const highlightsFadeAnim = useRef(new Animated.Value(0)).current;
   
-  // Collapsible search bar animation for Saved Verses
-  const savedVersesSearchHeight = useRef(new Animated.Value(1)).current;
+  // Search bar fade animation for Saved Verses (no height change)
+  const savedVersesSearchOpacity = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   
@@ -310,11 +310,10 @@ const ProfileTab = () => {
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
       
-      Animated.spring(savedVersesSearchHeight, {
+      Animated.timing(savedVersesSearchOpacity, {
         toValue: direction === 'down' ? 0 : 1,
-        useNativeDriver: false,
-        tension: 100,
-        friction: 12,
+        duration: 200,
+        useNativeDriver: true,
       }).start();
     }
     
@@ -1702,7 +1701,7 @@ const ProfileTab = () => {
           onPress={() => {
             hapticFeedback.light();
             // Reset search bar animation
-            savedVersesSearchHeight.setValue(1);
+            savedVersesSearchOpacity.setValue(1);
             lastScrollY.current = 0;
             scrollDirection.current = 'up';
             setShowSavedVerses(true);
@@ -2517,7 +2516,7 @@ const ProfileTab = () => {
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
-                paddingTop: Platform.OS === 'ios' ? 115 : 95,
+                paddingTop: Platform.OS === 'ios' ? 175 : 145,
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
@@ -2919,14 +2918,10 @@ const ProfileTab = () => {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Collapsible Search bar */}
+                {/* Search bar with fade animation */}
                 <Animated.View style={{
-                  height: savedVersesSearchHeight.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 60],
-                  }),
-                  opacity: savedVersesSearchHeight,
-                  overflow: 'hidden',
+                  opacity: savedVersesSearchOpacity,
+                  marginTop: 16,
                 }}>
                   <View style={{
                     backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -2937,7 +2932,6 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     borderWidth: 1,
                     borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                    marginTop: 16,
                   }}>
                     <MaterialIcons name="search" size={20} color={theme.textTertiary} />
                     <TextInput

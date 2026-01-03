@@ -30,8 +30,8 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
-  // Collapsible search bar animation
-  const searchBarHeight = useRef(new Animated.Value(1)).current;
+  // Search bar fade animation (no height change)
+  const searchBarOpacity = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   
@@ -42,11 +42,10 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
       
-      Animated.spring(searchBarHeight, {
+      Animated.timing(searchBarOpacity, {
         toValue: direction === 'down' ? 0 : 1,
-        useNativeDriver: false,
-        tension: 100,
-        friction: 12,
+        duration: 200,
+        useNativeDriver: true,
       }).start();
     }
     
@@ -56,7 +55,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
   useEffect(() => {
     if (visible) {
       // Reset search bar animation
-      searchBarHeight.setValue(1);
+      searchBarOpacity.setValue(1);
       lastScrollY.current = 0;
       scrollDirection.current = 'up';
       
@@ -426,7 +425,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
             numColumns={2}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: Platform.OS === 'ios' ? 100 : 80,
+              paddingTop: Platform.OS === 'ios' ? 175 : 145,
               paddingBottom: 100,
             }}
             showsVerticalScrollIndicator={false}
@@ -490,14 +489,10 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                 <View style={{ width: 70 }} />
               </View>
               
-              {/* Collapsible Search bar */}
+              {/* Search bar with fade animation */}
               <Animated.View style={{
-                height: searchBarHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 60],
-                }),
-                opacity: searchBarHeight,
-                overflow: 'hidden',
+                opacity: searchBarOpacity,
+                marginTop: 16,
               }}>
                 <View style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -508,7 +503,6 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                   alignItems: 'center',
                   borderWidth: 1,
                   borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                  marginTop: 16,
                 }}>
                   <MaterialIcons name="search" size={20} color={theme.textTertiary} />
                   <TextInput
