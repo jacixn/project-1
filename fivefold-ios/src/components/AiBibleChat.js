@@ -670,16 +670,15 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     setShowMenu(true);
   };
 
-  const clearChat = () => {
+  const newChat = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Clear Chat',
-      'Are you sure you want to clear all messages?',
+      'New Chat',
+      'Start a fresh conversation?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
-          style: 'destructive',
+          text: 'New Chat',
           onPress: () => {
             // Reset to just the welcome message
             const welcomeMessage = {
@@ -939,10 +938,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             
             <TouchableOpacity
               style={[styles.menuItem, styles.menuItemLast]}
-              onPress={clearChat}
+              onPress={newChat}
             >
-              <MaterialIcons name="clear" size={20} color={theme.text} />
-              <Text style={[styles.menuItemText, { color: theme.text }]}>Clear Chat</Text>
+              <MaterialIcons name="add-comment" size={20} color={theme.text} />
+              <Text style={[styles.menuItemText, { color: theme.text }]}>New Chat</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
