@@ -2482,13 +2482,15 @@ const ProfileTab = () => {
           flex: 1,
           backgroundColor: theme.background
         }}>
-            {/* Content */}
-            <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 160 : 130 }}>
-            
+            {/* Content - ScrollView starts from top, content has paddingTop */}
             <ScrollView 
-              style={styles.modalScrollView} 
+              style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+              contentContainerStyle={{ 
+                paddingHorizontal: 16, 
+                paddingBottom: 40,
+                paddingTop: Platform.OS === 'ios' ? 170 : 140,
+              }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingSavedVerses}
@@ -2788,7 +2790,6 @@ const ProfileTab = () => {
                 })()
               )}
             </ScrollView>
-            </View>
 
             {/* Premium Transparent Header */}
             <BlurView 
