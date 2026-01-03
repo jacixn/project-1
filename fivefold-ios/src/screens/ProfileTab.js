@@ -3203,6 +3203,8 @@ const ProfileTab = () => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
               onPress={async () => {
                 hapticFeedback.buttonPress();
@@ -3223,11 +3225,55 @@ const ProfileTab = () => {
                   }}>
                 <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
               </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Audio Voice</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Voice Gender</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: theme.textSecondary }}>
                   {audioVoiceGender === 'female' ? 'Female' : 'Male'}
+                </Text>
+                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+              {/* Voice Source - Device vs AI */}
+            <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                const isCurrentlyAI = bibleAudioService.isUsingAIVoice();
+                const newSource = isCurrentlyAI ? 'device' : 'ai_voice';
+                await bibleAudioService.setTTSSource(newSource);
+                // Force re-render
+                setAudioVoiceGender(prev => prev);
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                <MaterialIcons name="graphic-eq" size={20} color={theme.primary} />
+              </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Voice Type</Text>
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                      {bibleAudioService.isUsingAIVoice() ? 'Human-like, requires internet' : 'Device built-in, works offline'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                  {bibleAudioService.isUsingAIVoice() ? 'AI Voice' : 'Device'}
                 </Text>
                   <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
               </View>

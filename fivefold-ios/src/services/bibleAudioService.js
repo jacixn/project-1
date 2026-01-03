@@ -1,17 +1,24 @@
 /**
  * Bible Audio Service
  * High-quality text-to-speech for Bible verse reading
- * Uses iOS enhanced/premium voices for natural speech
+ * Supports both device TTS and Chatterbox AI voices
  * 
- * For best quality, users should download enhanced voices:
+ * For device TTS quality, download enhanced voices:
  * Settings > Accessibility > Spoken Content > Voices > English > Download enhanced voice
  */
 
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking } from 'react-native';
+import chatterboxService from './chatterboxService';
 
 const AUDIO_SETTINGS_KEY = 'bible_audio_settings';
+
+// TTS Source options
+const TTS_SOURCE = {
+  DEVICE: 'device',     // Uses iOS/Android built-in TTS
+  AI_VOICE: 'ai_voice', // Uses Chatterbox AI for realistic human voice
+};
 
 // Voice presets for different genders
 // Prioritizing iOS 17+ Neural/Premium voices for most natural sound
@@ -73,6 +80,7 @@ class BibleAudioService {
       rate: 0.46, // 0.0 to 1.0 (slower for natural Bible reading)
       pitch: 1.0, // 0.5 to 2.0 (natural pitch)
       volume: 1.0, // 0.0 to 1.0
+      ttsSource: TTS_SOURCE.DEVICE, // 'device' or 'ai_voice'
     };
     this.availableVoices = [];
     this.selectedVoice = null;
@@ -83,9 +91,59 @@ class BibleAudioService {
     this.hasPromptedForVoices = false;
     this.currentBook = '';
     this.currentChapter = 0;
+    this.chatterboxAvailable = false;
     
     this.loadSettings();
     this.initializeVoices();
+    this.checkChatterboxAvailability();
+  }
+
+  /**
+   * Check if Chatterbox AI voice is available
+   */
+  async checkChatterboxAvailability() {
+    try {
+      this.chatterboxAvailable = await chatterboxService.checkAvailability();
+      console.log('[BibleAudio] Chatterbox available:', this.chatterboxAvailable);
+    } catch (error) {
+      this.chatterboxAvailable = false;
+      console.log('[BibleAudio] Chatterbox not available');
+    }
+  }
+
+  /**
+   * Get TTS source options
+   */
+  getTTSSources() {
+    return [
+      { id: TTS_SOURCE.DEVICE, name: 'Device Voice', description: 'Uses your device built-in voices (instant, works offline)' },
+      { id: TTS_SOURCE.AI_VOICE, name: 'AI Voice', description: 'Realistic human-like voice powered by AI (requires internet)' },
+    ];
+  }
+
+  /**
+   * Set TTS source
+   */
+  async setTTSSource(source) {
+    if (source !== TTS_SOURCE.DEVICE && source !== TTS_SOURCE.AI_VOICE) return;
+    
+    this.settings.ttsSource = source;
+    await this.saveSettings();
+    console.log('[BibleAudio] TTS source set to:', source);
+  }
+
+  /**
+   * Get current TTS source
+   */
+  getTTSSource() {
+    return this.settings.ttsSource;
+  }
+
+  /**
+   * Check if using AI voice
+   */
+  isUsingAIVoice() {
+    return this.settings.ttsSource === TTS_SOURCE.AI_VOICE;
   }
 
   /**
@@ -319,13 +377,8 @@ class BibleAudioService {
     // Stop current speech but preserve autoPlayEnabled state
     const wasAutoPlay = this.autoPlayEnabled;
     await Speech.stop();
+    await chatterboxService.stop();
     this.autoPlayEnabled = wasAutoPlay; // Restore auto-play state
-    
-    // Prompt for enhanced voices on first use (if not available)
-    if (!this.hasEnhancedVoice && !this.hasPromptedForVoices) {
-      // Delay prompt slightly so audio starts first
-      setTimeout(() => this.promptForEnhancedVoices(), 2000);
-    }
     
     this.isPlaying = true;
     this.isPaused = false;
@@ -345,6 +398,17 @@ class BibleAudioService {
     
     // Clean the text for better speech
     textToSpeak = this.cleanTextForSpeech(textToSpeak);
+    
+    // Use Chatterbox AI voice if enabled
+    if (this.isUsingAIVoice() && this.chatterboxAvailable) {
+      return this.speakWithChatterbox(textToSpeak);
+    }
+    
+    // Fallback: Use device TTS
+    // Prompt for enhanced voices on first use (if not available)
+    if (!this.hasEnhancedVoice && !this.hasPromptedForVoices) {
+      setTimeout(() => this.promptForEnhancedVoices(), 2000);
+    }
     
     return new Promise((resolve, reject) => {
       const options = {
@@ -375,6 +439,78 @@ class BibleAudioService {
       };
       
       Speech.speak(textToSpeak, options);
+    });
+  }
+
+  /**
+   * Speak text using Chatterbox AI voice
+   */
+  async speakWithChatterbox(text) {
+    try {
+      console.log('[BibleAudio] Using Chatterbox AI voice');
+      
+      // Set up state change listener
+      chatterboxService.onStateChange = (state) => {
+        if (state === 'finished') {
+          if (!this.autoPlayEnabled) {
+            this.isPlaying = false;
+            this.currentVerse = null;
+            this.notifyStateChange();
+          }
+        } else if (state === 'error') {
+          this.isPlaying = false;
+          this.notifyStateChange();
+        }
+      };
+      
+      const success = await chatterboxService.speak(text);
+      
+      if (!success) {
+        // Fallback to device TTS if Chatterbox fails
+        console.log('[BibleAudio] Chatterbox failed, falling back to device TTS');
+        return this.speakWithDeviceTTS(text);
+      }
+      
+    } catch (error) {
+      console.error('[BibleAudio] Chatterbox error:', error);
+      // Fallback to device TTS
+      return this.speakWithDeviceTTS(text);
+    }
+  }
+
+  /**
+   * Speak text using device TTS (fallback)
+   */
+  speakWithDeviceTTS(text) {
+    return new Promise((resolve, reject) => {
+      const options = {
+        language: 'en-US',
+        pitch: this.settings.pitch,
+        rate: this.settings.rate,
+        voice: this.selectedVoice?.identifier,
+        volume: this.settings.volume,
+        onDone: () => {
+          if (!this.autoPlayEnabled) {
+            this.isPlaying = false;
+            this.currentVerse = null;
+            this.notifyStateChange();
+          }
+          resolve();
+        },
+        onStopped: () => {
+          this.isPlaying = false;
+          this.isPaused = false;
+          resolve();
+        },
+        onError: (error) => {
+          console.error('[BibleAudio] Device TTS error:', error);
+          this.isPlaying = false;
+          this.notifyStateChange();
+          reject(error);
+        },
+      };
+      
+      Speech.speak(text, options);
     });
   }
 
@@ -458,6 +594,7 @@ class BibleAudioService {
     // Stop current speech but preserve autoPlayEnabled state
     const wasAutoPlay = this.autoPlayEnabled;
     await Speech.stop();
+    await chatterboxService.stop();
     this.autoPlayEnabled = wasAutoPlay;
     
     this.isPlaying = true;
@@ -467,6 +604,11 @@ class BibleAudioService {
     // Build text: "Verse 5. [content]"
     let textToSpeak = `Verse ${verseNumber}. ${verseText}`;
     textToSpeak = this.cleanTextForSpeech(textToSpeak);
+    
+    // Use Chatterbox AI voice if enabled
+    if (this.isUsingAIVoice() && this.chatterboxAvailable) {
+      return this.speakWithChatterbox(textToSpeak);
+    }
     
     return new Promise((resolve, reject) => {
       const options = {
@@ -555,6 +697,7 @@ class BibleAudioService {
    */
   async stop() {
     await Speech.stop();
+    await chatterboxService.stop();
     this.isPlaying = false;
     this.isPaused = false;
     this.autoPlayEnabled = false;
@@ -644,6 +787,8 @@ class BibleAudioService {
   }
 }
 
-// Export singleton instance
-export default new BibleAudioService();
+// Export singleton instance and TTS source options
+const bibleAudioService = new BibleAudioService();
+export { TTS_SOURCE };
+export default bibleAudioService;
 

@@ -22,6 +22,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import aiService from '../services/aiService';
+import chatterboxService from '../services/chatterboxService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 // Removed InteractiveSwipeBack import
 
@@ -215,8 +216,57 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [userName, setUserName] = useState('Friend');
   const [nameLoaded, setNameLoaded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Set up chatterbox state listener
+  useEffect(() => {
+    chatterboxService.onStateChange = (state) => {
+      if (state === 'finished' || state === 'stopped' || state === 'error') {
+        setIsSpeaking(false);
+        setSpeakingMessageId(null);
+      }
+    };
+    
+    return () => {
+      chatterboxService.stop();
+    };
+  }, []);
+
+  // Speak AI response with Chatterbox
+  const speakResponse = async (text, messageId) => {
+    try {
+      if (isSpeaking && speakingMessageId === messageId) {
+        // Stop if already speaking this message
+        await chatterboxService.stop();
+        setIsSpeaking(false);
+        setSpeakingMessageId(null);
+        return;
+      }
+      
+      // Stop any current playback
+      await chatterboxService.stop();
+      
+      setIsSpeaking(true);
+      setSpeakingMessageId(messageId);
+      hapticFeedback.light();
+      
+      // Clean text for speech (remove markdown, extra spaces, etc.)
+      const cleanText = text
+        .replace(/\*\*/g, '')
+        .replace(/\n\n+/g, '. ')
+        .replace(/\n/g, ' ')
+        .trim();
+      
+      await chatterboxService.speak(cleanText);
+    } catch (error) {
+      console.error('Failed to speak response:', error);
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+    }
+  };
 
   // Suggested questions removed per user request
   const suggestedQuestions = [];
@@ -713,6 +763,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
   const renderMessage = (message) => {
     const isAi = message.isAi;
+    const isCurrentlySpeaking = isSpeaking && speakingMessageId === message.id;
+    
     return (
       <View
         key={message.id}
@@ -758,6 +810,36 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
             </Text>
           )}
         </View>
+        
+        {/* Speak button for AI messages */}
+        {isAi && (
+          <TouchableOpacity
+            onPress={() => speakResponse(message.text, message.id)}
+            style={{
+              marginTop: 6,
+              padding: 6,
+              borderRadius: 16,
+              backgroundColor: isCurrentlySpeaking ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons 
+              name={isCurrentlySpeaking ? 'stop' : 'volume-up'} 
+              size={16} 
+              color={isCurrentlySpeaking ? '#fff' : theme.textSecondary} 
+            />
+            <Text style={{ 
+              fontSize: 12, 
+              color: isCurrentlySpeaking ? '#fff' : theme.textSecondary, 
+              marginLeft: 4 
+            }}>
+              {isCurrentlySpeaking ? 'Stop' : 'Listen'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
