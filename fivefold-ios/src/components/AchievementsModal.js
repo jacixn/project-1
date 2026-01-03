@@ -426,13 +426,20 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
             numColumns={2}
             contentContainerStyle={{
               padding: 16,
-              paddingTop: Platform.OS === 'ios' ? 180 : 150,
               paddingBottom: 100,
             }}
             showsVerticalScrollIndicator={false}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            ListHeaderComponent={
+              <Animated.View style={{ 
+                height: searchBarHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [Platform.OS === 'ios' ? 100 : 80, Platform.OS === 'ios' ? 160 : 130],
+                }),
+              }} />
+            }
           />
 
           {/* Premium Transparent Header */}
