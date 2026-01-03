@@ -2837,13 +2837,18 @@ const ProfileTab = () => {
               <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
               
               {/* Header content */}
-              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              <Animated.View style={{ 
+                paddingHorizontal: 16, 
+                paddingBottom: savedVersesSearchHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [16, 16],
+                }),
+              }}>
                 {/* Top row with buttons */}
                 <View style={{ 
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: 16,
                 }}>
                   {/* Close button */}
                   <TouchableOpacity
@@ -2918,13 +2923,9 @@ const ProfileTab = () => {
                 <Animated.View style={{
                   height: savedVersesSearchHeight.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0, 48],
+                    outputRange: [0, 60],
                   }),
                   opacity: savedVersesSearchHeight,
-                  marginTop: savedVersesSearchHeight.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 16],
-                  }),
                   overflow: 'hidden',
                 }}>
                   <View style={{
@@ -2936,6 +2937,7 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     borderWidth: 1,
                     borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    marginTop: 16,
                   }}>
                     <MaterialIcons name="search" size={20} color={theme.textTertiary} />
                     <TextInput
@@ -2969,7 +2971,7 @@ const ProfileTab = () => {
                     )}
                   </View>
                 </Animated.View>
-              </View>
+              </Animated.View>
             </BlurView>
         </View>
       </Modal>
