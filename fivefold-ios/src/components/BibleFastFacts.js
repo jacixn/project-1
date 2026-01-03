@@ -43,16 +43,16 @@ const FACTS_CONFIG = {
 
 // Category theme colors for premium design
 const CATEGORY_THEMES = {
-  all: { gradient: ['#6366F1', '#8B5CF6'], icon: 'auto-awesome', bgIcon: 'sparkles' },
-  numbers: { gradient: ['#3B82F6', '#06B6D4'], icon: 'calculate', bgIcon: 'calculator' },
-  history: { gradient: ['#F59E0B', '#EF4444'], icon: 'history-edu', bgIcon: 'time' },
+  all: { gradient: ['#6366F1', '#8B5CF6'], icon: 'stars', bgIcon: 'sparkles' },
+  numbers: { gradient: ['#3B82F6', '#06B6D4'], icon: 'tag', bgIcon: 'calculator' },
+  history: { gradient: ['#F59E0B', '#EF4444'], icon: 'schedule', bgIcon: 'time' },
   geography: { gradient: ['#10B981', '#34D399'], icon: 'public', bgIcon: 'earth' },
   people: { gradient: ['#EC4899', '#F472B6'], icon: 'people', bgIcon: 'people' },
   objects: { gradient: ['#8B5CF6', '#A78BFA'], icon: 'category', bgIcon: 'cube' },
   languages: { gradient: ['#14B8A6', '#5EEAD4'], icon: 'translate', bgIcon: 'language' },
   animals: { gradient: ['#22C55E', '#86EFAC'], icon: 'pets', bgIcon: 'paw' },
-  prophecy: { gradient: ['#6366F1', '#818CF8'], icon: 'auto-stories', bgIcon: 'eye' },
-  miracles: { gradient: ['#F97316', '#FBBF24'], icon: 'auto-fix-high', bgIcon: 'flash' },
+  prophecy: { gradient: ['#6366F1', '#818CF8'], icon: 'book', bgIcon: 'eye' },
+  miracles: { gradient: ['#F97316', '#FBBF24'], icon: 'flash-on', bgIcon: 'flash' },
 };
 
 const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;

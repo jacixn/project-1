@@ -5,9 +5,9 @@
     { "id": "historical", "name": "Historical", "icon": "history-edu", "color": "#FF9800", "gradient": ["#FF9800", "#F57C00"] },
     { "id": "people", "name": "People & Places", "icon": "place", "color": "#4CAF50", "gradient": ["#4CAF50", "#388E3C"] },
     { "id": "languages", "name": "Languages", "icon": "translate", "color": "#E91E63", "gradient": ["#E91E63", "#C2185B"] },
-    { "id": "prophecies", "name": "Prophecies", "icon": "auto_stories", "color": "#00BCD4", "gradient": ["#00BCD4", "#0097A7"] },
+    { "id": "prophecies", "name": "Prophecies", "icon": "book", "color": "#00BCD4", "gradient": ["#00BCD4", "#0097A7"] },
     { "id": "miracles", "name": "Miracles", "icon": "stars", "color": "#FF5722", "gradient": ["#FF5722", "#E64A19"] },
-    { "id": "unique", "name": "Unique Facts", "icon": "emoji_objects", "color": "#795548", "gradient": ["#795548", "#5D4037"] }
+    { "id": "unique", "name": "Unique Facts", "icon": "lightbulb-outline", "color": "#795548", "gradient": ["#795548", "#5D4037"] }
   ],
   "facts": [
     {
@@ -15,7 +15,7 @@
       "category": "numbers",
       "title": "The Bible Has 66 Books",
       "description": "39 books in the Old Testament and 27 in the New Testament. It was written by approximately 40 different authors over 1,500 years.",
-      "icon": "menu_book",
+      "icon": "book",
       "tags": ["Books", "Structure"],
       "didYouKnow": "The word 'Bible' comes from the Greek word 'biblia,' meaning 'books.'"
     },
@@ -24,7 +24,7 @@
       "category": "numbers",
       "title": "31,102 Verses Total",
       "description": "The Bible contains 31,102 verses, 1,189 chapters, and approximately 783,137 words in the original languages.",
-      "icon": "format_list_numbered",
+      "icon": "format-list-numbered",
       "tags": ["Verses", "Statistics"],
       "didYouKnow": "The middle verse of the Bible is Psalm 118:8."
     },
@@ -33,7 +33,7 @@
       "category": "numbers",
       "title": "Longest Book: Psalms",
       "description": "Psalms is the longest book with 150 chapters and 2,461 verses. The shortest book is 3 John with only 14 verses.",
-      "icon": "library_books",
+      "icon": "library-books",
       "tags": ["Psalms", "Records"],
       "didYouKnow": "The longest chapter is Psalm 119 with 176 verses."
     },
@@ -105,7 +105,7 @@
       "category": "people",
       "title": "Jerusalem Mentioned 811 Times",
       "description": "Jerusalem is the most frequently mentioned city in the Bible, appearing 811 times. Damascus is second with 60 mentions.",
-      "icon": "location_city",
+      "icon": "location-city",
       "tags": ["Cities", "Geography"],
       "didYouKnow": "Jerusalem is considered holy by three major religions: Judaism, Christianity, and Islam."
     },
@@ -132,7 +132,7 @@
       "category": "languages",
       "title": "Most Translated Book",
       "description": "The Bible has been translated into over 3,500 languages, making it the most translated book in history.",
-      "icon": "g_translate",
+      "icon": "translate",
       "tags": ["Translation", "Records"],
       "didYouKnow": "About 90% of the world can read the Bible in their native language."
     },
@@ -141,7 +141,7 @@
       "category": "languages",
       "title": "King James Version Impact",
       "description": "The King James Version (1611) shaped English literature and introduced phrases like 'fight the good fight' and 'eat, drink, and be merry.'",
-      "icon": "auto_stories",
+      "icon": "book",
       "tags": ["KJV", "English"],
       "didYouKnow": "The KJV took 7 years and 47 scholars to translate."
     },
@@ -150,7 +150,7 @@
       "category": "languages",
       "title": "No Word for 'Eternity'",
       "description": "The Hebrew language in the Old Testament has no single word for 'eternity.' Instead, it uses 'olam,' meaning 'forever' or 'age.'",
-      "icon": "all_inclusive",
+      "icon": "all-inclusive",
       "tags": ["Hebrew", "Concepts"],
       "didYouKnow": "This shows how ancient Hebrews conceptualized time differently."
     },
@@ -168,7 +168,7 @@
       "category": "prophecies",
       "title": "Isaiah Written 700 Years Before",
       "description": "Isaiah 53 describes the suffering servant (Jesus) in remarkable detail, written 700 years before Christ was born.",
-      "icon": "calendar_today",
+      "icon": "today",
       "tags": ["Isaiah", "Messiah"],
       "didYouKnow": "Dead Sea Scrolls confirmed Isaiah was written before Jesus lived."
     },
@@ -195,7 +195,7 @@
       "category": "miracles",
       "title": "37 Miracles of Jesus",
       "description": "The Gospels record 37 specific miracles performed by Jesus, though John says there were many more not recorded.",
-      "icon": "auto_fix_high",
+      "icon": "star",
       "tags": ["Jesus", "Signs"],
       "didYouKnow": "John 21:25 says 'the world could not contain the books' if all Jesus did was written."
     },
@@ -213,7 +213,7 @@
       "category": "miracles",
       "title": "Walls of Jericho",
       "description": "The walls of Jericho fell after the Israelites marched around the city for 7 days and shouted (Joshua 6).",
-      "icon": "domain_disabled",
+      "icon": "block",
       "tags": ["Joshua", "Conquest"],
       "didYouKnow": "Archaeological evidence shows Jericho walls collapsed outward, matching the biblical account."
     },
@@ -222,7 +222,7 @@
       "category": "miracles",
       "title": "Sun Stood Still",
       "description": "Joshua commanded the sun to stand still during battle, and it did for about a full day (Joshua 10:13).",
-      "icon": "wb_sunny",
+      "icon": "wb-sunny",
       "tags": ["Joshua", "Battle"],
       "didYouKnow": "This allowed Israel to completely defeat their enemies."
     },
@@ -231,7 +231,7 @@
       "category": "unique",
       "title": "Shortest Verse",
       "description": "'Jesus wept' (John 11:35) is the shortest verse in the Bible - only two words in English.",
-      "icon": "short_text",
+      "icon": "short-text",
       "tags": ["Verse", "Records"],
       "didYouKnow": "This verse shows Jesus humanity and compassion at Lazarus death."
     },
@@ -240,7 +240,7 @@
       "category": "unique",
       "title": "Letter Without 'E'",
       "description": "In some ancient manuscripts, the letter 'E' is carefully avoided in certain passages as a literary technique.",
-      "icon": "text_fields",
+      "icon": "text-fields",
       "tags": ["Literary", "Unique"],
       "didYouKnow": "This technique is called 'lipogrammatic writing.'"
     },
@@ -258,7 +258,7 @@
       "category": "unique",
       "title": "Perfect Palindrome Chapter",
       "description": "Psalm 117 is the shortest chapter (2 verses) and sits at the exact center of the Bible.",
-      "icon": "center_focus_strong",
+      "icon": "center-focus-strong",
       "tags": ["Psalm", "Structure"],
       "didYouKnow": "It has 594 chapters before it and 594 chapters after it."
     },
@@ -267,7 +267,7 @@
       "category": "unique",
       "title": "No Vowels Originally",
       "description": "The original Hebrew text had no vowels or punctuation - they were added centuries later by the Masoretes.",
-      "icon": "text_format",
+      "icon": "text-format",
       "tags": ["Hebrew", "History"],
       "didYouKnow": "Readers relied on context and tradition to pronounce words correctly."
     },
@@ -285,7 +285,7 @@
       "category": "historical",
       "title": "Bestselling Book Ever",
       "description": "The Bible is the bestselling book of all time, with over 5 billion copies distributed throughout history.",
-      "icon": "trending_up",
+      "icon": "trending-up",
       "tags": ["Sales", "Records"],
       "didYouKnow": "An estimated 100 million Bibles are sold or given away each year."
     },
@@ -303,7 +303,7 @@
       "category": "numbers",
       "title": "Moses Wrote 5 Books",
       "description": "Moses wrote the first five books of the Bible (Genesis, Exodus, Leviticus, Numbers, Deuteronomy), called the Torah or Pentateuch.",
-      "icon": "menu_book",
+      "icon": "book",
       "tags": ["Moses", "Torah"],
       "didYouKnow": "These books form the foundation of Jewish law and Christian understanding."
     },
@@ -312,7 +312,7 @@
       "category": "numbers",
       "title": "Only Two Chapters Without Sin",
       "description": "The first two chapters of Genesis and the last two of Revelation are the only chapters without any mention of sin.",
-      "icon": "auto_awesome",
+      "icon": "auto-awesome",
       "tags": ["Sin", "Paradise"],
       "didYouKnow": "These chapters describe paradise before the fall and after restoration."
     },
@@ -321,7 +321,7 @@
       "category": "people",
       "title": "Enoch Never Died",
       "description": "Enoch walked with God and was taken to heaven without experiencing death at age 365 (Genesis 5:24).",
-      "icon": "flight_takeoff",
+      "icon": "flight-takeoff",
       "tags": ["Enoch", "Heaven"],
       "didYouKnow": "Only Enoch and Elijah were taken to heaven without dying."
     },
@@ -330,7 +330,7 @@
       "category": "people",
       "title": "Elijah's Fiery Departure",
       "description": "Elijah was taken to heaven in a whirlwind with chariots and horses of fire (2 Kings 2:11).",
-      "icon": "local_fire_department",
+      "icon": "whatshot",
       "tags": ["Elijah", "Miracle"],
       "didYouKnow": "Elisha witnessed this and received a double portion of Elijah's spirit."
     },
@@ -339,7 +339,7 @@
       "category": "people",
       "title": "Job's Suffering Timeline",
       "description": "Job lost everything in a single day but remained faithful to God, eventually receiving double what he lost.",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Job", "Patience"],
       "didYouKnow": "Job is considered one of the oldest books in the Bible."
     },
@@ -348,7 +348,7 @@
       "category": "people",
       "title": "Samson's Superhuman Strength",
       "description": "Samson killed 1,000 Philistines with a donkey's jawbone and later brought down an entire temple.",
-      "icon": "fitness_center",
+      "icon": "fitness-center",
       "tags": ["Samson", "Judges"],
       "didYouKnow": "His strength came from his uncut hair as part of his Nazarite vow."
     },
@@ -366,7 +366,7 @@
       "category": "people",
       "title": "Noah's Ark Dimensions",
       "description": "The ark was 450 feet long, 75 feet wide, and 45 feet high - about the size of 1.5 football fields.",
-      "icon": "directions_boat",
+      "icon": "directions-boat",
       "tags": ["Noah", "Ark"],
       "didYouKnow": "Naval engineers confirm these dimensions create a very stable vessel."
     },
@@ -384,7 +384,7 @@
       "category": "historical",
       "title": "Codex Sinaiticus Discovery",
       "description": "One of the most important biblical manuscripts was discovered at St. Catherine's Monastery in 1844.",
-      "icon": "auto_stories",
+      "icon": "book",
       "tags": ["Manuscript", "Discovery"],
       "didYouKnow": "It contains the oldest complete New Testament in existence."
     },
@@ -393,7 +393,7 @@
       "category": "historical",
       "title": "Bible Smuggling History",
       "description": "During communist rule, Bibles were smuggled behind the Iron Curtain in creative ways, including false car parts.",
-      "icon": "local_shipping",
+      "icon": "local-shipping",
       "tags": ["Persecution", "Courage"],
       "didYouKnow": "Brother Andrew became famous for smuggling Bibles across borders."
     },
@@ -447,7 +447,7 @@
       "category": "miracles",
       "title": "Water Turned to Wine",
       "description": "Jesus' first recorded miracle was turning water into wine at a wedding in Cana (John 2).",
-      "icon": "wine_bar",
+      "icon": "local-bar",
       "tags": ["First Miracle", "Wedding"],
       "didYouKnow": "He turned approximately 120-180 gallons of water into wine."
     },
@@ -456,7 +456,7 @@
       "category": "prophecies",
       "title": "Virgin Birth Foretold",
       "description": "Isaiah 7:14 prophesied a virgin would conceive, written 700 years before Jesus' birth.",
-      "icon": "child_care",
+      "icon": "child-care",
       "tags": ["Isaiah", "Birth"],
       "didYouKnow": "This prophecy was considered impossible until its fulfillment."
     },
@@ -474,7 +474,7 @@
       "category": "prophecies",
       "title": "Not a Bone Broken",
       "description": "Psalm 34:20 predicted none of the Messiah's bones would be broken during crucifixion.",
-      "icon": "medical_services",
+      "icon": "local-hospital",
       "tags": ["Crucifixion", "Prophecy"],
       "didYouKnow": "Roman soldiers broke the legs of the criminals beside Jesus but not his."
     },
@@ -510,7 +510,7 @@
       "category": "languages",
       "title": "Aramaic Sections",
       "description": "Parts of Daniel and Ezra were written in Aramaic, the language Jesus spoke daily.",
-      "icon": "record_voice_over",
+      "icon": "record-voice-over",
       "tags": ["Aramaic", "Language"],
       "didYouKnow": "Some of Jesus' words are recorded in Aramaic, like 'Talitha koum.'"
     },
@@ -528,7 +528,7 @@
       "category": "unique",
       "title": "Esther Never Mentions God",
       "description": "The book of Esther never explicitly mentions God's name, yet his providence is evident throughout.",
-      "icon": "visibility_off",
+      "icon": "visibility-off",
       "tags": ["Esther", "Providence"],
       "didYouKnow": "Despite this, it's one of the most powerful books about God's sovereignty."
     },
@@ -546,7 +546,7 @@
       "category": "unique",
       "title": "Seven Days of Creation",
       "description": "Genesis 1 describes creation occurring over six days, with God resting on the seventh.",
-      "icon": "calendar_view_week",
+      "icon": "date-range",
       "tags": ["Creation", "Genesis"],
       "didYouKnow": "This established the seven-day week pattern still used worldwide."
     },
@@ -564,7 +564,7 @@
       "category": "unique",
       "title": "Twelve Tribes of Israel",
       "description": "Jacob's twelve sons became the twelve tribes of Israel, though the listings vary slightly.",
-      "icon": "family_restroom",
+      "icon": "people",
       "tags": ["Israel", "Tribes"],
       "didYouKnow": "Joseph's two sons often replace him, keeping the count at twelve."
     },
@@ -573,7 +573,7 @@
       "category": "numbers",
       "title": "40 Days and 40 Nights",
       "description": "The number 40 appears frequently: rain during flood, Moses on mountain, Jesus' temptation, etc.",
-      "icon": "calendar_month",
+      "icon": "event",
       "tags": ["Numbers", "Symbolism"],
       "didYouKnow": "40 often represents a period of testing or judgment in the Bible."
     },
@@ -582,7 +582,7 @@
       "category": "numbers",
       "title": "7 - Number of Completion",
       "description": "The number 7 appears over 700 times in the Bible, symbolizing completion or perfection.",
-      "icon": "check_circle",
+      "icon": "check-circle",
       "tags": ["Numbers", "Seven"],
       "didYouKnow": "There are 7 days of creation, 7 churches in Revelation, 7 seals, 7 trumpets."
     },
@@ -591,7 +591,7 @@
       "category": "numbers",
       "title": "12 - Number of Government",
       "description": "12 tribes, 12 apostles, 12 gates of heaven - representing God's government or authority.",
-      "icon": "admin_panel_settings",
+      "icon": "settings",
       "tags": ["Numbers", "Authority"],
       "didYouKnow": "New Jerusalem has 12 foundations with the names of 12 apostles."
     },
@@ -600,7 +600,7 @@
       "category": "numbers",
       "title": "3 - Number of Divine Completeness",
       "description": "Trinity (Father, Son, Spirit), Jesus' 3-day resurrection, Peter's 3 denials.",
-      "icon": "looks_3",
+      "icon": "filter-3",
       "tags": ["Numbers", "Trinity"],
       "didYouKnow": "Jesus asked Peter 'Do you love me?' three times to restore him."
     },
@@ -654,7 +654,7 @@
       "category": "people",
       "title": "Ruth's Loyalty",
       "description": "Ruth chose to stay with her mother-in-law Naomi, becoming an ancestor of King David and Jesus.",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Ruth", "Loyalty"],
       "didYouKnow": "She's one of only 5 women mentioned in Jesus' genealogy."
     },
@@ -690,7 +690,7 @@
       "category": "historical",
       "title": "Early Church Persecution",
       "description": "The early church faced severe persecution, yet grew from 120 to millions within 300 years.",
-      "icon": "trending_up",
+      "icon": "trending-up",
       "tags": ["Church", "Growth"],
       "didYouKnow": "The blood of the martyrs became the seed of the church."
     },
@@ -708,7 +708,7 @@
       "category": "historical",
       "title": "Destruction of the Temple",
       "description": "The Jerusalem Temple was destroyed by Romans in 70 AD, just as Jesus predicted.",
-      "icon": "domain_disabled",
+      "icon": "block",
       "tags": ["Prophecy", "Temple"],
       "didYouKnow": "Not one stone was left on another, exactly as Jesus foretold."
     },
@@ -744,7 +744,7 @@
       "category": "miracles",
       "title": "Water From the Rock",
       "description": "Moses struck a rock and water gushed out to provide for millions of Israelites.",
-      "icon": "water_drop",
+      "icon": "opacity",
       "tags": ["Moses", "Provision"],
       "didYouKnow": "Paul says this rock was Christ, providing spiritual water."
     },
@@ -753,7 +753,7 @@
       "category": "miracles",
       "title": "Fiery Furnace Survival",
       "description": "Shadrach, Meshach, and Abednego survived a fiery furnace so hot it killed the guards.",
-      "icon": "local_fire_department",
+      "icon": "whatshot",
       "tags": ["Daniel", "Faith"],
       "didYouKnow": "A fourth person appeared with them in the fire, like 'a son of the gods.'"
     },
@@ -762,7 +762,7 @@
       "category": "miracles",
       "title": "Widow's Oil Multiplied",
       "description": "Elisha multiplied a widow's small jar of oil to fill all her vessels, saving her from debt.",
-      "icon": "oil_barrel",
+      "icon": "local-gas-station",
       "tags": ["Elisha", "Provision"],
       "didYouKnow": "The oil stopped flowing only when she ran out of containers."
     },
@@ -789,7 +789,7 @@
       "category": "prophecies",
       "title": "Destruction of Tyre Predicted",
       "description": "Ezekiel predicted Tyre would be destroyed and never rebuilt, which happened exactly as foretold.",
-      "icon": "location_city",
+      "icon": "location-city",
       "tags": ["Ezekiel", "Cities"],
       "didYouKnow": "Alexander the Great fulfilled this prophecy in 332 BC."
     },
@@ -807,7 +807,7 @@
       "category": "prophecies",
       "title": "Born of David's Line",
       "description": "Prophecies required the Messiah to be a descendant of King David, fulfilled through Mary and Joseph.",
-      "icon": "family_restroom",
+      "icon": "people",
       "tags": ["Lineage", "David"],
       "didYouKnow": "Both Matthew and Luke trace Jesus' genealogy to David."
     },
@@ -816,7 +816,7 @@
       "category": "languages",
       "title": "Gothic Bible Translation",
       "description": "Ulfilas created the Gothic alphabet to translate the Bible in the 4th century.",
-      "icon": "font_download",
+      "icon": "font-download",
       "tags": ["Translation", "Gothic"],
       "didYouKnow": "This was the first Bible translation for Germanic peoples."
     },
@@ -825,7 +825,7 @@
       "category": "languages",
       "title": "Latin Vulgate",
       "description": "Jerome's Latin Vulgate (405 AD) was the Catholic Church's official Bible for over 1,000 years.",
-      "icon": "history_edu",
+      "icon": "school",
       "tags": ["Latin", "Translation"],
       "didYouKnow": "Jerome translated directly from Hebrew and Greek, not just Greek."
     },
@@ -843,7 +843,7 @@
       "category": "unique",
       "title": "Longest Name in Bible",
       "description": "Maher-shalal-hash-baz (Isaiah's son) has the longest name, meaning 'quick to plunder, swift to spoil.'",
-      "icon": "text_fields",
+      "icon": "text-fields",
       "tags": ["Names", "Records"],
       "didYouKnow": "This name was itself a prophetic message about Assyria."
     },
@@ -852,7 +852,7 @@
       "category": "unique",
       "title": "Shortest Book: 3 John",
       "description": "3 John has only 14 verses and 299 words in Greek, making it the shortest book.",
-      "icon": "short_text",
+      "icon": "short-text",
       "tags": ["Books", "Records"],
       "didYouKnow": "2 John is the second shortest with only 13 verses."
     },
@@ -906,7 +906,7 @@
       "category": "people",
       "title": "Paul's Conversion",
       "description": "Saul of Tarsus persecuted Christians until Jesus appeared to him on the Damascus road.",
-      "icon": "change_circle",
+      "icon": "sync",
       "tags": ["Paul", "Conversion"],
       "didYouKnow": "He was blind for 3 days until Ananias prayed for him."
     },
@@ -960,7 +960,7 @@
       "category": "people",
       "title": "Nicodemus Visits at Night",
       "description": "Nicodemus, a Pharisee, came to Jesus at night and learned about being born again.",
-      "icon": "dark_mode",
+      "icon": "brightness-2",
       "tags": ["Nicodemus", "Teaching"],
       "didYouKnow": "Jesus told him 'You must be born again' (John 3)."
     },
@@ -969,7 +969,7 @@
       "category": "people",
       "title": "Woman at the Well",
       "description": "Jesus talked with a Samaritan woman and revealed he knew about her five husbands.",
-      "icon": "water_drop",
+      "icon": "opacity",
       "tags": ["Samaritan", "Living Water"],
       "didYouKnow": "Jews normally didn't speak to Samaritans, especially women."
     },
@@ -987,7 +987,7 @@
       "category": "people",
       "title": "The Good Samaritan",
       "description": "Jesus' parable shows a Samaritan helping a wounded Jew when religious leaders passed by.",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Parable", "Compassion"],
       "didYouKnow": "This redefined who our 'neighbor' is."
     },
@@ -1023,7 +1023,7 @@
       "category": "numbers",
       "title": "144,000 Sealed",
       "description": "Revelation mentions 144,000 servants of God sealed from the 12 tribes (12,000 each).",
-      "icon": "verified_user",
+      "icon": "verified-user",
       "tags": ["Revelation", "Israel"],
       "didYouKnow": "This represents complete protection of God's people."
     },
@@ -1032,7 +1032,7 @@
       "category": "historical",
       "title": "First Century Christianity",
       "description": "Christianity spread rapidly despite persecution, reaching from Jerusalem to Rome within 30 years.",
-      "icon": "travel_explore",
+      "icon": "explore",
       "tags": ["Early Church", "Expansion"],
       "didYouKnow": "By 300 AD, about 10% of the Roman Empire was Christian."
     },
@@ -1041,7 +1041,7 @@
       "category": "historical",
       "title": "Emperor Nero's Persecution",
       "description": "Nero blamed Christians for Rome's fire in 64 AD and began severe persecutions.",
-      "icon": "local_fire_department",
+      "icon": "whatshot",
       "tags": ["Persecution", "Rome"],
       "didYouKnow": "Peter and Paul were likely martyred during Nero's reign."
     },
@@ -1050,7 +1050,7 @@
       "category": "historical",
       "title": "Constantine's Conversion",
       "description": "Emperor Constantine legalized Christianity in 313 AD after seeing a cross in the sky before battle.",
-      "icon": "military_tech",
+      "icon": "star",
       "tags": ["Rome", "Legalization"],
       "didYouKnow": "He saw the words 'In this sign, conquer' with the cross."
     },
@@ -1068,7 +1068,7 @@
       "category": "prophecies",
       "title": "Cyrus Named 150 Years Early",
       "description": "Isaiah prophesied Cyrus would decree Jerusalem's rebuilding, 150 years before Cyrus was born.",
-      "icon": "account_circle",
+      "icon": "account-circle",
       "tags": ["Isaiah", "Persia"],
       "didYouKnow": "Isaiah even named Cyrus specifically in the prophecy."
     },
@@ -1095,7 +1095,7 @@
       "category": "unique",
       "title": "Acrostic Psalms",
       "description": "Several Psalms (like 119) are acrostics, with verses starting with successive Hebrew letters.",
-      "icon": "sort_by_alpha",
+      "icon": "sort-by-alpha",
       "tags": ["Psalms", "Poetry"],
       "didYouKnow": "Psalm 119 has 22 sections, one for each Hebrew letter."
     },
@@ -1104,7 +1104,7 @@
       "category": "unique",
       "title": "Book of Job Poetry",
       "description": "Most of Job (chapters 3-41) is written in Hebrew poetry, among the oldest in the world.",
-      "icon": "menu_book",
+      "icon": "book",
       "tags": ["Job", "Poetry"],
       "didYouKnow": "Only the prologue and epilogue are in prose."
     },
@@ -1113,7 +1113,7 @@
       "category": "unique",
       "title": "Chiastic Structure",
       "description": "Many biblical passages use chiasmus (ABBA pattern) for emphasis and memory.",
-      "icon": "sync_alt",
+      "icon": "sync",
       "tags": ["Structure", "Literary"],
       "didYouKnow": "The entire Gospel of John is arranged in a giant chiasm."
     },
@@ -1194,7 +1194,7 @@
       "category": "miracles",
       "title": "Pentecost Tongues of Fire",
       "description": "The Holy Spirit descended on 120 believers with tongues of fire and they spoke in other languages.",
-      "icon": "local_fire_department",
+      "icon": "whatshot",
       "tags": ["Pentecost", "Holy Spirit"],
       "didYouKnow": "People from every nation understood them in their own language."
     },
@@ -1212,7 +1212,7 @@
       "category": "miracles",
       "title": "Paul's Handkerchiefs Healed",
       "description": "Handkerchiefs that touched Paul were used to heal the sick and cast out demons.",
-      "icon": "health_and_safety",
+      "icon": "favorite",
       "tags": ["Paul", "Healing"],
       "didYouKnow": "This happened during Paul's ministry in Ephesus."
     },
@@ -1239,7 +1239,7 @@
       "category": "miracles",
       "title": "Prison Doors Opened",
       "description": "An angel opened prison doors and freed the apostles during the night.",
-      "icon": "lock_open",
+      "icon": "lock-open",
       "tags": ["Prison", "Angels"],
       "didYouKnow": "The guards found the doors locked but the prison empty."
     },
@@ -1266,7 +1266,7 @@
       "category": "historical",
       "title": "Codex Over Scroll",
       "description": "Christians pioneered the use of codex (book form) over scrolls in the 2nd century.",
-      "icon": "menu_book",
+      "icon": "book",
       "tags": ["Books", "Innovation"],
       "didYouKnow": "This made it easier to find specific passages quickly."
     },
@@ -1293,7 +1293,7 @@
       "category": "prophecies",
       "title": "Rachel Weeping Prophecy",
       "description": "Jeremiah prophesied Rachel weeping for her children, fulfilled in Herod's massacre.",
-      "icon": "child_care",
+      "icon": "child-care",
       "tags": ["Jeremiah", "Herod"],
       "didYouKnow": "Herod killed all boys under 2 in Bethlehem trying to kill Jesus."
     },
@@ -1302,7 +1302,7 @@
       "category": "prophecies",
       "title": "Called Out of Egypt",
       "description": "Hosea prophesied 'Out of Egypt I called my son,' fulfilled when Jesus returned from Egypt.",
-      "icon": "flight_land",
+      "icon": "flight-land",
       "tags": ["Hosea", "Egypt"],
       "didYouKnow": "Joseph and Mary fled to Egypt to escape Herod."
     },
@@ -1311,7 +1311,7 @@
       "category": "unique",
       "title": "Four Gospels, One Story",
       "description": "Matthew, Mark, Luke, and John tell Jesus' story from different perspectives.",
-      "icon": "auto_stories",
+      "icon": "book",
       "tags": ["Gospels", "Jesus"],
       "didYouKnow": "Matthew wrote for Jews, Mark for Romans, Luke for Greeks, John for everyone."
     },
@@ -1329,7 +1329,7 @@
       "category": "unique",
       "title": "Synoptic Gospels",
       "description": "Matthew, Mark, and Luke are called synoptic ('seeing together') because of their similar viewpoints.",
-      "icon": "remove_red_eye",
+      "icon": "visibility",
       "tags": ["Gospels", "Similarity"],
       "didYouKnow": "John's Gospel is quite different, focusing on Jesus' divine nature."
     },
@@ -1338,7 +1338,7 @@
       "category": "numbers",
       "title": "10 Plagues of Egypt",
       "description": "God sent 10 specific plagues on Egypt: blood, frogs, gnats, flies, livestock disease, boils, hail, locusts, darkness, firstborn death.",
-      "icon": "pest_control",
+      "icon": "bug-report",
       "tags": ["Exodus", "Plagues"],
       "didYouKnow": "Each plague targeted a specific Egyptian god."
     },
@@ -1383,7 +1383,7 @@
       "category": "people",
       "title": "Thomas Doubted",
       "description": "Thomas doubted Jesus' resurrection until he saw and touched Jesus' wounds.",
-      "icon": "touch_app",
+      "icon": "touch-app",
       "tags": ["Thomas", "Faith"],
       "didYouKnow": "Jesus said 'Blessed are those who haven't seen yet believe.'"
     },
@@ -1446,7 +1446,7 @@
       "category": "people",
       "title": "Barabbas Released",
       "description": "Pilate released Barabbas, a murderer, instead of Jesus at the crowd's demand.",
-      "icon": "lock_open",
+      "icon": "lock-open",
       "tags": ["Barabbas", "Substitution"],
       "didYouKnow": "This illustrates how Christ died in our place."
     },
@@ -1473,7 +1473,7 @@
       "category": "people",
       "title": "Nicodemus Helped Bury Jesus",
       "description": "Nicodemus brought 75 pounds of myrrh and aloes for Jesus' burial.",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Nicodemus", "Burial"],
       "didYouKnow": "This was an extremely expensive gift showing great devotion."
     },
@@ -1500,7 +1500,7 @@
       "category": "miracles",
       "title": "Darkness at Crucifixion",
       "description": "Darkness covered the land from noon to 3 PM when Jesus was crucified.",
-      "icon": "dark_mode",
+      "icon": "brightness-2",
       "tags": ["Crucifixion", "Signs"],
       "didYouKnow": "This couldn't have been an eclipse, as Passover is at full moon."
     },
@@ -1536,7 +1536,7 @@
       "category": "miracles",
       "title": "Emmaus Road Appearance",
       "description": "Jesus walked with two disciples for miles, explaining Scripture, before revealing himself.",
-      "icon": "directions_walk",
+      "icon": "directions-walk",
       "tags": ["Resurrection", "Teaching"],
       "didYouKnow": "Their hearts burned within them as he taught."
     },
@@ -1608,7 +1608,7 @@
       "category": "prophecies",
       "title": "Potter's Field Prophecy",
       "description": "Zechariah predicted the silver would be thrown to the potter in God's house.",
-      "icon": "home_work",
+      "icon": "home",
       "tags": ["Zechariah", "Fulfillment"],
       "didYouKnow": "The priests bought a potter's field with Judas' returned silver."
     },
@@ -1626,7 +1626,7 @@
       "category": "prophecies",
       "title": "Gall and Vinegar",
       "description": "Psalm 69 predicted they would give the Messiah gall and vinegar to drink.",
-      "icon": "local_drink",
+      "icon": "local-drink",
       "tags": ["Psalm", "Suffering"],
       "didYouKnow": "This happened while Jesus was on the cross."
     },
@@ -1644,7 +1644,7 @@
       "category": "unique",
       "title": "Beatitudes",
       "description": "Jesus began the Sermon on the Mount with 8 blessings, called the Beatitudes.",
-      "icon": "auto_awesome",
+      "icon": "auto-awesome",
       "tags": ["Sermon", "Blessings"],
       "didYouKnow": "They describe the character of citizens of God's kingdom."
     },
@@ -1680,7 +1680,7 @@
       "category": "unique",
       "title": "New Commandment",
       "description": "Jesus gave a new command: 'Love one another as I have loved you.'",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Love", "Discipleship"],
       "didYouKnow": "By this love, everyone would know they were his disciples."
     },
@@ -1716,7 +1716,7 @@
       "category": "languages",
       "title": "Sign Language Bibles",
       "description": "The Bible has been translated into many sign languages for deaf communities.",
-      "icon": "sign_language",
+      "icon": "pan-tool",
       "tags": ["Sign Language", "Deaf"],
       "didYouKnow": "Each sign language is unique, not universal."
     },
@@ -1743,7 +1743,7 @@
       "category": "numbers",
       "title": "5,000 Men Believed",
       "description": "After healing the lame beggar, about 5,000 men believed (Acts 4:4).",
-      "icon": "trending_up",
+      "icon": "trending-up",
       "tags": ["Growth", "Early Church"],
       "didYouKnow": "This doesn't count women and children, so total was much higher."
     },
@@ -1761,7 +1761,7 @@
       "category": "people",
       "title": "Cornelius, First Gentile Convert",
       "description": "Cornelius, a Roman centurion, and his household were the first Gentiles to receive the Holy Spirit.",
-      "icon": "military_tech",
+      "icon": "star",
       "tags": ["Cornelius", "Gentiles"],
       "didYouKnow": "Peter saw a vision of unclean animals before meeting him."
     },
@@ -1797,7 +1797,7 @@
       "category": "people",
       "title": "Aquila and Priscilla Risked Lives",
       "description": "This couple risked their lives for Paul, and all Gentile churches were grateful.",
-      "icon": "volunteer_activism",
+      "icon": "favorite",
       "tags": ["Courage", "Service"],
       "didYouKnow": "They corrected Apollos' incomplete understanding of Jesus."
     },
