@@ -2517,6 +2517,7 @@ const ProfileTab = () => {
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
+                paddingTop: Platform.OS === 'ios' ? 115 : 95,
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
@@ -2529,13 +2530,6 @@ const ProfileTab = () => {
                 />
               }
             >
-              {/* Animated spacer that shrinks with search bar */}
-              <Animated.View style={{ 
-                height: savedVersesSearchHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Platform.OS === 'ios' ? 120 : 100, Platform.OS === 'ios' ? 180 : 150],
-                }),
-              }} />
               {/* Stats Row */}
               {savedVersesList.length > 0 && (
                 <View style={{
