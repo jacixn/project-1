@@ -56,7 +56,7 @@ const CATEGORY_THEMES = {
 };
 
 const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
-const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 290 : 260;
+const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 265 : 235;
 
 const BibleFastFacts = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
