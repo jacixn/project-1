@@ -29,7 +29,7 @@ import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
 const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
-const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 290 : 260;
+const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 340 : 310;
 
 // Configuration for remote verses
 const VERSES_CONFIG = {
@@ -359,9 +359,58 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
                     onChangeText={setSearchQuery}
                   />
                 </View>
+                
+                {/* Category Pills */}
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
+                  style={{ marginHorizontal: -20, paddingHorizontal: 20 }}
+                >
+                  <TouchableOpacity
+                    onPress={() => { setSelectedCategory('all'); hapticFeedback.light(); }}
+                    style={[
+                      styles.categoryChip,
+                      { backgroundColor: selectedCategory === 'all' ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+                    ]}
+                  >
+                    <Text style={{ color: selectedCategory === 'all' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>All</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => { setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites'); hapticFeedback.light(); }}
+                    style={[
+                      styles.categoryChip,
+                      { backgroundColor: selectedCategory === 'favorites' ? '#E91E63' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+                    ]}
+                  >
+                    <MaterialIcons name="favorite" size={14} color={selectedCategory === 'favorites' ? '#fff' : '#E91E63'} />
+                    <Text style={{ color: selectedCategory === 'favorites' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13, marginLeft: 4 }}>{favoriteVerses.length}</Text>
+                  </TouchableOpacity>
+                  {versesData?.categories?.map(cat => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => { setSelectedCategory(cat.id); hapticFeedback.light(); }}
+                      style={[
+                        styles.categoryChip,
+                        { backgroundColor: selectedCategory === cat.id ? cat.color : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+                      ]}
+                    >
+                      <Text style={{ color: selectedCategory === cat.id ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
                 <View style={styles.resultsRow}>
                   <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{filtered.length}</Text>
                   <Text style={{ color: theme.textSecondary }}> verses</Text>
+                  {selectedCategory !== 'all' && selectedCategory !== 'favorites' && versesData?.categories && (
+                    <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>
+                      in {versesData.categories.find(c => c.id === selectedCategory)?.name}
+                    </Text>
+                  )}
+                  {selectedCategory === 'favorites' && (
+                    <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>saved</Text>
+                  )}
                 </View>
               </Animated.View>
             </LinearGradient>
@@ -388,7 +437,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '700' },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)', padding: 10, borderRadius: 12, marginVertical: 10 },
   searchInput: { flex: 1, marginLeft: 10 },
-  resultsRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10 },
+  resultsRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10, flexWrap: 'wrap' },
+  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '80%', overflow: 'hidden' },
