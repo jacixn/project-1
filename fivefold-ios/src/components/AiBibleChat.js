@@ -711,8 +711,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         console.log('📷 Image attached, running OCR...');
         setIsProcessingImage(true);
         
-        // Extract text from the image using OCR
-        const ocrResult = await ocrService.extractTextFromImage(imageToAnalyze.uri);
+        // Extract text from the image using cloud OCR API
+        // Pass both URI and base64 data (if available from ImagePicker)
+        const ocrResult = await ocrService.extractTextFromImage(
+          imageToAnalyze.uri, 
+          imageToAnalyze.base64 || null
+        );
         setIsProcessingImage(false);
         
         if (ocrResult.success && ocrResult.text) {

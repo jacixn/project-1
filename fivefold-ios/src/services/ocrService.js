@@ -1,5 +1,8 @@
-// OCR Service - Uses Google ML Kit for text recognition
-import TextRecognition from '@react-native-ml-kit/text-recognition';
+// OCR Service - Uses Cloud-based OCR API (OCR.space free tier)
+// No native dependencies required - works with Expo
+
+const OCR_API_URL = 'https://api.ocr.space/parse/image';
+const OCR_API_KEY = 'K88462037888957'; // Free API key for OCR.space
 
 class OCRService {
   constructor() {
@@ -7,40 +10,77 @@ class OCRService {
   }
 
   /**
-   * Extract text from an image using ML Kit
+   * Extract text from an image using cloud OCR API
    * @param {string} imageUri - The URI of the image to process
-   * @returns {Promise<{success: boolean, text: string, blocks: Array, error?: string}>}
+   * @param {string} base64Data - Optional base64 encoded image data
+   * @returns {Promise<{success: boolean, text: string, error?: string}>}
    */
-  async extractTextFromImage(imageUri) {
+  async extractTextFromImage(imageUri, base64Data = null) {
     if (this.isProcessing) {
-      return { success: false, text: '', blocks: [], error: 'OCR already in progress' };
+      return { success: false, text: '', error: 'OCR already in progress' };
     }
 
     this.isProcessing = true;
-    console.log('📸 Starting OCR on image:', imageUri);
+    console.log('📸 Starting cloud OCR on image');
 
     try {
-      // Process the image with ML Kit
-      const result = await TextRecognition.recognize(imageUri);
+      // Prepare form data for the API
+      const formData = new FormData();
       
-      console.log('✅ OCR completed successfully');
-      console.log('📝 Text blocks found:', result.blocks?.length || 0);
-
-      // Extract all text from blocks
-      let fullText = '';
-      const blocks = [];
-
-      if (result.blocks && result.blocks.length > 0) {
-        result.blocks.forEach((block, index) => {
-          const blockText = block.text || '';
-          fullText += blockText + '\n';
-          blocks.push({
-            index,
-            text: blockText,
-            confidence: block.confidence,
-            boundingBox: block.frame,
-          });
+      if (base64Data) {
+        // Use base64 if available
+        formData.append('base64Image', `data:image/jpeg;base64,${base64Data}`);
+      } else {
+        // For file:// URIs, we need to read and convert to base64
+        // In React Native, we can use fetch to read local files
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        
+        // Convert blob to base64
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            resolve(dataUrl);
+          };
+          reader.readAsDataURL(blob);
         });
+        
+        formData.append('base64Image', base64);
+      }
+      
+      formData.append('apikey', OCR_API_KEY);
+      formData.append('language', 'eng');
+      formData.append('isOverlayRequired', 'false');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true');
+      formData.append('OCREngine', '2'); // Engine 2 is better for text-heavy images
+
+      console.log('📤 Sending image to OCR API...');
+      
+      const ocrResponse = await fetch(OCR_API_URL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!ocrResponse.ok) {
+        throw new Error(`OCR API error: ${ocrResponse.status}`);
+      }
+
+      const result = await ocrResponse.json();
+      console.log('📥 OCR API response received');
+
+      if (result.IsErroredOnProcessing) {
+        throw new Error(result.ErrorMessage?.[0] || 'OCR processing failed');
+      }
+
+      // Extract text from the response
+      let fullText = '';
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        fullText = result.ParsedResults
+          .map(r => r.ParsedText || '')
+          .join('\n');
       }
 
       // Clean up the extracted text
@@ -53,20 +93,79 @@ class OCRService {
 
       this.isProcessing = false;
       return {
-        success: true,
+        success: fullText.length > 0,
         text: fullText.trim(),
-        blocks,
-        rawResult: result,
+        confidence: result.ParsedResults?.[0]?.TextOverlay?.MeanConfidence,
       };
     } catch (error) {
       console.error('❌ OCR error:', error);
       this.isProcessing = false;
+      
+      // Try alternative approach using FileSystem if available
+      try {
+        return await this.extractWithFileSystem(imageUri);
+      } catch (fallbackError) {
+        console.error('❌ Fallback OCR also failed:', fallbackError);
+        return {
+          success: false,
+          text: '',
+          error: error.message || 'Failed to process image',
+        };
+      }
+    }
+  }
+
+  /**
+   * Alternative extraction using expo-file-system for base64 conversion
+   */
+  async extractWithFileSystem(imageUri) {
+    console.log('📷 Trying FileSystem approach...');
+    
+    try {
+      const FileSystem = require('expo-file-system').default;
+      
+      // Read file as base64
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('base64Image', `data:image/jpeg;base64,${base64}`);
+      formData.append('apikey', OCR_API_KEY);
+      formData.append('language', 'eng');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true');
+      formData.append('OCREngine', '2');
+      
+      const ocrResponse = await fetch(OCR_API_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await ocrResponse.json();
+      
+      if (result.IsErroredOnProcessing) {
+        throw new Error(result.ErrorMessage?.[0] || 'OCR processing failed');
+      }
+      
+      let fullText = '';
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        fullText = result.ParsedResults
+          .map(r => r.ParsedText || '')
+          .join('\n');
+      }
+      
+      fullText = this.cleanExtractedText(fullText);
+      
+      this.isProcessing = false;
       return {
-        success: false,
-        text: '',
-        blocks: [],
-        error: error.message || 'Failed to process image',
+        success: fullText.length > 0,
+        text: fullText.trim(),
       };
+    } catch (error) {
+      this.isProcessing = false;
+      throw error;
     }
   }
 
@@ -81,13 +180,12 @@ class OCRService {
     return text
       // Remove excessive whitespace
       .replace(/\s+/g, ' ')
-      // Fix common OCR errors in Bible text
-      .replace(/\bl\b/g, 'I') // lowercase L often confused with I
-      .replace(/\bO\b/g, '0') // Capital O sometimes meant as zero in verse numbers
       // Remove page numbers that might appear (common patterns)
       .replace(/^\d+\s*$/gm, '')
       // Clean up line breaks
       .replace(/\n{3,}/g, '\n\n')
+      // Remove common OCR artifacts
+      .replace(/[|\\]/g, '')
       .trim();
   }
 
@@ -118,7 +216,8 @@ class OCRService {
       'lord', 'god', 'jesus', 'christ', 'spirit', 'holy',
       'blessed', 'faith', 'love', 'grace', 'mercy', 'salvation',
       'sin', 'heaven', 'earth', 'pray', 'amen', 'hallelujah',
-      'gospel', 'apostle', 'prophet', 'angel', 'devil', 'satan'
+      'gospel', 'apostle', 'prophet', 'angel', 'devil', 'satan',
+      'righteousness', 'commandment', 'scripture', 'testament'
     ];
 
     const lowerText = text.toLowerCase();
@@ -126,8 +225,8 @@ class OCRService {
     // Check for Bible book names
     const hasBookName = bibleBooks.some(book => lowerText.includes(book));
     
-    // Check for verse numbering patterns (e.g., "1:1", "3:16")
-    const hasVersePattern = /\d+:\d+/.test(text);
+    // Check for verse numbering patterns (e.g., "1:1", "3:16", "1 And", "2 Then")
+    const hasVersePattern = /\d+:\d+/.test(text) || /^\s*\d+\s+[A-Z]/m.test(text);
     
     // Check for common Bible words
     const bibleWordCount = bibleWords.filter(word => lowerText.includes(word)).length;
@@ -177,4 +276,3 @@ class OCRService {
 // Export singleton instance
 const ocrService = new OCRService();
 export default ocrService;
-
