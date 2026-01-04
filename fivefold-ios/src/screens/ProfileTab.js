@@ -1746,46 +1746,15 @@ const ProfileTab = () => {
         
         <AnimatedStatCard
           style={[styles.statBox, { 
-          backgroundColor: 'rgba(30, 64, 175, 0.30)', // See-through deep blue at 30% opacity
-          borderColor: 'rgba(30, 64, 175, 0.6)', // Semi-transparent deep blue border
-          borderWidth: 0.8, // Very subtle border
-          borderRadius: 16, // Smooth rounded corners - no sharp edges!
-          shadowColor: '#1E40AF', // Deep blue shadow
-          shadowOffset: { width: 0, height: 1 }, // Minimal shadow
-          shadowOpacity: 0.06, // Very subtle shadow
-          shadowRadius: 3, // Small shadow radius
-          elevation: 1, // Minimal elevation
-          // Add glow effect for different themes
-          ...(isBlushTheme && {
-            shadowColor: '#FF69B4',
-            backgroundColor: 'rgba(255, 182, 193, 0.2)', // Keep Blush at 20%
-            borderColor: 'rgba(255, 105, 180, 0.4)',
-          }),
-          ...(isCresviaTheme && {
-            shadowColor: '#8A2BE2',
-            backgroundColor: 'rgba(138, 43, 226, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(147, 112, 219, 0.15)', // Very subtle border
-          }),
-          ...(isEternaTheme && {
-            shadowColor: '#4B0082',
-            backgroundColor: 'rgba(75, 0, 130, 0.10)', // Added 4 to opacity (0.06 -> 0.10)
-            borderColor: 'rgba(72, 61, 139, 0.15)', // Very subtle border
-          }),
-          ...(isFaithTheme && {
-            shadowColor: '#4A90E2', // Sky blue glow - Faith theme
-            backgroundColor: 'rgba(74, 144, 226, 0.30)', // See-through sky blue at 30% - Faith theme
-            borderColor: 'rgba(74, 144, 226, 0.6)', // Semi-transparent sky blue border - Faith theme
-          }),
-          ...(isSailormoonTheme && {
-            shadowColor: '#C8A2D0', // Soft purple glow - Sailor Moon theme
-            backgroundColor: 'rgba(200, 162, 208, 0.30)', // See-through soft purple at 30% - Sailor Moon theme
-            borderColor: 'rgba(200, 162, 208, 0.6)', // Semi-transparent soft purple border - Sailor Moon theme
-          }),
-          ...(isSpidermanTheme && {
-            shadowColor: '#E31E24', // Red glow - Spiderman theme
-            backgroundColor: 'rgba(227, 30, 36, 0.30)', // See-through red at 30% - Spiderman theme
-            borderColor: 'rgba(227, 30, 36, 0.6)', // Semi-transparent red border - Spiderman theme
-          }),
+            backgroundColor: `${theme.primary}30`,
+            borderColor: `${theme.primary}99`,
+            borderWidth: 0.8,
+            borderRadius: 16,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
           }]}
           onPress={() => {
             hapticFeedback.light();
