@@ -59,6 +59,110 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  
+  // Verse detail modal animations
+  const verseDetailSlide = useRef(new Animated.Value(height)).current;
+  const verseDetailOpacity = useRef(new Animated.Value(0)).current;
+  const verseDetailScale = useRef(new Animated.Value(0.95)).current;
+  const [showVerseDetail, setShowVerseDetail] = useState(false);
+  
+  // Open verse detail with animation
+  const openVerseDetail = (verse) => {
+    setSelectedVerse(verse);
+    setShowVerseDetail(true);
+    verseDetailSlide.setValue(height);
+    verseDetailOpacity.setValue(0);
+    verseDetailScale.setValue(0.95);
+    
+    Animated.parallel([
+      Animated.spring(verseDetailSlide, {
+        toValue: 0,
+        tension: 65,
+        friction: 11,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseDetailOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(verseDetailScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 10,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+  
+  // Close verse detail with animation
+  const closeVerseDetail = () => {
+    Animated.parallel([
+      Animated.timing(verseDetailSlide, {
+        toValue: height,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseDetailOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowVerseDetail(false);
+      setSelectedVerse(null);
+    });
+  };
+  
+  // Pan responder for swipe-to-dismiss
+  const verseDetailPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          verseDetailSlide.setValue(gestureState.dy);
+          const opacity = 1 - (gestureState.dy / 400);
+          verseDetailOpacity.setValue(Math.max(0, opacity));
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+          closeVerseDetail();
+        } else {
+          Animated.parallel([
+            Animated.spring(verseDetailSlide, {
+              toValue: 0,
+              tension: 100,
+              friction: 10,
+              useNativeDriver: true,
+            }),
+            Animated.timing(verseDetailOpacity, {
+              toValue: 1,
+              duration: 150,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+      },
+    })
+  ).current;
+  
+  // Toggle favorite verse
+  const toggleFavorite = async (verseId) => {
+    hapticFeedback.medium();
+    const isFavorite = favoriteVerses.includes(verseId);
+    let newFavorites;
+    if (isFavorite) {
+      newFavorites = favoriteVerses.filter(id => id !== verseId);
+    } else {
+      newFavorites = [...favoriteVerses, verseId];
+    }
+    setFavoriteVerses(newFavorites);
+    await saveData('favoriteVerses', newFavorites);
+  };
 
   // Collapsible header animation
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -250,7 +354,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     const grad = getVerseGradient(verse.category);
     return (
       <View key={verse.id} style={viewMode === 'grid' ? styles.gridCard : styles.listCard}>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => setSelectedVerse(verse)}>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => openVerseDetail(verse)}>
           <LinearGradient colors={grad} style={styles.cardGradient}>
             <Text style={styles.cardText} numberOfLines={viewMode === 'grid' ? 5 : 3}>
               "{fetchedVerses[verse.reference]?.text || verse.text}"
@@ -268,26 +372,160 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   };
 
   const renderVerseDetail = () => {
-    if (!selectedVerse) return null;
+    if (!showVerseDetail || !selectedVerse) return null;
     const grad = getVerseGradient(selectedVerse.category);
+    const isFavorite = favoriteVerses.includes(selectedVerse.id);
+    
     return (
-      <Modal visible={!!selectedVerse} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setSelectedVerse(null)} />
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
-            <LinearGradient colors={grad} style={styles.modalHero}>
-              <Text style={styles.modalText}>{fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text}</Text>
-              <Text style={styles.modalRef}>{selectedVerse.reference}</Text>
+      <Modal visible={showVerseDetail} transparent animationType="none" statusBarTranslucent>
+        <Animated.View 
+          style={[
+            styles.verseDetailOverlay,
+            { opacity: verseDetailOpacity }
+          ]}
+        >
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={closeVerseDetail} 
+          />
+          
+          <Animated.View 
+            style={[
+              styles.verseDetailContainer,
+              {
+                transform: [
+                  { translateY: verseDetailSlide },
+                  { scale: verseDetailScale },
+                ],
+              }
+            ]}
+            {...verseDetailPanResponder.panHandlers}
+          >
+            {/* Gradient Background */}
+            <LinearGradient 
+              colors={grad} 
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.verseDetailGradient}
+            >
+              <BlurView intensity={isDark ? 20 : 30} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+              
+              {/* Handle Bar */}
+              <View style={styles.verseDetailHandle}>
+                <View style={styles.verseDetailHandleBar} />
+              </View>
+              
+              {/* Header with close and favorite */}
+              <View style={styles.verseDetailHeader}>
+                <TouchableOpacity 
+                  style={styles.verseDetailCloseBtn}
+                  onPress={closeVerseDetail}
+                >
+                  <MaterialIcons name="close" size={22} color="rgba(255,255,255,0.9)" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.verseDetailFavoriteBtn}
+                  onPress={() => toggleFavorite(selectedVerse.id)}
+                >
+                  <MaterialIcons 
+                    name={isFavorite ? "favorite" : "favorite-border"} 
+                    size={24} 
+                    color={isFavorite ? "#FF6B6B" : "rgba(255,255,255,0.9)"} 
+                  />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Verse Content */}
+              <ScrollView 
+                style={styles.verseDetailScroll}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 30 }}
+              >
+                {/* Opening Quote */}
+                <Text style={styles.verseDetailQuote}>"</Text>
+                
+                {/* Verse Text */}
+                <Text style={styles.verseDetailText}>
+                  {fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text}
+                </Text>
+                
+                {/* Reference */}
+                <View style={styles.verseDetailRefContainer}>
+                  <View style={styles.verseDetailDivider} />
+                  <Text style={styles.verseDetailRef}>{selectedVerse.reference}</Text>
+                  <Text style={styles.verseDetailCategory}>{selectedVerse.category}</Text>
+                </View>
+                
+                {/* Context Section */}
+                <View style={styles.verseDetailContextContainer}>
+                  <Text style={styles.verseDetailContextTitle}>Context</Text>
+                  <Text style={styles.verseDetailContextText}>{selectedVerse.context}</Text>
+                </View>
+              </ScrollView>
+              
+              {/* Action Buttons */}
+              <View style={styles.verseDetailActions}>
+                {/* Go to Verse Button */}
+                <TouchableOpacity
+                  style={styles.verseDetailPrimaryBtn}
+                  onPress={() => {
+                    hapticFeedback.light();
+                    closeVerseDetail();
+                    if (onNavigateToVerse) {
+                      onNavigateToVerse(selectedVerse.reference);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="menu-book" size={20} color={grad[0]} />
+                  <Text style={[styles.verseDetailPrimaryBtnText, { color: grad[0] }]}>
+                    Go to Verse
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Secondary Row */}
+                <View style={styles.verseDetailSecondaryRow}>
+                  {/* Discuss Button */}
+                  <TouchableOpacity
+                    style={styles.verseDetailSecondaryBtn}
+                    onPress={() => {
+                      hapticFeedback.light();
+                      closeVerseDetail();
+                      if (onDiscussVerse) {
+                        onDiscussVerse(selectedVerse.reference);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.verseDetailSecondaryBtnText}>Discuss</Text>
+                  </TouchableOpacity>
+                  
+                  {/* Share Button */}
+                  <TouchableOpacity
+                    style={styles.verseDetailSecondaryBtn}
+                    onPress={async () => {
+                      hapticFeedback.light();
+                      try {
+                        await Share.share({
+                          message: `"${fetchedVerses[selectedVerse.reference]?.text || selectedVerse.text}"\n\n— ${selectedVerse.reference}`,
+                        });
+                      } catch (err) {
+                        console.error('Share error:', err);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="ios-share" size={18} color="#FFFFFF" />
+                    <Text style={styles.verseDetailSecondaryBtnText}>Share</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </LinearGradient>
-            <ScrollView style={styles.modalBody}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Context</Text>
-              <Text style={[styles.sectionText, { color: theme.textSecondary }]}>{selectedVerse.context}</Text>
-            </ScrollView>
-            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: theme.primary }]} onPress={() => setSelectedVerse(null)}>
-              <Text style={styles.closeBtnText}>Got it!</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     );
   };
@@ -439,6 +677,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 10 },
   resultsRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10, flexWrap: 'wrap' },
   categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  // Legacy styles (kept for compatibility)
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '80%', overflow: 'hidden' },
@@ -450,6 +689,183 @@ const styles = StyleSheet.create({
   sectionText: { fontSize: 16, lineHeight: 24 },
   closeBtn: { margin: 24, padding: 16, borderRadius: 16, alignItems: 'center' },
   closeBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  
+  // New verse detail modal styles
+  verseDetailOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  verseDetailContainer: {
+    height: height * 0.85,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  verseDetailGradient: {
+    flex: 1,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+  verseDetailHandle: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  verseDetailHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 2,
+  },
+  verseDetailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  verseDetailCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verseDetailFavoriteBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verseDetailScroll: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  verseDetailQuote: {
+    fontSize: 64,
+    fontWeight: '300',
+    color: 'rgba(255, 255, 255, 0.3)',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    marginBottom: -30,
+    marginLeft: -8,
+  },
+  verseDetailText: {
+    fontSize: 22,
+    lineHeight: 34,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    paddingHorizontal: 8,
+    marginTop: 20,
+  },
+  verseDetailRefContainer: {
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  verseDetailDivider: {
+    width: 40,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 1.5,
+    marginBottom: 16,
+  },
+  verseDetailRef: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  verseDetailCategory: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  verseDetailContextContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
+  },
+  verseDetailContextTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  verseDetailContextText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  verseDetailActions: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    gap: 12,
+  },
+  verseDetailPrimaryBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  verseDetailPrimaryBtnText: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  verseDetailSecondaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  verseDetailSecondaryBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  verseDetailSecondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 });
 
 export default KeyVerses;
