@@ -35,22 +35,42 @@ const OnboardingWrapper = ({ children }) => {
       if (onboardingCompleted !== 'true') {
         console.log('Checking iCloud for existing account...');
         
-        // Wait for iCloud sync to complete (it may have already run)
-        // Give it a moment to sync data from cloud
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for iCloud service to be available and sync
+        // Poll every 500ms for up to 5 seconds
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        // Check again after sync
-        onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-        const userProfile = await AsyncStorage.getItem('userProfile');
-        
-        console.log('Onboarding status (after iCloud):', onboardingCompleted);
-        console.log('User profile exists:', !!userProfile);
-        
-        // If we found a profile from iCloud, mark onboarding complete
-        if (userProfile && onboardingCompleted !== 'true') {
-          console.log('Found existing profile from iCloud, skipping onboarding');
-          await AsyncStorage.setItem('onboardingCompleted', 'true');
-          onboardingCompleted = 'true';
+        while (attempts < maxAttempts) {
+          attempts++;
+          console.log(`iCloud check attempt ${attempts}/${maxAttempts}...`);
+          
+          // Wait a bit for sync to happen
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Check if we now have data from iCloud
+          onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+          const userProfile = await AsyncStorage.getItem('userProfile');
+          const userName = await AsyncStorage.getItem('userName');
+          
+          console.log(`Attempt ${attempts} - onboarding: ${onboardingCompleted}, profile: ${!!userProfile}, name: ${!!userName}`);
+          
+          // If we found a profile or onboarding completed, we're done
+          if (onboardingCompleted === 'true' || userProfile || userName) {
+            console.log('Found existing account data from iCloud');
+            
+            // Mark onboarding complete if we have user data
+            if (userProfile || userName) {
+              await AsyncStorage.setItem('onboardingCompleted', 'true');
+              onboardingCompleted = 'true';
+            }
+            break;
+          }
+          
+          // If iCloud service says it's not syncing anymore, stop waiting
+          if (iCloudSyncService.isAvailable && !iCloudSyncService.isSyncing && attempts >= 4) {
+            console.log('iCloud sync completed, no existing account found');
+            break;
+          }
         }
       }
       
