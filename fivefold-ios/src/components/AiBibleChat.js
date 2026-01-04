@@ -687,6 +687,13 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     const result = await speechToTextService.startRecording();
     if (result.success) {
       setIsRecording(true);
+    } else if (result.needsRebuild) {
+      // Voice input not available without rebuild - show friendly message
+      Alert.alert(
+        'Voice Input', 
+        'Voice input will be available in the next app update. For now, please type your message.',
+        [{ text: 'OK', style: 'default' }]
+      );
     } else {
       Alert.alert('Microphone Access', result.error || 'Could not start recording. Please check your microphone permissions.');
     }

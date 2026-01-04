@@ -1,13 +1,22 @@
-// Speech-to-Text Service - Uses Deepgram API for voice transcription
-import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+// Speech-to-Text Service
+// Uses expo-av for recording when available, otherwise provides fallback
 
-// Deepgram free tier API key (you can get your own at deepgram.com)
-const DEEPGRAM_API_KEY = '85d2a8b0e8c9f4c5b2e1d0c9a8b7c6d5e4f3a2b1'; // Replace with real key
-const DEEPGRAM_API_URL = 'https://api.deepgram.com/v1/listen';
+let Audio = null;
+let FileSystem = null;
+let isAudioAvailable = false;
 
-// Alternative: Use free Wit.ai or AssemblyAI
-const WIT_AI_TOKEN = 'JZXKQYLC6GQVBPXL7H7XZRPGJ4WNIVOU'; // Wit.ai free token
+// Try to load expo-av (might not be available without native rebuild)
+try {
+  Audio = require('expo-av').Audio;
+  FileSystem = require('expo-file-system');
+  isAudioAvailable = true;
+} catch (error) {
+  console.log('expo-av not available - voice input will require app rebuild');
+  isAudioAvailable = false;
+}
+
+// Wit.ai free token for speech-to-text
+const WIT_AI_TOKEN = 'JZXKQYLC6GQVBPXL7H7XZRPGJ4WNIVOU';
 const WIT_AI_URL = 'https://api.wit.ai/speech';
 
 class SpeechToTextService {
@@ -18,9 +27,20 @@ class SpeechToTextService {
   }
 
   /**
+   * Check if voice input is available
+   */
+  isAvailable() {
+    return isAudioAvailable;
+  }
+
+  /**
    * Request microphone permissions
    */
   async requestPermissions() {
+    if (!isAudioAvailable) {
+      return false;
+    }
+    
     try {
       const { status } = await Audio.requestPermissionsAsync();
       this.permissionGranted = status === 'granted';
@@ -35,6 +55,14 @@ class SpeechToTextService {
    * Start recording audio
    */
   async startRecording() {
+    if (!isAudioAvailable) {
+      return { 
+        success: false, 
+        error: 'Voice input requires an app rebuild. Please type your message instead.',
+        needsRebuild: true
+      };
+    }
+
     try {
       // Request permissions if not already granted
       if (!this.permissionGranted) {
@@ -62,6 +90,16 @@ class SpeechToTextService {
       return { success: true };
     } catch (error) {
       console.error('Failed to start recording:', error);
+      
+      // Check if it's a native module error
+      if (error.message?.includes('native module') || error.message?.includes('ExponentAV')) {
+        return { 
+          success: false, 
+          error: 'Voice input requires an app rebuild. Please type your message instead.',
+          needsRebuild: true
+        };
+      }
+      
       return { success: false, error: error.message };
     }
   }
@@ -86,7 +124,6 @@ class SpeechToTextService {
       });
 
       this.isRecording = false;
-      const recordingRef = this.recording;
       this.recording = null;
 
       if (!uri) {
@@ -143,7 +180,7 @@ class SpeechToTextService {
   }
 
   /**
-   * Transcribe audio using Wit.ai (free, no API key needed for basic use)
+   * Transcribe audio using Wit.ai (free tier)
    */
   async transcribeAudio(audioUri) {
     try {
@@ -161,7 +198,7 @@ class SpeechToTextService {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Try Wit.ai first (free tier)
+      // Try Wit.ai (free tier)
       try {
         const witResponse = await fetch(WIT_AI_URL, {
           method: 'POST',
@@ -175,20 +212,17 @@ class SpeechToTextService {
         if (witResponse.ok) {
           const result = await witResponse.json();
           if (result.text) {
-            console.log('✅ Wit.ai transcription:', result.text);
+            console.log('✅ Transcription:', result.text);
             return { success: true, text: result.text };
           }
         }
       } catch (witError) {
-        console.log('Wit.ai failed, trying alternative...');
+        console.log('Wit.ai transcription failed:', witError);
       }
 
-      // Fallback: Use Google Cloud Speech-to-Text free tier
-      // For now, return a message asking user to type
-      console.log('⚠️ Transcription service unavailable');
       return { 
         success: false, 
-        error: 'Voice transcription is currently unavailable. Please type your message.' 
+        error: 'Could not transcribe audio. Please try again or type your message.' 
       };
 
     } catch (error) {
@@ -204,6 +238,7 @@ class SpeechToTextService {
     return {
       isRecording: this.isRecording,
       hasPermission: this.permissionGranted,
+      isAvailable: isAudioAvailable,
     };
   }
 }
@@ -211,4 +246,3 @@ class SpeechToTextService {
 // Export singleton instance
 const speechToTextService = new SpeechToTextService();
 export default speechToTextService;
-
