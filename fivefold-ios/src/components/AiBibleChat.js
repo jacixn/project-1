@@ -25,6 +25,7 @@ import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
+import ocrService from '../services/ocrService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 import * as ImagePicker from 'expo-image-picker';
 // Removed InteractiveSwipeBack import
@@ -223,6 +224,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [attachedImage, setAttachedImage] = useState(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
 
@@ -678,7 +680,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
   const sendMessage = async (messageText = inputText) => {
     // Allow sending if there's text OR an attached image
-    if ((!messageText.trim() && !attachedImage) || isLoading) return;
+    if ((!messageText.trim() && !attachedImage) || isLoading || isProcessingImage) return;
 
     console.log('📤 Sending message:', messageText);
     hapticFeedback.light();
@@ -686,7 +688,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     // Build the user message with optional image
     const userMessage = {
       id: Date.now().toString(),
-      text: messageText || (attachedImage ? 'What can you tell me about this Bible page?' : ''),
+      text: messageText || (attachedImage ? 'Reading text from this Bible page...' : ''),
       isAi: false,
       timestamp: new Date(),
       image: attachedImage ? attachedImage.uri : null,
@@ -703,17 +705,49 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     try {
       console.log('🔄 Starting Smart request...');
       
-      // If there's an image, add context about it
+      // If there's an image, run OCR to extract text first
       let finalMessage = messageText || '';
       if (imageToAnalyze) {
-        // Add image analysis context to the message
-        finalMessage = finalMessage 
-          ? `[User attached an image of a Bible page] ${finalMessage}`
-          : `[User attached an image of a Bible page] Please analyze this Bible page image and tell me what book, chapter, and verses are shown. Also explain what the passage is about.`;
+        console.log('📷 Image attached, running OCR...');
+        setIsProcessingImage(true);
         
-        // Note: Currently we send a text description since Deepseek doesn't support vision
-        // The user can describe what they see or the image content
-        console.log('📷 Image attached, sending with context');
+        // Extract text from the image using OCR
+        const ocrResult = await ocrService.extractTextFromImage(imageToAnalyze.uri);
+        setIsProcessingImage(false);
+        
+        if (ocrResult.success && ocrResult.text) {
+          console.log('✅ OCR extracted text:', ocrResult.text.substring(0, 100) + '...');
+          
+          // Format the prompt with extracted text
+          finalMessage = ocrService.formatForAIPrompt(ocrResult.text, messageText);
+          
+          // Add a system message showing what was extracted
+          const extractedNote = {
+            id: (Date.now() - 1).toString(),
+            text: `📖 Extracted from image:\n"${ocrResult.text.substring(0, 300)}${ocrResult.text.length > 300 ? '...' : ''}"`,
+            isAi: true,
+            timestamp: new Date(),
+            isSystemNote: true,
+          };
+          setMessages(prev => [...prev, extractedNote]);
+          scrollToBottom();
+        } else {
+          console.log('⚠️ OCR failed or no text found:', ocrResult.error);
+          
+          // If OCR failed, let the user know
+          const errorNote = {
+            id: (Date.now() + 1).toString(),
+            text: ocrResult.error === 'OCR already in progress' 
+              ? "I'm still processing the previous image. Please wait a moment."
+              : "I couldn't read the text from that image clearly. Try taking a clearer photo with good lighting, or you can type the verse reference and I'll help you with it.",
+            isAi: true,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, errorNote]);
+          setIsLoading(false);
+          hapticFeedback.error();
+          return;
+        }
       }
       
       // Call Smart service for Bible questions - now returns response or error message
@@ -1033,7 +1067,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                   <View style={styles.thinkingContainer}>
                     <BallVerticalBounce size={30} />
                     <Text style={[styles.messageText, { color: theme.text, marginLeft: 12 }]}>
-                      Friend is thinking...
+                      {isProcessingImage ? 'Reading the Bible page...' : 'Friend is thinking...'}
                     </Text>
                   </View>
                 </View>
@@ -1125,7 +1159,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               <TouchableOpacity
                 style={[styles.sendButton, { backgroundColor: (inputText.trim() || attachedImage) ? theme.primary : theme.textSecondary }]}
                 onPress={() => sendMessage()}
-                disabled={(!inputText.trim() && !attachedImage) || isLoading}
+                disabled={(!inputText.trim() && !attachedImage) || isLoading || isProcessingImage}
               >
                 <MaterialIcons name="send" size={20} color="#ffffff" />
               </TouchableOpacity>
