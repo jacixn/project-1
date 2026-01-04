@@ -1793,7 +1793,7 @@ const ProfileTab = () => {
             loadJournalNotes(); // Load data in background after modal opens
           }}
         >
-          <MaterialIcons name="menu-book" size={24} color={theme.info} />
+          <MaterialIcons name="import-contacts" size={24} color={theme.info} />
           <Text style={[styles.statValue, { color: theme.text }]}>
             {journalNotes.length}
           </Text>
