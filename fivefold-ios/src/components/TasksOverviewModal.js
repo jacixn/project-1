@@ -114,18 +114,40 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
         {/* Header */}
         <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.header}>
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={28} color={theme.text} />
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={{ 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                paddingHorizontal: 18, 
+                paddingVertical: 10,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
             </TouchableOpacity>
             
-            <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>All Tasks</Text>
-              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-                {totalTasks} active • {totalPoints.toLocaleString()} pts
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ 
+                color: theme.text, 
+                fontSize: 17, 
+                fontWeight: '700',
+                letterSpacing: 0.3,
+              }}>
+                Tasks Done
               </Text>
+              <View style={{ 
+                width: 30, 
+                height: 3, 
+                backgroundColor: theme.primary, 
+                borderRadius: 2,
+                marginTop: 4
+              }} />
             </View>
             
-            <View style={styles.closeButton} />
+            <View style={{ width: 70 }} />
           </View>
         </BlurView>
 
