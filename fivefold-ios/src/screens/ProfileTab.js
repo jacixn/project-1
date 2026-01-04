@@ -4795,16 +4795,13 @@ const ProfileTab = () => {
                 }}>
                   {selectedHighlightColor ? getColorName(selectedHighlightColor) : 'Highlights'}
                 </Text>
-                    <Text style={{
-                      color: theme.textTertiary,
-                      fontSize: 12,
-                      fontWeight: '500',
-                      marginTop: 2,
-                    }}>
-                      {selectedHighlightColor 
-                        ? `${highlightVersesWithText.length} verses` 
-                        : `${Object.keys(groupHighlightsByColor()).length} categories`}
-                    </Text>
+                    <View style={{ 
+                      width: 50, 
+                      height: 3, 
+                      backgroundColor: selectedHighlightColor || theme.primary, 
+                      borderRadius: 2,
+                      marginTop: 6,
+                    }} />
                   </View>
                   
                 {!selectedHighlightColor ? (
