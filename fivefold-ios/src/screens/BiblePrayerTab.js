@@ -1365,11 +1365,14 @@ const BiblePrayerTab = () => {
                   <View style={{ alignItems: 'center', marginBottom: 24 }}>
                     <Text style={{
                       fontSize: 13,
-                      fontWeight: '600',
-                      color: 'rgba(255, 255, 255, 0.7)',
+                      fontWeight: '700',
+                      color: 'rgba(255, 255, 255, 0.9)',
                       letterSpacing: 2,
                       textTransform: 'uppercase',
                       marginBottom: 6,
+                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 2,
                     }}>
                       {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                     </Text>
@@ -1379,36 +1382,39 @@ const BiblePrayerTab = () => {
                       color: '#FFFFFF',
                       textAlign: 'center',
                       letterSpacing: 0.5,
-                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowColor: 'rgba(0, 0, 0, 0.45)',
                       textShadowOffset: { width: 0, height: 2 },
-                      textShadowRadius: 4,
+                      textShadowRadius: 5,
                     }}>
                       {userName ? `${userName}'s Verse` : 'Your Verse'}
                     </Text>
                     <Text style={{
                       fontSize: 14,
-                      fontWeight: '500',
-                      color: 'rgba(255, 255, 255, 0.8)',
+                      fontWeight: '600',
+                      color: 'rgba(255, 255, 255, 0.95)',
                       marginTop: 4,
+                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 2,
                     }}>
                       {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </Text>
                   </View>
 
-                  {/* Verse Card */}
+                  {/* Verse Card - with dark scrim for readability */}
                   <View style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.25)',
                     borderRadius: 20,
                     padding: 24,
                     marginBottom: 24,
                     borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.15)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
                   }}>
                     {/* Opening quote mark */}
                     <Text style={{
                       fontSize: 48,
                       fontWeight: '300',
-                      color: 'rgba(255, 255, 255, 0.25)',
+                      color: 'rgba(255, 255, 255, 0.35)',
                       position: 'absolute',
                       top: 8,
                       left: 16,
@@ -1423,12 +1429,12 @@ const BiblePrayerTab = () => {
                       fontStyle: 'italic',
                       color: '#FFFFFF',
                       textAlign: 'center',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       paddingHorizontal: 8,
                       paddingTop: 12,
-                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 3,
+                      textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                      textShadowOffset: { width: 0, height: 2 },
+                      textShadowRadius: 4,
                     }}>
                       {dailyVerse.text}
                     </Text>
@@ -1441,7 +1447,7 @@ const BiblePrayerTab = () => {
                       <View style={{
                         width: 32,
                         height: 2,
-                        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
                         borderRadius: 1,
                         marginBottom: 12,
                       }} />
@@ -1450,15 +1456,21 @@ const BiblePrayerTab = () => {
                         fontWeight: '700',
                         color: '#FFFFFF',
                         letterSpacing: 0.5,
+                        textShadowColor: 'rgba(0, 0, 0, 0.4)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 3,
                       }}>
                         {dailyVerse.reference}
                       </Text>
                       {dailyVerse.version && (
                         <Text style={{
                           fontSize: 12,
-                          fontWeight: '500',
-                          color: 'rgba(255, 255, 255, 0.6)',
+                          fontWeight: '600',
+                          color: 'rgba(255, 255, 255, 0.85)',
                           marginTop: 4,
+                          textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
                         }}>
                           {dailyVerse.version}
                         </Text>
@@ -1499,7 +1511,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1507,7 +1519,7 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          borderColor: 'rgba(255, 255, 255, 0.25)',
                         }}
                         onPress={handleDiscussVerse}
                         activeOpacity={0.8}
@@ -1515,8 +1527,11 @@ const BiblePrayerTab = () => {
                         <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
                         <Text style={{
                           fontSize: 14,
-                          fontWeight: '600',
+                          fontWeight: '700',
                           color: '#FFFFFF',
+                          textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
                         }}>
                           Discuss
                         </Text>
@@ -1526,7 +1541,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1534,7 +1549,7 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          borderColor: 'rgba(255, 255, 255, 0.25)',
                         }}
                         onPress={handleShareVerse}
                         activeOpacity={0.8}
@@ -1542,7 +1557,10 @@ const BiblePrayerTab = () => {
                         <MaterialIcons name="ios-share" size={18} color="#FFFFFF" />
                         <Text style={{
                           fontSize: 14,
-                          fontWeight: '600',
+                          fontWeight: '700',
+                          textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
                           color: '#FFFFFF',
                         }}>
                           Share
@@ -2472,10 +2490,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   verseModalGhostButtonText: {
-    color: 'rgba(255,255,255,0.82)',
+    color: 'rgba(255,255,255,0.95)',
     fontSize: 14,
     fontWeight: '700',
     textDecorationLine: 'underline',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   shareCardOverlay: {
     flex: 1,
