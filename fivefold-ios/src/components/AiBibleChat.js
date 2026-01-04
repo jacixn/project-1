@@ -688,7 +688,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     // Build the user message with optional image
     const userMessage = {
       id: Date.now().toString(),
-      text: messageText || (attachedImage ? 'Reading text from this Bible page...' : ''),
+      text: messageText || '', // If just an image, no text needed - the image speaks for itself
       isAi: false,
       timestamp: new Date(),
       image: attachedImage ? attachedImage.uri : null,
@@ -722,19 +722,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
         if (ocrResult.success && ocrResult.text) {
           console.log('✅ OCR extracted text:', ocrResult.text.substring(0, 100) + '...');
           
-          // Format the prompt with extracted text
+          // Format the prompt with extracted text - AI will respond directly
+          // No need to show the raw extracted text to the user
           finalMessage = ocrService.formatForAIPrompt(ocrResult.text, messageText);
-          
-          // Add a system message showing what was extracted
-          const extractedNote = {
-            id: (Date.now() - 1).toString(),
-            text: `📖 Extracted from image:\n"${ocrResult.text.substring(0, 300)}${ocrResult.text.length > 300 ? '...' : ''}"`,
-            isAi: true,
-            timestamp: new Date(),
-            isSystemNote: true,
-          };
-          setMessages(prev => [...prev, extractedNote]);
-          scrollToBottom();
         } else {
           console.log('⚠️ OCR failed or no text found:', ocrResult.error);
           
