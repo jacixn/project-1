@@ -26,6 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
 import ocrService from '../services/ocrService';
+import speechToTextService from '../services/speechToTextService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 import * as ImagePicker from 'expo-image-picker';
 // Removed InteractiveSwipeBack import
@@ -225,6 +226,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [attachedImage, setAttachedImage] = useState(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
 
@@ -678,6 +681,45 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     setAttachedImage(null);
   };
 
+  // Voice input handlers
+  const handleVoiceStart = async () => {
+    hapticFeedback.medium();
+    const result = await speechToTextService.startRecording();
+    if (result.success) {
+      setIsRecording(true);
+    } else {
+      Alert.alert('Microphone Access', result.error || 'Could not start recording. Please check your microphone permissions.');
+    }
+  };
+
+  const handleVoiceStop = async () => {
+    if (!isRecording) return;
+    
+    hapticFeedback.light();
+    setIsRecording(false);
+    setIsTranscribing(true);
+    
+    const result = await speechToTextService.stopRecording();
+    setIsTranscribing(false);
+    
+    if (result.success && result.text) {
+      // Set the transcribed text in the input field
+      setInputText(prev => prev ? `${prev} ${result.text}` : result.text);
+      hapticFeedback.success();
+    } else if (result.error) {
+      // Don't show alert for minor errors, just log
+      console.log('Voice transcription:', result.error);
+    }
+  };
+
+  const handleVoiceCancel = async () => {
+    if (!isRecording) return;
+    
+    hapticFeedback.light();
+    await speechToTextService.cancelRecording();
+    setIsRecording(false);
+  };
+
   const sendMessage = async (messageText = inputText) => {
     // Allow sending if there's text OR an attached image
     if ((!messageText.trim() && !attachedImage) || isLoading || isProcessingImage) return;
@@ -1113,13 +1155,35 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               <TouchableOpacity
                 style={styles.imagePickerButton}
                 onPress={handleImagePicker}
-                disabled={isLoading}
+                disabled={isLoading || isRecording}
               >
                 <MaterialIcons 
                   name="photo-camera" 
                   size={22} 
                   color={attachedImage ? theme.primary : theme.textSecondary} 
                 />
+              </TouchableOpacity>
+
+              {/* Voice Input Button */}
+              <TouchableOpacity
+                style={[
+                  styles.voiceButton,
+                  isRecording && styles.voiceButtonRecording,
+                  isRecording && { backgroundColor: '#FF4444' }
+                ]}
+                onPress={isRecording ? handleVoiceStop : handleVoiceStart}
+                onLongPress={handleVoiceStart}
+                disabled={isLoading || isTranscribing}
+              >
+                {isTranscribing ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <MaterialIcons 
+                    name={isRecording ? 'stop' : 'mic'} 
+                    size={22} 
+                    color={isRecording ? '#FFFFFF' : theme.textSecondary} 
+                  />
+                )}
               </TouchableOpacity>
               
               <TextInput
@@ -1128,7 +1192,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                   color: theme.text || (isDark ? '#FFFFFF' : '#000000'), // Fallback colors
                   backgroundColor: 'transparent' // Ensure background is transparent
                 }]}
-                placeholder="Ask me anything..."
+                placeholder={isRecording ? "Listening..." : isTranscribing ? "Processing voice..." : "Ask me anything..."}
                 placeholderTextColor={theme.textSecondary || (isDark ? '#AAAAAA' : '#666666')}
                 value={inputText}
                 onChangeText={(text) => {
@@ -1674,7 +1738,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 4,
+  },
+  voiceButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 8,
+  },
+  voiceButtonRecording: {
+    transform: [{ scale: 1.1 }],
   },
   attachedImageContainer: {
     marginBottom: 12,
