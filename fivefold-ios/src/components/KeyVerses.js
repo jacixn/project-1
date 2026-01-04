@@ -585,16 +585,29 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
             <LinearGradient colors={isDark ? ['#1e1e28', '#1e1e28'] : ['#ffffff', '#f8fafc']} style={styles.headerGradient}>
               <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
               <View style={styles.headerRow}>
-                <TouchableOpacity 
-                  style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} 
-                  onPress={onClose}
-                >
-                  <Text style={{ color: theme.primary, fontWeight: '600' }}>Back</Text>
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
-                <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-                  <MaterialIcons name={viewMode === 'grid' ? 'view-list' : 'grid-view'} size={24} color={theme.text} />
-                </TouchableOpacity>
+                <View style={{ width: 70 }}>
+                  <TouchableOpacity 
+                    style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} 
+                    onPress={onClose}
+                  >
+                    <Text style={{ color: theme.primary, fontWeight: '600' }}>Back</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
+                  <View style={{ 
+                    width: 50, 
+                    height: 3, 
+                    backgroundColor: theme.primary, 
+                    borderRadius: 2,
+                    marginTop: 6,
+                  }} />
+                </View>
+                <View style={{ width: 70, alignItems: 'flex-end' }}>
+                  <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+                    <MaterialIcons name={viewMode === 'grid' ? 'view-list' : 'grid-view'} size={24} color={theme.text} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <Animated.View style={{ opacity: expandedOpacity }}>
