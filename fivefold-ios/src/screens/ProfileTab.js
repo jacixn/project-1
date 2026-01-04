@@ -5198,14 +5198,13 @@ const ProfileTab = () => {
                 }}>
                   Tasks Done
                 </Text>
-                    <Text style={{
-                      color: theme.textTertiary,
-                      fontSize: 12,
-                      fontWeight: '500',
-                      marginTop: 2,
-                    }}>
-                      {completedTodosList.length} {completedTodosList.length === 1 ? 'task' : 'tasks'}
-                    </Text>
+                    <View style={{ 
+                      width: 50, 
+                      height: 3, 
+                      backgroundColor: theme.primary, 
+                      borderRadius: 2,
+                      marginTop: 6,
+                    }} />
               </View>
                   
                   <View style={{ width: 70 }} />
