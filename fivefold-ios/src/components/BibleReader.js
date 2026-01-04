@@ -137,6 +137,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const [shareCardAspect, setShareCardAspect] = useState('portrait'); // Aspect ratio
   const [shareCardFont, setShareCardFont] = useState('georgia'); // Font style
   const [shareCardFontSizeAdjust, setShareCardFontSizeAdjust] = useState(0); // Font size adjustment (-10 to +10)
+  const [shareCardBold, setShareCardBold] = useState(false); // Bold toggle
+  const [shareCardItalic, setShareCardItalic] = useState(false); // Italic toggle
   const [shareCardShowBranding, setShareCardShowBranding] = useState(true); // Show Biblely
   const [shareCardControlsTab, setShareCardControlsTab] = useState('bg'); // Active controls tab
   const shareCardPrefsLoaded = useRef(false);
@@ -155,6 +157,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
           if (parsed.font) setShareCardFont(parsed.font);
           if (parsed.fontSizeAdjust !== undefined) setShareCardFontSizeAdjust(parsed.fontSizeAdjust);
           if (parsed.showBranding !== undefined) setShareCardShowBranding(parsed.showBranding);
+          if (parsed.bold !== undefined) setShareCardBold(parsed.bold);
+          if (parsed.italic !== undefined) setShareCardItalic(parsed.italic);
         }
         shareCardPrefsLoaded.current = true;
       } catch (err) {
@@ -447,7 +451,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     { id: 'wide', label: '16:9', name: 'Wide', ratio: 16/9 },
   ];
 
-  // Font Styles - 50+ Options (iOS System Fonts)
+  // Font Styles - Clean list without bold/italic variants (use toggles instead)
   const fontPresets = [
     // === SERIF FONTS ===
     { id: 'georgia', name: 'Georgia', style: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' } },
@@ -469,48 +473,21 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     { id: 'gillSans', name: 'Gill Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Gill Sans' : 'sans-serif' } },
     { id: 'optima', name: 'Optima', style: { fontFamily: Platform.OS === 'ios' ? 'Optima' : 'sans-serif' } },
     { id: 'sfPro', name: 'SF Pro', style: { fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif' } },
-    { id: 'sfCompact', name: 'SF Compact', style: { fontFamily: Platform.OS === 'ios' ? 'SF Compact Display' : 'sans-serif' } },
     { id: 'verdana', name: 'Verdana', style: { fontFamily: Platform.OS === 'ios' ? 'Verdana' : 'sans-serif' } },
     { id: 'trebuchet', name: 'Trebuchet', style: { fontFamily: Platform.OS === 'ios' ? 'Trebuchet MS' : 'sans-serif' } },
-    { id: 'rockwell', name: 'Rockwell', style: { fontFamily: Platform.OS === 'ios' ? 'Rockwell' : 'sans-serif' } },
     // === SCRIPT & DECORATIVE ===
     { id: 'snell', name: 'Snell', style: { fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive' } },
     { id: 'bradleyHand', name: 'Bradley Hand', style: { fontFamily: Platform.OS === 'ios' ? 'Bradley Hand' : 'cursive' } },
     { id: 'chalkboard', name: 'Chalkboard', style: { fontFamily: Platform.OS === 'ios' ? 'Chalkboard SE' : 'cursive' } },
     { id: 'noteworthy', name: 'Noteworthy', style: { fontFamily: Platform.OS === 'ios' ? 'Noteworthy' : 'cursive' } },
-    { id: 'papyrus', name: 'Papyrus', style: { fontFamily: Platform.OS === 'ios' ? 'Papyrus' : 'cursive' } },
     { id: 'zapfino', name: 'Zapfino', style: { fontFamily: Platform.OS === 'ios' ? 'Zapfino' : 'cursive' } },
-    { id: 'markerFelt', name: 'Marker Felt', style: { fontFamily: Platform.OS === 'ios' ? 'Marker Felt' : 'cursive' } },
-    { id: 'savoye', name: 'Savoye', style: { fontFamily: Platform.OS === 'ios' ? 'Savoye LET' : 'cursive' } },
-    { id: 'partyLet', name: 'Party LET', style: { fontFamily: Platform.OS === 'ios' ? 'Party LET' : 'cursive' } },
     // === MONOSPACE ===
     { id: 'courier', name: 'Courier', style: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' } },
-    { id: 'courierNew', name: 'Courier New', style: { fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' } },
     { id: 'menlo', name: 'Menlo', style: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' } },
-    { id: 'sfMono', name: 'SF Mono', style: { fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace' } },
     { id: 'americanTypewriter', name: 'Typewriter', style: { fontFamily: Platform.OS === 'ios' ? 'American Typewriter' : 'monospace' } },
-    // === DISPLAY & BOLD ===
-    { id: 'impact', name: 'Impact', style: { fontFamily: Platform.OS === 'ios' ? 'Impact' : 'sans-serif', fontWeight: '900' } },
+    // === DISPLAY ===
     { id: 'copperplate', name: 'Copperplate', style: { fontFamily: Platform.OS === 'ios' ? 'Copperplate' : 'serif' } },
-    { id: 'academyEngraved', name: 'Academy', style: { fontFamily: Platform.OS === 'ios' ? 'Academy Engraved LET' : 'serif' } },
-    { id: 'herculanum', name: 'Herculanum', style: { fontFamily: Platform.OS === 'ios' ? 'Herculanum' : 'serif' } },
-    // === CONDENSED & LIGHT ===
-    { id: 'avenirLight', name: 'Avenir Light', style: { fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif', fontWeight: '300' } },
-    { id: 'helveticaLight', name: 'Helvetica Light', style: { fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif', fontWeight: '300' } },
-    { id: 'georgiaItalic', name: 'Georgia Italic', style: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic' } },
-    { id: 'timesItalic', name: 'Times Italic', style: { fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif', fontStyle: 'italic' } },
-    { id: 'palatinoItalic', name: 'Palatino Italic', style: { fontFamily: Platform.OS === 'ios' ? 'Palatino' : 'serif', fontStyle: 'italic' } },
-    { id: 'baskervilleItalic', name: 'Baskerville Italic', style: { fontFamily: Platform.OS === 'ios' ? 'Baskerville' : 'serif', fontStyle: 'italic' } },
-    { id: 'didotItalic', name: 'Didot Italic', style: { fontFamily: Platform.OS === 'ios' ? 'Didot' : 'serif', fontStyle: 'italic' } },
-    // === BOLD VARIANTS ===
-    { id: 'georgiaBold', name: 'Georgia Bold', style: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '700' } },
-    { id: 'helveticaBold', name: 'Helvetica Bold', style: { fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif', fontWeight: '700' } },
-    { id: 'avenirBold', name: 'Avenir Bold', style: { fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif', fontWeight: '700' } },
-    { id: 'futuraBold', name: 'Futura Bold', style: { fontFamily: Platform.OS === 'ios' ? 'Futura' : 'sans-serif', fontWeight: '700' } },
-    { id: 'gillSansBold', name: 'Gill Sans Bold', style: { fontFamily: Platform.OS === 'ios' ? 'Gill Sans' : 'sans-serif', fontWeight: '700' } },
-    // === EXTRA STYLES ===
-    { id: 'avenirBlack', name: 'Avenir Black', style: { fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif', fontWeight: '900' } },
-    { id: 'futuraCondensed', name: 'Futura Condensed', style: { fontFamily: Platform.OS === 'ios' ? 'Futura-CondensedMedium' : 'sans-serif' } },
+    { id: 'rockwell', name: 'Rockwell', style: { fontFamily: Platform.OS === 'ios' ? 'Rockwell' : 'sans-serif' } },
     { id: 'systemDefault', name: 'System', style: { fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif' } },
   ];
 
@@ -5008,11 +4985,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
               
               const verseTextStyle = {
                 fontSize: adjustedFontSize,
-                fontWeight: shareCardActiveLayout === 'bold' ? '700' : '500',
+                fontWeight: shareCardBold || shareCardActiveLayout === 'bold' ? '700' : '400',
                 color: textColor,
                 lineHeight: adjustedLineHeight,
                 textAlign: shareCardTextAlign,
-                fontStyle: shareCardActiveLayout === 'bold' ? 'normal' : 'italic',
+                fontStyle: shareCardItalic ? 'italic' : 'normal',
                 ...currentFont.style,
               };
 
@@ -5365,6 +5342,50 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                                 ))}
                               </View>
                             </ScrollView>
+
+                            {/* Bold & Italic Toggles */}
+                            <View style={{ flexDirection: 'row', marginBottom: 20, gap: 12 }}>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  const newBold = !shareCardBold;
+                                  setShareCardBold(newBold);
+                                  saveShareCardPrefs({ bold: newBold });
+                                }}
+                                style={{
+                                  flex: 1,
+                                  paddingVertical: 14,
+                                  borderRadius: 12,
+                                  backgroundColor: shareCardBold ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                                  borderWidth: shareCardBold ? 1.5 : 1,
+                                  borderColor: shareCardBold ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>B</Text>
+                                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 }}>Bold</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  const newItalic = !shareCardItalic;
+                                  setShareCardItalic(newItalic);
+                                  saveShareCardPrefs({ italic: newItalic });
+                                }}
+                                style={{
+                                  flex: 1,
+                                  paddingVertical: 14,
+                                  borderRadius: 12,
+                                  backgroundColor: shareCardItalic ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                                  borderWidth: shareCardItalic ? 1.5 : 1,
+                                  borderColor: shareCardItalic ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ color: '#fff', fontSize: 16, fontStyle: 'italic' }}>I</Text>
+                                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 }}>Italic</Text>
+                              </TouchableOpacity>
+                            </View>
 
                             {/* Font Size */}
                             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
