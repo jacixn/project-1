@@ -2787,14 +2787,13 @@ const ProfileTab = () => {
                 }}>
                   Saved Verses
                 </Text>
-                    <Text style={{
-                      color: theme.textTertiary,
-                      fontSize: 12,
-                      fontWeight: '500',
-                      marginTop: 2,
-                    }}>
-                      {savedVersesList.length} {savedVersesList.length === 1 ? 'verse' : 'verses'}
-                    </Text>
+                    <View style={{ 
+                      width: 60, 
+                      height: 3, 
+                      backgroundColor: theme.primary, 
+                      borderRadius: 2,
+                      marginTop: 6,
+                    }} />
                   </View>
                   
                   {/* Sort button */}
