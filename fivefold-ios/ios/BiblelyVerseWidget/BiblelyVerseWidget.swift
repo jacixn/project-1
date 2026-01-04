@@ -103,9 +103,15 @@ struct VerseWidgetView: View {
             case .accessoryRectangular:
                 // Lock screen rectangular widget
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(entry.reference)
-                        .font(.system(size: 11, weight: .bold))
-                        .minimumScaleFactor(0.7)
+                    HStack(spacing: 4) {
+                        Image("WidgetLogo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 12, height: 12)
+                        Text(entry.reference)
+                            .font(.system(size: 11, weight: .bold))
+                            .minimumScaleFactor(0.7)
+                    }
                     Text(entry.text)
                         .font(.system(size: 10, weight: .medium))
                         .lineLimit(4)
