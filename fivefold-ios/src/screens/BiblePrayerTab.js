@@ -2324,6 +2324,7 @@ const styles = StyleSheet.create({
   verseModalCard: {
     width: Dimensions.get('window').width - 32,
     maxWidth: 450,
+    maxHeight: Dimensions.get('window').height * 0.8,
     borderRadius: 32,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -2342,18 +2343,20 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   verseModalGradient: {
+    flex: 1,
     borderRadius: 32,
     overflow: 'hidden',
   },
   verseModalBlur: {
+    flex: 1,
     borderRadius: 32,
     overflow: 'hidden',
   },
   verseModalContent: {
     padding: 20,
     paddingTop: 24,
-    paddingBottom: 24,
-    maxHeight: '85%',
+    paddingBottom: 0,
+    flex: 1,
   },
   verseModalClose: {
     position: 'absolute',
