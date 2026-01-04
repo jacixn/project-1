@@ -1351,6 +1351,11 @@ const BiblePrayerTab = () => {
                     <MaterialIcons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
                   </TouchableOpacity>
 
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    bounces={true}
+                  >
                   {/* Decorative top accent */}
                   <View style={{
                     width: 40,
@@ -1670,6 +1675,7 @@ const BiblePrayerTab = () => {
                       </View>
                     )}
                   </View>
+                  </ScrollView>
                 </View>
               </BlurView>
             </LinearGradient>
@@ -2347,6 +2353,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 24,
     paddingBottom: 24,
+    maxHeight: '85%',
   },
   verseModalClose: {
     position: 'absolute',
