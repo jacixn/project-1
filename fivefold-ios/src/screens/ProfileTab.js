@@ -1851,37 +1851,23 @@ const ProfileTab = () => {
 
   // Settings Button - Single button that opens modal
   const SettingsButton = () => (
-    <View 
-      style={[styles.aboutCard, { 
-        marginTop: 12,
-        backgroundColor: `${theme.primary}30`,
-        borderColor: `${theme.primary}99`,
-        borderWidth: 0.8,
-        shadowColor: theme.primary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 3,
-        elevation: 1,
-      }]}
+    <AnimatedSettingsCard 
+      style={[styles.aboutCard, { marginTop: 12 }]}
+      onPress={() => {
+        hapticFeedback.buttonPress();
+        Alert.alert('New tools coming soon', 'Fresh controls and shortcuts are on the way.');
+      }}
     >
-      <TouchableOpacity
-        onPress={() => {
-          hapticFeedback.buttonPress();
-          Alert.alert('New tools coming soon', 'Fresh controls and shortcuts are on the way.');
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
-          <View style={styles.settingLeft}>
-            <MaterialIcons name="stars" size={24} color={theme.primary} />
-            <Text style={[styles.aboutButtonText, { color: theme.text }]}>
-              New tools coming soon
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+        <View style={styles.settingLeft}>
+          <MaterialIcons name="stars" size={24} color={theme.primary} />
+          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
+            New tools coming soon
+          </Text>
         </View>
-      </TouchableOpacity>
-    </View>
+        <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+      </View>
+    </AnimatedSettingsCard>
   );
 
   // Changes Button - sits between Settings and About
