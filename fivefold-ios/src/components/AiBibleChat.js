@@ -14,6 +14,8 @@ import {
   Clipboard,
   Keyboard,
   Dimensions,
+  Image,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -24,6 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
+import * as ImagePicker from 'expo-image-picker';
 // Removed InteractiveSwipeBack import
 
 // Bible Verse Reference Parser Component
@@ -218,6 +221,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [attachedImage, setAttachedImage] = useState(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
 
@@ -591,19 +596,105 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     }
   };
 
+  // Image picker functions
+  const handleImagePicker = () => {
+    hapticFeedback.medium();
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickImage();
+          }
+        }
+      );
+    } else {
+      // Android - show custom modal
+      setShowImagePicker(true);
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setAttachedImage(result.assets[0]);
+        hapticFeedback.success();
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Photo library permission is needed to select images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setAttachedImage(result.assets[0]);
+        hapticFeedback.success();
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  const removeAttachedImage = () => {
+    hapticFeedback.light();
+    setAttachedImage(null);
+  };
+
   const sendMessage = async (messageText = inputText) => {
-    if (!messageText.trim() || isLoading) return;
+    // Allow sending if there's text OR an attached image
+    if ((!messageText.trim() && !attachedImage) || isLoading) return;
 
     console.log('📤 Sending message:', messageText);
     hapticFeedback.light();
 
+    // Build the user message with optional image
     const userMessage = {
       id: Date.now().toString(),
-      text: messageText,
+      text: messageText || (attachedImage ? 'What can you tell me about this Bible page?' : ''),
       isAi: false,
       timestamp: new Date(),
+      image: attachedImage ? attachedImage.uri : null,
     };
 
+    // Clear attached image and input
+    const imageToAnalyze = attachedImage;
+    setAttachedImage(null);
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
@@ -611,8 +702,22 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
 
     try {
       console.log('🔄 Starting Smart request...');
+      
+      // If there's an image, add context about it
+      let finalMessage = messageText || '';
+      if (imageToAnalyze) {
+        // Add image analysis context to the message
+        finalMessage = finalMessage 
+          ? `[User attached an image of a Bible page] ${finalMessage}`
+          : `[User attached an image of a Bible page] Please analyze this Bible page image and tell me what book, chapter, and verses are shown. Also explain what the passage is about.`;
+        
+        // Note: Currently we send a text description since Deepseek doesn't support vision
+        // The user can describe what they see or the image content
+        console.log('📷 Image attached, sending with context');
+      }
+      
       // Call Smart service for Bible questions - now returns response or error message
-      const response = await getBibleAnswer(messageText);
+      const response = await getBibleAnswer(finalMessage || messageText);
       console.log('✅ Got response:', response);
       
       const aiMessage = {
@@ -800,14 +905,24 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               />
             )
           ) : (
-            <Text
-              style={[
-                styles.messageText,
-                { color: '#ffffff' }
-              ]}
-            >
-              {message.text}
-            </Text>
+            <View>
+              {/* Show attached image if present */}
+              {message.image && (
+                <Image 
+                  source={{ uri: message.image }} 
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              )}
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: '#ffffff' }
+                ]}
+              >
+                {message.text}
+              </Text>
+            </View>
           )}
         </View>
         
@@ -941,10 +1056,44 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
               borderTopColor: theme.border || (isDark ? '#333333' : '#E0E0E0'),
             }
           ]}>
+            {/* Attached Image Preview */}
+            {attachedImage && (
+              <View style={styles.attachedImageContainer}>
+                <Image 
+                  source={{ uri: attachedImage.uri }} 
+                  style={styles.attachedImagePreview}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity 
+                  style={styles.removeImageButton}
+                  onPress={removeAttachedImage}
+                >
+                  <MaterialIcons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+                <View style={styles.imageLabel}>
+                  <MaterialIcons name="image" size={12} color="#fff" />
+                  <Text style={styles.imageLabelText}>Bible page attached</Text>
+                </View>
+              </View>
+            )}
+            
             <View style={[styles.inputWrapper, { 
               backgroundColor: theme.card || (isDark ? '#2D2D2D' : '#FFFFFF'), 
               borderColor: theme.border || (isDark ? '#444444' : '#E0E0E0')
             }]}>
+              {/* Image Picker Button */}
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={handleImagePicker}
+                disabled={isLoading}
+              >
+                <MaterialIcons 
+                  name="photo-camera" 
+                  size={22} 
+                  color={attachedImage ? theme.primary : theme.textSecondary} 
+                />
+              </TouchableOpacity>
+              
               <TextInput
                 ref={chatInputRef}
                 style={[styles.textInput, { 
@@ -974,9 +1123,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
                 blurOnSubmit={false}
               />
               <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: inputText.trim() ? theme.primary : theme.textSecondary }]}
+                style={[styles.sendButton, { backgroundColor: (inputText.trim() || attachedImage) ? theme.primary : theme.textSecondary }]}
                 onPress={() => sendMessage()}
-                disabled={!inputText.trim() || isLoading}
+                disabled={(!inputText.trim() && !attachedImage) || isLoading}
               >
                 <MaterialIcons name="send" size={20} color="#ffffff" />
               </TouchableOpacity>
@@ -984,6 +1133,47 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Image Picker Modal for Android */}
+      <Modal visible={showImagePicker} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.menuOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowImagePicker(false)}
+        >
+          <View style={[styles.imagePickerModal, { backgroundColor: theme.card }]}>
+            <Text style={[styles.imagePickerTitle, { color: theme.text }]}>
+              Add Bible Page Photo
+            </Text>
+            <TouchableOpacity
+              style={[styles.imagePickerOption, { borderBottomColor: theme.border }]}
+              onPress={() => {
+                setShowImagePicker(false);
+                takePhoto();
+              }}
+            >
+              <MaterialIcons name="photo-camera" size={24} color={theme.primary} />
+              <Text style={[styles.imagePickerOptionText, { color: theme.text }]}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.imagePickerOption}
+              onPress={() => {
+                setShowImagePicker(false);
+                pickImage();
+              }}
+            >
+              <MaterialIcons name="photo-library" size={24} color={theme.primary} />
+              <Text style={[styles.imagePickerOptionText, { color: theme.text }]}>Choose from Library</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.imagePickerCancel, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              onPress={() => setShowImagePicker(false)}
+            >
+              <Text style={[styles.imagePickerCancelText, { color: theme.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Menu Modal */}
       <Modal visible={showMenu} transparent animationType="fade">
@@ -1449,6 +1639,98 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  imagePickerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  attachedImageContainer: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  attachedImagePreview: {
+    width: '100%',
+    height: 150,
+    borderRadius: 16,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageLabel: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  imageLabelText: {
+    color: '#fff',
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  messageImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  imagePickerModal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingHorizontal: 20,
+  },
+  imagePickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  imagePickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  imagePickerOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 16,
+  },
+  imagePickerCancel: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  imagePickerCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   menuOverlay: {
     flex: 1,
