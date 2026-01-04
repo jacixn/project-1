@@ -20,9 +20,11 @@ import { Platform } from 'react-native';
 // Keys that should be synced to iCloud
 const SYNC_KEYS = [
   'verse_data',           // Verse annotations (notes, highlights, bookmarks)
+  'savedBibleVerses',     // Saved/bookmarked verses
+  'journalNotes',         // Journal entries (current key)
+  'journal_notes',        // Journal entries (legacy)
   'reading_streaks',      // Reading streak data
   'achievements',         // User achievements
-  'journal_notes',        // Journal entries
   'highlight_custom_names', // Custom highlight names
   'fivefold_todos',       // Todos
   'fivefold_user_stats',  // User stats (points, level, etc.)
@@ -40,6 +42,9 @@ const SYNC_KEYS = [
   'onboardingCompleted',  // Onboarding status (current)
   'theme_preference',     // Theme preference
   'app_streak_data',      // App usage streak
+  'completedTodos',       // Completed todos list
+  'userLevel',            // User level
+  'userPoints',           // User points
 ];
 
 // Metadata key for tracking sync state
