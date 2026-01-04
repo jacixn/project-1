@@ -169,9 +169,14 @@ struct VerseWidgetView: View {
                     
                     Spacer(minLength: 0)
                     
-                    // App branding
+                    // App branding with logo
                     HStack {
                         Spacer()
+                        Image("WidgetLogo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
+                            .opacity(0.6)
                         Text("Biblely")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(Color.white.opacity(0.35))
