@@ -15,5 +15,9 @@
     </array>
     <key>com.apple.developer.ubiquity-kvstore-identifier</key>
     <string>$(TeamIdentifierPrefix)com.jesusxoi.biblely</string>
+    <key>com.apple.security.application-groups</key>
+    <array>
+      <string>group.com.jesusxoi.biblely</string>
+    </array>
   </dict>
 </plist>
