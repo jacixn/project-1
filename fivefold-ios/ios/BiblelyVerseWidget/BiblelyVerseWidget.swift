@@ -102,14 +102,14 @@ struct VerseWidgetView: View {
             switch family {
             case .accessoryRectangular:
                 // Lock screen rectangular widget
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.reference)
-                        .font(.system(size: 12, weight: .bold))
-                        .minimumScaleFactor(0.8)
-                    Text(entry.text)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(2)
+                        .font(.system(size: 11, weight: .bold))
                         .minimumScaleFactor(0.7)
+                    Text(entry.text)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.6)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .widgetURL(verseURL)
