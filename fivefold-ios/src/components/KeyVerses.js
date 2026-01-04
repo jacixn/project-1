@@ -155,13 +155,42 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     hapticFeedback.medium();
     const isFavorite = favoriteVerses.includes(verseId);
     let newFavorites;
+    
+    // Find the verse data
+    const all = versesData ? Object.values(versesData.verses).flat() : [];
+    const verse = all.find(v => v.id === verseId);
+    
+    // Get saved verses
+    const saved = await getStoredData('savedBibleVerses') || [];
+    
     if (isFavorite) {
+      // Remove from favorites
       newFavorites = favoriteVerses.filter(id => id !== verseId);
+      // Also remove from savedBibleVerses
+      const idx = saved.findIndex(v => v.id === verseId);
+      if (idx !== -1) {
+        saved.splice(idx, 1);
+      }
     } else {
+      // Add to favorites
       newFavorites = [...favoriteVerses, verseId];
+      // Also add to savedBibleVerses
+      if (verse) {
+        saved.push({
+          id: verseId,
+          reference: verse.reference,
+          content: verse.text,
+          version: 'KEY_VERSES',
+          category: verse.category,
+          savedAt: new Date().toISOString()
+        });
+      }
     }
+    
     setFavoriteVerses(newFavorites);
     await saveData('favoriteVerses', newFavorites);
+    await saveData('savedBibleVerses', saved);
+    hapticFeedback.success();
   };
 
   // Collapsible header animation
@@ -324,25 +353,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     return filtered;
   };
 
-  const toggleFavorite = async (id) => {
-    const all = versesData ? Object.values(versesData.verses).flat() : [];
-    const verse = all.find(v => v.id === id);
-    if (!verse) return;
-    const saved = await getStoredData('savedBibleVerses') || [];
-    const idx = saved.findIndex(v => v.id === id);
-    let newFavs;
-    if (idx !== -1) {
-      saved.splice(idx, 1);
-      newFavs = favoriteVerses.filter(f => f !== id);
-    } else {
-      saved.push({ id, reference: verse.reference, content: verse.text, version: 'KEY_VERSES', savedAt: new Date().toISOString() });
-      newFavs = [...favoriteVerses, id];
-    }
-    setFavoriteVerses(newFavs);
-    await saveData('favoriteVerses', newFavs);
-    await saveData('savedBibleVerses', saved);
-    hapticFeedback.success();
-  };
+  // Note: toggleFavorite is defined at the top with the modal animations
 
   const getVerseGradient = (cat) => {
     const g = { faith: ['#6366f1', '#8b5cf6'], love: ['#ec4899', '#f43f5e'], hope: ['#10b981', '#14b8a6'] };
