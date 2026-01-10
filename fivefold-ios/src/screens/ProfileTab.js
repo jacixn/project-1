@@ -323,7 +323,7 @@ const ProfileTab = () => {
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
 
-  const loadSavedVerses = async () => {
+  const loadSavedVerses = async (refreshAll = false) => {
     try {
       const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
       if (savedVersesData) {
@@ -344,13 +344,16 @@ const ProfileTab = () => {
         userStatsData.savedVerses = verses.length;
         await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
         
-        // Only fetch updated text for first 15 verses to prevent crashes with large lists
+        // Get preferred version
         const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'kjv';
-        console.log(`📖 Loading ${verses.length} saved verses (refreshing first 15 in ${preferredVersion.toUpperCase()})`);
         
-        const BATCH_SIZE = 15;
+        // Determine batch size - refresh all on version change, otherwise first 15
+        const BATCH_SIZE = refreshAll ? verses.length : 15;
+        console.log(`📖 Loading ${verses.length} saved verses (refreshing ${refreshAll ? 'ALL' : 'first 15'} in ${preferredVersion.toUpperCase()})`);
+        
         const versesToFetch = verses.slice(0, BATCH_SIZE);
         const updatedVerses = [...verses];
+        let refreshedCount = 0;
         
         // Fetch one by one with small delays to prevent overwhelming network
         for (let i = 0; i < versesToFetch.length; i++) {
@@ -358,23 +361,31 @@ const ProfileTab = () => {
           try {
             if (verse.version === 'KEY_VERSES') continue;
             
-              const { text, version } = await verseByReferenceService.getVerseByReference(
-                verse.reference,
-                preferredVersion
-              );
+            const { text, version } = await verseByReferenceService.getVerseByReference(
+              verse.reference,
+              preferredVersion
+            );
               
             updatedVerses[i] = {
-                ...verse,
-                text: text,
-                version: version.toLowerCase(),
-              originalVersion: verse.version,
-              };
+              ...verse,
+              text: text,
+              version: version.toLowerCase(),
+              originalVersion: verse.originalVersion || verse.version,
+            };
+            refreshedCount++;
           } catch (fetchError) {
             console.log(`⚠️ Could not fetch verse:`, verse.reference);
-            }
+          }
         }
         
         setSavedVersesList(updatedVerses);
+        
+        // Persist the updated verses back to storage so they remain in the new version
+        if (refreshedCount > 0) {
+          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(updatedVerses));
+          console.log(`💾 Persisted ${refreshedCount} refreshed verses to storage`);
+        }
+        
         console.log(`✅ Loaded ${verses.length} saved verses`);
       } else {
         setSavedVersesList([]);
@@ -1179,6 +1190,41 @@ const ProfileTab = () => {
       taskCompletedListener.remove();
     };
   }, []);
+
+  // Listen for Bible version changes and refresh all verse data
+  useEffect(() => {
+    const versionChangeListener = DeviceEventEmitter.addListener('bibleVersionChanged', async (newVersion) => {
+      console.log('📖 Bible version changed to', newVersion, '- refreshing all verses...');
+      
+      // Refresh ALL saved verses in the new version (pass true for full refresh)
+      await loadSavedVerses(true);
+      
+      // Refresh journal verse texts in the new version
+      await loadJournalNotes();
+      
+      // If highlighting modal is open with a selected color, refresh those verses too
+      if (selectedHighlightColor && highlightVersesWithText.length > 0) {
+        const versesInColor = highlightedVerses.filter(v => v.color === selectedHighlightColor);
+        const versesWithText = [];
+        for (const verse of versesInColor) {
+          try {
+            const verseData = await verseByReferenceService.getVerseByReference(verse.verseReference, newVersion);
+            const verseText = typeof verseData === 'string' ? verseData : (verseData?.text || 'Verse text not available');
+            versesWithText.push({ ...verse, text: verseText });
+          } catch (error) {
+            versesWithText.push({ ...verse, text: 'Verse text not available' });
+          }
+        }
+        setHighlightVersesWithText(versesWithText);
+      }
+      
+      console.log('✅ All verses refreshed with new Bible version');
+    });
+
+    return () => {
+      versionChangeListener.remove();
+    };
+  }, [selectedHighlightColor, highlightVersesWithText, highlightedVerses]);
 
   const loadUserData = async () => {
     try {

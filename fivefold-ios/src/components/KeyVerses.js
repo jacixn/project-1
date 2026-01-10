@@ -264,6 +264,20 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
     }
   }, [visible]);
 
+  // Listen for Bible version changes and refresh verses in the new version
+  useEffect(() => {
+    const versionChangeListener = DeviceEventEmitter.addListener('bibleVersionChanged', async (newVersion) => {
+      console.log('📖 KeyVerses: Bible version changed to', newVersion);
+      if (versesData) {
+        await loadDynamicVerses(versesData);
+      }
+    });
+
+    return () => {
+      versionChangeListener.remove();
+    };
+  }, [versesData]);
+
   const isCacheValid = async () => {
     try {
       const timestamp = await getStoredData(VERSES_CONFIG.CACHE_TIMESTAMP_KEY);
