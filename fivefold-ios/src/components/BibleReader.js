@@ -128,9 +128,14 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
   const shareCardFadeAnim = useRef(new Animated.Value(0)).current;
   const shareCardRef = useRef(null);
   const [shareCardAnimating, setShareCardAnimating] = useState(false);
-  const [shareCardTextMode, setShareCardTextMode] = useState('quoted'); // 'quoted' | 'full'
+  const [shareCardTextMode, setShareCardTextMode] = useState('full'); // 'selected' | 'full'
   const [shareCardText, setShareCardText] = useState('');
   const [shareCardEndVerseNumber, setShareCardEndVerseNumber] = useState(null);
+  // Text selection state for partial verse sharing
+  const [showTextSelectionModal, setShowTextSelectionModal] = useState(false);
+  const [textSelectionStart, setTextSelectionStart] = useState(null); // word index
+  const [textSelectionEnd, setTextSelectionEnd] = useState(null); // word index
+  const [textSelectionWords, setTextSelectionWords] = useState([]); // array of words
   const [shareCardActiveBg, setShareCardActiveBg] = useState(0);
   const [shareCardActiveLayout, setShareCardActiveLayout] = useState('centered'); // Layout template
   const [shareCardTextAlign, setShareCardTextAlign] = useState('center'); // Text alignment
@@ -1367,10 +1372,74 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     for (let i = start; i <= safeEnd; i++) {
       const v = getVerseByNumber(i);
       if (!v) break;
-      collected.push(mode === 'full' ? getFullVerseText(v) : getShareCardText(v));
+      collected.push(getFullVerseText(v));
     }
     // Use a single newline so multi-verse cards flow naturally
     return collected.join('\n');
+  };
+
+  // Get the selected portion of text with ellipsis prefix/suffix if needed
+  const getSelectedVerseText = () => {
+    if (textSelectionStart === null || textSelectionEnd === null || textSelectionWords.length === 0) {
+      return '';
+    }
+    const startIdx = Math.min(textSelectionStart, textSelectionEnd);
+    const endIdx = Math.max(textSelectionStart, textSelectionEnd);
+    const selectedWords = textSelectionWords.slice(startIdx, endIdx + 1);
+    let selectedText = selectedWords.join(' ');
+    // Add "..." prefix if selection doesn't start at the beginning
+    if (startIdx > 0) {
+      selectedText = '...' + selectedText;
+    }
+    // Add "..." suffix if selection doesn't reach the end
+    if (endIdx < textSelectionWords.length - 1) {
+      selectedText = selectedText + '...';
+    }
+    return selectedText;
+  };
+
+  // Open text selection modal with words from the verse(s)
+  const openTextSelectionModal = () => {
+    if (!selectedVerseForMenu) return;
+    // Get text from all verses in the range
+    const selectedVerseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
+    const fullText = getShareCardBaseTextForRange(
+      selectedVerseNumber,
+      shareCardEndVerseNumber || selectedVerseNumber,
+      'full'
+    );
+    const words = fullText.split(/\s+/).filter(w => w.length > 0);
+    setTextSelectionWords(words);
+    setTextSelectionStart(null);
+    setTextSelectionEnd(null);
+    setShowTextSelectionModal(true);
+  };
+
+  // Handle word tap in selection modal
+  const handleWordTap = (index) => {
+    hapticFeedback.light();
+    if (textSelectionStart === null) {
+      // First tap - set start
+      setTextSelectionStart(index);
+      setTextSelectionEnd(index);
+    } else if (textSelectionEnd === textSelectionStart) {
+      // Second tap - set end
+      setTextSelectionEnd(index);
+    } else {
+      // Third tap - reset and start over
+      setTextSelectionStart(index);
+      setTextSelectionEnd(index);
+    }
+  };
+
+  // Confirm text selection
+  const confirmTextSelection = () => {
+    const selectedText = getSelectedVerseText();
+    if (selectedText) {
+      setShareCardText(selectedText);
+      setShareCardTextMode('selected');
+    }
+    setShowTextSelectionModal(false);
   };
 
   // Scale verse text size gradually based on text length
@@ -1398,13 +1467,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
 
   const getShareCardDisplayText = () => {
     if (!selectedVerseForMenu) return '';
+    // If user has custom/selected text, use it directly
+    if (shareCardText.trim()) {
+      return shareCardText.trim();
+    }
+    // Otherwise fall back to full verse text
     const selectedVerseNumber = selectedVerseForMenu.number || selectedVerseForMenu.verse;
-    const baseText = getShareCardBaseTextForRange(
+    return getShareCardBaseTextForRange(
       selectedVerseNumber,
       shareCardEndVerseNumber || selectedVerseNumber,
       shareCardTextMode
     );
-    return shareCardText.trim() || baseText;
   };
 
   // Save verse to saved verses
@@ -5424,29 +5497,50 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                               Verse Text
                             </Text>
                             <View style={{ flexDirection: 'row' }}>
-                              {[{ key: 'quoted', label: 'Quoted' }, { key: 'full', label: 'Full Verse' }].map(opt => (
-                                <TouchableOpacity
-                                  key={opt.key}
-                                  onPress={() => {
-                                    setShareCardTextMode(opt.key);
-                                    setShareCardText('');
-                                  }}
-                                  style={{
-                                    flex: 1,
-                                    paddingVertical: 12,
-                                    marginHorizontal: 4,
-                                    borderRadius: 10,
-                                    backgroundColor: shareCardTextMode === opt.key ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
-                                    borderWidth: shareCardTextMode === opt.key ? 1.5 : 1,
-                                    borderColor: shareCardTextMode === opt.key ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  <Text style={{ color: shareCardTextMode === opt.key ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' }}>
-                                    {opt.label}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
+                              {/* Selected Button */}
+                              <TouchableOpacity
+                                onPress={() => {
+                                  hapticFeedback.light();
+                                  openTextSelectionModal();
+                                }}
+                                style={{
+                                  flex: 1,
+                                  paddingVertical: 12,
+                                  marginHorizontal: 4,
+                                  borderRadius: 10,
+                                  backgroundColor: shareCardTextMode === 'selected' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                  borderWidth: shareCardTextMode === 'selected' ? 1.5 : 1,
+                                  borderColor: shareCardTextMode === 'selected' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <Text style={{ color: shareCardTextMode === 'selected' ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' }}>
+                                  Selected
+                                </Text>
+                              </TouchableOpacity>
+                              {/* Full Verse Button */}
+                              <TouchableOpacity
+                                onPress={() => {
+                                  hapticFeedback.light();
+                                  setShareCardTextMode('full');
+                                  const fullText = selectedVerseForMenu ? getFullVerseText(selectedVerseForMenu) : '';
+                                  setShareCardText(fullText);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  paddingVertical: 12,
+                                  marginHorizontal: 4,
+                                  borderRadius: 10,
+                                  backgroundColor: shareCardTextMode === 'full' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                  borderWidth: shareCardTextMode === 'full' ? 1.5 : 1,
+                                  borderColor: shareCardTextMode === 'full' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <Text style={{ color: shareCardTextMode === 'full' ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' }}>
+                                  Full Verse
+                                </Text>
+                              </TouchableOpacity>
                             </View>
                           </View>
                         )}
@@ -5551,6 +5645,109 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
               </View>
             );
           })()}
+
+          {/* Text Selection Modal for partial verse sharing */}
+          {showTextSelectionModal && (
+            <Modal
+              visible={showTextSelectionModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowTextSelectionModal(false)}
+            >
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
+                <SafeAreaView style={{ flex: 1 }}>
+                  {/* Header */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowTextSelectionModal(false)}
+                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <MaterialIcons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>Select Text</Text>
+                    <TouchableOpacity
+                      onPress={confirmTextSelection}
+                      disabled={textSelectionStart === null}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        borderRadius: 20,
+                        backgroundColor: textSelectionStart !== null ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <Text style={{ color: textSelectionStart !== null ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 15, fontWeight: '600' }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Instructions */}
+                  <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center' }}>
+                      {textSelectionStart === null
+                        ? 'Tap the first word of your selection'
+                        : textSelectionStart === textSelectionEnd
+                        ? 'Tap the last word of your selection'
+                        : 'Tap again to restart selection'}
+                    </Text>
+                  </View>
+
+                  {/* Preview of selected text */}
+                  {textSelectionStart !== null && textSelectionEnd !== null && (
+                    <View style={{ marginHorizontal: 20, marginBottom: 16, padding: 16, backgroundColor: 'rgba(99,102,241,0.15)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                        Preview
+                      </Text>
+                      <Text style={{ color: '#fff', fontSize: 16, lineHeight: 24, fontStyle: 'italic' }}>
+                        "{getSelectedVerseText()}"
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Word Selection Grid */}
+                  <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {textSelectionWords.map((word, index) => {
+                        const isInRange = textSelectionStart !== null && textSelectionEnd !== null &&
+                          index >= Math.min(textSelectionStart, textSelectionEnd) &&
+                          index <= Math.max(textSelectionStart, textSelectionEnd);
+                        const isEndpoint = index === textSelectionStart || index === textSelectionEnd;
+
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={() => handleWordTap(index)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 8,
+                              backgroundColor: isInRange
+                                ? isEndpoint
+                                  ? 'rgba(99,102,241,0.8)'
+                                  : 'rgba(99,102,241,0.4)'
+                                : 'rgba(255,255,255,0.08)',
+                              borderWidth: 1,
+                              borderColor: isInRange ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)',
+                            }}
+                          >
+                            <Text style={{
+                              color: isInRange ? '#fff' : 'rgba(255,255,255,0.7)',
+                              fontSize: 16,
+                              fontWeight: isEndpoint ? '700' : '400',
+                            }}>
+                              {word}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </SafeAreaView>
+              </View>
+            </Modal>
+          )}
           
           {/* Audio Player Bar */}
           <AudioPlayerBar
