@@ -9,16 +9,18 @@ import {
   Platform,
   Modal,
   Alert,
+  PanResponder,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import verseByReferenceService from '../services/verseByReferenceService';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const DAY_SIZE = (width - 64) / 7;
 
 const JournalCalendar = ({ 
@@ -35,8 +37,34 @@ const JournalCalendar = ({
   
   // Animations
   const monthFadeAnim = useRef(new Animated.Value(1)).current;
-  const dayDetailSlide = useRef(new Animated.Value(0)).current;
-  const dayDetailOpacity = useRef(new Animated.Value(0)).current;
+  const dayDetailSlide = useRef(new Animated.Value(height)).current;
+
+  // Pan responder for swipe to dismiss
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          dayDetailSlide.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          closeDayDetail();
+        } else {
+          Animated.spring(dayDetailSlide, {
+            toValue: 0,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // Group notes by date
   const notesByDate = useMemo(() => {
@@ -116,38 +144,23 @@ const JournalCalendar = ({
     setSelectedDate(dayData);
     setShowDayDetail(true);
     
-    dayDetailSlide.setValue(300);
-    dayDetailOpacity.setValue(0);
+    dayDetailSlide.setValue(height);
     
-    Animated.parallel([
-      Animated.spring(dayDetailSlide, {
-        toValue: 0,
-        tension: 65,
-        friction: 10,
-        useNativeDriver: true,
-      }),
-      Animated.timing(dayDetailOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.spring(dayDetailSlide, {
+      toValue: 0,
+      tension: 65,
+      friction: 11,
+      useNativeDriver: true,
+    }).start();
   };
 
   const closeDayDetail = () => {
     hapticFeedback.light();
-    Animated.parallel([
-      Animated.timing(dayDetailSlide, {
-        toValue: 300,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(dayDetailOpacity, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    Animated.timing(dayDetailSlide, {
+      toValue: height,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
       setShowDayDetail(false);
       setSelectedDate(null);
     });
@@ -464,77 +477,114 @@ const JournalCalendar = ({
         </View>
       </View>
 
-      {/* Day Detail Modal */}
+      {/* Day Detail Modal - Full Screen */}
       <Modal
         visible={showDayDetail}
-        transparent={true}
-        animationType="slide"
+        transparent={false}
+        animationType="none"
         onRequestClose={closeDayDetail}
+        presentationStyle="fullScreen"
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <TouchableOpacity 
-            style={{ height: '25%' }} 
-            activeOpacity={1} 
-            onPress={closeDayDetail} 
+        <Animated.View style={{
+          flex: 1,
+          backgroundColor: theme.background,
+          transform: [{ translateY: dayDetailSlide }],
+        }}>
+          <LinearGradient
+            colors={isDark ? ['#1a1a1a', '#000000'] : ['#fdfbfb', '#ebedee']}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           />
           
-          <View style={{
-            flex: 1,
-            backgroundColor: theme.background,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -10 },
-            shadowOpacity: 0.3,
-            shadowRadius: 20,
-            elevation: 25,
-          }}>
-            {/* Drag Handle */}
-            <TouchableOpacity 
-              onPress={closeDayDetail}
-              style={{ alignItems: 'center', paddingVertical: 14 }}
+          {/* Header with drag handle */}
+          <SafeAreaView edges={['top']}>
+            <View 
+              {...panResponder.panHandlers}
+              style={{ paddingTop: 8, paddingBottom: 16 }}
             >
-              <View style={{ 
-                width: 40, 
-                height: 5, 
-                borderRadius: 3, 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' 
-              }} />
-            </TouchableOpacity>
+              {/* Drag Handle */}
+              <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                <View style={{ 
+                  width: 40, 
+                  height: 5, 
+                  borderRadius: 3, 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' 
+                }} />
+              </View>
 
-            {/* Day Header */}
-            {selectedDate && (
-              <View style={{ paddingHorizontal: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}>
+              {/* Close Button and Title */}
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                paddingHorizontal: 20,
+                paddingTop: 8,
+              }}>
+                <TouchableOpacity
+                  onPress={closeDayDetail}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialIcons name="close" size={22} color={theme.text} />
+                </TouchableOpacity>
                 <Text style={{ 
-                  fontSize: 28, 
-                  fontWeight: '900', 
+                  flex: 1, 
+                  textAlign: 'center', 
+                  fontSize: 17, 
+                  fontWeight: '600', 
                   color: theme.text,
-                  letterSpacing: -0.5,
+                  marginRight: 36,
                 }}>
-                  {selectedDate.date?.toLocaleDateString('en-US', { 
-                    weekday: 'long',
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </Text>
-                <Text style={{ 
-                  fontSize: 14, 
-                  color: theme.textSecondary,
-                  marginTop: 6,
-                  fontWeight: '500',
-                }}>
-                  {selectedDate.noteCount} {selectedDate.noteCount === 1 ? 'entry' : 'entries'}
+                  Journal Entry
                 </Text>
               </View>
-            )}
+            </View>
+          </SafeAreaView>
 
-            {/* Notes List */}
-            <ScrollView 
-              style={{ flex: 1 }} 
-              contentContainerStyle={{ 
-                paddingHorizontal: 20, 
-                paddingBottom: Platform.OS === 'ios' ? 40 : 24 
-              }}
+          {/* Day Header */}
+          {selectedDate && (
+            <View style={{ 
+              paddingHorizontal: 24, 
+              paddingTop: 8,
+              paddingBottom: 20, 
+              borderBottomWidth: 1, 
+              borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' 
+            }}>
+              <Text style={{ 
+                fontSize: 32, 
+                fontWeight: '900', 
+                color: theme.text,
+                letterSpacing: -0.5,
+              }}>
+                {selectedDate.date?.toLocaleDateString('en-US', { 
+                  weekday: 'long',
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </Text>
+              <Text style={{ 
+                fontSize: 15, 
+                color: theme.textSecondary,
+                marginTop: 8,
+                fontWeight: '500',
+              }}>
+                {selectedDate.noteCount} {selectedDate.noteCount === 1 ? 'entry' : 'entries'}
+              </Text>
+            </View>
+          )}
+
+          {/* Notes List */}
+          <ScrollView 
+            style={{ flex: 1 }} 
+            contentContainerStyle={{ 
+              paddingHorizontal: 20, 
+              paddingTop: 20,
+              paddingBottom: Platform.OS === 'ios' ? 40 : 24 
+            }}
               showsVerticalScrollIndicator={false}
             >
               {selectedDate?.notes?.length === 0 ? (
@@ -694,8 +744,7 @@ const JournalCalendar = ({
                 ))
               )}
             </ScrollView>
-          </View>
-        </View>
+        </Animated.View>
       </Modal>
     </View>
   );
