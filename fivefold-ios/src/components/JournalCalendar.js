@@ -468,23 +468,21 @@ const JournalCalendar = ({
       <Modal
         visible={showDayDetail}
         transparent={true}
-        animationType="none"
+        animationType="slide"
         onRequestClose={closeDayDetail}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <TouchableOpacity 
-            style={{ flex: 1 }} 
+            style={{ height: '25%' }} 
             activeOpacity={1} 
             onPress={closeDayDetail} 
           />
           
-          <Animated.View style={{
+          <View style={{
+            flex: 1,
             backgroundColor: theme.background,
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
-            maxHeight: '75%',
-            transform: [{ translateY: dayDetailSlide }],
-            opacity: dayDetailOpacity,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -10 },
             shadowOpacity: 0.3,
@@ -492,18 +490,21 @@ const JournalCalendar = ({
             elevation: 25,
           }}>
             {/* Drag Handle */}
-            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+            <TouchableOpacity 
+              onPress={closeDayDetail}
+              style={{ alignItems: 'center', paddingVertical: 14 }}
+            >
               <View style={{ 
                 width: 40, 
-                height: 4, 
-                borderRadius: 2, 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' 
+                height: 5, 
+                borderRadius: 3, 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' 
               }} />
-            </View>
+            </TouchableOpacity>
 
             {/* Day Header */}
             {selectedDate && (
-              <View style={{ paddingHorizontal: 24, paddingBottom: 16 }}>
+              <View style={{ paddingHorizontal: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}>
                 <Text style={{ 
                   fontSize: 28, 
                   fontWeight: '900', 
@@ -519,7 +520,8 @@ const JournalCalendar = ({
                 <Text style={{ 
                   fontSize: 14, 
                   color: theme.textSecondary,
-                  marginTop: 4,
+                  marginTop: 6,
+                  fontWeight: '500',
                 }}>
                   {selectedDate.noteCount} {selectedDate.noteCount === 1 ? 'entry' : 'entries'}
                 </Text>
@@ -692,7 +694,7 @@ const JournalCalendar = ({
                 ))
               )}
             </ScrollView>
-          </Animated.View>
+          </View>
         </View>
       </Modal>
     </View>
