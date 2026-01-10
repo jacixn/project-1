@@ -81,6 +81,7 @@ class BibleAudioService {
       pitch: 1.0, // 0.5 to 2.0 (natural pitch)
       volume: 1.0, // 0.0 to 1.0
       ttsSource: TTS_SOURCE.DEVICE, // 'device' or 'ai_voice'
+      selectedVoiceId: null, // User-selected voice identifier
     };
     this.availableVoices = [];
     this.selectedVoice = null;
@@ -92,6 +93,8 @@ class BibleAudioService {
     this.currentBook = '';
     this.currentChapter = 0;
     this.chatterboxAvailable = false;
+    this.voicesReady = false;
+    this.onVoicesLoaded = null;
     
     this.loadSettings();
     this.initializeVoices();
@@ -154,14 +157,41 @@ class BibleAudioService {
       const voices = await Speech.getAvailableVoicesAsync();
       this.availableVoices = voices;
       
-      // Find the best voice for current gender setting
-      await this.selectBestVoice();
+      // If user has a saved voice selection, use that
+      if (this.settings.selectedVoiceId) {
+        const savedVoice = voices.find(v => v.identifier === this.settings.selectedVoiceId);
+        if (savedVoice) {
+          this.selectedVoice = savedVoice;
+          console.log('[BibleAudio] Using saved voice:', savedVoice.identifier);
+        } else {
+          // Saved voice not found, fall back to auto-select
+          await this.selectBestVoice();
+        }
+      } else {
+        // No saved voice, auto-select best one
+        await this.selectBestVoice();
+      }
       
       // Check if we have good quality voices
       this.hasEnhancedVoice = this.checkForEnhancedVoices();
+      this.voicesReady = true;
       
-      console.log(`[BibleAudio] Found ${voices.length} voices, selected: ${this.selectedVoice?.identifier || 'default'}`);
+      // Notify listeners that voices are loaded
+      if (this.onVoicesLoaded) {
+        this.onVoicesLoaded(this.getAvailableVoices());
+      }
+      
+      // Log all available voices for debugging
+      const englishVoices = voices.filter(v => v.language?.startsWith('en') || v.identifier?.includes('en-'));
+      const siriVoices = voices.filter(v => v.identifier?.includes('siri'));
+      
+      console.log(`[BibleAudio] ========== VOICE DISCOVERY ==========`);
+      console.log(`[BibleAudio] Total voices on device: ${voices.length}`);
+      console.log(`[BibleAudio] English voices: ${englishVoices.length}`);
+      console.log(`[BibleAudio] Siri voices: ${siriVoices.length}`);
+      console.log(`[BibleAudio] Selected voice: ${this.selectedVoice?.identifier || 'default'}`);
       console.log(`[BibleAudio] Has enhanced voice: ${this.hasEnhancedVoice}`);
+      console.log(`[BibleAudio] =====================================`);
     } catch (error) {
       console.error('[BibleAudio] Failed to get voices:', error);
     }
@@ -784,6 +814,180 @@ class BibleAudioService {
    */
   getCurrentVoice() {
     return this.selectedVoice;
+  }
+
+  /**
+   * Set a specific voice by identifier
+   * @param {string} voiceId - Voice identifier to use
+   */
+  async setVoice(voiceId) {
+    const voice = this.availableVoices.find(v => v.identifier === voiceId);
+    if (voice) {
+      this.selectedVoice = voice;
+      this.settings.selectedVoiceId = voiceId;
+      await this.saveSettings();
+      console.log('[BibleAudio] Voice set to:', voice.identifier, voice.name);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Clear user voice selection (revert to auto-select)
+   */
+  async clearVoiceSelection() {
+    this.settings.selectedVoiceId = null;
+    await this.saveSettings();
+    await this.selectBestVoice();
+    console.log('[BibleAudio] Voice selection cleared, auto-selected:', this.selectedVoice?.identifier);
+  }
+
+  /**
+   * Preview a voice with sample text
+   * @param {string} voiceId - Voice identifier to preview
+   * @param {string} sampleText - Text to speak (optional)
+   */
+  async previewVoice(voiceId, sampleText = null) {
+    await Speech.stop();
+    
+    const voice = this.availableVoices.find(v => v.identifier === voiceId);
+    if (!voice) return false;
+    
+    const text = sampleText || 'The Lord is my shepherd, I shall not want.';
+    
+    return new Promise((resolve) => {
+      Speech.speak(text, {
+        language: 'en-US',
+        voice: voiceId,
+        pitch: this.settings.pitch,
+        rate: this.settings.rate,
+        volume: this.settings.volume,
+        onDone: () => resolve(true),
+        onStopped: () => resolve(true),
+        onError: () => resolve(false),
+      });
+    });
+  }
+
+  /**
+   * Stop any preview playback
+   */
+  async stopPreview() {
+    await Speech.stop();
+  }
+
+  /**
+   * Get formatted voice list with quality info and categorization
+   * @param {boolean} allLanguages - If true, returns all voices not just English
+   * @returns {Array} Formatted voice list
+   */
+  getFormattedVoiceList(allLanguages = false) {
+    console.log(`[BibleAudio] Total voices on device: ${this.availableVoices.length}`);
+    
+    // Filter to English voices by default, or show all if requested
+    const voices = allLanguages 
+      ? this.availableVoices 
+      : this.availableVoices.filter(v => 
+          v.language?.startsWith('en') || 
+          v.identifier?.includes('en-') ||
+          v.identifier?.includes('en_') ||
+          // Also include Siri voices that might not have language tag
+          (v.identifier?.includes('siri') && !v.language?.startsWith('es') && !v.language?.startsWith('fr') && !v.language?.startsWith('de'))
+        );
+    
+    console.log(`[BibleAudio] English voices found: ${voices.length}`);
+    
+    // Log all voice identifiers for debugging
+    if (voices.length > 0) {
+      console.log('[BibleAudio] Available voices:', voices.map(v => v.identifier).join(', '));
+    }
+    
+    return voices.map(voice => {
+      const id = voice.identifier || '';
+      const name = voice.name || 'Unknown';
+      
+      // Determine quality tier
+      let quality = 'Standard';
+      if (id.includes('premium') || id.includes('neural')) {
+        quality = 'Premium';
+      } else if (id.includes('enhanced')) {
+        quality = 'Enhanced';
+      } else if (id.includes('siri')) {
+        quality = 'Siri';
+      } else if (id.includes('compact')) {
+        quality = 'Compact';
+      }
+      
+      // Determine accent/region
+      let accent = 'US';
+      if (id.includes('en-GB') || id.includes('British')) accent = 'UK';
+      else if (id.includes('en-AU') || id.includes('Australian')) accent = 'AU';
+      else if (id.includes('en-IN') || id.includes('Indian')) accent = 'IN';
+      else if (id.includes('en-IE') || id.includes('Irish')) accent = 'IE';
+      else if (id.includes('en-ZA') || id.includes('South Africa')) accent = 'ZA';
+      
+      // Extract display name (clean up identifier)
+      let displayName = name;
+      if (displayName === 'Unknown' || !displayName) {
+        // Try to extract name from identifier
+        const parts = id.split('.');
+        displayName = parts[parts.length - 1]?.replace(/-/g, ' ').replace('compact', '').trim() || 'Voice';
+      }
+      
+      // Capitalize first letter
+      displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      
+      return {
+        id: voice.identifier,
+        name: displayName,
+        fullName: name,
+        quality,
+        accent,
+        language: voice.language || 'en-US',
+        isSelected: this.selectedVoice?.identifier === voice.identifier,
+      };
+    }).sort((a, b) => {
+      // Sort by quality (Premium > Enhanced > Siri > Standard > Compact)
+      const qualityOrder = { 'Premium': 0, 'Enhanced': 1, 'Siri': 2, 'Standard': 3, 'Compact': 4 };
+      const qualityDiff = (qualityOrder[a.quality] || 5) - (qualityOrder[b.quality] || 5);
+      if (qualityDiff !== 0) return qualityDiff;
+      // Then by name
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  /**
+   * Check if voices are ready
+   */
+  areVoicesReady() {
+    return this.voicesReady;
+  }
+
+  /**
+   * Get voice statistics for debugging
+   */
+  getVoiceStats() {
+    const all = this.availableVoices;
+    const english = all.filter(v => v.language?.startsWith('en') || v.identifier?.includes('en-'));
+    const siri = all.filter(v => v.identifier?.includes('siri'));
+    const premium = all.filter(v => v.identifier?.includes('premium'));
+    const enhanced = all.filter(v => v.identifier?.includes('enhanced'));
+    
+    return {
+      total: all.length,
+      english: english.length,
+      siri: siri.length,
+      premium: premium.length,
+      enhanced: enhanced.length,
+      selected: this.selectedVoice?.identifier || null,
+    };
+  }
+
+  /**
+   * Get all raw voices (for debugging)
+   */
+  getAllRawVoices() {
+    return this.availableVoices;
   }
 }
 

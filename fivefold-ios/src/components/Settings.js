@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Alert, Switch, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from './GlassEffect';
 import aiService from '../services/aiService';
 import ThemeModal from './ThemeModal';
+import VoicePickerModal from './VoicePickerModal';
+import bibleAudioService from '../services/bibleAudioService';
 
 const Settings = ({ settings, onSettingsChange, onClose }) => {
   const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
@@ -15,6 +17,25 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [currentVoiceName, setCurrentVoiceName] = useState('Default');
+
+  // Load current voice name
+  useEffect(() => {
+    const loadVoiceName = () => {
+      const voice = bibleAudioService.getCurrentVoice();
+      if (voice) {
+        // Extract clean name from identifier
+        const name = voice.name || voice.identifier?.split('.').pop()?.replace(/-/g, ' ') || 'Default';
+        setCurrentVoiceName(name.charAt(0).toUpperCase() + name.slice(1));
+      }
+    };
+    
+    loadVoiceName();
+    
+    // Refresh when voices load
+    bibleAudioService.onVoicesLoaded = () => loadVoiceName();
+  }, []);
 
   const getCurrentThemeDisplay = () => {
     if (isBlushTheme) return { icon: '🌸', name: 'Blush Bloom' };
@@ -121,6 +142,29 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             </GlassCard>
           </TouchableOpacity>
 
+          {/* 🎤 Voice Selection Button */}
+          <TouchableOpacity 
+            onPress={() => setShowVoiceModal(true)}
+            activeOpacity={0.7}
+          >
+            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <MaterialIcons name="record-voice-over" size={22} color={theme.primary} />
+                  <View style={styles.settingTextContainer}>
+                    <Text style={[styles.settingLabel, { color: theme.text }]}>
+                      Reading Voice
+                    </Text>
+                    <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                      🎤 {currentVoiceName}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
+              </View>
+            </GlassCard>
+          </TouchableOpacity>
+
           {/* 🧠 Smart Scoring Section */}
           <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -192,6 +236,20 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
         <ThemeModal 
           visible={showThemeModal} 
           onClose={() => setShowThemeModal(false)} 
+        />
+
+        {/* Voice Picker Modal */}
+        <VoicePickerModal 
+          visible={showVoiceModal} 
+          onClose={() => {
+            setShowVoiceModal(false);
+            // Refresh voice name after selection
+            const voice = bibleAudioService.getCurrentVoice();
+            if (voice) {
+              const name = voice.name || voice.identifier?.split('.').pop()?.replace(/-/g, ' ') || 'Default';
+              setCurrentVoiceName(name.charAt(0).toUpperCase() + name.slice(1));
+            }
+          }} 
         />
       </View>
     </Modal>

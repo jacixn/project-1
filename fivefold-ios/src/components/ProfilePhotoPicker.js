@@ -10,11 +10,54 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
 const ProfilePhotoPicker = ({ onImageSelected }) => {
   const { theme } = useTheme();
+
+  /**
+   * Copy image from temp location to permanent app storage
+   * This ensures the image persists across app restarts
+   */
+  const saveImagePermanently = async (tempUri) => {
+    try {
+      // Create a permanent filename with timestamp to avoid conflicts
+      const filename = `profile_${Date.now()}.jpg`;
+      const permanentPath = `${FileSystem.documentDirectory}${filename}`;
+      
+      console.log('[ProfilePhoto] Copying image to permanent storage...');
+      console.log('[ProfilePhoto] From:', tempUri);
+      console.log('[ProfilePhoto] To:', permanentPath);
+      
+      // Delete old profile picture if exists (clean up)
+      try {
+        const existingFiles = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory);
+        const oldProfilePics = existingFiles.filter(f => f.startsWith('profile_'));
+        for (const oldFile of oldProfilePics) {
+          await FileSystem.deleteAsync(`${FileSystem.documentDirectory}${oldFile}`, { idempotent: true });
+          console.log('[ProfilePhoto] Deleted old profile pic:', oldFile);
+        }
+      } catch (cleanupError) {
+        // Non-critical, continue
+        console.log('[ProfilePhoto] Cleanup note:', cleanupError.message);
+      }
+      
+      // Copy the temp file to permanent location
+      await FileSystem.copyAsync({
+        from: tempUri,
+        to: permanentPath,
+      });
+      
+      console.log('[ProfilePhoto] Image saved permanently:', permanentPath);
+      return permanentPath;
+    } catch (error) {
+      console.error('[ProfilePhoto] Failed to save image permanently:', error);
+      // Return original URI as fallback (will work for current session at least)
+      return tempUri;
+    }
+  };
 
   const requestCameraPermissions = async () => {
     try {
@@ -69,10 +112,14 @@ const ProfilePhotoPicker = ({ onImageSelected }) => {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        console.log('Camera photo selected:', imageUri);
+        const tempUri = result.assets[0].uri;
+        console.log('[ProfilePhoto] Camera photo selected (temp):', tempUri);
+        
+        // Save to permanent storage
+        const permanentUri = await saveImagePermanently(tempUri);
+        
         hapticFeedback.photoCapture();
-        onImageSelected(imageUri);
+        onImageSelected(permanentUri);
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -95,10 +142,14 @@ const ProfilePhotoPicker = ({ onImageSelected }) => {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        console.log('Gallery photo selected:', imageUri);
+        const tempUri = result.assets[0].uri;
+        console.log('[ProfilePhoto] Gallery photo selected (temp):', tempUri);
+        
+        // Save to permanent storage
+        const permanentUri = await saveImagePermanently(tempUri);
+        
         hapticFeedback.photoCapture();
-        onImageSelected(imageUri);
+        onImageSelected(permanentUri);
       }
     } catch (error) {
       console.error('Gallery error:', error);

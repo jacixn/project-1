@@ -27,6 +27,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -57,6 +58,7 @@ import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
 import ThemeModal from '../components/ThemeModal';
+import VoicePickerModal from '../components/VoicePickerModal';
 import AchievementService from '../services/achievementService';
 import JournalCalendar from '../components/JournalCalendar';
 
@@ -244,6 +246,8 @@ const ProfileTab = () => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
   const [audioVoiceGender, setAudioVoiceGender] = useState('female'); // 'male' or 'female'
+  const [showVoicePickerModal, setShowVoicePickerModal] = useState(false);
+  const [currentVoiceName, setCurrentVoiceName] = useState('Default');
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
@@ -1237,7 +1241,26 @@ const ProfileTab = () => {
         setUserProfile(profile);
         setUserName(profile.name || 'Faithful Friend');
         setEditName(profile.name || 'Faithful Friend');
-        setProfilePicture(profile.profilePicture);
+        
+        // Validate profile picture exists before using it
+        if (profile.profilePicture) {
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(profile.profilePicture);
+            if (fileInfo.exists) {
+              setProfilePicture(profile.profilePicture);
+              console.log('[Profile] Profile picture loaded:', profile.profilePicture);
+            } else {
+              console.log('[Profile] Profile picture file not found, clearing');
+              setProfilePicture(null);
+              // Clear invalid URI from storage
+              profile.profilePicture = null;
+              await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+            }
+          } catch (fileError) {
+            console.log('[Profile] Error checking profile picture:', fileError.message);
+            setProfilePicture(null);
+          }
+        }
         
         // Set country object from profile data
         if (profile.countryCode) {
@@ -1254,8 +1277,19 @@ const ProfileTab = () => {
         const storedPhoto = await getStoredData('profilePicture');
         setUserName(storedName);
         setEditName(storedName);
+        
+        // Validate old format photo exists
         if (storedPhoto) {
-          setProfilePicture(storedPhoto);
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(storedPhoto);
+            if (fileInfo.exists) {
+              setProfilePicture(storedPhoto);
+            } else {
+              console.log('[Profile] Old profile picture not found, clearing');
+            }
+          } catch {
+            // Photo doesn't exist, leave it null
+          }
         }
       }
 
@@ -1279,6 +1313,13 @@ const ProfileTab = () => {
       // Load audio voice preference
       const audioSettings = bibleAudioService.getSettings();
       setAudioVoiceGender(audioSettings.voiceGender || 'female');
+      
+      // Load current voice name
+      const voice = bibleAudioService.getCurrentVoice();
+      if (voice) {
+        const name = voice.name || voice.identifier?.split('.').pop()?.replace(/-/g, ' ') || 'Default';
+        setCurrentVoiceName(name.charAt(0).toUpperCase() + name.slice(1));
+      }
 
       const storedPurchasedVersions = await AsyncStorage.getItem('purchasedBibleVersions');
       if (storedPurchasedVersions) {
@@ -2266,6 +2307,20 @@ const ProfileTab = () => {
         onClose={() => setShowNotificationSettings(false)}
       />
 
+      {/* Voice Picker Modal */}
+      <VoicePickerModal
+        visible={showVoicePickerModal}
+        onClose={() => {
+          setShowVoicePickerModal(false);
+          // Refresh voice name after selection
+          const voice = bibleAudioService.getCurrentVoice();
+          if (voice) {
+            const name = voice.name || voice.identifier?.split('.').pop()?.replace(/-/g, ' ') || 'Default';
+            setCurrentVoiceName(name.charAt(0).toUpperCase() + name.slice(1));
+          }
+        }}
+      />
+
 
       {/* Bible Version Modal */}
       <Modal 
@@ -3184,6 +3239,49 @@ const ProfileTab = () => {
                   {audioVoiceGender === 'female' ? 'Female' : 'Male'}
                 </Text>
                   <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+              {/* Choose Specific Voice */}
+            <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => setShowVoicePickerModal(true), 300);
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                <MaterialIcons name="mic" size={20} color={theme.primary} />
+              </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Choose Voice</Text>
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                      Pick from Siri & device voices
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary }} numberOfLines={1}>
+                  {currentVoiceName}
+                </Text>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </View>
             </TouchableOpacity>
 

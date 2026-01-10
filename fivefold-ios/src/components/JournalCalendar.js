@@ -235,7 +235,6 @@ const JournalCalendar = ({
         {[
           { label: 'Total', value: stats.total, icon: 'auto-stories', color: theme.primary },
           { label: 'This Month', value: stats.thisMonth, icon: 'calendar-today', color: theme.info || '#3B82F6' },
-          { label: 'Day Streak', value: stats.streak, icon: 'local-fire-department', color: '#F97316' },
         ].map((stat, index) => (
           <View 
             key={stat.label}
@@ -476,7 +475,7 @@ const JournalCalendar = ({
             width: 12, 
             height: 12, 
             borderRadius: 6, 
-            backgroundColor: `${theme.primary}50` 
+            backgroundColor: `${theme.primary}AA` 
           }} />
           <Text style={{ fontSize: 12, color: theme.textSecondary, fontWeight: '500' }}>Has Notes</Text>
         </View>
@@ -508,55 +507,53 @@ const JournalCalendar = ({
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           />
           
-          {/* Header with drag handle */}
-          <SafeAreaView edges={['top']}>
-            <View 
-              {...panResponder.panHandlers}
-              style={{ paddingTop: 8, paddingBottom: 16 }}
-            >
-              {/* Drag Handle */}
-              <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-                <View style={{ 
-                  width: 40, 
-                  height: 5, 
-                  borderRadius: 3, 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' 
-                }} />
-              </View>
-
-              {/* Close Button and Title */}
+          {/* Header with drag handle - extra top padding for notch */}
+          <View 
+            {...panResponder.panHandlers}
+            style={{ paddingTop: 60, paddingBottom: 16 }}
+          >
+            {/* Drag Handle */}
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
               <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                paddingHorizontal: 20,
-                paddingTop: 8,
-              }}>
-                <TouchableOpacity
-                  onPress={closeDayDetail}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MaterialIcons name="close" size={22} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={{ 
-                  flex: 1, 
-                  textAlign: 'center', 
-                  fontSize: 17, 
-                  fontWeight: '600', 
-                  color: theme.text,
-                  marginRight: 36,
-                }}>
-                  Journal Entry
-                </Text>
-              </View>
+                width: 40, 
+                height: 5, 
+                borderRadius: 3, 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' 
+              }} />
             </View>
-          </SafeAreaView>
+
+            {/* Close Button and Title */}
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              paddingHorizontal: 20,
+              paddingTop: 8,
+            }}>
+              <TouchableOpacity
+                onPress={closeDayDetail}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <MaterialIcons name="close" size={22} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={{ 
+                flex: 1, 
+                textAlign: 'center', 
+                fontSize: 17, 
+                fontWeight: '600', 
+                color: theme.text,
+                marginRight: 36,
+              }}>
+                Journal Entry
+              </Text>
+            </View>
+          </View>
 
           {/* Day Header */}
           {selectedDate && (
@@ -674,7 +671,10 @@ const JournalCalendar = ({
                             fontWeight: '700',
                             color: theme.text,
                           }} numberOfLines={1}>
-                            {note.verseReference || 'Personal Reflection'}
+                            {/* Show verse reference only if it looks like a real Bible verse (contains colon like "John 3:16") */}
+                            {note.verseReference && note.verseReference.includes(':') 
+                              ? note.verseReference 
+                              : 'Personal Reflection'}
                           </Text>
                           <Text style={{
                             fontSize: 12,
