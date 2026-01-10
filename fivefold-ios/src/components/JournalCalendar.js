@@ -141,17 +141,22 @@ const JournalCalendar = ({
   const openDayDetail = (dayData) => {
     if (!dayData.day) return;
     hapticFeedback.medium();
+    
+    // Set animation value BEFORE showing modal to prevent flash
+    dayDetailSlide.setValue(height);
+    
     setSelectedDate(dayData);
     setShowDayDetail(true);
     
-    dayDetailSlide.setValue(height);
-    
-    Animated.spring(dayDetailSlide, {
-      toValue: 0,
-      tension: 65,
-      friction: 11,
-      useNativeDriver: true,
-    }).start();
+    // Small delay to ensure modal is mounted before animating
+    requestAnimationFrame(() => {
+      Animated.spring(dayDetailSlide, {
+        toValue: 0,
+        tension: 65,
+        friction: 11,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const closeDayDetail = () => {
@@ -480,16 +485,24 @@ const JournalCalendar = ({
       {/* Day Detail Modal - Full Screen */}
       <Modal
         visible={showDayDetail}
-        transparent={false}
+        transparent={true}
         animationType="none"
         onRequestClose={closeDayDetail}
-        presentationStyle="fullScreen"
+        statusBarTranslucent={true}
       >
         <Animated.View style={{
           flex: 1,
-          backgroundColor: theme.background,
           transform: [{ translateY: dayDetailSlide }],
         }}>
+          {/* Full background that covers everything */}
+          <View style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            backgroundColor: isDark ? '#000000' : '#fdfbfb' 
+          }} />
           <LinearGradient
             colors={isDark ? ['#1a1a1a', '#000000'] : ['#fdfbfb', '#ebedee']}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
