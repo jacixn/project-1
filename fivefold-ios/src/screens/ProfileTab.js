@@ -58,6 +58,7 @@ import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
 import ThemeModal from '../components/ThemeModal';
 import AchievementService from '../services/achievementService';
+import JournalCalendar from '../components/JournalCalendar';
 
 
 // Animated Profile Card Components (follows Rules of Hooks)
@@ -3502,7 +3503,7 @@ const ProfileTab = () => {
         initialVerseReference={verseReference}
       />
 
-      {/* Journal Modal - Interactive Dismissal Style */}
+      {/* Journal Modal - Calendar Based View */}
       <Modal
         visible={showJournal}
         animationType="none"
@@ -3517,12 +3518,12 @@ const ProfileTab = () => {
               colors={isDark ? ['#1a1a1a', '#000000'] : ['#fdfbfb', '#ebedee']}
               style={StyleSheet.absoluteFill}
             />
-            {/* Journal List View - ScrollView starts from top */}
+            
+            {/* Journal Calendar View */}
             <ScrollView 
               style={{ flex: 1 }} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
-                paddingHorizontal: 20, 
                 paddingBottom: 120,
                 paddingTop: Platform.OS === 'ios' ? 130 : 100,
               }}
@@ -3535,199 +3536,22 @@ const ProfileTab = () => {
                     Loading your notes...
                   </Text>
                 </View>
-              ) : journalNotes.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MaterialIcons name="menu-book" size={64} color={theme.textTertiary} />
-                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
-                    No Notes Yet
-                  </Text>
-                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22, textAlign: 'center' }]}>
-                    Long-press any verse in the Bible to add your personal notes and reflections
-                  </Text>
-                </View>
               ) : (
-                journalNotes.map((note, index) => (
-                  <View
-                    key={note.id || index}
-                    style={{
-                      backgroundColor: isDark ? 'rgba(30, 30, 30, 0.7)' : 'rgba(255, 255, 255, 0.85)',
-                      borderRadius: 24,
-                      marginBottom: 20,
-                      overflow: 'hidden',
-                      borderWidth: 1,
-                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                      shadowColor: theme.primary,
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 16,
-                      elevation: 8,
-                    }}
-                  >
-                    <LinearGradient
-                      colors={[theme.primary, `${theme.primary}CC`]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{
-                        paddingHorizontal: 20,
-                        paddingVertical: 14,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <View style={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                          borderRadius: 8,
-                          padding: 6,
-                          marginRight: 10
-                        }}>
-                          <MaterialIcons name="auto-stories" size={16} color="#fff" />
-                        </View>
-                        <Text style={{
-                          fontSize: 16,
-                          fontWeight: '800',
-                          color: '#fff',
-                          letterSpacing: 0.3
-                        }}>
-                          {note.verseReference || 'Personal Reflection'}
-                        </Text>
-                      </View>
-                      <View style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        borderRadius: 20
-                      }}>
-                        <Text style={{
-                          fontSize: 11,
-                          color: 'rgba(255, 255, 255, 0.95)',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5
-                        }}>
-                          {new Date(note.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) + ' • ' + new Date(note.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
-                    </LinearGradient>
-
-                    <View style={{ padding: 20 }}>
-                      {journalVerseTexts[note.id] && (
-                        <View style={{
-                          backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                          borderRadius: 16,
-                          padding: 16,
-                          marginBottom: 16,
-                          borderLeftWidth: 4,
-                          borderLeftColor: `${theme.primary}60`,
-                        }}>
-                          <Text style={{
-                            fontSize: 15,
-                            lineHeight: 24,
-                            color: theme.text,
-                            opacity: 0.85,
-                            fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif'
-                          }}>
-                            "{journalVerseTexts[note.id]}"
-                          </Text>
-                        </View>
-                      )}
-                      
-                      <View style={{
-                        backgroundColor: `${theme.primary}08`,
-                        borderRadius: 18,
-                        padding: 20,
-                        borderWidth: 1,
-                        borderColor: `${theme.primary}15`
-                      }}>
-                        <View style={{ 
-                          flexDirection: 'row', 
-                          alignItems: 'center',
-                          marginBottom: 10,
-                          opacity: 0.8
-                        }}>
-                          <MaterialIcons name="bubble-chart" size={18} color={theme.primary} />
-                          <Text style={{
-                            fontSize: 14,
-                            fontWeight: '700',
-                            color: theme.primary,
-                            marginLeft: 8,
-                            textTransform: 'uppercase',
-                            letterSpacing: 1
-                          }}>
-                            Reflection
-                          </Text>
-                        </View>
-                        <Text style={{
-                          fontSize: 17,
-                          lineHeight: 26,
-                          color: theme.text,
-                          fontWeight: '500',
-                          fontStyle: 'italic',
-                          opacity: 0.95
-                        }}>
-                          {note.text}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        style={{
-                          marginTop: 16,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          opacity: 0.6
-                        }}
-                        onPress={() => {
-                          hapticFeedback.light();
-                          Alert.alert(
-                            'Delete Journal Entry',
-                            'Are you sure you want to delete this note?',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Delete',
-                                style: 'destructive',
-                                onPress: async () => {
-                                  const noteId = note.id;
-                                  const raw = await AsyncStorage.getItem('journalNotes');
-                                  const allNotes = raw ? JSON.parse(raw) : [];
-                                  const remaining = allNotes.filter(n => n.id !== noteId);
-                                  await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
-                                  setJournalNotes(remaining);
-                                  hapticFeedback.light();
-                                }
-                              }
-                            ]
-                          );
-                        }}
-                      >
-                        <View style={{
-                          backgroundColor: `${theme.error}10`,
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 10,
-                          flexDirection: 'row',
-                          alignItems: 'center'
-                        }}>
-                          <MaterialIcons name="delete-outline" size={16} color={theme.error} />
-                          <Text style={{
-                            fontSize: 13,
-                            fontWeight: '600',
-                            color: theme.error,
-                            marginLeft: 4
-                          }}>
-                            Delete
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
+                <JournalCalendar
+                  journalNotes={journalNotes}
+                  journalVerseTexts={journalVerseTexts}
+                  onDeleteNote={async (noteId) => {
+                    hapticFeedback.light();
+                    const raw = await AsyncStorage.getItem('journalNotes');
+                    const allNotes = raw ? JSON.parse(raw) : [];
+                    const remaining = allNotes.filter(n => n.id !== noteId);
+                    await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
+                    setJournalNotes(remaining);
+                  }}
+                  onAddEntry={() => setIsAddingEntry(true)}
+                  theme={theme}
+                  isDark={isDark}
+                />
               )}
             </ScrollView>
             
