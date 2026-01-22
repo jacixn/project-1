@@ -22,12 +22,35 @@
       "tags": ["courage", "faith", "victory", "old-testament", "david"],
       "ageGroup": "all",
       "difficulty": "easy"
+    },
+    {
+      "id": "samson",
+      "title": "Samson",
+      "subtitle": "The Strongest Man Who Ever Lived",
+      "category": "old-testament",
+      "duration": "4:30",
+      "icon": "💪",
+      "color": "#F59E0B",
+      "gradient": ["#F59E0B", "#B45309"],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/samson.mp3",
+      "thumbnail": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-thumbnails/samson.jpg",
+      "script": "Samson. The strongest man who ever lived. Here's what you need to know.\n\nSo... let's set the scene. Israel is in a rough spot. They've been oppressed by the Philistines for forty years. And God's like... \"I'm gonna send someone to start delivering my people.\"\n\nEnter Samson.\n\nBefore he's even born... an angel appears to his mom and says... \"You're gonna have a son. Don't cut his hair. Ever. He's gonna be set apart for God from day one.\"\n\nThis is called a Nazirite vow. No haircuts. No wine. Completely dedicated to God.\n\nAnd Samson? He's BUILT DIFFERENT. Like... supernaturally strong. We're talking... ripping a lion apart with his bare hands... like it's nothing. Killing a thousand Philistine soldiers... with a donkey's jawbone. Yeah. A jawbone.\n\nBut here's the thing about Samson. He had incredible strength... but terrible judgment when it came to women.\n\nHe falls for a Philistine woman named Delilah. And the Philistine leaders are like... \"Yo Delilah? Find out what makes him so strong. We'll pay you eleven hundred pieces of silver.\"\n\nSo Delilah starts asking... \"Baby... what's the secret to your strength?\"\n\nAnd Samson... being cocky... lies to her. Multiple times. \"Tie me with fresh bowstrings.\" Nope. \"Weave my hair into a loom.\" Nope.\n\nBut Delilah keeps pressing. Every. Single. Day. Until finally... Samson breaks.\n\nHe tells her everything. \"A razor has never touched my head. If my hair is cut... my strength will leave me.\"\n\nThat night... while Samson is sleeping on her lap... she calls a man to shave his head. And when he wakes up... he doesn't realize... the Lord has left him.\n\nThe Philistines capture him. Gouge out his eyes. Put him in prison. Make him grind grain like an animal.\n\nBut here's the plot twist. His hair... starts growing back.\n\nOne day... the Philistines throw a huge party to their god Dagon. Three thousand people. And they bring out Samson... to entertain them.\n\nSamson asks the servant leading him... \"Put me where I can feel the pillars... so I can lean on them.\"\n\nThen he prays one last prayer. \"Lord God... remember me. Please strengthen me... just one more time.\"\n\nAnd God answers.\n\nSamson pushes against the two central pillars... and brings down the entire temple. Killing more enemies in his death... than he ever did in his life.\n\nSo what do we learn from this?\n\nGod can use flawed people. Samson wasn't perfect. Far from it. But God still worked through him.\n\nOur greatest strength... can become our greatest weakness... if we don't guard our hearts.\n\nAnd sometimes... God gives us a second chance... even when we've messed up badly.\n\nSamson's story is proof that... it's not about how you start. It's about how you finish.",
+      "reference": "Judges 13-16",
+      "keyLessons": [
+        "God can use flawed people",
+        "Guard your heart and your secrets",
+        "It's not how you start, it's how you finish",
+        "God gives second chances"
+      ],
+      "tags": ["strength", "redemption", "second-chances", "old-testament", "samson"],
+      "ageGroup": "all",
+      "difficulty": "medium"
     }
   ],
   "metadata": {
-    "version": "1.0",
-    "totalStories": 1,
-    "lastUpdated": "2025-01-21"
+    "version": "1.1",
+    "totalStories": 2,
+    "lastUpdated": "2025-01-22"
   }
 }
 
