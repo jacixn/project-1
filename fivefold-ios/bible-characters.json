@@ -10,7 +10,13 @@
         "Type of Christ: In Christian theology, Adam is contrasted with Jesus (the \"Second Adam\"). Where Adam's disobedience brought death, Christ's obedience brought life"
       ],
       "culturalImpact": "Adam appears throughout art, literature, and culture. Michelangelo's \"Creation of Adam\" on the Sistine Chapel ceiling is one of the most famous religious paintings. Milton's \"Paradise Lost\" portrays Adam as noble but ultimately responsible for the Fall. The phrase \"Adam's apple\" comes from the folk belief that the forbidden fruit got stuck in his throat.",
-      "verses": ["Genesis 1:27", "Genesis 2:7", "Genesis 3:19", "Romans 5:12"]
+      "verses": [
+        "Genesis 1:27",
+        "Genesis 2:7",
+        "Genesis 3:19",
+        "Romans 5:12"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/adam.mp3"
     },
     "Eve": {
       "name": "Eve - The First Woman",
@@ -23,7 +29,13 @@
         "New Eve: Christian tradition sees Mary, the mother of Jesus, as the \"New Eve\" whose obedience reversed Eve's disobedience"
       ],
       "culturalImpact": "Eve appears frequently in art, often at the moment of temptation or after the Fall. Renaissance painters like Titian and Dürer portrayed her as the archetype of beauty and temptation. In literature, Milton's \"Paradise Lost\" gives Eve a complex character who shows both intelligence and remorse. Modern feminist interpretations often emphasize her desire for wisdom and her role as a tragic figure rather than simply the cause of humanity's problems.",
-      "verses": ["Genesis 2:22-23", "Genesis 3:6", "Genesis 3:15", "Genesis 3:20"]
+      "verses": [
+        "Genesis 2:22-23",
+        "Genesis 3:6",
+        "Genesis 3:15",
+        "Genesis 3:20"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/eve.mp3"
     },
     "Cain": {
       "name": "Cain - The First Murderer",
@@ -36,7 +48,12 @@
         "Grace in Judgment: Even as God punished Cain, He also protected him, showing mercy within justice"
       ],
       "culturalImpact": "The phrase \"raising Cain\" means causing trouble, while the \"mark of Cain\" refers to a stigma of shame. Cain and Abel represent the eternal struggle between good and evil, appearing in countless works from Byron's dramatic poem \"Cain\" to Steinbeck's \"East of Eden.\" The question \"Am I my brother's keeper?\" continues to challenge discussions about social responsibility and human compassion.",
-      "verses": ["Genesis 4:1-16", "Hebrews 11:4", "1 John 3:12"]
+      "verses": [
+        "Genesis 4:1-16",
+        "Hebrews 11:4",
+        "1 John 3:12"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/cain.mp3"
     },
     "Abel": {
       "name": "Abel - The First Martyr",
@@ -49,7 +66,13 @@
         "Faith's Testimony: Though Abel died young, his faith continues to teach and inspire others"
       ],
       "culturalImpact": "Abel appears in Christian art as a shepherd with a lamb, often symbolizing Christ the Good Shepherd. His story represents the triumph of faith over worldly success and the eternal significance of righteousness. The concept of Abel as the first martyr connects him to all later martyrs and saints who died for their beliefs.",
-      "verses": ["Genesis 4:2-10", "Matthew 23:35", "Hebrews 11:4", "Hebrews 12:24"]
+      "verses": [
+        "Genesis 4:2-10",
+        "Matthew 23:35",
+        "Hebrews 11:4",
+        "Hebrews 12:24"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/abel.mp3"
     },
     "Seth": {
       "name": "Seth - Hope After Tragedy",
@@ -62,7 +85,13 @@
         "Spiritual Legacy: Seth's descendants began calling on God's name, establishing a pattern of worship that would define the faithful throughout Scripture"
       ],
       "culturalImpact": "While Seth receives less attention in art and literature than his brothers, he holds significant importance in religious tradition. Jewish, Christian, and Islamic traditions all recognize Seth as the ancestor of the righteous. Some ancient texts (like the 'Life of Adam and Eve') elaborate on Seth's wisdom and righteousness. His name became synonymous with divine providence and the continuation of God's plan despite human failure. In theological discussions, Seth represents God's ability to bring beauty from ashes and maintain His purposes through faithful people.",
-      "verses": ["Genesis 4:25-26", "Genesis 5:3-8", "1 Chronicles 1:1", "Luke 3:38"]
+      "verses": [
+        "Genesis 4:25-26",
+        "Genesis 5:3-8",
+        "1 Chronicles 1:1",
+        "Luke 3:38"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/seth.mp3"
     },
     "Enosh": {
       "name": "Enosh - When People Called on God",
@@ -74,7 +103,13 @@
         "Faithful Continuity: Enosh carried forward the godly line through a world increasingly marked by sin"
       ],
       "culturalImpact": "Enosh's name has been used throughout history to represent human frailty and dependence on God. The phrase \"calling on the name of the Lord\" became foundational in Jewish and Christian worship traditions. Religious scholars see Enosh's era as the birth of organized worship and prayer in human history.",
-      "verses": ["Genesis 4:26", "Genesis 5:6-11", "1 Chronicles 1:1", "Luke 3:38"]
+      "verses": [
+        "Genesis 4:26",
+        "Genesis 5:6-11",
+        "1 Chronicles 1:1",
+        "Luke 3:38"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/enosh.mp3"
     },
     "Kenan": {
       "name": "Kenan - The Faithful Link",
@@ -86,7 +121,12 @@
         "Quiet Obedience: Not everyone's faithfulness makes headlines, but it still matters deeply to God"
       ],
       "culturalImpact": "While Kenan doesn't feature prominently in art or literature, his name appears in every biblical genealogy tracing the line from Adam to Jesus. He represents the many faithful believers whose names we know but whose stories remain largely untold. His life reminds us that every person in God's plan matters, whether their story fills books or just a few verses.",
-      "verses": ["Genesis 5:9-14", "1 Chronicles 1:2", "Luke 3:37-38"]
+      "verses": [
+        "Genesis 5:9-14",
+        "1 Chronicles 1:2",
+        "Luke 3:37-38"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/kenan.mp3"
     },
     "Mahalalel": {
       "name": "Mahalalel - Praise of God",
@@ -98,7 +138,12 @@
         "Generational Faithfulness: Another faithful link in the chain leading to salvation history"
       ],
       "culturalImpact": "Mahalalel's name has inspired countless discussions about the power of names and identity. In Jewish tradition, his name represents the importance of praise in maintaining faith through difficult times. His place in Christ's genealogy reminds us that everyone who stays faithful to God, no matter how obscure their story, plays a vital role in God's bigger plan.",
-      "verses": ["Genesis 5:12-17", "1 Chronicles 1:2", "Luke 3:37"]
+      "verses": [
+        "Genesis 5:12-17",
+        "1 Chronicles 1:2",
+        "Luke 3:37"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/mahalalel.mp3"
     },
     "Jared": {
       "name": "Jared - Descent into Darkness",
@@ -110,7 +155,12 @@
         "Endurance Through Centuries: His long life demonstrates patient faithfulness across many generations"
       ],
       "culturalImpact": "Jared appears in all the major genealogies and is remembered primarily as Enoch's father. His name has been used in discussions about spiritual decline and the challenge of remaining faithful when culture shifts away from God. He represents all believers who stay true in difficult times and raise the next generation to know and love God.",
-      "verses": ["Genesis 5:15-20", "1 Chronicles 1:2", "Luke 3:37"]
+      "verses": [
+        "Genesis 5:15-20",
+        "1 Chronicles 1:2",
+        "Luke 3:37"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/jared.mp3"
     },
     "Enoch": {
       "name": "Enoch - The Man Who Walked with God",
@@ -123,7 +173,13 @@
         "Transformation Through Fatherhood: His spiritual journey intensified after becoming a parent"
       ],
       "culturalImpact": "Enoch has captured imaginations throughout history. Ancient Jewish texts like the Books of Enoch elaborate extensively on his visions and heavenly journeys (though these aren't part of the biblical canon). Artists have portrayed him as a mystical figure ascending to heaven. In Christian theology, Enoch represents the possibility of intimate friendship with God and is often mentioned alongside Elijah as a preview of the resurrection and rapture. His name has become synonymous with walking closely with God.",
-      "verses": ["Genesis 5:21-24", "Hebrews 11:5-6", "Jude 1:14-15", "1 Chronicles 1:3"]
+      "verses": [
+        "Genesis 5:21-24",
+        "Hebrews 11:5-6",
+        "Jude 1:14-15",
+        "1 Chronicles 1:3"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/enoch.mp3"
     },
     "Methuselah": {
       "name": "Methuselah - The Oldest Man Who Ever Lived",
@@ -136,7 +192,12 @@
         "Righteous Heritage: Born to Enoch and grandfather to Noah, he came from and passed on a legacy of faithfulness"
       ],
       "culturalImpact": "The name Methuselah has become synonymous with great age and longevity. When something is called \"as old as Methuselah,\" it means extremely ancient. His life has fascinated scientists, theologians, and historians for centuries, prompting discussions about human longevity, the changes in human biology after the flood, and God's patience with human sin. He represents the maximum extent of human life and God's long-suffering nature.",
-      "verses": ["Genesis 5:21-27", "1 Chronicles 1:3", "Luke 3:37"]
+      "verses": [
+        "Genesis 5:21-27",
+        "1 Chronicles 1:3",
+        "Luke 3:37"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/methuselah.mp3"
     },
     "Lamech": {
       "name": "Lamech - Father of the Deliverer",
@@ -148,7 +209,12 @@
         "Longing for Redemption: His words express humanity's deep desire for restoration and comfort"
       ],
       "culturalImpact": "Lamech is remembered primarily as Noah's father and for his prophetic words at Noah's birth. His hope for comfort and rest from the curse resonates with all who long for redemption. In Christian theology, his words point beyond Noah to Jesus Christ, who truly brings rest and comfort from sin's curse. Lamech represents all faithful parents who raise children in difficult times, hoping they will make a difference in their generation.",
-      "verses": ["Genesis 5:25-31", "1 Chronicles 1:3", "Luke 3:36"]
+      "verses": [
+        "Genesis 5:25-31",
+        "1 Chronicles 1:3",
+        "Luke 3:36"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/lamech.mp3"
     },
     "Noah": {
       "name": "Noah - The Man Who Saved the World",
@@ -162,7 +228,14 @@
         "Covenant Faithfulness: God's rainbow covenant with Noah demonstrates His promises and long-term commitment to humanity"
       ],
       "culturalImpact": "Noah's story is one of the most universally known biblical narratives. The ark appears in countless paintings, children's books, films, and cultural references. Nearly every ancient culture has a flood story, but the biblical account remains the most detailed. Noah has become a symbol of faithfulness against the odds, preparation for coming judgment, and God's mercy in saving humanity. Modern discussions reference Noah when talking about environmental judgment, cultural decline, or standing alone for truth. Archaeological searches for the ark continue to this day, showing the enduring fascination with Noah's story.",
-      "verses": ["Genesis 6:8-22", "Genesis 7-9", "Hebrews 11:7", "1 Peter 3:20", "2 Peter 2:5"]
+      "verses": [
+        "Genesis 6:8-22",
+        "Genesis 7-9",
+        "Hebrews 11:7",
+        "1 Peter 3:20",
+        "2 Peter 2:5"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/noah.mp3"
     },
     "Noah's Wife": {
       "name": "Noah's Wife - Partner in Survival",
@@ -175,7 +248,14 @@
         "Unnamed but Not Forgotten: Her story shows God values faithfulness whether or not the world remembers our names"
       ],
       "culturalImpact": "Noah's wife appears in various artistic depictions of the ark, usually shown alongside Noah and their family. Medieval mystery plays gave her significant speaking roles, sometimes portraying her as reluctant (adding drama) or as wisely supportive. The absence of her name has inspired discussions about how many faithful women in history go unnamed yet play crucial roles. Her story encourages believers that God sees and values every act of faith, even when human history doesn't record the details.",
-      "verses": ["Genesis 6:18", "Genesis 7:7", "Genesis 7:13", "Genesis 8:16", "Genesis 8:18"]
+      "verses": [
+        "Genesis 6:18",
+        "Genesis 7:7",
+        "Genesis 7:13",
+        "Genesis 8:16",
+        "Genesis 8:18"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/noah-s-wife.mp3"
     },
     "Shem": {
       "name": "Shem - Father of the Semitic Peoples",
@@ -188,7 +268,15 @@
         "Spiritual Heritage: The God of Shem became the God of the faithful throughout Scripture"
       ],
       "culturalImpact": "The term 'Semitic' comes from Shem's name and refers to languages, peoples, and cultures descended from him, including Hebrew, Arabic, and Aramaic speakers. Shem is honored in Jewish, Christian, and Islamic traditions as a righteous man and key ancestor. His blessing from Noah has been studied for its prophetic significance about the spiritual destiny of his descendants. In biblical genealogies, being from Shem's line carried special significance regarding God's covenant promises.",
-      "verses": ["Genesis 5:32", "Genesis 9:18-27", "Genesis 10:21-31", "Genesis 11:10-26", "1 Chronicles 1:17", "Luke 3:36"]
+      "verses": [
+        "Genesis 5:32",
+        "Genesis 9:18-27",
+        "Genesis 10:21-31",
+        "Genesis 11:10-26",
+        "1 Chronicles 1:17",
+        "Luke 3:36"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/shem.mp3"
     },
     "Ham": {
       "name": "Ham - Father of African and Canaanite Nations",
@@ -201,7 +289,15 @@
         "Misused Scripture: Ham's story has been tragically misused to justify slavery and racism, which completely contradicts its actual meaning"
       ],
       "culturalImpact": "Ham's story has unfortunately been twisted throughout history. The so-called 'Curse of Ham' was wrongly used to justify slavery and racism, especially against African peoples. This is a complete misreading of Scripture, which cursed only Canaan (not Ham or his other sons) and had nothing to do with skin color or race. Properly understood, Ham's descendants built some of history's greatest civilizations. Modern scholarship emphasizes that Ham's line represents God's love for all nations and the contributions of African peoples to biblical history.",
-      "verses": ["Genesis 5:32", "Genesis 9:18-27", "Genesis 10:6-20", "1 Chronicles 1:8", "Psalm 78:51", "Psalm 105:23"]
+      "verses": [
+        "Genesis 5:32",
+        "Genesis 9:18-27",
+        "Genesis 10:6-20",
+        "1 Chronicles 1:8",
+        "Psalm 78:51",
+        "Psalm 105:23"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/ham.mp3"
     },
     "Japheth": {
       "name": "Japheth - Father of Indo-European Peoples",
@@ -214,7 +310,13 @@
         "Global Reach: Through his line came peoples who would carry the gospel to the ends of the earth"
       ],
       "culturalImpact": "Japheth's descendants are traditionally identified with Indo-European peoples who shaped Western civilization. The Greeks gave us philosophy and democracy, the Romans built a vast empire, and European peoples eventually carried Christianity worldwide. Noah's blessing of Japheth has been seen as prophetic of how European nations would embrace the gospel that came through Shem's line (the Jews). His story reminds us that God's plan has always been for all peoples to be blessed and included in His family.",
-      "verses": ["Genesis 5:32", "Genesis 9:18-27", "Genesis 10:2-5", "1 Chronicles 1:5-7"]
+      "verses": [
+        "Genesis 5:32",
+        "Genesis 9:18-27",
+        "Genesis 10:2-5",
+        "1 Chronicles 1:5-7"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/japheth.mp3"
     },
     "Nimrod": {
       "name": "Nimrod - The Mighty Hunter and Empire Builder",
@@ -227,7 +329,12 @@
         "Twisted Strength: His might and skill were used for self-glorification rather than serving God"
       ],
       "culturalImpact": "The phrase 'mighty hunter' has become associated with Nimrod, though over time 'nimrod' ironically became slang for a fool or incompetent person (thanks to Bugs Bunny sarcastically calling Elmer Fudd a 'nimrod'). In classical Jewish and Islamic traditions, Nimrod is portrayed as a villain who opposed Abraham and persecuted early monotheists. Ancient Mesopotamian texts may refer to him under different names as a legendary king. His story warns against using power and achievements for self-glorification rather than honoring God. Babylon's later prominence in Scripture as a symbol of worldly rebellion traces back to its founding by Nimrod.",
-      "verses": ["Genesis 10:8-12", "1 Chronicles 1:10", "Micah 5:6"]
+      "verses": [
+        "Genesis 10:8-12",
+        "1 Chronicles 1:10",
+        "Micah 5:6"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/nimrod.mp3"
     }
   },
   "characterGroups": [
@@ -235,226 +342,831 @@
       "id": "adam-eve",
       "title": "Garden of Eden & First Generations",
       "icon": "🌱",
-      "characters": ["Adam", "Eve", "Cain", "Abel", "Seth", "Enosh", "Kenan", "Mahalalel", "Jared", "Enoch", "Methuselah", "Lamech", "Noah"]
+      "characters": [
+        "Adam",
+        "Eve",
+        "Cain",
+        "Abel",
+        "Seth",
+        "Enosh",
+        "Kenan",
+        "Mahalalel",
+        "Jared",
+        "Enoch",
+        "Methuselah",
+        "Lamech",
+        "Noah"
+      ]
     },
     {
       "id": "noah",
       "title": "Noah's Ark & The Great Flood",
       "icon": "🚢",
-      "characters": ["Noah", "Noah's Wife", "Shem", "Ham", "Japheth", "Nimrod"]
+      "characters": [
+        "Noah",
+        "Noah's Wife",
+        "Shem",
+        "Ham",
+        "Japheth",
+        "Nimrod"
+      ]
     },
     {
       "id": "abraham",
       "title": "Abraham: Father of Faith",
       "icon": "⭐",
-      "characters": ["Abraham", "Sarah", "Hagar", "Isaac", "Ishmael", "Lot", "Lot's Wife", "Lot's Daughters", "Eliezer of Damascus", "Melchizedek", "King Abimelech", "Phicol"]
+      "characters": [
+        "Abraham",
+        "Sarah",
+        "Hagar",
+        "Isaac",
+        "Ishmael",
+        "Lot",
+        "Lot's Wife",
+        "Lot's Daughters",
+        "Eliezer of Damascus",
+        "Melchizedek",
+        "King Abimelech",
+        "Phicol"
+      ]
     },
     {
       "id": "isaac",
       "title": "Isaac: The Promised Son",
       "icon": "🔥",
-      "characters": ["Isaac", "Rebekah", "Esau", "Jacob", "Bethuel", "Laban"]
+      "characters": [
+        "Isaac",
+        "Rebekah",
+        "Esau",
+        "Jacob",
+        "Bethuel",
+        "Laban"
+      ]
     },
     {
       "id": "jacob-israel",
       "title": "Jacob & The Twelve Tribes",
       "icon": "🏺",
-      "characters": ["Jacob", "Leah", "Rachel", "Bilhah", "Zilpah", "Reuben", "Simeon", "Levi", "Judah", "Dan", "Naphtali", "Gad", "Asher", "Issachar", "Zebulun", "Dinah", "Joseph", "Benjamin"]
+      "characters": [
+        "Jacob",
+        "Leah",
+        "Rachel",
+        "Bilhah",
+        "Zilpah",
+        "Reuben",
+        "Simeon",
+        "Levi",
+        "Judah",
+        "Dan",
+        "Naphtali",
+        "Gad",
+        "Asher",
+        "Issachar",
+        "Zebulun",
+        "Dinah",
+        "Joseph",
+        "Benjamin"
+      ]
     },
     {
       "id": "joseph",
       "title": "Joseph: Dreams & Egypt",
       "icon": "👑",
-      "characters": ["Joseph", "Jacob", "Rachel", "Pharaoh", "Potiphar", "Potiphar's Wife", "Chief Cupbearer", "Chief Baker", "Manasseh", "Ephraim", "Asenath", "Simeon", "Judah", "Reuben", "Benjamin"]
+      "characters": [
+        "Joseph",
+        "Jacob",
+        "Rachel",
+        "Pharaoh",
+        "Potiphar",
+        "Potiphar's Wife",
+        "Chief Cupbearer",
+        "Chief Baker",
+        "Manasseh",
+        "Ephraim",
+        "Asenath",
+        "Simeon",
+        "Judah",
+        "Reuben",
+        "Benjamin"
+      ]
     },
     {
       "id": "job",
       "title": "Job: Faith Through Suffering",
       "icon": "💪",
-      "characters": ["Job", "Eliphaz", "Bildad", "Zophar", "Elihu", "Job's Wife"]
+      "characters": [
+        "Job",
+        "Eliphaz",
+        "Bildad",
+        "Zophar",
+        "Elihu",
+        "Job's Wife"
+      ]
     },
     {
       "id": "moses",
       "title": "Moses & The Exodus",
       "icon": "📜",
-      "characters": ["Moses", "Aaron", "Miriam", "Pharaoh", "Pharaoh's Daughter", "Jethro (Reuel)", "Zipporah", "Gershom", "Eliezer (son of Moses)", "Joshua", "Caleb", "Hur", "Bezalel", "Oholiab", "Korah", "Dathan", "Abiram", "Nadab", "Abihu", "Eleazar", "Ithamar", "Balaam", "Balak", "Hobab", "Amalek", "Joshua's Aides", "Elders of Israel"]
+      "characters": [
+        "Moses",
+        "Aaron",
+        "Miriam",
+        "Pharaoh",
+        "Pharaoh's Daughter",
+        "Jethro (Reuel)",
+        "Zipporah",
+        "Gershom",
+        "Eliezer (son of Moses)",
+        "Joshua",
+        "Caleb",
+        "Hur",
+        "Bezalel",
+        "Oholiab",
+        "Korah",
+        "Dathan",
+        "Abiram",
+        "Nadab",
+        "Abihu",
+        "Eleazar",
+        "Ithamar",
+        "Balaam",
+        "Balak",
+        "Hobab",
+        "Amalek",
+        "Joshua's Aides",
+        "Elders of Israel"
+      ]
     },
     {
       "id": "temple-priests",
       "title": "Temple Priests & Sacred Service",
       "icon": "🕯️",
-      "characters": ["Aaron", "Eleazar", "Ithamar", "Phinehas", "Eli", "Hophni", "Phinehas (son of Eli)", "Abiathar", "Zadok", "Ahimelech", "Jehoiada", "Zechariah (son of Jehoiada)", "Azariah", "Hilkiah", "Seraiah", "Ezra"]
+      "characters": [
+        "Aaron",
+        "Eleazar",
+        "Ithamar",
+        "Phinehas",
+        "Eli",
+        "Hophni",
+        "Phinehas (son of Eli)",
+        "Abiathar",
+        "Zadok",
+        "Ahimelech",
+        "Jehoiada",
+        "Zechariah (son of Jehoiada)",
+        "Azariah",
+        "Hilkiah",
+        "Seraiah",
+        "Ezra"
+      ]
     },
     {
       "id": "conquering-promised-land",
       "title": "Conquering the Promised Land",
       "icon": "⚔️",
-      "characters": ["Joshua", "Caleb", "Rahab", "Achan (Achar)", "Eleazar", "Phinehas", "Zilpah's Descendants", "Gibeonites", "Othniel"]
+      "characters": [
+        "Joshua",
+        "Caleb",
+        "Rahab",
+        "Achan (Achar)",
+        "Eleazar",
+        "Phinehas",
+        "Zilpah's Descendants",
+        "Gibeonites",
+        "Othniel"
+      ]
     },
     {
       "id": "judges",
       "title": "Heroes & Judges of Israel",
       "icon": "⚖️",
-      "characters": ["Othniel", "Ehud", "Shamgar", "Deborah", "Barak", "Jael", "Sisera", "Gideon", "Jerubbaal", "Abimelech", "Tola", "Jair", "Jephthah", "Ibzan", "Elon", "Abdon", "Samson", "Delilah", "Manoah", "Philistine Lords", "Micah of Ephraim", "Levite of Micah", "Danites"]
+      "characters": [
+        "Othniel",
+        "Ehud",
+        "Shamgar",
+        "Deborah",
+        "Barak",
+        "Jael",
+        "Sisera",
+        "Gideon",
+        "Jerubbaal",
+        "Abimelech",
+        "Tola",
+        "Jair",
+        "Jephthah",
+        "Ibzan",
+        "Elon",
+        "Abdon",
+        "Samson",
+        "Delilah",
+        "Manoah",
+        "Philistine Lords",
+        "Micah of Ephraim",
+        "Levite of Micah",
+        "Danites"
+      ]
     },
     {
       "id": "ruth",
       "title": "Ruth: Love & Loyalty",
       "icon": "💕",
-      "characters": ["Ruth", "Naomi", "Boaz", "Orpah", "Obed"]
+      "characters": [
+        "Ruth",
+        "Naomi",
+        "Boaz",
+        "Orpah",
+        "Obed"
+      ]
     },
     {
       "id": "samuel-first-king",
       "title": "Samuel & The First King",
       "icon": "👑",
-      "characters": ["Samuel", "Hannah", "Elkanah", "Eli", "Hophni", "Phinehas", "Ichabod", "Saul", "Jonathan", "Michal", "Merab", "Agag", "Doeg the Edomite", "Abner", "Kish", "Ahimelech"]
+      "characters": [
+        "Samuel",
+        "Hannah",
+        "Elkanah",
+        "Eli",
+        "Hophni",
+        "Phinehas",
+        "Ichabod",
+        "Saul",
+        "Jonathan",
+        "Michal",
+        "Merab",
+        "Agag",
+        "Doeg the Edomite",
+        "Abner",
+        "Kish",
+        "Ahimelech"
+      ]
     },
     {
       "id": "david",
       "title": "David: Giant Slayer & King",
       "icon": "🗡️",
-      "characters": ["David", "Goliath", "Saul", "Jonathan", "Michal", "Abigail", "Bathsheba", "Uriah", "Joab", "Abner", "Ish-bosheth", "Mephibosheth", "Nathan", "Gad", "Zadok", "Abiathar", "Shimei", "Hushai", "Ahithophel", "Ittai", "Amnon", "Tamar (daughter of David)", "Absalom", "Adonijah", "Solomon", "Benaiah", "Zeruiah", "Asahel", "Merab", "Agag", "Doeg the Edomite", "Kish", "Ahimelech"]
+      "characters": [
+        "David",
+        "Goliath",
+        "Saul",
+        "Jonathan",
+        "Michal",
+        "Abigail",
+        "Bathsheba",
+        "Uriah",
+        "Joab",
+        "Abner",
+        "Ish-bosheth",
+        "Mephibosheth",
+        "Nathan",
+        "Gad",
+        "Zadok",
+        "Abiathar",
+        "Shimei",
+        "Hushai",
+        "Ahithophel",
+        "Ittai",
+        "Amnon",
+        "Tamar (daughter of David)",
+        "Absalom",
+        "Adonijah",
+        "Solomon",
+        "Benaiah",
+        "Zeruiah",
+        "Asahel",
+        "Merab",
+        "Agag",
+        "Doeg the Edomite",
+        "Kish",
+        "Ahimelech"
+      ]
     },
     {
       "id": "solomon",
       "title": "Solomon: Wisdom & Glory",
       "icon": "✨",
-      "characters": ["Solomon", "Bathsheba", "Nathan", "Zadok", "Adonijah", "Abiathar", "Benaiah", "Queen of Sheba", "Hiram of Tyre", "Rehoboam", "Jeroboam", "Pharaoh's Daughter"]
+      "characters": [
+        "Solomon",
+        "Bathsheba",
+        "Nathan",
+        "Zadok",
+        "Adonijah",
+        "Abiathar",
+        "Benaiah",
+        "Queen of Sheba",
+        "Hiram of Tyre",
+        "Rehoboam",
+        "Jeroboam",
+        "Pharaoh's Daughter"
+      ]
     },
     {
       "id": "northern-kingdom",
       "title": "Northern Kingdom: Israel",
       "icon": "🏛️",
-      "characters": ["Jeroboam (son of Nebat)", "Nadab", "Baasha", "Elah", "Zimri", "Omri", "Ahab", "Ahaziah", "Jehoram (Joram) of Israel", "Jehu", "Jehoahaz", "Jehoash", "Jeroboam II", "Zechariah", "Shallum", "Menahem", "Pekahiah", "Pekah", "Hoshea"]
+      "characters": [
+        "Jeroboam (son of Nebat)",
+        "Nadab",
+        "Baasha",
+        "Elah",
+        "Zimri",
+        "Omri",
+        "Ahab",
+        "Ahaziah",
+        "Jehoram (Joram) of Israel",
+        "Jehu",
+        "Jehoahaz",
+        "Jehoash",
+        "Jeroboam II",
+        "Zechariah",
+        "Shallum",
+        "Menahem",
+        "Pekahiah",
+        "Pekah",
+        "Hoshea"
+      ]
     },
     {
       "id": "southern-kingdom",
       "title": "Southern Kingdom: Judah",
       "icon": "👑",
-      "characters": ["Rehoboam", "Abijah", "Asa", "Jehoshaphat", "Jehoram", "Ahaziah", "Athaliah", "Joash (Jehoash)", "Amaziah", "Uzziah (Azariah)", "Jotham", "Ahaz", "Hezekiah", "Manasseh", "Amon", "Josiah", "Jehoahaz (Shallum)", "Jehoiakim", "Jehoiachin (Jeconiah)", "Zedekiah"]
+      "characters": [
+        "Rehoboam",
+        "Abijah",
+        "Asa",
+        "Jehoshaphat",
+        "Jehoram",
+        "Ahaziah",
+        "Athaliah",
+        "Joash (Jehoash)",
+        "Amaziah",
+        "Uzziah (Azariah)",
+        "Jotham",
+        "Ahaz",
+        "Hezekiah",
+        "Manasseh",
+        "Amon",
+        "Josiah",
+        "Jehoahaz (Shallum)",
+        "Jehoiakim",
+        "Jehoiachin (Jeconiah)",
+        "Zedekiah"
+      ]
     },
     {
       "id": "elijah-elisha",
       "title": "Elijah & Elisha: Fire Prophets",
       "icon": "🔥",
-      "characters": ["Elijah", "Elisha", "Gehazi", "Ahab", "Jezebel", "Omri", "Ahaziah of Israel", "Jehoram (Joram) of Israel", "Naboth", "Ben-hadad", "Hazael", "Naaman", "The Shunammite Woman", "Jehu", "Jehoahaz", "Joash (Jehoash) of Israel", "Jonah (son of Amittai)"]
+      "characters": [
+        "Elijah",
+        "Elisha",
+        "Gehazi",
+        "Ahab",
+        "Jezebel",
+        "Omri",
+        "Ahaziah of Israel",
+        "Jehoram (Joram) of Israel",
+        "Naboth",
+        "Ben-hadad",
+        "Hazael",
+        "Naaman",
+        "The Shunammite Woman",
+        "Jehu",
+        "Jehoahaz",
+        "Joash (Jehoash) of Israel",
+        "Jonah (son of Amittai)"
+      ]
     },
     {
       "id": "prophets",
       "title": "Prophets: God's Messengers",
       "icon": "📣",
-      "characters": ["Enoch", "Noah", "Abraham", "Moses", "Aaron", "Miriam", "Deborah", "Samuel", "Nathan", "Gad", "Ahijah the Shilonite", "Shemaiah", "Iddo", "Jehu (son of Hanani)", "Hanani", "Azariah (son of Oded)", "Oded", "Micaiah (son of Imlah)", "Huldah", "Isaiah", "Micah of Moresheth", "Jeremiah", "Uriah (son of Shemaiah)", "Baruch", "Zephaniah", "Nahum", "Habakkuk", "Joel", "Amos", "Hosea", "Obadiah", "Jonah", "Zechariah", "Haggai", "Malachi"]
+      "characters": [
+        "Enoch",
+        "Noah",
+        "Abraham",
+        "Moses",
+        "Aaron",
+        "Miriam",
+        "Deborah",
+        "Samuel",
+        "Nathan",
+        "Gad",
+        "Ahijah the Shilonite",
+        "Shemaiah",
+        "Iddo",
+        "Jehu (son of Hanani)",
+        "Hanani",
+        "Azariah (son of Oded)",
+        "Oded",
+        "Micaiah (son of Imlah)",
+        "Huldah",
+        "Isaiah",
+        "Micah of Moresheth",
+        "Jeremiah",
+        "Uriah (son of Shemaiah)",
+        "Baruch",
+        "Zephaniah",
+        "Nahum",
+        "Habakkuk",
+        "Joel",
+        "Amos",
+        "Hosea",
+        "Obadiah",
+        "Jonah",
+        "Zechariah",
+        "Haggai",
+        "Malachi"
+      ]
     },
     {
       "id": "babylon-exile",
       "title": "Babylon Exile & Homecoming",
       "icon": "🏺",
-      "characters": ["Daniel", "Hananiah (Shadrach)", "Mishael (Meshach)", "Azariah (Abednego)", "Arioch", "Darius the Mede", "Cyrus", "Belshazzar", "Zerubbabel", "Jeshua (Jozadak)", "Ezra", "Nehemiah", "Sheshbazzar", "Sanballat", "Tobiah", "Geshem the Arab", "Haggai", "Zechariah"]
+      "characters": [
+        "Daniel",
+        "Hananiah (Shadrach)",
+        "Mishael (Meshach)",
+        "Azariah (Abednego)",
+        "Arioch",
+        "Darius the Mede",
+        "Cyrus",
+        "Belshazzar",
+        "Zerubbabel",
+        "Jeshua (Jozadak)",
+        "Ezra",
+        "Nehemiah",
+        "Sheshbazzar",
+        "Sanballat",
+        "Tobiah",
+        "Geshem the Arab",
+        "Haggai",
+        "Zechariah"
+      ]
     },
     {
       "id": "esther",
       "title": "Esther: Queen of Courage",
       "icon": "👸",
-      "characters": ["Esther (Hadassah)", "Mordecai", "King Ahasuerus (Xerxes)", "Haman", "Vashti", "Zeresh"]
+      "characters": [
+        "Esther (Hadassah)",
+        "Mordecai",
+        "King Ahasuerus (Xerxes)",
+        "Haman",
+        "Vashti",
+        "Zeresh"
+      ]
     },
     {
       "id": "ancient-empires",
       "title": "Ancient Empires & Rulers",
       "icon": "🏛️",
-      "characters": ["Shalmaneser V", "Sargon II", "Sennacherib", "Esarhaddon", "Nebuchadnezzar II", "Evil-merodach", "Belshazzar", "Darius the Mede", "Cyrus the Great", "Cambyses", "Darius I", "Xerxes (Ahasuerus)", "Artaxerxes"]
+      "characters": [
+        "Shalmaneser V",
+        "Sargon II",
+        "Sennacherib",
+        "Esarhaddon",
+        "Nebuchadnezzar II",
+        "Evil-merodach",
+        "Belshazzar",
+        "Darius the Mede",
+        "Cyrus the Great",
+        "Cambyses",
+        "Darius I",
+        "Xerxes (Ahasuerus)",
+        "Artaxerxes"
+      ]
     },
     {
       "id": "psalms-poetry",
       "title": "Psalms, Proverbs & Poetry",
       "icon": "📖",
-      "characters": ["Job", "Eliphaz", "Bildad", "Zophar", "Elihu", "David", "Asaph", "Sons of Korah", "Heman", "Ethan", "Solomon", "Agur", "Lemuel"]
+      "characters": [
+        "Job",
+        "Eliphaz",
+        "Bildad",
+        "Zophar",
+        "Elihu",
+        "David",
+        "Asaph",
+        "Sons of Korah",
+        "Heman",
+        "Ethan",
+        "Solomon",
+        "Agur",
+        "Lemuel"
+      ]
     },
     {
       "id": "john-baptist",
       "title": "John the Baptist: Voice in Wilderness",
       "icon": "🌾",
-      "characters": ["John the Baptist", "Zechariah", "Elizabeth", "Herod Antipas", "Herodias", "Herodias' Daughter"]
+      "characters": [
+        "John the Baptist",
+        "Zechariah",
+        "Elizabeth",
+        "Herod Antipas",
+        "Herodias",
+        "Herodias' Daughter"
+      ]
     },
     {
       "id": "jesus",
       "title": "Jesus: The Messiah",
       "icon": "✝️",
-      "characters": ["Jesus", "Mary (mother of Jesus)", "Joseph", "Zechariah", "Elizabeth", "Simeon", "Anna", "Magi", "Judas Iscariot", "Mary Magdalene", "Joanna", "Susanna", "Salome", "Martha", "Mary of Bethany", "Lazarus", "Zacchaeus", "Jairus", "Bartimaeus", "Joseph of Arimathea", "Nicodemus", "Caiaphas", "Annas", "Pontius Pilate", "Barabbas", "Herod Antipas", "Centurion at Capernaum", "Centurion at the Cross", "Cleopas"]
+      "characters": [
+        "Jesus",
+        "Mary (mother of Jesus)",
+        "Joseph",
+        "Zechariah",
+        "Elizabeth",
+        "Simeon",
+        "Anna",
+        "Magi",
+        "Judas Iscariot",
+        "Mary Magdalene",
+        "Joanna",
+        "Susanna",
+        "Salome",
+        "Martha",
+        "Mary of Bethany",
+        "Lazarus",
+        "Zacchaeus",
+        "Jairus",
+        "Bartimaeus",
+        "Joseph of Arimathea",
+        "Nicodemus",
+        "Caiaphas",
+        "Annas",
+        "Pontius Pilate",
+        "Barabbas",
+        "Herod Antipas",
+        "Centurion at Capernaum",
+        "Centurion at the Cross",
+        "Cleopas"
+      ]
     },
     {
       "id": "twelve-disciples",
       "title": "The Twelve Disciples",
       "icon": "👥",
-      "characters": ["Peter", "Andrew", "James (son of Zebedee)", "John (son of Zebedee)", "Philip", "Bartholomew", "Thomas", "Matthew (Levi)", "James (son of Alphaeus)", "Thaddaeus (Jude)", "Simon the Zealot", "Judas Iscariot", "Matthias"]
+      "characters": [
+        "Peter",
+        "Andrew",
+        "James (son of Zebedee)",
+        "John (son of Zebedee)",
+        "Philip",
+        "Bartholomew",
+        "Thomas",
+        "Matthew (Levi)",
+        "James (son of Alphaeus)",
+        "Thaddaeus (Jude)",
+        "Simon the Zealot",
+        "Judas Iscariot",
+        "Matthias"
+      ]
     },
     {
       "id": "herod-dynasty",
       "title": "Herod Dynasty & Roman Rule",
       "icon": "🏛️",
-      "characters": ["Herod the Great", "Archelaus", "Herod Antipas", "Herod Philip the Tetrarch", "Herod Agrippa I", "Herod Agrippa II", "Bernice", "Drusilla", "Salome"]
+      "characters": [
+        "Herod the Great",
+        "Archelaus",
+        "Herod Antipas",
+        "Herod Philip the Tetrarch",
+        "Herod Agrippa I",
+        "Herod Agrippa II",
+        "Bernice",
+        "Drusilla",
+        "Salome"
+      ]
     },
     {
       "id": "religious-leaders",
       "title": "Religious Leaders & Groups",
       "icon": "📜",
-      "characters": ["Pharisees", "Sadducees", "Scribes", "Chief Priests", "Herodians", "Zealots", "Samaritan Villagers"]
+      "characters": [
+        "Pharisees",
+        "Sadducees",
+        "Scribes",
+        "Chief Priests",
+        "Herodians",
+        "Zealots",
+        "Samaritan Villagers"
+      ]
     },
     {
       "id": "early-church",
       "title": "Early Church Leaders",
       "icon": "⛪",
-      "characters": ["Stephen", "Philip the Evangelist", "Prochorus", "Nicanor", "Timon", "Parmenas", "Nicholas of Antioch", "James (the Lord's Brother)", "Barnabas", "John Mark", "Silas", "Timothy", "Titus", "Apollos"]
+      "characters": [
+        "Stephen",
+        "Philip the Evangelist",
+        "Prochorus",
+        "Nicanor",
+        "Timon",
+        "Parmenas",
+        "Nicholas of Antioch",
+        "James (the Lord's Brother)",
+        "Barnabas",
+        "John Mark",
+        "Silas",
+        "Timothy",
+        "Titus",
+        "Apollos"
+      ]
     },
     {
       "id": "acts-expansion",
       "title": "Acts: Church Expansion",
       "icon": "🌍",
-      "characters": ["Cornelius", "Tabitha (Dorcas)", "Simon the Tanner", "Ananias of Damascus", "Gamaliel", "Rhoda", "Agabus", "Sergius Paulus", "Elymas (Bar-Jesus)", "Lydia", "The Philippian Jailer", "Damsel with Spirit of Divination", "Eutychus", "Crispus", "Gallio", "Demetrius the Silversmith"]
+      "characters": [
+        "Cornelius",
+        "Tabitha (Dorcas)",
+        "Simon the Tanner",
+        "Ananias of Damascus",
+        "Gamaliel",
+        "Rhoda",
+        "Agabus",
+        "Sergius Paulus",
+        "Elymas (Bar-Jesus)",
+        "Lydia",
+        "The Philippian Jailer",
+        "Damsel with Spirit of Divination",
+        "Eutychus",
+        "Crispus",
+        "Gallio",
+        "Demetrius the Silversmith"
+      ]
     },
     {
       "id": "paul-ministry",
       "title": "Paul's Ministry Team",
       "icon": "✉️",
-      "characters": ["Gaius", "Sopater", "Secundus", "Timothy", "Titus", "Silvanus", "Chloe", "Stephanas", "Sosthenes", "Crispus", "Nympha", "Diotrephes", "Demetrius of Third John", "Alexander the Coppersmith", "Onesiphorus", "Demas", "Mark (John Mark)", "Crescens", "Carpus", "Erastus", "Trophimus", "Rufus and his Mother", "Tryphena", "Tryphosa", "Persis", "Aristarchus", "Epaphras", "Epaphroditus", "Onesimus", "Luke", "Priscilla", "Aquila", "Phoebe", "Junia", "Andronicus"]
+      "characters": [
+        "Gaius",
+        "Sopater",
+        "Secundus",
+        "Timothy",
+        "Titus",
+        "Silvanus",
+        "Chloe",
+        "Stephanas",
+        "Sosthenes",
+        "Crispus",
+        "Nympha",
+        "Diotrephes",
+        "Demetrius of Third John",
+        "Alexander the Coppersmith",
+        "Onesiphorus",
+        "Demas",
+        "Mark (John Mark)",
+        "Crescens",
+        "Carpus",
+        "Erastus",
+        "Trophimus",
+        "Rufus and his Mother",
+        "Tryphena",
+        "Tryphosa",
+        "Persis",
+        "Aristarchus",
+        "Epaphras",
+        "Epaphroditus",
+        "Onesimus",
+        "Luke",
+        "Priscilla",
+        "Aquila",
+        "Phoebe",
+        "Junia",
+        "Andronicus"
+      ]
     },
     {
       "id": "letters-churches",
       "title": "Letters to the Churches",
       "icon": "📬",
-      "characters": ["James", "Jude", "Peter", "John", "Gaius", "The Elect Lady", "Elders and Overseers", "Deacons", "Widows"]
+      "characters": [
+        "James",
+        "Jude",
+        "Peter",
+        "John",
+        "Gaius",
+        "The Elect Lady",
+        "Elders and Overseers",
+        "Deacons",
+        "Widows"
+      ]
     },
     {
       "id": "revelation",
       "title": "Revelation: End Times Vision",
       "icon": "📜",
-      "characters": ["John of Patmos", "The Seven Churches", "The Two Witnesses", "Twenty-Four Elders", "Four Living Creatures", "The Archangel Michael"]
+      "characters": [
+        "John of Patmos",
+        "The Seven Churches",
+        "The Two Witnesses",
+        "Twenty-Four Elders",
+        "Four Living Creatures",
+        "The Archangel Michael"
+      ]
     },
     {
       "id": "angels",
       "title": "Angels & Spiritual Beings",
       "icon": "👼",
-      "characters": ["Michael", "Gabriel", "Cherubim", "Seraphim", "Angels of the Churches", "Satan (The Adversary)", "The Devil", "The Accuser", "Evil Spirits", "Legion"]
+      "characters": [
+        "Michael",
+        "Gabriel",
+        "Cherubim",
+        "Seraphim",
+        "Angels of the Churches",
+        "Satan (The Adversary)",
+        "The Devil",
+        "The Accuser",
+        "Evil Spirits",
+        "Legion"
+      ]
     },
     {
       "id": "women-faith",
       "title": "Women of Faith & Courage",
       "icon": "💪",
-      "characters": ["Sarah", "Rebekah", "Leah", "Rachel", "Bilhah", "Zilpah", "Miriam", "Deborah", "Jael", "Ruth", "Naomi", "Hannah", "Abigail", "Michal", "Bathsheba", "Tamar (daughter-in-law of Judah)", "Tamar (daughter of David)", "Athaliah", "Jezebel", "Esther", "Vashti", "Widow of Zarephath", "Shunammite Woman", "Rahab", "Delilah", "Queen of Sheba", "Mary (mother of Jesus)", "Elizabeth", "Mary Magdalene", "Salome", "Joanna", "Susanna", "Martha", "Mary of Bethany", "Priscilla", "Tabitha (Dorcas)", "Rhoda", "Lydia", "Damaris", "Phoebe", "Eunice", "Lois"]
+      "characters": [
+        "Sarah",
+        "Rebekah",
+        "Leah",
+        "Rachel",
+        "Bilhah",
+        "Zilpah",
+        "Miriam",
+        "Deborah",
+        "Jael",
+        "Ruth",
+        "Naomi",
+        "Hannah",
+        "Abigail",
+        "Michal",
+        "Bathsheba",
+        "Tamar (daughter-in-law of Judah)",
+        "Tamar (daughter of David)",
+        "Athaliah",
+        "Jezebel",
+        "Esther",
+        "Vashti",
+        "Widow of Zarephath",
+        "Shunammite Woman",
+        "Rahab",
+        "Delilah",
+        "Queen of Sheba",
+        "Mary (mother of Jesus)",
+        "Elizabeth",
+        "Mary Magdalene",
+        "Salome",
+        "Joanna",
+        "Susanna",
+        "Martha",
+        "Mary of Bethany",
+        "Priscilla",
+        "Tabitha (Dorcas)",
+        "Rhoda",
+        "Lydia",
+        "Damaris",
+        "Phoebe",
+        "Eunice",
+        "Lois"
+      ]
     },
     {
       "id": "enemy-nations",
       "title": "Enemy Nations & Conflicts",
       "icon": "⚔️",
-      "characters": ["Amalek and Agag", "Philistines and Goliath", "Moab and Balak", "Ammon", "Edom", "Aram (Syria) and Ben-hadad", "Assyria and Sennacherib", "Babylon and Nebuchadnezzar", "Persia and Haman", "Samaria Opponents"]
+      "characters": [
+        "Amalek and Agag",
+        "Philistines and Goliath",
+        "Moab and Balak",
+        "Ammon",
+        "Edom",
+        "Aram (Syria) and Ben-hadad",
+        "Assyria and Sennacherib",
+        "Babylon and Nebuchadnezzar",
+        "Persia and Haman",
+        "Samaria Opponents"
+      ]
     },
     {
       "id": "notable-figures",
       "title": "Other Notable Figures",
       "icon": "⭐",
-      "characters": ["Jabez", "Boaz", "Elkanah", "Obed", "Oholah and Oholibah"]
+      "characters": [
+        "Jabez",
+        "Boaz",
+        "Elkanah",
+        "Obed",
+        "Oholah and Oholibah"
+      ]
     }
   ],
   "version": "1.0.0",
   "lastUpdated": "2025-01-23"
 }
-
