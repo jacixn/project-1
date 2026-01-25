@@ -290,6 +290,20 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Downloaded ${cloudData.scheduledWorkouts.length} scheduled workouts from cloud`);
     }
     
+    // Simple prayers (the prayers shown on Bible tab)
+    if (cloudData.simplePrayers && Array.isArray(cloudData.simplePrayers)) {
+      console.log('[Sync] Found prayers in cloud:', JSON.stringify(cloudData.simplePrayers.map(p => ({ id: p.id, name: p.name }))));
+      await AsyncStorage.setItem('fivefold_simplePrayers', JSON.stringify(cloudData.simplePrayers));
+      console.log(`[Sync] Downloaded and saved ${cloudData.simplePrayers.length} prayers to fivefold_simplePrayers`);
+      
+      // Verify the save worked
+      const verifyStr = await AsyncStorage.getItem('fivefold_simplePrayers');
+      const verified = verifyStr ? JSON.parse(verifyStr) : [];
+      console.log(`[Sync] Verified: ${verified.length} prayers now in local storage`);
+    } else {
+      console.log('[Sync] No prayers found in cloud (cloudData.simplePrayers is:', typeof cloudData.simplePrayers, ')');
+    }
+    
     // Verse data (contains highlights) - used by VerseDataManager
     if (cloudData.verseData) {
       const highlightCount = Object.keys(cloudData.verseData).length;
@@ -620,6 +634,44 @@ export const syncJournalNotesToCloud = async (userId) => {
     return true;
   } catch (error) {
     console.error('[Sync] Error syncing journal notes:', error);
+    return false;
+  }
+};
+
+/**
+ * Sync user prayers to cloud (the prayers shown on Bible tab)
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const syncPrayersToCloud = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    // Try the main key first (fivefold_ prefix is added by saveData)
+    let prayersStr = await AsyncStorage.getItem('fivefold_simplePrayers');
+    console.log('[Sync] Checking fivefold_simplePrayers:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
+    
+    if (!prayersStr) {
+      // Fallback to non-prefixed key
+      prayersStr = await AsyncStorage.getItem('simplePrayers');
+      console.log('[Sync] Checking simplePrayers fallback:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
+    }
+    
+    if (prayersStr) {
+      const prayers = JSON.parse(prayersStr);
+      console.log('[Sync] Uploading prayers to cloud:', prayers.map(p => ({ id: p.id, name: p.name })));
+      
+      await setDoc(doc(db, 'users', userId), {
+        simplePrayers: prayers,
+        lastActive: serverTimestamp(),
+      }, { merge: true });
+      console.log(`[Sync] Successfully uploaded ${prayers.length} prayers to Firestore for user ${userId}`);
+    } else {
+      console.log('[Sync] No prayers found in local storage to upload');
+    }
+    return true;
+  } catch (error) {
+    console.error('[Sync] Error syncing prayers:', error);
     return false;
   }
 };

@@ -460,6 +460,8 @@ const SimpleOnboarding = ({ onComplete }) => {
           todosStr,
           workoutsStr,
           savedVersesStr,
+          prayersStr,
+          prayersStr2,
         ] = await Promise.all([
           AsyncStorage.getItem('total_points'),
           AsyncStorage.getItem('fivefold_userStats'),
@@ -467,6 +469,8 @@ const SimpleOnboarding = ({ onComplete }) => {
           AsyncStorage.getItem('fivefold_todos'),
           AsyncStorage.getItem('@scheduled_workouts'),
           AsyncStorage.getItem('fivefold_savedBibleVerses'),
+          AsyncStorage.getItem('fivefold_simplePrayers'),
+          AsyncStorage.getItem('simplePrayers'),
         ]);
         
         let totalPoints = 0;
@@ -475,6 +479,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         let savedVersesCount = 0;
         let prayersCompleted = 0;
         let quizzesCompleted = 0;
+        let prayersCount = 0;
         
         // Parse points
         if (totalPointsStr) {
@@ -511,8 +516,17 @@ const SimpleOnboarding = ({ onComplete }) => {
           savedVersesCount = Array.isArray(verses) ? verses.length : 0;
         }
         
+        // Parse prayers (simplePrayers - the user's custom prayers on Bible tab)
+        if (prayersStr) {
+          const prayers = JSON.parse(prayersStr);
+          prayersCount = Array.isArray(prayers) ? prayers.length : 0;
+        } else if (prayersStr2) {
+          const prayers = JSON.parse(prayersStr2);
+          prayersCount = Array.isArray(prayers) ? prayers.length : 0;
+        }
+        
         // Determine if there's significant data worth migrating
-        const hasData = totalPoints > 0 || todosCount > 0 || workoutsCount > 0 || savedVersesCount > 0;
+        const hasData = totalPoints > 0 || todosCount > 0 || workoutsCount > 0 || savedVersesCount > 0 || prayersCount > 0;
         
         if (hasData) {
           setHasExistingData(true);
@@ -523,8 +537,9 @@ const SimpleOnboarding = ({ onComplete }) => {
             savedVersesCount,
             prayersCompleted,
             quizzesCompleted,
+            prayersCount,
           });
-          console.log('[Migration] Found existing data:', { totalPoints, todosCount, workoutsCount, savedVersesCount });
+          console.log('[Migration] Found existing data:', { totalPoints, todosCount, workoutsCount, savedVersesCount, prayersCount });
         } else {
           console.log('[Migration] No existing data found');
         }
@@ -628,6 +643,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         syncUserStatsToCloud, 
         syncSavedVersesToCloud, 
         syncJournalNotesToCloud,
+        syncPrayersToCloud,
         syncThemePreferencesToCloud,
         syncAllHistoryToCloud,
       } = await import('../services/userSyncService');
@@ -638,6 +654,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       await syncUserStatsToCloud(user.uid);
       await syncSavedVersesToCloud(user.uid);
       await syncJournalNotesToCloud(user.uid);
+      await syncPrayersToCloud(user.uid);
       await syncThemePreferencesToCloud(user.uid);
       await syncAllHistoryToCloud(user.uid);
       
@@ -648,6 +665,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         'Data Imported!',
         `Your existing data has been imported to your new account:\n\n` +
         `${existingDataSummary?.totalPoints || 0} points\n` +
+        `${existingDataSummary?.prayersCount || 0} prayers\n` +
         `${existingDataSummary?.todosCount || 0} tasks\n` +
         `${existingDataSummary?.workoutsCount || 0} workouts\n` +
         `${existingDataSummary?.savedVersesCount || 0} saved verses`,
@@ -692,6 +710,8 @@ const SimpleOnboarding = ({ onComplete }) => {
                 'prayerHistory',
                 'workoutHistory',
                 'quizHistory',
+                'simplePrayers',
+                'fivefold_simplePrayers',
               ]);
               console.log('[Migration] Cleared local data for fresh start');
             } catch (error) {
@@ -2682,10 +2702,21 @@ const SimpleOnboarding = ({ onComplete }) => {
             </View>
           )}
           
-          {existingDataSummary?.prayersCompleted > 0 && (
+          {existingDataSummary?.prayersCount > 0 && (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#2196F3' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
                 <FontAwesome5 name="pray" size={16} color="#2196F3" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.prayersCount}</Text> prayers
+              </Text>
+            </View>
+          )}
+          
+          {existingDataSummary?.prayersCompleted > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#00BCD4' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Ionicons name="checkmark-done" size={18} color="#00BCD4" />
               </View>
               <Text style={{ fontSize: 16, color: '#333' }}>
                 <Text style={{ fontWeight: '700' }}>{existingDataSummary.prayersCompleted}</Text> prayers completed

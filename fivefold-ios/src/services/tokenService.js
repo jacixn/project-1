@@ -99,18 +99,28 @@ export const getTokenStatus = async (userId, username = null) => {
     let token = tokenData ? JSON.parse(tokenData) : null;
     let schedule = scheduleData ? JSON.parse(scheduleData) : null;
     
+    // Check if schedule belongs to a different user (from before sign-out)
+    // If so, don't use it - wait for cloud data to sync
+    if (schedule && schedule.userId && schedule.userId !== userId) {
+      console.log('[Token] Schedule belongs to different user, ignoring local data');
+      schedule = null;
+      token = null;
+    }
+    
     // Check if we need to generate a new schedule for today
     if (!schedule || schedule.date !== today) {
       // Generate new random time for today
       const arrivalMinutes = generateRandomTokenTime();
       schedule = {
         date: today,
+        userId: userId, // Store userId so we know whose schedule this is
         arrivalMinutes,
         arrivalTime: minutesToTimeString(arrivalMinutes),
         notificationScheduled: false,
         tokenDelivered: false,
       };
       await AsyncStorage.setItem(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
+      console.log('[Token] Created new schedule for user:', userId, 'arrival:', schedule.arrivalTime);
       
       // Schedule notification for token arrival
       await scheduleTokenNotification(arrivalMinutes, userId);

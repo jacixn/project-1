@@ -195,6 +195,25 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     };
   }, [selectedPrayer]); // Re-subscribe if selectedPrayer changes
 
+  // Listen for user data downloaded (after sign-in) to reload prayers from cloud
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
+      console.log('📡 SimplePrayerCard: User data downloaded - reloading prayers from storage');
+      
+      // Clear cached verses since they might be different
+      setFetchedVerses({});
+      
+      // Reload prayers from storage (which now has cloud data)
+      await loadPrayers();
+      
+      console.log('✅ SimplePrayerCard: Prayers reloaded after sign-in');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // Midnight reset so completed prayers reopen without a 24h cooldown when the date rolls over
   useEffect(() => {
     const interval = setInterval(() => {

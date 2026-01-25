@@ -160,7 +160,12 @@ export const AuthProvider = ({ children }) => {
       setUserProfile(result);
       await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(result));
       
-      // Download cloud data to local storage
+      // CRITICAL: Skip onboarding for existing users IMMEDIATELY
+      // This must happen before any async cloud operations to prevent race conditions
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      console.log('[Auth] Skipping onboarding for returning user (set immediately)');
+      
+      // Download cloud data to local storage (this can take time)
       const { downloadAndMergeCloudData } = await import('../services/userSyncService');
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
@@ -171,10 +176,6 @@ export const AuthProvider = ({ children }) => {
         DeviceEventEmitter.emit('userDataDownloaded');
         console.log('[Auth] Emitted userDataDownloaded event');
       }
-      
-      // Skip onboarding for existing users (they've already set up their account)
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
-      console.log('[Auth] Skipping onboarding for returning user');
       
       return result;
     } catch (error) {
@@ -200,13 +201,15 @@ export const AuthProvider = ({ children }) => {
             syncJournalNotesToCloud, 
             syncThemePreferencesToCloud, 
             syncAllHistoryToCloud,
-            syncUserStatsToCloud 
+            syncUserStatsToCloud,
+            syncPrayersToCloud 
           } = await import('../services/userSyncService');
           
           // Upload all data to cloud (DO NOT download - that would overwrite local data)
           await syncUserStatsToCloud(user.uid);
           await syncSavedVersesToCloud(user.uid);
           await syncJournalNotesToCloud(user.uid);
+          await syncPrayersToCloud(user.uid);
           await syncThemePreferencesToCloud(user.uid);
           await syncAllHistoryToCloud(user.uid);
           
@@ -215,6 +218,21 @@ export const AuthProvider = ({ children }) => {
           console.error('[Auth] Failed to upload before sign out:', syncError);
           // Continue with sign out even if sync fails
         }
+      }
+      
+      // Cancel any scheduled token notifications before signing out
+      // This prevents old notifications from firing for the next user
+      try {
+        const Notifications = require('expo-notifications');
+        const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+        for (const notification of scheduledNotifications) {
+          if (notification.content.data?.type === 'token_arrived') {
+            await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+            console.log('[Auth] Cancelled token notification:', notification.identifier);
+          }
+        }
+      } catch (notifError) {
+        console.log('[Auth] Error cancelling notifications:', notifError);
       }
       
       // Now sign out
@@ -228,8 +246,11 @@ export const AuthProvider = ({ children }) => {
       // Clear user-specific data to prevent data sharing between accounts
       // These are the keys that should be unique per user
       const userSpecificKeys = [
+        // CRITICAL: Onboarding flag - must clear so new user sees onboarding
+        'onboardingCompleted',
         // Saved content
         'savedBibleVerses',
+        'fivefold_savedBibleVerses',
         'journalNotes',
         'bookmarks',
         // Verse data (highlights stored here by VerseDataManager)
@@ -241,6 +262,7 @@ export const AuthProvider = ({ children }) => {
         'fivefold_dark_mode',
         'fivefold_wallpaper_index',
         'selectedBibleVersion',
+        'selectedLanguage',
         'weightUnit',
         // User stats
         'userStats',
@@ -254,13 +276,23 @@ export const AuthProvider = ({ children }) => {
         'quizHistory',
         'prayer_completions',
         'prayer_preferences',
-        // User prayers (custom prayer settings)
+        // User prayers (custom prayer data - the prayers shown on Bible tab)
         'userPrayers',
+        'fivefold_userPrayers',
         'customPrayerNames',
         'customPrayerTimes',
-        // Hub posting tokens
-        'hub_posting_token',
-        'hub_token_schedule',
+        'prayers',
+        'fivefold_prayers',
+        'simplePrayers',
+        'fivefold_simplePrayers',
+        // Hub posting tokens - DO NOT CLEAR on sign-out
+        // These are synced to cloud and will be overwritten when new user signs in
+        // Clearing them causes race condition where new schedule is created before cloud data downloads
+        // 'hub_posting_token',
+        // 'hub_token_schedule',
+        // 'hub_token_last_delivery',
+        // Scheduled workouts
+        '@scheduled_workouts',
         // Reading progress
         'readingProgress',
         'currentReadingPlan',

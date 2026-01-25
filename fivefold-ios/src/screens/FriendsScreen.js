@@ -28,6 +28,7 @@ import {
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -48,6 +49,7 @@ const { width, height } = Dimensions.get('window');
 const FriendsScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
+  const insets = useSafeAreaInsets();
   
   // State
   const [activeTab, setActiveTab] = useState('friends');
@@ -704,7 +706,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
   
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Header Gradient */}

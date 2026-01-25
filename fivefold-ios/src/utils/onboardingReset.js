@@ -82,14 +82,28 @@ export const deleteAccountCompletely = async (password = null) => {
     // Delete Firebase data if user is signed in
     if (currentUser) {
       console.log('[Delete] Deleting Firebase data for user:', currentUser.uid);
+      console.log('[Delete] User email:', currentUser.email);
+      console.log('[Delete] Password provided:', !!password);
       
       try {
-        // Re-authenticate if password is provided (required for account deletion)
-        if (password && currentUser.email) {
-          const credential = EmailAuthProvider.credential(currentUser.email, password);
-          await reauthenticateWithCredential(currentUser, credential);
-          console.log('[Delete] Re-authenticated successfully');
+        // Re-authenticate BEFORE any deletions (required by Firebase for account deletion)
+        if (!password) {
+          console.log('[Delete] No password provided');
+          throw new Error('PASSWORD_REQUIRED');
         }
+        
+        if (!currentUser.email) {
+          console.log('[Delete] No email on account - may be OAuth user');
+          throw new Error('NO_EMAIL');
+        }
+        
+        // Create credential and re-authenticate
+        console.log('[Delete] Creating credential for:', currentUser.email);
+        const credential = EmailAuthProvider.credential(currentUser.email, password);
+        
+        console.log('[Delete] Attempting re-authentication...');
+        await reauthenticateWithCredential(currentUser, credential);
+        console.log('[Delete] Re-authenticated successfully');
         
         // Get user's username to delete from usernames collection
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -108,8 +122,12 @@ export const deleteAccountCompletely = async (password = null) => {
         console.log('[Delete] Deleted user document');
         
         // Delete friends document
-        await deleteDoc(doc(db, 'friends', currentUser.uid));
-        console.log('[Delete] Deleted friends document');
+        try {
+          await deleteDoc(doc(db, 'friends', currentUser.uid));
+          console.log('[Delete] Deleted friends document');
+        } catch (e) {
+          console.log('[Delete] No friends document to delete');
+        }
         
         // Delete the Firebase Auth account
         await deleteUser(currentUser);
@@ -117,14 +135,27 @@ export const deleteAccountCompletely = async (password = null) => {
         
       } catch (firebaseError) {
         console.error('[Delete] Firebase deletion error:', firebaseError);
-        // If requires recent login or wrong password, throw error
+        console.error('[Delete] Error code:', firebaseError.code);
+        console.error('[Delete] Error message:', firebaseError.message);
+        
+        // Handle specific error cases
+        if (firebaseError.message === 'PASSWORD_REQUIRED') {
+          throw new Error('PASSWORD_REQUIRED');
+        }
+        if (firebaseError.message === 'NO_EMAIL') {
+          throw new Error('NO_EMAIL');
+        }
         if (firebaseError.code === 'auth/requires-recent-login') {
-          throw new Error('REQUIRES_PASSWORD');
+          throw new Error('WRONG_PASSWORD');
         }
         if (firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
-          throw new Error('REQUIRES_PASSWORD');
+          throw new Error('WRONG_PASSWORD');
         }
-        // Continue with local deletion for other errors
+        if (firebaseError.code === 'auth/too-many-requests') {
+          throw new Error('TOO_MANY_ATTEMPTS');
+        }
+        // Re-throw other errors
+        throw firebaseError;
       }
     }
     
@@ -153,8 +184,9 @@ export const deleteAccountCompletely = async (password = null) => {
     return true;
   } catch (error) {
     console.error('[Delete] Complete account deletion failed:', error);
-    if (error.message === 'REQUIRES_PASSWORD') {
-      throw error; // Re-throw to handle in UI
+    // Re-throw known errors for UI handling
+    if (['PASSWORD_REQUIRED', 'NO_EMAIL', 'WRONG_PASSWORD', 'TOO_MANY_ATTEMPTS'].includes(error.message)) {
+      throw error;
     }
     return false;
   }

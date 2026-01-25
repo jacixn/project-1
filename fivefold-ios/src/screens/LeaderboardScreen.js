@@ -25,6 +25,7 @@ import {
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFriendsWithStats } from '../services/friendsService';
@@ -44,6 +45,7 @@ const { width, height } = Dimensions.get('window');
 const LeaderboardScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
+  const insets = useSafeAreaInsets();
   
   // State
   const [activeTab, setActiveTab] = useState('friends');
@@ -725,7 +727,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const currentData = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       {/* Header Gradient */}
       <LinearGradient
         colors={[theme.primary + '40', theme.primary + '10', 'transparent']}

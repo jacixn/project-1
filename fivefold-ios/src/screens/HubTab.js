@@ -76,10 +76,14 @@ const HubTab = () => {
       setLoading(false);
     });
     
-    // Check token status
-    checkTokenStatus();
+    // Delay initial token check to allow cloud data to download first
+    // This prevents creating a new schedule before cloud data arrives
+    const tokenCheckDelay = setTimeout(() => {
+      console.log('[HubTab] Initial token check (delayed)');
+      checkTokenStatus();
+    }, 1500); // 1.5 second delay to let cloud sync complete
     
-    // Check token every minute
+    // Check token every minute after initial load
     const tokenInterval = setInterval(checkTokenStatus, 60000);
     
     // Clean up old posts (older than 7 days) to save storage costs
@@ -91,9 +95,23 @@ const HubTab = () => {
     
     return () => {
       unsubscribe();
+      clearTimeout(tokenCheckDelay);
       clearInterval(tokenInterval);
     };
   }, [user]);
+  
+  // Listen for user data downloaded (after sign-in) to reload token status
+  useEffect(() => {
+    const { DeviceEventEmitter } = require('react-native');
+    const subscription = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
+      console.log('[HubTab] User data downloaded - reloading token status');
+      await checkTokenStatus();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user, userProfile]);
   
   // Token pulse animation when available
   useEffect(() => {
@@ -614,7 +632,7 @@ const HubTab = () => {
       <Modal
         visible={showFriends}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setShowFriends(false)}
       >
         <FriendsScreen navigation={navigation} onClose={() => setShowFriends(false)} />
@@ -624,7 +642,7 @@ const HubTab = () => {
       <Modal
         visible={showLeaderboard}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setShowLeaderboard(false)}
       >
         <LeaderboardScreen navigation={navigation} onClose={() => setShowLeaderboard(false)} />

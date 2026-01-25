@@ -176,9 +176,40 @@ export const ThemeProvider = ({ children }) => {
 
   const changeTheme = async (themeName) => {
     try {
+      // Handle Biblely variants (Jesus & Lambs, Classic) - they're variants of 'biblely' theme
+      if (themeName === 'jesusnlambs') {
+        // Jesus & Lambs is Biblely theme with wallpaper index 1
+        setCurrentTheme('biblely');
+        await AsyncStorage.setItem('fivefold_theme', 'biblely');
+        setSelectedWallpaperIndex(1);
+        await AsyncStorage.setItem('fivefold_wallpaper_index', '1');
+        // It's a dark theme
+        setIsDarkMode(true);
+        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        return;
+      }
+      
+      if (themeName === 'classic') {
+        // Classic is Biblely theme with wallpaper index 2
+        setCurrentTheme('biblely');
+        await AsyncStorage.setItem('fivefold_theme', 'biblely');
+        setSelectedWallpaperIndex(2);
+        await AsyncStorage.setItem('fivefold_wallpaper_index', '2');
+        // It's a dark theme
+        setIsDarkMode(true);
+        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        return;
+      }
+      
       if (themes[themeName]) {
         setCurrentTheme(themeName);
         await AsyncStorage.setItem('fivefold_theme', themeName);
+        
+        // Reset wallpaper index when switching to non-Biblely themes
+        if (themeName !== 'biblely') {
+          setSelectedWallpaperIndex(0);
+          await AsyncStorage.setItem('fivefold_wallpaper_index', '0');
+        }
         
         // Auto-set light mode for Blush Bloom, Eterna, Sailor Moon, Biblely themes
         if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'sailormoon' || themeName === 'biblely') {

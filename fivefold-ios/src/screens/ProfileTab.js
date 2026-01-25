@@ -4130,10 +4130,16 @@ const ProfileTab = () => {
                             }
                           } catch (error) {
                             console.error('Delete account error:', error);
-                            if (error.message === 'REQUIRES_PASSWORD') {
-                              Alert.alert('Error', 'Incorrect password. Please try again.');
+                            if (error.message === 'WRONG_PASSWORD') {
+                              Alert.alert('Incorrect Password', 'The password you entered is incorrect. Please try again.');
+                            } else if (error.message === 'PASSWORD_REQUIRED') {
+                              Alert.alert('Password Required', 'Please enter your password to delete your account.');
+                            } else if (error.message === 'NO_EMAIL') {
+                              Alert.alert('Cannot Delete', 'This account was created with a social login. Please contact support to delete your account.');
+                            } else if (error.message === 'TOO_MANY_ATTEMPTS') {
+                              Alert.alert('Too Many Attempts', 'You have tried too many times. Please wait a few minutes and try again.');
                             } else {
-                              Alert.alert('Error', 'Failed to delete account.');
+                              Alert.alert('Error', 'Failed to delete account. Please try again later.');
                             }
                           }
                         }
