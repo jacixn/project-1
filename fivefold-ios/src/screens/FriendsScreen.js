@@ -43,6 +43,8 @@ import {
 } from '../services/friendsService';
 import { hapticFeedback } from '../utils/haptics';
 import CreateChallengeModal from '../components/CreateChallengeModal';
+import { getConversations } from '../services/messageService';
+import { getChallenges } from '../services/challengeService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,6 +66,8 @@ const FriendsScreen = ({ navigation, onClose }) => {
   const [actionLoading, setActionLoading] = useState({});
   const [challengeModalVisible, setChallengeModalVisible] = useState(false);
   const [challengeFriend, setChallengeFriend] = useState(null);
+  const [unreadMessages, setUnreadMessages] = useState({}); // { friendUid: count }
+  const [pendingChallenges, setPendingChallenges] = useState({}); // { friendUid: count }
   
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -184,6 +188,44 @@ const FriendsScreen = ({ navigation, onClose }) => {
         setPrayerPartner(partner);
       } catch (err) {
         console.log('Could not load prayer partner:', err);
+      }
+      
+      // Load unread message counts per friend
+      try {
+        const conversations = await getConversations(user.uid);
+        const unreadMap = {};
+        conversations.forEach(conv => {
+          if (conv.unreadCount > 0 && conv.otherUserId) {
+            unreadMap[conv.otherUserId] = conv.unreadCount;
+          }
+        });
+        setUnreadMessages(unreadMap);
+      } catch (err) {
+        console.log('Could not load unread messages:', err);
+      }
+      
+      // Load pending challenges per friend
+      try {
+        const challenges = await getChallenges(user.uid);
+        const challengeMap = {};
+        challenges.forEach(challenge => {
+          // Count challenges where this user is challenged and hasn't responded yet
+          if (challenge.status === 'pending' && challenge.challengedId === user.uid) {
+            const challengerId = challenge.challengerId;
+            challengeMap[challengerId] = (challengeMap[challengerId] || 0) + 1;
+          }
+          // Also count challenges where user needs to play (accepted but not completed their part)
+          if (challenge.status === 'accepted') {
+            const otherUserId = challenge.challengerId === user.uid ? challenge.challengedId : challenge.challengerId;
+            const userScore = challenge.challengerId === user.uid ? challenge.challengerScore : challenge.challengedScore;
+            if (userScore === null || userScore === undefined) {
+              challengeMap[otherUserId] = (challengeMap[otherUserId] || 0) + 1;
+            }
+          }
+        });
+        setPendingChallenges(challengeMap);
+      } catch (err) {
+        console.log('Could not load pending challenges:', err);
       }
     } catch (error) {
       console.error('Error loading friends data:', error);
@@ -306,6 +348,14 @@ const FriendsScreen = ({ navigation, onClose }) => {
     const isLoading = actionLoading[item.uid];
     
     return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onLongPress={() => {
+          hapticFeedback.medium();
+          handleRemoveFriend(item.uid, item.displayName);
+        }}
+        delayLongPress={500}
+      >
       <Animated.View
         style={[
           styles.friendCard,
@@ -381,8 +431,8 @@ const FriendsScreen = ({ navigation, onClose }) => {
         {/* Actions */}
         <View style={styles.friendActions}>
           {/* Message */}
-                <TouchableOpacity
-            style={[styles.friendActionButton, { backgroundColor: theme.primary + '20' }]}
+          <TouchableOpacity
+            style={[styles.friendActionButtonLarge, { backgroundColor: theme.primary + '20' }]}
             onPress={() => {
               if (navigation) {
                 // Close modal first if opened from Hub, then navigate
@@ -398,34 +448,38 @@ const FriendsScreen = ({ navigation, onClose }) => {
               }
             }}
           >
-            <Ionicons name="chatbubble" size={16} color={theme.primary} />
+            <Ionicons name="chatbubble" size={24} color={theme.primary} />
+            {/* Unread message badge */}
+            {unreadMessages[item.uid] > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadMessages[item.uid] > 9 ? '9+' : unreadMessages[item.uid]}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           
           {/* Challenge */}
           <TouchableOpacity
-            style={[styles.friendActionButton, { backgroundColor: '#F59E0B20' }]}
+            style={[styles.friendActionButtonLarge, { backgroundColor: '#F59E0B20' }]}
             onPress={() => {
               setChallengeFriend(item);
               setChallengeModalVisible(true);
             }}
           >
-            <FontAwesome5 name="trophy" size={14} color="#F59E0B" />
+            <FontAwesome5 name="trophy" size={22} color="#F59E0B" />
+            {/* Pending challenge badge */}
+            {pendingChallenges[item.uid] > 0 && (
+              <View style={[styles.notificationBadge, { backgroundColor: '#F59E0B' }]}>
+                <Text style={styles.notificationBadgeText}>
+                  {pendingChallenges[item.uid] > 9 ? '9+' : pendingChallenges[item.uid]}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-          
-          {/* More */}
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={() => handleRemoveFriend(item.uid, item.displayName)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-              <ActivityIndicator size="small" color={theme.textSecondary} />
-                  ) : (
-              <MaterialIcons name="more-vert" size={20} color={theme.textSecondary} />
-                  )}
-                </TouchableOpacity>
         </View>
       </Animated.View>
+      </TouchableOpacity>
     );
   };
   
@@ -740,7 +794,18 @@ const FriendsScreen = ({ navigation, onClose }) => {
           <MaterialIcons name="people" size={24} color={theme.primary} />
         <Text style={[styles.headerTitle, { color: theme.text }]}>Friends</Text>
       </View>
-        <View style={{ width: 44 }} />
+        <TouchableOpacity 
+          onPress={() => {
+            hapticFeedback.light();
+            if (onClose) onClose();
+            setTimeout(() => {
+              navigation?.navigate('Challenges');
+            }, 100);
+          }} 
+          style={[styles.backButton, { backgroundColor: '#F59E0B20' }]}
+        >
+          <FontAwesome5 name="trophy" size={18} color="#F59E0B" />
+        </TouchableOpacity>
       </Animated.View>
       
       {/* Tabs */}
@@ -1261,6 +1326,34 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  friendActionButtonLarge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+  },
+  notificationBadgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   moreButton: {
     width: 32,

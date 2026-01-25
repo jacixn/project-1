@@ -29,6 +29,7 @@ import {
   acceptChallenge,
   declineChallenge,
   getChallengeStats,
+  cleanupOldChallenges,
 } from '../services/challengeService';
 import * as Haptics from 'expo-haptics';
 
@@ -47,6 +48,9 @@ const ChallengesScreen = () => {
 
   useEffect(() => {
     if (!user) return;
+
+    // Cleanup old challenges to save Firebase costs
+    cleanupOldChallenges(user.uid);
 
     const unsubscribe = subscribeToChallenges(user.uid, (data) => {
       setChallenges(data);

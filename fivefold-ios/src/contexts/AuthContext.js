@@ -19,6 +19,8 @@ import {
   checkUsernameAvailability,
 } from '../services/authService';
 import { performFullSync } from '../services/userSyncService';
+import { savePushToken } from '../services/socialNotificationService';
+import notificationService from '../services/notificationService';
 
 // Create the context
 const AuthContext = createContext(null);
@@ -77,6 +79,17 @@ export const AuthProvider = ({ children }) => {
             // Cache the user profile
             await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
             console.log('[Auth] Profile loaded:', profile.username);
+          }
+          
+          // Save push token for notifications
+          try {
+            const pushToken = await notificationService.getPushToken();
+            if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token') {
+              await savePushToken(firebaseUser.uid, pushToken);
+              console.log('[Auth] Push token saved for notifications');
+            }
+          } catch (tokenError) {
+            console.warn('[Auth] Failed to save push token:', tokenError);
           }
           
           // Auto-sync data when user logs in or app opens
@@ -170,6 +183,17 @@ export const AuthProvider = ({ children }) => {
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
         console.log('[Auth] Downloaded cloud data after sign in');
+        
+        // Save push token for message notifications
+        try {
+          const pushToken = await notificationService.getPushToken();
+          if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token') {
+            await savePushToken(result.uid, pushToken);
+            console.log('[Auth] Push token saved after sign in');
+          }
+        } catch (tokenError) {
+          console.warn('[Auth] Failed to save push token:', tokenError);
+        }
         
         // Emit event to reload theme after data is downloaded
         const { DeviceEventEmitter } = require('react-native');

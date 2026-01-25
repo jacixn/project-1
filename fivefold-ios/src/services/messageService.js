@@ -24,6 +24,8 @@ import {
   serverTimestamp,
   onSnapshot,
   increment,
+  writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { notifyNewMessage } from './socialNotificationService';
@@ -424,9 +426,34 @@ export const sendEncouragementMessage = async (conversationId, senderId, senderN
 };
 
 /**
- * Mark messages as read
+ * Send an image message
  * @param {string} conversationId - Conversation ID
- * @param {string} userId - User marking as read
+ * @param {string} senderId - Sender's user ID
+ * @param {string} senderName - Sender's name
+ * @param {string} imageUrl - URL of the uploaded image
+ * @param {number} width - Image width
+ * @param {number} height - Image height
+ * @param {string} recipientId - Recipient's user ID
+ * @returns {Promise<Object>} - Sent message
+ */
+export const sendImageMessage = async (conversationId, senderId, senderName, imageUrl, width, height, recipientId) => {
+  return sendMessage(conversationId, {
+    senderId,
+    senderName,
+    type: 'image',
+    content: 'Sent an image',
+    metadata: {
+      imageUrl,
+      width: width || 300,
+      height: height || 300,
+    },
+  }, recipientId);
+};
+
+/**
+ * Mark messages as read and schedule them for auto-deletion after 24 hours
+ * @param {string} conversationId - Conversation ID
+ * @param {string} userId - User marking as read (the recipient)
  * @returns {Promise<boolean>} - Success status
  */
 export const markAsRead = async (conversationId, userId) => {
@@ -435,9 +462,44 @@ export const markAsRead = async (conversationId, userId) => {
   try {
     const conversationRef = doc(db, 'conversations', conversationId);
     
+    // Reset unread count
     await updateDoc(conversationRef, {
       [`unreadCount.${userId}`]: 0,
     });
+
+    // Find unread messages sent by other users (not by the current user)
+    // and mark them with a deleteAfter timestamp (24 hours from now)
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    const q = query(
+      messagesRef,
+      where('read', '==', false)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const batch = writeBatch(db);
+      const deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // 24 hours
+      let markedCount = 0;
+      
+      snapshot.forEach((messageDoc) => {
+        const data = messageDoc.data();
+        // Only mark messages that were NOT sent by this user (i.e., messages they received)
+        if (data.senderId !== userId) {
+          batch.update(messageDoc.ref, {
+            read: true,
+            readAt: serverTimestamp(),
+            deleteAfter: deleteAfter,
+          });
+          markedCount++;
+        }
+      });
+      
+      if (markedCount > 0) {
+        await batch.commit();
+        console.log(`[MessageService] Marked ${markedCount} messages as read, will delete in 24h`);
+      }
+    }
 
     console.log('[MessageService] Marked as read:', conversationId);
     return true;
@@ -491,6 +553,78 @@ export const deleteConversation = async (conversationId) => {
   }
 };
 
+/**
+ * Clean up old messages that have been read and are past their deleteAfter time
+ * Messages auto-delete 24 hours after being read by the recipient
+ * @param {string} conversationId - Conversation ID to clean
+ * @returns {Promise<number>} - Number of messages deleted
+ */
+export const cleanupOldMessages = async (conversationId) => {
+  if (!conversationId) return 0;
+
+  try {
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    const now = Timestamp.now();
+    
+    // Query messages where deleteAfter exists and is in the past
+    const q = query(
+      messagesRef,
+      where('deleteAfter', '<=', now)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return 0;
+    }
+    
+    const batch = writeBatch(db);
+    let deleteCount = 0;
+    
+    snapshot.forEach((messageDoc) => {
+      batch.delete(messageDoc.ref);
+      deleteCount++;
+    });
+    
+    await batch.commit();
+    
+    console.log(`[MessageService] Auto-deleted ${deleteCount} old messages from conversation ${conversationId}`);
+    return deleteCount;
+  } catch (error) {
+    console.error('Error cleaning up old messages:', error);
+    return 0;
+  }
+};
+
+/**
+ * Clean up old messages across all conversations for a user
+ * Call this periodically (e.g., on app launch or when opening messages)
+ * @param {string} userId - User's Firebase UID
+ * @returns {Promise<number>} - Total number of messages deleted
+ */
+export const cleanupAllOldMessages = async (userId) => {
+  if (!userId) return 0;
+
+  try {
+    const conversations = await getConversations(userId);
+    let totalDeleted = 0;
+    
+    for (const conv of conversations) {
+      const deleted = await cleanupOldMessages(conv.id);
+      totalDeleted += deleted;
+    }
+    
+    if (totalDeleted > 0) {
+      console.log(`[MessageService] Total auto-deleted messages: ${totalDeleted}`);
+    }
+    
+    return totalDeleted;
+  } catch (error) {
+    console.error('Error in cleanupAllOldMessages:', error);
+    return 0;
+  }
+};
+
 export default {
   getConversationId,
   createOrGetConversation,
@@ -502,7 +636,10 @@ export default {
   sendTextMessage,
   sendVerseMessage,
   sendEncouragementMessage,
+  sendImageMessage,
   markAsRead,
   getTotalUnreadCount,
   deleteConversation,
+  cleanupOldMessages,
+  cleanupAllOldMessages,
 };

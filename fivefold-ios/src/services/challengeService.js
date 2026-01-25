@@ -140,11 +140,37 @@ export const declineChallenge = async (challengeId) => {
 
   try {
     const challengeRef = doc(db, 'challenges', challengeId);
+    const challengeDoc = await getDoc(challengeRef);
+    
+    if (!challengeDoc.exists()) return false;
+    
+    const data = challengeDoc.data();
     
     await updateDoc(challengeRef, {
       status: 'declined',
       declinedAt: serverTimestamp(),
     });
+
+    // Update persistent stats - declining counts as a loss
+    try {
+      const { increment } = await import('firebase/firestore');
+      
+      // Challenger gets a win (opponent declined)
+      await updateDoc(doc(db, 'users', data.challengerId), {
+        challengeWins: increment(1),
+        challengesPlayed: increment(1),
+      });
+      
+      // Challenged gets a loss (they declined)
+      await updateDoc(doc(db, 'users', data.challengedId), {
+        challengeLosses: increment(1),
+        challengesPlayed: increment(1),
+      });
+      
+      console.log('[ChallengeService] Stats updated for declined challenge');
+    } catch (statsError) {
+      console.error('[ChallengeService] Error updating stats for decline:', statsError);
+    }
 
     console.log('[ChallengeService] Challenge declined:', challengeId);
     return true;
@@ -198,7 +224,54 @@ export const submitScore = async (challengeId, userId, score, totalQuestions) =>
     if (otherCompleted) {
       updateData.status = 'completed';
       updateData.completedAt = serverTimestamp();
-      console.log('[ChallengeService] Both completed! Setting status to COMPLETED');
+      // Schedule deletion after 24 hours to save Firebase costs
+      updateData.deleteAfter = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      console.log('[ChallengeService] Both completed! Setting status to COMPLETED. Will auto-delete in 24h.');
+      
+      // Calculate winner and update PERSISTENT stats in user profiles
+      const challengerScore = isChallenger ? score : data.challengerScore;
+      const challengedScore = isChallenger ? data.challengedScore : score;
+      
+      try {
+        const { increment } = await import('firebase/firestore');
+        
+        if (challengerScore > challengedScore) {
+          // Challenger wins
+          await updateDoc(doc(db, 'users', data.challengerId), {
+            challengeWins: increment(1),
+            challengesPlayed: increment(1),
+          });
+          await updateDoc(doc(db, 'users', data.challengedId), {
+            challengeLosses: increment(1),
+            challengesPlayed: increment(1),
+          });
+          console.log('[ChallengeService] Stats updated: Challenger won');
+        } else if (challengedScore > challengerScore) {
+          // Challenged wins
+          await updateDoc(doc(db, 'users', data.challengerId), {
+            challengeLosses: increment(1),
+            challengesPlayed: increment(1),
+          });
+          await updateDoc(doc(db, 'users', data.challengedId), {
+            challengeWins: increment(1),
+            challengesPlayed: increment(1),
+          });
+          console.log('[ChallengeService] Stats updated: Challenged won');
+        } else {
+          // Draw
+          await updateDoc(doc(db, 'users', data.challengerId), {
+            challengeDraws: increment(1),
+            challengesPlayed: increment(1),
+          });
+          await updateDoc(doc(db, 'users', data.challengedId), {
+            challengeDraws: increment(1),
+            challengesPlayed: increment(1),
+          });
+          console.log('[ChallengeService] Stats updated: Draw');
+        }
+      } catch (statsError) {
+        console.error('[ChallengeService] Error updating persistent stats:', statsError);
+      }
     } else {
       updateData.status = 'in_progress';
       console.log('[ChallengeService] Waiting for other player. Setting status to IN_PROGRESS');
@@ -440,65 +513,34 @@ export const getChallenge = async (challengeId) => {
 
 /**
  * Get challenge statistics for a user
+ * Reads from PERSISTENT stats stored in user profile (survives challenge deletion)
  * @param {string} userId - User's Firebase UID
  * @returns {Promise<Object>} - Stats object
  */
 export const getChallengeStats = async (userId) => {
-  if (!userId) return { wins: 0, losses: 0, draws: 0, total: 0 };
+  if (!userId) return { wins: 0, losses: 0, draws: 0, total: 0, winRate: 0 };
 
   try {
-    const { completed } = await getChallenges(userId);
+    // Read persistent stats from user profile
+    const userDoc = await getDoc(doc(db, 'users', userId));
     
-    let wins = 0;
-    let losses = 0;
-    let draws = 0;
-
-    completed.forEach((challenge) => {
-      const isChallenger = challenge.challengerId === userId;
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const wins = userData.challengeWins || 0;
+      const losses = userData.challengeLosses || 0;
+      const draws = userData.challengeDraws || 0;
+      const total = userData.challengesPlayed || (wins + losses + draws);
       
-      // Declined = loss for the person who declined (the challenged user)
-      if (challenge.status === 'declined') {
-        if (isChallenger) {
-          wins++; // Challenger wins when opponent declines
-        } else {
-          losses++; // Challenged user loses when they decline
-        }
-        return;
-      }
-      
-      // Expired = loss for whoever didn't complete
-      if (challenge.status === 'expired') {
-        const didComplete = isChallenger ? challenge.challengerCompleted : challenge.challengedCompleted;
-        const opponentCompleted = isChallenger ? challenge.challengedCompleted : challenge.challengerCompleted;
-        
-        if (!didComplete && opponentCompleted) {
-          losses++; // You didn't complete but opponent did
-        } else if (didComplete && !opponentCompleted) {
-          wins++; // You completed but opponent didn't
-        }
-        // If neither completed, don't count it
-        return;
-      }
-      
-      // Completed = compare scores
-      if (challenge.status !== 'completed') return;
-      
-      const myScore = isChallenger ? challenge.challengerScore : challenge.challengedScore;
-      const theirScore = isChallenger ? challenge.challengedScore : challenge.challengerScore;
-
-      if (myScore > theirScore) wins++;
-      else if (myScore < theirScore) losses++;
-      else draws++;
-    });
-
-    const countedChallenges = wins + losses + draws;
-    return {
-      wins,
-      losses,
-      draws,
-      total: countedChallenges,
-      winRate: countedChallenges > 0 ? Math.round((wins / countedChallenges) * 100) : 0,
-    };
+      return {
+        wins,
+        losses,
+        draws,
+        total,
+        winRate: total > 0 ? Math.round((wins / total) * 100) : 0,
+      };
+    }
+    
+    return { wins: 0, losses: 0, draws: 0, total: 0, winRate: 0 };
   } catch (error) {
     console.error('Error getting challenge stats:', error);
     return { wins: 0, losses: 0, draws: 0, total: 0, winRate: 0 };
@@ -537,9 +579,80 @@ export const deleteChallenge = async (challengeId, userId) => {
   }
 };
 
+/**
+ * Cleanup old challenges to save Firebase costs
+ * - Deletes completed challenges older than 24 hours
+ * - Deletes expired/declined challenges older than 24 hours
+ * @param {string} userId - User's Firebase UID (to query their challenges)
+ */
+export const cleanupOldChallenges = async (userId) => {
+  if (!userId) return;
+
+  try {
+    const challengesRef = collection(db, 'challenges');
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    
+    // Query challenges where user is involved
+    const [challengerSnap, challengedSnap] = await Promise.all([
+      getDocs(query(challengesRef, where('challengerId', '==', userId), limit(100))),
+      getDocs(query(challengesRef, where('challengedId', '==', userId), limit(100))),
+    ]);
+    
+    const challengesToDelete = [];
+    const allDocs = [...challengerSnap.docs, ...challengedSnap.docs];
+    const seenIds = new Set();
+    
+    for (const docSnap of allDocs) {
+      if (seenIds.has(docSnap.id)) continue;
+      seenIds.add(docSnap.id);
+      
+      const data = docSnap.data();
+      const completedAt = data.completedAt?.toMillis?.() || 0;
+      const expiredAt = data.expiredAt?.toMillis?.() || 0;
+      const declinedAt = data.declinedAt?.toMillis?.() || 0;
+      
+      // Delete completed challenges older than 24 hours
+      if (data.status === 'completed' && completedAt && completedAt < oneDayAgo) {
+        challengesToDelete.push(docSnap.id);
+        continue;
+      }
+      
+      // Delete expired challenges older than 24 hours
+      if (data.status === 'expired' && expiredAt && expiredAt < oneDayAgo) {
+        challengesToDelete.push(docSnap.id);
+        continue;
+      }
+      
+      // Delete declined challenges older than 24 hours
+      if (data.status === 'declined' && declinedAt && declinedAt < oneDayAgo) {
+        challengesToDelete.push(docSnap.id);
+        continue;
+      }
+    }
+    
+    // Delete old challenges
+    for (const challengeId of challengesToDelete) {
+      try {
+        await deleteDoc(doc(db, 'challenges', challengeId));
+        console.log('[ChallengeService] Auto-deleted old challenge:', challengeId);
+      } catch (err) {
+        console.error('[ChallengeService] Error deleting challenge:', challengeId, err);
+      }
+    }
+    
+    if (challengesToDelete.length > 0) {
+      console.log(`[ChallengeService] Cleaned up ${challengesToDelete.length} old challenges`);
+    }
+  } catch (error) {
+    console.error('[ChallengeService] Error in cleanup:', error);
+  }
+};
+
 export default {
   CHALLENGE_CATEGORIES,
   sendChallenge,
+  cleanupOldChallenges,
   acceptChallenge,
   declineChallenge,
   submitScore,

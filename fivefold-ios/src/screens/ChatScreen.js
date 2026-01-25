@@ -19,6 +19,8 @@ import {
   ActivityIndicator,
   StatusBar,
   Keyboard,
+  Alert,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -31,11 +33,18 @@ import {
   subscribeToMessages,
   sendTextMessage,
   sendEncouragementMessage,
+  sendImageMessage,
   markAsRead,
   getConversationId,
+  cleanupOldMessages,
 } from '../services/messageService';
 import EncouragementPicker from '../components/EncouragementPicker';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '../services/storageService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
 
 const ChatScreen = () => {
   const navigation = useNavigation();
@@ -52,6 +61,7 @@ const ChatScreen = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showEncouragements, setShowEncouragements] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
@@ -84,6 +94,8 @@ const ChatScreen = () => {
     }
 
     try {
+      let convId = passedConversationId;
+      
       if (passedConversationId) {
         setConversationId(passedConversationId);
       } else {
@@ -94,7 +106,15 @@ const ChatScreen = () => {
           otherUserId,
           otherUser
         );
+        convId = conversation.id;
         setConversationId(conversation.id);
+      }
+      
+      // Clean up old messages that were read more than 24 hours ago
+      if (convId) {
+        cleanupOldMessages(convId).catch(err => {
+          console.warn('Error cleaning up old messages:', err);
+        });
       }
     } catch (error) {
       console.error('Error initializing chat:', error);
@@ -157,6 +177,59 @@ const ChatScreen = () => {
     }
   };
 
+  const handlePickImage = async () => {
+    if (uploadingImage || !conversationId) return;
+
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photos to send images.');
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+        aspect: [4, 3],
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      setUploadingImage(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Upload to Firebase Storage
+      const imagePath = `chat-images/${conversationId}/${user.uid}_${Date.now()}.jpg`;
+      const imageUrl = await uploadImage(imagePath, asset.uri);
+
+      // Send image message
+      await sendImageMessage(
+        conversationId,
+        user.uid,
+        userProfile?.displayName || 'User',
+        imageUrl,
+        asset.width,
+        asset.height,
+        otherUserId
+      );
+
+      // Scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+    } catch (error) {
+      console.error('Error sending image:', error);
+      Alert.alert('Error', 'Failed to send image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const getTimeString = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -180,6 +253,18 @@ const ChatScreen = () => {
     const showTimestamp = shouldShowTimestamp(index);
     const isEncouragement = item.type === 'encouragement';
     const isVerse = item.type === 'verse';
+    const isImage = item.type === 'image';
+
+    // Calculate image dimensions
+    const getImageDimensions = () => {
+      if (!item.metadata?.width || !item.metadata?.height) {
+        return { width: MAX_IMAGE_WIDTH, height: MAX_IMAGE_WIDTH * 0.75 };
+      }
+      const aspectRatio = item.metadata.width / item.metadata.height;
+      const width = Math.min(MAX_IMAGE_WIDTH, item.metadata.width);
+      const height = width / aspectRatio;
+      return { width, height: Math.min(height, 300) };
+    };
 
     return (
       <View>
@@ -208,6 +293,7 @@ const ChatScreen = () => {
             isMe && [styles.messageBubbleMe, { backgroundColor: theme.primary }],
             !isMe && [styles.messageBubbleOther, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }],
             isEncouragement && styles.encouragementBubble,
+            isImage && styles.imageBubble,
           ]}>
             {isEncouragement && (
               <View style={styles.encouragementIcon}>
@@ -233,18 +319,53 @@ const ChatScreen = () => {
               </View>
             )}
             
-            <Text style={[
-              styles.messageText,
-              { color: isMe ? '#FFF' : theme.text },
-              isEncouragement && styles.encouragementText,
-            ]}>
-              {item.content}
-            </Text>
+            {/* Image message */}
+            {isImage && item.metadata?.imageUrl && (
+              <Image 
+                source={{ uri: item.metadata.imageUrl }} 
+                style={[styles.messageImage, getImageDimensions()]}
+                resizeMode="cover"
+              />
+            )}
+            
+            {/* Text content (hide for image messages) */}
+            {!isImage && (
+              <Text style={[
+                styles.messageText,
+                { color: isMe ? '#FFF' : theme.text },
+                isEncouragement && styles.encouragementText,
+              ]}>
+                {item.content}
+              </Text>
+            )}
             
             {isVerse && item.metadata?.note && (
               <Text style={[styles.verseNote, { color: isMe ? 'rgba(255,255,255,0.7)' : theme.textSecondary }]}>
                 "{item.metadata.note}"
               </Text>
+            )}
+            
+            {/* Read receipt indicator for sent messages */}
+            {isMe && (
+              <View style={styles.readReceiptContainer}>
+                <Text style={styles.messageTime}>
+                  {item.createdAt?.toDate ? 
+                    item.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
+                    new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  }
+                </Text>
+                {item.read ? (
+                  // Double checkmark for read messages (blue)
+                  <View style={styles.readIndicator}>
+                    <Ionicons name="checkmark-done" size={14} color="#34B7F1" />
+                  </View>
+                ) : (
+                  // Single checkmark for sent/delivered (gray)
+                  <View style={styles.readIndicator}>
+                    <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.6)" />
+                  </View>
+                )}
+              </View>
             )}
           </View>
         </View>
@@ -587,6 +708,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  // Read receipts
+  readReceiptContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  messageTime: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  readIndicator: {
+    marginLeft: 2,
+  },
+  // Image messages
+  imageBubble: {
+    padding: 4,
+    overflow: 'hidden',
+  },
+  messageImage: {
+    borderRadius: 12,
+    backgroundColor: 'rgba(128,128,128,0.2)',
   },
   // Input
   inputContainer: {

@@ -180,11 +180,20 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
       }
       
+      // Source 4: app_open_streak (AppStreakManager's key - THE ACTUAL STREAK)
+      const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+      if (appStreakStr) {
+        const appStreakData = JSON.parse(appStreakStr);
+        freshStreak = Math.max(freshStreak, appStreakData.currentStreak || 0);
+      }
+      
       console.log('[Leaderboard] Fresh points found:', {
         total_points: prayerPointsStr,
         userStats: statsStr ? JSON.parse(statsStr) : null,
         fivefold_userStats: fivefoldStatsStr ? JSON.parse(fivefoldStatsStr) : null,
+        app_open_streak: appStreakStr ? JSON.parse(appStreakStr) : null,
         finalPoints: freshTotalPoints,
+        finalStreak: freshStreak,
       });
     } catch (err) {
       console.warn('Error getting fresh points:', err);
@@ -208,9 +217,14 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
     const sorted = allUsers.sort((a, b) => {
       if (sortBy === 'points') {
         return (b.totalPoints || 0) - (a.totalPoints || 0);
-      } else {
+      } else if (sortBy === 'streak') {
         return (b.currentStreak || 0) - (a.currentStreak || 0);
+      } else if (sortBy === 'workouts') {
+        return (b.workoutsCompleted || 0) - (a.workoutsCompleted || 0);
+      } else if (sortBy === 'tasks') {
+        return (b.tasksCompleted || 0) - (a.tasksCompleted || 0);
       }
+      return 0;
     });
     
     // Add rank
@@ -271,6 +285,13 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           freshTotalPoints = Math.max(freshTotalPoints, fStats.points || 0, fStats.totalPoints || 0);
           freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
         }
+        
+        // Source 4: app_open_streak (AppStreakManager's key - THE ACTUAL STREAK)
+        const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+        if (appStreakStr) {
+          const appStreakData = JSON.parse(appStreakStr);
+          freshStreak = Math.max(freshStreak, appStreakData.currentStreak || 0);
+        }
       } catch (err) {
         console.warn('[Global Leaderboard] Error getting fresh local points:', err);
       }
@@ -297,7 +318,13 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       }
       
       // Sort in memory based on selected metric
-      const sortField = sortBy === 'points' ? 'totalPoints' : 'currentStreak';
+      const sortFieldMap = {
+        points: 'totalPoints',
+        streak: 'currentStreak',
+        workouts: 'workoutsCompleted',
+        tasks: 'tasksCompleted',
+      };
+      const sortField = sortFieldMap[sortBy] || 'totalPoints';
       users.sort((a, b) => (b[sortField] || 0) - (a[sortField] || 0));
       
       // Add rank
@@ -325,7 +352,48 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   };
   
   const getScoreValue = (item) => {
-    return sortBy === 'points' ? (item.totalPoints || 0) : (item.currentStreak || 0);
+    switch (sortBy) {
+      case 'points':
+        return item.totalPoints || 0;
+      case 'streak':
+        return item.currentStreak || 0;
+      case 'workouts':
+        return item.workoutsCompleted || 0;
+      case 'tasks':
+        return item.tasksCompleted || 0;
+      default:
+        return item.totalPoints || 0;
+    }
+  };
+  
+  const getScoreLabel = () => {
+    switch (sortBy) {
+      case 'points':
+        return 'pts';
+      case 'streak':
+        return 'days';
+      case 'workouts':
+        return 'done';
+      case 'tasks':
+        return 'done';
+      default:
+        return 'pts';
+    }
+  };
+  
+  const getScoreIcon = () => {
+    switch (sortBy) {
+      case 'points':
+        return { name: 'star', color: '#FFD700' };
+      case 'streak':
+        return { name: 'local-fire-department', color: '#FF6B35' };
+      case 'workouts':
+        return { name: 'fitness-center', color: '#10B981' };
+      case 'tasks':
+        return { name: 'check-circle', color: '#8B5CF6' };
+      default:
+        return { name: 'star', color: '#FFD700' };
+    }
   };
   
   // Render single user card (for when there's only 1-2 users)
@@ -420,13 +488,9 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {formatNumber(getScoreValue(item))}
           </Text>
           <View style={styles.cardScoreLabel}>
-            {sortBy === 'points' ? (
-              <MaterialIcons name="star" size={12} color="#FFD700" />
-            ) : (
-              <MaterialIcons name="local-fire-department" size={12} color="#FF6B35" />
-            )}
+            <MaterialIcons name={getScoreIcon().name} size={12} color={getScoreIcon().color} />
             <Text style={[styles.cardScoreLabelText, { color: theme.textSecondary }]}>
-              {sortBy === 'points' ? 'pts' : 'days'}
+              {getScoreLabel()}
             </Text>
           </View>
         </View>
@@ -804,18 +868,19 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         </View>
       </Animated.View>
       
-      {/* Sort Pills */}
+      {/* Sort Options - Compact Icon Style */}
       <Animated.View 
         style={[
           styles.sortContainer,
           { opacity: headerAnim }
         ]}
       >
-        <Text style={[styles.sortLabel, { color: theme.textSecondary }]}>Sort by</Text>
-        <View style={styles.sortPills}>
+        <View style={[styles.sortWrapper, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
           {[
             { key: 'points', label: 'Points', icon: 'star', color: '#FFD700' },
             { key: 'streak', label: 'Streak', icon: 'local-fire-department', color: '#FF6B35' },
+            { key: 'workouts', label: 'Gym', icon: 'fitness-center', color: '#10B981' },
+            { key: 'tasks', label: 'Tasks', icon: 'check-circle', color: '#8B5CF6' },
           ].map(option => (
             <TouchableOpacity
               key={option.key}
@@ -824,21 +889,16 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
                 setSortBy(option.key);
                 setLoading(true);
               }}
+              style={styles.sortOptionButton}
             >
               {sortBy === option.key ? (
-                <LinearGradient
-                  colors={[option.color, option.color + 'CC']}
-                  style={styles.sortPillActive}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <MaterialIcons name={option.icon} size={16} color="#FFF" />
-                  <Text style={styles.sortPillTextActive}>{option.label}</Text>
-                </LinearGradient>
+                <View style={[styles.sortOptionActive, { backgroundColor: option.color + '20' }]}>
+                  <MaterialIcons name={option.icon} size={18} color={option.color} />
+                  <Text style={[styles.sortOptionTextActive, { color: option.color }]}>{option.label}</Text>
+                </View>
               ) : (
-                <View style={[styles.sortPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                  <MaterialIcons name={option.icon} size={16} color={theme.textSecondary} />
-                  <Text style={[styles.sortPillText, { color: theme.textSecondary }]}>{option.label}</Text>
+                <View style={styles.sortOptionInactive}>
+                  <MaterialIcons name={option.icon} size={18} color={theme.textTertiary} />
                 </View>
               )}
             </TouchableOpacity>
@@ -955,44 +1015,38 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 16,
   },
-  sortLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sortPills: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  sortPillActive: {
+  sortWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    padding: 6,
   },
-  sortPill: {
+  sortOptionButton: {
+    flex: 1,
+  },
+  sortOptionActive: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     gap: 6,
   },
-  sortPillTextActive: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
+  sortOptionTextActive: {
+    fontSize: 13,
+    fontWeight: '700',
   },
-  sortPillText: {
-    fontSize: 14,
-    fontWeight: '500',
+  sortOptionInactive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   scrollContent: {
     flexGrow: 1,

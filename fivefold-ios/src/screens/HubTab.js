@@ -39,10 +39,24 @@ import { GlassHeader } from '../components/GlassEffect';
 import { subscribeToPosts, createPost, viewPost, deletePost, formatTimeAgo, cleanupOldPosts } from '../services/feedService';
 import { getUserProfile } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken } from '../services/tokenService';
+import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
+import { getChallenges, subscribeToChallenges } from '../services/challengeService';
 import FriendsScreen from './FriendsScreen';
 import LeaderboardScreen from './LeaderboardScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Format large numbers nicely (1.8K, 29K, 1.2M, etc.)
+const formatNumber = (num) => {
+  if (!num || num < 1000) return num?.toString() || '0';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toString();
+};
 
 const HubTab = () => {
   const { theme, isDark } = useTheme();
@@ -61,10 +75,57 @@ const HubTab = () => {
   const [posting, setPosting] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
+  const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
+  const [expandedPost, setExpandedPost] = useState(null);
+  
+  // Expanded post animations
+  const expandAnim = useRef(new Animated.Value(0)).current;
+  const expandScale = useRef(new Animated.Value(0.8)).current;
+  const expandRotate = useRef(new Animated.Value(0)).current;
+  const glowPulse = useRef(new Animated.Value(0)).current;
   
   // Animation refs
   const fabScale = useRef(new Animated.Value(1)).current;
   const tokenPulse = useRef(new Animated.Value(1)).current;
+  const headerGlow = useRef(new Animated.Value(0)).current;
+  const iconBounce1 = useRef(new Animated.Value(0)).current;
+  const iconBounce2 = useRef(new Animated.Value(0)).current;
+  
+  // Header glow animation
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(headerGlow, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(headerGlow, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+    
+    // Staggered icon bounce
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(0),
+        Animated.spring(iconBounce1, { toValue: 1, tension: 300, friction: 10, useNativeDriver: true }),
+        Animated.spring(iconBounce1, { toValue: 0, tension: 300, friction: 10, useNativeDriver: true }),
+      ])
+    ).start();
+    
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(200),
+        Animated.spring(iconBounce2, { toValue: 1, tension: 300, friction: 10, useNativeDriver: true }),
+        Animated.spring(iconBounce2, { toValue: 0, tension: 300, friction: 10, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
   
   // Load posts and token status
   useEffect(() => {
@@ -97,6 +158,39 @@ const HubTab = () => {
       unsubscribe();
       clearTimeout(tokenCheckDelay);
       clearInterval(tokenInterval);
+    };
+  }, [user]);
+  
+  // Real-time listeners for notification badges (much more efficient than polling)
+  useEffect(() => {
+    if (!user) return;
+    
+    // Subscribe to conversations for unread message count
+    const unsubConversations = subscribeToConversations(user.uid, (conversations) => {
+      let totalUnread = 0;
+      conversations.forEach(conv => {
+        // unreadCount is already extracted as a number by subscribeToConversations
+        totalUnread += conv.unreadCount || 0;
+      });
+      setTotalUnreadMessages(totalUnread);
+    });
+    
+    // Subscribe to challenges for pending count
+    const unsubChallenges = subscribeToChallenges(user.uid, (challenges) => {
+      const pendingCount = challenges.filter(c => 
+        (c.status === 'pending' && c.challengedId === user.uid) ||
+        (c.status === 'accepted' && (
+          (c.challengerId === user.uid && (c.challengerScore === null || c.challengerScore === undefined)) ||
+          (c.challengedId === user.uid && (c.challengedScore === null || c.challengedScore === undefined))
+        ))
+      ).length;
+      setPendingChallengesCount(pendingCount);
+    });
+    
+    // Cleanup listeners on unmount
+    return () => {
+      unsubConversations();
+      unsubChallenges();
     };
   }, [user]);
   
@@ -263,6 +357,86 @@ const HubTab = () => {
     );
   };
   
+  // Expand post with stunning animation
+  const handleExpandPost = (post) => {
+    setExpandedPost(post);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    
+    // Reset animations
+    expandAnim.setValue(0);
+    expandScale.setValue(0.3);
+    expandRotate.setValue(-15);
+    glowPulse.setValue(0);
+    
+    // Slower, more dramatic entrance animation
+    Animated.sequence([
+      // First: fade in backdrop slowly
+      Animated.timing(expandAnim, {
+        toValue: 0.5,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      // Then: bring in the card with a slow, elegant spring
+      Animated.parallel([
+        Animated.timing(expandAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(expandScale, {
+          toValue: 1,
+          tension: 35,  // Lower tension = slower
+          friction: 7,  // Higher friction = less bouncy
+          useNativeDriver: true,
+        }),
+        Animated.spring(expandRotate, {
+          toValue: 0,
+          tension: 30,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+    
+    // Delayed glow pulse - starts after card appears
+    setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowPulse, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowPulse, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }, 600);
+  };
+  
+  // Collapse post with animation
+  const handleCollapsePost = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    Animated.parallel([
+      Animated.timing(expandAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(expandScale, {
+        toValue: 0.8,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setExpandedPost(null);
+    });
+  };
+  
   // Track last view time per post (0.1 second cooldown)
   const lastViewTimeRef = useRef({});
   
@@ -274,15 +448,31 @@ const HubTab = () => {
       const now = Date.now();
       const lastView = lastViewTimeRef.current[item.id] || 0;
       
-      const randomCooldown = 70 + Math.floor(Math.random() * 31); // Random 70-100ms
-      if (now - lastView > randomCooldown) {
+      // Check if current date is before May 1st
+      const currentDate = new Date();
+      const may1st = new Date(currentDate.getFullYear(), 4, 1); // Month is 0-indexed, so 4 = May
+      const isBeforeMay1st = currentDate < may1st;
+      
+      // Before May 1st: slow views (5-10 seconds), After May 1st: fast views (70-100ms)
+      const randomCooldown = isBeforeMay1st 
+        ? 5000 + Math.floor(Math.random() * 5001) // Random 5000-10000ms (5-10 seconds)
+        : 70 + Math.floor(Math.random() * 31); // Random 70-100ms
+      
+      const timeSinceLastView = now - lastView;
+      if (timeSinceLastView > randomCooldown) {
+        console.log(`[Views] Counting view - isBeforeMay1st: ${isBeforeMay1st}, cooldown: ${randomCooldown}ms, elapsed: ${timeSinceLastView}ms`);
         lastViewTimeRef.current[item.id] = now;
         handleView(item.id);
       }
     }
     
     return (
-      <View style={[styles.postCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onLongPress={() => handleExpandPost(item)}
+        delayLongPress={400}
+        style={[styles.postCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+      >
         {/* Author Row */}
         <View style={styles.postHeader}>
           <View style={styles.authorInfo}>
@@ -299,21 +489,18 @@ const HubTab = () => {
               </LinearGradient>
             )}
             <View style={styles.authorDetails}>
+              {/* Time above name */}
+              <Text style={[styles.postTimeTop, { color: theme.textTertiary }]}>
+                {formatTimeAgo(item.createdAt)}
+              </Text>
+              
               <View style={styles.authorNameRow}>
                 <Text style={[styles.authorName, { color: theme.text }]}>
                   {item.authorName}
                 </Text>
                 {item.authorCountry && (
-                  <Text style={[styles.authorFromText, { color: theme.textSecondary }]}> from </Text>
-                )}
-                {item.authorCountry && (
                   <Text style={styles.authorCountry}>{item.authorCountry}</Text>
                 )}
-                <Text style={[styles.authorSharedText, { color: theme.textSecondary }]}> has shared</Text>
-                <Text style={[styles.postTimeDot, { color: theme.textSecondary }]}> · </Text>
-                <Text style={[styles.postTime, { color: theme.textSecondary }]}>
-                  {formatTimeAgo(item.createdAt)}
-                </Text>
               </View>
               {item.authorUsername && (
                 <Text style={[styles.authorUsername, { color: theme.textSecondary }]}>
@@ -343,54 +530,138 @@ const HubTab = () => {
           <View style={styles.viewsRow}>
             <Ionicons name="eye-outline" size={14} color={theme.textTertiary} />
             <Text style={[styles.viewsText, { color: theme.textTertiary }]}>
-              {item.views} {item.views === 1 ? 'view' : 'views'}
+              {formatNumber(item.views)} {item.views === 1 ? 'view' : 'views'}
             </Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
   
-  const renderHeader = () => (
-    <GlassHeader 
-      intensity={30}
-      absolute={false}
-    >
-      <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Hub</Text>
-        
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={[styles.headerButton, { 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
-              borderWidth: 1,
-              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowFriends(true);
-            }}
-          >
-            <Ionicons name="people" size={20} color={theme.primary} />
-          </TouchableOpacity>
+  const renderHeader = () => {
+    // Animated gradient colors
+    const glowOpacity = headerGlow.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.4, 0.8],
+    });
+    
+    const shimmerTranslate = headerGlow.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-100, SCREEN_WIDTH + 100],
+    });
+    
+    return (
+      <View style={{ overflow: 'hidden' }}>
+        {/* Stunning gradient background */}
+        <LinearGradient
+          colors={isDark 
+            ? ['#2D1B69', '#11998e', '#38ef7d'] 
+            : ['#FF6B6B', '#4ECDC4', '#45B7D1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.premiumHeader, { paddingTop: insets.top }]}
+        >
+          {/* Shimmer effect */}
+          <Animated.View 
+            style={[
+              styles.shimmerEffect, 
+              { transform: [{ translateX: shimmerTranslate }] }
+            ]} 
+          />
           
-          <TouchableOpacity
-            style={[styles.headerButton, { 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
-              borderWidth: 1,
-              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowLeaderboard(true);
-            }}
-          >
-            <MaterialIcons name="leaderboard" size={20} color="#F59E0B" />
-          </TouchableOpacity>
-        </View>
+          {/* Floating orbs for depth - more vibrant */}
+          <Animated.View style={[styles.floatingOrb, styles.orb1, { opacity: glowOpacity }]} />
+          <Animated.View style={[styles.floatingOrb, styles.orb2, { opacity: glowOpacity }]} />
+          <Animated.View style={[styles.floatingOrb, styles.orb3, { opacity: glowOpacity }]} />
+          
+          {/* Decorative circles */}
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          
+          {/* Main content */}
+          <View style={styles.premiumHeaderContent}>
+            {/* Left side - Title with emoji and glow */}
+            <View style={styles.titleContainer}>
+              <View style={styles.titleRow}>
+                <Text style={styles.premiumTitle}>Hub</Text>
+                <Text style={styles.titleEmoji}>✨</Text>
+              </View>
+              <Animated.View 
+                style={[
+                  styles.titleGlow,
+                  { opacity: glowOpacity }
+                ]} 
+              />
+            </View>
+            
+            {/* Right side - Premium action buttons */}
+            <View style={styles.premiumHeaderButtons}>
+              {/* Friends Button */}
+              <Animated.View style={{ transform: [{ translateY: iconBounce1.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+                <TouchableOpacity
+                  style={styles.premiumIconButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setShowFriends(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={['#667eea', '#764ba2']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.iconGradient}
+                  >
+                    <Ionicons name="people" size={20} color="#FFFFFF" />
+                  </LinearGradient>
+                  {/* Unread messages badge */}
+                  {totalUnreadMessages > 0 && (
+                    <View style={styles.headerNotificationBadge}>
+                      <Text style={styles.headerNotificationBadgeText}>
+                        {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+              
+              {/* Leaderboard Button */}
+              <Animated.View style={{ transform: [{ translateY: iconBounce2.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+                <TouchableOpacity
+                  style={styles.premiumIconButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setShowLeaderboard(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={['#f093fb', '#f5576c']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.iconGradient}
+                  >
+                    <Ionicons name="trophy" size={20} color="#FFFFFF" />
+                  </LinearGradient>
+                  {/* Pending challenges badge */}
+                  {pendingChallengesCount > 0 && (
+                    <View style={[styles.headerNotificationBadge, { backgroundColor: '#F59E0B' }]}>
+                      <Text style={styles.headerNotificationBadgeText}>
+                        {pendingChallengesCount > 9 ? '9+' : pendingChallengesCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </View>
+        </LinearGradient>
+        
+        {/* Curved bottom edge */}
+        <View style={[styles.curvedEdge, { backgroundColor: theme.background }]} />
       </View>
-    </GlassHeader>
-  );
+    );
+  };
   
   
   const renderEmpty = () => (
@@ -628,6 +899,121 @@ const HubTab = () => {
         </View>
       </Modal>
       
+      {/* Expanded Post Overlay - Stunning Pop-out Effect */}
+      {expandedPost && (
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={handleCollapsePost}
+          style={styles.expandedOverlay}
+        >
+          <Animated.View 
+            style={[
+              styles.expandedBackdrop,
+              { opacity: expandAnim }
+            ]}
+          />
+          
+          {/* Floating particles/orbs for extra magic */}
+          <Animated.View style={[styles.floatingOrb, styles.expandOrb1, { 
+            opacity: expandAnim,
+            transform: [
+              { translateY: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) },
+              { scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.2] }) },
+            ]
+          }]} />
+          <Animated.View style={[styles.floatingOrb, styles.expandOrb2, { 
+            opacity: expandAnim,
+            transform: [
+              { translateY: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 15] }) },
+              { scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.7] }) },
+            ]
+          }]} />
+          <Animated.View style={[styles.floatingOrb, styles.expandOrb3, { 
+            opacity: expandAnim,
+            transform: [
+              { translateX: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [-10, 10] }) },
+              { scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.1] }) },
+            ]
+          }]} />
+          
+          {/* The expanded post card */}
+          <Animated.View
+            style={[
+              styles.expandedCard,
+              {
+                backgroundColor: isDark ? '#1a1a2e' : '#FFFFFF',
+                transform: [
+                  { scale: expandScale },
+                  { rotate: expandRotate.interpolate({
+                    inputRange: [-10, 0],
+                    outputRange: ['-3deg', '0deg'],
+                  })},
+                ],
+                opacity: expandAnim,
+              }
+            ]}
+          >
+            {/* Glowing border effect */}
+            <Animated.View style={[
+              styles.expandedGlow,
+              { 
+                opacity: glowPulse.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.3, 0.8],
+                })
+              }
+            ]} />
+            
+            {/* Author section */}
+            <View style={styles.expandedHeader}>
+              {expandedPost.authorPhoto ? (
+                <Image source={{ uri: expandedPost.authorPhoto }} style={styles.expandedAvatar} />
+              ) : (
+                <LinearGradient
+                  colors={['#8B5CF6', '#6366F1']}
+                  style={styles.expandedAvatar}
+                >
+                  <Text style={styles.expandedAvatarText}>
+                    {(expandedPost.authorName || 'A').charAt(0).toUpperCase()}
+                  </Text>
+                </LinearGradient>
+              )}
+              <View style={styles.expandedAuthorInfo}>
+                <Text style={[styles.expandedAuthorName, { color: theme.text }]}>
+                  {expandedPost.authorName} {expandedPost.authorCountry}
+                </Text>
+                <Text style={[styles.expandedUsername, { color: theme.textSecondary }]}>
+                  @{expandedPost.authorUsername}
+                </Text>
+              </View>
+              <Text style={[styles.expandedTime, { color: theme.textTertiary }]}>
+                {formatTimeAgo(expandedPost.createdAt)}
+              </Text>
+            </View>
+            
+            {/* Content - Big and beautiful */}
+            <Text style={[styles.expandedContent, { color: theme.text }]}>
+              {expandedPost.content}
+            </Text>
+            
+            {/* Stats row */}
+            <View style={styles.expandedStats}>
+              <View style={styles.expandedStatItem}>
+                <Ionicons name="eye" size={18} color={theme.primary} />
+                <Text style={[styles.expandedStatText, { color: theme.text }]}>
+                  {formatNumber(expandedPost.views || 0)} views
+                </Text>
+              </View>
+            </View>
+            
+            {/* Tap to close hint */}
+            <Text style={[styles.expandedHint, { color: theme.textTertiary }]}>
+              Tap anywhere to close
+            </Text>
+          </Animated.View>
+        </TouchableOpacity>
+      )}
+      
       {/* Friends Modal */}
       <Modal
         visible={showFriends}
@@ -655,6 +1041,153 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Premium Header Styles
+  premiumHeader: {
+    paddingBottom: 30,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  shimmerEffect: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    transform: [{ skewX: '-20deg' }],
+  },
+  premiumHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    zIndex: 10,
+  },
+  titleContainer: {
+    position: 'relative',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  premiumTitle: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
+  },
+  titleEmoji: {
+    fontSize: 24,
+  },
+  titleGlow: {
+    position: 'absolute',
+    top: -15,
+    left: -15,
+    right: -15,
+    bottom: -15,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 25,
+    zIndex: -1,
+  },
+  premiumHeaderButtons: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  premiumIconButton: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
+    position: 'relative',
+  },
+  headerNotificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  headerNotificationBadgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  iconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  floatingOrb: {
+    position: 'absolute',
+    borderRadius: 100,
+  },
+  orb1: {
+    width: 150,
+    height: 150,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    top: -50,
+    right: -40,
+    borderRadius: 75,
+  },
+  orb2: {
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(255, 215, 0, 0.25)',
+    bottom: -30,
+    left: 40,
+    borderRadius: 50,
+  },
+  orb3: {
+    width: 70,
+    height: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    top: 10,
+    left: -25,
+    borderRadius: 35,
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    top: -100,
+    right: -50,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -40,
+    left: -30,
+  },
+  curvedEdge: {
+    height: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    marginTop: -20,
+  },
+  // Legacy header styles (keep for compatibility)
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -742,20 +1275,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  authorFromText: {
-    fontSize: 14,
-  },
   authorCountry: {
     fontSize: 14,
   },
-  authorSharedText: {
-    fontSize: 14,
-  },
-  postTimeDot: {
-    fontSize: 14,
-  },
-  postTime: {
-    fontSize: 13,
+  postTimeTop: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   authorUsername: {
     fontSize: 13,
@@ -1010,6 +1536,135 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: 16,
+  },
+  // Expanded Post Overlay Styles
+  expandedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  expandedBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  },
+  floatingOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  expandOrb1: {
+    width: 120,
+    height: 120,
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    top: '15%',
+    left: '10%',
+  },
+  expandOrb2: {
+    width: 80,
+    height: 80,
+    backgroundColor: 'rgba(236, 72, 153, 0.25)',
+    top: '25%',
+    right: '5%',
+  },
+  expandOrb3: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(34, 211, 238, 0.3)',
+    bottom: '20%',
+    left: '15%',
+  },
+  expandedCard: {
+    width: SCREEN_WIDTH - 40,
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 40,
+    elevation: 25,
+    overflow: 'hidden',
+  },
+  expandedGlow: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+  },
+  expandedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  expandedAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+  },
+  expandedAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  expandedAuthorInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  expandedAuthorName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  expandedUsername: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  expandedTime: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  expandedContent: {
+    fontSize: 22,
+    lineHeight: 32,
+    fontWeight: '500',
+    marginBottom: 24,
+  },
+  expandedStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  expandedStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  expandedStatText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  expandedHint: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });
 

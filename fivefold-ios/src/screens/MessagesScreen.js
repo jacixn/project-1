@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { subscribeToConversations } from '../services/messageService';
+import { subscribeToConversations, cleanupAllOldMessages } from '../services/messageService';
 import { getFriendsWithStats } from '../services/friendsService';
 import * as Haptics from 'expo-haptics';
 
@@ -49,6 +49,11 @@ const MessagesScreen = () => {
     });
 
     loadFriends();
+    
+    // Clean up old messages that were read more than 24 hours ago
+    cleanupAllOldMessages(user.uid).catch(err => {
+      console.warn('Error cleaning up old messages:', err);
+    });
 
     return () => unsubscribe();
   }, [user]);

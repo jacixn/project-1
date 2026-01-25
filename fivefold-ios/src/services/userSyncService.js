@@ -47,6 +47,103 @@ const USER_PROFILE_FIELDS = [
   'isPublic',
 ];
 
+// History retention period (90 days in milliseconds)
+const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/**
+ * Filter history array to only keep entries from the last 90 days
+ * Handles various date formats commonly used in history entries
+ * @param {Array} historyArray - Array of history entries
+ * @param {string} dateField - The field name containing the date (default: 'date' or 'completedAt')
+ * @returns {Array} - Filtered array with only recent entries
+ */
+const filterRecentHistory = (historyArray, dateField = null) => {
+  if (!Array.isArray(historyArray)) return [];
+  
+  const cutoffDate = Date.now() - HISTORY_RETENTION_MS;
+  
+  return historyArray.filter(entry => {
+    if (!entry) return false;
+    
+    // Try to find a date field
+    let entryDate = null;
+    
+    // Check common date field names
+    const dateFields = dateField ? [dateField] : ['date', 'completedAt', 'completedDate', 'createdAt', 'timestamp', 'time'];
+    
+    for (const field of dateFields) {
+      if (entry[field]) {
+        const dateValue = entry[field];
+        
+        // Handle different date formats
+        if (typeof dateValue === 'number') {
+          entryDate = dateValue;
+        } else if (typeof dateValue === 'string') {
+          entryDate = new Date(dateValue).getTime();
+        } else if (dateValue?.toMillis) {
+          // Firestore Timestamp
+          entryDate = dateValue.toMillis();
+        } else if (dateValue?.seconds) {
+          // Firestore Timestamp object
+          entryDate = dateValue.seconds * 1000;
+        }
+        
+        if (entryDate && !isNaN(entryDate)) break;
+      }
+    }
+    
+    // If no valid date found, keep the entry (don't delete unknowns)
+    if (!entryDate || isNaN(entryDate)) return true;
+    
+    // Keep if within 90 days
+    return entryDate > cutoffDate;
+  });
+};
+
+/**
+ * Clean all history data - removes entries older than 90 days
+ * @param {Object} data - Object containing history arrays
+ * @returns {Object} - Cleaned data object
+ */
+const cleanHistoryData = (data) => {
+  const cleaned = { ...data };
+  
+  // Clean each history type
+  if (cleaned.workoutHistory) {
+    const before = cleaned.workoutHistory.length;
+    cleaned.workoutHistory = filterRecentHistory(cleaned.workoutHistory);
+    if (before !== cleaned.workoutHistory.length) {
+      console.log(`[Sync] Cleaned workoutHistory: ${before} → ${cleaned.workoutHistory.length} entries`);
+    }
+  }
+  
+  if (cleaned.quizHistory) {
+    const before = cleaned.quizHistory.length;
+    cleaned.quizHistory = filterRecentHistory(cleaned.quizHistory);
+    if (before !== cleaned.quizHistory.length) {
+      console.log(`[Sync] Cleaned quizHistory: ${before} → ${cleaned.quizHistory.length} entries`);
+    }
+  }
+  
+  if (cleaned.prayerHistory) {
+    const before = cleaned.prayerHistory.length;
+    cleaned.prayerHistory = filterRecentHistory(cleaned.prayerHistory);
+    if (before !== cleaned.prayerHistory.length) {
+      console.log(`[Sync] Cleaned prayerHistory: ${before} → ${cleaned.prayerHistory.length} entries`);
+    }
+  }
+  
+  if (cleaned.completedTodos) {
+    const before = cleaned.completedTodos.length;
+    cleaned.completedTodos = filterRecentHistory(cleaned.completedTodos);
+    if (before !== cleaned.completedTodos.length) {
+      console.log(`[Sync] Cleaned completedTodos: ${before} → ${cleaned.completedTodos.length} entries`);
+    }
+  }
+  
+  return cleaned;
+};
+
 /**
  * Sync local user stats to Firestore
  * @param {string} userId - The user's Firebase UID
@@ -109,7 +206,22 @@ export const syncUserStatsToCloud = async (userId) => {
     });
     
     // Add other stats fields
-    if (localStats.currentStreak !== undefined) updateData.currentStreak = localStats.currentStreak;
+    // IMPORTANT: Get streak from app_open_streak (AppStreakManager's key) - this is the actual streak
+    let streakToSync = localStats.currentStreak || 0;
+    try {
+      const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+      if (appStreakStr) {
+        const appStreakData = JSON.parse(appStreakStr);
+        streakToSync = Math.max(streakToSync, appStreakData.currentStreak || 0);
+      }
+    } catch (e) {
+      console.warn('[Sync] Error reading app_open_streak:', e);
+    }
+    
+    if (streakToSync > 0) {
+      updateData.currentStreak = streakToSync;
+    }
+    
     if (localStats.level !== undefined) updateData.level = localStats.level;
     if (localStats.prayersCompleted !== undefined) updateData.prayersCompleted = localStats.prayersCompleted;
     if (localStats.completedTasks !== undefined) updateData.tasksCompleted = localStats.completedTasks;
@@ -232,22 +344,30 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded theme preferences from cloud');
     }
     
+    // Clean history data from cloud before saving locally (remove entries older than 90 days)
+    const cleanedCloudData = cleanHistoryData({
+      workoutHistory: cloudData.workoutHistory,
+      quizHistory: cloudData.quizHistory,
+      prayerHistory: cloudData.prayerHistory,
+      completedTodos: cloudData.completedTodos,
+    });
+    
     // Workout history
-    if (cloudData.workoutHistory) {
-      await AsyncStorage.setItem('workoutHistory', JSON.stringify(cloudData.workoutHistory));
-      console.log('[Sync] Downloaded workout history from cloud');
+    if (cleanedCloudData.workoutHistory && cleanedCloudData.workoutHistory.length > 0) {
+      await AsyncStorage.setItem('workoutHistory', JSON.stringify(cleanedCloudData.workoutHistory));
+      console.log(`[Sync] Downloaded workout history from cloud (${cleanedCloudData.workoutHistory.length} entries, cleaned)`);
     }
     
     // Quiz history
-    if (cloudData.quizHistory) {
-      await AsyncStorage.setItem('quizHistory', JSON.stringify(cloudData.quizHistory));
-      console.log('[Sync] Downloaded quiz history from cloud');
+    if (cleanedCloudData.quizHistory && cleanedCloudData.quizHistory.length > 0) {
+      await AsyncStorage.setItem('quizHistory', JSON.stringify(cleanedCloudData.quizHistory));
+      console.log(`[Sync] Downloaded quiz history from cloud (${cleanedCloudData.quizHistory.length} entries, cleaned)`);
     }
     
     // Prayer history
-    if (cloudData.prayerHistory) {
-      await AsyncStorage.setItem('prayerHistory', JSON.stringify(cloudData.prayerHistory));
-      console.log('[Sync] Downloaded prayer history from cloud');
+    if (cleanedCloudData.prayerHistory && cleanedCloudData.prayerHistory.length > 0) {
+      await AsyncStorage.setItem('prayerHistory', JSON.stringify(cleanedCloudData.prayerHistory));
+      console.log(`[Sync] Downloaded prayer history from cloud (${cleanedCloudData.prayerHistory.length} entries, cleaned)`);
     }
     
     // User prayers (custom prayer settings/names/times)
@@ -272,10 +392,10 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Downloaded ${cloudData.todos.length} todos from cloud`);
     }
     
-    // Completed todos/tasks
-    if (cloudData.completedTodos) {
-      await AsyncStorage.setItem('completedTodos', JSON.stringify(cloudData.completedTodos));
-      console.log('[Sync] Downloaded completed todos from cloud');
+    // Completed todos/tasks (cleaned)
+    if (cleanedCloudData.completedTodos && cleanedCloudData.completedTodos.length > 0) {
+      await AsyncStorage.setItem('completedTodos', JSON.stringify(cleanedCloudData.completedTodos));
+      console.log(`[Sync] Downloaded completed todos from cloud (${cleanedCloudData.completedTodos.length} entries, cleaned)`);
     }
     
     // App streak data
@@ -905,8 +1025,11 @@ export const syncAllHistoryToCloud = async (userId) => {
     }
     
     if (Object.keys(updateData).length > 1) { // More than just lastActive
-      await setDoc(doc(db, 'users', userId), updateData, { merge: true });
-      console.log('[Sync] Uploaded history data to cloud');
+      // Clean history data - remove entries older than 90 days to save Firebase costs
+      const cleanedData = cleanHistoryData(updateData);
+      
+      await setDoc(doc(db, 'users', userId), cleanedData, { merge: true });
+      console.log('[Sync] Uploaded history data to cloud (cleaned entries older than 90 days)');
     }
     
     return true;
