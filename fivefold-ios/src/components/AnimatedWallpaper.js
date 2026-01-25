@@ -22,7 +22,7 @@ export const AnimatedWallpaper = ({
   fadeOnScroll = false,
   scaleOnScroll = false 
 }) => {
-  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, currentTheme } = useTheme();
+  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper } = useTheme();
   const parallaxAnim = useRef(new Animated.Value(0)).current;
   const blurAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1.2)).current; // Start bigger
@@ -149,6 +149,22 @@ export const AnimatedWallpaper = ({
       }
     }
     
+    if (isBiblelyTheme) {
+      // Load biblely wallpaper from context selection
+      try {
+        const wallpaper = getCurrentWallpaper ? getCurrentWallpaper() : null;
+        console.log('🎨 Loading Biblely wallpaper:', wallpaper?.name || 'default');
+        if (wallpaper?.source) {
+          return wallpaper.source;
+        }
+        // Fallback to default wallpaper
+        return require('../themes/biblely/wallpaper1.jpg');
+      } catch (error) {
+        console.log('❌ Biblely wallpaper image not found, using gradient background:', error);
+        return null;
+      }
+    }
+    
     return null;
   };
 
@@ -167,7 +183,7 @@ export const AnimatedWallpaper = ({
   return (
     <View style={styles.container}>
       {/* Animated Background */}
-      {(isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) && (
+      {(isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) && (
         <>
           {/* Gradient Background */}
           <Animated.View 

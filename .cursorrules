@@ -12,3 +12,10 @@
   - subtle text shadow for edge clarity
 - Buttons on pastel backgrounds should not rely on low-opacity white fills; use darker fills or add a scrim.
 
+## Notifications
+- **NEVER use emojis in notification titles or body text**. Keep all notifications clean and professional without any emoji characters. This applies to:
+  - Prayer reminders
+  - Workout reminders
+  - Task reminders
+  - Streak notifications
+  - All other push notifications

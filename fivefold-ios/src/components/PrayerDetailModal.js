@@ -364,6 +364,7 @@ const PrayerDetailModal = ({
                           borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
                           borderTopWidth: 1
                         }]}>
+                          {/* Discuss Button - First */}
                           <TouchableOpacity
                             style={[styles.verseActionButton, { 
                               backgroundColor: isDark 
@@ -374,33 +375,6 @@ const PrayerDetailModal = ({
                             }]}
                             onPress={(e) => {
                               if (e) e.stopPropagation();
-                              handleGoToVersePress(verse.reference);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <MaterialIcons name="menu-book" size={16} color={theme.primary} />
-                            <Text style={[styles.verseActionText, { color: theme.primary }]}>
-                              Go to Verse
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.verseActionButton, { 
-                              backgroundColor: isDark 
-                                ? 'rgba(255, 255, 255, 0.12)' 
-                                : 'rgba(0, 0, 0, 0.08)',
-                              borderWidth: 1.5,
-                              borderColor: isDark 
-                                ? 'rgba(255, 255, 255, 0.2)' 
-                                : 'rgba(0, 0, 0, 0.15)'
-                            }]}
-                            onPress={(e) => {
-                              if (e) e.stopPropagation();
-                              // IMPORTANT:
-                              // The verse cards can display fetched text in the user's selected version
-                              // via `fetchedVerses[reference]`, but `verse.text` may still be the original
-                              // hardcoded text (often KJV). If we pass the raw `verse` object to Friend chat,
-                              // the user sees a different translation in chat than in the UI.
                               const displayedText = loadingVerses
                                 ? ''
                                 : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
@@ -417,9 +391,32 @@ const PrayerDetailModal = ({
                             }}
                             activeOpacity={0.7}
                           >
-                            <MaterialIcons name="chat" size={16} color={theme.text} />
-                            <Text style={[styles.verseActionText, { color: theme.text }]}>
+                            <MaterialIcons name="chat" size={16} color={theme.primary} />
+                            <Text style={[styles.verseActionText, { color: theme.primary }]}>
                               Discuss
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Go to Verse Button - Second */}
+                          <TouchableOpacity
+                            style={[styles.verseActionButton, { 
+                              backgroundColor: isDark 
+                                ? 'rgba(255, 255, 255, 0.12)' 
+                                : 'rgba(0, 0, 0, 0.08)',
+                              borderWidth: 1.5,
+                              borderColor: isDark 
+                                ? 'rgba(255, 255, 255, 0.2)' 
+                                : 'rgba(0, 0, 0, 0.15)'
+                            }]}
+                            onPress={(e) => {
+                              if (e) e.stopPropagation();
+                              handleGoToVersePress(verse.reference);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="menu-book" size={16} color={theme.text} />
+                            <Text style={[styles.verseActionText, { color: theme.text }]}>
+                              Go to Verse
                             </Text>
                           </TouchableOpacity>
                         </View>

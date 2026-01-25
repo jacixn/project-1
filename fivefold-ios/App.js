@@ -6,9 +6,10 @@ import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'reac
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { WorkoutProvider, useWorkout } from './src/contexts/WorkoutContext';
-import TabNavigator from './src/navigation/TabNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
+import RootNavigator from './src/navigation/RootNavigator';
 import notificationService from './src/services/notificationService';
-import OnboardingWrapper from './src/components/OnboardingWrapper';
+// OnboardingWrapper is now handled inside RootNavigator
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
@@ -16,6 +17,7 @@ import iCloudSyncService from './src/services/iCloudSyncService';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
+import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -100,12 +102,72 @@ const SplashScreen = () => {
   );
 };
 
+// Import bible audio service to track audio state
+import bibleAudioService from './src/services/bibleAudioService';
+
 // App navigation wrapper with mini workout player
 const AppNavigation = () => {
   const { hasActiveWorkout, maximizeWorkout } = useWorkout();
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [modalTemplateData, setModalTemplateData] = useState(null);
+  const [isAudioPlayerVisible, setIsAudioPlayerVisible] = useState(false);
+  const [firstPlayer, setFirstPlayer] = useState(null); // 'workout' or 'audio' - tracks which came first
   const achievementToastRef = React.useRef(null);
+
+  // Track which player came first
+  useEffect(() => {
+    if (hasActiveWorkout && !isAudioPlayerVisible) {
+      // Only workout is active
+      setFirstPlayer('workout');
+    } else if (!hasActiveWorkout && isAudioPlayerVisible) {
+      // Only audio is active
+      setFirstPlayer('audio');
+    } else if (!hasActiveWorkout && !isAudioPlayerVisible) {
+      // Neither active, reset
+      setFirstPlayer(null);
+    }
+    // When both are active, keep the existing firstPlayer value
+  }, [hasActiveWorkout, isAudioPlayerVisible]);
+
+  // Track audio player visibility using the proper listener API
+  useEffect(() => {
+    const updateAudioVisibility = (state) => {
+      if (!state) {
+        setIsAudioPlayerVisible(false);
+        return;
+      }
+      const hasVerse = !!state.currentVerse;
+      const isActive = state.isPlaying || state.isPaused || state.isLoading || state.autoPlayEnabled;
+      setIsAudioPlayerVisible(hasVerse && isActive);
+    };
+    
+    // Check initial state
+    const initialState = bibleAudioService.getPlaybackState?.();
+    updateAudioVisibility(initialState);
+    
+    // Use proper listener API if available
+    if (typeof bibleAudioService.addPlaybackListener === 'function') {
+      const unsubscribe = bibleAudioService.addPlaybackListener(updateAudioVisibility);
+      
+      // Also listen for complete event to hide player
+      const unsubscribeComplete = bibleAudioService.addCompleteListener?.(() => {
+        setIsAudioPlayerVisible(false);
+      });
+      
+      return () => {
+        unsubscribe?.();
+        unsubscribeComplete?.();
+      };
+    }
+    
+    // Fallback: poll for state changes
+    const interval = setInterval(() => {
+      const state = bibleAudioService.getPlaybackState?.();
+      updateAudioVisibility(state);
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('openWorkoutModal', (payload = {}) => {
@@ -140,14 +202,40 @@ const AppNavigation = () => {
     setWorkoutModalVisible(true);
   };
 
+  const handleAudioPlayerNavigate = (verseData) => {
+    // Emit event to navigate to the verse being read
+    console.log('🔊 Audio player tapped - navigating to verse:', verseData);
+    DeviceEventEmitter.emit('navigateToAudioVerse', verseData);
+  };
+
   return (
     <>
-      <TabNavigator />
+      <RootNavigator />
       
       {/* Global Mini Workout Player - Shows when workout is active */}
+      {/* Position depends on who came first */}
       {hasActiveWorkout && (
-        <MiniWorkoutPlayer onPress={handleMiniPlayerPress} />
+        <MiniWorkoutPlayer 
+          onPress={handleMiniPlayerPress} 
+          bottomOffset={
+            isAudioPlayerVisible 
+              ? (firstPlayer === 'workout' ? 95 : 180) // Workout first = bottom, otherwise top
+              : 95 // Only workout = bottom
+          }
+        />
       )}
+
+      {/* Global Bible Audio Player - Shows when Bible audio is playing */}
+      {/* Position depends on who came first */}
+      {/* Audio on top = 150px (55px gap from bottom player), Audio on bottom = 95px */}
+      <PersistentAudioPlayerBar 
+        bottomOffset={
+          hasActiveWorkout 
+            ? (firstPlayer === 'audio' ? 95 : 150) // Audio first = bottom (95), otherwise top (150 for 55px gap)
+            : 95 // Only audio = bottom
+        }
+        onNavigateToVerse={handleAudioPlayerNavigate}
+      />
 
       {/* Workout Modal - Opens when mini player is tapped */}
       <WorkoutModal
@@ -171,6 +259,7 @@ const ThemedApp = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [appKey, setAppKey] = useState(0); // Used to force remount
   const navigationRef = useRef(null);
+  const pendingNavigationRef = useRef(null); // Store pending navigation if nav isn't ready
   
   // Handle deep links from widgets
   const handleDeepLink = (url) => {
@@ -194,13 +283,31 @@ const ThemedApp = () => {
           
           // Small delay to ensure app is ready
           setTimeout(() => {
-            // Navigate to Bible/Prayer tab and open verse
-            DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
+            // STEP 1: Emit global event to close ALL modals in ALL tabs
+            console.log('📱 Emitting closeAllModals event');
+            DeviceEventEmitter.emit('closeAllModals');
+            
+            // STEP 2: Navigate to BiblePrayer tab (after modals start closing)
+            setTimeout(() => {
+              if (navigationRef.current?.isReady()) {
+                try {
+                  navigationRef.current.navigate('BiblePrayer');
+                  console.log('✅ Navigated to BiblePrayer tab for widget');
+                } catch (navError) {
+                  console.error('❌ Navigation error:', navError);
+                }
+              }
+              
+              // STEP 3: Emit event to show the specific verse (after tab navigation)
+              setTimeout(() => {
+                DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
+              }, 300);
+            }, 100);
             
             // Clear the flag after navigation
             setTimeout(() => {
               global.__WIDGET_LAUNCH__ = false;
-            }, 1000);
+            }, 1500);
           }, 500);
         }
       }
@@ -221,6 +328,73 @@ const ThemedApp = () => {
     // Handle URLs while app is running
     const subscription = Linking.addEventListener('url', (event) => {
       handleDeepLink(event.url);
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+  
+  // Handle notification-based navigation
+  const handleNotificationNavigation = (payload) => {
+    const { tab, data, notificationType } = payload;
+    
+    console.log('📱 Notification navigation request:', { tab, notificationType });
+    
+    // Navigate to the appropriate tab
+    if (navigationRef.current?.isReady()) {
+      try {
+        navigationRef.current.navigate(tab);
+        console.log('✅ Navigated to:', tab);
+        
+        // Emit a secondary event for the specific screen to handle additional data
+        if (data) {
+          setTimeout(() => {
+            DeviceEventEmitter.emit('notificationDataReceived', {
+              tab,
+              data,
+              notificationType,
+            });
+          }, 300);
+        }
+      } catch (error) {
+        console.error('❌ Navigation error:', error);
+      }
+    } else {
+      // Navigation not ready yet, store for later
+      console.log('📱 Navigation not ready, storing pending navigation');
+      pendingNavigationRef.current = payload;
+    }
+  };
+  
+  // Listen for notification navigation events
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('notificationNavigation', handleNotificationNavigation);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Listen for audio player navigation events (tap on audio player bar)
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('navigateToAudioVerse', (verseData) => {
+      console.log('🔊 Navigating to audio verse:', verseData);
+      
+      // Navigate to BiblePrayer tab
+      if (navigationRef.current?.isReady()) {
+        try {
+          navigationRef.current.navigate('BiblePrayer');
+          console.log('✅ Navigated to BiblePrayer tab for audio verse');
+          
+          // Emit event to open Bible reader at the specific verse
+          setTimeout(() => {
+            DeviceEventEmitter.emit('openBibleReaderAtVerse', verseData);
+          }, 300);
+        } catch (error) {
+          console.error('❌ Audio verse navigation error:', error);
+        }
+      }
     });
     
     return () => {
@@ -315,13 +489,22 @@ const ThemedApp = () => {
         hidden={false}
       />
       <ErrorBoundary key={appKey}>
-        <OnboardingWrapper key={`onboarding-${appKey}`}>
-          <WorkoutProvider>
-            <NavigationContainer key={`nav-${appKey}`}>
-              <AppNavigation />
-            </NavigationContainer>
-          </WorkoutProvider>
-        </OnboardingWrapper>
+        <WorkoutProvider>
+          <NavigationContainer 
+            key={`nav-${appKey}`}
+            ref={navigationRef}
+            onReady={() => {
+              // Handle any pending navigation from notification tap
+              if (pendingNavigationRef.current) {
+                console.log('📱 Processing pending notification navigation');
+                handleNotificationNavigation(pendingNavigationRef.current);
+                pendingNavigationRef.current = null;
+              }
+            }}
+          >
+            <AppNavigation />
+          </NavigationContainer>
+        </WorkoutProvider>
       </ErrorBoundary>
     </>
   );
@@ -332,7 +515,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <ThemedApp />
+        <AuthProvider>
+          <ThemedApp />
+        </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

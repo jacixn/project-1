@@ -39,3 +39,5 @@ yarn-error.*
 # API Keys & Tokens - KEEP SECRET
 github.config.js
 deepseek.config.js
+googleTts.config.js
+GoogleService-Info.plist

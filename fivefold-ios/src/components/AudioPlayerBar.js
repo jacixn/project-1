@@ -18,20 +18,28 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleAudioService from '../services/bibleAudioService';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 
 const { width: screenWidth } = Dimensions.get('window');
+const maxBarWidth = Math.min(screenWidth * 0.9, 400);
 
 const AudioPlayerBar = ({
   visible,
   currentVerse,
   bookName,
   chapterNumber,
+  isLoading = false,
   isPlaying,
   isPaused,
   autoPlayEnabled,
   onStop,
   onToggleAutoPlay,
   onClose,
+  onPress, // Called when user taps the main area to navigate to the verse
+  bottomOffset = 0,
 }) => {
   const { theme, isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(100)).current;
@@ -102,57 +110,98 @@ const AudioPlayerBar = ({
     onClose?.();
   };
 
+  const containerPaddingBottom = bottomOffset > 0 ? 12 : 34;
+
+  // Liquid Glass wrapper component
+  const GlassContainer = ({ children }) => {
+    if (isLiquidGlassSupported) {
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={[styles.blurContainer, { width: maxBarWidth }]}
+        >
+          <View style={styles.content}>
+            {children}
+          </View>
+        </LiquidGlassView>
+      );
+    }
+    return (
+      <BlurView
+        intensity={isDark ? 40 : 60}
+        tint={isDark ? 'dark' : 'light'}
+        style={[styles.blurContainer, { width: maxBarWidth }]}
+      >
+        <View style={[styles.content, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)' }]}>
+          {children}
+        </View>
+      </BlurView>
+    );
+  };
+
   return (
     <Animated.View
       style={[
         styles.container,
         {
+          bottom: bottomOffset,
           transform: [{ translateY: slideAnim }],
+          paddingBottom: containerPaddingBottom,
         },
       ]}
     >
-      <BlurView
-        intensity={isDark ? 40 : 60}
-        tint={isDark ? 'dark' : 'light'}
-        style={styles.blurContainer}
-      >
-        <View style={[styles.content, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)' }]}>
-          {/* Playing Indicator */}
-          <View style={styles.leftSection}>
-            <Animated.View
-              style={[
-                styles.playingIndicator,
-                { 
-                  backgroundColor: `${theme.primary}25`,
-                  transform: [{ scale: pulseAnim }],
-                },
-              ]}
-            >
-              <MaterialIcons
-                name={isPlaying && !isPaused ? 'graphic-eq' : 'pause'}
-                size={22}
-                color={theme.primary}
-              />
-            </Animated.View>
-          </View>
+      <GlassContainer>
+          {/* Tappable area - navigates to the verse being read */}
+          <TouchableOpacity 
+            style={styles.tappableArea}
+            activeOpacity={0.7}
+            onPress={() => {
+              if (onPress) {
+                hapticFeedback.buttonPress();
+                onPress();
+              }
+            }}
+          >
+            {/* Playing/Loading Indicator */}
+            <View style={styles.leftSection}>
+              <Animated.View
+                style={[
+                  styles.playingIndicator,
+                  { 
+                    backgroundColor: `${theme.primary}25`,
+                    transform: [{ scale: isLoading ? 1 : pulseAnim }],
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={isLoading ? 'hourglass-empty' : (isPlaying && !isPaused ? 'graphic-eq' : 'pause')}
+                  size={20}
+                  color={theme.primary}
+                />
+              </Animated.View>
+            </View>
 
-          {/* Verse Info */}
-          <View style={styles.centerSection}>
-            <Text style={[styles.reference, { color: theme.primary }]} numberOfLines={1}>
-              {reference}
-            </Text>
-            <Text style={[styles.versePreview, { color: theme.textSecondary }]} numberOfLines={1}>
-              {verseText.substring(0, 60)}...
-            </Text>
-            {autoPlayEnabled && (
-              <View style={styles.autoPlayBadge}>
-                <MaterialIcons name="repeat" size={12} color={theme.primary} />
-                <Text style={[styles.autoPlayText, { color: theme.primary }]}>
-                  Auto-play on
-                </Text>
-              </View>
-            )}
-          </View>
+            {/* Verse Info */}
+            <View style={styles.centerSection}>
+              <Text style={[styles.reference, { color: theme.primary }]} numberOfLines={1}>
+                {reference}
+              </Text>
+              <Text style={[styles.versePreview, { color: theme.textSecondary }]} numberOfLines={1}>
+                {isLoading ? 'Loading audio...' : `${verseText.substring(0, 60)}...`}
+              </Text>
+              {autoPlayEnabled && !isLoading && (
+                <View style={styles.autoPlayBadge}>
+                  <MaterialIcons name="repeat" size={12} color={theme.primary} />
+                  <Text style={[styles.autoPlayText, { color: theme.primary }]}>
+                    Auto-play on
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
 
           {/* Control Buttons */}
           <View style={styles.rightSection}>
@@ -169,7 +218,7 @@ const AudioPlayerBar = ({
             >
               <MaterialIcons
                 name="repeat"
-                size={18}
+                size={16}
                 color={autoPlayEnabled ? theme.primary : theme.textSecondary}
               />
             </TouchableOpacity>
@@ -180,7 +229,7 @@ const AudioPlayerBar = ({
               onPress={handleStop}
               activeOpacity={0.7}
             >
-              <MaterialIcons name="stop" size={20} color="#fff" />
+              <MaterialIcons name="stop" size={18} color="#fff" />
             </TouchableOpacity>
 
             {/* Close Button */}
@@ -189,11 +238,10 @@ const AudioPlayerBar = ({
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+              <MaterialIcons name="close" size={16} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
-        </View>
-      </BlurView>
+      </GlassContainer>
     </Animated.View>
   );
 };
@@ -201,12 +249,10 @@ const AudioPlayerBar = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 12,
-    paddingBottom: 34, // Safe area for iPhone
     zIndex: 9999,
+    alignItems: 'center',
   },
   blurContainer: {
     borderRadius: 20,
@@ -220,19 +266,25 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 18,
     borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.2)',
+  },
+  tappableArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   leftSection: {
     marginRight: 12,
   },
   playingIndicator: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -242,13 +294,20 @@ const styles = StyleSheet.create({
   },
   reference: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.3,
     marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   versePreview: {
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 15,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   autoPlayBadge: {
     flexDirection: 'row',
@@ -258,7 +317,10 @@ const styles = StyleSheet.create({
   },
   autoPlayText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   rightSection: {
     flexDirection: 'row',
@@ -266,23 +328,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   controlButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stopButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stopButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },

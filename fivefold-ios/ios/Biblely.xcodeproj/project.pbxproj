@@ -10,7 +10,7 @@
 		0703F7959EADAB182BB8D414 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00010E897515DD053E931506 /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		18AB099E4B148ED7282A9CFD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */; };
-		25282BDCFEBA09BAD6E28CD3 /* Pods_Biblely.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98E2721BAD494307B49F1F65 /* Pods_Biblely.framework */; };
+		1E15B017F0C844C4C5C47DB9 /* libPods-Biblely.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DA673ADB468E894D7FF86589 /* libPods-Biblely.a */; };
 		2A4C32F12F00883E006372D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F02F00883E006372D4 /* WidgetKit.framework */; };
 		2A4C32F32F00883E006372D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F22F00883E006372D4 /* SwiftUI.framework */; };
 		2A4C33022F00884D006372D4 /* BiblelyVerseWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2A4C32EF2F00883D006372D4 /* BiblelyVerseWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -54,9 +54,9 @@
 		3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Biblely/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		474C99B71160B5A978969E1D /* Pods-Biblely.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Biblely.debug.xcconfig"; path = "Target Support Files/Pods-Biblely/Pods-Biblely.debug.xcconfig"; sourceTree = "<group>"; };
 		7BE162578E401607A58DFE94 /* Pods-Biblely.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Biblely.release.xcconfig"; path = "Target Support Files/Pods-Biblely/Pods-Biblely.release.xcconfig"; sourceTree = "<group>"; };
-		98E2721BAD494307B49F1F65 /* Pods_Biblely.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Biblely.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Biblely/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		DA673ADB468E894D7FF86589 /* libPods-Biblely.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Biblely.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Biblely/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Biblely-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Biblely-Bridging-Header.h"; path = "Biblely/Biblely-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -92,7 +92,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				25282BDCFEBA09BAD6E28CD3 /* Pods_Biblely.framework in Frameworks */,
+				1E15B017F0C844C4C5C47DB9 /* libPods-Biblely.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,7 +137,7 @@
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				2A4C32F02F00883E006372D4 /* WidgetKit.framework */,
 				2A4C32F22F00883E006372D4 /* SwiftUI.framework */,
-				98E2721BAD494307B49F1F65 /* Pods_Biblely.framework */,
+				DA673ADB468E894D7FF86589 /* libPods-Biblely.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -510,7 +510,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -525,7 +525,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.30;
+				MARKETING_VERSION = 1.0.39;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -549,7 +549,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				INFOPLIST_FILE = Biblely/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Biblely;
@@ -559,7 +559,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.30;
+				MARKETING_VERSION = 1.0.39;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -589,7 +589,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -605,7 +605,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.30;
+				MARKETING_VERSION = 1.0.39;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -638,7 +638,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -654,7 +654,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.30;
+				MARKETING_VERSION = 1.0.39;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesusxoi.biblely.BiblelyVerseWidget;

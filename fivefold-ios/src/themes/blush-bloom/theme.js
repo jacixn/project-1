@@ -1,4 +1,6 @@
 // 🌸 Blush Bloom Theme - Feminine Pink Paradise
+export const blushBloomWallpaper = require('./wallpaper1.jpg');
+
 export const blushBloomTheme = {
   name: 'Blush Bloom',
   id: 'blush-bloom',

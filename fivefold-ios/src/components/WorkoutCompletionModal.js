@@ -10,6 +10,7 @@ import {
   Share,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
@@ -120,16 +121,21 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
           style={[
             styles.container,
             {
-              backgroundColor: theme.background,
               transform: [{ scale: scaleAnim }],
               opacity: fadeAnim,
             }
           ]}
         >
-          <ScrollView 
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+          <BlurView
+            intensity={isDark ? 80 : 90}
+            tint={isDark ? 'dark' : 'light'}
+            style={styles.blurContainer}
           >
+            <View style={[styles.glassOverlay, { backgroundColor: isDark ? 'rgba(30, 30, 30, 0.7)' : 'rgba(255, 255, 255, 0.75)' }]}>
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+              >
             {/* Close Button */}
             <TouchableOpacity 
               style={[styles.closeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
@@ -166,7 +172,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
             </Text>
 
             {/* Workout Summary Card */}
-            <View style={[styles.summaryCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+            <View style={[styles.summaryCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }]}>
               {/* Workout Name */}
               <Text style={[styles.workoutName, { color: theme.text }]}>
                 {workoutData.name}
@@ -222,7 +228,9 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
                 </View>
               ))}
             </View>
-          </ScrollView>
+              </ScrollView>
+            </View>
+          </BlurView>
         </Animated.View>
       </View>
     </Modal>
@@ -245,6 +253,17 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     borderRadius: 24,
     overflow: 'hidden',
+  },
+  blurContainer: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  glassOverlay: {
+    flex: 1,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   scrollContent: {
     padding: 24,

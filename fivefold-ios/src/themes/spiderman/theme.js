@@ -1,4 +1,6 @@
 // 🕷️ Spiderman Theme - Web Slinger Red & Black
+export const spidermanWallpaper = require('./wallpaper1.jpg');
+
 export const spidermanTheme = {
   name: 'Spiderman',
   id: 'spiderman',

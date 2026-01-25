@@ -11,13 +11,24 @@ import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking } from 'react-native';
 import chatterboxService from './chatterboxService';
+import googleTtsService from './googleTtsService';
 
 const AUDIO_SETTINGS_KEY = 'bible_audio_settings';
+let ExpoAudio = null;
+
+try {
+  // expo-av requires a rebuilt dev client; guard for runtime availability
+  // eslint-disable-next-line global-require
+  ExpoAudio = require('expo-av')?.Audio || null;
+} catch (error) {
+  ExpoAudio = null;
+}
 
 // TTS Source options
 const TTS_SOURCE = {
-  DEVICE: 'device',     // Uses iOS/Android built-in TTS
-  AI_VOICE: 'ai_voice', // Uses Chatterbox AI for realistic human voice
+  DEVICE: 'device',       // Uses iOS/Android built-in TTS
+  AI_VOICE: 'ai_voice',   // Uses Chatterbox AI (legacy)
+  GOOGLE_TTS: 'google',   // Uses Google Cloud TTS - WaveNet neural voices (BEST QUALITY)
 };
 
 // Voice presets for different genders
@@ -71,6 +82,7 @@ class BibleAudioService {
   constructor() {
     this.isPlaying = false;
     this.isPaused = false;
+    this.isLoading = false; // NEW: Track loading state separately
     this.currentVerse = null;
     this.autoPlayEnabled = false;
     this.verses = [];
@@ -80,7 +92,7 @@ class BibleAudioService {
       rate: 0.46, // 0.0 to 1.0 (slower for natural Bible reading)
       pitch: 1.0, // 0.5 to 2.0 (natural pitch)
       volume: 1.0, // 0.0 to 1.0
-      ttsSource: TTS_SOURCE.DEVICE, // 'device' or 'ai_voice'
+      ttsSource: TTS_SOURCE.GOOGLE_TTS, // Default to Google for best quality
       selectedVoiceId: null, // User-selected voice identifier
     };
     this.availableVoices = [];
@@ -88,6 +100,9 @@ class BibleAudioService {
     this.onPlaybackStateChange = null;
     this.onVerseChange = null;
     this.onComplete = null;
+    this.playbackListeners = new Set();
+    this.verseChangeListeners = new Set();
+    this.completeListeners = new Set();
     this.hasEnhancedVoice = false;
     this.hasPromptedForVoices = false;
     this.currentBook = '';
@@ -99,6 +114,61 @@ class BibleAudioService {
     this.loadSettings();
     this.initializeVoices();
     this.checkChatterboxAvailability();
+  }
+
+  /**
+   * Subscribe to playback state changes
+   */
+  addPlaybackListener(listener) {
+    if (!listener) return () => {};
+    this.playbackListeners.add(listener);
+    return () => this.playbackListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to verse change events (auto-play)
+   */
+  addVerseChangeListener(listener) {
+    if (!listener) return () => {};
+    this.verseChangeListeners.add(listener);
+    return () => this.verseChangeListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to completion events (auto-play finished)
+   */
+  addCompleteListener(listener) {
+    if (!listener) return () => {};
+    this.completeListeners.add(listener);
+    return () => this.completeListeners.delete(listener);
+  }
+
+  /**
+   * Get current playback state snapshot
+   */
+  getPlaybackState() {
+    return {
+      isPlaying: this.isPlaying,
+      isPaused: this.isPaused,
+      isLoading: this.isLoading,
+      autoPlayEnabled: this.autoPlayEnabled,
+      currentVerse: this.currentVerse,
+      currentVerseIndex: this.currentVerseIndex,
+      currentBook: this.currentBook,
+      currentChapter: this.currentChapter,
+    };
+  }
+
+  /**
+   * Get current reading context (book/chapter/verses)
+   */
+  getCurrentReadingContext() {
+    return {
+      book: this.currentBook,
+      chapter: this.currentChapter,
+      verses: this.verses,
+      currentVerseIndex: this.currentVerseIndex,
+    };
   }
 
   /**
@@ -115,12 +185,30 @@ class BibleAudioService {
   }
 
   /**
+   * Ensure audio plays through speaker and in silent mode
+   */
+  async configureAudioMode() {
+    if (!ExpoAudio?.setAudioModeAsync) return;
+    try {
+      await ExpoAudio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: ExpoAudio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (error) {
+      console.log('[BibleAudio] Failed to set audio mode:', error);
+    }
+  }
+
+  /**
    * Get TTS source options
    */
   getTTSSources() {
     return [
-      { id: TTS_SOURCE.DEVICE, name: 'Device Voice', description: 'Uses your device built-in voices (instant, works offline)' },
-      { id: TTS_SOURCE.AI_VOICE, name: 'AI Voice', description: 'Realistic human-like voice powered by AI (requires internet)' },
+      { id: TTS_SOURCE.GOOGLE_TTS, name: 'Google Neural Voice', description: 'Most realistic human-like voice (recommended)', badge: 'BEST' },
+      { id: TTS_SOURCE.DEVICE, name: 'Device Voice', description: 'Built-in voices, works offline (lower quality)' },
     ];
   }
 
@@ -128,7 +216,7 @@ class BibleAudioService {
    * Set TTS source
    */
   async setTTSSource(source) {
-    if (source !== TTS_SOURCE.DEVICE && source !== TTS_SOURCE.AI_VOICE) return;
+    if (source !== TTS_SOURCE.DEVICE && source !== TTS_SOURCE.AI_VOICE && source !== TTS_SOURCE.GOOGLE_TTS) return;
     
     this.settings.ttsSource = source;
     await this.saveSettings();
@@ -143,10 +231,17 @@ class BibleAudioService {
   }
 
   /**
-   * Check if using AI voice
+   * Check if using AI voice (legacy Chatterbox)
    */
   isUsingAIVoice() {
     return this.settings.ttsSource === TTS_SOURCE.AI_VOICE;
+  }
+
+  /**
+   * Check if using Google Cloud TTS
+   */
+  isUsingGoogleTTS() {
+    return this.settings.ttsSource === TTS_SOURCE.GOOGLE_TTS;
   }
 
   /**
@@ -404,13 +499,18 @@ class BibleAudioService {
    * @param {boolean} params.announceReference - Whether to announce the reference first
    */
   async speakVerse({ book, chapter, verse, announceReference = true }) {
-    // Stop current speech but preserve autoPlayEnabled state
-    const wasAutoPlay = this.autoPlayEnabled;
+    // Stop current speech
     await Speech.stop();
     await chatterboxService.stop();
-    this.autoPlayEnabled = wasAutoPlay; // Restore auto-play state
+    await googleTtsService.stop();
     
-    this.isPlaying = true;
+    // IMPORTANT: Single verse playback is NOT auto-play
+    // This ensures completion logic runs correctly
+    this.autoPlayEnabled = false;
+    
+    // Set loading state first - audio is being prepared
+    this.isLoading = true;
+    this.isPlaying = false;
     this.isPaused = false;
     this.currentVerse = { book, chapter, verse };
     
@@ -429,7 +529,15 @@ class BibleAudioService {
     // Clean the text for better speech
     textToSpeak = this.cleanTextForSpeech(textToSpeak);
     
-    // Use Chatterbox AI voice if enabled
+    // Ensure audio routes to speaker and plays in silent mode
+    await this.configureAudioMode();
+
+    // Use Google Cloud TTS if enabled (BEST QUALITY)
+    if (this.isUsingGoogleTTS()) {
+      return this.speakWithGoogleTTS(textToSpeak);
+    }
+
+    // Use Chatterbox AI voice if enabled (legacy)
     if (this.isUsingAIVoice() && this.chatterboxAvailable) {
       return this.speakWithChatterbox(textToSpeak);
     }
@@ -473,11 +581,53 @@ class BibleAudioService {
   }
 
   /**
+   * Speak text using Google Cloud TTS (BEST QUALITY)
+   * Returns a Promise that resolves when audio finishes playing
+   */
+  async speakWithGoogleTTS(text) {
+    try {
+      console.log('[BibleAudio] Using Google Cloud TTS (WaveNet neural voice)');
+      console.log('[BibleAudio] Text to speak:', text.substring(0, 80) + '...');
+      
+      // Update state - now playing
+      this.isLoading = false;
+      this.isPlaying = true;
+      this.notifyStateChange();
+      
+      // Speak and WAIT for completion (this Promise resolves when audio finishes)
+      const success = await googleTtsService.speak(text);
+      
+      console.log('[BibleAudio] Google TTS finished, success:', success);
+      
+      if (!success) {
+        // Fallback to device TTS if Google TTS fails
+        console.log('[BibleAudio] Google TTS failed, falling back to device TTS');
+        return this.speakWithDeviceTTS(text);
+      }
+      
+      // Update state after completion
+      if (!this.autoPlayEnabled) {
+        this.isPlaying = false;
+        this.currentVerse = null;
+        this.notifyStateChange();
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('[BibleAudio] Google TTS error:', error);
+      // Fallback to device TTS
+      return this.speakWithDeviceTTS(text);
+    }
+  }
+
+  /**
    * Speak text using Chatterbox AI voice
    */
   async speakWithChatterbox(text) {
     try {
       console.log('[BibleAudio] Using Chatterbox AI voice');
+      await this.configureAudioMode();
       
       // Set up state change listener
       chatterboxService.onStateChange = (state) => {
@@ -513,6 +663,7 @@ class BibleAudioService {
    */
   speakWithDeviceTTS(text) {
     return new Promise((resolve, reject) => {
+      this.configureAudioMode();
       const options = {
         language: 'en-US',
         pitch: this.settings.pitch,
@@ -559,6 +710,12 @@ class BibleAudioService {
     this.currentBook = book;
     this.currentChapter = chapter;
     
+    // Set initial verse for UI immediately
+    const firstVerse = verses[startIndex];
+    this.currentVerse = { book, chapter, verse: firstVerse };
+    this.isPlaying = true;
+    this.notifyStateChange();
+    
     console.log(`[BibleAudio] Starting auto-play from verse ${startIndex + 1} of ${verses.length} verses`);
     
     // First verse gets full reference announcement
@@ -566,53 +723,112 @@ class BibleAudioService {
   }
 
   /**
-   * Play the next verse in auto-play mode
+   * Play verses in auto-play mode with preloading for seamless playback
+   * While current verse plays, next verse is preloaded in background
    */
   async playNextVerse(book, chapter, isFirstVerse = false) {
+    console.log(`[BibleAudio] playNextVerse called - index: ${this.currentVerseIndex}, autoPlay: ${this.autoPlayEnabled}`);
+    
     if (!this.autoPlayEnabled || this.currentVerseIndex >= this.verses.length) {
+      console.log('[BibleAudio] Auto-play stopping - end of verses or disabled');
+      googleTtsService.clearPreloaded();
       this.stopAutoPlay();
       if (this.onComplete) {
         this.onComplete();
       }
+      this.completeListeners.forEach(listener => listener());
       return;
     }
     
     const verse = this.verses[this.currentVerseIndex];
     const verseNumber = verse.number || verse.verse;
     
+    console.log(`[BibleAudio] Playing verse ${verseNumber} (index ${this.currentVerseIndex})`);
+    
+    // Notify UI about verse change
     if (this.onVerseChange) {
       this.onVerseChange(verse, this.currentVerseIndex);
     }
+    this.verseChangeListeners.forEach(listener => listener(verse, this.currentVerseIndex));
+    
+    // Update current verse info for UI
+    this.currentVerse = { book, chapter, verse };
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.notifyStateChange();
     
     try {
-      // For first verse: announce full reference (book, chapter, verse)
-      // For subsequent verses in same chapter: just say "verse X" then content
+      // Build text for current verse
+      let textToSpeak = '';
       if (isFirstVerse) {
-        await this.speakVerse({ 
-          book, 
-          chapter, 
-          verse, 
-          announceReference: true 
-        });
+        const reference = this.formatReferenceForSpeech(book, chapter, verseNumber);
+        textToSpeak = `${reference}. ${verse.content || verse.text}`;
       } else {
-        // Just announce verse number for continuation
-        await this.speakVerseNumberOnly({ 
-          verseNumber, 
-          verseText: verse.content || verse.text 
-        });
+        textToSpeak = `Verse ${verseNumber}. ${verse.content || verse.text}`;
+      }
+      textToSpeak = this.cleanTextForSpeech(textToSpeak);
+      
+      // Check if we have preloaded audio ready (from previous iteration)
+      const hasPreloaded = this.isUsingGoogleTTS() && googleTtsService.hasPreloadedAudio();
+      
+      // Start preloading NEXT verse while current one plays
+      const nextIndex = this.currentVerseIndex + 1;
+      let preloadPromise = null;
+      
+      if (this.isUsingGoogleTTS() && nextIndex < this.verses.length && this.autoPlayEnabled) {
+        const nextVerse = this.verses[nextIndex];
+        const nextVerseNumber = nextVerse.number || nextVerse.verse;
+        const nextVerseContent = nextVerse.content || nextVerse.text || '';
+        
+        if (nextVerseContent) {
+          let nextText = `Verse ${nextVerseNumber}. ${nextVerseContent}`;
+          nextText = this.cleanTextForSpeech(nextText);
+          
+          console.log(`[BibleAudio] Preloading verse ${nextVerseNumber}: "${nextText.substring(0, 40)}..."`);
+          
+          // Start preloading in background (don't await)
+          preloadPromise = googleTtsService.preload(nextText);
+        } else {
+          console.log(`[BibleAudio] Skipping preload - verse ${nextVerseNumber} has no content`);
+        }
+      }
+      
+      // Play current verse
+      if (this.isUsingGoogleTTS()) {
+        if (hasPreloaded && !isFirstVerse) {
+          // Use preloaded audio (instant playback!)
+          console.log('[BibleAudio] Using preloaded audio for instant playback');
+          // Ensure state is communicated before playing
+          this.isPlaying = true;
+          this.notifyStateChange();
+          await googleTtsService.playPreloaded();
+        } else {
+          // First verse or no preload - fetch and play normally
+          await this.speakWithGoogleTTS(textToSpeak);
+        }
+      } else if (this.isUsingAIVoice() && this.chatterboxAvailable) {
+        await this.speakWithChatterbox(textToSpeak);
+      } else {
+        await this.speakWithDeviceTTS(textToSpeak);
+      }
+      
+      console.log(`[BibleAudio] Verse ${verseNumber} finished`);
+      
+      // Wait for preload to complete if still in progress
+      if (preloadPromise) {
+        await preloadPromise;
       }
       
       if (this.autoPlayEnabled) {
         this.currentVerseIndex++;
+        console.log(`[BibleAudio] Moving to verse ${this.currentVerseIndex + 1}`);
         
-        // Short pause between verses for natural flow
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Continue to next verse
+        // Continue immediately - next verse is already preloaded!
         await this.playNextVerse(book, chapter, false);
       }
     } catch (error) {
       console.error('[BibleAudio] Error playing verse:', error);
+      googleTtsService.clearPreloaded();
       this.stopAutoPlay();
     }
   }
@@ -625,17 +841,36 @@ class BibleAudioService {
     const wasAutoPlay = this.autoPlayEnabled;
     await Speech.stop();
     await chatterboxService.stop();
+    await googleTtsService.stop();
     this.autoPlayEnabled = wasAutoPlay;
     
     this.isPlaying = true;
     this.isPaused = false;
+    
+    // Get the actual verse object from the verses array for UI sync
+    const actualVerse = this.verses[this.currentVerseIndex] || { number: verseNumber, content: verseText };
+    
+    // Update current verse info for UI sync (same structure as speakVerse)
+    this.currentVerse = { 
+      book: this.currentBook, 
+      chapter: this.currentChapter, 
+      verse: actualVerse
+    };
+    
     this.notifyStateChange();
     
+    await this.configureAudioMode();
+
     // Build text: "Verse 5. [content]"
     let textToSpeak = `Verse ${verseNumber}. ${verseText}`;
     textToSpeak = this.cleanTextForSpeech(textToSpeak);
     
-    // Use Chatterbox AI voice if enabled
+    // Use Google Cloud TTS if enabled (BEST QUALITY)
+    if (this.isUsingGoogleTTS()) {
+      return this.speakWithGoogleTTS(textToSpeak);
+    }
+
+    // Use Chatterbox AI voice if enabled (legacy)
     if (this.isUsingAIVoice() && this.chatterboxAvailable) {
       return this.speakWithChatterbox(textToSpeak);
     }
@@ -678,6 +913,7 @@ class BibleAudioService {
     this.autoPlayEnabled = false;
     this.currentVerseIndex = 0;
     this.verses = [];
+    googleTtsService.clearPreloaded();
     this.stop();
   }
 
@@ -688,7 +924,11 @@ class BibleAudioService {
   cleanTextForSpeech(text) {
     if (!text) return '';
     
-    return text
+    // For Google TTS, keep text simple - it handles pacing naturally
+    // Don't add manual pauses as SSML will handle that
+    const isGoogleTTS = this.isUsingGoogleTTS();
+    
+    let cleaned = text
       // Remove verse numbers in brackets or parentheses
       .replace(/\[\d+\]/g, '')
       .replace(/\(\d+\)/g, '')
@@ -707,19 +947,25 @@ class BibleAudioService {
       .replace(/\bthou\b/gi, 'you')
       .replace(/\bunto\b/gi, 'to')
       .replace(/\bwherefore\b/gi, 'why')
-      // Add natural pauses for Bible reading rhythm
-      .replace(/\. /g, '... ')
-      .replace(/; /g, '.. ')
-      .replace(/: /g, '.. ')
-      .replace(/\? /g, '... ')
-      .replace(/! /g, '... ')
-      .replace(/, /g, ', ')
-      // Handle quotes with slight pause
-      .replace(/"/g, '')
-      .replace(/'/g, "'")
+      // Remove curly quotes, replace with straight
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
       // Clean up extra whitespace
       .replace(/\s+/g, ' ')
       .trim();
+    
+    // Only add manual pauses for device TTS (not Google TTS)
+    if (!isGoogleTTS) {
+      cleaned = cleaned
+        .replace(/\. /g, '... ')
+        .replace(/; /g, '.. ')
+        .replace(/: /g, '.. ')
+        .replace(/\? /g, '... ')
+        .replace(/! /g, '... ')
+        .replace(/"/g, '');
+    }
+    
+    return cleaned;
   }
 
   /**
@@ -728,8 +974,10 @@ class BibleAudioService {
   async stop() {
     await Speech.stop();
     await chatterboxService.stop();
+    await googleTtsService.stop();
     this.isPlaying = false;
     this.isPaused = false;
+    this.isLoading = false;
     this.autoPlayEnabled = false;
     this.currentVerse = null;
     this.notifyStateChange();
@@ -791,22 +1039,61 @@ class BibleAudioService {
    * Notify listeners of playback state changes
    */
   notifyStateChange() {
+    const state = {
+      isPlaying: this.isPlaying,
+      isPaused: this.isPaused,
+      isLoading: this.isLoading,
+      autoPlayEnabled: this.autoPlayEnabled,
+      currentVerse: this.currentVerse,
+      currentVerseIndex: this.currentVerseIndex,
+    };
+    
+    console.log('[BibleAudio] State change:', {
+      isLoading: state.isLoading,
+      isPlaying: state.isPlaying,
+      autoPlayEnabled: state.autoPlayEnabled,
+      hasVerse: !!state.currentVerse,
+      verseNum: state.currentVerse?.verse?.number || state.currentVerse?.verse?.verse || 'none',
+      listenersCount: this.playbackListeners.size,
+    });
+    
     if (this.onPlaybackStateChange) {
-      this.onPlaybackStateChange({
-        isPlaying: this.isPlaying,
-        isPaused: this.isPaused,
-        autoPlayEnabled: this.autoPlayEnabled,
-        currentVerse: this.currentVerse,
-        currentVerseIndex: this.currentVerseIndex,
-      });
+      this.onPlaybackStateChange(state);
     }
+    const snapshot = this.getPlaybackState();
+    this.playbackListeners.forEach(listener => listener(snapshot));
   }
 
   /**
    * Get available voices list
+   * Returns Google TTS voices if using Google, otherwise device voices
    */
   getAvailableVoices() {
+    if (this.isUsingGoogleTTS()) {
+      return googleTtsService.getAvailableVoices();
+    }
     return this.availableVoices.filter(v => v.language?.startsWith('en'));
+  }
+
+  /**
+   * Get Google TTS voices specifically
+   */
+  getGoogleVoices() {
+    return googleTtsService.getAvailableVoices();
+  }
+
+  /**
+   * Set Google TTS voice
+   */
+  async setGoogleVoice(voiceKey) {
+    return await googleTtsService.setVoice(voiceKey);
+  }
+
+  /**
+   * Get current Google TTS voice
+   */
+  getGoogleVoice() {
+    return googleTtsService.getCurrentVoice();
   }
 
   /**
@@ -849,6 +1136,7 @@ class BibleAudioService {
    */
   async previewVoice(voiceId, sampleText = null) {
     await Speech.stop();
+    await this.configureAudioMode();
     
     const voice = this.availableVoices.find(v => v.identifier === voiceId);
     if (!voice) return false;

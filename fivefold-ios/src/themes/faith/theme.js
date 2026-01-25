@@ -1,4 +1,6 @@
 // ✝️ Faith Theme - Heavenly Sky & Divine Light
+export const faithWallpaper = require('./wallpaper1.jpg');
+
 export const faithTheme = {
   name: 'Faith',
   id: 'faith',

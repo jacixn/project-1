@@ -9,7 +9,7 @@ import VoicePickerModal from './VoicePickerModal';
 import bibleAudioService from '../services/bibleAudioService';
 
 const Settings = ({ settings, onSettingsChange, onClose }) => {
-  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme } = useTheme();
   
   // API key should be entered by user for security
   const [apiKey, setApiKey] = useState('');
@@ -124,7 +124,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             onPress={() => setShowThemeModal(true)}
             activeOpacity={0.7}
           >
-            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
+            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <MaterialIcons name="palette" size={22} color={theme.primary} />
@@ -147,7 +147,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             onPress={() => setShowVoiceModal(true)}
             activeOpacity={0.7}
           >
-            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
+            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <MaterialIcons name="record-voice-over" size={22} color={theme.primary} />

@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { persistProfileImage } from '../utils/profileImageStorage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,14 +77,16 @@ const SimpleProfileScreen = ({
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const tempUri = result.assets[0].uri;
+      const permanentUri = await persistProfileImage(tempUri);
+      setProfileImage(permanentUri);
       hapticFeedback.success();
     }
   };

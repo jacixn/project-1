@@ -22,6 +22,7 @@ import WorkoutExercisePicker from "./WorkoutExercisePicker";
 import MiniWorkoutPlayer from "./MiniWorkoutPlayer";
 import WorkoutService from "../services/workoutService";
 import ExercisesService from "../services/exercisesService";
+import ScheduleWorkoutModal from "./ScheduleWorkoutModal";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
   const { theme, isDark } = useTheme();
@@ -52,6 +53,10 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
   const [editorExercisesList, setEditorExercisesList] = useState([]); // All exercises for picker
   const [editorSearchQuery, setEditorSearchQuery] = useState('');
   const [loadingExercises, setLoadingExercises] = useState(false);
+  
+  // Schedule modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [templateToSchedule, setTemplateToSchedule] = useState(null);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(1000)).current;
@@ -1132,16 +1137,45 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
                 ))}
               </ScrollView>
 
-              {/* Start Workout Button */}
-              <TouchableOpacity
-                style={[
-                  styles.detailStartButton,
-                  { backgroundColor: theme.primary },
-                ]}
-                onPress={() => handleStartTemplateWorkout(selectedTemplate)}
-              >
-                <Text style={styles.detailStartButtonText}>Start Workout</Text>
-              </TouchableOpacity>
+              {/* Action Buttons Row */}
+              <View style={styles.detailActionButtons}>
+                {/* Schedule Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.detailScheduleButton,
+                    { backgroundColor: theme.card, borderColor: theme.primary },
+                  ]}
+                  onPress={() => {
+                    hapticFeedback.medium();
+                    console.log('📅 Schedule button pressed for:', selectedTemplate?.name);
+                    // Store template and close detail modal first
+                    const templateToSched = selectedTemplate;
+                    setShowTemplateDetail(false);
+                    // Use setTimeout to allow the detail modal to close first
+                    setTimeout(() => {
+                      setTemplateToSchedule(templateToSched);
+                      setShowScheduleModal(true);
+                    }, 300);
+                  }}
+                >
+                  <MaterialIcons name="event" size={20} color={theme.primary} />
+                  <Text style={[styles.detailScheduleButtonText, { color: theme.primary }]}>
+                    Schedule
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Start Workout Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.detailStartButton,
+                    { backgroundColor: theme.primary, flex: 1 },
+                  ]}
+                  onPress={() => handleStartTemplateWorkout(selectedTemplate)}
+                >
+                  <MaterialIcons name="play-arrow" size={22} color="#FFF" />
+                  <Text style={styles.detailStartButtonText}>Start Now</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Delete Button */}
               <TouchableOpacity
@@ -1529,6 +1563,21 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           onClose(); // Close the template modal
           DeviceEventEmitter.emit("openWorkoutModal");
         }} />
+
+        {/* Schedule Workout Modal */}
+        <ScheduleWorkoutModal
+          visible={showScheduleModal}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setTemplateToSchedule(null);
+          }}
+          template={templateToSchedule}
+          onScheduled={(schedule) => {
+            console.log('Workout scheduled:', schedule);
+            // Emit event to refresh calendar
+            DeviceEventEmitter.emit('workoutScheduled', schedule);
+          }}
+        />
       </View>
     </Modal>
   );
@@ -1893,15 +1942,36 @@ const styles = StyleSheet.create({
   detailExerciseHelp: {
     padding: 8,
   },
-  detailStartButton: {
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
+  detailActionButtons: {
+    flexDirection: "row",
+    gap: 12,
     marginBottom: 12,
+  },
+  detailScheduleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 2,
+  },
+  detailScheduleButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  detailStartButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
   detailStartButtonText: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
   },
   detailDeleteButton: {

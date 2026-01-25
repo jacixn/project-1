@@ -68,16 +68,72 @@ export const forceShowOnboarding = async () => {
   }
 };
 
-export const deleteAccountCompletely = async () => {
+export const deleteAccountCompletely = async (password = null) => {
   try {
-    console.log('🗑️ Starting complete account deletion...');
+    console.log('[Delete] Starting complete account deletion...');
     
-    // Clear onboarding completion flag first
-    await AsyncStorage.removeItem('onboardingCompleted');
+    // Import Firebase modules
+    const { auth, db } = await import('../config/firebase');
+    const { doc, getDoc, deleteDoc } = await import('firebase/firestore');
+    const { deleteUser, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth');
+    
+    const currentUser = auth.currentUser;
+    
+    // Delete Firebase data if user is signed in
+    if (currentUser) {
+      console.log('[Delete] Deleting Firebase data for user:', currentUser.uid);
+      
+      try {
+        // Re-authenticate if password is provided (required for account deletion)
+        if (password && currentUser.email) {
+          const credential = EmailAuthProvider.credential(currentUser.email, password);
+          await reauthenticateWithCredential(currentUser, credential);
+          console.log('[Delete] Re-authenticated successfully');
+        }
+        
+        // Get user's username to delete from usernames collection
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          // Delete username reservation
+          if (userData.username) {
+            await deleteDoc(doc(db, 'usernames', userData.username));
+            console.log('[Delete] Deleted username:', userData.username);
+          }
+        }
+        
+        // Delete user document
+        await deleteDoc(doc(db, 'users', currentUser.uid));
+        console.log('[Delete] Deleted user document');
+        
+        // Delete friends document
+        await deleteDoc(doc(db, 'friends', currentUser.uid));
+        console.log('[Delete] Deleted friends document');
+        
+        // Delete the Firebase Auth account
+        await deleteUser(currentUser);
+        console.log('[Delete] Deleted Firebase Auth account');
+        
+      } catch (firebaseError) {
+        console.error('[Delete] Firebase deletion error:', firebaseError);
+        // If requires recent login or wrong password, throw error
+        if (firebaseError.code === 'auth/requires-recent-login') {
+          throw new Error('REQUIRES_PASSWORD');
+        }
+        if (firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
+          throw new Error('REQUIRES_PASSWORD');
+        }
+        // Continue with local deletion for other errors
+      }
+    }
+    
+    // Clear all local data
+    console.log('[Delete] Clearing local data...');
     
     // Get all stored keys
     const allKeys = await AsyncStorage.getAllKeys();
-    console.log('📋 Found keys:', allKeys);
+    console.log('[Delete] Found keys:', allKeys.length);
     
     // Filter out system keys and only remove app-specific data
     const systemKeys = ['@RNC_AsyncStorage_'];
@@ -88,24 +144,18 @@ export const deleteAccountCompletely = async () => {
     // Remove all app data
     if (appKeysToRemove.length > 0) {
       await AsyncStorage.multiRemove(appKeysToRemove);
-      console.log('🧹 Removed keys:', appKeysToRemove);
+      console.log('[Delete] Removed local keys:', appKeysToRemove.length);
     }
     
-    // Force trigger onboarding restart
-    console.log('🔄 Triggering app restart to onboarding...');
+    console.log('[Delete] Account deletion complete');
     
-    // Use a timeout to ensure the deletion completes before restart
-    setTimeout(() => {
-      if (global.onboardingRestartCallback) {
-        global.onboardingRestartCallback();
-      } else {
-        console.warn('⚠️ No onboarding restart callback found');
-      }
-    }, 500);
-    
+    // The app will automatically redirect to auth screen since user is now signed out
     return true;
   } catch (error) {
-    console.error('❌ Complete account deletion failed:', error);
+    console.error('[Delete] Complete account deletion failed:', error);
+    if (error.message === 'REQUIRES_PASSWORD') {
+      throw error; // Re-throw to handle in UI
+    }
     return false;
   }
 };

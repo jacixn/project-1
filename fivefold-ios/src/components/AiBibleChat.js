@@ -25,6 +25,8 @@ import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
+import googleTtsService from '../services/googleTtsService';
+import bibleAudioService from '../services/bibleAudioService';
 import ocrService from '../services/ocrService';
 import speechToTextService from '../services/speechToTextService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
@@ -223,6 +225,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [loadingAudioMessageId, setLoadingAudioMessageId] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
   const [attachedImage, setAttachedImage] = useState(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -231,50 +236,183 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
 
-  // Set up chatterbox state listener
+  // Stop audio when modal closes
   useEffect(() => {
+    if (!visible) {
+      // Modal is closing - stop all audio
+      chatterboxService.stop();
+      googleTtsService.stop();
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+      setIsLoadingAudio(false);
+      setLoadingAudioMessageId(null);
+      setIsPaused(false);
+    }
+  }, [visible]);
+
+  // Set up TTS state listeners
+  useEffect(() => {
+    // Chatterbox (device TTS) state listener
     chatterboxService.onStateChange = (state) => {
-      if (state === 'finished' || state === 'stopped' || state === 'error') {
+      if (state === 'playing') {
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsSpeaking(true);
+      } else if (state === 'finished' || state === 'stopped' || state === 'error') {
         setIsSpeaking(false);
         setSpeakingMessageId(null);
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsPaused(false);
+      }
+    };
+    
+    // Google TTS state listener
+    googleTtsService.onStateChange = (state) => {
+      if (state === 'loading') {
+        // Keep loading state
+      } else if (state === 'playing') {
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsSpeaking(true);
+        setIsPaused(false);
+      } else if (state === 'paused') {
+        setIsPaused(true);
+      } else if (state === 'finished' || state === 'stopped' || state === 'error') {
+        setIsSpeaking(false);
+        setSpeakingMessageId(null);
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsPaused(false);
       }
     };
     
     return () => {
       chatterboxService.stop();
+      googleTtsService.stop();
     };
   }, []);
 
-  // Speak AI response with Chatterbox
+  // Speak AI response with user's selected voice (Google TTS or device TTS)
   const speakResponse = async (text, messageId) => {
     try {
-      if (isSpeaking && speakingMessageId === messageId) {
-        // Stop if already speaking this message
+      // If already speaking or loading this message, stop it
+      if ((isSpeaking && speakingMessageId === messageId) || 
+          (isLoadingAudio && loadingAudioMessageId === messageId)) {
         await chatterboxService.stop();
+        await googleTtsService.stop();
         setIsSpeaking(false);
         setSpeakingMessageId(null);
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsPaused(false);
         return;
       }
       
-      // Stop any current playback
+      // Stop any current playback from other messages
       await chatterboxService.stop();
+      await googleTtsService.stop();
       
-      setIsSpeaking(true);
-      setSpeakingMessageId(messageId);
-      hapticFeedback.light();
+      // Reset all states first
+      setIsSpeaking(false);
+      setIsPaused(false);
       
       // Clean text for speech (remove markdown, extra spaces, etc.)
       const cleanText = text
         .replace(/\*\*/g, '')
         .replace(/\n\n+/g, '. ')
         .replace(/\n/g, ' ')
+        .replace(/Friend:\s*/g, '')
         .trim();
       
-      await chatterboxService.speak(cleanText);
+      // Check if user has Google TTS selected
+      const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
+      
+      // Show loading state first
+      setIsLoadingAudio(true);
+      setLoadingAudioMessageId(messageId);
+      setSpeakingMessageId(messageId);
+      hapticFeedback.light();
+      
+      // Give React time to render the loading state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (useGoogleTts) {
+        const success = await googleTtsService.speak(cleanText);
+        
+        if (!success) {
+          // Fallback to device TTS if Google fails
+          setIsLoadingAudio(false);
+          setLoadingAudioMessageId(null);
+          setIsSpeaking(true);
+          await chatterboxService.speak(cleanText);
+        }
+      } else {
+        // Device TTS - switch to speaking state
+        setIsLoadingAudio(false);
+        setLoadingAudioMessageId(null);
+        setIsSpeaking(true);
+        await chatterboxService.speak(cleanText);
+      }
     } catch (error) {
       console.error('Failed to speak response:', error);
       setIsSpeaking(false);
       setSpeakingMessageId(null);
+      setIsLoadingAudio(false);
+      setLoadingAudioMessageId(null);
+      setIsPaused(false);
+    }
+  };
+
+  // Pause audio playback
+  const pauseAudio = async () => {
+    try {
+      hapticFeedback.light();
+      const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
+      
+      if (useGoogleTts) {
+        await googleTtsService.pause();
+        setIsPaused(true);
+      } else {
+        // Device TTS doesn't support true pause, so we just stop
+        await chatterboxService.stop();
+        setIsSpeaking(false);
+        setSpeakingMessageId(null);
+      }
+    } catch (error) {
+      console.error('Failed to pause audio:', error);
+    }
+  };
+
+  // Resume audio playback
+  const resumeAudio = async () => {
+    try {
+      hapticFeedback.light();
+      const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
+      
+      if (useGoogleTts) {
+        await googleTtsService.resume();
+        setIsPaused(false);
+      }
+      // Device TTS doesn't support resume
+    } catch (error) {
+      console.error('Failed to resume audio:', error);
+    }
+  };
+
+  // Stop audio playback completely
+  const stopAudio = async () => {
+    try {
+      hapticFeedback.light();
+      await chatterboxService.stop();
+      await googleTtsService.stop();
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+      setIsLoadingAudio(false);
+      setLoadingAudioMessageId(null);
+      setIsPaused(false);
+    } catch (error) {
+      console.error('Failed to stop audio:', error);
     }
   };
 
@@ -659,7 +797,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -892,8 +1030,16 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     sendMessage(question);
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     hapticFeedback.light();
+    // Stop any playing audio before closing
+    await chatterboxService.stop();
+    await googleTtsService.stop();
+    setIsSpeaking(false);
+    setSpeakingMessageId(null);
+    setIsLoadingAudio(false);
+    setLoadingAudioMessageId(null);
+    setIsPaused(false);
     onClose();
   };
 
@@ -946,6 +1092,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   const renderMessage = (message) => {
     const isAi = message.isAi;
     const isCurrentlySpeaking = isSpeaking && speakingMessageId === message.id;
+    const isCurrentlyLoading = isLoadingAudio && loadingAudioMessageId === message.id;
     
     return (
       <View
@@ -1003,34 +1150,135 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           )}
         </View>
         
-        {/* Speak button for AI messages */}
+        {/* Audio controls for AI messages */}
         {isAi && (
-          <TouchableOpacity
-            onPress={() => speakResponse(message.text, message.id)}
-            style={{
-              marginTop: 6,
-              padding: 6,
-              borderRadius: 16,
-              backgroundColor: isCurrentlySpeaking ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-            }}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name={isCurrentlySpeaking ? 'stop' : 'volume-up'} 
-              size={16} 
-              color={isCurrentlySpeaking ? '#fff' : theme.textSecondary} 
-            />
-            <Text style={{ 
-              fontSize: 12, 
-              color: isCurrentlySpeaking ? '#fff' : theme.textSecondary, 
-              marginLeft: 4 
-            }}>
-              {isCurrentlySpeaking ? 'Stop' : 'Listen'}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+            {/* Loading state */}
+            {isCurrentlyLoading && (
+              <TouchableOpacity
+                onPress={stopAudio}
+                style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  backgroundColor: theme.primary,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 8,
+                }}
+                activeOpacity={0.7}
+              >
+                <ActivityIndicator 
+                  size="small" 
+                  color="#fff"
+                  style={{ width: 14, height: 14 }}
+                />
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: '#fff', 
+                  marginLeft: 6,
+                  fontWeight: '600',
+                }}>
+                  Loading...
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Playing/Paused state - show Pause/Resume + Stop buttons */}
+            {isCurrentlySpeaking && !isCurrentlyLoading && (
+              <>
+                {/* Pause/Resume button */}
+                <TouchableOpacity
+                  onPress={isPaused ? resumeAudio : pauseAudio}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 16,
+                    backgroundColor: theme.primary,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 8,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons 
+                    name={isPaused ? 'play-arrow' : 'pause'} 
+                    size={16} 
+                    color="#fff" 
+                  />
+                  <Text style={{ 
+                    fontSize: 12, 
+                    color: '#fff', 
+                    marginLeft: 4,
+                    fontWeight: '600',
+                  }}>
+                    {isPaused ? 'Resume' : 'Pause'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Stop button */}
+                <TouchableOpacity
+                  onPress={stopAudio}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 16,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons 
+                    name="stop" 
+                    size={16} 
+                    color={isDark ? '#fff' : theme.text} 
+                  />
+                  <Text style={{ 
+                    fontSize: 12, 
+                    color: isDark ? '#fff' : theme.text, 
+                    marginLeft: 4,
+                    fontWeight: '600',
+                  }}>
+                    Stop
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+            
+            {/* Idle state - show Listen button */}
+            {!isCurrentlySpeaking && !isCurrentlyLoading && (
+              <TouchableOpacity
+                onPress={() => speakResponse(message.text, message.id)}
+                style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 10,
+                  borderRadius: 16,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons 
+                  name="volume-up" 
+                  size={16} 
+                  color={theme.textSecondary} 
+                />
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: theme.textSecondary, 
+                  marginLeft: 4 
+                }}>
+                  Listen
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     );

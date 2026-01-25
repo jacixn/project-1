@@ -1,4 +1,6 @@
 // 🌌 Cresvia Theme - Cosmic Masculine Elegance
+export const cresviaWallpaper = require('./wallpaper1.png');
+
 export const cresviaTheme = {
   name: 'Cresvia',
   id: 'cresvia',

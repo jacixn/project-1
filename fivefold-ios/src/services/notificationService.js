@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
 
 // Configure how notifications are handled when the app is in the foreground
@@ -118,25 +118,63 @@ class NotificationService {
   handleNotificationResponse(response) {
     const { data } = response.notification.request.content;
     
+    console.log('📱 Notification tapped with data:', data);
+    
+    // Determine which tab to navigate to based on notification type
+    let targetTab = null;
+    let additionalData = null;
+    
     switch (data?.type) {
       case 'prayer_reminder':
-        // Navigate to prayer screen
-        console.log('Navigate to prayer:', data.prayerSlot);
-        break;
       case 'missed_prayer':
-        // Navigate to prayer screen with missed prayer highlighted
-        console.log('Navigate to missed prayer:', data.prayerSlot);
+      case 'custom_prayer':
+        // Navigate to Bible/Prayer tab
+        targetTab = 'BiblePrayer';
+        additionalData = { prayerSlot: data.prayerSlot, prayerName: data.prayerName };
+        console.log('📱 Navigating to Bible/Prayer tab for:', data.prayerSlot);
         break;
-      case 'achievement':
-        // Navigate to achievements screen
-        console.log('Navigate to achievements');
+        
+      case 'workout_reminder':
+      case 'workout_overdue':
+        // Navigate to Gym tab
+        targetTab = 'Gym';
+        additionalData = { templateId: data.templateId, scheduleId: data.scheduleId };
+        console.log('📱 Navigating to Gym tab for workout');
         break;
+        
+      case 'task_reminder':
+        // Navigate to Tasks/Todos tab
+        targetTab = 'Todos';
+        additionalData = { taskId: data.taskId };
+        console.log('📱 Navigating to Todos tab for task:', data.taskId);
+        break;
+        
+      case 'daily_streak':
       case 'streak_reminder':
-        // Navigate to tasks or profile
-        console.log('Navigate to streak maintenance');
+        // Navigate to Profile tab (where streaks are shown)
+        targetTab = 'Profile';
+        additionalData = { streakType: data.streakType };
+        console.log('📱 Navigating to Profile tab for streak');
         break;
+        
+      case 'achievement':
+        // Navigate to Profile tab (where achievements are shown)
+        targetTab = 'Profile';
+        console.log('📱 Navigating to Profile tab for achievement');
+        break;
+        
       default:
-        console.log('Unknown notification type');
+        console.log('📱 Unknown notification type, no navigation');
+        return;
+    }
+    
+    // Emit navigation event that App.js will listen to
+    if (targetTab) {
+      DeviceEventEmitter.emit('notificationNavigation', {
+        tab: targetTab,
+        data: additionalData,
+        notificationType: data?.type,
+      });
     }
   }
 
@@ -213,7 +251,7 @@ class NotificationService {
         // Schedule a single notification for the next occurrence (one per prayer)
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: '🕊️ Prayer Reminder',
+            title: 'Prayer Reminder',
             body: `${displayName} in 30 minutes`,
             data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
@@ -242,7 +280,7 @@ class NotificationService {
     try {
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
-          title: title || '🙏 Prayer Reminder',
+          title: title || 'Prayer Reminder',
           body: body || 'Time for your custom prayer',
           data: { type: 'custom_prayer' },
           sound: true,
@@ -360,7 +398,7 @@ class NotificationService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🔥 Keep Your Streak',
+          title: 'Keep Your Streak',
           body: `You're on ${streakText}. Open Biblely to stay consistent today.`,
           data: { type: 'daily_streak', streakCount },
           sound: true,
@@ -500,6 +538,19 @@ class NotificationService {
       } else {
         await this.cancelNotificationsByType('daily_streak');
       }
+
+      // Cancel task notifications if disabled
+      if (settings.taskReminders === false) {
+        await this.cancelNotificationsByType('task_reminder');
+        console.log('Task reminders disabled - cancelled all task notifications');
+      }
+
+      // Cancel workout notifications if disabled
+      if (settings.workoutReminders === false) {
+        await this.cancelNotificationsByType('workout_reminder');
+        await this.cancelNotificationsByType('workout_overdue');
+        console.log('Workout reminders disabled - cancelled all workout notifications');
+      }
       
       console.log('Notification settings updated');
     } catch (error) {
@@ -512,7 +563,7 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🙏 Test Notification',
+          title: 'Test Notification',
           body: 'This is a test from Biblely! Your notifications are working perfectly.',
           data: { type: 'test' },
           sound: true,
@@ -748,7 +799,7 @@ class NotificationService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '⏱️ Workout Check-In',
+          title: 'Workout Check-In',
           body: 'You started a workout over an hour ago. Need more time or want to wrap it up?',
           data: { type: 'workout_overdue' },
           sound: settings.sound ? 'default' : false,

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
+import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
+import { checkUsernameAvailability } from '../services/authService';
+import { getFriendCount } from '../services/friendsService';
 import {
   View,
   Text,
@@ -28,6 +32,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Clipboard from 'expo-clipboard';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -213,8 +218,35 @@ const AnimatedModalButton = ({ children, onPress, style, ...props }) => {
 };
 
 const ProfileTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, toggleTheme, changeTheme, availableThemes, currentTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
+  const navigation = useNavigation();
+  const { user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading } = useAuth();
+  const [friendCount, setFriendCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
+  // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
+  const isBiblelyMainWallpaper = isBiblelyTheme && selectedWallpaperIndex === 0;
+  
+  // For main Biblely wallpaper only, use white text and icons for better readability on main screen
+  const textColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  const iconColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.primary;
+  
+  // Text shadow for outline effect - only on main Biblely wallpaper
+  const textOutlineStyle = isBiblelyMainWallpaper ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
+  
+  // For modals - light Biblely needs dark text, dark Biblely variants need light text
+  const isLightBiblely = isBiblelyTheme && !isDark;
+  const modalTextColor = isLightBiblely ? '#2D2D2D' : theme.text;
+  const modalTextSecondaryColor = isLightBiblely ? '#5A5A5A' : theme.textSecondary;
+  const modalTextTertiaryColor = isLightBiblely ? '#8A8A8A' : theme.textTertiary;
   const [userStats, setUserStats] = useState({
     points: 0,
     level: 1,
@@ -248,6 +280,10 @@ const ProfileTab = () => {
   const [audioVoiceGender, setAudioVoiceGender] = useState('female'); // 'male' or 'female'
   const [showVoicePickerModal, setShowVoicePickerModal] = useState(false);
   const [currentVoiceName, setCurrentVoiceName] = useState('Default');
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
@@ -289,6 +325,7 @@ const ProfileTab = () => {
   const [completedTodosList, setCompletedTodosList] = useState([]);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
   const [savedVersesSearch, setSavedVersesSearch] = useState('');
+  const [currentBibleVersion, setCurrentBibleVersion] = useState('nlt'); // Track current version
   const [showJournal, setShowJournal] = useState(false);
   const [journalLoading, setJournalLoading] = useState(true); // Start true to avoid empty flash
   
@@ -350,7 +387,8 @@ const ProfileTab = () => {
         await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
         
         // Get preferred version
-        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'kjv';
+        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+        setCurrentBibleVersion(preferredVersion);
         
         // Determine batch size - refresh all on version change, otherwise first 15
         const BATCH_SIZE = refreshAll ? verses.length : 15;
@@ -403,8 +441,18 @@ const ProfileTab = () => {
 
   const refreshSavedVerses = async () => {
     setRefreshingSavedVerses(true);
-    await loadSavedVerses();
+    await loadSavedVerses(true); // Refresh all to current version
     setRefreshingSavedVerses(false);
+  };
+
+  // Load current Bible version
+  const loadCurrentBibleVersion = async () => {
+    try {
+      const version = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+      setCurrentBibleVersion(version);
+    } catch (error) {
+      console.error('Error loading Bible version:', error);
+    }
   };
 
   // Quick version that just loads from storage without API calls (for focus refresh)
@@ -749,8 +797,14 @@ const ProfileTab = () => {
 
   // Default color names lookup
   const defaultColorNames = {
+      // New bold colors (15 main colors)
+      '#FFE135': 'Yellow', '#FF6B6B': 'Red', '#4DABF7': 'Blue', '#51CF66': 'Green',
+      '#FFA94D': 'Orange', '#B197FC': 'Purple', '#F783AC': 'Pink', '#38D9A9': 'Teal',
+      '#A9E34B': 'Lime', '#9775FA': 'Lavender', '#FFD43B': 'Gold', '#74C0FC': 'Sky',
+      '#63E6BE': 'Mint', '#FFC078': 'Peach', '#DA77F2': 'Plum',
+      // Legacy pastel colors (for backwards compatibility)
       '#FFF9C4': 'Yellow', '#C8E6C9': 'Green', '#BBDEFB': 'Blue', '#F8BBD0': 'Pink',
-      '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Coral', '#B5EAD7': 'Mint',
+      '#FFE0B2': 'Orange', '#E1BEE7': 'Purple', '#FFCCCB': 'Red', '#B5EAD7': 'Mint',
       '#FFDAB9': 'Peach', '#E6E6FA': 'Lavender', '#D4F1A9': 'Lime', '#87CEEB': 'Sky',
       '#FFD1DC': 'Rose', '#C9DED4': 'Sage', '#FBCEB1': 'Apricot', '#C8A2C8': 'Lilac',
       '#FFF44F': 'Lemon', '#7FDBFF': 'Aqua', '#E0B0FF': 'Mauve', '#FFFDD0': 'Cream',
@@ -1087,12 +1141,68 @@ const ProfileTab = () => {
     checkAiStatus();
     loadVibrationSetting();
     loadLiquidGlassSetting();
+    loadCurrentBibleVersion();
     loadSavedVerses();
     loadAppStreak();
     loadJournalNotes();
     loadHighlights();
     loadCompletedTasks();
     startLogoAnimations();
+  }, []);
+
+  // Load auth-related data when user changes
+  useEffect(() => {
+    const loadAuthData = async () => {
+      if (user) {
+        try {
+          const count = await getFriendCount(user.uid);
+          setFriendCount(count);
+        } catch (error) {
+          console.error('Error loading friend count:', error);
+        }
+      } else {
+        setFriendCount(0);
+      }
+      
+      // Update profile from Firebase auth if available
+      if (authUserProfile) {
+        console.log('[Profile] Updating from auth profile:', authUserProfile);
+        
+        // Update display name
+        if (authUserProfile.displayName) {
+          setUserName(authUserProfile.displayName);
+          setEditName(authUserProfile.displayName);
+        }
+        
+        // Update country
+        if (authUserProfile.country || authUserProfile.countryFlag) {
+          const countryObj = {
+            code: authUserProfile.countryCode || '',
+            name: authUserProfile.country || '',
+            flag: authUserProfile.countryFlag || ''
+          };
+          setSelectedCountry(countryObj);
+        }
+        
+        // Sync all auth data to local storage
+        const storedProfile = await AsyncStorage.getItem('userProfile');
+        const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
+        
+        // Update local profile with Firebase data
+        if (authUserProfile.displayName) localProfile.name = authUserProfile.displayName;
+        if (authUserProfile.country) localProfile.country = authUserProfile.country;
+        if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
+        if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
+        
+        setUserProfile(localProfile);
+        await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+      }
+    };
+    loadAuthData();
+  }, [user, authUserProfile]);
+
+  // Start animations on mount
+  useEffect(() => {
     startShimmerAnimation();
     // Start entrance animation
     createEntranceAnimation(slideAnim, fadeAnim, scaleAnim, 0, 0).start();
@@ -1103,6 +1213,39 @@ const ProfileTab = () => {
       delay: 200,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  // Listen for global "close all modals" event (e.g., when widget is tapped)
+  useEffect(() => {
+    const handleCloseAllModals = () => {
+      console.log('📱 ProfileTab: Closing all modals (widget navigation)');
+      setShowEditModal(false);
+      setShowCountryPicker(false);
+      setShowAchievements(false);
+      setShowAnimationDemo(false);
+      setShowNotificationSettings(false);
+      setShowSettingsModal(false);
+      setShowBibleVersionModal(false);
+      setShowLanguageModal(false);
+      setShowVoicePickerModal(false);
+      setShowSavedVerses(false);
+      setShowAiChat(false);
+      setShowThemeModal(false);
+      setShowAboutModal(false);
+      setShowBible(false);
+      setShowStreakMilestone(false);
+      setShowAddJournalNote(false);
+      setShowHighlights(false);
+      setShowRenameHighlight(false);
+      setShowTasksDone(false);
+      setShowJournal(false);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('closeAllModals', handleCloseAllModals);
+    
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   // Force refresh all data when Profile tab comes into focus
@@ -1167,11 +1310,11 @@ const ProfileTab = () => {
     }
   }, [showAboutModal]);
 
-  // Refresh saved verses when modal becomes visible
+  // Refresh saved verses when modal becomes visible - refresh ALL to current version
   useEffect(() => {
     if (showSavedVerses) {
-      console.log('📖 Saved verses modal opened, refreshing data...');
-      loadSavedVerses();
+      console.log('📖 Saved verses modal opened, refreshing ALL verses to current version...');
+      loadSavedVerses(true); // Pass true to refresh ALL verses to current version
     }
   }, [showSavedVerses]);
 
@@ -1236,13 +1379,27 @@ const ProfileTab = () => {
       const storedStats = await getStoredData('userStats') || {};
       const storedProfile = await AsyncStorage.getItem('userProfile');
       
-      if (storedProfile) {
+      // Prioritize Firebase auth profile data if user is signed in
+      if (authUserProfile && authUserProfile.displayName) {
+        console.log('[Profile] Using Firebase auth profile:', authUserProfile.displayName);
+        setUserName(authUserProfile.displayName);
+        setEditName(authUserProfile.displayName);
+        
+        // Also update local profile to match
+        const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
+        localProfile.name = authUserProfile.displayName;
+        if (authUserProfile.country) localProfile.country = authUserProfile.country;
+        if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
+        if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
+        setUserProfile(localProfile);
+        await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+      } else if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         setUserProfile(profile);
         setUserName(profile.name || 'Faithful Friend');
         setEditName(profile.name || 'Faithful Friend');
         
-        // Validate profile picture exists before using it
+        // Load profile picture - be more tolerant of temporary file check issues
         if (profile.profilePicture) {
           try {
             const fileInfo = await FileSystem.getInfoAsync(profile.profilePicture);
@@ -1250,15 +1407,24 @@ const ProfileTab = () => {
               setProfilePicture(profile.profilePicture);
               console.log('[Profile] Profile picture loaded:', profile.profilePicture);
             } else {
-              console.log('[Profile] Profile picture file not found, clearing');
-              setProfilePicture(null);
-              // Clear invalid URI from storage
-              profile.profilePicture = null;
-              await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+              // File doesn't exist - but DON'T clear it yet, could be a temporary issue
+              // Only clear if we're certain the file path is invalid (not starting with file://)
+              console.log('[Profile] Profile picture file not found:', profile.profilePicture);
+              if (!profile.profilePicture.startsWith('file://')) {
+                console.log('[Profile] Invalid file path format, clearing');
+                setProfilePicture(null);
+                profile.profilePicture = null;
+                await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+              } else {
+                // Still use the stored path - React Native Image component may handle it
+                console.log('[Profile] Keeping stored path, may be accessible later');
+                setProfilePicture(profile.profilePicture);
+              }
             }
           } catch (fileError) {
-            console.log('[Profile] Error checking profile picture:', fileError.message);
-            setProfilePicture(null);
+            // On error, still try to use the stored path
+            console.log('[Profile] Error checking profile picture, using stored path:', fileError.message);
+            setProfilePicture(profile.profilePicture);
           }
         }
         
@@ -1278,17 +1444,22 @@ const ProfileTab = () => {
         setUserName(storedName);
         setEditName(storedName);
         
-        // Validate old format photo exists
+        // Use old format photo - be tolerant of file check issues
         if (storedPhoto) {
           try {
             const fileInfo = await FileSystem.getInfoAsync(storedPhoto);
             if (fileInfo.exists) {
               setProfilePicture(storedPhoto);
-            } else {
-              console.log('[Profile] Old profile picture not found, clearing');
+              console.log('[Profile] Old format profile picture loaded:', storedPhoto);
+            } else if (storedPhoto.startsWith('file://')) {
+              // Still try to use it - might work
+              console.log('[Profile] Old format file not found but using path:', storedPhoto);
+              setProfilePicture(storedPhoto);
             }
-          } catch {
-            // Photo doesn't exist, leave it null
+          } catch (e) {
+            // On error, still try to use the stored photo
+            console.log('[Profile] Error checking old photo, using anyway:', storedPhoto);
+            setProfilePicture(storedPhoto);
           }
         }
       }
@@ -1411,6 +1582,22 @@ const ProfileTab = () => {
         await saveData('profilePicture', profilePicture);
       }
       
+      // Sync to Firebase if user is signed in
+      if (user) {
+        try {
+          const { updateAndSyncProfile } = await import('../services/userSyncService');
+          await updateAndSyncProfile(user.uid, {
+            displayName: editName,
+            country: selectedCountry?.name || '',
+            countryFlag: selectedCountry?.flag || '',
+            countryCode: selectedCountry?.code || '',
+          });
+          console.log('[Profile] Synced profile changes to Firebase');
+        } catch (syncError) {
+          console.error('[Profile] Failed to sync to Firebase:', syncError);
+        }
+      }
+      
       // Emit event to notify other components
       DeviceEventEmitter.emit('userNameChanged');
       
@@ -1441,11 +1628,40 @@ const ProfileTab = () => {
 
   const handleProfilePhotoSelected = async (imageUri) => {
     try {
+      console.log('[ProfilePhoto] Saving new profile picture:', imageUri);
+      
+      // Set state immediately for UI
       setProfilePicture(imageUri);
+      
+      // Save to legacy storage for backwards compatibility
       await saveData('profilePicture', imageUri);
+      
+      // CRITICAL: Always save to userProfile (create if doesn't exist)
+      let profile;
+      const storedProfile = await AsyncStorage.getItem('userProfile');
+      if (storedProfile) {
+        profile = JSON.parse(storedProfile);
+      } else {
+        // Create new profile if it doesn't exist
+        profile = {
+          name: userName || 'Faithful Friend',
+          joinedDate: new Date().toISOString(),
+        };
+      }
+      
+      // Update the profile picture
+      profile.profilePicture = imageUri;
+      
+      // Save immediately and await completion
+      await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+      
+      // Update local state to match
+      setUserProfile(profile);
+      
+      console.log('[ProfilePhoto] Profile picture saved successfully:', imageUri);
       hapticFeedback.photoCapture();
     } catch (error) {
-      console.error('Failed to save profile picture:', error);
+      console.error('[ProfilePhoto] Failed to save profile picture:', error);
     }
   };
 
@@ -1648,16 +1864,85 @@ const ProfileTab = () => {
         onPress={() => setShowEditModal(true)}
       >
         {profilePicture ? (
-          <Image source={{ uri: profilePicture }} style={styles.profileImage} />
+          <Image 
+            source={{ uri: profilePicture }} 
+            style={styles.profileImage}
+            onError={async () => {
+              // Image file is gone (likely from app rebuild) - clear the invalid path
+              console.log('[Profile] Image file missing, clearing invalid path');
+              setProfilePicture(null);
+              try {
+                const storedProfile = await AsyncStorage.getItem('userProfile');
+                if (storedProfile) {
+                  const profile = JSON.parse(storedProfile);
+                  profile.profilePicture = null;
+                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                }
+                await saveData('profilePicture', null);
+              } catch (e) {
+                console.log('[Profile] Failed to clear invalid path:', e.message);
+              }
+            }}
+          />
         ) : (
           <MaterialIcons name="person" size={40} color="#FFFFFF" />
         )}
       </TouchableOpacity>
       
       <View style={{ alignItems: 'center' }}>
-      <Text style={[styles.userName, { color: theme.text }]}>
+      <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
         {userName} {selectedCountry?.flag || '🌍'}
       </Text>
+        
+        {/* Username with tap to copy */}
+        {authUserProfile?.username ? (
+          <TouchableOpacity
+            onPress={async () => {
+              await Clipboard.setStringAsync(`@${authUserProfile.username}`);
+              hapticFeedback.light();
+              Alert.alert('Copied!', 'Username copied to clipboard. Share it with friends so they can find you!');
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 4,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              backgroundColor: `${theme.primary}15`,
+              borderRadius: 12,
+            }}
+          >
+            <Text style={{ fontSize: 14, color: theme.primary, fontWeight: '600' }}>
+              @{authUserProfile.username}
+            </Text>
+            <MaterialIcons name="content-copy" size={14} color={theme.primary} style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+        ) : isAuthenticated && (
+          <TouchableOpacity
+            onPress={() => {
+              setNewUsername('');
+              setUsernameError('');
+              setShowUsernameModal(true);
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 4,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: `${theme.primary}20`,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: theme.primary,
+              borderStyle: 'dashed',
+            }}
+          >
+            <MaterialIcons name="add" size={16} color={theme.primary} />
+            <Text style={{ fontSize: 13, color: theme.primary, fontWeight: '600', marginLeft: 4 }}>
+              Set Username
+            </Text>
+          </TouchableOpacity>
+        )}
         
         {/* Streak Display */}
         <View style={{
@@ -1682,14 +1967,14 @@ const ProfileTab = () => {
         </View>
       </View>
       
-      <Text style={[styles.userLevel, { color: theme.textSecondary }]}>
+      <Text style={[styles.userLevel, { color: textSecondaryColor }]}>
         {t.level || 'Level'} {userStats.level} {t.believer || 'Believer'}
       </Text>
       
       {/* Level Progress */}
       <View style={styles.progressSection}>
         <View style={styles.progressInfo}>
-          <Text style={[styles.progressText, { color: theme.textSecondary }]}>
+          <Text style={[styles.progressText, { color: textSecondaryColor }]}>
             {currentPoints.toLocaleString()} / {nextTarget.toLocaleString()} {t.points || 'points'}
           </Text>
           <Text style={[styles.progressLevel, { color: theme.primary }]}>
@@ -1744,7 +2029,7 @@ const ProfileTab = () => {
 
     return (
       <LiquidGlassStatsContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t.yourJourney || 'Your Journey'}</Text>
+      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>{t.yourJourney || 'Your Journey'}</Text>
       
       <View style={styles.statsGrid}>
         <AnimatedStatCard 
@@ -1766,10 +2051,10 @@ const ProfileTab = () => {
           }}
         >
           <MaterialIcons name="check-circle" size={24} color={theme.success} />
-          <Text style={[styles.statValue, { color: theme.text }]}>
+          <Text style={[styles.statValue, { color: textColor, ...textOutlineStyle }]}>
             {userStats.completedTasks || 0}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
             {t.tasksDone || 'Tasks Done'}
           </Text>
         </AnimatedStatCard>
@@ -1797,10 +2082,10 @@ const ProfileTab = () => {
           }}
         >
           <MaterialIcons name="bookmark" size={24} color={theme.info} />
-          <Text style={[styles.statValue, { color: theme.text }]}>
+          <Text style={[styles.statValue, { color: textColor, ...textOutlineStyle }]}>
             {savedVersesList.length}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
             {t.savedVerses || 'Saved Verses'}
           </Text>
         </AnimatedStatCard>
@@ -1824,10 +2109,10 @@ const ProfileTab = () => {
           }}
         >
           <MaterialIcons name="palette" size={24} color={theme.warning} />
-          <Text style={[styles.statValue, { color: theme.text }]}>
+          <Text style={[styles.statValue, { color: textColor, ...textOutlineStyle }]}>
             {highlightedVerses.length}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
             {t.highlights || 'Highlights'}
           </Text>
         </AnimatedStatCard>
@@ -1851,10 +2136,10 @@ const ProfileTab = () => {
           }}
         >
           <MaterialIcons name="import-contacts" size={24} color={theme.info} />
-          <Text style={[styles.statValue, { color: theme.text }]}>
+          <Text style={[styles.statValue, { color: textColor, ...textOutlineStyle }]}>
             {journalNotes.length}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
             {t.journal || 'Journal'}
           </Text>
         </AnimatedStatCard>
@@ -1881,8 +2166,8 @@ const ProfileTab = () => {
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Achievements</Text>
-          <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Achievements</Text>
+          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
         </View>
         
         <View style={styles.badgesGrid}>
@@ -1907,11 +2192,11 @@ const ProfileTab = () => {
               <MaterialIcons 
                 name={badge.icon} 
                 size={20} 
-                color={theme.primary} 
+                color={iconColor} 
               />
               <Text style={[
                 styles.badgeText, 
-                { color: theme.text }
+                { color: textColor, ...textOutlineStyle }
               ]}>
                 {badge.name}
               </Text>
@@ -1929,13 +2214,189 @@ const ProfileTab = () => {
             shadowRadius: 3,
             elevation: 1,
           }]}>
-            <Text style={[styles.viewAllText, { color: theme.primary }]}>
+            <Text style={[styles.viewAllText, { color: iconColor }]}>
               View All Achievements
             </Text>
           </View>
       </AnimatedSettingsCard>
     );
   };
+
+  // Handle sync to cloud
+  const handleSync = async () => {
+    if (!user) return;
+    setIsSyncing(true);
+    hapticFeedback.buttonPress();
+    try {
+      await performFullSync(user.uid);
+      Alert.alert('Sync Complete', 'Your data has been synced to the cloud.');
+    } catch (error) {
+      Alert.alert('Sync Failed', 'Unable to sync data. Please try again.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handle save username
+  const handleSaveUsername = async () => {
+    if (!user) return;
+    
+    const trimmedUsername = newUsername.toLowerCase().trim();
+    
+    // Validate
+    if (trimmedUsername.length < 3) {
+      setUsernameError('Username must be at least 3 characters');
+      return;
+    }
+    if (trimmedUsername.length > 20) {
+      setUsernameError('Username must be less than 20 characters');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+      setUsernameError('Only letters, numbers, and underscores allowed');
+      return;
+    }
+    
+    setCheckingUsername(true);
+    setUsernameError('');
+    
+    try {
+      // Check availability
+      const isAvailable = await checkUsernameAvailability(trimmedUsername);
+      if (!isAvailable) {
+        setUsernameError('Username is already taken');
+        setCheckingUsername(false);
+        return;
+      }
+      
+      // Save to Firebase
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      // Reserve the username
+      await setDoc(doc(db, 'usernames', trimmedUsername), {
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      });
+      
+      // Update user profile
+      await updateAndSyncProfile(user.uid, {
+        username: trimmedUsername,
+      });
+      
+      hapticFeedback.success();
+      setShowUsernameModal(false);
+      setNewUsername('');
+      Alert.alert('Success!', `Your username is now @${trimmedUsername}. Friends can find you with this!`);
+      
+      // Refresh the auth profile
+      if (authUserProfile) {
+        // Force a re-fetch by triggering sync
+        await performFullSync(user.uid);
+      }
+    } catch (error) {
+      console.error('Error saving username:', error);
+      setUsernameError('Failed to save username. Please try again.');
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out? You will need to sign in again to access the app.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            hapticFeedback.buttonPress();
+            try {
+              await signOut();
+              // RootNavigator will automatically show Auth screen
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Social Section - Friends & Leaderboard
+  const SocialSection = () => (
+    <View style={{ marginTop: 12 }}>
+      <AnimatedSettingsCard 
+        style={styles.aboutCard}
+        onPress={() => {
+          hapticFeedback.buttonPress();
+          navigation.navigate('Friends');
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+          <View style={styles.settingLeft}>
+            <MaterialIcons name="people" size={24} color={iconColor} />
+            <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
+              Friends
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {isAuthenticated && friendCount > 0 && (
+              <Text style={[styles.badgeCount, { color: theme.primary, marginRight: 8 }]}>{friendCount}</Text>
+            )}
+            <MaterialIcons name="chevron-right" size={24} color={iconColor} />
+          </View>
+        </View>
+      </AnimatedSettingsCard>
+      
+      <AnimatedSettingsCard 
+        style={styles.aboutCard}
+        onPress={() => {
+          hapticFeedback.buttonPress();
+          navigation.navigate('Leaderboard');
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+          <View style={styles.settingLeft}>
+            <MaterialIcons name="leaderboard" size={24} color={iconColor} />
+            <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
+              Leaderboard
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color={iconColor} />
+        </View>
+      </AnimatedSettingsCard>
+    </View>
+  );
+
+  // Account Section - Cloud Sync and Sign Out
+  const AccountSection = () => (
+    <View style={{ marginTop: 12 }}>
+      {/* Account Info */}
+      <AnimatedSettingsCard 
+        style={styles.aboutCard}
+        onPress={handleSignOut}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+          <View style={styles.settingLeft}>
+            <MaterialIcons name="logout" size={24} color={theme.error || '#EF4444'} />
+            <View>
+              <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
+                Sign Out
+              </Text>
+              <Text style={[{ fontSize: 12, color: textSecondaryColor, marginTop: 2 }]}>
+                {authUserProfile?.email || user?.email || 'Signed in'}
+              </Text>
+            </View>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color={iconColor} />
+        </View>
+      </AnimatedSettingsCard>
+    </View>
+  );
 
   // Settings Button - Single button that opens modal
   const SettingsButton = () => (
@@ -1948,12 +2409,12 @@ const ProfileTab = () => {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
-          <MaterialIcons name="stars" size={24} color={theme.primary} />
-          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
+          <MaterialIcons name="stars" size={24} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
             New tools coming soon
           </Text>
         </View>
-        <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
       </View>
     </AnimatedSettingsCard>
   );
@@ -1969,12 +2430,12 @@ const ProfileTab = () => {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
-          <MaterialIcons name="settings" size={24} color={theme.primary} />
-          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
+          <MaterialIcons name="settings" size={24} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
             Settings
           </Text>
         </View>
-        <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
       </View>
     </AnimatedSettingsCard>
   );
@@ -1993,12 +2454,12 @@ const ProfileTab = () => {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
-          <MaterialIcons name="info" size={24} color={theme.primary} />
-          <Text style={[styles.aboutButtonText, { color: theme.text }]}>
+          <MaterialIcons name="info" size={24} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
             About Biblely
           </Text>
         </View>
-        <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
       </View>
     </AnimatedSettingsCard>
   );
@@ -2012,7 +2473,7 @@ const ProfileTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -2070,7 +2531,7 @@ const ProfileTab = () => {
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>{t.profile || 'Profile'}</Text>
+            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>{t.profile || 'Profile'}</Text>
           </View>
         </View>
       </GlassHeader>
@@ -2104,6 +2565,13 @@ const ProfileTab = () => {
         
         {/* Badges Section */}
         <BadgesSection />
+        
+        {/* Social Section - Friends & Leaderboard */}
+        <SocialSection />
+        
+        {/* Account Section - Sign In/Out */}
+        <AccountSection />
+        
         <SettingsButton />
         <ChangesButton />
         <AboutSection />
@@ -2120,7 +2588,7 @@ const ProfileTab = () => {
             }}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Profile</Text>
+            <Text style={[styles.modalTitle, { color: textColor, ...textOutlineStyle }]}>Edit Profile</Text>
             <TouchableOpacity 
               onPress={saveProfileChanges}
               disabled={isSavingProfile}
@@ -2134,7 +2602,7 @@ const ProfileTab = () => {
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.editSection}>
-              <Text style={[styles.editLabel, { color: theme.text }]}>Profile Picture</Text>
+              <Text style={[styles.editLabel, { color: textColor, ...textOutlineStyle }]}>Profile Picture</Text>
               
               {/* Current profile picture preview */}
               <View style={styles.photoPreviewContainer}>
@@ -2156,9 +2624,9 @@ const ProfileTab = () => {
             </View>
 
             <View style={styles.editSection}>
-              <Text style={[styles.editLabel, { color: theme.text }]}>Display Name</Text>
+              <Text style={[styles.editLabel, { color: textColor, ...textOutlineStyle }]}>Display Name</Text>
               <TextInput
-                style={[styles.editInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+                style={[styles.editInput, { backgroundColor: theme.card, color: textColor, borderColor: theme.border }]}
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Enter your name"
@@ -2167,7 +2635,7 @@ const ProfileTab = () => {
             </View>
 
             <View style={styles.editSection}>
-              <Text style={[styles.editLabel, { color: theme.text }]}>Country</Text>
+              <Text style={[styles.editLabel, { color: textColor, ...textOutlineStyle }]}>Country</Text>
               <TouchableOpacity
                 style={[styles.countrySelectButton, { backgroundColor: theme.card, borderColor: theme.border }]}
                 onPress={() => {
@@ -2334,7 +2802,7 @@ const ProfileTab = () => {
             <TouchableOpacity onPress={() => setShowBibleVersionModal(false)}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Bible Version</Text>
+            <Text style={[styles.modalTitle, { color: modalTextColor }]}>Bible Version</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -2343,7 +2811,7 @@ const ProfileTab = () => {
             contentContainerStyle={{ padding: 20 }}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.sectionHeader, { color: theme.text, marginBottom: 15 }]}>
+            <Text style={[styles.sectionHeader, { color: textColor, marginBottom: 15 }]}>
               Select Bible Version
             </Text>
             
@@ -2377,10 +2845,10 @@ const ProfileTab = () => {
                   disabled={!isAvailable}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.versionName, { color: theme.text, fontSize: 16, fontWeight: '600' }]}>
+                    <Text style={[styles.versionName, { color: modalTextColor, fontSize: 16, fontWeight: '600' }]}>
                       {version.name}
                     </Text>
-                    <Text style={[styles.versionAbbreviation, { color: theme.textSecondary, fontSize: 14, marginTop: 2 }]}>
+                    <Text style={[styles.versionAbbreviation, { color: modalTextSecondaryColor, fontSize: 14, marginTop: 2 }]}>
                       {version.abbreviation}
                     </Text>
                     {!isAvailable && (
@@ -2417,7 +2885,7 @@ const ProfileTab = () => {
             <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
               <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>{t.language}</Text>
+            <Text style={[styles.modalTitle, { color: modalTextColor }]}>{t.language}</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -2462,10 +2930,10 @@ const ProfileTab = () => {
                   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={{ fontSize: 28, marginRight: 12 }}>{lang.flag}</Text>
                     <View>
-                      <Text style={[styles.versionName, { color: theme.text, fontSize: 16, fontWeight: '600' }]}>
+                      <Text style={[styles.versionName, { color: modalTextColor, fontSize: 16, fontWeight: '600' }]}>
                         {lang.nativeName}
                       </Text>
-                      <Text style={[styles.versionAbbreviation, { color: theme.textSecondary, fontSize: 14, marginTop: 2 }]}>
+                      <Text style={[styles.versionAbbreviation, { color: modalTextSecondaryColor, fontSize: 14, marginTop: 2 }]}>
                         {lang.name}
                       </Text>
                       {!isEnglish && (
@@ -2490,13 +2958,110 @@ const ProfileTab = () => {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Set Username Modal */}
+      <Modal
+        visible={showUsernameModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowUsernameModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, backgroundColor: theme.background }}
+        >
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={() => setShowUsernameModal(false)}>
+              <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: modalTextColor }]}>Set Username</Text>
+            <TouchableOpacity 
+              onPress={handleSaveUsername}
+              disabled={checkingUsername || !newUsername.trim()}
+            >
+              {checkingUsername ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Text style={[styles.modalSave, { 
+                  color: newUsername.trim() ? theme.primary : theme.textTertiary 
+                }]}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ padding: 20 }}>
+            <Text style={{ fontSize: 15, color: modalTextSecondaryColor, marginBottom: 20, lineHeight: 22 }}>
+              Choose a unique username so friends can find and add you. This cannot be changed later.
+            </Text>
+
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: theme.card,
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              borderWidth: usernameError ? 2 : 1,
+              borderColor: usernameError ? theme.error : theme.border,
+            }}>
+              <Text style={{ fontSize: 18, color: theme.primary, fontWeight: '600' }}>@</Text>
+              <TextInput
+                value={newUsername}
+                onChangeText={(text) => {
+                  setNewUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  setUsernameError('');
+                }}
+                placeholder="username"
+                placeholderTextColor={theme.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={true}
+                maxLength={20}
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  color: modalTextColor,
+                  paddingVertical: 16,
+                  marginLeft: 4,
+                }}
+              />
+            </View>
+
+            {usernameError ? (
+              <Text style={{ color: theme.error, fontSize: 13, marginTop: 8 }}>
+                {usernameError}
+              </Text>
+            ) : (
+              <Text style={{ color: modalTextSecondaryColor, fontSize: 13, marginTop: 8 }}>
+                3-20 characters. Letters, numbers, and underscores only.
+              </Text>
+            )}
+
+            <View style={{
+              marginTop: 24,
+              padding: 16,
+              backgroundColor: `${theme.primary}10`,
+              borderRadius: 12,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialIcons name="people" size={20} color={theme.primary} />
+                <Text style={{ fontSize: 15, fontWeight: '600', color: modalTextColor, marginLeft: 8 }}>
+                  How it works
+                </Text>
+              </View>
+              <Text style={{ fontSize: 14, color: modalTextSecondaryColor, lineHeight: 20 }}>
+                Friends can search for your username to send you a friend request. You'll appear on leaderboards with this name.
+              </Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       
       {/* Loading Overlay for Language Change */}
       {isChangingLanguage && (
         <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
           <View style={[styles.loadingContainer, { backgroundColor: theme.card }]}>
             <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingText, { color: theme.text, marginTop: 15 }]}>
+            <Text style={[styles.loadingText, { color: textColor, marginTop: 15 }]}>
               {t.changingLanguage}
             </Text>
           </View>
@@ -2554,7 +3119,7 @@ const ProfileTab = () => {
                   <Text style={{
                     fontSize: 13,
                     fontWeight: '600',
-                    color: theme.textSecondary,
+                    color: modalTextSecondaryColor,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5
                   }}>
@@ -2592,14 +3157,14 @@ const ProfileTab = () => {
                   <Text style={{
                     fontSize: 20,
                     fontWeight: '700',
-                    color: theme.text,
+                    color: modalTextColor,
                     marginBottom: 8
                   }}>
                     No Saved Verses Yet
                   </Text>
                   <Text style={{
                     fontSize: 15,
-                    color: theme.textSecondary,
+                    color: modalTextSecondaryColor,
                     textAlign: 'center',
                     lineHeight: 22
                   }}>
@@ -2630,7 +3195,7 @@ const ProfileTab = () => {
                         <Text style={{
                           fontSize: 16,
                           fontWeight: '600',
-                          color: theme.textSecondary,
+                          color: modalTextSecondaryColor,
                           marginTop: 16
                         }}>
                           No results for "{savedVersesSearch}"
@@ -2688,12 +3253,12 @@ const ProfileTab = () => {
                           <Text style={{
                             fontSize: 12,
                             fontWeight: '600',
-                            color: theme.textTertiary,
+                            color: modalTextTertiaryColor,
                             marginTop: 2,
                             textTransform: 'uppercase',
                             letterSpacing: 0.5
                           }}>
-                        {verse.version?.toUpperCase() || 'KJV'}
+                        {currentBibleVersion?.toUpperCase() || verse.version?.toUpperCase() || 'NLT'}
                       </Text>
                     </View>
                       </View>
@@ -2701,7 +3266,7 @@ const ProfileTab = () => {
                       {/* Verse Text */}
                       <Text style={{
                         fontSize: 16,
-                        color: theme.text,
+                        color: modalTextColor,
                         lineHeight: 26,
                         marginBottom: 18,
                         fontWeight: '500'
@@ -2882,7 +3447,7 @@ const ProfileTab = () => {
                   {/* Title */}
                   <View style={{ alignItems: 'center' }}>
                 <Text style={{ 
-                  color: theme.text, 
+                  color: modalTextColor, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
@@ -2953,11 +3518,11 @@ const ProfileTab = () => {
                       value={savedVersesSearch}
                       onChangeText={setSavedVersesSearch}
                       placeholder="Search verses or references..."
-                      placeholderTextColor={theme.textTertiary}
+                      placeholderTextColor={modalTextTertiaryColor}
                       style={{
                         flex: 1,
                         fontSize: 15,
-                        color: theme.text,
+                        color: modalTextColor,
                         marginLeft: 10,
                         paddingVertical: 2,
                       }}
@@ -3011,7 +3576,7 @@ const ProfileTab = () => {
             <Text style={{ 
               fontSize: 18, 
               fontWeight: '700', 
-              color: theme.text,
+              color: modalTextColor,
               letterSpacing: 0.3,
             }}>Settings</Text>
             <View style={{ width: 60 }} />
@@ -3026,7 +3591,7 @@ const ProfileTab = () => {
             <Text style={{
               fontSize: 12,
               fontWeight: '700',
-              color: theme.textTertiary,
+              color: modalTextTertiaryColor,
               letterSpacing: 1.5,
               textTransform: 'uppercase',
               marginBottom: 12,
@@ -3068,11 +3633,11 @@ const ProfileTab = () => {
                   }}>
                 <MaterialIcons name="palette" size={20} color={theme.primary} />
               </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Theme</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Theme</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                    {isBlushTheme ? 'Blush' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : 'Default'}
+                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
+                    {isBlushTheme ? 'Blush' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : isBiblelyTheme ? (selectedWallpaperIndex === 1 ? 'Jesus & Lambs' : selectedWallpaperIndex === 2 ? 'Classic' : 'Biblely') : 'Default'}
                 </Text>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </View>
@@ -3097,7 +3662,7 @@ const ProfileTab = () => {
                     }}>
                       <MaterialIcons name="blur-on" size={20} color={theme.primary} />
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Glass Effect</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Glass Effect</Text>
                   </View>
                   <Switch
                     value={liquidGlassEnabled}
@@ -3113,7 +3678,7 @@ const ProfileTab = () => {
             <Text style={{
               fontSize: 12,
               fontWeight: '700',
-              color: theme.textTertiary,
+              color: modalTextTertiaryColor,
               letterSpacing: 1.5,
               textTransform: 'uppercase',
               marginBottom: 12,
@@ -3155,10 +3720,10 @@ const ProfileTab = () => {
                   }}>
                 <MaterialIcons name="menu-book" size={20} color={theme.primary} />
               </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Bible Version</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Bible Version</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
                   {getVersionById(selectedBibleVersion).abbreviation}
                 </Text>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
@@ -3193,64 +3758,23 @@ const ProfileTab = () => {
                   }}>
                 <MaterialIcons name="language" size={20} color={theme.primary} />
               </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Language</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Language</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
                   {availableLanguages.find(l => l.code === language)?.nativeName || 'English'}
                 </Text>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </View>
             </TouchableOpacity>
             
-              {/* Audio Voice */}
+              {/* Reading Voice - Single button that opens voice picker */}
             <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                }}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                const newGender = audioVoiceGender === 'female' ? 'male' : 'female';
-                setAudioVoiceGender(newGender);
-                await bibleAudioService.setVoiceGender(newGender);
-              }}
-                activeOpacity={0.7}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: `${theme.primary}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
-              </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Voice Gender</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                  {audioVoiceGender === 'female' ? 'Female' : 'Male'}
-                </Text>
-                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-
-              {/* Choose Specific Voice */}
-            <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                 }}
               onPress={() => {
                 hapticFeedback.buttonPress();
@@ -3268,64 +3792,17 @@ const ProfileTab = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
-                <MaterialIcons name="mic" size={20} color={theme.primary} />
+                <MaterialIcons name="record-voice-over" size={20} color={theme.primary} />
               </View>
                   <View>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Choose Voice</Text>
-                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
-                      Pick from Siri & device voices
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Reading Voice</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
+                      {bibleAudioService.isUsingGoogleTTS() ? 'Google Neural (best quality)' : 'Device voice (offline)'}
                     </Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }} numberOfLines={1}>
-                  {currentVoiceName}
-                </Text>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-
-              {/* Voice Source - Device vs AI */}
-            <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                }}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                const isCurrentlyAI = bibleAudioService.isUsingAIVoice();
-                const newSource = isCurrentlyAI ? 'device' : 'ai_voice';
-                await bibleAudioService.setTTSSource(newSource);
-                // Force re-render
-                setAudioVoiceGender(prev => prev);
-              }}
-                activeOpacity={0.7}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: `${theme.primary}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                <MaterialIcons name="graphic-eq" size={20} color={theme.primary} />
-              </View>
-                  <View>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Voice Type</Text>
-                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
-                      {bibleAudioService.isUsingAIVoice() ? 'Human-like, requires internet' : 'Device built-in, works offline'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
-                  {bibleAudioService.isUsingAIVoice() ? 'AI Voice' : 'Device'}
-                </Text>
-                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
               </View>
             </TouchableOpacity>
             </View>
@@ -3334,7 +3811,7 @@ const ProfileTab = () => {
             <Text style={{
               fontSize: 12,
               fontWeight: '700',
-              color: theme.textTertiary,
+              color: modalTextTertiaryColor,
               letterSpacing: 1.5,
               textTransform: 'uppercase',
               marginBottom: 12,
@@ -3383,10 +3860,10 @@ const ProfileTab = () => {
                   }}>
                 <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
               </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Weight Unit</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Weight Unit</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: theme.textSecondary }}>
+                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
                   {weightUnit.toUpperCase()}
                 </Text>
                   <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
@@ -3413,7 +3890,7 @@ const ProfileTab = () => {
                   }}>
                     <MaterialIcons name="vibration" size={20} color={theme.primary} />
                   </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Haptics</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Haptics</Text>
               </View>
               <Switch
                 value={vibrationEnabled}
@@ -3461,7 +3938,7 @@ const ProfileTab = () => {
                   }}>
                     <MaterialIcons name="stars" size={20} color={theme.primary} />
                 </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Daily Verse Popup</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Daily Verse Popup</Text>
               </View>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
               </TouchableOpacity>
@@ -3492,7 +3969,7 @@ const ProfileTab = () => {
                   }}>
                     <MaterialIcons name="notifications-none" size={20} color={theme.primary} />
                   </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>Notifications</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Notifications</Text>
               </View>
               <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
             </TouchableOpacity>
@@ -3530,29 +4007,40 @@ const ProfileTab = () => {
                 hapticFeedback.buttonPress();
                 setShowSettingsModal(false);
                 setTimeout(() => {
-                  Alert.alert(
+                  Alert.prompt(
                     'Delete Account',
-                      'This will permanently delete your account and all your data. This action cannot be undone.',
+                    'Enter your password to permanently delete your account and all data. This cannot be undone.',
                     [
                       { text: 'Cancel', style: 'cancel' },
                       { 
-                          text: 'Delete', 
+                        text: 'Delete', 
                         style: 'destructive',
-                        onPress: async () => {
+                        onPress: async (password) => {
+                          if (!password) {
+                            Alert.alert('Error', 'Password is required to delete account.');
+                            return;
+                          }
                           try {
                             hapticFeedback.buttonPress();
                             const { deleteAccountCompletely } = await import('../utils/onboardingReset');
-                            const success = await deleteAccountCompletely();
-                              if (!success) {
-                                Alert.alert('Error', 'Failed to delete account.');
+                            const success = await deleteAccountCompletely(password);
+                            if (!success) {
+                              Alert.alert('Error', 'Failed to delete account. Please check your password.');
                             }
                           } catch (error) {
                             console.error('Delete account error:', error);
+                            if (error.message === 'REQUIRES_PASSWORD') {
+                              Alert.alert('Error', 'Incorrect password. Please try again.');
+                            } else {
                               Alert.alert('Error', 'Failed to delete account.');
+                            }
                           }
                         }
                       }
-                    ]
+                    ],
+                    'secure-text',
+                    '',
+                    'default'
                   );
                 }, 300);
               }}
@@ -3630,7 +4118,7 @@ const ProfileTab = () => {
               {journalLoading ? (
                 <View style={styles.emptyState}>
                   <MaterialIcons name="hourglass-bottom" size={48} color={theme.textTertiary} />
-                  <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.emptyStateText, { color: textSecondaryColor }]}>
                     Loading your notes...
                   </Text>
                 </View>
@@ -3761,14 +4249,14 @@ const ProfileTab = () => {
                       <Text style={{
                         fontSize: 26,
                         fontWeight: '900',
-                        color: theme.text,
+                        color: textColor,
                         letterSpacing: -0.5
                       }}>
                         New Reflection
                       </Text>
                       <Text style={{
                         fontSize: 14,
-                        color: theme.textSecondary,
+                        color: textSecondaryColor,
                         marginTop: 2,
                         fontWeight: '500'
                       }}>
@@ -3803,7 +4291,7 @@ const ProfileTab = () => {
                           <Text style={{
                             fontSize: 15,
                             fontWeight: '700',
-                            color: theme.text,
+                            color: textColor,
                             marginLeft: 8,
                             letterSpacing: 0.3
                           }}>
@@ -3816,7 +4304,7 @@ const ProfileTab = () => {
                             borderRadius: 16,
                             padding: 18,
                             fontSize: 17,
-                            color: theme.text,
+                            color: textColor,
                             fontWeight: '600',
                             borderWidth: 1,
                             borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
@@ -3835,7 +4323,7 @@ const ProfileTab = () => {
                           <Text style={{
                             fontSize: 15,
                             fontWeight: '700',
-                            color: theme.text,
+                            color: textColor,
                             marginLeft: 8,
                             letterSpacing: 0.3
                           }}>
@@ -3848,7 +4336,7 @@ const ProfileTab = () => {
                             borderRadius: 18,
                             padding: 20,
                             fontSize: 17,
-                            color: theme.text,
+                            color: textColor,
                             fontWeight: '500',
                             borderWidth: 1,
                             borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
@@ -3974,7 +4462,7 @@ const ProfileTab = () => {
                 
                   <View style={{ alignItems: 'center' }}>
                   <Text style={{ 
-                    color: theme.text,
+                    color: textColor,
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
@@ -4037,7 +4525,7 @@ const ProfileTab = () => {
                 <Text style={{
                   fontSize: 24,
                   fontWeight: '700',
-                  color: theme.text
+                  color: textColor
                 }}>
                   New Journal Entry
                 </Text>
@@ -4062,7 +4550,7 @@ const ProfileTab = () => {
                   <Text style={{
                     fontSize: 14,
                     fontWeight: '600',
-                    color: theme.textSecondary,
+                    color: textSecondaryColor,
                     marginBottom: 8
                   }}>
                     Title (Optional)
@@ -4073,7 +4561,7 @@ const ProfileTab = () => {
                       borderRadius: 12,
                       padding: 16,
                       fontSize: 16,
-                      color: theme.text,
+                      color: textColor,
                       borderWidth: 1,
                       borderColor: theme.border
                     }}
@@ -4089,7 +4577,7 @@ const ProfileTab = () => {
                   <Text style={{
                     fontSize: 14,
                     fontWeight: '600',
-                    color: theme.textSecondary,
+                    color: textSecondaryColor,
                     marginBottom: 8
                   }}>
                     Your Note
@@ -4100,7 +4588,7 @@ const ProfileTab = () => {
                       borderRadius: 12,
                       padding: 16,
                       fontSize: 16,
-                      color: theme.text,
+                      color: textColor,
                       minHeight: 200,
                       borderWidth: 1,
                       borderColor: theme.border,
@@ -4197,10 +4685,10 @@ const ProfileTab = () => {
               {highlightedVerses.length === 0 ? (
                 <View style={styles.emptyState}>
                   <MaterialIcons name="palette" size={64} color={theme.textTertiary} />
-                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
+                  <Text style={[styles.emptyStateText, { color: textSecondaryColor, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
                     No Highlights Yet
                   </Text>
-                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
+                  <Text style={[styles.emptyStateSubtext, { color: textTertiaryColor, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
                     Long-press any verse in the Bible and choose a color to highlight it
                   </Text>
                 </View>
@@ -4211,7 +4699,7 @@ const ProfileTab = () => {
                     <Text style={{
                       fontSize: 12,
                       fontWeight: '600',
-                      color: theme.textTertiary,
+                      color: textTertiaryColor,
                       marginBottom: 12,
                       textTransform: 'uppercase',
                       letterSpacing: 1
@@ -4276,7 +4764,7 @@ const ProfileTab = () => {
                         <Text style={{
                           fontSize: 17,
                           fontWeight: '700',
-                          color: theme.text,
+                          color: textColor,
                           letterSpacing: 0.3
                         }}>
                           {getColorName(color)}
@@ -4286,7 +4774,7 @@ const ProfileTab = () => {
                             <Text style={{
                               fontSize: 12,
                               fontWeight: '500',
-                              color: theme.textSecondary,
+                              color: textSecondaryColor,
                               marginRight: 8
                             }}>
                               {getDefaultColorName(color)} •
@@ -4439,7 +4927,7 @@ const ProfileTab = () => {
                     <Text style={{
                             fontSize: 22,
                       fontWeight: '800',
-                      color: theme.text,
+                      color: textColor,
                             marginBottom: 8,
                             letterSpacing: 0.5
                     }}>
@@ -4450,7 +4938,7 @@ const ProfileTab = () => {
                             <Text style={{
                               fontSize: 13,
                               fontWeight: '500',
-                              color: theme.textSecondary,
+                              color: textSecondaryColor,
                               marginBottom: 8
                             }}>
                               Originally: {getDefaultColorName(color)}
@@ -4544,21 +5032,31 @@ const ProfileTab = () => {
                         }}>
                           <MaterialIcons name="auto-stories" size={20} color="#FFFFFF" />
                         </View>
-                        <Text style={{
-                          fontSize: 18,
-                          fontWeight: '800',
-                          color: theme.text,
-                          marginLeft: 12,
-                          flex: 1
-                        }}>
-                          {verse.verseReference}
-                        </Text>
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                          <Text style={{
+                            fontSize: 18,
+                            fontWeight: '800',
+                            color: textColor,
+                          }}>
+                            {verse.verseReference}
+                          </Text>
+                          <Text style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: textSecondaryColor,
+                            marginTop: 2,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5
+                          }}>
+                            {currentBibleVersion.toUpperCase()}
+                          </Text>
+                        </View>
                       </View>
                       
                       {/* Verse Text */}
                       <Text style={{
                         fontSize: 16,
-                        color: theme.text,
+                        color: textColor,
                         lineHeight: 28,
                         marginBottom: 18,
                         paddingLeft: 8,
@@ -4756,7 +5254,7 @@ const ProfileTab = () => {
                   
                   <View style={{ alignItems: 'center' }}>
                 <Text style={{ 
-                  color: theme.text, 
+                  color: textColor, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
@@ -4866,13 +5364,13 @@ const ProfileTab = () => {
                   <Text style={{
                     fontSize: 18,
                     fontWeight: '700',
-                    color: theme.text
+                    color: textColor
                   }}>
                     Rename Highlight
                   </Text>
                   <Text style={{
                     fontSize: 13,
-                    color: theme.textSecondary,
+                    color: textSecondaryColor,
                     marginTop: 2
                   }}>
                     {getDefaultColorName(renameHighlightColor)}
@@ -4891,7 +5389,7 @@ const ProfileTab = () => {
                   borderRadius: 14,
                   padding: 16,
                   fontSize: 16,
-                  color: theme.text,
+                  color: textColor,
                   borderWidth: 2,
                   borderColor: renameHighlightColor || theme.primary,
                   marginBottom: 20
@@ -4924,7 +5422,7 @@ const ProfileTab = () => {
                     <Text style={{
                       fontSize: 15,
                       fontWeight: '600',
-                      color: theme.textSecondary
+                      color: textSecondaryColor
                     }}>
                       Reset
                     </Text>
@@ -4994,10 +5492,10 @@ const ProfileTab = () => {
               {completedTodosList.length === 0 ? (
                 <View style={styles.emptyState}>
                   <MaterialIcons name="check-circle-outline" size={64} color={theme.textTertiary} />
-                  <Text style={[styles.emptyStateText, { color: theme.textSecondary, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
+                  <Text style={[styles.emptyStateText, { color: textSecondaryColor, fontSize: 20, fontWeight: '700', marginTop: 24 }]}>
                     No Completed Tasks Yet
                   </Text>
-                  <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
+                  <Text style={[styles.emptyStateSubtext, { color: textTertiaryColor, fontSize: 15, marginTop: 12, lineHeight: 22 }]}>
                     Complete tasks to see them here
                   </Text>
                 </View>
@@ -5060,7 +5558,7 @@ const ProfileTab = () => {
                         <Text style={{
                           fontSize: 17,
                           fontWeight: '700',
-                          color: theme.text,
+                          color: textColor,
                           lineHeight: 24,
                           marginBottom: 8
                         }}>
@@ -5081,7 +5579,7 @@ const ProfileTab = () => {
                             <MaterialIcons name="access-time" size={14} color={theme.textSecondary} />
                             <Text style={{
                               fontSize: 13,
-                              color: theme.textSecondary,
+                              color: textSecondaryColor,
                               marginLeft: 6,
                               fontWeight: '500'
                             }}>
@@ -5155,7 +5653,7 @@ const ProfileTab = () => {
                   
                   <View style={{ alignItems: 'center' }}>
                 <Text style={{ 
-                  color: theme.text, 
+                  color: textColor, 
                       fontSize: 17, 
                       fontWeight: '700',
                       letterSpacing: 0.3,
@@ -5215,7 +5713,7 @@ const ProfileTab = () => {
             </Text>
             <Text style={{
               fontSize: 18,
-              color: theme.textSecondary,
+              color: textSecondaryColor,
               textAlign: 'center'
             }}>
               You're on fire! Keep it up!
@@ -5223,6 +5721,7 @@ const ProfileTab = () => {
           </View>
         </View>
       )}
+
     </View>
     </AnimatedWallpaper>
 
@@ -5339,7 +5838,7 @@ const ProfileTab = () => {
                   }]} />
                 </Animated.View>
                 
-                <Text style={[styles.creatorName, { color: theme.text }]}>
+                <Text style={[styles.creatorName, { color: textColor, ...textOutlineStyle }]}>
                   Hi, I'm Jason 👋
                 </Text>
                 <View style={styles.badgeContainer}>
@@ -5382,24 +5881,24 @@ const ProfileTab = () => {
                 style={styles.storyHeaderGradient}
               >
                 <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                <Text style={[styles.storyTitle, { color: theme.text }]}>
+                <Text style={[styles.storyTitle, { color: textColor, ...textOutlineStyle }]}>
                   Why I Built This
                 </Text>
               </LinearGradient>
               
-              <Text style={[styles.storyText, { color: theme.text }]}>
+              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                 I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
               </Text>
               
-              <Text style={[styles.storyText, { color: theme.text }]}>
+              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                 Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
               </Text>
               
-              <Text style={[styles.storyText, { color: theme.text }]}>
+              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                 So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
               </Text>
 
-              <Text style={[styles.storyText, { color: theme.text }]}>
+              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                 I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
               </Text>
             </LinearGradient>
@@ -5429,23 +5928,23 @@ const ProfileTab = () => {
                 </LinearGradient>
               </Animated.View>
               
-              <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+              <Text style={[styles.thankYouTitle, { color: textColor, ...textOutlineStyle }]}>
                 Thanks for being here
               </Text>
-              <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+              <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
                 Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
               </Text>
               
               <View style={styles.contactInfo}>
                 <View style={styles.contactItem}>
                   <MaterialIcons name="email" size={18} color={theme.primary} />
-                  <Text style={[styles.contactText, { color: theme.text }]}>
+                  <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                     biblelyios@gmail.com
                   </Text>
                 </View>
                 <View style={styles.contactItem}>
                   <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                  <Text style={[styles.contactText, { color: theme.text }]}>
+                  <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                     @biblely.app on TikTok
                   </Text>
                 </View>
@@ -5453,7 +5952,7 @@ const ProfileTab = () => {
               
               <View style={styles.signatureContainer}>
                 <View style={styles.signatureLine} />
-                <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                <Text style={[styles.signature, { color: textSecondaryColor }]}>
                   Jason
                 </Text>
               </View>
@@ -6392,6 +6891,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontStyle: 'italic',
     letterSpacing: 0.3,
+  },
+  badgeCount: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

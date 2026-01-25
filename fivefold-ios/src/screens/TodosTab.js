@@ -118,8 +118,25 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
 };
 
 const TodosTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
+  
+  // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
+  // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
+  const isBiblelyMainWallpaper = isBiblelyTheme && selectedWallpaperIndex === 0;
+  
+  // For main Biblely wallpaper only, use white text and icons for better readability
+  const textColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  const iconColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.primary;
+  
+  // Text shadow for outline effect - only on main Biblely wallpaper
+  const textOutlineStyle = isBiblelyMainWallpaper ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -235,6 +252,23 @@ const TodosTab = () => {
       delay: 200,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  // Listen for global "close all modals" event (e.g., when widget is tapped)
+  useEffect(() => {
+    const handleCloseAllModals = () => {
+      console.log('📱 TodosTab: Closing all modals (widget navigation)');
+      setShowFullCalendar(false);
+      setShowTasksOverview(false);
+      setShowCompletionCelebration(false);
+      setShowAboutModal(false);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('closeAllModals', handleCloseAllModals);
+    
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -441,14 +475,14 @@ const TodosTab = () => {
           <AnimatedTodoButton style={[styles.todayButton, { backgroundColor: theme.primary }]}>
             <Text style={styles.todayButtonText}>Today</Text>
           </AnimatedTodoButton>
-          <Text style={[styles.monthYear, { color: theme.text }]}>{currentMonth}</Text>
+          <Text style={[styles.monthYear, { color: textColor, ...textOutlineStyle }]}>{currentMonth}</Text>
           <View style={{ width: 40 }} />
         </View>
 
         {/* Days of Week Header */}
         <View style={styles.weekHeader}>
           {daysOfWeek.map((day, index) => (
-            <Text key={index} style={[styles.weekDay, { color: theme.textSecondary }]}>
+            <Text key={index} style={[styles.weekDay, { color: textSecondaryColor }]}>
               {day}
             </Text>
           ))}
@@ -475,7 +509,7 @@ const TodosTab = () => {
                 >
                   <Text style={[
                     styles.dayNumber,
-                    { color: dayData.isToday ? '#fff' : theme.text },
+                    { color: dayData.isToday ? '#fff' : textColor, ...textOutlineStyle },
                     dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
                   ]}>
                     {dayData.day}
@@ -494,7 +528,7 @@ const TodosTab = () => {
           {/* Tap to expand hint */}
           <View style={styles.expandHint}>
             <MaterialIcons name="calendar-today" size={16} color={theme.textSecondary} />
-            <Text style={[styles.expandHintText, { color: theme.textSecondary }]}>
+            <Text style={[styles.expandHintText, { color: textSecondaryColor }]}>
               Tap to schedule tasks
             </Text>
           </View>
@@ -553,7 +587,7 @@ const TodosTab = () => {
 
     return (
       <LiquidGlassStatsContainer>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Progress</Text>
+        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Today's Progress</Text>
         
         <View style={styles.statsRow}>
           <View 
@@ -572,7 +606,7 @@ const TodosTab = () => {
             <Text style={[styles.statNumber, { color: theme.primary }]}>
               {activeTodos.length}
             </Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
               Active Tasks
             </Text>
           </View>
@@ -593,7 +627,7 @@ const TodosTab = () => {
             <Text style={[styles.statNumber, { color: theme.success }]}>
               {completedToday.length}
             </Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
               Completed
             </Text>
           </View>
@@ -614,7 +648,7 @@ const TodosTab = () => {
             <Text style={[styles.statNumber, { color: theme.warning }]}>
               {todayPoints}
             </Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
               Points
             </Text>
           </View>
@@ -669,8 +703,8 @@ const TodosTab = () => {
     if (completedHistory.length === 0) {
       return (
         <LiquidGlassHistoryContainer>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>History</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
+          <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
             Your completed tasks will appear here
           </Text>
           <View 
@@ -681,7 +715,7 @@ const TodosTab = () => {
             }]}
           >
             <MaterialIcons name="history" size={40} color={theme.textTertiary} />
-            <Text style={[styles.emptyHistoryText, { color: theme.textSecondary }]}>
+            <Text style={[styles.emptyHistoryText, { color: textSecondaryColor }]}>
               No completed tasks yet
             </Text>
           </View>
@@ -691,8 +725,8 @@ const TodosTab = () => {
 
     return (
       <LiquidGlassHistoryContainer>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>History</Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
+        <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
           Last 10 completed tasks
         </Text>
         
@@ -709,7 +743,7 @@ const TodosTab = () => {
               <MaterialIcons name="check-circle" size={20} color={theme.success} />
               <View style={styles.historyContent}>
                 <Text style={[styles.historyText, { 
-                  color: theme.textSecondary,
+                  color: textSecondaryColor,
                   textDecorationLine: 'line-through'
                 }]} numberOfLines={1}>
                   {todo.text}
@@ -735,7 +769,7 @@ const TodosTab = () => {
         />
         <View style={styles.loadingContainer}>
           <QuintupleDotDance size={60} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <Text style={[styles.loadingText, { color: textColor, ...textOutlineStyle }]}>
             Loading your tasks...
           </Text>
         </View>
@@ -751,7 +785,7 @@ const TodosTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -808,8 +842,8 @@ const TodosTab = () => {
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Tasks & Goals</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Tasks & Goals</Text>
+            <Text style={[styles.headerSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
               Stay focused and earn points
             </Text>
           </View>
@@ -1001,7 +1035,7 @@ const TodosTab = () => {
                     }]} />
                   </Animated.View>
                   
-                  <Text style={[styles.creatorName, { color: theme.text }]}>
+                  <Text style={[styles.creatorName, { color: textColor, ...textOutlineStyle }]}>
                     Hi, I'm Jason 👋
                   </Text>
                   <View style={styles.badgeContainer}>
@@ -1044,24 +1078,24 @@ const TodosTab = () => {
                   style={styles.storyHeaderGradient}
                 >
                   <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                  <Text style={[styles.storyTitle, { color: theme.text }]}>
+                  <Text style={[styles.storyTitle, { color: textColor, ...textOutlineStyle }]}>
                     Why I Built This
                   </Text>
                 </LinearGradient>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
                 </Text>
 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
                 </Text>
               </LinearGradient>
@@ -1091,23 +1125,23 @@ const TodosTab = () => {
                   </LinearGradient>
                 </Animated.View>
                 
-                <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                <Text style={[styles.thankYouTitle, { color: textColor, ...textOutlineStyle }]}>
                   Thanks for being here
                 </Text>
-                <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
                   Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
                 </Text>
                 
                 <View style={styles.contactInfo}>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                       biblelyios@gmail.com
                     </Text>
                   </View>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                       @biblely.app on TikTok
                     </Text>
                   </View>
@@ -1115,7 +1149,7 @@ const TodosTab = () => {
                 
                 <View style={styles.signatureContainer}>
                   <View style={styles.signatureLine} />
-                  <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                  <Text style={[styles.signature, { color: textSecondaryColor }]}>
                     Jason
                   </Text>
                 </View>

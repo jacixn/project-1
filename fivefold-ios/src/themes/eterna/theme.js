@@ -1,4 +1,6 @@
 // ✨ Eterna Theme - Divine Heavenly Light
+export const eternaWallpaper = require('./wallpaper1.jpg');
+
 export const eternaTheme = {
   name: 'Eterna',
   id: 'eterna',

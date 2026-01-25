@@ -42,7 +42,19 @@ const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
 };
 
 const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll }) => {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, isBiblelyTheme } = useTheme();
+  
+  // For Biblely theme with wallpaper, use white text for better readability
+  const textColor = isBiblelyTheme ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  
+  // Text shadow for outline effect - warm burnt orange to match theme
+  const textOutlineStyle = isBiblelyTheme ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [pendingTasks, setPendingTasks] = useState([]); // Queue for tasks being analyzed
@@ -126,7 +138,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
   return (
     <LiquidGlassTodoContainer isDark={isDark} theme={theme}>
       <View style={styles.headerRow}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Tasks</Text>
+        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Tasks</Text>
         {totalActiveTasks > 0 && (
           <TouchableOpacity 
             style={[styles.viewAllButton, { backgroundColor: `${theme.primary}20` }]}
@@ -157,7 +169,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
       ) : (
         <View style={styles.addForm}>
           <TextInput
-            style={[styles.textInput, { backgroundColor: theme.verseBackground, color: theme.text, borderColor: theme.border }]}
+            style={[styles.textInput, { backgroundColor: theme.verseBackground, color: textColor, borderColor: theme.border, ...textOutlineStyle }]}
             placeholder="What do you need to do?"
             placeholderTextColor={theme.textSecondary}
             value={newTodo}
@@ -179,7 +191,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
                 setNewTodo(''); 
               }}
             >
-              <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: textSecondaryColor }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -201,13 +213,13 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
             <ActivityIndicator size={20} color={theme.primary} />
           </View>
           <View style={styles.todoContent}>
-            <Text style={[styles.todoText, { color: theme.text }]}>{task.text}</Text>
+            <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]}>{task.text}</Text>
             <View style={styles.todoMetaRow}>
               <View style={styles.todoMeta}>
                 <View style={[styles.tierBadge, { backgroundColor: theme.textSecondary }]}>
                   <Text style={styles.tierText}>ANALYZING</Text>
                 </View>
-                <Text style={[styles.analyzingText, { color: theme.textSecondary }]}>
+                <Text style={[styles.analyzingText, { color: textSecondaryColor }]}>
                   Smart analysis...
                 </Text>
               </View>
@@ -217,7 +229,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
       ))}
 
       {activeTodos.length === 0 && pendingTasks.length === 0 ? (
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No tasks yet! Add one to get started.</Text>
+        <Text style={[styles.emptyText, { color: textSecondaryColor }]}>No tasks yet! Add one to get started.</Text>
       ) : (
         activeTodos.map(todo => {
           const getTierColor = (tier) => {
@@ -259,7 +271,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
                   <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
                 </TouchableOpacity>
                 <View style={styles.todoContent}>
-                  <Text style={[styles.todoText, { color: theme.text }]}>{todo.text}</Text>
+                  <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]}>{todo.text}</Text>
                   <View style={styles.todoMetaRow}>
                     <View style={styles.todoMeta}>
                       <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>

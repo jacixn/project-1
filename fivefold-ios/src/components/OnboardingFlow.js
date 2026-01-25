@@ -22,6 +22,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { bibleVersions } from '../data/bibleVersions';
 import { countries } from '../data/countries';
+import { persistProfileImage } from '../utils/profileImageStorage';
 
 const onboardingImage = require('../../assets/logo.png');
 
@@ -111,14 +112,16 @@ const OnboardingFlow = ({ onComplete }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const tempUri = result.assets[0].uri;
+      const permanentUri = await persistProfileImage(tempUri);
+      setProfileImage(permanentUri);
       hapticFeedback.success();
     }
   };

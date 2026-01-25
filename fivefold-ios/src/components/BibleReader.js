@@ -1490,13 +1490,31 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
       setIsAudioPlaying(state.isPlaying);
       setIsAudioPaused(state.isPaused);
       setAudioAutoPlayEnabled(state.autoPlayEnabled);
-      if (state.currentVerse) {
-        setCurrentAudioVerse(state.currentVerse.verse);
+      
+      // Update current verse when audio is active (playing, paused, or loading)
+      if (state.isPlaying || state.isPaused || state.isLoading) {
+        if (state.currentVerse) {
+          setCurrentAudioVerse(state.currentVerse.verse);
+        }
+        // Show audio player when audio is active
+        setShowAudioPlayer(true);
       }
+      // Note: Don't hide the player here - let onComplete or stopAudio handle that
     };
     
     bibleAudioService.onVerseChange = (verse, index) => {
       setCurrentAudioVerse(verse);
+      
+      // Auto-scroll to keep the currently-read verse in view
+      // Use a simple approach: scroll based on verse index position
+      if (index !== undefined && versesScrollViewRef.current) {
+        // Estimate verse height (~80px per verse) and scroll to position
+        const estimatedY = index * 80;
+        versesScrollViewRef.current.scrollTo({
+          y: Math.max(0, estimatedY - 150),
+          animated: true,
+        });
+      }
     };
     
     bibleAudioService.onComplete = () => {
@@ -3293,6 +3311,18 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
         // Use consistent verseId for highlight lookup (not verse.id which may have different format)
         const highlightColor = highlightedVerses[verseId];
         
+        // Check if this verse is currently being read aloud
+        // Highlight if audio is playing, paused, or loading for this verse
+        let audioVerseNum = null;
+        if (currentAudioVerse && showAudioPlayer) {
+          if (typeof currentAudioVerse === 'object') {
+            audioVerseNum = parseInt(currentAudioVerse.number || currentAudioVerse.verse, 10);
+          } else {
+            audioVerseNum = parseInt(currentAudioVerse, 10);
+          }
+        }
+        const isCurrentlyBeingRead = !isNaN(audioVerseNum) && audioVerseNum === verseNumber;
+        
         // Check if this verse is in the current range selection
         const isInRangeSelection = rangeSelectionMode && rangeStartVerse && rangeEndVerseNum && (() => {
           const startNum = parseInt(rangeStartVerse.number || rangeStartVerse.verse);
@@ -3328,6 +3358,19 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   borderLeftColor: theme.primary,
                   paddingLeft: 12
                 },
+                // Highlight the verse currently being read aloud - subtle green border style
+                isCurrentlyBeingRead && {
+                  backgroundColor: `${theme.primary}15`, // Very subtle tint
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: theme.primary,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  paddingVertical: 10,
+                  marginLeft: -4,
+                  marginRight: -4,
+                  marginVertical: 4,
+                },
                 isInRangeSelection && {
                   backgroundColor: `${theme.success}25`,
                   borderRadius: 8,
@@ -3357,6 +3400,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {/* Audio playing indicator */}
+                  {isCurrentlyBeingRead && (
+                    <View style={{ 
+                      backgroundColor: theme.primary, 
+                      borderRadius: 12, 
+                      padding: 4,
+                      marginLeft: 6,
+                      marginTop: 2,
+                    }}>
+                      <MaterialIcons 
+                        name="volume-up" 
+                        size={14} 
+                        color="#FFFFFF" 
+                      />
+                    </View>
+                  )}
                   {verseNotes[verseId] && (
                     <MaterialIcons 
                       name="description" 
@@ -5761,6 +5820,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
             onStop={stopAudio}
             onToggleAutoPlay={toggleAutoPlay}
             onClose={closeAudioPlayer}
+            bottomOffset={100}
           />
           
         </View>

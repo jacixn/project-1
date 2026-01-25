@@ -1315,7 +1315,9 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
                 borderRadius: 20,
               }}
             >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+              <Text style={{ color: theme.primary, fontSize: 17, fontWeight: '400' }}>
+                <Text style={{ fontSize: 20 }}>‹</Text> Back
+              </Text>
             </TouchableOpacity>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               Thematic Guides

@@ -12,6 +12,7 @@ import {
   Modal,
   Dimensions,
   RefreshControl,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -36,8 +37,25 @@ import WorkoutService from '../services/workoutService';
 // const { width } = Dimensions.get('window');
 
 const GymTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
+  
+  // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
+  // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
+  const isBiblelyMainWallpaper = isBiblelyTheme && selectedWallpaperIndex === 0;
+  
+  // For main Biblely wallpaper only, use white text and icons for better readability
+  const textColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  const iconColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.primary;
+  
+  // Text shadow for outline effect - only on main Biblely wallpaper
+  const textOutlineStyle = isBiblelyMainWallpaper ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
   const { hasActiveWorkout } = useWorkout();
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -48,6 +66,9 @@ const GymTab = () => {
   const [showFullHistoryModal, setShowFullHistoryModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [selectedCalendarMonth, setSelectedCalendarMonth] = useState(new Date());
+  const [scheduledWorkouts, setScheduledWorkouts] = useState([]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -63,18 +84,50 @@ const GymTab = () => {
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
   const cardShimmer = useRef(new Animated.Value(0)).current;
+  
+  // Calendar modal animations
+  const calendarModalScale = useRef(new Animated.Value(0.8)).current;
+  const calendarModalOpacity = useRef(new Animated.Value(0)).current;
+  const calendarDayAnims = useRef([...Array(42)].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     // Start entrance animation
     createEntranceAnimation(slideAnim, fadeAnim, scaleAnim, 0, 0).start();
-    // Load workout history
+    // Load workout history and scheduled workouts
     loadWorkoutHistory();
+    loadScheduledWorkouts();
     
     // Start logo animations
     startLogoAnimations();
     
     // Start shimmer animation
     startShimmerAnimation();
+    
+    // Listen for workout scheduled events
+    const scheduledListener = DeviceEventEmitter.addListener('workoutScheduled', () => {
+      loadScheduledWorkouts();
+    });
+    
+    return () => {
+      scheduledListener.remove();
+    };
+  }, []);
+
+  // Listen for global "close all modals" event (e.g., when widget is tapped)
+  useEffect(() => {
+    const handleCloseAllModals = () => {
+      console.log('📱 GymTab: Closing all modals (widget navigation)');
+      setShowFullHistoryModal(false);
+      setShowAboutModal(false);
+      setShowCalendarModal(false);
+      setTemplateSelectionVisible(false);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('closeAllModals', handleCloseAllModals);
+    
+    return () => {
+      subscription.remove();
+    };
   }, []);
   
   useEffect(() => {
@@ -176,8 +229,9 @@ const GymTab = () => {
   // Force refresh all data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('🏋️ GymTab focused - refreshing workout history');
+      console.log('🏋️ GymTab focused - refreshing workout data');
       loadWorkoutHistory();
+      loadScheduledWorkouts();
     }, [])
   );
 
@@ -190,32 +244,66 @@ const GymTab = () => {
     }
   };
 
+  const loadScheduledWorkouts = async () => {
+    try {
+      // Clean up expired one-time schedules first
+      await WorkoutService.cleanupExpiredSchedules();
+      const scheduled = await WorkoutService.getScheduledWorkouts();
+      setScheduledWorkouts(scheduled);
+    } catch (error) {
+      console.error('Error loading scheduled workouts:', error);
+    }
+  };
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await loadWorkoutHistory();
-      // add any other data reloads here if needed (stats are derived from history)
+      await loadScheduledWorkouts();
     } catch (err) {
-      console.error('Error refreshing workout history:', err);
+      console.error('Error refreshing workout data:', err);
     } finally {
       setRefreshing(false);
     }
   }, []);
 
+  // Format time with smart units (Minutes → Hours → Days)
+  const formatTimeWithUnits = (totalMinutes) => {
+    if (totalMinutes < 60) {
+      return { value: totalMinutes, label: 'Minutes' };
+    } else if (totalMinutes < 1440) { // Less than 24 hours
+      const hours = totalMinutes / 60;
+      // Show decimal only if needed and < 10 hours
+      const formatted = hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours);
+      return { value: formatted, label: 'Hours' };
+    } else { // 24+ hours
+      const hours = Math.round(totalMinutes / 60);
+      if (hours >= 1000) {
+        // Use K abbreviation for 1000+ hours
+        const kValue = Math.round(hours / 100) / 10;
+        return { value: `${kValue}K`, label: 'Hours' };
+      }
+      return { value: hours, label: 'Hours' };
+    }
+  };
+
   // Calculate workout stats from history
   const calculateWorkoutStats = () => {
     if (!workoutHistory || workoutHistory.length === 0) {
-      return { totalWorkouts: 0, streak: 0, totalMinutes: 0 };
+      return { totalWorkouts: 0, streak: 0, timeValue: 0, timeLabel: 'Minutes' };
     }
 
     // Total workouts
     const totalWorkouts = workoutHistory.length;
 
-    // Total minutes
+    // Total minutes (duration is in seconds)
     const totalMinutes = workoutHistory.reduce((total, workout) => {
       return total + (workout.duration || 0);
     }, 0);
     const totalMinutesFormatted = Math.floor(totalMinutes / 60);
+    
+    // Get smart formatted time
+    const { value: timeValue, label: timeLabel } = formatTimeWithUnits(totalMinutesFormatted);
 
     // Calculate weekly streak (consecutive weeks with 1+ workouts)
     const WORKOUTS_PER_WEEK_THRESHOLD = 1;
@@ -263,10 +351,208 @@ const GymTab = () => {
       }
     }
 
-    return { totalWorkouts, streak, totalMinutes: totalMinutesFormatted };
+    return { totalWorkouts, streak, timeValue, timeLabel };
   };
 
   const workoutStats = calculateWorkoutStats();
+
+  // Get all workout dates as a Set for quick lookup
+  const getWorkoutDates = useCallback(() => {
+    const dates = new Set();
+    workoutHistory.forEach(workout => {
+      if (workout.completedAt) {
+        const date = new Date(workout.completedAt);
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        dates.add(dateKey);
+      }
+    });
+    return dates;
+  }, [workoutHistory]);
+
+  const workoutDates = getWorkoutDates();
+
+  // Get current week days (Sunday first, Saturday last)
+  const getCurrentWeekDays = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - dayOfWeek); // Go back to Sunday
+    
+    const days = [];
+    const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Sun to Sat
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const isToday = date.toDateString() === today.toDateString();
+      const hasWorkout = workoutDates.has(dateKey);
+      const scheduledForDay = getScheduledForDate(dateKey);
+      const hasScheduled = scheduledForDay.length > 0;
+      
+      days.push({
+        dayName: dayNames[i],
+        date: date.getDate(),
+        dateKey,
+        isToday,
+        hasWorkout,
+        hasScheduled,
+        isPast: date < today && !isToday,
+      });
+    }
+    return days;
+  };
+
+  // Get scheduled workouts for a specific date
+  const getScheduledForDate = (dateKey) => {
+    const date = new Date(dateKey);
+    const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, etc.
+    
+    return scheduledWorkouts.filter(schedule => {
+      if (schedule.type === 'recurring') {
+        return schedule.days && schedule.days.includes(dayOfWeek);
+      } else if (schedule.type === 'one-time') {
+        return schedule.date === dateKey;
+      }
+      return false;
+    });
+  };
+
+  // Get calendar month data
+  const getCalendarMonthData = (monthDate) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday = 0
+    
+    const days = [];
+    const today = new Date();
+    
+    // Add empty slots for days before the first day of month
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ empty: true });
+    }
+    
+    // Add all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isToday = date.toDateString() === today.toDateString();
+      const hasWorkout = workoutDates.has(dateKey);
+      const isFuture = date > today;
+      const scheduledForDay = getScheduledForDate(dateKey);
+      const hasScheduled = scheduledForDay.length > 0;
+      
+      days.push({
+        day,
+        dateKey,
+        isToday,
+        hasWorkout,
+        isFuture,
+        hasScheduled,
+        scheduledWorkouts: scheduledForDay,
+      });
+    }
+    
+    return days;
+  };
+
+  // Open calendar modal with animation
+  const openCalendarModal = () => {
+    hapticFeedback.medium();
+    setSelectedCalendarMonth(new Date());
+    setShowCalendarModal(true);
+    
+    // Reset animations
+    calendarModalScale.setValue(0.8);
+    calendarModalOpacity.setValue(0);
+    calendarDayAnims.forEach(anim => anim.setValue(0));
+    
+    // Animate modal in
+    Animated.parallel([
+      Animated.spring(calendarModalScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(calendarModalOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Stagger animate each day
+      const animations = calendarDayAnims.map((anim, index) =>
+        Animated.spring(anim, {
+          toValue: 1,
+          tension: 120,
+          friction: 8,
+          delay: index * 15,
+          useNativeDriver: true,
+        })
+      );
+      Animated.stagger(15, animations).start();
+    });
+  };
+
+  // Close calendar modal
+  const closeCalendarModal = () => {
+    hapticFeedback.light();
+    Animated.parallel([
+      Animated.timing(calendarModalScale, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(calendarModalOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowCalendarModal(false);
+    });
+  };
+
+  // Navigate calendar months
+  const navigateMonth = (direction) => {
+    hapticFeedback.light();
+    const newMonth = new Date(selectedCalendarMonth);
+    newMonth.setMonth(newMonth.getMonth() + direction);
+    setSelectedCalendarMonth(newMonth);
+    
+    // Re-animate days
+    calendarDayAnims.forEach(anim => anim.setValue(0));
+    const animations = calendarDayAnims.map((anim, index) =>
+      Animated.spring(anim, {
+        toValue: 1,
+        tension: 120,
+        friction: 8,
+        useNativeDriver: true,
+      })
+    );
+    Animated.stagger(10, animations).start();
+  };
+
+  // Count workouts in a month
+  const getMonthWorkoutCount = (monthDate) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    let count = 0;
+    
+    workoutHistory.forEach(workout => {
+      if (workout.completedAt) {
+        const date = new Date(workout.completedAt);
+        if (date.getFullYear() === year && date.getMonth() === month) {
+          count++;
+        }
+      }
+    });
+    return count;
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -330,7 +616,7 @@ const GymTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -387,8 +673,8 @@ const GymTab = () => {
             
             {/* Centered text content */}
             <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Fitness</Text>
-              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Fitness</Text>
+              <Text style={[styles.headerSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
                 Track your workouts
               </Text>
             </View>
@@ -415,8 +701,8 @@ const GymTab = () => {
         >
           {/* Welcome Card */}
           <LiquidGlassContainer>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Workout Stats</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+            <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Workout Stats</Text>
+            <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
               Your fitness journey
             </Text>
             
@@ -429,10 +715,10 @@ const GymTab = () => {
                   borderRadius: 16,
                 }]}
               >
-                <Text style={[styles.statNumber, { color: theme.primary }]}>
+                <Text style={[styles.statNumber, { color: iconColor }]}>
                   {workoutStats.totalWorkouts}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
                   Workouts
                 </Text>
               </View>
@@ -445,10 +731,10 @@ const GymTab = () => {
                   borderRadius: 16,
                 }]}
               >
-                <Text style={[styles.statNumber, { color: theme.success }]}>
+                <Text style={[styles.statNumber, { color: isBiblelyTheme ? '#4ADE80' : theme.success }]}>
                   {workoutStats.streak}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
                   Week Streak
                 </Text>
               </View>
@@ -461,69 +747,105 @@ const GymTab = () => {
                   borderRadius: 16,
                 }]}
               >
-                <Text style={[styles.statNumber, { color: theme.warning }]}>
-                  {workoutStats.totalMinutes}
+                <Text style={[styles.statNumber, { color: isBiblelyTheme ? '#FBBF24' : theme.warning }]}>
+                  {workoutStats.timeValue}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                  Minutes
+                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
+                  {workoutStats.timeLabel}
                 </Text>
               </View>
             </View>
-          </LiquidGlassContainer>
 
-          {/* Exercises Card */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Exercises</Text>
-                <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                  Browse exercise library
+            {/* Weekly Calendar Preview */}
+            <TouchableOpacity 
+              style={styles.weeklyCalendarContainer}
+              onPress={openCalendarModal}
+              activeOpacity={0.8}
+            >
+              <View style={styles.weeklyCalendarHeader}>
+                <Text style={[styles.weeklyCalendarTitle, { color: textColor, ...textOutlineStyle }]}>
+                  This Week
                 </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={[styles.weeklyCalendarHint, { color: textSecondaryColor }]}>
+                    Tap for full calendar
+                  </Text>
+                  <MaterialIcons name="chevron-right" size={18} color={theme.textSecondary} />
+                </View>
               </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  setExercisesModalVisible(true);
-                }}
-              >
-                <Text style={styles.browseButtonText}>Browse</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.exercisesPreview}>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.primary}20`,
-                borderColor: `${theme.primary}60`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="fitness-center" size={32} color={theme.primary} />
-                <Text style={[styles.exercisePreviewText, { color: theme.text }]}>
-                  128+ Exercises
-                </Text>
+              
+              <View style={styles.weeklyDaysRow}>
+                {getCurrentWeekDays().map((day, index) => (
+                  <View key={index} style={styles.weeklyDayItem}>
+                    <Text style={[
+                      styles.weeklyDayName,
+                      { color: day.isToday ? theme.primary : textSecondaryColor, ...textOutlineStyle }
+                    ]}>
+                      {day.dayName}
+                    </Text>
+                    <View style={[
+                      styles.weeklyDayCircle,
+                      day.hasWorkout && styles.weeklyDayCircleActive,
+                      day.isToday && styles.weeklyDayCircleToday,
+                      {
+                        backgroundColor: day.hasWorkout 
+                          ? theme.primary 
+                          : day.hasScheduled && !day.hasWorkout
+                            ? `${theme.warning}25`
+                            : day.isToday 
+                              ? `${theme.primary}30`
+                              : 'transparent',
+                        borderColor: day.hasScheduled && !day.hasWorkout
+                          ? theme.warning
+                          : day.isToday 
+                            ? theme.primary 
+                            : 'transparent',
+                        borderWidth: day.hasScheduled && !day.hasWorkout ? 2 : (day.isToday ? 2 : 0),
+                      }
+                    ]}>
+                      <Text style={[
+                        styles.weeklyDayNumber,
+                        { 
+                          color: day.hasWorkout 
+                            ? '#FFFFFF' 
+                            : day.hasScheduled
+                              ? theme.warning
+                              : day.isToday 
+                                ? theme.primary 
+                                : textColor,
+                          ...textOutlineStyle,
+                          fontWeight: day.hasScheduled ? '700' : '600',
+                        }
+                      ]}>
+                        {day.date}
+                      </Text>
+                      {/* Completed workout checkmark */}
+                      {day.hasWorkout && (
+                        <View style={styles.workoutCheckmark}>
+                          <MaterialIcons name="check" size={10} color="#FFFFFF" />
+                        </View>
+                      )}
+                      {/* Scheduled workout indicator */}
+                      {day.hasScheduled && !day.hasWorkout && (
+                        <View style={[styles.scheduledIndicator, { backgroundColor: theme.warning }]}>
+                          <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
               </View>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.success}20`,
-                borderColor: `${theme.success}60`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="category" size={32} color={theme.success} />
-                <Text style={[styles.exercisePreviewText, { color: theme.text }]}>
-                  All Categories
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           </LiquidGlassContainer>
 
           {/* Start Workout Card */}
           <LiquidGlassContainer style={styles.comingSoonCard}>
             <View style={styles.startWorkoutHeader}>
               <View>
-                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 8 }]}>
+                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8, ...textOutlineStyle }]}>
                   Start Workout
                 </Text>
-                <Text style={[styles.sectionSubtitle, { color: theme.textSecondary, marginBottom: 20 }]}>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 20, ...textOutlineStyle }]}>
                   Begin a new workout session
                 </Text>
               </View>
@@ -547,14 +869,59 @@ const GymTab = () => {
             </TouchableOpacity>
           </LiquidGlassContainer>
 
+          {/* Exercises Card */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Exercises</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  Browse exercise library
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  setExercisesModalVisible(true);
+                }}
+              >
+                <Text style={styles.browseButtonText}>Browse</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.exercisesPreview}>
+              <View style={[styles.exercisePreviewItem, { 
+                backgroundColor: `${theme.primary}20`,
+                borderColor: `${theme.primary}60`,
+                borderWidth: 1,
+              }]}>
+                <MaterialIcons name="fitness-center" size={32} color={theme.primary} />
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  128+ Exercises
+                </Text>
+              </View>
+              <View style={[styles.exercisePreviewItem, { 
+                backgroundColor: `${theme.success}20`,
+                borderColor: `${theme.success}60`,
+                borderWidth: 1,
+              }]}>
+                <MaterialIcons name="category" size={32} color={theme.success} />
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  All Categories
+                </Text>
+              </View>
+            </View>
+          </LiquidGlassContainer>
+
           {/* History Card */}
           <LiquidGlassContainer style={styles.historyCard}>
             <View style={styles.historyHeader}>
               <View>
-                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 4 }]}>
+                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 4, ...textOutlineStyle }]}>
                   History
                 </Text>
-                <Text style={[styles.sectionSubtitle, { color: theme.textSecondary, marginBottom: 0 }]}>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 0, ...textOutlineStyle }]}>
                   {workoutHistory.length} {workoutHistory.length === 1 ? 'workout' : 'workouts'} completed
                 </Text>
               </View>
@@ -566,10 +933,10 @@ const GymTab = () => {
             {workoutHistory.length === 0 ? (
               <View style={styles.emptyHistory}>
                 <MaterialIcons name="fitness-center" size={48} color={theme.textSecondary} opacity={0.3} />
-                <Text style={[styles.emptyHistoryText, { color: theme.text }]}>
+                <Text style={[styles.emptyHistoryText, { color: textColor, ...textOutlineStyle }]}>
                   No workouts yet
                 </Text>
-                <Text style={[styles.emptyHistorySubtext, { color: theme.textSecondary }]}>
+                <Text style={[styles.emptyHistorySubtext, { color: textSecondaryColor }]}>
                   Complete your first workout to see it here
                 </Text>
               </View>
@@ -594,26 +961,26 @@ const GymTab = () => {
                       <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
                     </View>
                     <View style={styles.workoutInfo}>
-                      <Text style={[styles.workoutName, { color: theme.text }]}>
+                      <Text style={[styles.workoutName, { color: textColor, ...textOutlineStyle }]}>
                         {workout.name}
                       </Text>
                       <View style={styles.workoutMeta}>
                         <View style={styles.workoutMetaItem}>
-                          <MaterialIcons name="schedule" size={14} color={theme.textSecondary} />
-                          <Text style={[styles.workoutMetaText, { color: theme.textSecondary }]}>
+                          <MaterialIcons name="schedule" size={14} color={textSecondaryColor} />
+                          <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
                             {formatDuration(workout.duration)}
                           </Text>
                         </View>
                         <View style={styles.workoutMetaItem}>
-                          <MaterialIcons name="fitness-center" size={14} color={theme.textSecondary} />
-                          <Text style={[styles.workoutMetaText, { color: theme.textSecondary }]}>
+                          <MaterialIcons name="fitness-center" size={14} color={textSecondaryColor} />
+                          <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
                             {workout.exercises?.length || 0} exercises
                           </Text>
                         </View>
                       </View>
                     </View>
                     <View style={styles.workoutDate}>
-                      <Text style={[styles.workoutDateText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.workoutDateText, { color: textSecondaryColor }]}>
                         {formatDate(workout.completedAt)}
                       </Text>
                       <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
@@ -677,10 +1044,10 @@ const GymTab = () => {
               <MaterialIcons name="close" size={28} color={theme.text} />
             </TouchableOpacity>
             <View style={styles.fullHistoryHeaderText}>
-              <Text style={[styles.fullHistoryTitle, { color: theme.text }]}>
+              <Text style={[styles.fullHistoryTitle, { color: textColor, ...textOutlineStyle }]}>
                 Workout History
               </Text>
-              <Text style={[styles.fullHistorySubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.fullHistorySubtitle, { color: textSecondaryColor }]}>
                 {workoutHistory.length} {workoutHistory.length === 1 ? 'workout' : 'workouts'} completed
               </Text>
             </View>
@@ -719,26 +1086,26 @@ const GymTab = () => {
                   <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
                 </View>
                 <View style={styles.workoutInfo}>
-                  <Text style={[styles.workoutName, { color: theme.text }]}>
+                  <Text style={[styles.workoutName, { color: textColor, ...textOutlineStyle }]}>
                     {workout.name}
                   </Text>
                   <View style={styles.workoutMeta}>
                     <View style={styles.workoutMetaItem}>
                       <MaterialIcons name="schedule" size={14} color={theme.textSecondary} />
-                      <Text style={[styles.workoutMetaText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
                         {formatDuration(workout.duration)}
                       </Text>
                     </View>
                     <View style={styles.workoutMetaItem}>
                       <MaterialIcons name="fitness-center" size={14} color={theme.textSecondary} />
-                      <Text style={[styles.workoutMetaText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
                         {workout.exercises?.length || 0} exercises
                       </Text>
                     </View>
                   </View>
                 </View>
                 <View style={styles.workoutDate}>
-                  <Text style={[styles.workoutDateText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.workoutDateText, { color: textSecondaryColor }]}>
                     {formatDate(workout.completedAt)}
                   </Text>
                   <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
@@ -747,6 +1114,186 @@ const GymTab = () => {
             ))}
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* Workout Calendar Modal */}
+      <Modal
+        visible={showCalendarModal}
+        animationType="none"
+        transparent={true}
+        onRequestClose={closeCalendarModal}
+      >
+        <TouchableOpacity 
+          style={styles.calendarModalOverlay}
+          activeOpacity={1}
+          onPress={closeCalendarModal}
+        >
+          <Animated.View 
+            style={[
+              styles.calendarModalContainer,
+              {
+                backgroundColor: isDark ? 'rgba(20, 20, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+                transform: [{ scale: calendarModalScale }],
+                opacity: calendarModalOpacity,
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              {/* Modal Header */}
+              <View style={styles.calendarModalHeader}>
+                <View>
+                  <Text style={[styles.calendarModalTitle, { color: textColor, ...textOutlineStyle }]}>
+                    Workout Calendar
+                  </Text>
+                  <Text style={[styles.calendarModalSubtitle, { color: textSecondaryColor }]}>
+                    {workoutHistory.length} total workouts
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.calendarCloseButton, { backgroundColor: `${theme.textSecondary}20` }]}
+                  onPress={closeCalendarModal}
+                >
+                  <MaterialIcons name="close" size={22} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Month Navigator */}
+              <View style={styles.monthNavigator}>
+                <TouchableOpacity
+                  style={[styles.monthNavButton, { backgroundColor: `${theme.primary}20` }]}
+                  onPress={() => navigateMonth(-1)}
+                >
+                  <MaterialIcons name="chevron-left" size={28} color={theme.primary} />
+                </TouchableOpacity>
+                
+                <View style={styles.monthDisplay}>
+                  <Text style={[styles.monthText, { color: textColor, ...textOutlineStyle }]}>
+                    {selectedCalendarMonth.toLocaleString('default', { month: 'long' })}
+                  </Text>
+                  <Text style={[styles.yearText, { color: textSecondaryColor }]}>
+                    {selectedCalendarMonth.getFullYear()}
+                  </Text>
+                  <View style={[styles.monthWorkoutBadge, { backgroundColor: `${theme.primary}20` }]}>
+                    <MaterialIcons name="fitness-center" size={12} color={theme.primary} />
+                    <Text style={[styles.monthWorkoutCount, { color: theme.primary }]}>
+                      {getMonthWorkoutCount(selectedCalendarMonth)} workouts
+                    </Text>
+                  </View>
+                </View>
+                
+                <TouchableOpacity
+                  style={[styles.monthNavButton, { backgroundColor: `${theme.primary}20` }]}
+                  onPress={() => navigateMonth(1)}
+                >
+                  <MaterialIcons name="chevron-right" size={28} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Day Names Header */}
+              <View style={styles.calendarDayNames}>
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                  <Text key={index} style={[styles.calendarDayName, { color: textSecondaryColor }]}>
+                    {day}
+                  </Text>
+                ))}
+              </View>
+
+              {/* Calendar Grid */}
+              <View style={styles.calendarGrid}>
+                {getCalendarMonthData(selectedCalendarMonth).map((day, index) => (
+                  <Animated.View
+                    key={index}
+                    style={[
+                      styles.calendarDayCell,
+                      {
+                        opacity: calendarDayAnims[index] || 1,
+                        transform: [{ 
+                          scale: calendarDayAnims[index]?.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.5, 1],
+                          }) || 1 
+                        }],
+                      }
+                    ]}
+                  >
+                    {!day.empty && (
+                      <View style={[
+                        styles.calendarDayInner,
+                        day.hasWorkout && styles.calendarDayHasWorkout,
+                        day.isToday && styles.calendarDayIsToday,
+                        {
+                          backgroundColor: day.hasWorkout 
+                            ? theme.primary 
+                            : day.hasScheduled && !day.hasWorkout
+                              ? `${theme.warning}30`
+                              : day.isToday 
+                                ? `${theme.primary}25`
+                                : 'transparent',
+                          borderColor: day.hasScheduled && !day.hasWorkout
+                            ? theme.warning
+                            : day.isToday && !day.hasWorkout 
+                              ? theme.primary 
+                              : 'transparent',
+                          borderWidth: day.hasScheduled && !day.hasWorkout ? 2 : (day.isToday && !day.hasWorkout ? 2 : 0),
+                        }
+                      ]}>
+                        <Text style={[
+                          styles.calendarDayText,
+                          {
+                            color: day.hasWorkout 
+                              ? '#FFFFFF' 
+                              : day.hasScheduled
+                                ? theme.warning
+                                : day.isFuture 
+                                  ? theme.textTertiary 
+                                  : day.isToday
+                                    ? theme.primary
+                                    : theme.text,
+                            fontWeight: day.isToday || day.hasWorkout || day.hasScheduled ? '700' : '500',
+                          }
+                        ]}>
+                          {day.day}
+                        </Text>
+                        {/* Completed workout indicator */}
+                        {day.hasWorkout && (
+                          <View style={styles.calendarWorkoutIndicator}>
+                            <MaterialIcons name="check" size={10} color="#FFFFFF" />
+                          </View>
+                        )}
+                        {/* Scheduled workout indicator */}
+                        {day.hasScheduled && !day.hasWorkout && (
+                          <View style={[styles.calendarScheduledIndicator, { backgroundColor: theme.warning }]}>
+                            <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </Animated.View>
+                ))}
+              </View>
+
+              {/* Legend */}
+              <View style={styles.calendarLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: theme.primary }]} />
+                  <Text style={[styles.legendText, { color: textSecondaryColor }]}>Completed</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: theme.warning }]} />
+                  <Text style={[styles.legendText, { color: textSecondaryColor }]}>Scheduled</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { 
+                    backgroundColor: 'transparent', 
+                    borderWidth: 2,
+                    borderColor: theme.primary,
+                  }]} />
+                  <Text style={[styles.legendText, { color: textSecondaryColor }]}>Today</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
       </Modal>
 
       {/* About Jason Modal - REDESIGNED */}
@@ -862,7 +1409,7 @@ const GymTab = () => {
                     }]} />
                   </Animated.View>
                   
-                  <Text style={[styles.creatorName, { color: theme.text }]}>
+                  <Text style={[styles.creatorName, { color: textColor, ...textOutlineStyle }]}>
                     Hi, I'm Jason 👋
                   </Text>
                   <View style={styles.badgeContainer}>
@@ -905,24 +1452,24 @@ const GymTab = () => {
                   style={styles.storyHeaderGradient}
                 >
                   <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                  <Text style={[styles.storyTitle, { color: theme.text }]}>
+                  <Text style={[styles.storyTitle, { color: textColor, ...textOutlineStyle }]}>
                     Why I Built This
                   </Text>
                 </LinearGradient>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
                 </Text>
 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
                   I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
                 </Text>
               </LinearGradient>
@@ -952,23 +1499,23 @@ const GymTab = () => {
                   </LinearGradient>
                 </Animated.View>
                 
-                <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                <Text style={[styles.thankYouTitle, { color: textColor, ...textOutlineStyle }]}>
                   Thanks for being here
                 </Text>
-                <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
                   Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
                 </Text>
                 
                 <View style={styles.contactInfo}>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                       biblelyios@gmail.com
                     </Text>
                   </View>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
                       @biblely.app on TikTok
                     </Text>
                   </View>
@@ -976,7 +1523,7 @@ const GymTab = () => {
                 
                 <View style={styles.signatureContainer}>
                   <View style={styles.signatureLine} />
-                  <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                  <Text style={[styles.signature, { color: textSecondaryColor }]}>
                     Jason
                   </Text>
                 </View>
@@ -1687,6 +2234,250 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontStyle: 'italic',
     letterSpacing: 0.3,
+  },
+  
+  // Weekly Calendar Preview Styles
+  weeklyCalendarContainer: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  weeklyCalendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  weeklyCalendarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  weeklyCalendarHint: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  weeklyDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weeklyDayItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  weeklyDayName: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  weeklyDayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  weeklyDayCircleActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  weeklyDayCircleToday: {
+    borderWidth: 2,
+  },
+  weeklyDayNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  workoutCheckmark: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scheduledIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Full Calendar Modal Styles
+  calendarModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  calendarModalContainer: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  calendarModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  calendarModalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  calendarModalSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  calendarCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthNavigator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  monthNavButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthDisplay: {
+    alignItems: 'center',
+  },
+  monthText: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  yearText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  monthWorkoutBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  monthWorkoutCount: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  calendarDayNames: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  calendarDayName: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    padding: 2,
+  },
+  calendarDayInner: {
+    flex: 1,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  calendarDayHasWorkout: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calendarDayIsToday: {
+    borderWidth: 2,
+  },
+  calendarDayText: {
+    fontSize: 14,
+  },
+  calendarWorkoutIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarScheduledIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 

@@ -1,4 +1,6 @@
 // 🌙 Sailor Moon Theme - Magical Girl Purple & Pink
+export const sailormoonWallpaper = require('./wallpaper1.jpg');
+
 export const sailormoonTheme = {
   name: 'Sailor Moon',
   id: 'sailormoon',

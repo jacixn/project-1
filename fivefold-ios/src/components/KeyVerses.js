@@ -38,8 +38,8 @@ const VERSES_CONFIG = {
   BRANCH: 'main',
   FILE_PATH: 'fivefold-ios/verses.json',
   URL: 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/verses.json',
-  CACHE_KEY: 'cached_verses_data_v7',
-  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v7',
+  CACHE_KEY: 'cached_verses_data_v8',
+  CACHE_TIMESTAMP_KEY: 'verses_cache_timestamp_v8',
   CACHE_DURATION: 0,
 };
 
@@ -479,15 +479,12 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
                 {/* Reference */}
                 <View style={styles.verseDetailRefContainer}>
                   <View style={styles.verseDetailDivider} />
-                  <Text style={styles.verseDetailRef}>{selectedVerse.reference}</Text>
+                  <Text style={styles.verseDetailRef}>
+                    {selectedVerse.reference} ({fetchedVerses[selectedVerse.reference]?.version || bibleVersion})
+                  </Text>
                   <Text style={styles.verseDetailCategory}>{selectedVerse.category}</Text>
                 </View>
                 
-                {/* Context Section */}
-                <View style={styles.verseDetailContextContainer}>
-                  <Text style={styles.verseDetailContextTitle}>Context</Text>
-                  <Text style={styles.verseDetailContextText}>{selectedVerse.context}</Text>
-                </View>
               </ScrollView>
               
               {/* Action Buttons */}
@@ -497,9 +494,18 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
                   style={styles.verseDetailPrimaryBtn}
                   onPress={() => {
                     hapticFeedback.light();
-                    closeVerseDetail();
-                    if (onNavigateToVerse) {
-                      onNavigateToVerse(selectedVerse.reference);
+                    // Store reference before closing modal (since selectedVerse will be null after close)
+                    const verseRef = selectedVerse?.reference;
+                    
+                    // Close the verse detail modal immediately (no animation)
+                    setShowVerseDetail(false);
+                    setSelectedVerse(null);
+                    
+                    // Navigate after a brief delay to ensure the modal state is updated
+                    if (onNavigateToVerse && verseRef) {
+                      setTimeout(() => {
+                        onNavigateToVerse(verseRef);
+                      }, 150);
                     }
                   }}
                   activeOpacity={0.8}
@@ -517,9 +523,18 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
                     style={styles.verseDetailSecondaryBtn}
                     onPress={() => {
                       hapticFeedback.light();
-                      closeVerseDetail();
-                      if (onDiscussVerse) {
-                        onDiscussVerse(selectedVerse.reference);
+                      // Store reference before closing modal (since selectedVerse will be null after close)
+                      const verseRef = selectedVerse?.reference;
+                      
+                      // Close the verse detail modal immediately (no animation)
+                      setShowVerseDetail(false);
+                      setSelectedVerse(null);
+                      
+                      // Navigate after a brief delay to ensure the modal state is updated
+                      if (onDiscussVerse && verseRef) {
+                        setTimeout(() => {
+                          onDiscussVerse(verseRef);
+                        }, 150);
                       }
                     }}
                     activeOpacity={0.8}
@@ -835,27 +850,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  verseDetailContextContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 8,
-  },
-  verseDetailContextTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  verseDetailContextText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
   },
   verseDetailActions: {
     padding: 20,

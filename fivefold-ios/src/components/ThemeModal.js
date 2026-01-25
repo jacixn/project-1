@@ -9,37 +9,50 @@ import {
   Animated,
   LayoutAnimation,
   Platform,
-  UIManager
+  UIManager,
+  Image,
+  Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from './GlassEffect';
+import { LinearGradient } from 'expo-linear-gradient';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const ThemeModal = ({ visible, onClose }) => {
-  const { theme, currentTheme, changeTheme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
-  const [lightModeExpanded, setLightModeExpanded] = useState(false);
-  const [darkModeExpanded, setDarkModeExpanded] = useState(false);
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 60) / 2; // 2 columns with padding
 
-  console.log('ThemeModal rendered with visible:', visible);
+const ThemeModal = ({ visible, onClose }) => {
+  const { 
+    theme, 
+    currentTheme, 
+    changeTheme, 
+    isBlushTheme, 
+    isCresviaTheme, 
+    isEternaTheme, 
+    isSpidermanTheme, 
+    isFaithTheme, 
+    isSailormoonTheme, 
+    isBiblelyTheme, 
+    biblelyWallpapers, 
+    selectedWallpaperIndex, 
+    changeWallpaper,
+    themeWallpapers 
+  } = useTheme();
+  
+  const [wallpaperExpanded, setWallpaperExpanded] = useState(true);
+
+  const toggleWallpaperSection = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setWallpaperExpanded(!wallpaperExpanded);
+  };
 
   const handleThemeSelect = (themeId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     changeTheme(themeId);
-    // Optionally close modal after selection
-    // setTimeout(() => onClose(), 300);
-  };
-
-  const toggleLightMode = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setLightModeExpanded(!lightModeExpanded);
-  };
-
-  const toggleDarkMode = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setDarkModeExpanded(!darkModeExpanded);
   };
 
   const getCurrentThemeDisplay = () => {
@@ -47,12 +60,121 @@ const ThemeModal = ({ visible, onClose }) => {
     if (isEternaTheme) return { name: 'Eterna', mode: 'Light' };
     if (isFaithTheme) return { name: 'Faith', mode: 'Light' };
     if (isSailormoonTheme) return { name: 'Sailor Moon', mode: 'Light' };
+    if (isBiblelyTheme) {
+      const wallpaper = biblelyWallpapers?.[selectedWallpaperIndex];
+      return { 
+        name: wallpaper?.name || 'Biblely', 
+        mode: wallpaper?.mode === 'dark' ? 'Dark' : 'Light' 
+      };
+    }
     if (isCresviaTheme) return { name: 'Cresvia', mode: 'Dark' };
     if (isSpidermanTheme) return { name: 'Spiderman', mode: 'Dark' };
     return { name: 'Default', mode: 'Unknown' };
   };
 
   const current = getCurrentThemeDisplay();
+
+  // Light mode themes with their wallpapers
+  const lightThemes = [
+    { id: 'blush-bloom', name: 'Blush Bloom', wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme },
+    { id: 'eterna', name: 'Eterna', wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme },
+    { id: 'faith', name: 'Faith', wallpaper: themeWallpapers?.['faith'], isActive: isFaithTheme },
+    { id: 'sailormoon', name: 'Sailor Moon', wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme },
+    // Biblely Light variant
+    { 
+      id: 'biblely-light', 
+      name: 'Biblely', 
+      wallpaper: biblelyWallpapers?.[0]?.source, 
+      isActive: isBiblelyTheme && selectedWallpaperIndex === 0,
+      isBiblelyVariant: true,
+      wallpaperIndex: 0
+    },
+  ];
+
+  // Dark mode themes with their wallpapers
+  const darkThemes = [
+    { id: 'cresvia', name: 'Cresvia', wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme },
+    { id: 'spiderman', name: 'Spiderman', wallpaper: themeWallpapers?.['spiderman'], isActive: isSpidermanTheme },
+    // Biblely Dark variants
+    { 
+      id: 'biblely-jesusnlambs', 
+      name: 'Jesus & Lambs', 
+      wallpaper: biblelyWallpapers?.[1]?.source, 
+      isActive: isBiblelyTheme && selectedWallpaperIndex === 1,
+      isBiblelyVariant: true,
+      wallpaperIndex: 1
+    },
+    { 
+      id: 'biblely-classic', 
+      name: 'Classic', 
+      wallpaper: biblelyWallpapers?.[2]?.source, 
+      isActive: isBiblelyTheme && selectedWallpaperIndex === 2,
+      isBiblelyVariant: true,
+      wallpaperIndex: 2
+    },
+  ];
+
+  const renderThemeCard = (themeItem) => {
+    const isSelected = themeItem.isActive;
+    
+    const handlePress = () => {
+      if (themeItem.isBiblelyVariant) {
+        // For Biblely variants, select biblely theme AND set the wallpaper
+        handleThemeSelect('biblely');
+        changeWallpaper(themeItem.wallpaperIndex);
+      } else {
+        handleThemeSelect(themeItem.id);
+      }
+    };
+    
+    return (
+      <TouchableOpacity
+        key={themeItem.id}
+        style={[
+          styles.themeCard,
+          { 
+            borderColor: isSelected ? theme.primary : 'rgba(255,255,255,0.2)',
+            borderWidth: isSelected ? 3 : 1,
+          }
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
+        {themeItem.wallpaper ? (
+          <Image 
+            source={themeItem.wallpaper} 
+            style={styles.themeCardImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.themeCardPlaceholder, { backgroundColor: theme.surface }]} />
+        )}
+        
+        {/* Gradient overlay for text readability */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.themeCardGradient}
+        />
+        
+        {/* Selected checkmark */}
+        {isSelected && (
+          <View style={[styles.themeCheckmark, { backgroundColor: theme.primary }]}>
+            <MaterialIcons name="check" size={18} color="#fff" />
+          </View>
+        )}
+        
+        {/* Theme name */}
+        <View style={styles.themeCardTextContainer}>
+          <Text style={[
+            styles.themeCardName,
+            { fontWeight: isSelected ? '700' : '600' }
+          ]}>
+            {themeItem.name}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
@@ -82,7 +204,7 @@ const ThemeModal = ({ visible, onClose }) => {
           </View>
 
           {/* Current Theme Display */}
-          <GlassCard style={styles.currentThemeCard} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
+          <GlassCard style={styles.currentThemeCard} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
             <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current Theme</Text>
             <View style={styles.currentThemeInfo}>
               <View style={styles.currentTextContainer}>
@@ -92,213 +214,35 @@ const ThemeModal = ({ visible, onClose }) => {
             </View>
           </GlassCard>
 
-          {/* Light Mode Section */}
-          <GlassCard style={styles.modeSection} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
-            <TouchableOpacity 
-              style={styles.modeSectionHeader}
-              onPress={toggleLightMode}
-              activeOpacity={0.7}
-            >
-              <View style={styles.modeSectionLeft}>
-                <MaterialIcons name="wb-sunny" size={24} color={theme.text} />
-                <Text style={[styles.modeSectionTitle, { color: theme.text }]}>Light Mode</Text>
+          {/* Light Mode Themes Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <MaterialIcons name="wb-sunny" size={22} color={theme.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Light Mode Themes</Text>
               </View>
-              <MaterialIcons 
-                name={lightModeExpanded ? "expand-less" : "expand-more"} 
-                size={24} 
-                color={theme.textSecondary} 
-              />
-            </TouchableOpacity>
+            </View>
+            
+            <View style={styles.themesGrid}>
+              {lightThemes.map(renderThemeCard)}
+            </View>
+          </View>
 
-            {lightModeExpanded && (
-              <View style={styles.themesContainer}>
-                {/* Blush Bloom */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isBlushTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isBlushTheme ? theme.primary : theme.border,
-                      borderWidth: isBlushTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('blush-bloom')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isBlushTheme ? theme.primary : theme.text,
-                      fontWeight: isBlushTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Blush Bloom
-                  </Text>
-                  {isBlushTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
-
-                {/* Eterna */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isEternaTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isEternaTheme ? theme.primary : theme.border,
-                      borderWidth: isEternaTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('eterna')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isEternaTheme ? theme.primary : theme.text,
-                      fontWeight: isEternaTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Eterna
-                  </Text>
-                  {isEternaTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
-
-                {/* Faith */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isFaithTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isFaithTheme ? theme.primary : theme.border,
-                      borderWidth: isFaithTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('faith')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isFaithTheme ? theme.primary : theme.text,
-                      fontWeight: isFaithTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Faith
-                  </Text>
-                  {isFaithTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
-
-                {/* Sailor Moon */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isSailormoonTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isSailormoonTheme ? theme.primary : theme.border,
-                      borderWidth: isSailormoonTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('sailormoon')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isSailormoonTheme ? theme.primary : theme.text,
-                      fontWeight: isSailormoonTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Sailor Moon
-                  </Text>
-                  {isSailormoonTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
+          {/* Dark Mode Themes Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <MaterialIcons name="nightlight-round" size={22} color={theme.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Dark Mode Themes</Text>
               </View>
-            )}
-          </GlassCard>
+            </View>
+            
+            <View style={styles.themesGrid}>
+              {darkThemes.map(renderThemeCard)}
+            </View>
+          </View>
 
-          {/* Dark Mode Section */}
-          <GlassCard style={styles.modeSection} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme}>
-            <TouchableOpacity 
-              style={styles.modeSectionHeader}
-              onPress={toggleDarkMode}
-              activeOpacity={0.7}
-            >
-              <View style={styles.modeSectionLeft}>
-                <MaterialIcons name="nightlight-round" size={24} color={theme.text} />
-                <Text style={[styles.modeSectionTitle, { color: theme.text }]}>Dark Mode</Text>
-              </View>
-              <MaterialIcons 
-                name={darkModeExpanded ? "expand-less" : "expand-more"} 
-                size={24} 
-                color={theme.textSecondary} 
-              />
-            </TouchableOpacity>
-
-            {darkModeExpanded && (
-              <View style={styles.themesContainer}>
-                {/* Cresvia */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isCresviaTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isCresviaTheme ? theme.primary : theme.border,
-                      borderWidth: isCresviaTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('cresvia')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isCresviaTheme ? theme.primary : theme.text,
-                      fontWeight: isCresviaTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Cresvia
-                  </Text>
-                  {isCresviaTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
-
-                {/* Spiderman */}
-                <TouchableOpacity
-                  style={[
-                    styles.themeOption,
-                    { 
-                      backgroundColor: isSpidermanTheme ? theme.primary + '20' : theme.surface,
-                      borderColor: isSpidermanTheme ? theme.primary : theme.border,
-                      borderWidth: isSpidermanTheme ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => handleThemeSelect('spiderman')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.themeName, 
-                    { 
-                      color: isSpidermanTheme ? theme.primary : theme.text,
-                      fontWeight: isSpidermanTheme ? '700' : '600'
-                    }
-                  ]}>
-                    Spiderman
-                  </Text>
-                  {isSpidermanTheme && (
-                    <MaterialIcons name="check-circle" size={20} color={theme.primary} />
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </GlassCard>
+          <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     </Modal>
@@ -321,7 +265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: 24,
     marginTop: 10,
   },
   closeCircle: {
@@ -352,11 +296,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   currentLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   currentThemeInfo: {
     flexDirection: 'row',
@@ -371,48 +315,144 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   currentMode: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
-  // Mode Sections
-  modeSection: {
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
     marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
   },
-  modeSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modeSectionLeft: {
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
-  modeSectionTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
   },
-  // Theme Options
-  themesContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  // Theme Grid
+  themesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  themeOption: {
+  wallpaperGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  themeCard: {
+    width: CARD_WIDTH,
+    height: CARD_WIDTH * 1.5,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  themeCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  themeCardPlaceholder: {
+    width: '100%',
+    height: '100%',
+  },
+  themeCardGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  themeCheckmark: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  themeCardTextContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+  },
+  themeCardName: {
+    fontSize: 15,
+    color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  modeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginTop: 6,
+    alignSelf: 'flex-start',
   },
-  themeName: {
-    fontSize: 17,
-    flex: 1,
+  modeBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  // Biblely Promo Card
+  biblelyPromoCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  biblelyPromoContent: {
+    height: 160,
+    position: 'relative',
+  },
+  biblelyPromoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  biblelyPromoGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+  },
+  biblelyPromoTextContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  biblelyPromoTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  biblelyPromoSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 4,
+    fontWeight: '500',
   },
 });
 
 export default ThemeModal;
-

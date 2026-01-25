@@ -24,7 +24,19 @@ import PrayerManagementService from '../services/prayerManagementService';
 import AchievementService from '../services/achievementService';
 
 const PrayerSection = () => {
-  const { theme } = useTheme();
+  const { theme, isBiblelyTheme } = useTheme();
+  
+  // For Biblely theme with wallpaper, use white text for better readability
+  const textColor = isBiblelyTheme ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  
+  // Text shadow for outline effect - warm burnt orange to match theme
+  const textOutlineStyle = isBiblelyTheme ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
   
   // Prayer data
   const [prayerList, setPrayerList] = useState([]);
@@ -339,7 +351,7 @@ const PrayerSection = () => {
         <Text style={[styles.verseRef, { color: theme.primary }]}>{verse.reference}</Text>
       </View>
       
-      <Text style={[styles.verseContent, { color: theme.text }]}>{verse.text}</Text>
+      <Text style={[styles.verseContent, { color: textColor, ...textOutlineStyle }]}>{verse.text}</Text>
       
       <View style={styles.verseButtonRow}>
         <Pressable
@@ -390,7 +402,7 @@ const PrayerSection = () => {
               ]}>
                 <MaterialIcons name="favorite" size={18} color="#ffffff" />
               </View>
-              <Text style={[styles.prayerTitle, { color: theme.text }]}>
+              <Text style={[styles.prayerTitle, { color: textColor, ...textOutlineStyle }]}>
                 {prayer.name}
               </Text>
               {isActive && (
@@ -401,7 +413,7 @@ const PrayerSection = () => {
             <View style={styles.prayerMetaArea}>
               <View style={styles.timeArea}>
                 <MaterialIcons name="schedule" size={18} color={theme.primary} />
-                <Text style={[styles.timeText, { color: theme.textSecondary }]}>
+                <Text style={[styles.timeText, { color: textSecondaryColor, ...textOutlineStyle }]}>
                   {convertTime(prayer.time)}
                 </Text>
               </View>
@@ -467,7 +479,7 @@ const PrayerSection = () => {
       <View style={[styles.mainContainer, { backgroundColor: theme.card + 'E5' }]}>
         <View style={styles.loadingArea}>
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingMessage, { color: theme.text }]}>
+          <Text style={[styles.loadingMessage, { color: textColor, ...textOutlineStyle }]}>
             Loading your prayers...
           </Text>
         </View>
@@ -480,8 +492,8 @@ const PrayerSection = () => {
       {/* Header Section */}
       <View style={styles.headerSection}>
         <View>
-          <Text style={[styles.mainTitle, { color: theme.text }]}>🙏 My Prayers</Text>
-          <Text style={[styles.countText, { color: theme.textSecondary }]}>
+          <Text style={[styles.mainTitle, { color: textColor }]}>🙏 My Prayers</Text>
+          <Text style={[styles.countText, { color: textSecondaryColor }]}>
             {prayerList.length} prayer{prayerList.length !== 1 ? 's' : ''}
           </Text>
         </View>
@@ -497,11 +509,11 @@ const PrayerSection = () => {
       <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
         {prayerList.length === 0 ? (
           <View style={styles.emptyArea}>
-            <MaterialIcons name="favorite" size={100} color={theme.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            <MaterialIcons name="favorite" size={100} color={textTertiaryColor} />
+            <Text style={[styles.emptyTitle, { color: textColor, ...textOutlineStyle }]}>
               No prayers yet
             </Text>
-            <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>
+            <Text style={[styles.emptyMessage, { color: textSecondaryColor, ...textOutlineStyle }]}>
               Create your first prayer to begin your spiritual journey with daily verses
             </Text>
             <Pressable
@@ -530,7 +542,7 @@ const PrayerSection = () => {
               <Pressable onPress={closeAddPrayerModal}>
                 <MaterialIcons name="close" size={30} color={theme.text} />
               </Pressable>
-              <Text style={[styles.modalHeading, { color: theme.text }]}>
+              <Text style={[styles.modalHeading, { color: textColor }]}>
                 Add New Prayer
               </Text>
               <Pressable onPress={saveNewPrayer}>
@@ -540,13 +552,13 @@ const PrayerSection = () => {
             
             <View style={styles.formArea}>
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.text }]}>
+                <Text style={[styles.fieldLabel, { color: textColor }]}>
                   Prayer Name
                 </Text>
                 <TextInput
                   style={[styles.textField, { 
                     backgroundColor: theme.verseBackground,
-                    color: theme.text,
+                    color: textColor,
                     borderColor: theme.border
                   }]}
                   placeholder="e.g., Morning Prayer, Evening Gratitude"
@@ -558,7 +570,7 @@ const PrayerSection = () => {
               </View>
               
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.text }]}>
+                <Text style={[styles.fieldLabel, { color: textColor }]}>
                   Prayer Time
                 </Text>
                 <Pressable
@@ -569,7 +581,7 @@ const PrayerSection = () => {
                   onPress={() => openTimePicker()}
                 >
                   <MaterialIcons name="schedule" size={26} color={theme.primary} />
-                  <Text style={[styles.timeFieldText, { color: theme.text }]}>
+                  <Text style={[styles.timeFieldText, { color: textColor }]}>
                     {convertTime(inputTime)}
                   </Text>
                   <MaterialIcons name="keyboard-arrow-down" size={26} color={theme.textSecondary} />
@@ -593,7 +605,7 @@ const PrayerSection = () => {
               <Pressable onPress={closeEditModal}>
                 <MaterialIcons name="close" size={30} color={theme.text} />
               </Pressable>
-              <Text style={[styles.modalHeading, { color: theme.text }]}>
+              <Text style={[styles.modalHeading, { color: textColor }]}>
                 Edit Prayer Name
               </Text>
               <Pressable onPress={saveEditedName}>
@@ -603,13 +615,13 @@ const PrayerSection = () => {
             
             <View style={styles.formArea}>
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.text }]}>
+                <Text style={[styles.fieldLabel, { color: textColor }]}>
                   Prayer Name
                 </Text>
                 <TextInput
                   style={[styles.textField, { 
                     backgroundColor: theme.verseBackground,
-                    color: theme.text,
+                    color: textColor,
                     borderColor: theme.border
                   }]}
                   placeholder="Prayer name"
@@ -650,20 +662,20 @@ const PrayerSection = () => {
                   </Pressable>
                   <View style={styles.detailsTitleArea}>
                     <MaterialIcons name="favorite" size={26} color={theme.primary} />
-                    <Text style={[styles.detailsTitle, { color: theme.text }]}>
+                    <Text style={[styles.detailsTitle, { color: textColor }]}>
                       {currentPrayer.name}
                     </Text>
                   </View>
                   <View style={styles.detailsTimeArea}>
                     <MaterialIcons name="schedule" size={20} color={theme.textSecondary} />
-                    <Text style={[styles.detailsTimeText, { color: theme.textSecondary }]}>
+                    <Text style={[styles.detailsTimeText, { color: textSecondaryColor }]}>
                       {convertTime(currentPrayer.time)}
                     </Text>
                   </View>
                 </View>
 
                 <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
-                  <Text style={[styles.versesHeading, { color: theme.text }]}>
+                  <Text style={[styles.versesHeading, { color: textColor }]}>
                     📖 Today's Verses
                   </Text>
                   
@@ -699,10 +711,10 @@ const PrayerSection = () => {
       >
         <BlurView intensity={100} tint="dark" style={styles.overlayModal}>
           <View style={[styles.simpleModal, { backgroundColor: theme.card + 'FA' }]}>
-            <Text style={[styles.simpleTitle, { color: theme.text }]}>
+            <Text style={[styles.simpleTitle, { color: textColor }]}>
               Simple Explanation
             </Text>
-            <Text style={[styles.simpleContent, { color: theme.textSecondary }]}>
+            <Text style={[styles.simpleContent, { color: textSecondaryColor }]}>
               {simpleVerseText}
             </Text>
             <Pressable

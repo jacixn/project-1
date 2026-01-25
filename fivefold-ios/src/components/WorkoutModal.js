@@ -39,11 +39,11 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     endWorkout,
     updateWorkout,
     hasActiveWorkout,
+    elapsedTime: contextElapsedTime, // Use context's elapsed time for accurate tracking
   } = useWorkout();
   
   const [workoutName, setWorkoutName] = useState('Workout 1');
   const [workoutStartTime, setWorkoutStartTime] = useState(new Date());
-  const [elapsedTime, setElapsedTime] = useState(0);
   const [exercises, setExercises] = useState([]);
   const [previousWorkout, setPreviousWorkout] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -179,7 +179,6 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           
           const now = new Date();
           setWorkoutStartTime(now);
-          setElapsedTime(0);
           setIsWorkoutFinished(false);
           
           // If starting from a template, use template data
@@ -272,9 +271,10 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           isRestoring.current = true; // Prevent sync during restoration
           maximizeWorkout();
           
-          // ALWAYS restore name and exercises from activeWorkout
+          // ALWAYS restore name, exercises, and startTime from activeWorkout
           console.log('🏋️ Restoring name:', activeWorkout?.name);
           console.log('🏋️ Restoring exercises count:', activeWorkout?.exercises?.length);
+          console.log('🏋️ Restoring startTime:', activeWorkout?.startTime);
           
           if (activeWorkout?.name) {
             setWorkoutName(activeWorkout.name);
@@ -284,6 +284,10 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           } else {
             console.warn('⚠️ No exercises found in activeWorkout!');
             setExercises([]);
+          }
+          // Restore the start time so the date display is correct
+          if (activeWorkout?.startTime) {
+            setWorkoutStartTime(new Date(activeWorkout.startTime));
           }
           
           setIsInitializing(false); // Done initializing
@@ -369,16 +373,8 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     }
   }, [visible]);
 
-  // Timer
-  useEffect(() => {
-    if (!visible || isWorkoutFinished) return;
-    
-    const interval = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - workoutStartTime.getTime()) / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [visible, workoutStartTime, isWorkoutFinished]);
+  // Timer is now handled by WorkoutContext - no local timer needed
+  // The contextElapsedTime from useWorkout() is used for display
 
   // NOTE: Template initialization is now handled in the main useEffect above (line 163-265)
   // This effect was removed to prevent duplicate initialization that was causing the black screen bug
@@ -785,7 +781,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
         templateId: templateData?.id || null, // Link to template if started from one
         startTime: workoutStartTime.toISOString(),
         endTime: new Date().toISOString(),
-        duration: elapsedTime,
+        duration: contextElapsedTime,
         exercises: exercisesToSave.map(ex => ({
           name: ex.name,
           bodyPart: ex.bodyPart,
@@ -940,7 +936,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
@@ -1180,7 +1176,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
 
                   <View style={styles.headerCenter}>
                     <Text style={[styles.headerTimer, { color: theme.text }]}>
-                      {formatTime(elapsedTime)}
+                      {formatTime(contextElapsedTime)}
                     </Text>
                   </View>
 
@@ -1254,7 +1250,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
             <View style={[styles.workoutMeta, { marginTop: 4 }]}>
               <MaterialIcons name="access-time" size={16} color={theme.textSecondary} />
               <Text style={[styles.workoutMetaText, { color: theme.textSecondary }]}>
-                {formatTime(elapsedTime)}
+                {formatTime(contextElapsedTime)}
               </Text>
             </View>
           </View>
@@ -2531,8 +2527,6 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    borderWidth: 8,
-    borderColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',

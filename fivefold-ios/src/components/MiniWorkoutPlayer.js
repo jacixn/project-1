@@ -14,10 +14,14 @@ import { useWorkout } from '../contexts/WorkoutContext';
 import { hapticFeedback } from '../utils/haptics';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const MiniWorkoutPlayer = ({ onPress }) => {
+const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85 }) => {
   const { theme, isDark } = useTheme();
   const { activeWorkout, elapsedTime, hasActiveWorkout } = useWorkout();
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -71,10 +75,43 @@ const MiniWorkoutPlayer = ({ onPress }) => {
 
   const maxWidth = Math.min(screenWidth * 0.9, 400);
 
+  // Liquid Glass wrapper component
+  const GlassContainer = ({ children }) => {
+    if (isLiquidGlassSupported) {
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={StyleSheet.absoluteFill}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    }
+    return (
+      <>
+        <BlurView
+          intensity={isDark ? 40 : 80}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={isDark 
+            ? ['rgba(40, 40, 40, 0.7)', 'rgba(20, 20, 20, 0.8)'] 
+            : ['rgba(255, 255, 255, 0.7)', 'rgba(240, 240, 240, 0.8)']}
+          style={StyleSheet.absoluteFill}
+        />
+        {children}
+      </>
+    );
+  };
+
   return (
     <Animated.View style={[
       styles.wrapper, 
-      { transform: [{ scale: pulseAnim }] }
+      { bottom: bottomOffset, transform: [{ scale: pulseAnim }] }
     ]}>
       <TouchableOpacity
         style={[styles.container, { width: maxWidth }]}
@@ -84,51 +121,40 @@ const MiniWorkoutPlayer = ({ onPress }) => {
         }}
         activeOpacity={0.9}
       >
-        <BlurView
-          intensity={isDark ? 40 : 80}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
-        
-        <LinearGradient
-          colors={isDark 
-            ? ['rgba(40, 40, 40, 0.7)', 'rgba(20, 20, 20, 0.8)'] 
-            : ['rgba(255, 255, 255, 0.7)', 'rgba(240, 240, 240, 0.8)']}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {/* Status border accent */}
-        <View style={[styles.borderAccent, { backgroundColor: theme.primary, opacity: 0.5 }]} />
-        
-        <View style={styles.content}>
-          <View style={styles.leftSection}>
-            <LinearGradient
-              colors={[theme.primary, theme.accent || theme.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconCircle}
-            >
-              <MaterialIcons name="fitness-center" size={20} color="#FFFFFF" />
-            </LinearGradient>
-            
-            <View style={styles.textSection}>
-              <Text style={[styles.workoutName, { color: theme.text }]} numberOfLines={1}>
-                {activeWorkout?.name || 'Workout'}
-              </Text>
-              <View style={styles.statusRow}>
-                <Animated.View style={[styles.liveDot, { backgroundColor: '#FF3B30', opacity: dotAnim }]} />
-                <Text style={[styles.workoutTime, { color: theme.textSecondary }]}>
-                  {formatTime(elapsedTime)}
+        <GlassContainer>
+          {/* Status border accent */}
+          <View style={[styles.borderAccent, { backgroundColor: theme.primary, opacity: 0.5 }]} />
+          
+          <View style={styles.content}>
+            <View style={styles.leftSection}>
+              <LinearGradient
+                colors={[theme.primary, theme.accent || theme.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconCircle}
+              >
+                <MaterialIcons name="fitness-center" size={20} color="#FFFFFF" />
+              </LinearGradient>
+              
+              <View style={styles.textSection}>
+                <Text style={[styles.workoutName, { color: theme.text }]} numberOfLines={1}>
+                  {activeWorkout?.name || 'Workout'}
                 </Text>
+                <View style={styles.statusRow}>
+                  <Animated.View style={[styles.liveDot, { backgroundColor: '#FF3B30', opacity: dotAnim }]} />
+                  <Text style={[styles.workoutTime, { color: theme.textSecondary }]}>
+                    {formatTime(elapsedTime)}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <View style={[styles.expandButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-            <Text style={[styles.expandText, { color: theme.primary }]}>Tap to open</Text>
-            <MaterialIcons name="expand-less" size={20} color={theme.primary} />
+            <View style={[styles.expandButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+              <Text style={[styles.expandText, { color: theme.primary }]}>Tap to open</Text>
+              <MaterialIcons name="expand-less" size={20} color={theme.primary} />
+            </View>
           </View>
-        </View>
+        </GlassContainer>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -190,10 +216,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   workoutName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     marginBottom: 2,
     letterSpacing: -0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   statusRow: {
     flexDirection: 'row',
@@ -206,9 +235,12 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   workoutTime: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   expandButton: {
     flexDirection: 'row',
@@ -219,8 +251,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   expandText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
 

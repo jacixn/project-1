@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
 const FOLDERS_KEY = '@workout_folders';
+const SCHEDULED_WORKOUTS_KEY = '@scheduled_workouts';
 
 class WorkoutService {
   
@@ -276,6 +277,160 @@ class WorkoutService {
     } catch (error) {
       console.error('Error deleting folder:', error);
       throw error;
+    }
+  }
+
+  // ========================================
+  // WORKOUT SCHEDULING
+  // ========================================
+
+  // Get all scheduled workouts
+  static async getScheduledWorkouts() {
+    try {
+      const scheduledJson = await AsyncStorage.getItem(SCHEDULED_WORKOUTS_KEY);
+      if (scheduledJson) {
+        return JSON.parse(scheduledJson);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error loading scheduled workouts:', error);
+      return [];
+    }
+  }
+
+  // Save scheduled workouts
+  static async saveScheduledWorkouts(scheduled) {
+    try {
+      await AsyncStorage.setItem(SCHEDULED_WORKOUTS_KEY, JSON.stringify(scheduled));
+      console.log('✅ Scheduled workouts saved');
+    } catch (error) {
+      console.error('Error saving scheduled workouts:', error);
+      throw error;
+    }
+  }
+
+  // Add a scheduled workout
+  // schedule object: {
+  //   id: string,
+  //   templateId: string,
+  //   templateName: string,
+  //   type: 'recurring' | 'one-time',
+  //   time: string (HH:mm format, e.g., "19:00"),
+  //   days: number[] (for recurring: 0=Sun, 1=Mon, etc.),
+  //   date: string (for one-time: "2025-01-25"),
+  //   notifyBefore: number (minutes before, default 60),
+  //   createdAt: string
+  // }
+  static async addScheduledWorkout(schedule) {
+    try {
+      const scheduled = await this.getScheduledWorkouts();
+      const newSchedule = {
+        id: Date.now().toString(),
+        ...schedule,
+        createdAt: new Date().toISOString(),
+      };
+      scheduled.push(newSchedule);
+      await this.saveScheduledWorkouts(scheduled);
+      console.log('✅ Workout scheduled:', newSchedule.templateName);
+      return newSchedule;
+    } catch (error) {
+      console.error('Error scheduling workout:', error);
+      throw error;
+    }
+  }
+
+  // Update a scheduled workout
+  static async updateScheduledWorkout(scheduleId, updates) {
+    try {
+      const scheduled = await this.getScheduledWorkouts();
+      const updated = scheduled.map(s => 
+        s.id === scheduleId ? { ...s, ...updates } : s
+      );
+      await this.saveScheduledWorkouts(updated);
+      console.log('✅ Schedule updated:', scheduleId);
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      throw error;
+    }
+  }
+
+  // Delete a scheduled workout
+  static async deleteScheduledWorkout(scheduleId) {
+    try {
+      const scheduled = await this.getScheduledWorkouts();
+      const filtered = scheduled.filter(s => s.id !== scheduleId);
+      await this.saveScheduledWorkouts(filtered);
+      console.log('✅ Schedule deleted:', scheduleId);
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      throw error;
+    }
+  }
+
+  // Get scheduled workouts for a specific date
+  static async getScheduledWorkoutsForDate(date) {
+    try {
+      const scheduled = await this.getScheduledWorkouts();
+      const targetDate = new Date(date);
+      const dayOfWeek = targetDate.getDay(); // 0=Sun, 1=Mon, etc.
+      const dateStr = targetDate.toISOString().split('T')[0]; // "2025-01-25"
+
+      const workoutsForDate = scheduled.filter(schedule => {
+        if (schedule.type === 'recurring') {
+          // Check if this day is in the recurring days
+          return schedule.days && schedule.days.includes(dayOfWeek);
+        } else if (schedule.type === 'one-time') {
+          // Check if this is the specific date
+          return schedule.date === dateStr;
+        }
+        return false;
+      });
+
+      return workoutsForDate;
+    } catch (error) {
+      console.error('Error getting scheduled workouts for date:', error);
+      return [];
+    }
+  }
+
+  // Check if a workout was completed on a specific date
+  static async isWorkoutCompletedOnDate(templateId, date) {
+    try {
+      const history = await this.getWorkoutHistory();
+      const targetDate = new Date(date).toISOString().split('T')[0];
+      
+      return history.some(workout => {
+        if (workout.templateId !== templateId) return false;
+        const workoutDate = new Date(workout.completedAt).toISOString().split('T')[0];
+        return workoutDate === targetDate;
+      });
+    } catch (error) {
+      console.error('Error checking workout completion:', error);
+      return false;
+    }
+  }
+
+  // Clean up expired one-time schedules
+  static async cleanupExpiredSchedules() {
+    try {
+      const scheduled = await this.getScheduledWorkouts();
+      const today = new Date().toISOString().split('T')[0];
+      
+      const active = scheduled.filter(schedule => {
+        if (schedule.type === 'one-time') {
+          // Keep if the date is today or in the future
+          return schedule.date >= today;
+        }
+        // Keep all recurring schedules
+        return true;
+      });
+
+      if (active.length !== scheduled.length) {
+        await this.saveScheduledWorkouts(active);
+        console.log(`🧹 Cleaned up ${scheduled.length - active.length} expired schedules`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up schedules:', error);
     }
   }
 }

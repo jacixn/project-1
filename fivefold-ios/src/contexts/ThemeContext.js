@@ -1,11 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { blushBloomTheme } from '../themes/blush-bloom/theme';
-import { cresviaTheme } from '../themes/cresvia/theme';
-import { eternaTheme } from '../themes/eterna/theme';
-import { spidermanTheme } from '../themes/spiderman/theme';
-import { faithTheme } from '../themes/faith/theme';
-import { sailormoonTheme } from '../themes/sailormoon/theme';
+import { blushBloomTheme, blushBloomWallpaper } from '../themes/blush-bloom/theme';
+import { cresviaTheme, cresviaWallpaper } from '../themes/cresvia/theme';
+import { eternaTheme, eternaWallpaper } from '../themes/eterna/theme';
+import { spidermanTheme, spidermanWallpaper } from '../themes/spiderman/theme';
+import { sailormoonTheme, sailormoonWallpaper } from '../themes/sailormoon/theme';
+import { biblelyTheme, biblelyWallpapers, jesusNLambsTheme, classicTheme } from '../themes/biblely/theme';
+
+// Theme wallpaper previews for the theme selector
+export const themeWallpapers = {
+  'blush-bloom': blushBloomWallpaper,
+  'cresvia': cresviaWallpaper,
+  'eterna': eternaWallpaper,
+  'spiderman': spidermanWallpaper,
+  'sailormoon': sailormoonWallpaper,
+};
 
 // Beautiful theme definitions
 const themes = {
@@ -60,7 +69,9 @@ const themes = {
   'cresvia': cresviaTheme,
   'eterna': eternaTheme,
   'spiderman': spidermanTheme,
-  'faith': faithTheme,
+  'biblely': biblelyTheme,
+  'jesusnlambs': jesusNLambsTheme,
+  'classic': classicTheme,
   
   dark: {
     // Background colors
@@ -126,6 +137,7 @@ export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState('dark'); // Default to dark mode
   const [isDarkMode, setIsDarkMode] = useState(true); // Separate dark mode state
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedWallpaperIndex, setSelectedWallpaperIndex] = useState(0); // Wallpaper selection
 
   useEffect(() => {
     loadThemePreference();
@@ -135,6 +147,7 @@ export const ThemeProvider = ({ children }) => {
     try {
       const savedTheme = await AsyncStorage.getItem('fivefold_theme');
       const savedDarkMode = await AsyncStorage.getItem('fivefold_dark_mode');
+      const savedWallpaper = await AsyncStorage.getItem('fivefold_wallpaper_index');
       
       if (savedTheme && themes[savedTheme]) {
         setCurrentTheme(savedTheme);
@@ -150,6 +163,10 @@ export const ThemeProvider = ({ children }) => {
           setIsDarkMode(true); // Default to dark
         }
       }
+      
+      if (savedWallpaper !== null) {
+        setSelectedWallpaperIndex(parseInt(savedWallpaper, 10));
+      }
     } catch (error) {
       console.log('Error loading theme preference:', error);
     } finally {
@@ -163,8 +180,8 @@ export const ThemeProvider = ({ children }) => {
         setCurrentTheme(themeName);
         await AsyncStorage.setItem('fivefold_theme', themeName);
         
-        // Auto-set light mode for Blush Bloom, Eterna, Faith and Sailor Moon themes
-        if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'faith' || themeName === 'sailormoon') {
+        // Auto-set light mode for Blush Bloom, Eterna, Sailor Moon, Biblely themes
+        if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'sailormoon' || themeName === 'biblely') {
           setIsDarkMode(false);
           await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(false));
         }
@@ -194,8 +211,54 @@ export const ThemeProvider = ({ children }) => {
     await toggleDarkMode();
   };
 
+  // Change wallpaper for Biblely theme
+  const changeWallpaper = async (index) => {
+    try {
+      const safeIndex = Math.max(0, Math.min(index, (biblelyWallpapers?.length || 1) - 1));
+      setSelectedWallpaperIndex(safeIndex);
+      await AsyncStorage.setItem('fivefold_wallpaper_index', safeIndex.toString());
+      
+      // Auto-set dark/light mode based on the wallpaper's mode
+      const wallpaper = biblelyWallpapers?.[safeIndex];
+      if (wallpaper) {
+        const shouldBeDark = wallpaper.mode === 'dark';
+        setIsDarkMode(shouldBeDark);
+        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(shouldBeDark));
+      }
+    } catch (error) {
+      console.log('Error saving wallpaper preference:', error);
+    }
+  };
+
+  // Get current wallpaper source for Biblely theme
+  const getCurrentWallpaper = () => {
+    try {
+      if (biblelyWallpapers && selectedWallpaperIndex >= 0 && selectedWallpaperIndex < biblelyWallpapers.length) {
+        return biblelyWallpapers[selectedWallpaperIndex];
+      }
+      return biblelyWallpapers?.[0] || null;
+    } catch (error) {
+      console.log('Error getting current wallpaper:', error);
+      return null;
+    }
+  };
+
   // Get the appropriate theme based on current theme and dark mode
   const getActiveTheme = () => {
+    // Special handling for Biblely theme variants
+    if (currentTheme === 'biblely') {
+      // Each wallpaper has its own complete theme
+      switch (selectedWallpaperIndex) {
+        case 1: // Jesus & Lambs - nature green theme
+          return jesusNLambsTheme.dark;
+        case 2: // Classic - royal gold/blue theme
+          return classicTheme.dark;
+        case 0: // Biblely - orange/cream theme
+        default:
+          return isDarkMode ? biblelyTheme.dark : biblelyTheme.light;
+      }
+    }
+    
     const baseTheme = themes[currentTheme];
     
     // Safety fallback if theme is somehow undefined
@@ -218,8 +281,8 @@ export const ThemeProvider = ({ children }) => {
   const isCresviaTheme = currentTheme === 'cresvia';
   const isEternaTheme = currentTheme === 'eterna';
   const isSpidermanTheme = currentTheme === 'spiderman';
-  const isFaithTheme = currentTheme === 'faith';
   const isSailormoonTheme = currentTheme === 'sailormoon';
+  const isBiblelyTheme = currentTheme === 'biblely';
   
   // Filter available themes to only show the themed ones (not light/dark)
   const availableThemes = Object.keys(themes)
@@ -239,14 +302,20 @@ export const ThemeProvider = ({ children }) => {
     isCresviaTheme,
     isEternaTheme,
     isSpidermanTheme,
-    isFaithTheme,
     isSailormoonTheme,
+    isBiblelyTheme,
     toggleTheme,
     toggleDarkMode,
     changeTheme,
     availableThemes,
     isLoading,
     themes,
+    // Wallpaper support
+    biblelyWallpapers,
+    selectedWallpaperIndex,
+    changeWallpaper,
+    getCurrentWallpaper,
+    themeWallpapers,
   };
 
   return (

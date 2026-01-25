@@ -108,7 +108,19 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
 };
 
 const SimplePrayerCard = ({ onNavigateToBible }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme } = useTheme();
+  
+  // For Biblely theme with wallpaper, use white text for better readability
+  const textColor = isBiblelyTheme ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const textTertiaryColor = isBiblelyTheme ? 'rgba(255,255,255,0.6)' : theme.textTertiary;
+  
+  // Text shadow for outline effect - warm burnt orange to match theme
+  const textOutlineStyle = isBiblelyTheme ? {
+    textShadowColor: theme.primaryDark || 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
   
   const [prayers, setPrayers] = useState([]);
   const [lastResetDate, setLastResetDate] = useState(new Date().toDateString());
@@ -878,7 +890,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     <LiquidGlassContainer>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>My Prayers</Text>
+              <Text style={[styles.title, { color: textColor, ...textOutlineStyle }]}>My Prayers</Text>
               <AnimatedPrayerButton
                 style={[styles.addButton, { backgroundColor: theme.primary }]}
                 onPress={() => {
@@ -894,8 +906,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       <ScrollView style={styles.prayerList} showsVerticalScrollIndicator={false}>
         {prayers.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialIcons name="favorite" size={60} color={theme.textTertiary} />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            <MaterialIcons name="favorite" size={60} color={textTertiaryColor} />
+            <Text style={[styles.emptyText, { color: textSecondaryColor, ...textOutlineStyle }]}>
               No prayers yet. Add your first prayer to get started!
             </Text>
           </View>
@@ -912,8 +924,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               const isSameAsPrimary = success && primary && success === primary;
               return isSameAsPrimary ? '#10B981' : (theme.success || '#32C48D');
             })();
-            const baseTextColor = completedToday ? theme.text : theme.text;
-            const secondaryTextColor = completedToday ? theme.textSecondary : theme.textSecondary;
+            const baseTextColor = completedToday ? textColor : textColor;
+            const secondaryTextColor = completedToday ? textSecondaryColor : textSecondaryColor;
             const metaText = completedToday
               ? 'Completed today'
               : timeUntil
@@ -1059,7 +1071,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                 <MaterialIcons name="schedule" size={26} color={theme.primary} />
               </View>
               <Text style={[styles.notTimeTitle, { color: theme.text }]}>Not time yet</Text>
-              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.notTimeSubtitle, { color: textSecondaryColor }]}>
                 {pendingPrayer.time ? `Starts at ${pendingPrayer.time}` : 'This prayer has a set time window.'}
               </Text>
               {timeUntilWindow ? (
@@ -1136,8 +1148,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               <View style={[styles.notTimeIconWrap, { borderColor: theme.success + '60', backgroundColor: theme.success + '18' }]}>
                 <MaterialIcons name="check-circle" size={26} color={theme.success} />
               </View>
-              <Text style={[styles.notTimeTitle, { color: theme.text }]}>Completed</Text>
-              <Text style={[styles.notTimeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.notTimeTitle, { color: textColor, ...textOutlineStyle }]}>Completed</Text>
+              <Text style={[styles.notTimeSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
                 {completedPrayer.time ? `Finished at ${completedPrayer.time}` : 'Prayer finished today'}
               </Text>
               <View style={[styles.notTimePill, { borderColor: theme.success + '50', backgroundColor: theme.success + '12' }]}>

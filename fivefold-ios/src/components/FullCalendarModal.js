@@ -9,12 +9,17 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { scoreTask } from '../utils/todoScorer';
+import { getStoredData } from '../utils/localStorage';
 
 const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
   const { theme, isDark } = useTheme();
@@ -24,6 +29,13 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
   const [showTaskInput, setShowTaskInput] = useState(false);
   const [taskText, setTaskText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(() => {
+    const defaultTime = new Date();
+    defaultTime.setHours(12, 0, 0, 0); // Default to noon
+    return defaultTime;
+  });
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [reminderBefore, setReminderBefore] = useState(60); // 60 minutes = 1 hour default
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -72,6 +84,70 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
     const date = new Date(selectedYear, selectedMonth, day);
     setSelectedDate(date);
     setShowTaskInput(true);
+    // Reset time to default when selecting new date
+    const defaultTime = new Date();
+    defaultTime.setHours(12, 0, 0, 0);
+    setSelectedTime(defaultTime);
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const scheduleTaskNotification = async (task, taskDateTime) => {
+    try {
+      // Check if task reminders are enabled in settings
+      const notificationSettings = await getStoredData('notificationSettings') || {};
+      if (notificationSettings.taskReminders === false || notificationSettings.pushNotifications === false) {
+        console.log('Task reminders are disabled, skipping notification');
+        return;
+      }
+
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Notification permissions not granted');
+        return;
+      }
+
+      // Cancel any existing notification for this task
+      try {
+        await Notifications.cancelScheduledNotificationAsync(task.id);
+      } catch (cancelError) {
+        // Ignore cancel errors
+      }
+
+      const notifyTime = new Date(taskDateTime.getTime() - reminderBefore * 60 * 1000);
+      
+      if (notifyTime > new Date()) {
+        const reminderText = reminderBefore >= 60 
+          ? `${Math.floor(reminderBefore / 60)} hour${reminderBefore >= 120 ? 's' : ''}` 
+          : `${reminderBefore} minutes`;
+
+        try {
+          await Notifications.scheduleNotificationAsync({
+            identifier: task.id,
+            content: {
+              title: 'Task Reminder',
+              body: `"${task.text}" is scheduled in ${reminderText}`,
+              data: { type: 'task_reminder', taskId: task.id },
+              sound: notificationSettings.sound !== false ? 'default' : null,
+            },
+            trigger: { date: notifyTime },
+          });
+          console.log('✅ Task notification scheduled for:', notifyTime);
+        } catch (scheduleError) {
+          console.warn('Failed to schedule notification:', scheduleError);
+          // Don't throw - notification failure shouldn't break task creation
+        }
+      }
+    } catch (error) {
+      console.error('Error in scheduleTaskNotification:', error);
+      // Don't throw - let task creation continue
+    }
   };
 
   const handleTaskSubmit = async () => {
@@ -85,41 +161,64 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
       return;
     }
 
+    setIsAnalyzing(true);
+    
     try {
-      setIsAnalyzing(true);
+      // Combine date and time first
+      const taskDateTime = new Date(selectedDate);
+      taskDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
       
-      // Use AI to analyze the task and get points
-      const scoreResult = await scoreTask(taskText.trim());
+      // Try to get AI scoring, but fallback if it fails
+      let scoreResult = { points: 1000, tier: 'mid', reasoning: 'Default scoring', timeEstimate: '30 min' };
+      try {
+        scoreResult = await scoreTask(taskText.trim());
+      } catch (scoreError) {
+        console.warn('AI scoring failed, using defaults:', scoreError.message);
+        // Continue with default score
+      }
       
-      // Create the task with scheduled date
+      // Create the task with scheduled date and time
       const newTask = {
         id: Date.now().toString(),
         text: taskText.trim(),
         completed: false,
         createdAt: new Date().toISOString(),
-        scheduledDate: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD format
-        points: scoreResult.points,
-        tier: scoreResult.tier,
-        reasoning: scoreResult.reasoning,
-        timeEstimate: scoreResult.timeEstimate,
+        scheduledDate: selectedDate.toISOString().split('T')[0],
+        scheduledTime: `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}`,
+        scheduledDateTime: taskDateTime.toISOString(),
+        reminderBefore: reminderBefore,
+        points: scoreResult.points || 1000,
+        tier: scoreResult.tier || 'mid',
+        reasoning: scoreResult.reasoning || '',
+        timeEstimate: scoreResult.timeEstimate || '',
       };
 
-      hapticFeedback.success();
-      onTaskAdd(newTask);
+      // Add task to parent
+      await onTaskAdd(newTask);
       
-      // Reset and close
+      // Success! Reset state first
+      setIsAnalyzing(false);
       setTaskText('');
       setSelectedDate(null);
       setShowTaskInput(false);
-      onClose();
+      
+      // Haptic feedback
+      hapticFeedback.success?.();
+      
+      // Close modal with a small delay to ensure state updates complete
+      setTimeout(() => {
+        onClose();
+        
+        // Schedule notification AFTER modal is closed (non-blocking)
+        setTimeout(() => {
+          scheduleTaskNotification(newTask, taskDateTime).catch(() => {});
+        }, 300);
+      }, 50);
+      
     } catch (error) {
       console.error('Error creating task:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to create task. Please try again.'
-      );
-    } finally {
       setIsAnalyzing(false);
+      Alert.alert('Error', error.message || 'Failed to create task. Please try again.');
     }
   };
 
@@ -287,83 +386,197 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
           )}
         </ScrollView>
 
-        {/* Task Input Modal */}
-        {showTaskInput && (
-          <Modal
-            visible={showTaskInput}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowTaskInput(false)}
-          >
-            <View style={styles.taskInputOverlay}>
-              <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.taskInputCard}>
-                <Text style={[styles.taskInputTitle, { color: theme.text }]}>
-                  What do you want to do?
-                </Text>
-                <Text style={[styles.taskInputSubtitle, { color: theme.textSecondary }]}>
+        {/* Task Input Modal - Full Screen Beautiful Design */}
+        <Modal
+          visible={showTaskInput}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowTaskInput(false)}
+        >
+          <SafeAreaView style={[styles.taskModalContainer, { backgroundColor: theme.background }]}>
+            {/* Header */}
+            <View style={[styles.taskModalHeader, { borderBottomColor: `${theme.text}15`, backgroundColor: theme.background }]}>
+              <TouchableOpacity 
+                onPress={() => {
+                  hapticFeedback.light();
+                  setShowTaskInput(false);
+                  setTaskText('');
+                  setShowTimePicker(false);
+                }}
+                style={styles.taskModalCloseBtn}
+                disabled={isAnalyzing}
+              >
+                <MaterialIcons name="close" size={26} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.taskModalTitle, { color: theme.text }]}>New Task</Text>
+              <View style={styles.taskModalCloseBtn} />
+            </View>
+
+            <ScrollView 
+              style={styles.taskModalContent} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Date Badge */}
+              <View style={[styles.taskDateBadge, { backgroundColor: `${theme.primary}15` }]}>
+                <MaterialIcons name="event" size={20} color={theme.primary} />
+                <Text style={[styles.taskDateText, { color: theme.primary }]}>
                   {selectedDate?.toLocaleDateString('en-US', { 
                     weekday: 'long', 
-                    month: 'short', 
-                    day: 'numeric' 
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
                   })}
                 </Text>
+              </View>
 
+              {/* Task Input Section */}
+              <View style={styles.taskSection}>
+                <Text style={[styles.taskSectionTitle, { color: theme.text }]}>
+                  What's the task?
+                </Text>
                 <TextInput
                   style={[
-                    styles.taskInput,
+                    styles.taskTextInput,
                     { 
                       color: theme.text,
-                      backgroundColor: `${theme.primary}10`,
-                      borderColor: theme.primary
+                      backgroundColor: theme.card,
+                      borderColor: `${theme.primary}40`
                     }
                   ]}
-                  placeholder="e.g., Go shopping, Study for exam..."
-                  placeholderTextColor={theme.textSecondary}
+                  placeholder="Enter your task here..."
+                  placeholderTextColor={theme.textTertiary}
                   value={taskText}
                   onChangeText={setTaskText}
                   multiline
-                  autoFocus
+                  numberOfLines={3}
+                  textAlignVertical="top"
                   editable={!isAnalyzing}
                 />
+              </View>
 
-                <View style={styles.taskInputButtons}>
-                  <TouchableOpacity
-                    style={[styles.taskInputButton, { backgroundColor: theme.error }]}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setShowTaskInput(false);
-                      setTaskText('');
-                    }}
-                    disabled={isAnalyzing}
-                  >
-                    <Text style={styles.taskInputButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.taskInputButton, 
-                      { backgroundColor: theme.primary },
-                      isAnalyzing && { opacity: 0.6 }
-                    ]}
-                    onPress={handleTaskSubmit}
-                    disabled={isAnalyzing}
-                  >
-                    {isAnalyzing ? (
-                      <View style={styles.analyzingContainer}>
-                        <ActivityIndicator size="small" color="#fff" />
-                        <Text style={[styles.taskInputButtonText, { marginLeft: 8 }]}>
-                          Analyzing...
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.taskInputButtonText}>Create Task</Text>
-                    )}
-                  </TouchableOpacity>
+              {/* Time Section */}
+              <View style={styles.taskSection}>
+                <Text style={[styles.taskSectionTitle, { color: theme.text }]}>
+                  What time?
+                </Text>
+                
+                {/* Time Display */}
+                <View style={[styles.timeDisplayCard, { backgroundColor: theme.card }]}>
+                  <View style={styles.timeDisplayContent}>
+                    <MaterialIcons name="schedule" size={28} color={theme.primary} />
+                    <Text style={[styles.timeDisplayText, { color: theme.text }]}>
+                      {formatTime(selectedTime)}
+                    </Text>
+                  </View>
+                  
+                  {/* Inline Time Picker for iOS */}
+                  <View style={styles.timePickerContainer}>
+                    <DateTimePicker
+                      value={selectedTime}
+                      mode="time"
+                      display="spinner"
+                      onChange={(event, date) => {
+                        if (date) setSelectedTime(date);
+                      }}
+                      style={styles.inlineTimePicker}
+                      textColor={theme.text}
+                    />
+                  </View>
                 </View>
-              </BlurView>
+              </View>
+
+              {/* Reminder Section */}
+              <View style={styles.taskSection}>
+                <Text style={[styles.taskSectionTitle, { color: theme.text }]}>
+                  Remind me
+                </Text>
+                
+                <View style={styles.reminderGrid}>
+                  {[
+                    { value: 60, label: '1 hour before', icon: 'alarm' },
+                    { value: 360, label: '6 hours before', icon: 'notifications-active' },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.reminderCard,
+                        {
+                          backgroundColor: reminderBefore === option.value 
+                            ? theme.primary 
+                            : theme.card,
+                          borderColor: reminderBefore === option.value 
+                            ? theme.primary 
+                            : `${theme.text}15`,
+                        }
+                      ]}
+                      onPress={() => {
+                        hapticFeedback.medium();
+                        setReminderBefore(option.value);
+                      }}
+                      disabled={isAnalyzing}
+                    >
+                      <MaterialIcons 
+                        name={option.icon} 
+                        size={24} 
+                        color={reminderBefore === option.value ? '#FFFFFF' : theme.primary} 
+                      />
+                      <Text style={[
+                        styles.reminderCardText,
+                        { color: reminderBefore === option.value ? '#FFFFFF' : theme.text }
+                      ]}>
+                        {option.label}
+                      </Text>
+                      {reminderBefore === option.value && (
+                        <View style={styles.reminderCheckmark}>
+                          <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Summary */}
+              <View style={[styles.taskSummary, { backgroundColor: `${theme.primary}08`, borderColor: `${theme.primary}20` }]}>
+                <MaterialIcons name="info-outline" size={18} color={theme.primary} />
+                <Text style={[styles.taskSummaryText, { color: theme.textSecondary }]}>
+                  You'll receive a notification {reminderBefore === 60 ? '1 hour' : '6 hours'} before{' '}
+                  <Text style={{ fontWeight: '700', color: theme.text }}>
+                    {formatTime(selectedTime)}
+                  </Text>
+                </Text>
+              </View>
+
+              <View style={{ height: 120 }} />
+            </ScrollView>
+
+            {/* Bottom Action Button */}
+            <View style={[styles.taskModalFooter, { backgroundColor: theme.background }]}>
+              <TouchableOpacity
+                style={[
+                  styles.createTaskButton,
+                  { backgroundColor: theme.primary },
+                  (!taskText.trim() || isAnalyzing) && { opacity: 0.5 }
+                ]}
+                onPress={handleTaskSubmit}
+                disabled={!taskText.trim() || isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <View style={styles.analyzingRow}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.createTaskButtonText}>Creating Task...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <MaterialIcons name="add-task" size={22} color="#FFFFFF" />
+                    <Text style={styles.createTaskButtonText}>Create Task</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
-          </Modal>
-        )}
+          </SafeAreaView>
+        </Modal>
       </View>
     </Modal>
   );
@@ -524,6 +737,154 @@ const styles = StyleSheet.create({
   analyzingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  // New Beautiful Task Modal Styles
+  taskModalContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  taskModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  taskModalCloseBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  taskModalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  taskDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  taskDateText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  taskSection: {
+    marginBottom: 20,
+  },
+  taskSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  taskTextInput: {
+    borderRadius: 16,
+    borderWidth: 2,
+    padding: 16,
+    fontSize: 16,
+    minHeight: 100,
+    lineHeight: 22,
+  },
+  timeDisplayCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  timeDisplayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    paddingBottom: 8,
+  },
+  timeDisplayText: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  timePickerContainer: {
+    alignItems: 'center',
+    marginTop: -8,
+  },
+  inlineTimePicker: {
+    height: 150,
+    width: '100%',
+  },
+  reminderGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reminderCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    gap: 8,
+  },
+  reminderCardText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  reminderCheckmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  taskSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  taskSummaryText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  taskModalFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  createTaskButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  createTaskButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  analyzingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 });
 

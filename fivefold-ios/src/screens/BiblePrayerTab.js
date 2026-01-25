@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -33,19 +33,32 @@ import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 
-// Random, theme-independent color palettes for the Verse of the Day
-const VERSE_COLOR_PALETTES = [
-  { gradient: ['#FF9A9E', '#FAD0C4', '#FECFEF'], accent: '#FF9A9E' },
-  { gradient: ['#A18CD1', '#FBC2EB', '#FEE7F3'], accent: '#A18CD1' },
-  { gradient: ['#84FAB0', '#8FD3F4', '#C6FFDD'], accent: '#84FAB0' },
-  { gradient: ['#FFD3A5', '#FD6585', '#FECFEF'], accent: '#FD6585' },
-  { gradient: ['#89F7FE', '#66A6FF', '#8EC5FC'], accent: '#66A6FF' },
-  { gradient: ['#F6D365', '#FDA085', '#FFCDA5'], accent: '#F6D365' },
-  { gradient: ['#5EE7DF', '#B490CA', '#C9E4FF'], accent: '#5EE7DF' },
-];
-
-const pickRandomPalette = () =>
-  VERSE_COLOR_PALETTES[Math.floor(Math.random() * VERSE_COLOR_PALETTES.length)];
+// Theme-based color palettes for the Verse of the Day modal
+const getThemeVersePalette = (themeName, primaryColor, primaryLight, primaryDark) => {
+  // Define gradients based on theme
+  const themeGradients = {
+    'blush': { gradient: ['#FF69B4', '#FFB6C1', '#FFC0CB'], accent: '#FF69B4' },
+    'cresvia': { gradient: ['#8A2BE2', '#9370DB', '#BA55D3'], accent: '#8A2BE2' },
+    'eterna': { gradient: ['#4B0082', '#6A5ACD', '#7B68EE'], accent: '#4B0082' },
+    'spiderman': { gradient: ['#E31E24', '#FF4444', '#FF6B6B'], accent: '#E31E24' },
+    'faith': { gradient: ['#4A90E2', '#5BA0F2', '#7AB8FF'], accent: '#4A90E2' },
+    'sailormoon': { gradient: ['#C8A2D0', '#E8C8F0', '#F0D8F8'], accent: '#C8A2D0' },
+    'biblely': { gradient: ['#E07830', '#F09050', '#FFB080'], accent: '#E07830' },
+    'jesusnlambs': { gradient: ['#7CB342', '#9CCC65', '#C8E6C9'], accent: '#7CB342' },
+    'classic': { gradient: ['#8B3A4C', '#A85566', '#D4A5A5'], accent: '#8B3A4C' },
+  };
+  
+  // Return theme-specific gradient or generate one from primary color
+  if (themeGradients[themeName]) {
+    return themeGradients[themeName];
+  }
+  
+  // Default: generate gradient from theme's primary color
+  return {
+    gradient: [primaryColor || '#4A90E2', primaryLight || '#5BA0F2', '#FFFFFF'],
+    accent: primaryColor || '#4A90E2'
+  };
+};
 
 const withOpacity = (hex, opacity = 1) => {
   if (!hex) return `rgba(255,255,255,${opacity})`;
@@ -151,7 +164,39 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 };
 
 const BiblePrayerTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
+  
+  // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
+  // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
+  const isBiblelyMainWallpaper = isBiblelyTheme && selectedWallpaperIndex === 0;
+  
+  // For main Biblely wallpaper only, use white text and icons for better readability
+  const textColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.text;
+  const textSecondaryColor = isBiblelyMainWallpaper ? 'rgba(255,255,255,0.8)' : theme.textSecondary;
+  const iconColor = isBiblelyMainWallpaper ? '#FFFFFF' : theme.primary;
+  
+  // Text shadow for outline effect on main Biblely wallpaper only
+  const textOutlineStyle = isBiblelyMainWallpaper ? {
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  } : {};
+  
+  // Get theme-based verse palette (static based on selected theme)
+  // For Biblely variants, use selectedWallpaperIndex to determine the specific theme
+  const getBiblelyVariantName = () => {
+    if (selectedWallpaperIndex === 1) return 'jesusnlambs';
+    if (selectedWallpaperIndex === 2) return 'classic';
+    return 'biblely';
+  };
+  const themeName = isBlushTheme ? 'blush' : isCresviaTheme ? 'cresvia' : isEternaTheme ? 'eterna' : 
+                    isSpidermanTheme ? 'spiderman' : isFaithTheme ? 'faith' : isSailormoonTheme ? 'sailormoon' : 
+                    isBiblelyTheme ? getBiblelyVariantName() : 'default';
+  const versePalette = useMemo(() => 
+    getThemeVersePalette(themeName, theme.primary, theme.primaryLight, theme.primaryDark),
+    [themeName, theme.primary, theme.primaryLight, theme.primaryDark]
+  );
+  
   const [showBible, setShowBible] = useState(false);
   const [showBibleStudy, setShowBibleStudy] = useState(false);
   const [showPrayerScreen, setShowPrayerScreen] = useState(false);
@@ -166,7 +211,6 @@ const BiblePrayerTab = () => {
   const [nextPrayer, setNextPrayer] = useState(null);
   const [dailyVerse, setDailyVerse] = useState({ text: "Loading daily verse...", reference: "" });
   const [userName, setUserName] = useState('');
-  const [versePalette, setVersePalette] = useState(pickRandomPalette());
   const initialVerseShown = useRef(false);
   const [suppressVerseToday, setSuppressVerseToday] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -399,10 +443,7 @@ const BiblePrayerTab = () => {
     return () => clearInterval(interval);
   }, [dailyVerse.reference]);
 
-  // Pick a new random palette whenever the verse changes (or on first load)
-  useEffect(() => {
-    setVersePalette(pickRandomPalette());
-  }, [dailyVerse.reference]);
+  // Verse palette is now theme-based (defined above with useMemo)
 
   // Pull-to-refresh handler
   const onRefresh = useCallback(async () => {
@@ -536,6 +577,33 @@ const BiblePrayerTab = () => {
     };
 
     const subscription = DeviceEventEmitter.addListener('widgetVerseNavigation', handleWidgetNavigation);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, [showVerseModal]);
+
+  // Listen for audio player navigation (tap on audio player bar to go to current verse)
+  useEffect(() => {
+    const handleAudioNavigation = (verseData) => {
+      console.log('🔊 Audio player navigation received:', verseData);
+      
+      // Close Verse of the Day modal if open
+      if (showVerseModal) {
+        setShowVerseModal(false);
+      }
+      
+      // Build verse reference string from audio data: "Matthew 7:8"
+      const { book, chapter, verse } = verseData;
+      const verseReference = `${book} ${chapter}:${verse}`;
+      
+      // Navigate to the verse
+      setTimeout(() => {
+        handleNavigateToVerse(verseReference, 'navigate');
+      }, 300);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('openBibleReaderAtVerse', handleAudioNavigation);
     
     return () => {
       subscription.remove();
@@ -922,8 +990,8 @@ const BiblePrayerTab = () => {
 
     return (
       <LiquidGlassBibleContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Holy Bible</Text>
-      <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.sectionTitle, { color: textColor }]}>Holy Bible</Text>
+      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
         Read, study, and grow in faith
       </Text>
       
@@ -944,12 +1012,12 @@ const BiblePrayerTab = () => {
           setShowBible(true); // Open modal like prayers do
         }}
       >
-        <MaterialIcons name="menu-book" size={24} color={theme.primary} />
+        <MaterialIcons name="menu-book" size={24} color={iconColor} />
         <View style={styles.bibleButtonContent}>
-          <Text style={[styles.bibleButtonTitle, { color: theme.text }]}>
+          <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
             Open Bible
           </Text>
-          <Text style={[styles.bibleButtonSubtitle, { color: theme.textSecondary }]}>
+          <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
             Simple English + Original text
           </Text>
         </View>
@@ -972,18 +1040,18 @@ const BiblePrayerTab = () => {
           elevation: 1,
         }]}
       >
-        <Text style={[styles.verseLabel, { color: theme.textSecondary }]}>
+        <Text style={[styles.verseLabel, { color: textSecondaryColor, ...textOutlineStyle }]}>
           {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
         </Text>
         <Text 
-          style={[styles.verseText, { color: theme.text }]}
+          style={[styles.verseText, { color: textColor, ...textOutlineStyle }]}
           selectable={false} // Disable selection for tappable area
           allowFontScaling={true}
         >
           "{dailyVerse.text}"
         </Text>
         <Text 
-          style={[styles.verseReference, { color: theme.textSecondary }]}
+          style={[styles.verseReference, { color: textSecondaryColor, ...textOutlineStyle }]}
           selectable={false} // Disable selection for tappable area
           allowFontScaling={true}
         >
@@ -1031,8 +1099,8 @@ const BiblePrayerTab = () => {
 
     return (
       <LiquidGlassBibleStudyContainer>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Bible Study</Text>
-      <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.sectionTitle, { color: textColor }]}>Bible Study</Text>
+      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
         Explore characters, timeline, maps & more
       </Text>
       
@@ -1053,12 +1121,12 @@ const BiblePrayerTab = () => {
           setShowBibleStudy(true);
         }}
       >
-        <MaterialIcons name="school" size={24} color={theme.primary} />
+        <MaterialIcons name="school" size={24} color={iconColor} />
         <View style={styles.bibleButtonContent}>
-          <Text style={[styles.bibleButtonTitle, { color: theme.text }]}>
+          <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
             Interactive Learning
           </Text>
-          <Text style={[styles.bibleButtonSubtitle, { color: theme.textSecondary }]}>
+          <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
             Characters, Timeline, Maps & Quizzes
           </Text>
         </View>
@@ -1077,7 +1145,7 @@ const BiblePrayerTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -1134,14 +1202,13 @@ const BiblePrayerTab = () => {
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Biblely</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Biblely</Text>
+            <Text style={[styles.headerSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
               Faith & Focus, Every Day
             </Text>
           </View>
           
-          {/* Removed connection indicator - app works perfectly without it */}
-          <View style={styles.headerRight} />
+          {/* Profile icon removed - keeping header minimal */}
         </View>
       </GlassHeader>
 
@@ -1155,7 +1222,6 @@ const BiblePrayerTab = () => {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={theme.primary}
-            title="Refreshing..."
           />
         }
         onScroll={Animated.event(
@@ -1604,6 +1670,22 @@ const BiblePrayerTab = () => {
                           Hide for how long
                         </Text>
                         <View style={{ gap: 8 }}>
+                          {/* Permanently - First */}
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: 'rgba(255, 80, 80, 0.25)',
+                              borderRadius: 12,
+                              paddingVertical: 12,
+                              paddingHorizontal: 16,
+                            }}
+                            onPress={() => handleDismissVerse('forever')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ color: '#ff9999', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
+                              Permanently
+                            </Text>
+                          </TouchableOpacity>
+                          {/* Just today - Second */}
                           <TouchableOpacity
                             style={{
                               backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -1644,20 +1726,6 @@ const BiblePrayerTab = () => {
                           >
                             <Text style={{ color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
                               For a month
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: 'rgba(255, 80, 80, 0.25)',
-                              borderRadius: 12,
-                              paddingVertical: 12,
-                              paddingHorizontal: 16,
-                            }}
-                            onPress={() => handleDismissVerse('forever')}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={{ color: '#ff9999', fontSize: 15, fontWeight: '500', textAlign: 'center' }}>
-                              Permanently
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -1960,7 +2028,7 @@ const BiblePrayerTab = () => {
                     }]} />
                   </Animated.View>
                   
-                  <Text style={[styles.creatorName, { color: theme.text }]}>
+                  <Text style={[styles.creatorName, { color: textColor }]}>
                     Hi, I'm Jason 👋
                   </Text>
                   <View style={styles.badgeContainer}>
@@ -2003,24 +2071,24 @@ const BiblePrayerTab = () => {
                   style={styles.storyHeaderGradient}
                 >
                   <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                  <Text style={[styles.storyTitle, { color: theme.text }]}>
+                  <Text style={[styles.storyTitle, { color: textColor }]}>
                     Why I Built This
                   </Text>
                 </LinearGradient>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor }]}>
                   I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor }]}>
                   Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
                 </Text>
                 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor }]}>
                   So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
                 </Text>
 
-                <Text style={[styles.storyText, { color: theme.text }]}>
+                <Text style={[styles.storyText, { color: textColor }]}>
                   I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
                 </Text>
               </LinearGradient>
@@ -2050,23 +2118,23 @@ const BiblePrayerTab = () => {
                   </LinearGradient>
                 </Animated.View>
                 
-                <Text style={[styles.thankYouTitle, { color: theme.text }]}>
+                <Text style={[styles.thankYouTitle, { color: textColor }]}>
                   Thanks for being here
                 </Text>
-                <Text style={[styles.thankYouText, { color: theme.textSecondary }]}>
+                <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
                   Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
                 </Text>
                 
                 <View style={styles.contactInfo}>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor }]}>
                       biblelyios@gmail.com
                     </Text>
                   </View>
                   <View style={styles.contactItem}>
                     <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: theme.text }]}>
+                    <Text style={[styles.contactText, { color: textColor }]}>
                       @biblely.app on TikTok
                     </Text>
                   </View>
@@ -2074,7 +2142,7 @@ const BiblePrayerTab = () => {
                 
                 <View style={styles.signatureContainer}>
                   <View style={styles.signatureLine} />
-                  <Text style={[styles.signature, { color: theme.textSecondary }]}>
+                  <Text style={[styles.signature, { color: textSecondaryColor }]}>
                     Jason
                   </Text>
                 </View>
@@ -2492,18 +2560,22 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   verseModalGhostButton: {
-    marginTop: 8,
-    paddingVertical: 10,
+    marginTop: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   verseModalGhostButtonText: {
-    color: 'rgba(255,255,255,0.95)',
-    fontSize: 14,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 3,
   },
   shareCardOverlay: {
     flex: 1,

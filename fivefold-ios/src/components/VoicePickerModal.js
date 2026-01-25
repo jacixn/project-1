@@ -1,9 +1,10 @@
 /**
  * VoicePickerModal Component
- * Clean, modern modal to browse and select device voices for Bible reading
+ * Clean, modern modal to select reading voice
+ * Shows Google Neural voices (best quality) first, device voices as fallback
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,19 +12,21 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Animated,
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import bibleAudioService from '../services/bibleAudioService';
+import googleTtsService from '../services/googleTtsService';
 import { hapticFeedback } from '../utils/haptics';
 
 const VoicePickerModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
-  const [voices, setVoices] = useState([]);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(null);
+  const [selectedSource, setSelectedSource] = useState('google'); // 'google' or 'device'
+  const [googleVoices, setGoogleVoices] = useState([]);
+  const [deviceVoices, setDeviceVoices] = useState([]);
+  const [selectedGoogleVoice, setSelectedGoogleVoice] = useState(null);
+  const [selectedDeviceVoice, setSelectedDeviceVoice] = useState(null);
   const [previewingId, setPreviewingId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +39,18 @@ const VoicePickerModal = ({ visible, onClose }) => {
   const loadVoices = async () => {
     setLoading(true);
     
-    // Wait for voices to be ready if not already
+    // Get current TTS source
+    const currentSource = bibleAudioService.getTTSSource();
+    setSelectedSource(currentSource === 'google' ? 'google' : 'device');
+    
+    // Load Google TTS voices
+    const gVoices = googleTtsService.getAvailableVoices();
+    setGoogleVoices(gVoices);
+    
+    const currentGoogleVoice = googleTtsService.getCurrentVoiceInfo?.() || googleTtsService.getCurrentVoice();
+    setSelectedGoogleVoice(currentGoogleVoice?.id || 'female-us');
+    
+    // Wait for device voices to be ready
     if (!bibleAudioService.areVoicesReady()) {
       await new Promise(resolve => {
         const checkInterval = setInterval(() => {
@@ -52,16 +66,60 @@ const VoicePickerModal = ({ visible, onClose }) => {
       });
     }
     
-    const formattedVoices = bibleAudioService.getFormattedVoiceList();
-    setVoices(formattedVoices);
+    // Load device voices
+    const dVoices = bibleAudioService.getFormattedVoiceList();
+    setDeviceVoices(dVoices);
     
-    const currentVoice = bibleAudioService.getCurrentVoice();
-    setSelectedVoiceId(currentVoice?.identifier || null);
+    const currentDeviceVoice = bibleAudioService.getCurrentVoice();
+    setSelectedDeviceVoice(currentDeviceVoice?.identifier || null);
     
     setLoading(false);
   };
 
-  const handlePreview = async (voiceId) => {
+  const handleSelectSource = async (source) => {
+    hapticFeedback.buttonPress();
+    setSelectedSource(source);
+    await bibleAudioService.setTTSSource(source === 'google' ? 'google' : 'device');
+  };
+
+  const handleSelectGoogleVoice = async (voiceId) => {
+    hapticFeedback.success();
+    setSelectedGoogleVoice(voiceId);
+    await googleTtsService.setVoice(voiceId);
+    
+    // Also switch to Google TTS if not already
+    if (selectedSource !== 'google') {
+      setSelectedSource('google');
+      await bibleAudioService.setTTSSource('google');
+    }
+  };
+
+  const handleSelectDeviceVoice = async (voiceId) => {
+    hapticFeedback.success();
+    setSelectedDeviceVoice(voiceId);
+    await bibleAudioService.setVoice(voiceId);
+    
+    // Also switch to device if not already
+    if (selectedSource !== 'device') {
+      setSelectedSource('device');
+      await bibleAudioService.setTTSSource('device');
+    }
+  };
+
+  const handlePreviewGoogle = async (voiceId) => {
+    hapticFeedback.buttonPress();
+    
+    if (previewingId === voiceId) {
+      await googleTtsService.stop();
+      setPreviewingId(null);
+    } else {
+      setPreviewingId(voiceId);
+      await googleTtsService.previewVoice(voiceId);
+      setPreviewingId(null);
+    }
+  };
+
+  const handlePreviewDevice = async (voiceId) => {
     hapticFeedback.buttonPress();
     
     if (previewingId === voiceId) {
@@ -74,63 +132,60 @@ const VoicePickerModal = ({ visible, onClose }) => {
     }
   };
 
-  const handleSelect = async (voiceId) => {
-    hapticFeedback.success();
-    setSelectedVoiceId(voiceId);
-    await bibleAudioService.setVoice(voiceId);
-    
-    setVoices(voices.map(v => ({
-      ...v,
-      isSelected: v.id === voiceId,
-    })));
-  };
-
   const handleClose = () => {
+    googleTtsService.stop();
     bibleAudioService.stopPreview();
     onClose?.();
   };
 
-  const getQualityColor = (quality) => {
-    switch (quality) {
-      case 'Premium': return '#FFD700';
-      case 'Enhanced': return '#9B59B6';
-      case 'Siri': return '#007AFF';
-      case 'Standard': return '#34C759';
-      default: return theme.textSecondary;
+  const getAccentFlag = (id) => {
+    if (id.includes('-uk')) return '🇬🇧';
+    if (id.includes('-au')) return '🇦🇺';
+    return '🇺🇸';
+  };
+
+  const getGenderIcon = (voice) => {
+    return voice.gender === 'MALE' ? 'person' : 'person-outline';
+  };
+
+  const getTierColor = (tier) => {
+    switch (tier) {
+      case 'GenZ': return '#FF6B6B'; // Coral pink - young & vibrant
+      case 'ChirpHD': return '#00D9FF'; // Cyan - modern & fresh
+      case 'Studio': return '#FFD700'; // Gold
+      case 'Neural2': return '#9B59B6'; // Purple
+      case 'WaveNet': return '#3498DB'; // Blue
+      default: return theme.primary;
     }
   };
 
-  const getQualityIcon = (quality) => {
-    switch (quality) {
-      case 'Premium': return 'star';
-      case 'Enhanced': return 'auto-awesome';
-      case 'Siri': return 'mic';
-      case 'Standard': return 'volume-up';
-      default: return 'speaker';
+  const getTierIcon = (tier) => {
+    switch (tier) {
+      case 'GenZ': return 'local-fire-department'; // Fire emoji vibes
+      case 'ChirpHD': return 'speaker'; // Modern speaker
+      case 'Studio': return 'star';
+      case 'Neural2': return 'auto-awesome';
+      case 'WaveNet': return 'graphic-eq';
+      default: return 'mic';
     }
   };
 
-  const getAccentFlag = (accent) => {
-    switch (accent) {
-      case 'UK': return '🇬🇧';
-      case 'AU': return '🇦🇺';
-      case 'IN': return '🇮🇳';
-      case 'IE': return '🇮🇪';
-      case 'ZA': return '🇿🇦';
-      default: return '🇺🇸';
+  const getTierDescription = (tier) => {
+    switch (tier) {
+      case 'GenZ': return 'Young, casual & modern - no cap fr fr';
+      case 'ChirpHD': return 'Newest HD voices - clear & crisp';
+      case 'Studio': return 'Professional narration quality';
+      case 'Neural2': return 'Natural everyday speech';
+      case 'WaveNet': return 'Great quality with accent variety';
+      default: return '';
     }
   };
 
-  // Group voices by quality
-  const groupedVoices = voices.reduce((acc, voice) => {
-    if (!acc[voice.quality]) {
-      acc[voice.quality] = [];
-    }
-    acc[voice.quality].push(voice);
-    return acc;
-  }, {});
+  // Group Google voices by tier
+  const groupedGoogleVoices = googleTtsService.getVoicesGroupedByTier();
 
-  const qualityOrder = ['Premium', 'Enhanced', 'Siri', 'Standard', 'Compact'];
+  // Group device voices by quality (only show top ones)
+  const topDeviceVoices = deviceVoices.slice(0, 8);
 
   if (!visible) return null;
 
@@ -158,21 +213,11 @@ const VoicePickerModal = ({ visible, onClose }) => {
           <View style={{ width: 60 }} />
         </View>
 
-        {/* Voice Count Badge */}
-        {!loading && (
-          <View style={[styles.countContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-            <MaterialIcons name="graphic-eq" size={16} color={theme.primary} />
-            <Text style={[styles.countText, { color: theme.textSecondary }]}>
-              {voices.length} voices available
-            </Text>
-          </View>
-        )}
-
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.primary} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Finding voices...
+              Loading voices...
             </Text>
           </View>
         ) : (
@@ -181,82 +226,218 @@ const VoicePickerModal = ({ visible, onClose }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {qualityOrder.map(quality => {
-              const qualityVoices = groupedVoices[quality];
-              if (!qualityVoices || qualityVoices.length === 0) return null;
-
-              return (
-                <View key={quality} style={styles.qualitySection}>
-                  {/* Quality Header */}
-                  <View style={styles.qualityHeader}>
-                    <View style={styles.qualityLabelRow}>
-                      <View style={[styles.qualityIconBg, { backgroundColor: `${getQualityColor(quality)}20` }]}>
-                        <MaterialIcons 
-                          name={getQualityIcon(quality)} 
-                          size={14} 
-                          color={getQualityColor(quality)} 
-                        />
-                      </View>
-                      <Text style={[styles.qualityLabel, { color: theme.text }]}>
-                        {quality}
+            {/* GOOGLE TTS SECTION - RECOMMENDED */}
+            <View style={styles.section}>
+              <TouchableOpacity 
+                activeOpacity={0.8}
+                onPress={() => handleSelectSource('google')}
+                style={[
+                  styles.sectionHeader,
+                  { 
+                    backgroundColor: selectedSource === 'google' 
+                      ? `${theme.primary}15` 
+                      : theme.card,
+                    borderColor: selectedSource === 'google' 
+                      ? theme.primary 
+                      : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    borderWidth: selectedSource === 'google' ? 2 : 1,
+                  }
+                ]}
+              >
+                <View style={styles.sectionHeaderLeft}>
+                  <View style={[styles.radioOuter, { borderColor: selectedSource === 'google' ? theme.primary : theme.border }]}>
+                    {selectedSource === 'google' && (
+                      <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />
+                    )}
+                  </View>
+                  <View>
+                    <View style={styles.sectionTitleRow}>
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                        Google Neural Voice
                       </Text>
+                      <View style={[styles.badge, { backgroundColor: '#34C759' }]}>
+                        <Text style={styles.badgeText}>BEST</Text>
+                      </View>
                     </View>
-                    <Text style={[styles.voiceCountLabel, { color: theme.textTertiary }]}>
-                      {qualityVoices.length}
+                    <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                      Most realistic, human-like voices
                     </Text>
                   </View>
+                </View>
+                <MaterialIcons name="auto-awesome" size={24} color={theme.primary} />
+              </TouchableOpacity>
 
-                  {/* Voice Cards */}
-                  <View style={[styles.voiceGroup, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
-                    {qualityVoices.map((voice, index) => (
+              {/* Google Voice Options - Organized by Tier */}
+              {selectedSource === 'google' && Object.entries(groupedGoogleVoices).map(([tier, tierVoices]) => (
+                <View key={tier} style={styles.tierSection}>
+                  {/* Tier Header */}
+                  <View style={styles.tierHeader}>
+                    <View style={[styles.tierIconBg, { backgroundColor: `${getTierColor(tier)}20` }]}>
+                      <MaterialIcons name={getTierIcon(tier)} size={14} color={getTierColor(tier)} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.tierLabel, { color: theme.text }]}>{tier}</Text>
+                      <Text style={[styles.tierDescription, { color: theme.textSecondary }]}>
+                        {getTierDescription(tier)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.tierCount, { color: theme.textTertiary }]}>{tierVoices.length}</Text>
+                  </View>
+                  
+                  {/* Voices in this tier */}
+                  <View style={[styles.voiceGrid, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                    {tierVoices.map((voice, index) => (
                       <TouchableOpacity
                         key={voice.id}
                         activeOpacity={0.7}
-                        onPress={() => handleSelect(voice.id)}
+                        onPress={() => handleSelectGoogleVoice(voice.id)}
                         style={[
-                          styles.voiceRow,
-                          index !== qualityVoices.length - 1 && styles.voiceRowBorder,
-                          { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+                          styles.voiceCard,
+                          selectedGoogleVoice === voice.id && { backgroundColor: `${getTierColor(tier)}15` },
+                          index !== tierVoices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
                         ]}
                       >
-                        {/* Selection indicator */}
-                        <View style={[
-                          styles.radioOuter,
-                          { borderColor: voice.id === selectedVoiceId ? theme.primary : theme.border }
-                        ]}>
-                          {voice.id === selectedVoiceId && (
-                            <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />
-                          )}
+                        <View style={styles.voiceCardLeft}>
+                          <View style={[
+                            styles.voiceIcon,
+                            { backgroundColor: selectedGoogleVoice === voice.id ? `${getTierColor(tier)}20` : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                          ]}>
+                            <MaterialIcons 
+                              name={getGenderIcon(voice)} 
+                              size={18} 
+                              color={selectedGoogleVoice === voice.id ? getTierColor(tier) : theme.textSecondary} 
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.voiceName, { color: theme.text }]}>
+                              {voice.name}
+                            </Text>
+                            <Text style={[styles.voiceAccent, { color: theme.textSecondary }]} numberOfLines={1}>
+                              {voice.description || `${getAccentFlag(voice.id)} English`}
+                            </Text>
+                          </View>
                         </View>
                         
-                        {/* Voice info */}
-                        <View style={styles.voiceInfo}>
+                        <View style={styles.voiceCardRight}>
+                          {selectedGoogleVoice === voice.id && (
+                            <MaterialIcons name="check-circle" size={22} color={getTierColor(tier)} />
+                          )}
+                          <TouchableOpacity
+                            style={[
+                              styles.previewBtn,
+                              { backgroundColor: previewingId === voice.id ? getTierColor(tier) : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                            ]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handlePreviewGoogle(voice.id);
+                            }}
+                          >
+                            <MaterialIcons 
+                              name={previewingId === voice.id ? "stop" : "play-arrow"} 
+                              size={18} 
+                              color={previewingId === voice.id ? '#fff' : getTierColor(tier)} 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* DEVICE VOICES SECTION */}
+            <View style={styles.section}>
+              <TouchableOpacity 
+                activeOpacity={0.8}
+                onPress={() => handleSelectSource('device')}
+                style={[
+                  styles.sectionHeader,
+                  { 
+                    backgroundColor: selectedSource === 'device' 
+                      ? `${theme.primary}15` 
+                      : theme.card,
+                    borderColor: selectedSource === 'device' 
+                      ? theme.primary 
+                      : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    borderWidth: selectedSource === 'device' ? 2 : 1,
+                  }
+                ]}
+              >
+                <View style={styles.sectionHeaderLeft}>
+                  <View style={[styles.radioOuter, { borderColor: selectedSource === 'device' ? theme.primary : theme.border }]}>
+                    {selectedSource === 'device' && (
+                      <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />
+                    )}
+                  </View>
+                  <View>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                      Device Voice
+                    </Text>
+                    <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                      Works offline, built into iOS
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="phone-iphone" size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+
+              {/* Device Voice Options */}
+              {selectedSource === 'device' && topDeviceVoices.length > 0 && (
+                <View style={[styles.voiceGrid, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                  {topDeviceVoices.map((voice, index) => (
+                    <TouchableOpacity
+                      key={voice.id}
+                      activeOpacity={0.7}
+                      onPress={() => handleSelectDeviceVoice(voice.id)}
+                      style={[
+                        styles.voiceCard,
+                        selectedDeviceVoice === voice.id && { backgroundColor: `${theme.primary}15` },
+                        index !== topDeviceVoices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+                      ]}
+                    >
+                      <View style={styles.voiceCardLeft}>
+                        <View style={[
+                          styles.voiceIcon,
+                          { backgroundColor: selectedDeviceVoice === voice.id ? `${theme.primary}20` : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                        ]}>
+                          <MaterialIcons 
+                            name="volume-up" 
+                            size={18} 
+                            color={selectedDeviceVoice === voice.id ? theme.primary : theme.textSecondary} 
+                          />
+                        </View>
+                        <View>
                           <View style={styles.voiceNameRow}>
                             <Text style={[styles.voiceName, { color: theme.text }]}>
                               {voice.name}
                             </Text>
-                            <Text style={styles.flagEmoji}>
-                              {getAccentFlag(voice.accent)}
-                            </Text>
+                            {voice.quality === 'Premium' || voice.quality === 'Enhanced' ? (
+                              <View style={[styles.qualityBadge, { backgroundColor: voice.quality === 'Premium' ? '#FFD70030' : '#9B59B630' }]}>
+                                <Text style={[styles.qualityBadgeText, { color: voice.quality === 'Premium' ? '#FFD700' : '#9B59B6' }]}>
+                                  {voice.quality}
+                                </Text>
+                              </View>
+                            ) : null}
                           </View>
                           <Text style={[styles.voiceAccent, { color: theme.textSecondary }]}>
                             {voice.accent} English
                           </Text>
                         </View>
-
-                        {/* Preview button */}
+                      </View>
+                      
+                      <View style={styles.voiceCardRight}>
+                        {selectedDeviceVoice === voice.id && (
+                          <MaterialIcons name="check-circle" size={22} color={theme.primary} />
+                        )}
                         <TouchableOpacity
                           style={[
                             styles.previewBtn,
-                            { 
-                              backgroundColor: previewingId === voice.id 
-                                ? theme.primary 
-                                : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                            }
+                            { backgroundColor: previewingId === voice.id ? theme.primary : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
                           ]}
                           onPress={(e) => {
                             e.stopPropagation();
-                            handlePreview(voice.id);
+                            handlePreviewDevice(voice.id);
                           }}
                         >
                           <MaterialIcons 
@@ -265,18 +446,27 @@ const VoicePickerModal = ({ visible, onClose }) => {
                             color={previewingId === voice.id ? '#fff' : theme.primary} 
                           />
                         </TouchableOpacity>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              );
-            })}
+              )}
+              
+              {selectedSource === 'device' && topDeviceVoices.length === 0 && (
+                <View style={[styles.emptyState, { backgroundColor: theme.card }]}>
+                  <MaterialIcons name="info-outline" size={24} color={theme.textSecondary} />
+                  <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                    No device voices found. Download voices in iOS Settings → Accessibility → Spoken Content → Voices
+                  </Text>
+                </View>
+              )}
+            </View>
 
-            {/* Tip Section */}
+            {/* Info tip */}
             <View style={[styles.tipCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-              <MaterialIcons name="info-outline" size={18} color={theme.textSecondary} />
+              <MaterialIcons name="lightbulb-outline" size={18} color={theme.primary} />
               <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-                Download more voices in iOS Settings → Accessibility → Spoken Content → Voices
+                Google Neural voices sound most natural but require internet. Device voices work offline.
               </Text>
             </View>
 
@@ -315,20 +505,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-  countContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -344,51 +520,73 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingTop: 8,
   },
-  qualitySection: {
-    marginBottom: 20,
+  section: {
+    marginBottom: 16,
   },
-  qualityHeader: {
+  tierSection: {
+    marginTop: 12,
+  },
+  tierHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 10,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
-  qualityLabelRow: {
+  tierIconBg: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tierLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tierDescription: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  tierCount: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 14,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  qualityIconBg: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qualityLabel: {
-    fontSize: 15,
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '600',
   },
-  voiceCountLabel: {
+  sectionSubtitle: {
     fontSize: 13,
-    fontWeight: '500',
+    marginTop: 2,
   },
-  voiceGroup: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  voiceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: 12,
-  },
-  voiceRowBorder: {
-    borderBottomWidth: 1,
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
   },
   radioOuter: {
     width: 22,
@@ -403,24 +601,57 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  voiceInfo: {
+  voiceGrid: {
+    marginTop: 10,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  voiceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  voiceCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     flex: 1,
+  },
+  voiceCardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  voiceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceName: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   voiceNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  voiceName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  flagEmoji: {
-    fontSize: 13,
-  },
   voiceAccent: {
     fontSize: 13,
     marginTop: 2,
+  },
+  qualityBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  qualityBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   previewBtn: {
     width: 36,
@@ -428,6 +659,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyState: {
+    marginTop: 10,
+    padding: 20,
+    borderRadius: 14,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   tipCard: {
     flexDirection: 'row',

@@ -12,11 +12,13 @@ import {
   Animated,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleCharactersService from '../services/bibleCharactersService';
@@ -78,24 +80,24 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
           style={styles.sectionGradient}
         >
           <View style={[styles.sectionIconContainer, { 
-            backgroundColor: isDark ? `${section.color}FF` : `${section.color}FF`,
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
             borderWidth: 2,
-            borderColor: isDark ? `${section.color}FF` : `${section.color}FF`,
-            shadowColor: section.color,
+            borderColor: 'rgba(255, 255, 255, 0.35)',
+            shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.3,
+            shadowOpacity: 0.15,
             shadowRadius: 4,
             elevation: 4,
           }]}>
             <MaterialIcons 
               name={section.icon} 
               size={30} 
-              color={section.color}
+              color="#FFFFFF"
               style={{ 
                 fontWeight: 'bold',
-                textShadowColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+                textShadowColor: 'rgba(0,0,0,0.3)',
                 textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 2
+                textShadowRadius: 3
               }}
             />
           </View>
@@ -505,6 +507,12 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
   const [showParallelsModal, setShowParallelsModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
+  
+  // Character audio state
+  const [characterSound, setCharacterSound] = useState(null);
+  const [isCharacterAudioPlaying, setIsCharacterAudioPlaying] = useState(false);
+  const [isCharacterAudioLoading, setIsCharacterAudioLoading] = useState(false);
+  const [characterAudioError, setCharacterAudioError] = useState(null);
 
   // Load character data from GitHub on mount
   useEffect(() => {
@@ -614,6 +622,109 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
       setCharactersRefreshing(false);
     }
   };
+
+  // Character audio playback functions
+  const playCharacterAudio = async (audioUrl) => {
+    if (!audioUrl) {
+      setCharacterAudioError('No audio available for this character');
+      return;
+    }
+    
+    try {
+      setIsCharacterAudioLoading(true);
+      setCharacterAudioError(null);
+      hapticFeedback.light();
+      
+      // Stop any existing audio
+      if (characterSound) {
+        await characterSound.stopAsync();
+        await characterSound.unloadAsync();
+        setCharacterSound(null);
+      }
+      
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+      
+      // Load and play audio from GitHub
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { shouldPlay: true },
+        onCharacterAudioStatusUpdate
+      );
+      
+      setCharacterSound(sound);
+      setIsCharacterAudioPlaying(true);
+    } catch (error) {
+      console.error('Error playing character audio:', error);
+      setCharacterAudioError('Failed to load audio');
+    } finally {
+      setIsCharacterAudioLoading(false);
+    }
+  };
+
+  const onCharacterAudioStatusUpdate = (status) => {
+    if (status.didJustFinish) {
+      setIsCharacterAudioPlaying(false);
+    }
+  };
+
+  const pauseCharacterAudio = async () => {
+    if (characterSound) {
+      hapticFeedback.light();
+      await characterSound.pauseAsync();
+      setIsCharacterAudioPlaying(false);
+    }
+  };
+
+  const resumeCharacterAudio = async () => {
+    if (characterSound) {
+      hapticFeedback.light();
+      await characterSound.playAsync();
+      setIsCharacterAudioPlaying(true);
+    }
+  };
+
+  const restartCharacterAudio = async () => {
+    if (characterSound) {
+      hapticFeedback.medium();
+      await characterSound.setPositionAsync(0);
+      await characterSound.playAsync();
+      setIsCharacterAudioPlaying(true);
+    }
+  };
+
+  const stopCharacterAudio = async () => {
+    if (characterSound) {
+      try {
+        await characterSound.stopAsync();
+        await characterSound.unloadAsync();
+      } catch (e) {
+        console.log('Error stopping audio:', e);
+      }
+      setCharacterSound(null);
+      setIsCharacterAudioPlaying(false);
+    }
+  };
+
+  // Cleanup audio when character changes or modal closes
+  useEffect(() => {
+    return () => {
+      if (characterSound) {
+        characterSound.unloadAsync();
+      }
+    };
+  }, [characterSound]);
+
+  // Stop audio when leaving character detail view
+  useEffect(() => {
+    if (!selectedCharacter) {
+      stopCharacterAudio();
+    }
+  }, [selectedCharacter]);
 
   // Helper to get local images (fallback when GitHub images aren't available)
   const getLocalImage = (characterName) => {
@@ -1291,6 +1402,58 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
                 <Text style={styles.characterBadgeText}>Biblical Figure</Text>
               </View>
             </View>
+
+            {/* Listen to Story Button */}
+            {character.audioUrl && (
+              <View style={styles.characterAudioContainer}>
+                {isCharacterAudioLoading ? (
+                  <View style={styles.characterAudioButton}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.characterAudioButtonText}>Loading...</Text>
+                  </View>
+                ) : isCharacterAudioPlaying ? (
+                  <View style={styles.characterAudioButtonRow}>
+                    <TouchableOpacity 
+                      style={styles.characterAudioButton}
+                      onPress={pauseCharacterAudio}
+                    >
+                      <MaterialIcons name="pause" size={20} color="#FFFFFF" />
+                      <Text style={styles.characterAudioButtonText}>Pause</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.characterAudioRestartButton}
+                      onPress={restartCharacterAudio}
+                    >
+                      <MaterialIcons name="replay" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : characterSound ? (
+                  <View style={styles.characterAudioButtonRow}>
+                    <TouchableOpacity 
+                      style={styles.characterAudioButton}
+                      onPress={resumeCharacterAudio}
+                    >
+                      <MaterialIcons name="play-arrow" size={20} color="#FFFFFF" />
+                      <Text style={styles.characterAudioButtonText}>Resume</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.characterAudioRestartButton}
+                      onPress={restartCharacterAudio}
+                    >
+                      <MaterialIcons name="replay" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.characterAudioButton}
+                    onPress={() => playCharacterAudio(character.audioUrl)}
+                  >
+                    <MaterialIcons name="play-arrow" size={20} color="#FFFFFF" />
+                    <Text style={styles.characterAudioButtonText}>Listen to Story</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </LinearGradient>
         </View>
 
@@ -3003,6 +3166,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  
+  // Character Audio Button Styles
+  characterAudioContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  characterAudioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  characterAudioButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  characterAudioButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  characterAudioRestartButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
 
   // Modern Content Cards
