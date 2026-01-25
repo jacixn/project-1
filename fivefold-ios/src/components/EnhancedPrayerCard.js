@@ -17,6 +17,9 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import TimePicker from './TimePicker';
 import AiBibleChat from './AiBibleChat';
 import VerseSimplificationService from '../services/verseSimplificationService';
@@ -304,11 +307,32 @@ const PrayerSection = () => {
       const newStats = {
         ...stats,
         points: stats.points + points,
+        totalPoints: (stats.totalPoints || stats.points || 0) + points,
         prayersCompleted: (stats.prayersCompleted || 0) + 1
       };
       
       newStats.level = AchievementService.getLevelFromPoints(newStats.points);
       await saveData('userStats', newStats);
+      
+      // Update central total_points key
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints + points, newStats.points);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // SYNC TO FIREBASE
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          prayersCompleted: newStats.prayersCompleted,
+          level: newStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase prayer points sync failed:', err.message);
+        });
+        console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
+      }
     } catch (error) {
       console.error('❌ ERROR GIVING POINTS:', error);
     }

@@ -22,6 +22,9 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import notificationService from '../services/notificationService';
 import AiBibleChat from './AiBibleChat';
 import AddPrayerModal from './AddPrayerModal';
@@ -781,11 +784,32 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       const updatedStats = {
         ...currentStats,
         points: (currentStats.points || 0) + pointsEarned,
+        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + pointsEarned,
         prayersCompleted: (currentStats.prayersCompleted || 0) + 1
       };
       
       updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
       await saveData('userStats', updatedStats);
+      
+      // Update central total_points key
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints + pointsEarned, updatedStats.points);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // SYNC TO FIREBASE
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          prayersCompleted: updatedStats.prayersCompleted,
+          level: updatedStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase prayer points sync failed:', err.message);
+        });
+        console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
+      }
       
       // Global Achievement Check
       await AchievementService.checkAchievements(updatedStats);

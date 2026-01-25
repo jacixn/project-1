@@ -41,7 +41,7 @@ import { hapticFeedback } from '../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
 
-const LeaderboardScreen = ({ navigation }) => {
+const LeaderboardScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
   
@@ -242,6 +242,57 @@ const LeaderboardScreen = ({ navigation }) => {
           isCurrentUser: doc.id === user.uid,
         });
       });
+      
+      // Get fresh local points for current user (same as friends leaderboard)
+      let freshTotalPoints = userProfile?.totalPoints || 0;
+      let freshStreak = userProfile?.currentStreak || 0;
+      
+      try {
+        // Source 1: total_points key
+        const prayerPointsStr = await AsyncStorage.getItem('total_points');
+        if (prayerPointsStr) {
+          freshTotalPoints = Math.max(freshTotalPoints, parseInt(prayerPointsStr, 10) || 0);
+        }
+        
+        // Source 2: userStats object
+        const statsStr = await AsyncStorage.getItem('userStats');
+        if (statsStr) {
+          const stats = JSON.parse(statsStr);
+          freshTotalPoints = Math.max(freshTotalPoints, stats.points || 0, stats.totalPoints || 0);
+          freshStreak = Math.max(freshStreak, stats.currentStreak || 0, stats.streak || 0);
+        }
+        
+        // Source 3: fivefold_userStats
+        const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
+        if (fivefoldStatsStr) {
+          const fStats = JSON.parse(fivefoldStatsStr);
+          freshTotalPoints = Math.max(freshTotalPoints, fStats.points || 0, fStats.totalPoints || 0);
+          freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
+        }
+      } catch (err) {
+        console.warn('[Global Leaderboard] Error getting fresh local points:', err);
+      }
+      
+      // Update current user's entry with fresh local data
+      const currentUserIndex = users.findIndex(u => u.uid === user.uid);
+      if (currentUserIndex !== -1) {
+        // User is in global list, update with fresh points
+        users[currentUserIndex].totalPoints = Math.max(users[currentUserIndex].totalPoints || 0, freshTotalPoints);
+        users[currentUserIndex].currentStreak = Math.max(users[currentUserIndex].currentStreak || 0, freshStreak);
+      } else if (userProfile?.isPublic) {
+        // User should be in global but isn't in query results, add them
+        users.push({
+          uid: user.uid,
+          displayName: userProfile?.displayName || user.displayName || 'You',
+          username: userProfile?.username || 'you',
+          profilePicture: userProfile?.profilePicture || '',
+          countryFlag: userProfile?.countryFlag || '',
+          totalPoints: freshTotalPoints,
+          currentStreak: freshStreak,
+          isCurrentUser: true,
+          isPublic: true,
+        });
+      }
       
       // Sort in memory based on selected metric
       const sortField = sortBy === 'points' ? 'totalPoints' : 'currentStreak';
@@ -589,23 +640,6 @@ const LeaderboardScreen = ({ navigation }) => {
               : 'More users will appear as they join'}
           </Text>
           {data.map((item, index) => renderUserCard(item, index))}
-          
-          {activeTab === 'friends' && (
-            <TouchableOpacity
-              style={[styles.addFriendsButton]}
-              onPress={() => navigation.navigate('Friends')}
-            >
-              <LinearGradient
-                colors={[theme.primary, theme.primary + 'DD']}
-                style={styles.addFriendsGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <MaterialIcons name="person-add" size={20} color="#FFF" />
-                <Text style={styles.addFriendsText}>Find Friends</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
         </View>
       );
     }
@@ -628,29 +662,22 @@ const LeaderboardScreen = ({ navigation }) => {
             : 'Make your profile public to appear on the global leaderboard'}
         </Text>
         
-        <TouchableOpacity
-          style={styles.emptyButton}
-          onPress={() => activeTab === 'friends' 
-            ? navigation.navigate('Friends')
-            : navigation.navigate('Profile')
-          }
-        >
-          <LinearGradient
-            colors={[theme.primary, theme.primary + 'DD']}
-            style={styles.emptyButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        {activeTab !== 'friends' && (
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => navigation?.navigate('Profile')}
           >
-            <MaterialIcons 
-              name={activeTab === 'friends' ? 'person-add' : 'settings'} 
-              size={20} 
-              color="#FFF" 
-            />
-            <Text style={styles.emptyButtonText}>
-              {activeTab === 'friends' ? 'Find Friends' : 'Go to Settings'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={[theme.primary, theme.primary + 'DD']}
+              style={styles.emptyButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialIcons name="settings" size={20} color="#FFF" />
+              <Text style={styles.emptyButtonText}>Go to Settings</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -721,7 +748,7 @@ const LeaderboardScreen = ({ navigation }) => {
         ]}
       >
         <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+          onPress={() => onClose ? onClose() : navigation?.goBack()} 
           style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
         >
           <MaterialIcons name="arrow-back" size={22} color={theme.text} />
@@ -870,7 +897,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 16,
   },
   backButton: {

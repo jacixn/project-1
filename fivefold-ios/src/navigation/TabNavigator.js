@@ -8,6 +8,7 @@ import { useWorkout } from '../contexts/WorkoutContext';
 import BiblePrayerTab from '../screens/BiblePrayerTab';
 import TodosTab from '../screens/TodosTab';
 import GymTab from '../screens/GymTab';
+import HubTab from '../screens/HubTab';
 import ProfileTab from '../screens/ProfileTab';
 
 const Tab = createNativeBottomTabNavigator();
@@ -61,6 +62,14 @@ const TabNavigator = () => {
           title: 'Fitness',
           tabBarIcon: () => ({ sfSymbol: 'figure.strengthtraining.traditional' }),
           tabBarBadge: hasActiveWorkout ? '' : undefined,
+        }}
+      />
+      <Tab.Screen 
+        name="Hub" 
+        component={HubTab}
+        options={{
+          title: 'Hub',
+          tabBarIcon: () => ({ sfSymbol: 'bubble.left.and.bubble.right.fill' }),
         }}
       />
       <Tab.Screen 

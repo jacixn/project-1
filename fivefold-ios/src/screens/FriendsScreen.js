@@ -45,7 +45,7 @@ import CreateChallengeModal from '../components/CreateChallengeModal';
 
 const { width, height } = Dimensions.get('window');
 
-const FriendsScreen = ({ navigation }) => {
+const FriendsScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
   
@@ -347,7 +347,7 @@ const FriendsScreen = ({ navigation }) => {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.friendName, { color: theme.text }]} numberOfLines={1}>
               {item.displayName || 'Friend'}
-            </Text>
+          </Text>
             {/* Country flag or globe */}
             {item.countryFlag ? (
               <Text style={{ fontSize: 14, marginLeft: 6 }}>{item.countryFlag}</Text>
@@ -360,28 +360,41 @@ const FriendsScreen = ({ navigation }) => {
           </Text>
           
           {/* Stats row */}
-          <View style={styles.statsRow}>
+            <View style={styles.statsRow}>
             <View style={styles.statBadge}>
               <MaterialIcons name="star" size={14} color="#FFD700" />
               <Text style={[styles.statText, { color: theme.text }]}>
                 {formatNumber(item.totalPoints || 0)}
-              </Text>
-            </View>
+                </Text>
+              </View>
             <View style={styles.statBadge}>
               <MaterialIcons name="local-fire-department" size={14} color="#FF6B35" />
               <Text style={[styles.statText, { color: theme.text }]}>
-                {item.currentStreak || 0}
-              </Text>
+                  {item.currentStreak || 0}
+                </Text>
+              </View>
             </View>
-          </View>
         </View>
         
         {/* Actions */}
         <View style={styles.friendActions}>
           {/* Message */}
-          <TouchableOpacity
+                <TouchableOpacity
             style={[styles.friendActionButton, { backgroundColor: theme.primary + '20' }]}
-            onPress={() => navigation.navigate('Chat', { otherUser: item, otherUserId: item.uid })}
+            onPress={() => {
+              if (navigation) {
+                // Close modal first if opened from Hub, then navigate
+                if (onClose) {
+                  onClose();
+                  // Small delay to let modal close before navigating
+                  setTimeout(() => {
+                    navigation.navigate('Chat', { otherUser: item, otherUserId: item.uid });
+                  }, 100);
+                } else {
+                  navigation.navigate('Chat', { otherUser: item, otherUserId: item.uid });
+                }
+              }
+            }}
           >
             <Ionicons name="chatbubble" size={16} color={theme.primary} />
           </TouchableOpacity>
@@ -401,14 +414,14 @@ const FriendsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.moreButton}
             onPress={() => handleRemoveFriend(item.uid, item.displayName)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
               <ActivityIndicator size="small" color={theme.textSecondary} />
-            ) : (
+                  ) : (
               <MaterialIcons name="more-vert" size={20} color={theme.textSecondary} />
-            )}
-          </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
         </View>
       </Animated.View>
     );
@@ -441,7 +454,7 @@ const FriendsScreen = ({ navigation }) => {
               <MaterialIcons name="person" size={32} color={theme.primary} />
             </LinearGradient>
           )}
-        </View>
+                </View>
         
         {/* Info */}
         <View style={styles.requestInfo}>
@@ -466,10 +479,10 @@ const FriendsScreen = ({ navigation }) => {
         
         {/* Action buttons */}
         <View style={styles.requestActions}>
-          <TouchableOpacity
+                <TouchableOpacity
             style={styles.declineButton}
             onPress={() => handleDeclineRequest(item.fromUserId)}
-            disabled={isLoading}
+                  disabled={isLoading}
           >
             <MaterialIcons name="close" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
@@ -481,14 +494,14 @@ const FriendsScreen = ({ navigation }) => {
             <LinearGradient
               colors={[theme.primary, theme.primary + 'CC']}
               style={styles.acceptButton}
-            >
-              {isLoading ? (
+                >
+                  {isLoading ? (
                 <ActivityIndicator size="small" color="#FFF" />
-              ) : (
+                  ) : (
                 <MaterialIcons name="check" size={20} color="#FFF" />
-              )}
+                  )}
             </LinearGradient>
-          </TouchableOpacity>
+                </TouchableOpacity>
         </View>
       </Animated.View>
     );
@@ -517,7 +530,7 @@ const FriendsScreen = ({ navigation }) => {
               <MaterialIcons name="person" size={32} color={theme.primary} />
             </LinearGradient>
           )}
-        </View>
+                </View>
         
         {/* Info */}
         <View style={styles.friendInfo}>
@@ -539,24 +552,24 @@ const FriendsScreen = ({ navigation }) => {
         
         {/* Action button based on status */}
         {item.friendshipStatus === 'none' && (
-          <TouchableOpacity
+              <TouchableOpacity
             onPress={() => handleSendRequest(item.uid)}
-            disabled={isLoading}
+                disabled={isLoading}
           >
             <LinearGradient
               colors={[theme.primary, theme.primary + 'CC']}
               style={styles.addButton}
-            >
-              {isLoading ? (
+              >
+                {isLoading ? (
                 <ActivityIndicator size="small" color="#FFF" />
-              ) : (
+                ) : (
                 <>
                   <MaterialIcons name="person-add" size={18} color="#FFF" />
                   <Text style={styles.addButtonText}>Add</Text>
                 </>
-              )}
+                )}
             </LinearGradient>
-          </TouchableOpacity>
+              </TouchableOpacity>
         )}
         
         {item.friendshipStatus === 'requested' && (
@@ -567,10 +580,10 @@ const FriendsScreen = ({ navigation }) => {
         )}
         
         {item.friendshipStatus === 'pending' && (
-          <TouchableOpacity
+              <TouchableOpacity
             onPress={() => handleAcceptRequest(item.uid)}
-            disabled={isLoading}
-          >
+                disabled={isLoading}
+              >
             <LinearGradient
               colors={['#10B981', '#059669']}
               style={styles.addButton}
@@ -648,8 +661,8 @@ const FriendsScreen = ({ navigation }) => {
             >
               <Text style={styles.emptyButtonText}>{config.buttonText}</Text>
             </LinearGradient>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          )}
       </View>
     );
   };
@@ -675,12 +688,12 @@ const FriendsScreen = ({ navigation }) => {
           <Text style={[styles.signInSubtitle, { color: theme.textSecondary }]}>
             Sign in to add friends and compete on leaderboards together
           </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
+          <TouchableOpacity onPress={() => navigation?.navigate('Auth')}>
             <LinearGradient
               colors={[theme.primary, theme.primary + 'CC']}
               style={styles.signInButton}
-            >
-              <Text style={styles.signInButtonText}>Sign In</Text>
+          >
+            <Text style={styles.signInButtonText}>Sign In</Text>
               <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
@@ -716,15 +729,15 @@ const FriendsScreen = ({ navigation }) => {
         ]}
       >
         <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+          onPress={() => onClose ? onClose() : navigation?.goBack()} 
           style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
         >
           <MaterialIcons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <MaterialIcons name="people" size={24} color={theme.primary} />
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Friends</Text>
-        </View>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Friends</Text>
+      </View>
         <View style={{ width: 44 }} />
       </Animated.View>
       
@@ -737,15 +750,15 @@ const FriendsScreen = ({ navigation }) => {
             { key: 'friends', label: 'Friends', icon: 'people', count: friends.length },
             { key: 'requests', label: 'Requests', icon: 'mail', count: pendingRequests.length },
             { key: 'search', label: '', icon: 'search', count: 0 },
-          ].map(tab => (
-            <TouchableOpacity
-              key={tab.key}
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
               style={styles.tab}
-              onPress={() => {
-                hapticFeedback.light();
-                setActiveTab(tab.key);
-              }}
-            >
+            onPress={() => {
+              hapticFeedback.light();
+              setActiveTab(tab.key);
+            }}
+          >
               {activeTab === tab.key ? (
                 <LinearGradient
                   colors={[theme.primary, theme.primary + 'CC']}
@@ -776,10 +789,10 @@ const FriendsScreen = ({ navigation }) => {
                     </Animated.View>
                   )}
                 </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
       </Animated.View>
       
       {/* Search Input */}
@@ -853,33 +866,6 @@ const FriendsScreen = ({ navigation }) => {
               ListEmptyComponent={renderEmptyState('friends')}
               ListHeaderComponent={() => (
                 <View>
-                  {/* Social Quick Actions */}
-                  <View style={styles.socialActionsRow}>
-                    <TouchableOpacity
-                      style={[styles.socialActionButton, { backgroundColor: theme.primary + '15' }]}
-                      onPress={() => navigation.navigate('PrayerWall')}
-                    >
-                      <FontAwesome5 name="praying-hands" size={18} color={theme.primary} />
-                      <Text style={[styles.socialActionText, { color: theme.primary }]}>Prayer Wall</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[styles.socialActionButton, { backgroundColor: '#6366F115' }]}
-                      onPress={() => navigation.navigate('Messages')}
-                    >
-                      <Ionicons name="chatbubbles" size={18} color="#6366F1" />
-                      <Text style={[styles.socialActionText, { color: '#6366F1' }]}>Messages</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[styles.socialActionButton, { backgroundColor: '#F59E0B15' }]}
-                      onPress={() => navigation.navigate('Challenges')}
-                    >
-                      <FontAwesome5 name="trophy" size={16} color="#F59E0B" />
-                      <Text style={[styles.socialActionText, { color: '#F59E0B' }]}>Challenges</Text>
-                    </TouchableOpacity>
-                  </View>
-                  
                   {/* Prayer Partner */}
                   {prayerPartner && (
                     <LinearGradient
@@ -896,11 +882,23 @@ const FriendsScreen = ({ navigation }) => {
                           </Text>
                           <Text style={[styles.prayerPartnerName, { color: theme.text }]}>
                             {prayerPartner.displayName || 'Friend'} {prayerPartner.countryFlag || ''}
-                          </Text>
-                        </View>
+                  </Text>
+                </View>
                         <TouchableOpacity
                           style={[styles.prayerPartnerButton, { backgroundColor: theme.primary }]}
-                          onPress={() => navigation.navigate('Chat', { otherUser: prayerPartner, otherUserId: prayerPartner.partnerId })}
+                          onPress={() => {
+                            if (navigation) {
+                              // Close modal first if opened from Hub, then navigate
+                              if (onClose) {
+                                onClose();
+                                setTimeout(() => {
+                                  navigation.navigate('Chat', { otherUser: prayerPartner, otherUserId: prayerPartner.partnerId });
+                                }, 100);
+                              } else {
+                                navigation.navigate('Chat', { otherUser: prayerPartner, otherUserId: prayerPartner.partnerId });
+                              }
+                            }
+                          }}
                         >
                           <Text style={styles.prayerPartnerButtonText}>Pray</Text>
                         </TouchableOpacity>
@@ -938,7 +936,7 @@ const FriendsScreen = ({ navigation }) => {
               ListHeaderComponent={pendingRequests.length > 0 ? (
                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
                   {pendingRequests.length} Pending {pendingRequests.length === 1 ? 'Request' : 'Requests'}
-                </Text>
+                  </Text>
               ) : null}
             />
           )}
@@ -977,6 +975,12 @@ const FriendsScreen = ({ navigation }) => {
           setChallengeModalVisible(false);
           setChallengeFriend(null);
         }}
+        onCloseAll={() => {
+          // Close challenge modal and Friends modal (if opened from Hub)
+          setChallengeModalVisible(false);
+          setChallengeFriend(null);
+          if (onClose) onClose();
+        }}
         friend={challengeFriend}
         navigation={navigation}
         onChallengeSent={() => {
@@ -1004,7 +1008,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 16,
   },
   backButton: {

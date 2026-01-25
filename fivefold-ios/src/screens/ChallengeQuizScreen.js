@@ -25,6 +25,9 @@ import { submitScore, getChallenge } from '../services/challengeService';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AchievementService from '../services/achievementService';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -171,19 +174,40 @@ const ChallengeQuizScreen = () => {
       const updatedStats = {
         ...currentStats,
         points: (currentStats.points || 0) + points,
+        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + points,
         quizzesCompleted: (currentStats.quizzesCompleted || 0) + 1,
       };
       
       // Recalculate level
       updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
       
-      // Save updated stats
+      // Save updated stats locally
       await saveData('userStats', updatedStats);
+      
+      // ALSO update the central total_points key for consistency
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints + points, updatedStats.points);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // SYNC TO FIREBASE - This is critical!
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          quizzesTaken: updatedStats.quizzesCompleted,
+          level: updatedStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase quiz points sync failed:', err.message);
+        });
+        console.log(`🔥 Challenge quiz points synced to Firebase: ${newCentralTotal}`);
+      }
       
       // Check achievements
       await AchievementService.checkAchievements(updatedStats);
       
-      console.log(`🏆 Challenge quiz completed! Awarded ${points} points for ${correctAnswers}/${totalQuestions} correct. Total: ${updatedStats.points}`);
+      console.log(`🏆 Challenge quiz completed! Awarded ${points} points for ${correctAnswers}/${totalQuestions} correct. Total: ${newCentralTotal}`);
       
       return points;
     } catch (error) {

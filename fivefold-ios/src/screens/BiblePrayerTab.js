@@ -83,6 +83,8 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
 import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
 
@@ -301,8 +303,21 @@ const BiblePrayerTab = () => {
       setLiquidGlassEnabled(enabled);
     });
 
+    // Listen for user data downloaded from cloud (after sign in)
+    const userDataListener = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
+      console.log('☁️ BiblePrayerTab: User data downloaded, refreshing daily verse...');
+      try {
+        const verse = await getDailyVerse();
+        setDailyVerse(verse);
+      } catch (error) {
+        console.error('Error reloading daily verse:', error);
+      }
+      loadUserName();
+    });
+
     return () => {
       liquidGlassListener.remove();
+      userDataListener.remove();
     };
   }, []);
 
@@ -950,12 +965,34 @@ const BiblePrayerTab = () => {
     // Add 1000 points for prayer completion
     try {
       const currentStats = await getStoredData('userStats');
+      const pointsEarned = 1000;
       const updatedStats = {
         ...currentStats,
-        totalPoints: (currentStats?.totalPoints || 0) + 1000,
+        totalPoints: (currentStats?.totalPoints || 0) + pointsEarned,
+        points: (currentStats?.points || 0) + pointsEarned,
         prayersCompleted: (currentStats?.prayersCompleted || 0) + 1,
       };
       await saveData('userStats', updatedStats);
+      
+      // Update central total_points key
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints + pointsEarned, updatedStats.totalPoints);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // SYNC TO FIREBASE
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          prayersCompleted: updatedStats.prayersCompleted,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase prayer points sync failed:', err.message);
+        });
+        console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
+      }
+      
       console.log('🙏 Prayer completed! +1000 points earned!');
     } catch (error) {
       console.error('Failed to update points for prayer completion:', error);

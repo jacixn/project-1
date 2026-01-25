@@ -694,16 +694,14 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     );
     
     if (!hasAnyCompletedSets) {
-      console.log('⚠️ No completed sets found, asking user if they want to cancel');
+      console.log('⚠️ No completed sets found');
       hapticFeedback.warning();
       
-      // Check if workout has exercises or any data at all
       const hasExercises = exercises.length > 0;
       const hasAnyData = exercises.some(ex => 
         ex.sets.some(set => (set.weight && set.weight !== '') || (set.reps && set.reps !== ''))
       );
       
-      // Show appropriate alert based on workout state
       if (!hasExercises || !hasAnyData) {
         setShowEmptyWorkoutAlert(true);
       } else {
@@ -775,11 +773,14 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       // STOP THE TIMER IMMEDIATELY
       setIsWorkoutFinished(true);
       
+      // Safety check for workoutStartTime
+      const startTime = workoutStartTime ? workoutStartTime.toISOString() : new Date().toISOString();
+      
       // Prepare workout data for saving
       const workoutData = {
         name: workoutName,
         templateId: templateData?.id || null, // Link to template if started from one
-        startTime: workoutStartTime.toISOString(),
+        startTime: startTime,
         endTime: new Date().toISOString(),
         duration: contextElapsedTime,
         exercises: exercisesToSave.map(ex => ({

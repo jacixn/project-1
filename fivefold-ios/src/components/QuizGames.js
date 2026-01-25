@@ -18,6 +18,8 @@ import hapticFeedback from '../utils/haptics';
 import AchievementService from '../services/achievementService';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { useTheme } from '../contexts/ThemeContext';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const CATEGORY_ICON_FALLBACK = {
   all: 'ALL',
@@ -239,6 +241,7 @@ const QuizGames = ({ visible, onClose }) => {
       const updatedStats = {
         ...currentStats,
         points: (currentStats.points || 0) + pointsEarned,
+        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + pointsEarned,
         quizzesCompleted: (currentStats.quizzesCompleted || 0) + 1,
       };
       
@@ -248,10 +251,30 @@ const QuizGames = ({ visible, onClose }) => {
       // Save updated stats using the correct storage wrapper
       await saveData('userStats', updatedStats);
       
+      // ALSO update the central total_points key for consistency
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints + pointsEarned, updatedStats.points);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // SYNC TO FIREBASE - This is critical!
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          quizzesTaken: updatedStats.quizzesCompleted,
+          level: updatedStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase quiz points sync failed:', err.message);
+        });
+        console.log(`🔥 Quiz points synced to Firebase: ${newCentralTotal}`);
+      }
+      
       // Check achievements
       await AchievementService.checkAchievements(updatedStats);
       
-      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${updatedStats.points}`);
+      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${newCentralTotal}`);
       hapticFeedback.success(); // Haptic for earning points!
       
       return pointsEarned;

@@ -1350,11 +1350,13 @@ const ProfileTab = () => {
   // Listen for user data downloaded from cloud (after sign in)
   useEffect(() => {
     const userDataListener = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
-      console.log('☁️ User data downloaded from cloud, refreshing profile...');
+      console.log('☁️ User data downloaded from cloud, refreshing all data...');
       await loadUserData();
       await loadAppStreak();
       await loadSavedVerses();
       await loadJournalNotes();
+      await loadHighlights();
+      await loadCompletedTasks();
     });
 
     return () => {
@@ -2440,52 +2442,6 @@ const ProfileTab = () => {
     );
   };
 
-  // Social Section - Friends & Leaderboard
-  const SocialSection = () => (
-    <View style={{ marginTop: 12 }}>
-      <AnimatedSettingsCard 
-        style={styles.aboutCard}
-        onPress={() => {
-          hapticFeedback.buttonPress();
-          navigation.navigate('Friends');
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
-          <View style={styles.settingLeft}>
-            <MaterialIcons name="people" size={24} color={iconColor} />
-            <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
-              Friends
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {isAuthenticated && friendCount > 0 && (
-              <Text style={[styles.badgeCount, { color: theme.primary, marginRight: 8 }]}>{friendCount}</Text>
-            )}
-            <MaterialIcons name="chevron-right" size={24} color={iconColor} />
-          </View>
-        </View>
-      </AnimatedSettingsCard>
-      
-      <AnimatedSettingsCard 
-        style={styles.aboutCard}
-        onPress={() => {
-          hapticFeedback.buttonPress();
-          navigation.navigate('Leaderboard');
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
-          <View style={styles.settingLeft}>
-            <MaterialIcons name="leaderboard" size={24} color={iconColor} />
-            <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
-              Leaderboard
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={24} color={iconColor} />
-        </View>
-      </AnimatedSettingsCard>
-      
-    </View>
-  );
 
   // Account Section - Cloud Sync and Sign Out
   const AccountSection = () => (
@@ -2511,27 +2467,6 @@ const ProfileTab = () => {
         </View>
       </AnimatedSettingsCard>
     </View>
-  );
-
-  // Settings Button - Single button that opens modal
-  const SettingsButton = () => (
-    <AnimatedSettingsCard 
-      style={[styles.aboutCard, { marginTop: 12 }]}
-      onPress={() => {
-        hapticFeedback.buttonPress();
-        Alert.alert('New tools coming soon', 'Fresh controls and shortcuts are on the way.');
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
-        <View style={styles.settingLeft}>
-          <MaterialIcons name="stars" size={24} color={iconColor} />
-          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
-            New tools coming soon
-          </Text>
-        </View>
-        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
-      </View>
-    </AnimatedSettingsCard>
   );
 
   // Changes Button - sits between Settings and About
@@ -2681,13 +2616,10 @@ const ProfileTab = () => {
         {/* Badges Section */}
         <BadgesSection />
         
-        {/* Social Section - Friends & Leaderboard */}
-        <SocialSection />
         
         {/* Account Section - Sign In/Out */}
         <AccountSection />
         
-        <SettingsButton />
         <ChangesButton />
         <AboutSection />
       </Animated.ScrollView>

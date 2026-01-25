@@ -308,10 +308,12 @@ const SCREEN_THEMES = {
   welcome: { bg: '#FCE4EC', accent: '#C62828' },          // Pink - warm welcome
   name: { bg: '#FFF3E0', accent: '#E65100' },             // Orange/peach
   country: { bg: '#E8F5E9', accent: '#2E7D32' },          // Green
+  language: { bg: '#E3F2FD', accent: '#1976D2' },         // Blue - language
   painPoint: { bg: '#FFFDE7', accent: '#F57F17' },        // Yellow
   features: { bg: '#E3F2FD', accent: '#1565C0' },         // Blue
   featuresTasks: { bg: '#E8F5E9', accent: '#2E7D32' },    // Green - productivity
   featuresGym: { bg: '#FFEBEE', accent: '#C62828' },      // Red - fitness
+  featuresHub: { bg: '#E8EAF6', accent: '#5C6BC0' },      // Indigo - social/community
   bible: { bg: '#FFF8E1', accent: '#FF8F00' },            // Amber - scripture
   weight: { bg: '#E0F7FA', accent: '#00838F' },           // Cyan - fitness
   photo: { bg: '#FCE4EC', accent: '#AD1457' },            // Pink - personal
@@ -322,6 +324,30 @@ const SCREEN_THEMES = {
   paywall: { bg: '#E3F2FD', accent: '#1565C0' },          // Blue
   complete: { bg: '#E8F5E9', accent: '#2E7D32' },         // Green - success
 };
+
+// Available languages
+const LANGUAGES = [
+  { id: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', available: true },
+  { id: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', available: false },
+  { id: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', available: false },
+  { id: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', available: false },
+  { id: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷', available: false },
+  { id: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', available: false },
+  { id: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳', available: false },
+  { id: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', available: false },
+  { id: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', available: false },
+  { id: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', available: false },
+  { id: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', available: false },
+  { id: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺', available: false },
+  { id: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱', available: false },
+  { id: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱', available: false },
+  { id: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷', available: false },
+  { id: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', available: false },
+  { id: 'th', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭', available: false },
+  { id: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', available: false },
+  { id: 'fil', name: 'Filipino', nativeName: 'Filipino', flag: '🇵🇭', available: false },
+  { id: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇰🇪', available: false },
+];
 
 // Pain point options (like Bread's "What's on your mind?")
 const PAIN_POINTS = [
@@ -407,6 +433,13 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('niv');
   const [weightUnit, setWeightUnit] = useState('kg');
   const [showAllVersions, setShowAllVersions] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default to English
+  
+  // Migration state
+  const [hasExistingData, setHasExistingData] = useState(false);
+  const [existingDataSummary, setExistingDataSummary] = useState(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [checkingData, setCheckingData] = useState(true);
   
   // Animation refs - start at 1 so content is visible immediately
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -415,15 +448,126 @@ const SimpleOnboarding = ({ onComplete }) => {
   const priceStrikeAnim = useRef(new Animated.Value(0)).current;
   const freeRevealAnim = useRef(new Animated.Value(0)).current;
 
-  // Screen order
-  const screens = [
+  // Check for existing local data on mount
+  useEffect(() => {
+    const checkExistingData = async () => {
+      try {
+        // Check multiple sources for existing data
+        const [
+          totalPointsStr,
+          userStatsStr,
+          fivefoldStatsStr,
+          todosStr,
+          workoutsStr,
+          savedVersesStr,
+        ] = await Promise.all([
+          AsyncStorage.getItem('total_points'),
+          AsyncStorage.getItem('fivefold_userStats'),
+          AsyncStorage.getItem('userStats'),
+          AsyncStorage.getItem('fivefold_todos'),
+          AsyncStorage.getItem('@scheduled_workouts'),
+          AsyncStorage.getItem('fivefold_savedBibleVerses'),
+        ]);
+        
+        let totalPoints = 0;
+        let todosCount = 0;
+        let workoutsCount = 0;
+        let savedVersesCount = 0;
+        let prayersCompleted = 0;
+        let quizzesCompleted = 0;
+        
+        // Parse points
+        if (totalPointsStr) {
+          totalPoints = Math.max(totalPoints, parseInt(totalPointsStr, 10) || 0);
+        }
+        if (userStatsStr) {
+          const stats = JSON.parse(userStatsStr);
+          totalPoints = Math.max(totalPoints, stats.totalPoints || stats.points || 0);
+          prayersCompleted = stats.prayersCompleted || 0;
+          quizzesCompleted = stats.quizzesCompleted || 0;
+        }
+        if (fivefoldStatsStr) {
+          const stats = JSON.parse(fivefoldStatsStr);
+          totalPoints = Math.max(totalPoints, stats.totalPoints || stats.points || 0);
+          prayersCompleted = Math.max(prayersCompleted, stats.prayersCompleted || 0);
+          quizzesCompleted = Math.max(quizzesCompleted, stats.quizzesCompleted || 0);
+        }
+        
+        // Parse todos
+        if (todosStr) {
+          const todos = JSON.parse(todosStr);
+          todosCount = Array.isArray(todos) ? todos.length : 0;
+        }
+        
+        // Parse workouts
+        if (workoutsStr) {
+          const workouts = JSON.parse(workoutsStr);
+          workoutsCount = Array.isArray(workouts) ? workouts.length : 0;
+        }
+        
+        // Parse saved verses
+        if (savedVersesStr) {
+          const verses = JSON.parse(savedVersesStr);
+          savedVersesCount = Array.isArray(verses) ? verses.length : 0;
+        }
+        
+        // Determine if there's significant data worth migrating
+        const hasData = totalPoints > 0 || todosCount > 0 || workoutsCount > 0 || savedVersesCount > 0;
+        
+        if (hasData) {
+          setHasExistingData(true);
+          setExistingDataSummary({
+            totalPoints,
+            todosCount,
+            workoutsCount,
+            savedVersesCount,
+            prayersCompleted,
+            quizzesCompleted,
+          });
+          console.log('[Migration] Found existing data:', { totalPoints, todosCount, workoutsCount, savedVersesCount });
+        } else {
+          console.log('[Migration] No existing data found');
+        }
+      } catch (error) {
+        console.error('[Migration] Error checking for existing data:', error);
+      } finally {
+        setCheckingData(false);
+      }
+    };
+    
+    checkExistingData();
+  }, []);
+
+  // Screen order - include migration screen only if there's existing data
+  const screens = hasExistingData ? [
+    'migrate',
     'splash',
     'welcome',
     'country',
+    'language',
     'painPoint',
     'features',
     'featuresTasks',
     'featuresGym',
+    'featuresHub',
+    'bible',
+    'weight',
+    'photo',
+    'theme',
+    'notifications',
+    'howFound',
+    'gift',
+    'complete'
+  ] : [
+    'splash',
+    'welcome',
+    'country',
+    'language',
+    'painPoint',
+    'features',
+    'featuresTasks',
+    'featuresGym',
+    'featuresHub',
     'bible',
     'weight',
     'photo',
@@ -468,6 +612,98 @@ const SimpleOnboarding = ({ onComplete }) => {
     }
   };
 
+  // Handle data migration - uploads all local data to the new account
+  const handleMigrateData = async () => {
+    if (!user?.uid) {
+      Alert.alert('Error', 'You must be signed in to migrate data.');
+      return;
+    }
+    
+    setIsMigrating(true);
+    hapticFeedback.selection();
+    
+    try {
+      // Import sync functions
+      const { 
+        syncUserStatsToCloud, 
+        syncSavedVersesToCloud, 
+        syncJournalNotesToCloud,
+        syncThemePreferencesToCloud,
+        syncAllHistoryToCloud,
+      } = await import('../services/userSyncService');
+      
+      // Upload all local data to the new account
+      console.log('[Migration] Starting data migration for user:', user.uid);
+      
+      await syncUserStatsToCloud(user.uid);
+      await syncSavedVersesToCloud(user.uid);
+      await syncJournalNotesToCloud(user.uid);
+      await syncThemePreferencesToCloud(user.uid);
+      await syncAllHistoryToCloud(user.uid);
+      
+      console.log('[Migration] Data migration completed successfully');
+      
+      hapticFeedback.success();
+      Alert.alert(
+        'Data Imported!',
+        `Your existing data has been imported to your new account:\n\n` +
+        `${existingDataSummary?.totalPoints || 0} points\n` +
+        `${existingDataSummary?.todosCount || 0} tasks\n` +
+        `${existingDataSummary?.workoutsCount || 0} workouts\n` +
+        `${existingDataSummary?.savedVersesCount || 0} saved verses`,
+        [{ text: 'Continue', onPress: () => setCurrentScreen(currentScreen + 1) }]
+      );
+    } catch (error) {
+      console.error('[Migration] Error migrating data:', error);
+      Alert.alert(
+        'Migration Error',
+        'There was an issue importing your data. You can try again later from Settings.',
+        [{ text: 'Continue Anyway', onPress: () => setCurrentScreen(currentScreen + 1) }]
+      );
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  // Skip migration - start fresh
+  const handleSkipMigration = async () => {
+    hapticFeedback.selection();
+    
+    Alert.alert(
+      'Start Fresh?',
+      'Your existing local data will not be imported to this account. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Start Fresh', 
+          style: 'destructive',
+          onPress: async () => {
+            // Clear local data so it doesn't get accidentally synced later
+            try {
+              await AsyncStorage.multiRemove([
+                'total_points',
+                'userStats',
+                'fivefold_userStats',
+                'fivefold_todos',
+                'completedTodos',
+                '@scheduled_workouts',
+                'fivefold_savedBibleVerses',
+                'journalNotes',
+                'prayerHistory',
+                'workoutHistory',
+                'quizHistory',
+              ]);
+              console.log('[Migration] Cleared local data for fresh start');
+            } catch (error) {
+              console.error('[Migration] Error clearing local data:', error);
+            }
+            setCurrentScreen(currentScreen + 1);
+          }
+        }
+      ]
+    );
+  };
+
   const finishOnboarding = async () => {
     try {
       // Save user profile
@@ -481,6 +717,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         mode: selectedMode,
         bibleVersion: selectedBibleVersion,
         weightUnit: weightUnit,
+        language: selectedLanguage,
         joinedDate: new Date().toISOString(),
       };
       await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
@@ -495,6 +732,9 @@ const SimpleOnboarding = ({ onComplete }) => {
       
       // Save Bible version preference
       await AsyncStorage.setItem('selectedBibleVersion', selectedBibleVersion);
+      
+      // Save language preference
+      await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
       
       // Save weight unit preference
       await AsyncStorage.setItem('weightUnit', weightUnit);
@@ -765,6 +1005,130 @@ const SimpleOnboarding = ({ onComplete }) => {
           style={[styles.mainButton, { backgroundColor: '#333' }]}
         >
           <Text style={styles.mainButtonText}>Let's Go</Text>
+          <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
+  // SCREEN: Language Selection
+  // ============================================
+  const LanguageScreen = () => {
+    const screenTheme = SCREEN_THEMES.language;
+    
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.featureHeaderIcon}>
+            <Text style={{ fontSize: 50 }}>🌐</Text>
+          </View>
+          
+          <Text style={[styles.screenTitle, { color: '#333' }]}>
+            Choose your language
+          </Text>
+          
+          <Text style={[styles.screenSubtitle, { color: '#666' }]}>
+            More languages coming soon!
+          </Text>
+          
+          <View style={{ marginTop: 20 }}>
+            {LANGUAGES.map((lang) => {
+              const isSelected = selectedLanguage === lang.id;
+              const isAvailable = lang.available;
+              
+              return (
+                <TouchableOpacity
+                  key={lang.id}
+                  style={[
+                    {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#FFF',
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 10,
+                      borderWidth: 2,
+                      borderColor: isSelected ? screenTheme.accent : 'transparent',
+                      opacity: isAvailable ? 1 : 0.5,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 8,
+                    },
+                  ]}
+                  onPress={() => {
+                    if (isAvailable) {
+                      hapticFeedback.selection();
+                      setSelectedLanguage(lang.id);
+                    } else {
+                      hapticFeedback.warning();
+                    }
+                  }}
+                  disabled={!isAvailable}
+                  activeOpacity={isAvailable ? 0.7 : 1}
+                >
+                  <Text style={{ fontSize: 28, marginRight: 14 }}>{lang.flag}</Text>
+                  
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ 
+                      fontSize: 17, 
+                      fontWeight: '600', 
+                      color: isAvailable ? '#333' : '#999',
+                      marginBottom: 2,
+                    }}>
+                      {lang.name}
+                    </Text>
+                    <Text style={{ 
+                      fontSize: 14, 
+                      color: isAvailable ? '#666' : '#BBB',
+                    }}>
+                      {lang.nativeName}
+                    </Text>
+                  </View>
+                  
+                  {isSelected && isAvailable && (
+                    <View style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: screenTheme.accent,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                      <MaterialIcons name="check" size={18} color="#FFF" />
+                    </View>
+                  )}
+                  
+                  {!isAvailable && (
+                    <View style={{
+                      backgroundColor: '#F5F5F5',
+                      borderRadius: 12,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                    }}>
+                      <Text style={{ fontSize: 11, color: '#999', fontWeight: '600' }}>
+                        COMING SOON
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+        
+        <TouchableOpacity 
+          onPress={handleNext}
+          style={[styles.mainButton, { backgroundColor: '#333' }]}
+        >
+          <Text style={styles.mainButtonText}>Next</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
         </TouchableOpacity>
       </SafeAreaView>
@@ -1194,6 +1558,125 @@ const SimpleOnboarding = ({ onComplete }) => {
         
         {/* Scroll indicator */}
         {!hasScrolledGym && (
+          <View style={styles.scrollIndicator}>
+            <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
+            <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
+          </View>
+        )}
+        
+        <TouchableOpacity 
+          onPress={handleNext}
+          style={[styles.mainButton, { backgroundColor: '#333' }]}
+        >
+          <Text style={styles.mainButtonText}>Next</Text>
+          <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
+  // SCREEN: Features Hub (Social Community)
+  // ============================================
+  const FeaturesHubScreen = () => {
+    const screenTheme = SCREEN_THEMES.featuresHub;
+    const [hasScrolledHub, setHasScrolledHub] = useState(false);
+    
+    const handleHubScroll = (event) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      if (offsetY > 20 && !hasScrolledHub) {
+        setHasScrolledHub(true);
+      }
+    };
+    
+    const features = [
+      { 
+        icon: '🌍', 
+        title: 'Global Community', 
+        desc: 'Share thoughts, encouragements, and prayers with believers worldwide', 
+        color: '#5C6BC0',
+      },
+      { 
+        icon: '💬', 
+        title: 'Daily Sharing', 
+        desc: 'Post what\'s on your heart - get one token daily to share something meaningful', 
+        color: '#26A69A',
+      },
+      { 
+        icon: '👀', 
+        title: 'See What Others Share', 
+        desc: 'Scroll through uplifting posts from the community - get inspired every day', 
+        color: '#42A5F5',
+      },
+      { 
+        icon: '🤝', 
+        title: 'Connect with Friends', 
+        desc: 'Add friends, send messages, and support each other on your faith journey', 
+        color: '#FF7043',
+      },
+      { 
+        icon: '🏆', 
+        title: 'Friendly Challenges', 
+        desc: 'Challenge friends to Bible quizzes - compete and grow together!', 
+        color: '#FFB300',
+      },
+      { 
+        icon: '📊', 
+        title: 'Leaderboards', 
+        desc: 'See how you rank among friends and globally - stay motivated!', 
+        color: '#AB47BC',
+      },
+    ];
+    
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleHubScroll}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.featureHeaderIcon}>
+            <Text style={{ fontSize: 50 }}>🌍</Text>
+          </View>
+          
+          <Text style={[styles.screenTitle, { color: '#333' }]}>
+            You're not alone on this journey
+          </Text>
+          
+          <Text style={[styles.screenSubtitle, { color: '#666' }]}>
+            The Hub connects you with a global community of believers
+          </Text>
+          
+          <View style={styles.featureCards}>
+            {features.map((feature, index) => (
+              <View key={index} style={styles.featureCard}>
+                <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
+                  <Text style={styles.featureEmoji}>{feature.icon}</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={[styles.featureTitle, { color: feature.color }]}>{feature.title}</Text>
+                  <Text style={styles.featureDesc}>{feature.desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          
+          {/* Community callout */}
+          <View style={[styles.exampleCard, { backgroundColor: screenTheme.accent + '10', borderColor: screenTheme.accent }]}>
+            <Text style={[styles.exampleTitle, { color: screenTheme.accent }]}>Together in Faith</Text>
+            <Text style={styles.motivationText}>
+              "For where two or three gather in my name, there am I with them."
+            </Text>
+            <Text style={styles.motivationRef}>— Matthew 18:20</Text>
+          </View>
+        </ScrollView>
+        
+        {/* Scroll indicator */}
+        {!hasScrolledHub && (
           <View style={styles.scrollIndicator}>
             <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
             <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
@@ -2096,9 +2579,178 @@ const SimpleOnboarding = ({ onComplete }) => {
     );
   };
 
+  // Migration Screen Component
+  const MigrationScreen = () => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F7FF' }}>
+      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24 }}>
+        {/* Icon */}
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+          <View style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: '#4A90D9',
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#4A90D9',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+          }}>
+            <Ionicons name="cloud-upload" size={48} color="#FFF" />
+          </View>
+        </View>
+        
+        {/* Title */}
+        <Text style={{ 
+          fontSize: 28, 
+          fontWeight: 'bold', 
+          textAlign: 'center', 
+          marginBottom: 12, 
+          color: '#333' 
+        }}>
+          Existing Data Found
+        </Text>
+        
+        {/* Description */}
+        <Text style={{ 
+          fontSize: 16, 
+          textAlign: 'center', 
+          marginBottom: 32, 
+          lineHeight: 24, 
+          color: '#666' 
+        }}>
+          We found data from a previous session. Would you like to import it to your new account?
+        </Text>
+        
+        {/* Data Summary Card */}
+        <View style={{
+          backgroundColor: '#FFF',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 32,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+        }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#999', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Data to Import
+          </Text>
+          
+          {existingDataSummary?.totalPoints > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFD700' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Ionicons name="star" size={18} color="#FFD700" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.totalPoints}</Text> points
+              </Text>
+            </View>
+          )}
+          
+          {existingDataSummary?.todosCount > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#4CAF50' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Ionicons name="checkbox" size={18} color="#4CAF50" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.todosCount}</Text> tasks
+              </Text>
+            </View>
+          )}
+          
+          {existingDataSummary?.workoutsCount > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FF5722' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Ionicons name="barbell" size={18} color="#FF5722" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.workoutsCount}</Text> scheduled workouts
+              </Text>
+            </View>
+          )}
+          
+          {existingDataSummary?.savedVersesCount > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#9C27B0' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Ionicons name="bookmark" size={18} color="#9C27B0" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.savedVersesCount}</Text> saved verses
+              </Text>
+            </View>
+          )}
+          
+          {existingDataSummary?.prayersCompleted > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#2196F3' + '20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <FontAwesome5 name="pray" size={16} color="#2196F3" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                <Text style={{ fontWeight: '700' }}>{existingDataSummary.prayersCompleted}</Text> prayers completed
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Buttons */}
+        <TouchableOpacity
+          onPress={handleMigrateData}
+          disabled={isMigrating}
+          style={{
+            backgroundColor: '#4A90D9',
+            paddingVertical: 18,
+            borderRadius: 16,
+            marginBottom: 12,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8,
+            opacity: isMigrating ? 0.7 : 1,
+          }}
+        >
+          {isMigrating ? (
+            <>
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '600' }}>Importing...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="cloud-upload" size={22} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '600' }}>Import My Data</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={handleSkipMigration}
+          disabled={isMigrating}
+          style={{
+            paddingVertical: 16,
+            borderRadius: 16,
+          }}
+        >
+          <Text style={{ color: '#999', fontSize: 16, textAlign: 'center' }}>
+            Start Fresh Instead
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
   // Render current screen
   const renderScreen = () => {
+    // Show loading while checking for data
+    if (checkingData) {
+      return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F7FF', justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 18, color: '#666' }}>Loading...</Text>
+        </SafeAreaView>
+      );
+    }
+    
     switch (screens[currentScreen]) {
+      case 'migrate': return <MigrationScreen />;
       case 'splash': return <SplashScreen />;
       case 'welcome': return <WelcomeScreen />;
       case 'country': return (
@@ -2110,10 +2762,12 @@ const SimpleOnboarding = ({ onComplete }) => {
           screenTheme={SCREEN_THEMES.country}
         />
       );
+      case 'language': return <LanguageScreen />;
       case 'painPoint': return <PainPointScreen />;
       case 'features': return <FeaturesScreen />;
       case 'featuresTasks': return <FeaturesTasksScreen />;
       case 'featuresGym': return <FeaturesGymScreen />;
+      case 'featuresHub': return <FeaturesHubScreen />;
       case 'bible': return <BibleScreen />;
       case 'weight': return <WeightScreen />;
       case 'photo': return <PhotoScreen />;

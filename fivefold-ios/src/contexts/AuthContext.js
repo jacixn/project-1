@@ -191,15 +191,28 @@ export const AuthProvider = ({ children }) => {
   const signOut = useCallback(async () => {
     setLoading(true);
     try {
-      // IMPORTANT: Sync all data to cloud BEFORE signing out (while we still have user ID)
+      // IMPORTANT: Upload all data to cloud BEFORE signing out (while we still have user ID)
       if (user?.uid) {
         try {
-          console.log('[Auth] Syncing data to cloud before sign out...');
-          const { performFullSync } = await import('../services/userSyncService');
-          await performFullSync(user.uid);
-          console.log('[Auth] Data synced to cloud successfully');
+          console.log('[Auth] Uploading data to cloud before sign out...');
+          const { 
+            syncSavedVersesToCloud, 
+            syncJournalNotesToCloud, 
+            syncThemePreferencesToCloud, 
+            syncAllHistoryToCloud,
+            syncUserStatsToCloud 
+          } = await import('../services/userSyncService');
+          
+          // Upload all data to cloud (DO NOT download - that would overwrite local data)
+          await syncUserStatsToCloud(user.uid);
+          await syncSavedVersesToCloud(user.uid);
+          await syncJournalNotesToCloud(user.uid);
+          await syncThemePreferencesToCloud(user.uid);
+          await syncAllHistoryToCloud(user.uid);
+          
+          console.log('[Auth] Data uploaded to cloud successfully');
         } catch (syncError) {
-          console.error('[Auth] Failed to sync before sign out:', syncError);
+          console.error('[Auth] Failed to upload before sign out:', syncError);
           // Continue with sign out even if sync fails
         }
       }
@@ -218,12 +231,17 @@ export const AuthProvider = ({ children }) => {
         // Saved content
         'savedBibleVerses',
         'journalNotes',
-        'highlights',
         'bookmarks',
+        // Verse data (highlights stored here by VerseDataManager)
+        'verse_data',
+        'highlight_names',
+        'reading_streaks',
         // User preferences (theme, settings)
         'fivefold_theme',
         'fivefold_dark_mode',
         'fivefold_wallpaper_index',
+        'selectedBibleVersion',
+        'weightUnit',
         // User stats
         'userStats',
         'fivefold_userStats',
@@ -234,6 +252,15 @@ export const AuthProvider = ({ children }) => {
         'prayerHistory',
         'workoutHistory',
         'quizHistory',
+        'prayer_completions',
+        'prayer_preferences',
+        // User prayers (custom prayer settings)
+        'userPrayers',
+        'customPrayerNames',
+        'customPrayerTimes',
+        // Hub posting tokens
+        'hub_posting_token',
+        'hub_token_schedule',
         // Reading progress
         'readingProgress',
         'currentReadingPlan',
@@ -250,6 +277,17 @@ export const AuthProvider = ({ children }) => {
         'completedTodos',
         // Notifications
         'notificationPreferences',
+        // Bible maps data
+        'bible_maps_bookmarks',
+        'bible_maps_visited',
+        // Bible fast facts
+        'bible_fast_facts_favorites',
+        // Recent searches
+        'recentBibleSearches',
+        // Friend chat history
+        'friendChatHistory',
+        // Key Verses favorites
+        'fivefold_favoriteVerses',
       ];
       
       await AsyncStorage.multiRemove(userSpecificKeys);

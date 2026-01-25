@@ -49,7 +49,7 @@ const getCategoryConfig = (categoryId, categoryName) => {
   };
 };
 
-const CreateChallengeModal = ({ visible, onClose, friend, onChallengeSent, navigation }) => {
+const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChallengeSent, navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
@@ -146,14 +146,23 @@ const CreateChallengeModal = ({ visible, onClose, friend, onChallengeSent, navig
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onClose();
+      
+      // Close all modals first (challenge modal + friends modal if from Hub)
+      if (onCloseAll) {
+        onCloseAll();
+      } else {
+        onClose();
+      }
       
       if (navigation) {
-        navigation.navigate('ChallengeQuiz', {
-          challengeId: challenge.id,
-          challenge: { ...challenge, questions: selectedQuestions },
-          isChallenger: true,
-        });
+        // Small delay to let modals close before navigating
+        setTimeout(() => {
+          navigation.navigate('ChallengeQuiz', {
+            challengeId: challenge.id,
+            challenge: { ...challenge, questions: selectedQuestions },
+            isChallenger: true,
+          });
+        }, 150);
       }
       
       if (onChallengeSent) onChallengeSent(challenge);
@@ -171,7 +180,7 @@ const CreateChallengeModal = ({ visible, onClose, friend, onChallengeSent, navig
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top || 16, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
+        <View style={[styles.header, { paddingTop: 16, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
           <TouchableOpacity onPress={onClose} disabled={sending} style={styles.cancelBtn}>
             <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
           </TouchableOpacity>

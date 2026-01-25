@@ -269,8 +269,15 @@ const TodosTab = () => {
 
     const subscription = DeviceEventEmitter.addListener('closeAllModals', handleCloseAllModals);
     
+    // Listen for user data downloaded from cloud (after sign in)
+    const userDataListener = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
+      console.log('☁️ TodosTab: User data downloaded, refreshing tasks...');
+      await initializeTodoData();
+    });
+    
     return () => {
       subscription.remove();
+      userDataListener.remove();
     };
   }, []);
 
