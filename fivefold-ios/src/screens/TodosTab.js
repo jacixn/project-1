@@ -40,6 +40,9 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
 import AchievementService from '../services/achievementService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 
 // Animated Todo Components (follows Rules of Hooks)
@@ -371,6 +374,26 @@ const TodosTab = () => {
       
       await saveData('todos', updatedTodos);
       await saveData('userStats', updatedStats);
+      
+      // Also update the central points storage (for consistency with PrayerCompletionManager)
+      const centralPointsStr = await AsyncStorage.getItem('total_points');
+      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+      const newCentralTotal = Math.max(centralPoints, updatedStats.totalPoints);
+      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      
+      // Sync to Firebase if user is logged in
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newCentralTotal,
+          tasksCompleted: newCompletedTasks,
+          level: updatedStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('Firebase task points sync failed:', err.message);
+        });
+        console.log(`Task points synced to Firebase: ${newCentralTotal}`);
+      }
 
       // Global Achievement Check - Handles awarding extra points and showing the alert
       const statsAfterAchievement = await AchievementService.checkAchievements(updatedStats);

@@ -293,6 +293,11 @@ export const ThemeProvider = ({ children }) => {
       theme: themes[key]
     }));
 
+  // Reload theme from storage (used after sign-in to load user's theme)
+  const reloadTheme = async () => {
+    await loadThemePreference();
+  };
+
   const value = {
     theme,
     currentTheme,
@@ -316,6 +321,8 @@ export const ThemeProvider = ({ children }) => {
     changeWallpaper,
     getCurrentWallpaper,
     themeWallpapers,
+    // Reload function (for after sign-in)
+    reloadTheme,
   };
 
   return (

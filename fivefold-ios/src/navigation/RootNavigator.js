@@ -15,6 +15,11 @@ import TabNavigator from './TabNavigator';
 import AuthScreen from '../screens/AuthScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
+import PrayerWallScreen from '../screens/PrayerWallScreen';
+import MessagesScreen from '../screens/MessagesScreen';
+import ChatScreen from '../screens/ChatScreen';
+import ChallengesScreen from '../screens/ChallengesScreen';
+import ChallengeQuizScreen from '../screens/ChallengeQuizScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -118,6 +123,52 @@ const RootNavigator = () => {
         component={LeaderboardScreen}
         options={{
           animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Prayer Wall Screen */}
+      <Stack.Screen 
+        name="PrayerWall" 
+        component={PrayerWallScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Messages Screen */}
+      <Stack.Screen 
+        name="Messages" 
+        component={MessagesScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Chat Screen */}
+      <Stack.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Challenges Screen */}
+      <Stack.Screen 
+        name="Challenges" 
+        component={ChallengesScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Challenge Quiz Screen */}
+      <Stack.Screen 
+        name="ChallengeQuiz" 
+        component={ChallengeQuizScreen}
+        options={{
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
         }}
       />
     </Stack.Navigator>

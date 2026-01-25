@@ -1,14 +1,14 @@
 /**
- * Leaderboard Screen
+ * Leaderboard Screen - Premium Edition
  * 
- * Displays:
- * - Friends leaderboard (only friends)
- * - Global leaderboard (public users only)
- * - Sort by: Points, Streaks
- * - Current user highlighted
+ * Stunning UI with:
+ * - Animated gradient header with glow effects
+ * - Beautiful podium with crowns and medals
+ * - Glass morphism cards with shimmer
+ * - Smooth animations throughout
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,36 +19,102 @@ import {
   RefreshControl,
   Image,
   Dimensions,
+  Animated,
+  ScrollView,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFriendsWithStats } from '../services/friendsService';
+import { syncUserStatsToCloud } from '../services/userSyncService';
 import { 
   collection, 
   query, 
   where, 
-  orderBy, 
   limit, 
   getDocs 
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { hapticFeedback } from '../utils/haptics';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const LeaderboardScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
   
   // State
-  const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'global'
-  const [sortBy, setSortBy] = useState('points'); // 'points', 'streak'
+  const [activeTab, setActiveTab] = useState('friends');
+  const [sortBy, setSortBy] = useState('points');
   const [friendsLeaderboard, setFriendsLeaderboard] = useState([]);
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Animations
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const podiumAnim = useRef(new Animated.Value(0)).current;
+  const listAnim = useRef(new Animated.Value(0)).current;
+  const crownBounce = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  
+  // Start animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(podiumAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+        delay: 200,
+      }),
+      Animated.timing(listAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    // Crown bounce animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(crownBounce, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(crownBounce, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+    
+    // Glow animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
   
   // Load data on mount and when tab/sort changes
   useEffect(() => {
@@ -63,6 +129,10 @@ const LeaderboardScreen = ({ navigation }) => {
     if (!user) return;
     
     try {
+      // Sync local points to Firebase before loading leaderboard
+      // This ensures the current user's points are up to date
+      await syncUserStatsToCloud(user.uid);
+      
       if (activeTab === 'friends') {
         await loadFriendsLeaderboard();
       } else {
@@ -79,14 +149,54 @@ const LeaderboardScreen = ({ navigation }) => {
   const loadFriendsLeaderboard = async () => {
     const friends = await getFriendsWithStats(user.uid);
     
-    // Add current user to the list
+    // Get fresh points from ALL possible local storage sources
+    let freshTotalPoints = userProfile?.totalPoints || 0;
+    let freshStreak = userProfile?.currentStreak || 0;
+    
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      
+      // Source 1: PrayerCompletionManager's total_points
+      const prayerPointsStr = await AsyncStorage.getItem('total_points');
+      if (prayerPointsStr) {
+        freshTotalPoints = Math.max(freshTotalPoints, parseInt(prayerPointsStr, 10) || 0);
+      }
+      
+      // Source 2: userStats
+      const statsStr = await AsyncStorage.getItem('userStats');
+      if (statsStr) {
+        const stats = JSON.parse(statsStr);
+        freshTotalPoints = Math.max(freshTotalPoints, stats.points || 0, stats.totalPoints || 0);
+        freshStreak = Math.max(freshStreak, stats.currentStreak || 0, stats.streak || 0);
+      }
+      
+      // Source 3: fivefold_userStats (another key that might be used)
+      const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
+      if (fivefoldStatsStr) {
+        const fStats = JSON.parse(fivefoldStatsStr);
+        freshTotalPoints = Math.max(freshTotalPoints, fStats.points || 0, fStats.totalPoints || 0);
+        freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
+      }
+      
+      console.log('[Leaderboard] Fresh points found:', {
+        total_points: prayerPointsStr,
+        userStats: statsStr ? JSON.parse(statsStr) : null,
+        fivefold_userStats: fivefoldStatsStr ? JSON.parse(fivefoldStatsStr) : null,
+        finalPoints: freshTotalPoints,
+      });
+    } catch (err) {
+      console.warn('Error getting fresh points:', err);
+    }
+    
+    // Add current user to the list with fresh data
     const currentUserEntry = {
       uid: user.uid,
       displayName: userProfile?.displayName || user.displayName || 'You',
       username: userProfile?.username || 'you',
       profilePicture: userProfile?.profilePicture || '',
-      totalPoints: userProfile?.totalPoints || 0,
-      currentStreak: userProfile?.currentStreak || 0,
+      countryFlag: userProfile?.countryFlag || '',
+      totalPoints: freshTotalPoints,
+      currentStreak: freshStreak,
       isCurrentUser: true,
     };
     
@@ -102,8 +212,8 @@ const LeaderboardScreen = ({ navigation }) => {
     });
     
     // Add rank
-    const ranked = sorted.map((user, index) => ({
-      ...user,
+    const ranked = sorted.map((u, index) => ({
+      ...u,
       rank: index + 1,
     }));
     
@@ -113,12 +223,12 @@ const LeaderboardScreen = ({ navigation }) => {
   const loadGlobalLeaderboard = async () => {
     try {
       const usersRef = collection(db, 'users');
-      const sortField = sortBy === 'points' ? 'totalPoints' : 'currentStreak';
       
+      // Simple query without orderBy to avoid needing composite index
+      // We'll sort in memory instead
       const q = query(
         usersRef,
         where('isPublic', '==', true),
-        orderBy(sortField, 'desc'),
         limit(100)
       );
       
@@ -133,9 +243,13 @@ const LeaderboardScreen = ({ navigation }) => {
         });
       });
       
+      // Sort in memory based on selected metric
+      const sortField = sortBy === 'points' ? 'totalPoints' : 'currentStreak';
+      users.sort((a, b) => (b[sortField] || 0) - (a[sortField] || 0));
+      
       // Add rank
-      const ranked = users.map((user, index) => ({
-        ...user,
+      const ranked = users.map((u, index) => ({
+        ...u,
         rank: index + 1,
       }));
       
@@ -151,165 +265,392 @@ const LeaderboardScreen = ({ navigation }) => {
     loadData();
   }, [user, activeTab, sortBy]);
   
-  const getRankColor = (rank) => {
-    switch (rank) {
-      case 1:
-        return '#FFD700'; // Gold
-      case 2:
-        return '#C0C0C0'; // Silver
-      case 3:
-        return '#CD7F32'; // Bronze
-      default:
-        return theme.textSecondary;
-    }
+  const formatNumber = (num) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num?.toLocaleString() || '0';
   };
   
-  const getRankIcon = (rank) => {
-    switch (rank) {
-      case 1:
-        return 'emoji-events';
-      case 2:
-        return 'emoji-events';
-      case 3:
-        return 'emoji-events';
-      default:
-        return null;
-    }
+  const getScoreValue = (item) => {
+    return sortBy === 'points' ? (item.totalPoints || 0) : (item.currentStreak || 0);
   };
   
-  const renderLeaderboardItem = ({ item, index }) => {
-    const rankColor = getRankColor(item.rank);
-    const isTopThree = item.rank <= 3;
+  // Render single user card (for when there's only 1-2 users)
+  const renderUserCard = (item, index) => {
+    const isFirst = item.rank === 1;
+    const isSecond = item.rank === 2;
+    const isThird = item.rank === 3;
+    
+    const rankColors = {
+      1: ['#FFD700', '#FFA500'],
+      2: ['#C0C0C0', '#A8A8A8'],
+      3: ['#CD7F32', '#B8860B'],
+    };
+    
+    const gradientColors = rankColors[item.rank] || [theme.primary, theme.primary];
     
     return (
-      <View style={[
-        styles.leaderboardItem,
-        { 
-          backgroundColor: item.isCurrentUser 
-            ? (theme.primary + '20') 
-            : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-          borderColor: item.isCurrentUser ? theme.primary : 'transparent',
-          borderWidth: item.isCurrentUser ? 2 : 0,
-        }
-      ]}>
-        {/* Rank */}
-        <View style={[
-          styles.rankContainer,
-          isTopThree && { backgroundColor: rankColor + '20' }
-        ]}>
-          {getRankIcon(item.rank) ? (
-            <MaterialIcons name={getRankIcon(item.rank)} size={20} color={rankColor} />
+      <Animated.View
+        key={item.uid}
+        style={[
+          styles.userCard,
+          {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+            borderWidth: item.isCurrentUser ? 2 : 0,
+            borderColor: item.isCurrentUser ? theme.primary : 'transparent',
+            transform: [{
+              translateY: listAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }),
+            }],
+            opacity: listAnim,
+          }
+        ]}
+      >
+        {/* Rank Badge */}
+        <LinearGradient
+          colors={gradientColors}
+          style={styles.rankBadge}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {isFirst ? (
+            <FontAwesome5 name="crown" size={14} color="#FFF" />
+          ) : isSecond || isThird ? (
+            <FontAwesome5 name="medal" size={14} color="#FFF" />
           ) : (
-            <Text style={[styles.rankText, { color: rankColor }]}>
-              {item.rank}
-            </Text>
+            <Text style={styles.rankBadgeText}>{item.rank}</Text>
           )}
-        </View>
+        </LinearGradient>
         
         {/* Avatar */}
-        <View style={[styles.avatar, { backgroundColor: theme.primary + '30' }]}>
+        <View style={[styles.cardAvatar, { borderColor: gradientColors[0] }]}>
           {item.profilePicture ? (
-            <Image source={{ uri: item.profilePicture }} style={styles.avatarImage} />
+            <Image source={{ uri: item.profilePicture }} style={styles.cardAvatarImage} />
           ) : (
-            <MaterialIcons name="person" size={24} color={theme.primary} />
+            <LinearGradient
+              colors={[theme.primary + '40', theme.primary + '20']}
+              style={styles.cardAvatarPlaceholder}
+            >
+              <MaterialIcons name="person" size={28} color={theme.primary} />
+            </LinearGradient>
           )}
         </View>
         
-        {/* User Info */}
-        <View style={styles.userInfo}>
-          <Text style={[
-            styles.displayName, 
-            { color: theme.text },
-            item.isCurrentUser && styles.currentUserName
-          ]}>
-            {item.displayName || 'User'}
-            {item.isCurrentUser && ' (You)'}
-          </Text>
-          <Text style={[styles.username, { color: theme.textSecondary }]}>
+        {/* Info */}
+        <View style={styles.cardInfo}>
+          <View style={styles.cardNameRow}>
+            <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={1}>
+              {item.displayName || 'User'}
+            </Text>
+            {/* Country flag or globe */}
+            {item.countryFlag ? (
+              <Text style={{ fontSize: 14, marginLeft: 6 }}>{item.countryFlag}</Text>
+            ) : (
+              <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 6, opacity: 0.5 }} />
+            )}
+            {item.isCurrentUser && (
+              <View style={[styles.youBadge, { backgroundColor: theme.primary + '20' }]}>
+                <Text style={[styles.youBadgeText, { color: theme.primary }]}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.cardUsername, { color: theme.textSecondary }]}>
             @{item.username || 'unknown'}
           </Text>
         </View>
         
         {/* Score */}
-        <View style={styles.scoreContainer}>
-          <Text style={[styles.scoreValue, { color: theme.text }]}>
-            {sortBy === 'points' 
-              ? (item.totalPoints || 0).toLocaleString()
-              : (item.currentStreak || 0)}
+        <View style={styles.cardScore}>
+          <Text style={[styles.cardScoreValue, { color: theme.text }]}>
+            {formatNumber(getScoreValue(item))}
           </Text>
-          <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>
-            {sortBy === 'points' ? 'pts' : 'days'}
-          </Text>
+          <View style={styles.cardScoreLabel}>
+            {sortBy === 'points' ? (
+              <MaterialIcons name="star" size={12} color="#FFD700" />
+            ) : (
+              <MaterialIcons name="local-fire-department" size={12} color="#FF6B35" />
+            )}
+            <Text style={[styles.cardScoreLabelText, { color: theme.textSecondary }]}>
+              {sortBy === 'points' ? 'pts' : 'days'}
+            </Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
     );
   };
   
-  // Top 3 podium for friends leaderboard
+  // Render podium (only when 3+ users)
   const renderPodium = () => {
     const data = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
     if (data.length < 3) return null;
     
-    const [first, second, third] = data.slice(0, 3);
+    const first = data[0];
+    const second = data[1];
+    const third = data[2];
+    
+    const glowOpacity = glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 0.8],
+    });
     
     return (
-      <View style={styles.podiumContainer}>
+      <Animated.View 
+        style={[
+          styles.podiumContainer,
+          {
+            transform: [{
+              scale: podiumAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1],
+              }),
+            }],
+            opacity: podiumAnim,
+          }
+        ]}
+      >
+        {/* Background glow */}
+        <Animated.View style={[styles.podiumGlow, { opacity: glowOpacity }]}>
+          <LinearGradient
+            colors={['transparent', '#FFD700' + '20', 'transparent']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          />
+        </Animated.View>
+        
         {/* Second Place */}
         <View style={styles.podiumItem}>
-          <View style={[styles.podiumAvatar, styles.podiumAvatarSmall, { backgroundColor: '#C0C0C0' + '30' }]}>
-            {second.profilePicture ? (
-              <Image source={{ uri: second.profilePicture }} style={styles.podiumAvatarImage} />
-            ) : (
-              <MaterialIcons name="person" size={28} color="#C0C0C0" />
-            )}
+          <View style={styles.podiumAvatarContainer}>
+            <LinearGradient
+              colors={['#C0C0C0', '#A8A8A8']}
+              style={styles.podiumAvatarBorder}
+            >
+              <View style={[styles.podiumAvatar, styles.podiumAvatarSmall]}>
+                {second.profilePicture ? (
+                  <Image source={{ uri: second.profilePicture }} style={styles.podiumAvatarImage} />
+                ) : (
+                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#C0C0C0' + '30' }]}>
+                    <MaterialIcons name="person" size={26} color="#C0C0C0" />
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
+            <View style={styles.podiumMedalContainer}>
+              <LinearGradient
+                colors={['#C0C0C0', '#A8A8A8']}
+                style={styles.podiumMedal}
+              >
+                <Text style={styles.podiumMedalText}>2</Text>
+              </LinearGradient>
+            </View>
           </View>
-          <MaterialIcons name="emoji-events" size={24} color="#C0C0C0" style={styles.podiumMedal} />
-          <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
-            {second.displayName?.split(' ')[0] || 'User'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
+              {second.displayName?.split(' ')[0] || 'User'}
+            </Text>
+            {second.countryFlag ? (
+              <Text style={{ fontSize: 12, marginLeft: 4 }}>{second.countryFlag}</Text>
+            ) : null}
+          </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
-            {sortBy === 'points' ? second.totalPoints || 0 : second.currentStreak || 0}
+            {formatNumber(getScoreValue(second))}
           </Text>
-          <View style={[styles.podiumBar, styles.podiumBarSecond, { backgroundColor: '#C0C0C0' + '40' }]} />
+          <LinearGradient
+            colors={['#C0C0C0', '#A8A8A8']}
+            style={[styles.podiumBar, styles.podiumBarSecond]}
+          />
         </View>
         
-        {/* First Place */}
-        <View style={styles.podiumItem}>
-          <View style={[styles.podiumAvatar, { backgroundColor: '#FFD700' + '30' }]}>
-            {first.profilePicture ? (
-              <Image source={{ uri: first.profilePicture }} style={styles.podiumAvatarImage} />
-            ) : (
-              <MaterialIcons name="person" size={36} color="#FFD700" />
-            )}
+        {/* First Place - Center */}
+        <View style={[styles.podiumItem, styles.podiumItemFirst]}>
+          <Animated.View style={{ transform: [{ scale: crownBounce }] }}>
+            <FontAwesome5 name="crown" size={28} color="#FFD700" style={styles.crown} />
+          </Animated.View>
+          <View style={styles.podiumAvatarContainer}>
+            <LinearGradient
+              colors={['#FFD700', '#FFA500']}
+              style={[styles.podiumAvatarBorder, styles.podiumAvatarBorderFirst]}
+            >
+              <View style={[styles.podiumAvatar, styles.podiumAvatarFirst]}>
+                {first.profilePicture ? (
+                  <Image source={{ uri: first.profilePicture }} style={styles.podiumAvatarImage} />
+                ) : (
+                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#FFD700' + '30' }]}>
+                    <MaterialIcons name="person" size={36} color="#FFD700" />
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
+            <View style={styles.podiumMedalContainer}>
+              <LinearGradient
+                colors={['#FFD700', '#FFA500']}
+                style={[styles.podiumMedal, styles.podiumMedalFirst]}
+              >
+                <Text style={[styles.podiumMedalText, styles.podiumMedalTextFirst]}>1</Text>
+              </LinearGradient>
+            </View>
           </View>
-          <MaterialIcons name="emoji-events" size={32} color="#FFD700" style={styles.podiumMedal} />
-          <Text style={[styles.podiumName, styles.podiumNameFirst, { color: theme.text }]} numberOfLines={1}>
-            {first.displayName?.split(' ')[0] || 'User'}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={[styles.podiumName, styles.podiumNameFirst, { color: theme.text }]} numberOfLines={1}>
+              {first.displayName?.split(' ')[0] || 'User'}
+            </Text>
+            {first.countryFlag ? (
+              <Text style={{ fontSize: 14, marginLeft: 4 }}>{first.countryFlag}</Text>
+            ) : null}
+          </View>
+          <Text style={[styles.podiumScore, styles.podiumScoreFirst, { color: '#FFD700' }]}>
+            {formatNumber(getScoreValue(first))}
           </Text>
-          <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
-            {sortBy === 'points' ? first.totalPoints || 0 : first.currentStreak || 0}
-          </Text>
-          <View style={[styles.podiumBar, styles.podiumBarFirst, { backgroundColor: '#FFD700' + '40' }]} />
+          <LinearGradient
+            colors={['#FFD700', '#FFA500']}
+            style={[styles.podiumBar, styles.podiumBarFirst]}
+          />
         </View>
         
         {/* Third Place */}
         <View style={styles.podiumItem}>
-          <View style={[styles.podiumAvatar, styles.podiumAvatarSmall, { backgroundColor: '#CD7F32' + '30' }]}>
-            {third.profilePicture ? (
-              <Image source={{ uri: third.profilePicture }} style={styles.podiumAvatarImage} />
-            ) : (
-              <MaterialIcons name="person" size={28} color="#CD7F32" />
-            )}
+          <View style={styles.podiumAvatarContainer}>
+            <LinearGradient
+              colors={['#CD7F32', '#B8860B']}
+              style={styles.podiumAvatarBorder}
+            >
+              <View style={[styles.podiumAvatar, styles.podiumAvatarSmall]}>
+                {third.profilePicture ? (
+                  <Image source={{ uri: third.profilePicture }} style={styles.podiumAvatarImage} />
+                ) : (
+                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#CD7F32' + '30' }]}>
+                    <MaterialIcons name="person" size={26} color="#CD7F32" />
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
+            <View style={styles.podiumMedalContainer}>
+              <LinearGradient
+                colors={['#CD7F32', '#B8860B']}
+                style={styles.podiumMedal}
+              >
+                <Text style={styles.podiumMedalText}>3</Text>
+              </LinearGradient>
+            </View>
           </View>
-          <MaterialIcons name="emoji-events" size={24} color="#CD7F32" style={styles.podiumMedal} />
-          <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
-            {third.displayName?.split(' ')[0] || 'User'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
+              {third.displayName?.split(' ')[0] || 'User'}
+            </Text>
+            {third.countryFlag ? (
+              <Text style={{ fontSize: 12, marginLeft: 4 }}>{third.countryFlag}</Text>
+            ) : null}
+          </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
-            {sortBy === 'points' ? third.totalPoints || 0 : third.currentStreak || 0}
+            {formatNumber(getScoreValue(third))}
           </Text>
-          <View style={[styles.podiumBar, styles.podiumBarThird, { backgroundColor: '#CD7F32' + '40' }]} />
+          <LinearGradient
+            colors={['#CD7F32', '#B8860B']}
+            style={[styles.podiumBar, styles.podiumBarThird]}
+          />
         </View>
+      </Animated.View>
+    );
+  };
+  
+  // Render all remaining users after podium
+  const renderRemainingUsers = () => {
+    const data = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
+    const remaining = data.length >= 3 ? data.slice(3) : [];
+    
+    if (remaining.length === 0) return null;
+    
+    return (
+      <View style={styles.remainingContainer}>
+        <Text style={[styles.remainingTitle, { color: theme.textSecondary }]}>
+          Leaderboard
+        </Text>
+        {remaining.map((item, index) => renderUserCard(item, index))}
+      </View>
+    );
+  };
+  
+  // Empty state with beautiful design
+  const renderEmptyState = () => {
+    const data = activeTab === 'friends' ? friendsLeaderboard : globalLeaderboard;
+    
+    // If we have data (even just current user), show them!
+    if (data.length > 0 && data.length < 3) {
+      return (
+        <View style={styles.soloContainer}>
+          <Text style={[styles.soloTitle, { color: theme.text }]}>
+            Your Ranking
+          </Text>
+          <Text style={[styles.soloSubtitle, { color: theme.textSecondary }]}>
+            {activeTab === 'friends' 
+              ? 'Add friends to compete and climb the leaderboard!'
+              : 'More users will appear as they join'}
+          </Text>
+          {data.map((item, index) => renderUserCard(item, index))}
+          
+          {activeTab === 'friends' && (
+            <TouchableOpacity
+              style={[styles.addFriendsButton]}
+              onPress={() => navigation.navigate('Friends')}
+            >
+              <LinearGradient
+                colors={[theme.primary, theme.primary + 'DD']}
+                style={styles.addFriendsGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialIcons name="person-add" size={20} color="#FFF" />
+                <Text style={styles.addFriendsText}>Find Friends</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+    
+    // True empty state
+    return (
+      <View style={styles.emptyContainer}>
+        <LinearGradient
+          colors={[theme.primary + '20', theme.primary + '05']}
+          style={styles.emptyIconContainer}
+        >
+          <MaterialIcons name="emoji-events" size={64} color={theme.primary} />
+        </LinearGradient>
+        <Text style={[styles.emptyTitle, { color: theme.text }]}>
+          {activeTab === 'friends' ? 'No Friends Yet' : 'Be the First'}
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+          {activeTab === 'friends' 
+            ? 'Add friends to compete and see who can earn the most points!'
+            : 'Make your profile public to appear on the global leaderboard'}
+        </Text>
+        
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={() => activeTab === 'friends' 
+            ? navigation.navigate('Friends')
+            : navigation.navigate('Profile')
+          }
+        >
+          <LinearGradient
+            colors={[theme.primary, theme.primary + 'DD']}
+            style={styles.emptyButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialIcons 
+              name={activeTab === 'friends' ? 'person-add' : 'settings'} 
+              size={20} 
+              color="#FFF" 
+            />
+            <Text style={styles.emptyButtonText}>
+              {activeTab === 'friends' ? 'Find Friends' : 'Go to Settings'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -318,17 +659,36 @@ const LeaderboardScreen = ({ navigation }) => {
   if (!user) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.emptyState}>
-          <MaterialIcons name="leaderboard" size={64} color={theme.textTertiary} />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>Sign in to compete</Text>
-          <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-            Create an account to see leaderboards and compete with friends
+        <LinearGradient
+          colors={[theme.primary + '30', theme.background]}
+          style={styles.headerGradient}
+        />
+        <View style={styles.signInContainer}>
+          <LinearGradient
+            colors={[theme.primary + '20', theme.primary + '05']}
+            style={styles.signInIconContainer}
+          >
+            <MaterialIcons name="emoji-events" size={80} color={theme.primary} />
+          </LinearGradient>
+          <Text style={[styles.signInTitle, { color: theme.text }]}>
+            Join the Competition
+          </Text>
+          <Text style={[styles.signInSubtitle, { color: theme.textSecondary }]}>
+            Sign in to compete with friends and climb the global leaderboard
           </Text>
           <TouchableOpacity
-            style={[styles.signInButton, { backgroundColor: theme.primary }]}
+            style={styles.signInButton}
             onPress={() => navigation.navigate('Auth')}
           >
-            <Text style={styles.signInButtonText}>Sign In</Text>
+            <LinearGradient
+              colors={[theme.primary, theme.primary + 'DD']}
+              style={styles.signInButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.signInButtonText}>Sign In</Text>
+              <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -339,118 +699,156 @@ const LeaderboardScreen = ({ navigation }) => {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Header Gradient */}
+      <LinearGradient
+        colors={[theme.primary + '40', theme.primary + '10', 'transparent']}
+        style={styles.headerGradient}
+      />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            transform: [{
+              translateY: headerAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-20, 0],
+              }),
+            }],
+            opacity: headerAnim,
+          }
+        ]}
+      >
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Leaderboard</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        <View style={styles.headerTitleContainer}>
+          <MaterialIcons name="emoji-events" size={24} color="#FFD700" />
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Leaderboard</Text>
+        </View>
+        <View style={{ width: 44 }} />
+      </Animated.View>
       
-      {/* Tabs */}
-      <View style={[styles.tabs, { borderBottomColor: theme.border || theme.separator }]}>
-        {[
-          { key: 'friends', label: 'Friends', icon: 'people' },
-          { key: 'global', label: 'Global', icon: 'public' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              activeTab === tab.key && [styles.tabActive, { borderBottomColor: theme.primary }]
-            ]}
-            onPress={() => {
-              hapticFeedback.light();
-              setActiveTab(tab.key);
-              setLoading(true);
-            }}
-          >
-            <MaterialIcons 
-              name={tab.icon} 
-              size={20} 
-              color={activeTab === tab.key ? theme.primary : theme.textSecondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={[
-              styles.tabText,
-              { color: activeTab === tab.key ? theme.primary : theme.textSecondary }
-            ]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      
-      {/* Sort Options */}
-      <View style={styles.sortContainer}>
-        <Text style={[styles.sortLabel, { color: theme.textSecondary }]}>Sort by:</Text>
-        <View style={styles.sortButtons}>
+      {/* Tabs - Premium pill style */}
+      <Animated.View 
+        style={[
+          styles.tabsContainer,
+          { opacity: headerAnim }
+        ]}
+      >
+        <View style={[styles.tabs, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
           {[
-            { key: 'points', label: 'Points', icon: 'star' },
-            { key: 'streak', label: 'Streak', icon: 'local-fire-department' },
+            { key: 'friends', label: 'Friends', icon: 'people' },
+            { key: 'global', label: 'Global', icon: 'public' },
+          ].map(tab => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab]}
+              onPress={() => {
+                hapticFeedback.light();
+                setActiveTab(tab.key);
+                setLoading(true);
+              }}
+            >
+              {activeTab === tab.key ? (
+                <LinearGradient
+                  colors={[theme.primary, theme.primary + 'DD']}
+                  style={styles.tabActiveGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <MaterialIcons name={tab.icon} size={18} color="#FFF" />
+                  <Text style={styles.tabTextActive}>{tab.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.tabInactive}>
+                  <MaterialIcons name={tab.icon} size={18} color={theme.textSecondary} />
+                  <Text style={[styles.tabText, { color: theme.textSecondary }]}>{tab.label}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Animated.View>
+      
+      {/* Sort Pills */}
+      <Animated.View 
+        style={[
+          styles.sortContainer,
+          { opacity: headerAnim }
+        ]}
+      >
+        <Text style={[styles.sortLabel, { color: theme.textSecondary }]}>Sort by</Text>
+        <View style={styles.sortPills}>
+          {[
+            { key: 'points', label: 'Points', icon: 'star', color: '#FFD700' },
+            { key: 'streak', label: 'Streak', icon: 'local-fire-department', color: '#FF6B35' },
           ].map(option => (
             <TouchableOpacity
               key={option.key}
-              style={[
-                styles.sortButton,
-                { 
-                  backgroundColor: sortBy === option.key 
-                    ? theme.primary 
-                    : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
-                }
-              ]}
               onPress={() => {
                 hapticFeedback.light();
                 setSortBy(option.key);
                 setLoading(true);
               }}
             >
-              <MaterialIcons 
-                name={option.icon} 
-                size={16} 
-                color={sortBy === option.key ? '#FFFFFF' : theme.textSecondary} 
-              />
-              <Text style={[
-                styles.sortButtonText,
-                { color: sortBy === option.key ? '#FFFFFF' : theme.textSecondary }
-              ]}>
-                {option.label}
-              </Text>
+              {sortBy === option.key ? (
+                <LinearGradient
+                  colors={[option.color, option.color + 'CC']}
+                  style={styles.sortPillActive}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <MaterialIcons name={option.icon} size={16} color="#FFF" />
+                  <Text style={styles.sortPillTextActive}>{option.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={[styles.sortPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                  <MaterialIcons name={option.icon} size={16} color={theme.textSecondary} />
+                  <Text style={[styles.sortPillText, { color: theme.textSecondary }]}>{option.label}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </Animated.View>
       
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            Loading rankings...
+          </Text>
         </View>
       ) : (
-        <FlatList
-          data={currentData.slice(3)} // Skip first 3 (shown in podium)
-          keyExtractor={(item) => item.uid}
-          renderItem={renderLeaderboardItem}
-          contentContainerStyle={styles.listContent}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+            />
           }
-          ListHeaderComponent={currentData.length >= 3 ? renderPodium : null}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <MaterialIcons name="leaderboard" size={48} color={theme.textTertiary} />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                {activeTab === 'friends' ? 'Add friends to compete' : 'No public users yet'}
-              </Text>
-              <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                {activeTab === 'friends' 
-                  ? 'Search for friends to see them on the leaderboard'
-                  : 'Be the first to appear on the global leaderboard'}
-              </Text>
-            </View>
-          }
-        />
+          showsVerticalScrollIndicator={false}
+        >
+          {currentData.length >= 3 ? (
+            <>
+              {renderPodium()}
+              {renderRemainingUsers()}
+            </>
+          ) : (
+            renderEmptyState()
+          )}
+          
+          {/* Bottom spacing */}
+          <View style={{ height: 40 }} />
+        </ScrollView>
       )}
     </View>
   );
@@ -459,6 +857,13 @@ const LeaderboardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
   },
   header: {
     flexDirection: 'row',
@@ -469,27 +874,52 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   backButton: {
-    padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  tabsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   tabs: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
+    borderRadius: 16,
+    padding: 4,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
-  tabActive: {
-    borderBottomWidth: 2,
+  tabActiveGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  tabInactive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  tabTextActive: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
   tabText: {
     fontSize: 15,
@@ -499,186 +929,387 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
   sortLabel: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  sortButtons: {
+  sortPills: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
-  sortButton: {
+  sortPillActive: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
   },
-  sortButtonText: {
+  sortPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+  },
+  sortPillTextActive: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  sortPillText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
   },
   podiumContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 40,
     paddingBottom: 30,
+    marginBottom: 10,
+  },
+  podiumGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   podiumItem: {
     alignItems: 'center',
     flex: 1,
   },
-  podiumAvatar: {
-    width: 70,
-    height: 70,
+  podiumItemFirst: {
+    marginTop: -20,
+  },
+  crown: {
+    marginBottom: 8,
+    textShadowColor: '#FFD700',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  podiumAvatarContainer: {
+    position: 'relative',
+  },
+  podiumAvatarBorder: {
+    padding: 3,
     borderRadius: 35,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  podiumAvatarBorderFirst: {
+    padding: 4,
+    borderRadius: 45,
+  },
+  podiumAvatar: {
     overflow: 'hidden',
-    marginBottom: 4,
+  },
+  podiumAvatarFirst: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   podiumAvatarSmall: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   podiumAvatarImage: {
     width: '100%',
     height: '100%',
   },
+  podiumAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  podiumMedalContainer: {
+    position: 'absolute',
+    bottom: -8,
+    left: '50%',
+    marginLeft: -14,
+  },
   podiumMedal: {
-    marginTop: -8,
-    marginBottom: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  podiumMedalFirst: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginLeft: -2,
+  },
+  podiumMedalText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  podiumMedalTextFirst: {
+    fontSize: 16,
   },
   podiumName: {
+    marginTop: 16,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
-    maxWidth: 80,
+    maxWidth: 90,
   },
   podiumNameFirst: {
     fontSize: 16,
+    fontWeight: '700',
   },
   podiumScore: {
+    marginTop: 4,
     fontSize: 13,
-    marginTop: 2,
+    fontWeight: '500',
+  },
+  podiumScoreFirst: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   podiumBar: {
-    width: '80%',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    marginTop: 8,
+    width: '85%',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    marginTop: 12,
   },
   podiumBarFirst: {
-    height: 60,
+    height: 80,
   },
   podiumBarSecond: {
-    height: 45,
+    height: 55,
   },
   podiumBarThird: {
-    height: 30,
+    height: 35,
   },
-  listContent: {
-    padding: 16,
-    paddingTop: 0,
-    flexGrow: 1,
+  remainingContainer: {
+    marginTop: 10,
   },
-  leaderboardItem: {
+  remainingTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  userCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 10,
   },
-  rankContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  rankBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
-  rankText: {
-    fontSize: 16,
-    fontWeight: '700',
+  rankBadgeText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
     overflow: 'hidden',
   },
-  avatarImage: {
+  cardAvatarImage: {
     width: '100%',
     height: '100%',
   },
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  displayName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  currentUserName: {
-    fontWeight: '700',
-  },
-  username: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  scoreContainer: {
-    alignItems: 'flex-end',
-  },
-  scoreValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  scoreLabel: {
-    fontSize: 12,
-    marginTop: 1,
-  },
-  loadingContainer: {
-    flex: 1,
+  cardAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyState: {
+  cardInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  cardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  youBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  youBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cardUsername: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  cardScore: {
+    alignItems: 'flex-end',
+  },
+  cardScoreValue: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  cardScoreLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+  cardScoreLabelText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  soloContainer: {
+    paddingTop: 20,
+  },
+  soloTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  soloSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  addFriendsButton: {
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+  addFriendsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 25,
+    gap: 8,
+  },
+  addFriendsText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
     paddingTop: 60,
   },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 12,
   },
   emptySubtitle: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: 32,
   },
-  signInButton: {
-    marginTop: 24,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
+  emptyButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
   },
-  signInButtonText: {
-    color: '#FFFFFF',
+  emptyButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  emptyButtonText: {
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  signInContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  signInIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  signInTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  signInSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
+  },
+  signInButton: {
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  signInButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 36,
+    paddingVertical: 18,
+    gap: 12,
+  },
+  signInButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
 

@@ -1392,12 +1392,9 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
 
               {/* Sets */}
               {exercise.sets.map((set, setIndex) => {
-                const scale = set.completed ? (set.scaleAnim?.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.95, 1]
-                }) || 1) : 1;
-                
-                const glowOpacity = set.completed ? (set.glowAnim || new Animated.Value(1)) : new Animated.Value(0);
+                // Safely handle animation values - use plain number 1 if animations not initialized
+                const hasAnimations = set.scaleAnim && typeof set.scaleAnim.interpolate === 'function';
+                const glowOpacity = set.completed && set.glowAnim ? set.glowAnim : 0;
                 
                 return (
                   <Animated.View 
@@ -1405,7 +1402,16 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                     style={[
                       {
                         transform: [
-                          { scale: set.completed ? Animated.multiply(scale, set.pulseAnim || 1) : 1 }
+                          { scale: set.completed && hasAnimations && set.pulseAnim 
+                            ? Animated.multiply(
+                                set.scaleAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [0.95, 1]
+                                }), 
+                                set.pulseAnim
+                              ) 
+                            : 1 
+                          }
                         ],
                         marginVertical: set.completed ? 3 : 0,
                       }

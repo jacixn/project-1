@@ -404,6 +404,7 @@ export const getFriendshipStatus = async (currentUserId, otherUserId) => {
 
 /**
  * Get friend count for a user
+ * Returns the count of friends that actually exist (not deleted accounts)
  * @param {string} userId - User's ID
  * @returns {Promise<number>} - Number of friends
  */
@@ -412,7 +413,45 @@ export const getFriendCount = async (userId) => {
   
   try {
     const friendsData = await getFriendsData(userId);
-    return friendsData.friendsList?.length || 0;
+    const friendIds = friendsData.friendsList || [];
+    
+    if (friendIds.length === 0) return 0;
+    
+    // Verify each friend actually exists and count only valid ones
+    let validCount = 0;
+    const invalidFriends = [];
+    
+    await Promise.all(
+      friendIds.map(async (friendId) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', friendId));
+          if (userDoc.exists()) {
+            validCount++;
+          } else {
+            invalidFriends.push(friendId);
+          }
+        } catch (error) {
+          console.error(`Error checking friend ${friendId}:`, error);
+          invalidFriends.push(friendId);
+        }
+      })
+    );
+    
+    // Clean up invalid friends from the list (deleted accounts, etc.)
+    if (invalidFriends.length > 0) {
+      try {
+        for (const invalidId of invalidFriends) {
+          await updateDoc(doc(db, 'friends', userId), {
+            friendsList: arrayRemove(invalidId),
+          });
+        }
+        console.log(`[Friends] Cleaned up ${invalidFriends.length} invalid friend entries`);
+      } catch (cleanupError) {
+        console.error('Error cleaning up invalid friends:', cleanupError);
+      }
+    }
+    
+    return validCount;
   } catch (error) {
     console.error('Error getting friend count:', error);
     return 0;

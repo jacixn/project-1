@@ -59,17 +59,37 @@ export const AuthProvider = ({ children }) => {
       
       if (firebaseUser) {
         try {
-          // Fetch user profile from Firestore
-          const profile = await getUserProfile(firebaseUser.uid);
+          // Fetch user profile from Firestore with retry logic
+          // This handles the race condition during signup where the profile
+          // might not be written to Firestore yet
+          let profile = await getUserProfile(firebaseUser.uid);
+          
+          // If profile doesn't exist or has no username, retry after a short delay
+          // This can happen during signup when the auth state changes before Firestore write completes
+          if (!profile || !profile.username) {
+            console.log('[Auth] Profile not found or incomplete, retrying...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            profile = await getUserProfile(firebaseUser.uid);
+          }
+          
           if (profile) {
             setUserProfile(profile);
             // Cache the user profile
             await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+            console.log('[Auth] Profile loaded:', profile.username);
           }
           
           // Auto-sync data when user logs in or app opens
           console.log('[Auth] Auto-syncing user data...');
           await performFullSync(firebaseUser.uid);
+          
+          // Refresh profile after sync in case it was updated
+          const refreshedProfile = await getUserProfile(firebaseUser.uid);
+          if (refreshedProfile) {
+            setUserProfile(refreshedProfile);
+            await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(refreshedProfile));
+          }
+          
           console.log('[Auth] Auto-sync complete');
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -93,7 +113,33 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const result = await authSignUp({ email, password, username, displayName });
-      // Profile will be set by the auth state change listener
+      
+      // IMPORTANT: The auth state change listener fires BEFORE the Firestore writes complete
+      // So we need to manually set the profile here after signup finishes
+      if (result && result.uid) {
+        // Fetch the freshly created profile from Firestore
+        const profile = await getUserProfile(result.uid);
+        if (profile) {
+          setUserProfile(profile);
+          await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+          console.log('[Auth] Set user profile after signup:', profile.username);
+        } else {
+          // Fallback: use the result data directly if Firestore read fails
+          const fallbackProfile = {
+            uid: result.uid,
+            email: result.email,
+            username: result.username,
+            displayName: result.displayName,
+            totalPoints: 0,
+            currentStreak: 0,
+            level: 1,
+          };
+          setUserProfile(fallbackProfile);
+          await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(fallbackProfile));
+          console.log('[Auth] Set fallback profile after signup');
+        }
+      }
+      
       return result;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
@@ -119,6 +165,11 @@ export const AuthProvider = ({ children }) => {
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
         console.log('[Auth] Downloaded cloud data after sign in');
+        
+        // Emit event to reload theme after data is downloaded
+        const { DeviceEventEmitter } = require('react-native');
+        DeviceEventEmitter.emit('userDataDownloaded');
+        console.log('[Auth] Emitted userDataDownloaded event');
       }
       
       // Skip onboarding for existing users (they've already set up their account)
@@ -135,20 +186,81 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign out the current user
+   * Syncs data to cloud first, then clears local data to prevent data leakage between accounts
    */
   const signOut = useCallback(async () => {
     setLoading(true);
     try {
+      // IMPORTANT: Sync all data to cloud BEFORE signing out (while we still have user ID)
+      if (user?.uid) {
+        try {
+          console.log('[Auth] Syncing data to cloud before sign out...');
+          const { performFullSync } = await import('../services/userSyncService');
+          await performFullSync(user.uid);
+          console.log('[Auth] Data synced to cloud successfully');
+        } catch (syncError) {
+          console.error('[Auth] Failed to sync before sign out:', syncError);
+          // Continue with sign out even if sync fails
+        }
+      }
+      
+      // Now sign out
       await authSignOut();
       setUser(null);
       setUserProfile(null);
+      
+      // Clear user cache
       await AsyncStorage.removeItem(USER_CACHE_KEY);
+      
+      // Clear user-specific data to prevent data sharing between accounts
+      // These are the keys that should be unique per user
+      const userSpecificKeys = [
+        // Saved content
+        'savedBibleVerses',
+        'journalNotes',
+        'highlights',
+        'bookmarks',
+        // User preferences (theme, settings)
+        'fivefold_theme',
+        'fivefold_dark_mode',
+        'fivefold_wallpaper_index',
+        // User stats
+        'userStats',
+        'fivefold_userStats',
+        'userProfile',
+        'fivefold_userProfile',
+        'total_points',
+        // Prayer/workout history
+        'prayerHistory',
+        'workoutHistory',
+        'quizHistory',
+        // Reading progress
+        'readingProgress',
+        'currentReadingPlan',
+        // Verse of the day (actual keys used by dailyVerse.js)
+        'daily_verse_data_v6',
+        'daily_verse_index_v6',
+        'shuffled_verses_v6',
+        'daily_verse_last_update_v6',
+        // App streak (user-specific)
+        'app_streak_data',
+        // Tasks/Todos
+        'todos',
+        'fivefold_todos',
+        'completedTodos',
+        // Notifications
+        'notificationPreferences',
+      ];
+      
+      await AsyncStorage.multiRemove(userSpecificKeys);
+      console.log('[Auth] Cleared user-specific data on sign out');
+      
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   /**
    * Send password reset email

@@ -455,10 +455,21 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
   // Load user name function
   const loadUserName = async () => {
     try {
+      // Try the auth cache first (most reliable source with displayName)
+      const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+      if (authCache) {
+        const profile = JSON.parse(authCache);
+        const name = profile.displayName || profile.name || 'Friend';
+        setUserName(name);
+        setNameLoaded(true);
+        return;
+      }
+      
+      // Fallback to userProfile
       const storedProfile = await AsyncStorage.getItem('userProfile');
       if (storedProfile) {
         const profile = JSON.parse(storedProfile);
-        const name = profile.name || 'Friend';
+        const name = profile.displayName || profile.name || 'Friend';
         setUserName(name);
       }
       setNameLoaded(true);

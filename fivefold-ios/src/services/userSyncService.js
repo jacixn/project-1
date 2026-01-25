@@ -25,12 +25,15 @@ const SYNC_KEYS = {
   prayerHistory: 'prayerHistory',
   workoutHistory: 'workoutHistory',
   quizHistory: 'quizHistory',
+  savedBibleVerses: 'savedBibleVerses',
+  journalNotes: 'journalNotes',
+  themePreferences: 'themePreferences',
 };
 
 // Fields that sync to the users collection
 const USER_PROFILE_FIELDS = [
   'displayName',
-  'profilePicture',
+  'profilePicture', // Cloud URL from Firebase Storage
   'country',
   'countryCode',
   'countryFlag',
@@ -53,25 +56,63 @@ export const syncUserStatsToCloud = async (userId) => {
   if (!userId) return false;
   
   try {
-    // Get local stats
-    const localStats = await getStoredData('userStats');
+    // Get local stats from multiple sources
+    // Note: getStoredData adds 'fivefold_' prefix automatically
+    const localStats = await getStoredData('userStats') || {};
     const localProfile = await getStoredData('userProfile');
     
-    if (!localStats && !localProfile) return true;
+    console.log('[Sync] localStats from getStoredData:', localStats);
+    
+    // IMPORTANT: Get points from ALL possible sources
+    // Points are stored in multiple places due to legacy code
+    
+    // Source 1: PrayerCompletionManager stores points here
+    const prayerPointsStr = await AsyncStorage.getItem('total_points');
+    const prayerPoints = prayerPointsStr ? parseInt(prayerPointsStr, 10) : 0;
+    
+    // Source 2: userStats can have points in either 'totalPoints' or 'points' field
+    const statsPoints = Math.max(
+      localStats.totalPoints || 0,
+      localStats.points || 0
+    );
+    
+    // Source 3: Check fivefold_userStats too (some code uses this key)
+    const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
+    let fivefoldPoints = 0;
+    if (fivefoldStatsStr) {
+      try {
+        const fivefoldStats = JSON.parse(fivefoldStatsStr);
+        fivefoldPoints = Math.max(fivefoldStats.totalPoints || 0, fivefoldStats.points || 0);
+      } catch (e) {}
+    }
     
     // Prepare update data
     const updateData = {
       lastActive: serverTimestamp(),
     };
     
-    // Add stats fields
-    if (localStats) {
-      if (localStats.totalPoints !== undefined) updateData.totalPoints = localStats.totalPoints;
-      if (localStats.currentStreak !== undefined) updateData.currentStreak = localStats.currentStreak;
-      if (localStats.level !== undefined) updateData.level = localStats.level;
-      if (localStats.prayersCompleted !== undefined) updateData.prayersCompleted = localStats.prayersCompleted;
-      if (localStats.completedTasks !== undefined) updateData.tasksCompleted = localStats.completedTasks;
+    // Use the MAX of all point sources to ensure we don't lose any points
+    const pointsToSync = Math.max(prayerPoints, statsPoints, fivefoldPoints);
+    if (pointsToSync > 0) {
+      updateData.totalPoints = pointsToSync;
+      // Also update level based on points
+      const { default: AchievementService } = await import('./achievementService');
+      updateData.level = AchievementService.getLevelFromPoints(pointsToSync);
     }
+    
+    console.log('[Sync] Point sources:', { 
+      total_points: prayerPoints, 
+      'userStats.totalPoints': localStats.totalPoints,
+      'userStats.points': localStats.points,
+      fivefold_userStats: fivefoldPoints,
+      syncing: pointsToSync 
+    });
+    
+    // Add other stats fields
+    if (localStats.currentStreak !== undefined) updateData.currentStreak = localStats.currentStreak;
+    if (localStats.level !== undefined) updateData.level = localStats.level;
+    if (localStats.prayersCompleted !== undefined) updateData.prayersCompleted = localStats.prayersCompleted;
+    if (localStats.completedTasks !== undefined) updateData.tasksCompleted = localStats.completedTasks;
     
     // Add profile fields
     if (localProfile) {
@@ -80,6 +121,8 @@ export const syncUserStatsToCloud = async (userId) => {
       if (localProfile.countryFlag) updateData.countryFlag = localProfile.countryFlag;
       if (localProfile.isPublic !== undefined) updateData.isPublic = localProfile.isPublic;
     }
+    
+    console.log('[Sync] Syncing to cloud:', { totalPoints: updateData.totalPoints, actualPoints, statsPoints: localStats.totalPoints });
     
     // Update Firestore
     await setDoc(doc(db, 'users', userId), updateData, { merge: true });
@@ -131,6 +174,7 @@ export const downloadAndMergeCloudData = async (userId) => {
     const mergedProfile = {
       ...localProfile,
       displayName: cloudData.displayName || localProfile.displayName || '',
+      profilePicture: cloudData.profilePicture || localProfile.profilePicture || '', // Cloud URL
       country: cloudData.country || localProfile.country || '',
       countryFlag: cloudData.countryFlag || localProfile.countryFlag || '',
       username: cloudData.username || localProfile.username || '',
@@ -141,6 +185,128 @@ export const downloadAndMergeCloudData = async (userId) => {
     // Save merged data locally
     await saveData('userStats', mergedStats);
     await saveData('userProfile', mergedProfile);
+    
+    // CRITICAL: Also save total_points to the key that PrayerCompletionManager reads from
+    // This ensures points are correctly displayed on the Profile screen
+    if (mergedStats.totalPoints > 0) {
+      await AsyncStorage.setItem('total_points', String(mergedStats.totalPoints));
+      console.log('[Sync] Set total_points to:', mergedStats.totalPoints);
+    }
+    
+    // Also save profile picture URL to local storage for ProfileTab
+    if (cloudData.profilePicture) {
+      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const localProfileData = storedProfile ? JSON.parse(storedProfile) : {};
+      localProfileData.profilePicture = cloudData.profilePicture;
+      await AsyncStorage.setItem('userProfile', JSON.stringify(localProfileData));
+      console.log('[Sync] Downloaded profile picture URL from cloud');
+    }
+    
+    // Download user-specific content from cloud (saved verses, theme, journal)
+    // Saved Bible Verses - cloud overwrites local since we clear on sign-out
+    if (cloudData.savedBibleVerses && Array.isArray(cloudData.savedBibleVerses)) {
+      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(cloudData.savedBibleVerses));
+      console.log(`[Sync] Downloaded ${cloudData.savedBibleVerses.length} saved verses from cloud`);
+    }
+    
+    // Journal Notes - cloud overwrites local
+    if (cloudData.journalNotes && Array.isArray(cloudData.journalNotes)) {
+      await AsyncStorage.setItem('journalNotes', JSON.stringify(cloudData.journalNotes));
+      console.log(`[Sync] Downloaded ${cloudData.journalNotes.length} journal notes from cloud`);
+    }
+    
+    // Theme Preferences - cloud overwrites local
+    if (cloudData.themePreferences) {
+      const { theme, darkMode, wallpaperIndex } = cloudData.themePreferences;
+      if (theme) await AsyncStorage.setItem('fivefold_theme', theme);
+      if (darkMode !== undefined) await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(darkMode));
+      if (wallpaperIndex !== undefined) await AsyncStorage.setItem('fivefold_wallpaper_index', String(wallpaperIndex));
+      console.log('[Sync] Downloaded theme preferences from cloud');
+    }
+    
+    // Workout history
+    if (cloudData.workoutHistory) {
+      await AsyncStorage.setItem('workoutHistory', JSON.stringify(cloudData.workoutHistory));
+      console.log('[Sync] Downloaded workout history from cloud');
+    }
+    
+    // Quiz history
+    if (cloudData.quizHistory) {
+      await AsyncStorage.setItem('quizHistory', JSON.stringify(cloudData.quizHistory));
+      console.log('[Sync] Downloaded quiz history from cloud');
+    }
+    
+    // Prayer history
+    if (cloudData.prayerHistory) {
+      await AsyncStorage.setItem('prayerHistory', JSON.stringify(cloudData.prayerHistory));
+      console.log('[Sync] Downloaded prayer history from cloud');
+    }
+    
+    // Active todos/tasks
+    if (cloudData.todos) {
+      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(cloudData.todos));
+      console.log(`[Sync] Downloaded ${cloudData.todos.length} todos from cloud`);
+    }
+    
+    // Completed todos/tasks
+    if (cloudData.completedTodos) {
+      await AsyncStorage.setItem('completedTodos', JSON.stringify(cloudData.completedTodos));
+      console.log('[Sync] Downloaded completed todos from cloud');
+    }
+    
+    // App streak data
+    if (cloudData.appStreakData) {
+      await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
+      console.log('[Sync] Downloaded app streak data from cloud');
+    }
+    
+    // Highlights
+    if (cloudData.highlights) {
+      await AsyncStorage.setItem('highlights', JSON.stringify(cloudData.highlights));
+      console.log('[Sync] Downloaded highlights from cloud');
+    }
+    
+    // Bookmarks
+    if (cloudData.bookmarks) {
+      await AsyncStorage.setItem('bookmarks', JSON.stringify(cloudData.bookmarks));
+      console.log('[Sync] Downloaded bookmarks from cloud');
+    }
+    
+    // Reading progress
+    if (cloudData.readingProgress) {
+      await AsyncStorage.setItem('readingProgress', JSON.stringify(cloudData.readingProgress));
+      console.log('[Sync] Downloaded reading progress from cloud');
+    }
+    
+    // Current reading plan
+    if (cloudData.currentReadingPlan) {
+      await AsyncStorage.setItem('currentReadingPlan', JSON.stringify(cloudData.currentReadingPlan));
+      console.log('[Sync] Downloaded current reading plan from cloud');
+    }
+    
+    // Notification preferences
+    if (cloudData.notificationPreferences) {
+      await AsyncStorage.setItem('notificationPreferences', JSON.stringify(cloudData.notificationPreferences));
+      console.log('[Sync] Downloaded notification preferences from cloud');
+    }
+    
+    // Daily verse data (verse of the day - per user)
+    if (cloudData.dailyVerseSync) {
+      const dvSync = cloudData.dailyVerseSync;
+      if (dvSync.data) {
+        await AsyncStorage.setItem('daily_verse_data_v6', JSON.stringify(dvSync.data));
+      }
+      if (dvSync.index !== undefined && dvSync.index !== null) {
+        await AsyncStorage.setItem('daily_verse_index_v6', String(dvSync.index));
+      }
+      if (dvSync.shuffledVerses) {
+        await AsyncStorage.setItem('shuffled_verses_v6', JSON.stringify(dvSync.shuffledVerses));
+      }
+      if (dvSync.lastUpdate) {
+        await AsyncStorage.setItem('daily_verse_last_update_v6', dvSync.lastUpdate);
+      }
+      console.log('[Sync] Downloaded daily verse data from cloud');
+    }
     
     return {
       stats: mergedStats,
@@ -297,6 +463,193 @@ export const getSyncStatus = async (userId) => {
 };
 
 /**
+ * Sync saved Bible verses to cloud
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const syncSavedVersesToCloud = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    const savedVersesStr = await AsyncStorage.getItem('savedBibleVerses');
+    if (savedVersesStr) {
+      const savedVerses = JSON.parse(savedVersesStr);
+      await setDoc(doc(db, 'users', userId), {
+        savedBibleVerses: savedVerses,
+        lastActive: serverTimestamp(),
+      }, { merge: true });
+      console.log(`[Sync] Uploaded ${savedVerses.length} saved verses to cloud`);
+    }
+    return true;
+  } catch (error) {
+    console.error('[Sync] Error syncing saved verses:', error);
+    return false;
+  }
+};
+
+/**
+ * Sync journal notes to cloud
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const syncJournalNotesToCloud = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    const journalNotesStr = await AsyncStorage.getItem('journalNotes');
+    if (journalNotesStr) {
+      const journalNotes = JSON.parse(journalNotesStr);
+      await setDoc(doc(db, 'users', userId), {
+        journalNotes: journalNotes,
+        lastActive: serverTimestamp(),
+      }, { merge: true });
+      console.log(`[Sync] Uploaded ${journalNotes.length} journal notes to cloud`);
+    }
+    return true;
+  } catch (error) {
+    console.error('[Sync] Error syncing journal notes:', error);
+    return false;
+  }
+};
+
+/**
+ * Sync theme preferences to cloud
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const syncThemePreferencesToCloud = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    const theme = await AsyncStorage.getItem('fivefold_theme');
+    const darkModeStr = await AsyncStorage.getItem('fivefold_dark_mode');
+    const wallpaperIndexStr = await AsyncStorage.getItem('fivefold_wallpaper_index');
+    
+    const themePreferences = {};
+    if (theme) themePreferences.theme = theme;
+    if (darkModeStr) themePreferences.darkMode = JSON.parse(darkModeStr);
+    if (wallpaperIndexStr) themePreferences.wallpaperIndex = parseInt(wallpaperIndexStr, 10);
+    
+    if (Object.keys(themePreferences).length > 0) {
+      await setDoc(doc(db, 'users', userId), {
+        themePreferences,
+        lastActive: serverTimestamp(),
+      }, { merge: true });
+      console.log('[Sync] Uploaded theme preferences to cloud');
+    }
+    return true;
+  } catch (error) {
+    console.error('[Sync] Error syncing theme preferences:', error);
+    return false;
+  }
+};
+
+/**
+ * Sync all user history data to cloud
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const syncAllHistoryToCloud = async (userId) => {
+  if (!userId) return false;
+  
+  try {
+    const updateData = { lastActive: serverTimestamp() };
+    
+    // Workout history
+    const workoutHistoryStr = await AsyncStorage.getItem('workoutHistory');
+    if (workoutHistoryStr) {
+      updateData.workoutHistory = JSON.parse(workoutHistoryStr);
+    }
+    
+    // Quiz history
+    const quizHistoryStr = await AsyncStorage.getItem('quizHistory');
+    if (quizHistoryStr) {
+      updateData.quizHistory = JSON.parse(quizHistoryStr);
+    }
+    
+    // Prayer history
+    const prayerHistoryStr = await AsyncStorage.getItem('prayerHistory');
+    if (prayerHistoryStr) {
+      updateData.prayerHistory = JSON.parse(prayerHistoryStr);
+    }
+    
+    // Active todos/tasks
+    const todosStr = await AsyncStorage.getItem('fivefold_todos');
+    if (todosStr) {
+      updateData.todos = JSON.parse(todosStr);
+    }
+    
+    // Completed todos/tasks
+    const completedTodosStr = await AsyncStorage.getItem('completedTodos');
+    if (completedTodosStr) {
+      updateData.completedTodos = JSON.parse(completedTodosStr);
+    }
+    
+    // App streak data
+    const streakDataStr = await AsyncStorage.getItem('app_streak_data');
+    if (streakDataStr) {
+      updateData.appStreakData = JSON.parse(streakDataStr);
+    }
+    
+    // Highlights
+    const highlightsStr = await AsyncStorage.getItem('highlights');
+    if (highlightsStr) {
+      updateData.highlights = JSON.parse(highlightsStr);
+    }
+    
+    // Bookmarks
+    const bookmarksStr = await AsyncStorage.getItem('bookmarks');
+    if (bookmarksStr) {
+      updateData.bookmarks = JSON.parse(bookmarksStr);
+    }
+    
+    // Reading progress
+    const readingProgressStr = await AsyncStorage.getItem('readingProgress');
+    if (readingProgressStr) {
+      updateData.readingProgress = JSON.parse(readingProgressStr);
+    }
+    
+    // Current reading plan
+    const currentReadingPlanStr = await AsyncStorage.getItem('currentReadingPlan');
+    if (currentReadingPlanStr) {
+      updateData.currentReadingPlan = JSON.parse(currentReadingPlanStr);
+    }
+    
+    // Notification preferences
+    const notificationPrefsStr = await AsyncStorage.getItem('notificationPreferences');
+    if (notificationPrefsStr) {
+      updateData.notificationPreferences = JSON.parse(notificationPrefsStr);
+    }
+    
+    // Daily verse data (verse of the day - per user)
+    const dailyVerseDataStr = await AsyncStorage.getItem('daily_verse_data_v6');
+    const dailyVerseIndexStr = await AsyncStorage.getItem('daily_verse_index_v6');
+    const shuffledVersesStr = await AsyncStorage.getItem('shuffled_verses_v6');
+    const dailyVerseLastUpdateStr = await AsyncStorage.getItem('daily_verse_last_update_v6');
+    
+    if (dailyVerseDataStr || dailyVerseIndexStr) {
+      updateData.dailyVerseSync = {
+        data: dailyVerseDataStr ? JSON.parse(dailyVerseDataStr) : null,
+        index: dailyVerseIndexStr ? parseInt(dailyVerseIndexStr) : 0,
+        shuffledVerses: shuffledVersesStr ? JSON.parse(shuffledVersesStr) : null,
+        lastUpdate: dailyVerseLastUpdateStr || null,
+      };
+      console.log('[Sync] Including daily verse data in upload');
+    }
+    
+    if (Object.keys(updateData).length > 1) { // More than just lastActive
+      await setDoc(doc(db, 'users', userId), updateData, { merge: true });
+      console.log('[Sync] Uploaded history data to cloud');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[Sync] Error syncing history:', error);
+    return false;
+  }
+};
+
+/**
  * Full sync: bidirectional sync between local and cloud
  * - Downloads cloud data and merges with local (cloud wins for stats)
  * - Uploads merged data back to cloud
@@ -312,6 +665,12 @@ export const performFullSync = async (userId) => {
     
     // Then sync merged stats back to cloud
     await syncUserStatsToCloud(userId);
+    
+    // Sync user-specific content to cloud
+    await syncSavedVersesToCloud(userId);
+    await syncJournalNotesToCloud(userId);
+    await syncThemePreferencesToCloud(userId);
+    await syncAllHistoryToCloud(userId);
     
     console.log('[Sync] Full sync completed successfully');
     return true;
@@ -330,4 +689,8 @@ export default {
   toggleLeaderboardVisibility,
   getSyncStatus,
   performFullSync,
+  syncSavedVersesToCloud,
+  syncJournalNotesToCloud,
+  syncThemePreferencesToCloud,
+  syncAllHistoryToCloud,
 };

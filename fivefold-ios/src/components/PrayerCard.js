@@ -1,498 +1,394 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+/**
+ * Prayer Card Component
+ * 
+ * Beautiful card displaying a prayer request with elegant design.
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+  Alert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { LiquidGlassPrayerCard } from './LiquidGlassCard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  getPrayerStatus, 
-  getPrayerStatusColor, 
-  getPrayerStatusText,
-  getPrayerCardBackground,
-  canCompletePrayer 
-} from '../utils/prayerTiming';
-import { hapticFeedback } from '../utils/haptics';
-import { saveData, getStoredData } from '../utils/localStorage';
-import notificationService from '../services/notificationService';
+import { deletePrayer } from '../services/prayerSocialService';
+import * as Haptics from 'expo-haptics';
 
-const PrayerCard = ({ userPrayers = [], prayerHistory, onPrayerComplete, onPrayerPress, onManagePrayers, prayerTimes = {} }) => {
+const PrayerCard = ({ 
+  prayer, 
+  currentUserId, 
+  onTogglePraying, 
+  onDelete,
+  index = 0,
+}) => {
   const { theme, isDark } = useTheme();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPrayer, setEditingPrayer] = useState(null);
-  const [editingType, setEditingType] = useState('name'); // 'name' or 'time'
-  const [customNames, setCustomNames] = useState({
-    pre_dawn: 'Before Sunrise',
-    post_sunrise: 'After Sunrise',
-    midday: 'Midday',
-    pre_sunset: 'Before Sunset',
-    night: 'After Sunset'
-  });
-  const [customTimes, setCustomTimes] = useState(prayerTimes);
-  const [tempName, setTempName] = useState('');
-  const [tempTime, setTempTime] = useState('');
-  const [showEditOptions, setShowEditOptions] = useState(false);
+  const [isPraying, setIsPraying] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Animations
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const prayAnim = useRef(new Animated.Value(1)).current;
+  const heartScale = useRef(new Animated.Value(0)).current;
 
-  // Load custom prayer names and times
   useEffect(() => {
-    loadCustomNames();
-    loadCustomTimes();
-  }, []);
+    setIsPraying(prayer.prayingUsers?.includes(currentUserId));
+    
+    Animated.timing(cardAnim, {
+      toValue: 1,
+      duration: 400,
+      delay: index * 80,
+      useNativeDriver: true,
+    }).start();
+  }, [prayer.prayingUsers, currentUserId, index]);
 
-  const loadCustomTimes = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('customPrayerTimes');
-      if (saved) {
-        setCustomTimes(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.log('Error loading custom prayer times:', error);
+  const handlePrayingPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    Animated.sequence([
+      Animated.timing(prayAnim, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(prayAnim, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (!isPraying) {
+      heartScale.setValue(0);
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start(() => {
+        setTimeout(() => {
+          Animated.timing(heartScale, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }, 600);
+      });
     }
+
+    setIsPraying(!isPraying);
+    onTogglePraying(prayer.id);
   };
 
-  const loadCustomNames = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('customPrayerNames');
-      if (saved) {
-        setCustomNames(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.log('Error loading custom prayer names:', error);
-    }
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Prayer',
+      'Are you sure you want to delete this prayer request?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            const success = await deletePrayer(prayer.id, currentUserId);
+            if (success) {
+              onDelete(prayer.id);
+            } else {
+              setIsDeleting(false);
+              Alert.alert('Error', 'Failed to delete prayer request');
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const saveCustomName = async () => {
-    if (!editingPrayer || !tempName.trim()) return;
-    
-    const newNames = {
-      ...customNames,
-      [editingPrayer]: tempName.trim()
-    };
-    
-    setCustomNames(newNames);
-    await AsyncStorage.setItem('customPrayerNames', JSON.stringify(newNames));
-    hapticFeedback.success();
-    setShowEditModal(false);
-    setEditingPrayer(null);
-    setTempName('');
-    setShowEditOptions(false);
-  };
-
-  const saveCustomTime = async () => {
-    if (!editingPrayer || !tempTime.trim()) return;
-    
-    const newTimes = {
-      ...customTimes,
-      [editingPrayer]: tempTime.trim()
-    };
-    
-    setCustomTimes(newTimes);
-    await AsyncStorage.setItem('customPrayerTimes', JSON.stringify(newTimes));
-    
-    // Reschedule notifications with new custom times
-    try {
-      const settings = await getStoredData('notificationSettings');
-      if (settings?.prayerReminders) {
-        // Combine original prayer times with custom times for scheduling
-        const allTimes = { ...prayerTimes, ...customTimes };
-        for (const [slot, customTime] of Object.entries(newTimes)) {
-          if (customTime) {
-            allTimes[slot] = customTime;
-          }
-        }
-        await notificationService.schedulePrayerNotifications(allTimes, settings);
-        console.log('Prayer notifications rescheduled with new custom time');
-      }
-    } catch (error) {
-      console.log('Error rescheduling notifications:', error);
-    }
-    
-    hapticFeedback.success();
-    setShowEditModal(false);
-    setEditingPrayer(null);
-    setTempTime('');
-    setShowEditOptions(false);
-  };
-
-  const openEditOptions = (prayer) => {
-    setEditingPrayer(prayer.slot);
-    setTempName(prayer.name);
-    setTempTime(formatTime(prayer.time));
-    setShowEditOptions(true);
-  };
-
-  // Update time every minute for real-time status updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTime = (time) => {
-    if (!time) return '--:--';
-    
-    // If it's a string, check if it needs formatting
-    if (typeof time === 'string') {
-      // If it's already in HH:MM format, return it
-      if (time.includes(':') && time.match(/^\d{1,2}:\d{2}$/)) {
-        return time;
-      }
-      
-      // If it's in HHMM format (like "1400"), convert to HH:MM
-      if (time.match(/^\d{3,4}$/)) {
-        const paddedTime = time.padStart(4, '0'); // Ensure 4 digits
-        const hours = paddedTime.slice(0, 2);
-        const minutes = paddedTime.slice(2, 4);
-        return `${hours}:${minutes}`;
-      }
-      
-      // Return as-is if already formatted
-      return time;
-    }
-    
-    // If it's a Date object, format it
-    if (time instanceof Date) {
-      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Fallback
-    return '--:--';
-  };
-
-
-
-  // Use userPrayers directly - no more hardcoded prayers
-  const prayers = userPrayers;
+  const isOwner = prayer.userId === currentUserId;
+  const timeAgo = getTimeAgo(prayer.createdAt);
+  const prayingCount = prayer.prayingCount || 0;
 
   return (
-    <>
-      <BlurView 
-        intensity={18} 
-        tint={isDark ? "dark" : "light"} 
-        style={[styles.container, { 
-          backgroundColor: isDark 
-            ? 'rgba(255, 255, 255, 0.05)' 
-            : `${theme.primary}15` // Use theme primary color with 15% opacity for better visibility
-        }]}
-      >
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>🕊️ Today's Prayers</Text>
-      
-
-
-      <LiquidGlassPrayerCard style={styles.prayersList}>
-        {prayers.map(prayer => {
-          const prayerStatus = getPrayerStatus(prayer.time, false, prayerHistory, prayer.slot);
-          const statusColor = getPrayerStatusColor(prayerStatus.status, theme);
-          const statusText = getPrayerStatusText(prayerStatus);
-          const cardBackground = getPrayerCardBackground(prayerStatus.status, theme);
-          const isCompleted = prayerStatus.status === 'completed';
-          const canPress = prayerStatus.canComplete || isCompleted || prayerStatus.status === 'missed';
-          
-          return (
-            <View 
-              key={prayer.slot}
-              style={[
-                styles.prayerItem, 
-                { 
-                  borderBottomColor: theme.border,
-                  backgroundColor: cardBackground,
-                  opacity: canPress ? 1 : 0.6
-                }
-              ]}
-            >
-              {/* Edit button - replaces prayer icon */}
-              <TouchableOpacity
-                style={[styles.editButton, { backgroundColor: theme.surface }]}
-                onPress={() => {
-                  hapticFeedback.light();
-                  openEditOptions(prayer);
-                }}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="edit" size={20} color={theme.primary} />
-              </TouchableOpacity>
-              
-              {/* Prayer info area - clickable for prayer completion */}
-              <TouchableOpacity
-                style={styles.prayerInfo}
-                onPress={() => canPress && onPrayerPress(prayer)}
-                disabled={!canPress}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.prayerName, { color: theme.text }]}>{prayer.name}</Text>
-                <Text style={[styles.prayerTime, { color: theme.textSecondary }]}>{formatTime(prayer.time)}</Text>
-                <Text style={[styles.prayerStatus, { color: statusColor }]}>{statusText}</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.prayerActions}>
-                {/* Status indicator on the right */}
-                {isCompleted && (
-                  <MaterialIcons name="check-circle" size={20} color={theme.success} />
-                )}
-                {prayerStatus.status === 'missed' && (
-                  <MaterialIcons name="error" size={20} color={theme.error} />
-                )}
-                {canPress && !isCompleted && prayerStatus.status !== 'missed' && (
-                  <MaterialIcons name="arrow-forward-ios" size={16} color={theme.textSecondary} />
-                )}
-              </View>
-            </View>
-          );
-        })}
-      </LiquidGlassPrayerCard>
-      
-        {/* Hint text */}
-        <Text style={[styles.hintText, { color: theme.textTertiary }]}>
-          Tap the edit button to change name or time
-        </Text>
-      </BlurView>
-
-      {/* Edit Options Modal */}
-      <Modal
-        visible={showEditOptions}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              Edit Prayer
-            </Text>
-            
-            <TouchableOpacity
-              style={[styles.optionButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                setEditingType('name');
-                setShowEditOptions(false);
-                setShowEditModal(true);
-              }}
-            >
-              <MaterialIcons name="edit" size={24} color={theme.primary} />
-              <Text style={[styles.optionText, { color: theme.text }]}>Edit Name</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.optionButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                setEditingType('time');
-                setShowEditOptions(false);
-                setShowEditModal(true);
-              }}
-            >
-              <MaterialIcons name="schedule" size={24} color={theme.primary} />
-              <Text style={[styles.optionText, { color: theme.text }]}>Edit Time</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: theme.surface, marginTop: 20 }]}
-              onPress={() => {
-                setShowEditOptions(false);
-                setEditingPrayer(null);
-              }}
-            >
-              <Text style={[styles.modalButtonText, { color: theme.text }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Edit Prayer Name/Time Modal */}
-    <Modal
-      visible={showEditModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
+          opacity: cardAnim,
+          transform: [
+            {
+              translateY: cardAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [30, 0],
+              }),
+            },
+          ],
+        },
+      ]}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>
-            {editingType === 'name' ? 'Edit Prayer Name' : 'Edit Prayer Time'}
-          </Text>
-          
-          <TextInput
-            style={[styles.modalInput, { 
-              backgroundColor: theme.surface, 
-              color: theme.text,
-              borderColor: theme.border
-            }]}
-            value={editingType === 'name' ? tempName : tempTime}
-            onChangeText={editingType === 'name' ? setTempName : setTempTime}
-            placeholder={editingType === 'name' ? 'Enter prayer name' : 'Enter time (HH:MM)'}
-            placeholderTextColor={theme.textSecondary}
-            autoFocus={true}
-            maxLength={editingType === 'name' ? 30 : 5}
-            keyboardType={editingType === 'time' ? 'numeric' : 'default'}
-          />
-          
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                setShowEditModal(false);
-                setEditingPrayer(null);
-                setTempName('');
-              }}
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.userInfo}>
+          {prayer.profilePicture ? (
+            <Image source={{ uri: prayer.profilePicture }} style={styles.avatar} />
+          ) : (
+            <LinearGradient
+              colors={[theme.primary, theme.primary + 'AA']}
+              style={styles.avatarPlaceholder}
             >
-              <Text style={[styles.modalButtonText, { color: theme.text }]}>Cancel</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: theme.primary }]}
-              onPress={editingType === 'name' ? saveCustomName : saveCustomTime}
-            >
-              <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Save</Text>
-            </TouchableOpacity>
+              <Text style={styles.avatarInitial}>
+                {(prayer.displayName || 'A').charAt(0).toUpperCase()}
+              </Text>
+            </LinearGradient>
+          )}
+          <View style={styles.nameContainer}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.displayName, { color: theme.text }]} numberOfLines={1}>
+                {prayer.displayName || 'Anonymous'}
+              </Text>
+              {prayer.countryFlag && (
+                <Text style={styles.countryFlag}>{prayer.countryFlag}</Text>
+              )}
+              {isOwner && (
+                <View style={[styles.youBadge, { backgroundColor: theme.primary + '20' }]}>
+                  <Text style={[styles.youBadgeText, { color: theme.primary }]}>You</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.timeAgo, { color: theme.textTertiary }]}>
+              {timeAgo}
+            </Text>
           </View>
         </View>
+        
+        {isOwner && (
+          <TouchableOpacity 
+            style={[styles.moreButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={handleDelete}
+            disabled={isDeleting}
+          >
+            <MaterialIcons 
+              name="more-horiz" 
+              size={18} 
+              color={theme.textSecondary} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
-    </Modal>
-    </>
+
+      {/* Prayer Content */}
+      <Text style={[styles.content, { color: theme.text }]}>
+        {prayer.content}
+      </Text>
+
+      {/* Heart Animation Overlay */}
+      <Animated.View
+        style={[
+          styles.heartOverlay,
+          {
+            opacity: heartScale,
+            transform: [{ scale: heartScale }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <LinearGradient
+          colors={[theme.primary, theme.primary + 'AA']}
+          style={styles.heartGradient}
+        >
+          <FontAwesome5 name="praying-hands" size={32} color="#FFF" />
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Animated.View style={{ transform: [{ scale: prayAnim }] }}>
+          <TouchableOpacity
+            style={[
+              styles.prayingButton,
+              isPraying 
+                ? { backgroundColor: theme.primary }
+                : { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '10' },
+            ]}
+            onPress={handlePrayingPress}
+            activeOpacity={0.8}
+          >
+            <FontAwesome5 
+              name="praying-hands" 
+              size={14} 
+              color={isPraying ? '#FFF' : theme.primary} 
+            />
+            <Text style={[
+              styles.prayingButtonText,
+              { color: isPraying ? '#FFF' : theme.primary },
+            ]}>
+              {isPraying ? 'Praying' : 'Pray'}
+            </Text>
+            {prayingCount > 0 && (
+              <View style={[
+                styles.prayingCount,
+                { backgroundColor: isPraying ? 'rgba(255,255,255,0.25)' : theme.primary + '20' },
+              ]}>
+                <Text style={[
+                  styles.prayingCountText,
+                  { color: isPraying ? '#FFF' : theme.primary },
+                ]}>
+                  {prayingCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Animated.View>
   );
+};
+
+// Helper function to get time ago string
+const getTimeAgo = (timestamp) => {
+  if (!timestamp) return 'Just now';
+  
+  const now = new Date();
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const seconds = Math.floor((now - date) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  
+  return date.toLocaleDateString();
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'transparent',
-    marginHorizontal: 20, // Add horizontal margins for proper edge spacing
-    marginBottom: 20, // Add bottom margin for consistency with other cards
-    padding: 20, // Add padding inside the card
-    borderRadius: 16, // Add border radius to match other cards
-    shadowColor: '#000', // Add shadow for consistency
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    overflow: 'hidden',
-    shadowRadius: 8,
-    elevation: 3, // Android shadow
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  prayerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  editButton: {
-    padding: 8,
     borderRadius: 20,
-    minWidth: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  statusIcon: {
-    marginRight: 4,
-  },
-  completedIcon: {
-    marginRight: 8,
-  },
-  prayersList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
+    padding: 18,
+    marginBottom: 12,
     overflow: 'hidden',
-  },
-  prayerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  prayerIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  prayerInfo: {
-    flex: 1,
-  },
-  prayerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  prayerTime: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  prayerStatus: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  hintText: {
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    padding: 20,
-    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    marginBottom: 14,
   },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  optionButton: {
+  userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  optionText: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+  },
+  avatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  nameContainer: {
     marginLeft: 12,
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  displayName: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  countryFlag: {
+    fontSize: 14,
+  },
+  youBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  youBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  timeAgo: {
+    fontSize: 12,
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  moreButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -40,
+    marginLeft: -40,
+  },
+  heartGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  prayingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 8,
+  },
+  prayingButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  prayingCount: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  prayingCountText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 

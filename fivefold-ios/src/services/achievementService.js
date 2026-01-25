@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 
 class AchievementService {
   static ACHIEVEMENTS_KEY = 'fivefold_achievements_unlocked';
@@ -128,6 +130,25 @@ class AchievementService {
         updatedStats.level = this.getLevelFromPoints(updatedStats.points);
         
         await saveData('userStats', updatedStats);
+        
+        // Also update the central points storage (for consistency)
+        const centralPointsStr = await AsyncStorage.getItem('total_points');
+        const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+        const newCentralTotal = centralPoints + totalPointsToAward;
+        await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+        
+        // Sync to Firebase if user is logged in
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          setDoc(doc(db, 'users', currentUser.uid), {
+            totalPoints: newCentralTotal,
+            level: updatedStats.level,
+            lastActive: serverTimestamp(),
+          }, { merge: true }).catch(err => {
+            console.warn('🔥 Firebase achievement points sync failed:', err.message);
+          });
+          console.log(`🔥 Achievement points synced to Firebase: ${newCentralTotal}`);
+        }
         
         // Trigger notifications
         newlyUnlocked.forEach(achievement => {

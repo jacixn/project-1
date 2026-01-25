@@ -221,7 +221,7 @@ const ProfileTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const navigation = useNavigation();
-  const { user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading, updateLocalProfile } = useAuth();
   const [friendCount, setFriendCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -283,6 +283,7 @@ const ProfileTab = () => {
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
+  const [isPublicProfile, setIsPublicProfile] = useState(true); // Show on global leaderboard
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
@@ -1184,6 +1185,12 @@ const ProfileTab = () => {
           setSelectedCountry(countryObj);
         }
         
+        // Update profile picture from Firebase (cloud URL)
+        if (authUserProfile.profilePicture) {
+          console.log('[Profile] Setting profile picture from auth:', authUserProfile.profilePicture);
+          setProfilePicture(authUserProfile.profilePicture);
+        }
+        
         // Sync all auth data to local storage
         const storedProfile = await AsyncStorage.getItem('userProfile');
         const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
@@ -1193,6 +1200,7 @@ const ProfileTab = () => {
         if (authUserProfile.country) localProfile.country = authUserProfile.country;
         if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
         if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
+        if (authUserProfile.profilePicture) localProfile.profilePicture = authUserProfile.profilePicture;
         
         setUserProfile(localProfile);
         await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
@@ -1339,6 +1347,21 @@ const ProfileTab = () => {
     };
   }, []);
 
+  // Listen for user data downloaded from cloud (after sign in)
+  useEffect(() => {
+    const userDataListener = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
+      console.log('☁️ User data downloaded from cloud, refreshing profile...');
+      await loadUserData();
+      await loadAppStreak();
+      await loadSavedVerses();
+      await loadJournalNotes();
+    });
+
+    return () => {
+      userDataListener.remove();
+    };
+  }, []);
+
   // Listen for Bible version changes and refresh all verse data
   useEffect(() => {
     const versionChangeListener = DeviceEventEmitter.addListener('bibleVersionChanged', async (newVersion) => {
@@ -1385,46 +1408,74 @@ const ProfileTab = () => {
         setUserName(authUserProfile.displayName);
         setEditName(authUserProfile.displayName);
         
+        // Load isPublic setting (for global leaderboard visibility)
+        if (authUserProfile.isPublic !== undefined) {
+          setIsPublicProfile(authUserProfile.isPublic);
+        } else {
+          // Check the auth cache as fallback
+          const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+          if (authCache) {
+            const cachedProfile = JSON.parse(authCache);
+            if (cachedProfile.isPublic !== undefined) {
+              setIsPublicProfile(cachedProfile.isPublic);
+            }
+          }
+        }
+        
+        // Load profile picture from Firebase (cloud URL takes priority)
+        if (authUserProfile.profilePicture) {
+          console.log('[Profile] Using cloud profile picture from auth:', authUserProfile.profilePicture);
+          setProfilePicture(authUserProfile.profilePicture);
+        }
+        
         // Also update local profile to match
         const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
         localProfile.name = authUserProfile.displayName;
         if (authUserProfile.country) localProfile.country = authUserProfile.country;
         if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
         if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
+        if (authUserProfile.profilePicture) localProfile.profilePicture = authUserProfile.profilePicture;
         setUserProfile(localProfile);
         await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
       } else if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         setUserProfile(profile);
-        setUserName(profile.name || 'Faithful Friend');
-        setEditName(profile.name || 'Faithful Friend');
+        setUserName(profile.displayName || profile.name || 'Faithful Friend');
+        setEditName(profile.displayName || profile.name || 'Faithful Friend');
         
-        // Load profile picture - be more tolerant of temporary file check issues
+        // Load profile picture - handle both cloud URLs and local files
         if (profile.profilePicture) {
-          try {
-            const fileInfo = await FileSystem.getInfoAsync(profile.profilePicture);
-            if (fileInfo.exists) {
-              setProfilePicture(profile.profilePicture);
-              console.log('[Profile] Profile picture loaded:', profile.profilePicture);
-            } else {
-              // File doesn't exist - but DON'T clear it yet, could be a temporary issue
-              // Only clear if we're certain the file path is invalid (not starting with file://)
-              console.log('[Profile] Profile picture file not found:', profile.profilePicture);
-              if (!profile.profilePicture.startsWith('file://')) {
-                console.log('[Profile] Invalid file path format, clearing');
-                setProfilePicture(null);
-                profile.profilePicture = null;
-                await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-              } else {
-                // Still use the stored path - React Native Image component may handle it
-                console.log('[Profile] Keeping stored path, may be accessible later');
-                setProfilePicture(profile.profilePicture);
-              }
-            }
-          } catch (fileError) {
-            // On error, still try to use the stored path
-            console.log('[Profile] Error checking profile picture, using stored path:', fileError.message);
+          // Cloud URLs (https://) are always valid - use directly
+          if (profile.profilePicture.startsWith('http://') || profile.profilePicture.startsWith('https://')) {
+            console.log('[Profile] Using cloud profile picture URL:', profile.profilePicture);
             setProfilePicture(profile.profilePicture);
+          } else {
+            // Local file - check if it exists
+            try {
+              const fileInfo = await FileSystem.getInfoAsync(profile.profilePicture);
+              if (fileInfo.exists) {
+                setProfilePicture(profile.profilePicture);
+                console.log('[Profile] Profile picture loaded:', profile.profilePicture);
+              } else {
+                // File doesn't exist - but DON'T clear it yet, could be a temporary issue
+                // Only clear if we're certain the file path is invalid (not starting with file://)
+                console.log('[Profile] Profile picture file not found:', profile.profilePicture);
+                if (!profile.profilePicture.startsWith('file://')) {
+                  console.log('[Profile] Invalid file path format, clearing');
+                  setProfilePicture(null);
+                  profile.profilePicture = null;
+                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                } else {
+                  // Still use the stored path - React Native Image component may handle it
+                  console.log('[Profile] Keeping stored path, may be accessible later');
+                  setProfilePicture(profile.profilePicture);
+                }
+              }
+            } catch (fileError) {
+              // On error, still try to use the stored path
+              console.log('[Profile] Error checking profile picture, using stored path:', fileError.message);
+              setProfilePicture(profile.profilePicture);
+            }
           }
         }
         
@@ -1630,11 +1681,43 @@ const ProfileTab = () => {
     try {
       console.log('[ProfilePhoto] Saving new profile picture:', imageUri);
       
-      // Set state immediately for UI
+      // Set state immediately for UI (show local file first for instant feedback)
       setProfilePicture(imageUri);
+      hapticFeedback.photoCapture();
+      
+      let finalUri = imageUri;
+      
+      // If user is signed in, upload to Firebase Storage for cloud access
+      if (user) {
+        try {
+          console.log('[ProfilePhoto] Uploading to Firebase Storage...');
+          const { uploadProfilePicture } = await import('../services/storageService');
+          const downloadURL = await uploadProfilePicture(user.uid, imageUri);
+          finalUri = downloadURL;
+          console.log('[ProfilePhoto] Upload successful:', downloadURL);
+          
+          // Update UI with cloud URL
+          setProfilePicture(downloadURL);
+          
+          // Sync to Firestore so other users can see it
+          const { updateAndSyncProfile } = await import('../services/userSyncService');
+          await updateAndSyncProfile(user.uid, { profilePicture: downloadURL });
+          console.log('[ProfilePhoto] Synced profile picture URL to Firestore');
+          
+          // Also update the AuthContext's cached profile so it's immediately available
+          if (updateLocalProfile) {
+            await updateLocalProfile({ profilePicture: downloadURL });
+            console.log('[ProfilePhoto] Updated AuthContext profile cache');
+          }
+        } catch (uploadError) {
+          console.error('[ProfilePhoto] Upload failed, using local file:', uploadError);
+          // Keep using local file if upload fails
+          finalUri = imageUri;
+        }
+      }
       
       // Save to legacy storage for backwards compatibility
-      await saveData('profilePicture', imageUri);
+      await saveData('profilePicture', finalUri);
       
       // CRITICAL: Always save to userProfile (create if doesn't exist)
       let profile;
@@ -1649,8 +1732,8 @@ const ProfileTab = () => {
         };
       }
       
-      // Update the profile picture
-      profile.profilePicture = imageUri;
+      // Update the profile picture with final URI (cloud URL if uploaded, local otherwise)
+      profile.profilePicture = finalUri;
       
       // Save immediately and await completion
       await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
@@ -1658,8 +1741,7 @@ const ProfileTab = () => {
       // Update local state to match
       setUserProfile(profile);
       
-      console.log('[ProfilePhoto] Profile picture saved successfully:', imageUri);
-      hapticFeedback.photoCapture();
+      console.log('[ProfilePhoto] Profile picture saved successfully:', finalUri);
     } catch (error) {
       console.error('[ProfilePhoto] Failed to save profile picture:', error);
     }
@@ -2302,6 +2384,38 @@ const ProfileTab = () => {
     }
   };
 
+  // Handle toggle leaderboard visibility
+  const handleToggleLeaderboardVisibility = async (value) => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to change leaderboard visibility.');
+      return;
+    }
+    
+    setIsPublicProfile(value);
+    hapticFeedback.light();
+    
+    try {
+      // Import and use the sync service
+      const { toggleLeaderboardVisibility } = await import('../services/userSyncService');
+      await toggleLeaderboardVisibility(user.uid, value);
+      
+      // Also update the local auth cache so it persists on navigation
+      const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+      if (authCache) {
+        const cachedProfile = JSON.parse(authCache);
+        cachedProfile.isPublic = value;
+        await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify(cachedProfile));
+      }
+      
+      console.log('[Profile] Leaderboard visibility updated:', value);
+    } catch (error) {
+      console.error('Error updating leaderboard visibility:', error);
+      // Revert on error
+      setIsPublicProfile(!value);
+      Alert.alert('Error', 'Failed to update setting. Please try again.');
+    }
+  };
+
   // Handle sign out
   const handleSignOut = async () => {
     Alert.alert(
@@ -2369,6 +2483,7 @@ const ProfileTab = () => {
           <MaterialIcons name="chevron-right" size={24} color={iconColor} />
         </View>
       </AnimatedSettingsCard>
+      
     </View>
   );
 
@@ -3980,6 +4095,60 @@ const ProfileTab = () => {
               fontSize: 12,
               fontWeight: '700',
               color: '#FF6B6B',
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Privacy
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              {/* Global Leaderboard Visibility */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="public" size={20} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
+                      Show on Global Leaderboard
+                    </Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
+                      {isPublicProfile ? 'Others can see your ranking' : 'Your ranking is private'}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={isPublicProfile}
+                  onValueChange={handleToggleLeaderboardVisibility}
+                  trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {/* DANGER ZONE SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: '#FF3B30',
               letterSpacing: 1.5,
               textTransform: 'uppercase',
               marginBottom: 12,

@@ -52,6 +52,14 @@ class AppStreakManager {
       await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(updatedStreak));
       
       console.log(`📱 App open tracked! Streak: ${newStreak} days ${milestone ? `🎉 MILESTONE!` : ''}`);
+      
+      // Notify friends of milestone achievement
+      if (milestone && newStreak >= 7) {
+        this.celebrateStreakMilestone(newStreak).catch(err => {
+          console.log('Could not send streak celebration:', err);
+        });
+      }
+      
       return updatedStreak;
     } catch (error) {
       console.error('Error tracking app open:', error);
@@ -135,6 +143,42 @@ class AppStreakManager {
       console.log('📱 Streak reset to 0');
     } catch (error) {
       console.error('Error resetting streak:', error);
+    }
+  }
+
+  // Celebrate streak milestone by notifying friends
+  static async celebrateStreakMilestone(days) {
+    try {
+      // Get current user from auth
+      const { auth } = await import('../config/firebase');
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        console.log('No user logged in, skipping streak celebration');
+        return;
+      }
+
+      // Get user profile for display name
+      const { getDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const displayName = userDoc.exists() ? (userDoc.data().displayName || 'A friend') : 'A friend';
+
+      // Notify friends
+      const { notifyStreakMilestone } = await import('../services/socialNotificationService');
+      const sentCount = await notifyStreakMilestone(currentUser.uid, displayName, days);
+      
+      console.log(`🎉 Streak celebration sent to ${sentCount} friends!`);
+
+      // Also update streak milestones in user profile
+      const { updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        currentStreak: days,
+        streakMilestones: arrayUnion(days),
+        lastStreakUpdate: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Error celebrating streak milestone:', error);
     }
   }
 }

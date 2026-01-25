@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import iCloudSyncService from '../services/iCloudSyncService';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { auth } from '../config/firebase';
 
 class PrayerCompletionManager {
   static COMPLETION_KEY = 'prayer_completions';
@@ -88,6 +91,18 @@ class PrayerCompletionManager {
       iCloudSyncService.syncToCloud(this.POINTS_KEY, newTotal).catch(err => {
         console.warn('☁️ Background sync failed:', err.message);
       });
+      
+      // Sync to Firebase if user is logged in
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: newTotal,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(err => {
+          console.warn('🔥 Firebase points sync failed:', err.message);
+        });
+        console.log(`🔥 Points synced to Firebase: ${newTotal}`);
+      }
       
       console.log(`💰 Points updated: ${currentPoints} + ${points} = ${newTotal}`);
       return newTotal;

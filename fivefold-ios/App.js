@@ -6,7 +6,7 @@ import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'reac
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { WorkoutProvider, useWorkout } from './src/contexts/WorkoutContext';
-import { AuthProvider } from './src/contexts/AuthContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import notificationService from './src/services/notificationService';
 // OnboardingWrapper is now handled inside RootNavigator
@@ -108,6 +108,7 @@ import bibleAudioService from './src/services/bibleAudioService';
 // App navigation wrapper with mini workout player
 const AppNavigation = () => {
   const { hasActiveWorkout, maximizeWorkout } = useWorkout();
+  const { user } = useAuth(); // Check if user is authenticated
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [modalTemplateData, setModalTemplateData] = useState(null);
   const [isAudioPlayerVisible, setIsAudioPlayerVisible] = useState(false);
@@ -212,9 +213,10 @@ const AppNavigation = () => {
     <>
       <RootNavigator />
       
-      {/* Global Mini Workout Player - Shows when workout is active */}
+      {/* Global Mini Workout Player - Shows when workout is active and user is logged in */}
       {/* Position depends on who came first */}
-      {hasActiveWorkout && (
+      {/* Don't show on auth/login screen */}
+      {hasActiveWorkout && user && (
         <MiniWorkoutPlayer 
           onPress={handleMiniPlayerPress} 
           bottomOffset={
@@ -228,14 +230,17 @@ const AppNavigation = () => {
       {/* Global Bible Audio Player - Shows when Bible audio is playing */}
       {/* Position depends on who came first */}
       {/* Audio on top = 150px (55px gap from bottom player), Audio on bottom = 95px */}
-      <PersistentAudioPlayerBar 
-        bottomOffset={
-          hasActiveWorkout 
-            ? (firstPlayer === 'audio' ? 95 : 150) // Audio first = bottom (95), otherwise top (150 for 55px gap)
-            : 95 // Only audio = bottom
-        }
-        onNavigateToVerse={handleAudioPlayerNavigate}
-      />
+      {/* Don't show on auth/login screen */}
+      {user && (
+        <PersistentAudioPlayerBar 
+          bottomOffset={
+            hasActiveWorkout 
+              ? (firstPlayer === 'audio' ? 95 : 150) // Audio first = bottom (95), otherwise top (150 for 55px gap)
+              : 95 // Only audio = bottom
+          }
+          onNavigateToVerse={handleAudioPlayerNavigate}
+        />
+      )}
 
       {/* Workout Modal - Opens when mini player is tapped */}
       <WorkoutModal
@@ -255,11 +260,43 @@ const AppNavigation = () => {
 
 // App component wrapped with theme
 const ThemedApp = () => {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, reloadTheme } = useTheme();
+  const { user } = useAuth();
   const [isReloading, setIsReloading] = useState(false);
   const [appKey, setAppKey] = useState(0); // Used to force remount
   const navigationRef = useRef(null);
   const pendingNavigationRef = useRef(null); // Store pending navigation if nav isn't ready
+  const prevUserIdRef = useRef(undefined); // Start as undefined, not null
+  
+  // Listen for userDataDownloaded event to reload theme after sign-in sync
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('userDataDownloaded', () => {
+      console.log('[App] Received userDataDownloaded event, reloading theme...');
+      reloadTheme?.();
+    });
+    
+    return () => subscription.remove();
+  }, [reloadTheme]);
+  
+  // Also reload theme when user changes (sign out clears data)
+  useEffect(() => {
+    const currentUserId = user?.uid || null;
+    const prevUserId = prevUserIdRef.current;
+    
+    // Skip the very first render (when prevUserId is undefined)
+    if (prevUserId === undefined) {
+      prevUserIdRef.current = currentUserId;
+      return;
+    }
+    
+    // If user signed out (had a user, now null), reload theme to reset
+    if (prevUserId !== null && currentUserId === null) {
+      console.log('[App] User signed out, reloading theme to default...');
+      setTimeout(() => reloadTheme?.(), 100);
+    }
+    
+    prevUserIdRef.current = currentUserId;
+  }, [user?.uid, reloadTheme]);
   
   // Handle deep links from widgets
   const handleDeepLink = (url) => {
