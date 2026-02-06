@@ -225,6 +225,8 @@ export const syncUserStatsToCloud = async (userId) => {
     if (localStats.level !== undefined) updateData.level = localStats.level;
     if (localStats.prayersCompleted !== undefined) updateData.prayersCompleted = localStats.prayersCompleted;
     if (localStats.completedTasks !== undefined) updateData.tasksCompleted = localStats.completedTasks;
+    if (localStats.workoutsCompleted !== undefined) updateData.workoutsCompleted = localStats.workoutsCompleted;
+    if (localStats.quizzesTaken !== undefined) updateData.quizzesTaken = localStats.quizzesTaken;
     
     // Add profile fields
     if (localProfile) {
@@ -398,10 +400,20 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Downloaded completed todos from cloud (${cleanedCloudData.completedTodos.length} entries, cleaned)`);
     }
     
-    // App streak data
+    // App streak data - restore to BOTH keys for compatibility
     if (cloudData.appStreakData) {
       await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
+      // Also set app_open_streak which AppStreakManager uses
+      await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
       console.log('[Sync] Downloaded app streak data from cloud');
+    } else if (cloudData.currentStreak > 0) {
+      // Fallback: create streak data from currentStreak field
+      const streakData = {
+        currentStreak: cloudData.currentStreak || 0,
+        lastOpenDate: new Date().toISOString().split('T')[0],
+      };
+      await AsyncStorage.setItem('app_open_streak', JSON.stringify(streakData));
+      console.log('[Sync] Created streak data from currentStreak:', cloudData.currentStreak);
     }
     
     // Scheduled workouts (gym)
@@ -888,10 +900,17 @@ export const syncAllHistoryToCloud = async (userId) => {
       updateData.completedTodos = JSON.parse(completedTodosStr);
     }
     
-    // App streak data
-    const streakDataStr = await AsyncStorage.getItem('app_streak_data');
+    // App streak data - read from app_open_streak (AppStreakManager's actual key)
+    const streakDataStr = await AsyncStorage.getItem('app_open_streak');
     if (streakDataStr) {
       updateData.appStreakData = JSON.parse(streakDataStr);
+      console.log('[Sync] Syncing streak data to cloud:', updateData.appStreakData);
+    } else {
+      // Fallback to old key for backwards compatibility
+      const oldStreakDataStr = await AsyncStorage.getItem('app_streak_data');
+      if (oldStreakDataStr) {
+        updateData.appStreakData = JSON.parse(oldStreakDataStr);
+      }
     }
     
     // Scheduled workouts (gym)

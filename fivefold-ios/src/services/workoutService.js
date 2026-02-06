@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 
 const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
@@ -105,6 +107,29 @@ class WorkoutService {
       
       await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(history));
       console.log('✅ Workout saved to history');
+      
+      // UPDATE userStats.workoutsCompleted - CRITICAL for leaderboard
+      try {
+        const statsStr = await AsyncStorage.getItem('userStats');
+        const userStats = statsStr ? JSON.parse(statsStr) : {};
+        const newWorkoutsCompleted = (userStats.workoutsCompleted || 0) + 1;
+        
+        userStats.workoutsCompleted = newWorkoutsCompleted;
+        await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+        console.log('✅ Updated userStats.workoutsCompleted:', newWorkoutsCompleted);
+        
+        // SYNC TO FIREBASE
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await setDoc(doc(db, 'users', currentUser.uid), {
+            workoutsCompleted: newWorkoutsCompleted,
+            lastActive: serverTimestamp(),
+          }, { merge: true });
+          console.log('✅ Synced workoutsCompleted to Firebase:', newWorkoutsCompleted);
+        }
+      } catch (statsError) {
+        console.warn('⚠️ Failed to update workout stats:', statsError);
+      }
       
       // If this workout came from a template, update it
       if (workout.templateId) {

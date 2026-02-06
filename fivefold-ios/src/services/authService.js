@@ -14,6 +14,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -100,6 +101,14 @@ export const signUp = async ({ email, password, username, displayName }) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
+  // Send email verification
+  try {
+    await sendEmailVerification(user);
+    console.log('[Auth] Verification email sent to:', email);
+  } catch (verifyError) {
+    console.warn('[Auth] Failed to send verification email:', verifyError);
+  }
+  
   // Update the user's display name
   await updateProfile(user, {
     displayName: displayName || username,
@@ -127,6 +136,7 @@ export const signUp = async ({ email, password, username, displayName }) => {
     workoutsCompleted: 0,
     tasksCompleted: 0,
     quizzesTaken: 0,
+    emailVerified: false,
     joinedDate: serverTimestamp(),
     lastActive: serverTimestamp(),
     isPublic: true,
@@ -166,9 +176,10 @@ export const signIn = async (email, password) => {
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
-  // Update last active timestamp
+  // Update last active timestamp and email verification status
   await setDoc(doc(db, 'users', user.uid), {
     lastActive: serverTimestamp(),
+    emailVerified: user.emailVerified,
   }, { merge: true });
   
   // Get the user's profile from Firestore
@@ -180,8 +191,54 @@ export const signIn = async (email, password) => {
     email: user.email,
     displayName: user.displayName,
     username: userData?.username || '',
+    emailVerified: user.emailVerified,
     ...userData,
   };
+};
+
+/**
+ * Check if current user's email is verified
+ * @returns {boolean} - True if email is verified
+ */
+export const isEmailVerified = () => {
+  const user = auth.currentUser;
+  return user ? user.emailVerified : false;
+};
+
+/**
+ * Resend verification email to current user
+ * @returns {Promise<void>}
+ */
+export const resendVerificationEmail = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user signed in');
+  }
+  if (user.emailVerified) {
+    throw new Error('Email is already verified');
+  }
+  await sendEmailVerification(user);
+  console.log('[Auth] Verification email resent to:', user.email);
+};
+
+/**
+ * Reload user to get fresh email verification status
+ * @returns {Promise<boolean>} - True if email is verified
+ */
+export const refreshEmailVerificationStatus = async () => {
+  const user = auth.currentUser;
+  if (!user) return false;
+  
+  await user.reload();
+  
+  // Update Firestore if verification status changed
+  if (user.emailVerified) {
+    await setDoc(doc(db, 'users', user.uid), {
+      emailVerified: true,
+    }, { merge: true });
+  }
+  
+  return user.emailVerified;
 };
 
 /**
@@ -317,4 +374,7 @@ export default {
   searchUsersByUsername,
   onAuthStateChange,
   getAuthErrorMessage,
+  isEmailVerified,
+  resendVerificationEmail,
+  refreshEmailVerificationStatus,
 };

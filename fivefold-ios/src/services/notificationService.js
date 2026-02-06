@@ -103,8 +103,22 @@ class NotificationService {
   // Set up notification listeners
   setupNotificationListeners() {
     // Listener for notifications received while app is foregrounded
-    this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
+    this.notificationListener = Notifications.addNotificationReceivedListener(async (notification) => {
       console.log('Notification received:', notification);
+      
+      // Mark token notification as sent to prevent duplicates
+      if (notification.request.content.data?.type === 'token_arrived') {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          await AsyncStorage.setItem('hub_token_notification_sent', JSON.stringify({
+            date: today,
+            sentAt: new Date().toISOString(),
+          }));
+          console.log('[Token] Marked notification as sent from listener');
+        } catch (e) {
+          console.warn('[Token] Could not mark notification sent:', e);
+        }
+      }
     });
 
     // Listener for when a user taps on a notification

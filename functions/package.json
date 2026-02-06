@@ -1,0 +1,13 @@
+{
+  "name": "biblely-functions",
+  "description": "Firebase Cloud Functions for Biblely",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^5.1.0"
+  }
+}

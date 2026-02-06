@@ -37,8 +37,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { GlassHeader } from '../components/GlassEffect';
 import { subscribeToPosts, createPost, viewPost, deletePost, formatTimeAgo, cleanupOldPosts } from '../services/feedService';
-import { getUserProfile } from '../services/authService';
-import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken } from '../services/tokenService';
+import { getUserProfile, isEmailVerified, resendVerificationEmail } from '../services/authService';
+import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
 import FriendsScreen from './FriendsScreen';
@@ -140,12 +140,12 @@ const HubTab = () => {
     // Delay initial token check to allow cloud data to download first
     // This prevents creating a new schedule before cloud data arrives
     const tokenCheckDelay = setTimeout(() => {
-      console.log('[HubTab] Initial token check (delayed)');
-      checkTokenStatus();
+      console.log('[HubTab] Initial token check (delayed) - syncing from Firebase');
+      checkTokenStatus(true); // Force Firebase sync on initial load
     }, 1500); // 1.5 second delay to let cloud sync complete
     
-    // Check token every minute after initial load
-    const tokenInterval = setInterval(checkTokenStatus, 60000);
+    // Check token every minute after initial load (sync from Firebase)
+    const tokenInterval = setInterval(() => checkTokenStatus(true), 60000);
     
     // Clean up old posts (older than 7 days) to save storage costs
     cleanupOldPosts().then((result) => {
@@ -198,8 +198,8 @@ const HubTab = () => {
   useEffect(() => {
     const { DeviceEventEmitter } = require('react-native');
     const subscription = DeviceEventEmitter.addListener('userDataDownloaded', async () => {
-      console.log('[HubTab] User data downloaded - reloading token status');
-      await checkTokenStatus();
+      console.log('[HubTab] User data downloaded - syncing token from Firebase');
+      await checkTokenStatus(true); // Force Firebase sync
     });
 
     return () => {
@@ -229,7 +229,7 @@ const HubTab = () => {
     }
   }, [tokenStatus.hasToken]);
   
-  const checkTokenStatus = async () => {
+  const checkTokenStatus = async (forceFirebaseSync = false) => {
     if (!user) return;
     
     // Check both displayName and username for test user detection
@@ -238,7 +238,15 @@ const HubTab = () => {
     const username = userProfile?.username || null;
     // Pass username first since it's cleaner (no emojis), fallback to displayName
     const nameToCheck = username || displayName;
-    const status = await checkAndDeliverToken(user.uid, nameToCheck);
+    
+    // Use Firebase sync on initial load to get admin-set schedules
+    let status;
+    if (forceFirebaseSync) {
+      status = await forceRefreshTokenFromFirebase(user.uid, nameToCheck);
+      console.log('[HubTab] Token synced from Firebase');
+    } else {
+      status = await checkAndDeliverToken(user.uid, nameToCheck);
+    }
     setTokenStatus(status);
     
     if (!status.hasToken && status.willArriveToday) {
@@ -251,7 +259,21 @@ const HubTab = () => {
   
   const handleRefresh = async () => {
     setRefreshing(true);
-    await checkTokenStatus();
+    
+    // Force refresh token from Firebase (for admin testing)
+    if (user) {
+      const status = await forceRefreshTokenFromFirebase(user.uid, userProfile?.username);
+      setTokenStatus(status);
+      
+      if (status.syncedFromFirebase) {
+        console.log('[Hub] Token synced from Firebase:', status.arrivalTime);
+      }
+      
+      // Update time until token
+      const timeInfo = await getTimeUntilToken();
+      setTimeUntilToken(timeInfo);
+    }
+    
     setRefreshing(false);
   };
   
@@ -296,6 +318,29 @@ const HubTab = () => {
       return;
     }
     
+    // Check email verification
+    if (!isEmailVerified()) {
+      Alert.alert(
+        'Verify Your Email',
+        'Please verify your email address before posting. Check your inbox for a verification link.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Resend Email', 
+            onPress: async () => {
+              try {
+                await resendVerificationEmail();
+                Alert.alert('Email Sent', 'Verification email has been resent. Please check your inbox.');
+              } catch (err) {
+                Alert.alert('Error', err.message);
+              }
+            }
+          },
+        ]
+      );
+      return;
+    }
+    
     setPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
@@ -326,7 +371,7 @@ const HubTab = () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPostContent('');
       setShowComposer(false);
-      await checkTokenStatus(); // Refresh token status
+      await checkTokenStatus(true); // Refresh token status from Firebase
     } else {
       Alert.alert('Error', result.error || 'Failed to create post');
     }

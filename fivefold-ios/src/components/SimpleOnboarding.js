@@ -27,6 +27,9 @@ import { hapticFeedback } from '../utils/haptics';
 import { countries } from '../data/countries';
 import { bibleVersions } from '../data/bibleVersions';
 import { persistProfileImage } from '../utils/profileImageStorage';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { uploadProfilePicture } from '../services/storageService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -726,10 +729,21 @@ const SimpleOnboarding = ({ onComplete }) => {
 
   const finishOnboarding = async () => {
     try {
-      // Save user profile
+      // Upload profile image to Firebase Storage if selected
+      let uploadedProfileUrl = null;
+      if (profileImage && user?.uid) {
+        try {
+          uploadedProfileUrl = await uploadProfilePicture(user.uid, profileImage);
+          console.log('[Onboarding] Profile image uploaded:', uploadedProfileUrl);
+        } catch (uploadError) {
+          console.warn('[Onboarding] Failed to upload profile image:', uploadError);
+        }
+      }
+      
+      // Save user profile locally
       const profileData = {
         name: userName.trim() || 'Friend',
-        profilePicture: profileImage,
+        profilePicture: uploadedProfileUrl || profileImage,
         country: selectedCountry?.name || null,
         countryCode: selectedCountry?.code || null,
         countryFlag: selectedCountry?.flag || null,
@@ -741,6 +755,30 @@ const SimpleOnboarding = ({ onComplete }) => {
         joinedDate: new Date().toISOString(),
       };
       await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
+      
+      // SYNC TO FIREBASE - Critical for data persistence across devices/accounts
+      if (user?.uid) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await updateDoc(userRef, {
+            displayName: userName.trim() || 'Friend',
+            profilePicture: uploadedProfileUrl || profileImage || null,
+            country: selectedCountry?.name || null,
+            countryCode: selectedCountry?.code || null,
+            countryFlag: selectedCountry?.flag || null,
+            theme: selectedTheme,
+            mode: selectedMode,
+            bibleVersion: selectedBibleVersion,
+            weightUnit: weightUnit,
+            language: selectedLanguage,
+            onboardingCompleted: true,
+            onboardingCompletedAt: new Date().toISOString(),
+          });
+          console.log('[Onboarding] Profile synced to Firebase');
+        } catch (syncError) {
+          console.warn('[Onboarding] Failed to sync to Firebase:', syncError);
+        }
+      }
       
       // Save individual settings
       if (selectedPainPoint) {
@@ -759,7 +797,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       // Save weight unit preference
       await AsyncStorage.setItem('weightUnit', weightUnit);
       
-      // Persist profile image if selected
+      // Persist profile image locally if selected
       if (profileImage) {
         await persistProfileImage(profileImage);
       }

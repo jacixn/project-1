@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import {
   signUp as authSignUp,
   signIn as authSignIn,
@@ -325,8 +326,18 @@ export const AuthProvider = ({ children }) => {
         'daily_verse_index_v6',
         'shuffled_verses_v6',
         'daily_verse_last_update_v6',
-        // App streak (user-specific)
+        // App streak (user-specific) - BOTH keys used by AppStreakManager
         'app_streak_data',
+        'app_open_streak',
+        'app_open_dates',
+        // Onboarding selections
+        'userPainPoint',
+        'userAttribution',
+        // Token notification flag
+        'hub_token_notification_sent',
+        'hub_posting_token',
+        'hub_token_schedule',
+        'hub_token_last_delivery',
         // Tasks/Todos
         'todos',
         'fivefold_todos',
@@ -348,6 +359,18 @@ export const AuthProvider = ({ children }) => {
       
       await AsyncStorage.multiRemove(userSpecificKeys);
       console.log('[Auth] Cleared user-specific data on sign out');
+      
+      // Clean up local profile images
+      try {
+        const files = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory);
+        const profilePics = files.filter(f => f.startsWith('profile_'));
+        for (const pic of profilePics) {
+          await FileSystem.deleteAsync(`${FileSystem.documentDirectory}${pic}`, { idempotent: true });
+        }
+        console.log('[Auth] Cleared local profile images');
+      } catch (fileError) {
+        console.log('[Auth] Profile image cleanup note:', fileError.message);
+      }
       
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
