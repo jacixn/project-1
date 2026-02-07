@@ -155,7 +155,8 @@ const CountrySearchScreen = React.memo(({
   setSelectedCountry, 
   onNext, 
   progress,
-  screenTheme 
+  screenTheme,
+  userName 
 }) => {
   const [searchText, setSearchText] = useState('');
   const inputRef = useRef(null);
@@ -187,7 +188,7 @@ const CountrySearchScreen = React.memo(({
       
       <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 30 }}>
         <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, color: '#333' }}>
-          Where are you from?
+          Where are you from, {userName}?
         </Text>
         
         <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 30, lineHeight: 24, color: '#666' }}>
@@ -420,10 +421,12 @@ const PREMIUM_FEATURES = [
 
 const SimpleOnboarding = ({ onComplete }) => {
   const { theme, isDark, changeTheme, toggleDarkMode, availableThemes } = useTheme();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [currentScreen, setCurrentScreen] = useState(0);
-  // Get display name from auth - user already entered it during signup
-  const [userName, setUserName] = useState(user?.displayName || user?.username || 'Friend');
+  // Get display name from auth or profile - user already entered it during signup
+  const [userName, setUserName] = useState(
+    user?.displayName || userProfile?.displayName || userProfile?.username || user?.username || 'Friend'
+  );
   const [profileImage, setProfileImage] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedPainPoint, setSelectedPainPoint] = useState(null);
@@ -431,7 +434,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [giftOpened, setGiftOpened] = useState(false);
   const [showFreeReveal, setShowFreeReveal] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState('cresvia');
+  const [selectedTheme, setSelectedTheme] = useState('jesusnlambs');
   const [selectedMode, setSelectedMode] = useState('dark');
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('niv');
   const [weightUnit, setWeightUnit] = useState('kg');
@@ -802,6 +805,24 @@ const SimpleOnboarding = ({ onComplete }) => {
         await persistProfileImage(profileImage);
       }
       
+      // Also update AuthContext cache so background sync doesn't overwrite
+      try {
+        const cacheStr = await AsyncStorage.getItem('@biblely_user_cache');
+        const cached = cacheStr ? JSON.parse(cacheStr) : {};
+        const updatedCache = {
+          ...cached,
+          displayName: userName.trim() || 'Friend',
+          profilePicture: uploadedProfileUrl || profileImage || cached.profilePicture || null,
+          country: selectedCountry?.name || null,
+          countryCode: selectedCountry?.code || null,
+          countryFlag: selectedCountry?.flag || null,
+        };
+        await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify(updatedCache));
+        console.log('[Onboarding] Updated AuthContext cache');
+      } catch (cacheError) {
+        console.warn('[Onboarding] Failed to update auth cache:', cacheError);
+      }
+      
       // Apply theme
       await changeTheme(selectedTheme);
       if (selectedMode === 'dark' && !isDark) await toggleDarkMode();
@@ -872,48 +893,44 @@ const SimpleOnboarding = ({ onComplete }) => {
     setHoldProgress(0);
     giftScaleAnim.setValue(1);
     
-    // Start progress timer (5 seconds total)
+    // Smooth scale animation over 5 seconds (no jumpy setValue)
+    Animated.timing(giftScaleAnim, {
+      toValue: 1.5,
+      duration: 5000,
+      useNativeDriver: true,
+    }).start();
+    
+    // Gentle continuous wobble (smooth, not shaky)
+    const wobble = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(giftShakeAnim, { toValue: 4, duration: 120, useNativeDriver: true }),
+          Animated.timing(giftShakeAnim, { toValue: -4, duration: 120, useNativeDriver: true }),
+        ])
+      ).start();
+    };
+    wobble();
+    
+    // Progress timer (5 seconds total) - update less frequently to avoid flicker
     let progress = 0;
     holdIntervalRef.current = setInterval(() => {
-      progress += 2; // Increment by 2 = 5 seconds total (50 intervals × 100ms)
-      setHoldProgress(progress);
+      progress += 5; // Increment by 5 = 4 seconds total (20 intervals × 200ms)
+      setHoldProgress(Math.min(progress, 100));
       
-      // Grow the gift as user holds
-      const scale = 1 + (progress / 100) * 0.5; // Grows from 1x to 1.5x
-      giftScaleAnim.setValue(scale);
-      
-      // Shake more intensely as progress increases
-      const shakeIntensity = (progress / 100) * 15;
-      Animated.sequence([
-        Animated.timing(giftShakeAnim, {
-          toValue: shakeIntensity,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(giftShakeAnim, {
-          toValue: -shakeIntensity,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(giftShakeAnim, {
-          toValue: 0,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      
-      // Light haptic feedback every 10%
-      if (progress % 10 === 0) {
+      // Haptic feedback at 25%, 50%, 75%
+      if (progress === 25 || progress === 50 || progress === 75) {
         hapticFeedback.light();
       }
       
-      // Complete at 100 (5 seconds)
+      // Complete at 100
       if (progress >= 100) {
         clearInterval(holdIntervalRef.current);
         holdIntervalRef.current = null;
+        giftShakeAnim.stopAnimation();
+        giftShakeAnim.setValue(0);
         hapticFeedback.success();
         
-        // Big celebration animation
+        // Celebration pop
         Animated.sequence([
           Animated.timing(giftScaleAnim, {
             toValue: 1.8,
@@ -930,7 +947,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           setIsHolding(false);
         });
       }
-    }, 100); // 100ms intervals, progress+=2 = 5 seconds total
+    }, 200); // 200ms intervals (smoother, fewer re-renders)
   };
   
   const endGiftHold = () => {
@@ -942,7 +959,9 @@ const SimpleOnboarding = ({ onComplete }) => {
       holdIntervalRef.current = null;
     }
     
-    // Reset everything
+    // Stop all animations and reset
+    giftScaleAnim.stopAnimation();
+    giftShakeAnim.stopAnimation();
     setIsHolding(false);
     setHoldProgress(0);
     giftScaleAnim.setValue(1);
@@ -1089,7 +1108,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           </View>
           
           <Text style={[styles.screenTitle, { color: '#333' }]}>
-            Choose your language
+            Choose your language, {userName}
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -1344,7 +1363,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           scrollEventThrottle={16}
         >
           <Text style={[styles.screenTitle, { color: '#333' }]}>
-            More than just a Bible app
+            {userName}, it's more than just a Bible app
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -1787,7 +1806,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           scrollEventThrottle={16}
         >
           <Text style={[styles.screenTitle, { color: '#333' }]}>
-            Which Bible version do you prefer?
+            {userName}, which Bible version do you prefer?
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -1959,7 +1978,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         <View style={styles.photoScreenContent}>
           <View style={styles.photoTopSection}>
             <Text style={[styles.screenTitle, { color: '#333' }]}>
-              Add a profile photo
+              Add a profile photo, {userName}
             </Text>
             
             <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -2040,7 +2059,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.screenTitle, { color: '#333' }]}>
-            Pick your vibe
+            Pick your vibe, {userName}
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -2143,7 +2162,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.screenTitle, { color: '#333' }]}>
-            Can I check in with you?
+            {userName}, can I check in with you?
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -2308,18 +2327,95 @@ const SimpleOnboarding = ({ onComplete }) => {
   const GiftScreen = () => {
     const screenTheme = SCREEN_THEMES.gift;
     
-    // Price breakdown for features
-    const priceBreakdown = [
-      { feature: 'Smart Bible Companion', price: '$4.99/mo' },
-      { feature: '35+ Bible Translations', price: '$3.99/mo' },
-      { feature: 'Audio Bible Stories', price: '$2.99/mo' },
-      { feature: 'Bible Quizzes & Games', price: '$1.99/mo' },
-      { feature: 'Smart Task Scoring', price: '$3.99/mo' },
-      { feature: 'Gym & Workout Tracker', price: '$4.99/mo' },
-      { feature: 'Thematic Study Guides', price: '$2.99/mo' },
+    // Currency data by country code (symbol, approximate rate from USD)
+    const currencyMap = {
+      'US': { symbol: '$', rate: 1 }, 'WW': { symbol: '$', rate: 1 },
+      'GB': { symbol: '£', rate: 0.79 }, 'EU': { symbol: '€', rate: 0.92 },
+      'CA': { symbol: 'C$', rate: 1.36 }, 'AU': { symbol: 'A$', rate: 1.53 },
+      'DE': { symbol: '€', rate: 0.92 }, 'FR': { symbol: '€', rate: 0.92 },
+      'IT': { symbol: '€', rate: 0.92 }, 'ES': { symbol: '€', rate: 0.92 },
+      'NL': { symbol: '€', rate: 0.92 }, 'BE': { symbol: '€', rate: 0.92 },
+      'AT': { symbol: '€', rate: 0.92 }, 'PT': { symbol: '€', rate: 0.92 },
+      'IE': { symbol: '€', rate: 0.92 }, 'FI': { symbol: '€', rate: 0.92 },
+      'GR': { symbol: '€', rate: 0.92 }, 'SK': { symbol: '€', rate: 0.92 },
+      'SI': { symbol: '€', rate: 0.92 }, 'EE': { symbol: '€', rate: 0.92 },
+      'LV': { symbol: '€', rate: 0.92 }, 'LT': { symbol: '€', rate: 0.92 },
+      'CY': { symbol: '€', rate: 0.92 }, 'MT': { symbol: '€', rate: 0.92 },
+      'LU': { symbol: '€', rate: 0.92 }, 'HR': { symbol: '€', rate: 0.92 },
+      'MX': { symbol: 'MX$', rate: 17.15 }, 'BR': { symbol: 'R$', rate: 4.97 },
+      'AR': { symbol: 'AR$', rate: 870 }, 'CL': { symbol: 'CL$', rate: 940 },
+      'CO': { symbol: 'COP$', rate: 3950 }, 'PE': { symbol: 'S/', rate: 3.72 },
+      'IN': { symbol: '₹', rate: 83.1 }, 'PK': { symbol: 'Rs', rate: 278 },
+      'BD': { symbol: '৳', rate: 110 }, 'LK': { symbol: 'Rs', rate: 312 },
+      'NP': { symbol: 'Rs', rate: 133 },
+      'CN': { symbol: '¥', rate: 7.24 }, 'JP': { symbol: '¥', rate: 149 },
+      'KR': { symbol: '₩', rate: 1330 }, 'TW': { symbol: 'NT$', rate: 31.5 },
+      'TH': { symbol: '฿', rate: 35.5 }, 'VN': { symbol: '₫', rate: 24500 },
+      'MY': { symbol: 'RM', rate: 4.72 }, 'SG': { symbol: 'S$', rate: 1.34 },
+      'PH': { symbol: '₱', rate: 56.2 }, 'ID': { symbol: 'Rp', rate: 15700 },
+      'RU': { symbol: '₽', rate: 91.5 }, 'UA': { symbol: '₴', rate: 38.5 },
+      'TR': { symbol: '₺', rate: 30.2 }, 'SA': { symbol: 'SAR', rate: 3.75 },
+      'AE': { symbol: 'AED', rate: 3.67 }, 'QA': { symbol: 'QAR', rate: 3.64 },
+      'KW': { symbol: 'KD', rate: 0.31 }, 'BH': { symbol: 'BD', rate: 0.38 },
+      'OM': { symbol: 'OMR', rate: 0.38 }, 'JO': { symbol: 'JOD', rate: 0.71 },
+      'EG': { symbol: 'E£', rate: 30.9 }, 'MA': { symbol: 'MAD', rate: 10.1 },
+      'ZA': { symbol: 'R', rate: 18.6 }, 'NG': { symbol: '₦', rate: 1550 },
+      'GH': { symbol: 'GH₵', rate: 12.5 }, 'KE': { symbol: 'KSh', rate: 153 },
+      'TZ': { symbol: 'TSh', rate: 2520 }, 'UG': { symbol: 'USh', rate: 3790 },
+      'ET': { symbol: 'Br', rate: 56.8 }, 'RW': { symbol: 'FRw', rate: 1270 },
+      'CM': { symbol: 'FCFA', rate: 603 }, 'CI': { symbol: 'FCFA', rate: 603 },
+      'SN': { symbol: 'FCFA', rate: 603 }, 'CD': { symbol: 'FC', rate: 2750 },
+      'ZW': { symbol: 'ZWL', rate: 13500 }, 'BW': { symbol: 'P', rate: 13.6 },
+      'MZ': { symbol: 'MT', rate: 63.5 }, 'AO': { symbol: 'Kz', rate: 830 },
+      'SE': { symbol: 'kr', rate: 10.4 }, 'NO': { symbol: 'kr', rate: 10.5 },
+      'DK': { symbol: 'kr', rate: 6.87 }, 'IS': { symbol: 'kr', rate: 137 },
+      'PL': { symbol: 'zł', rate: 4.02 }, 'CZ': { symbol: 'Kč', rate: 22.8 },
+      'HU': { symbol: 'Ft', rate: 358 }, 'RO': { symbol: 'lei', rate: 4.57 },
+      'BG': { symbol: 'лв', rate: 1.8 }, 'RS': { symbol: 'din', rate: 108 },
+      'CH': { symbol: 'CHF', rate: 0.88 },
+      'IL': { symbol: '₪', rate: 3.67 }, 'NZ': { symbol: 'NZ$', rate: 1.64 },
+      'JM': { symbol: 'J$', rate: 155 }, 'TT': { symbol: 'TT$', rate: 6.79 },
+      'HK': { symbol: 'HK$', rate: 7.82 },
+      'AM': { symbol: '֏', rate: 387 },
+    };
+    
+    // Get currency for selected country
+    const getCurrency = () => {
+      const code = selectedCountry?.code || 'US';
+      return currencyMap[code] || { symbol: '$', rate: 1 };
+    };
+    
+    const formatPrice = (usdPrice) => {
+      const { symbol, rate } = getCurrency();
+      const converted = usdPrice * rate;
+      // Format with appropriate decimals
+      if (rate >= 100) {
+        return `${symbol}${Math.round(converted).toLocaleString()}/mo`;
+      } else if (rate >= 10) {
+        return `${symbol}${converted.toFixed(1)}/mo`;
+      } else {
+        return `${symbol}${converted.toFixed(2)}/mo`;
+      }
+    };
+    
+    // Price breakdown in USD (base prices)
+    const basePrices = [
+      { feature: 'Smart Bible Companion', usd: 4.99 },
+      { feature: '35+ Bible Translations', usd: 3.99 },
+      { feature: 'Audio Bible Stories', usd: 2.99 },
+      { feature: 'Bible Quizzes & Games', usd: 1.99 },
+      { feature: 'Smart Task Scoring', usd: 3.99 },
+      { feature: 'Gym & Workout Tracker', usd: 4.99 },
+      { feature: 'Thematic Study Guides', usd: 2.99 },
     ];
     
-    const totalValue = '$25.93/mo';
+    const priceBreakdown = basePrices.map(item => ({
+      feature: item.feature,
+      price: formatPrice(item.usd),
+    }));
+    
+    const totalUsd = basePrices.reduce((sum, item) => sum + item.usd, 0);
+    const totalValue = formatPrice(totalUsd);
     
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
@@ -2329,7 +2425,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           // Hold to reveal state
           <View style={styles.content}>
             <Text style={[styles.screenTitle, { color: '#333' }]}>
-              I got you something!
+              {userName}, I got you something!
             </Text>
             
             <Text style={[styles.screenSubtitle, { color: '#666' }]}>
@@ -2422,7 +2518,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               <Text style={styles.yourPriceLabel}>Your price:</Text>
               <View style={styles.yourPriceRow}>
                 <Text style={styles.yourPriceStrikethrough}>{totalValue}</Text>
-                <Text style={styles.yourPriceFree}>$0</Text>
+                <Text style={styles.yourPriceFree}>{getCurrency().symbol}0</Text>
               </View>
               <Text style={styles.yourPriceForever}>Forever free. No ads. No trials.</Text>
             </View>
@@ -2829,6 +2925,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           onNext={handleNext}
           progress={progress}
           screenTheme={SCREEN_THEMES.country}
+          userName={userName}
         />
       );
       case 'language': return <LanguageScreen />;

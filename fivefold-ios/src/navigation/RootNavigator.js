@@ -303,7 +303,7 @@ const loadingStyles = StyleSheet.create({
 
 const RootNavigator = () => {
   const { theme, isDark } = useTheme();
-  const { isAuthenticated, initializing } = useAuth();
+  const { isAuthenticated, initializing, userProfile, signOut } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   
@@ -313,6 +313,19 @@ const RootNavigator = () => {
       if (isAuthenticated) {
         // Small delay to allow sign-in process to complete setting onboardingCompleted
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // If user has no displayName or username, account creation was incomplete
+        // Sign them out so they can start fresh
+        if (!userProfile?.displayName && !userProfile?.username) {
+          console.log('[RootNavigator] No displayName/username found - signing out incomplete account');
+          try {
+            await signOut();
+          } catch (e) {
+            console.warn('[RootNavigator] Error signing out incomplete account:', e);
+          }
+          setCheckingOnboarding(false);
+          return;
+        }
         
         const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
         console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
@@ -327,7 +340,7 @@ const RootNavigator = () => {
       setCheckingOnboarding(true); // Reset while checking
       checkOnboarding();
     }
-  }, [isAuthenticated, initializing]);
+  }, [isAuthenticated, initializing, userProfile]);
   
   // Handle onboarding completion
   const handleOnboardingComplete = async () => {

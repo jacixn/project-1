@@ -143,6 +143,11 @@ export const AuthProvider = ({ children }) => {
   const signUp = useCallback(async ({ email, password, username, displayName }) => {
     setLoading(true);
     try {
+      // CRITICAL: Clear onboarding flag so new user ALWAYS sees onboarding
+      // This prevents stale 'onboardingCompleted' from a previous user on same device
+      await AsyncStorage.removeItem('onboardingCompleted');
+      console.log('[Auth] Cleared onboardingCompleted for new user signup');
+      
       const result = await authSignUp({ email, password, username, displayName });
       
       // IMPORTANT: The auth state change listener fires BEFORE the Firestore writes complete

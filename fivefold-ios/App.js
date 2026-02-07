@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LogBox, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
@@ -298,60 +298,69 @@ const ThemedApp = () => {
     prevUserIdRef.current = currentUserId;
   }, [user?.uid, reloadTheme]);
   
+  // Store pending widget verse for when app finishes loading
+  const pendingWidgetVerseRef = useRef(null);
+  
+  // Process a widget verse navigation (called when nav is ready)
+  const processWidgetVerse = useCallback((decodedRef) => {
+    console.log('📖 Processing widget verse:', decodedRef);
+    
+    global.__WIDGET_LAUNCH__ = true;
+    
+    DeviceEventEmitter.emit('closeAllModals');
+    
+    setTimeout(() => {
+      if (navigationRef.current?.isReady()) {
+        try {
+          navigationRef.current.navigate('BiblePrayer');
+          console.log('✅ Navigated to BiblePrayer tab for widget');
+        } catch (navError) {
+          console.error('❌ Navigation error:', navError);
+        }
+      }
+      
+      setTimeout(() => {
+        DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
+      }, 300);
+    }, 100);
+    
+    setTimeout(() => {
+      global.__WIDGET_LAUNCH__ = false;
+    }, 1500);
+  }, []);
+  
   // Handle deep links from widgets
-  const handleDeepLink = (url) => {
+  const handleDeepLink = useCallback((url) => {
     if (!url) return;
     
     console.log('🔗 Deep link received:', url);
     
     try {
-      // Parse biblely://verse?ref=Proverbs%2012:2
       if (url.startsWith('biblely://verse')) {
         const urlObj = new URL(url);
         const reference = urlObj.searchParams.get('ref');
         
         if (reference) {
           const decodedRef = decodeURIComponent(reference);
-          console.log('📖 Widget tap - navigating to verse:', decodedRef);
+          console.log('📖 Widget tap - verse:', decodedRef);
           
-          // Set global flag to suppress Verse of the Day
-          // (user tapped widget for a specific verse, they don't need daily verse)
           global.__WIDGET_LAUNCH__ = true;
           
-          // Small delay to ensure app is ready
-          setTimeout(() => {
-            // STEP 1: Emit global event to close ALL modals in ALL tabs
-            console.log('📱 Emitting closeAllModals event');
-            DeviceEventEmitter.emit('closeAllModals');
-            
-            // STEP 2: Navigate to BiblePrayer tab (after modals start closing)
-            setTimeout(() => {
-              if (navigationRef.current?.isReady()) {
-                try {
-                  navigationRef.current.navigate('BiblePrayer');
-                  console.log('✅ Navigated to BiblePrayer tab for widget');
-                } catch (navError) {
-                  console.error('❌ Navigation error:', navError);
-                }
-              }
-              
-              // STEP 3: Emit event to show the specific verse (after tab navigation)
-              setTimeout(() => {
-                DeviceEventEmitter.emit('widgetVerseNavigation', decodedRef);
-              }, 300);
-            }, 100);
-            
-            // Clear the flag after navigation
-            setTimeout(() => {
-              global.__WIDGET_LAUNCH__ = false;
-            }, 1500);
-          }, 500);
+          // Check if navigation is ready
+          if (navigationRef.current?.isReady()) {
+            // App is already running - process immediately
+            processWidgetVerse(decodedRef);
+          } else {
+            // App is cold-launching - store for later and process when ready
+            console.log('📱 Navigation not ready, storing pending widget verse');
+            pendingWidgetVerseRef.current = decodedRef;
+          }
         }
       }
     } catch (error) {
       console.error('❌ Error parsing deep link:', error);
     }
-  };
+  }, [processWidgetVerse]);
   
   // Listen for deep links
   useEffect(() => {
@@ -536,6 +545,16 @@ const ThemedApp = () => {
                 console.log('📱 Processing pending notification navigation');
                 handleNotificationNavigation(pendingNavigationRef.current);
                 pendingNavigationRef.current = null;
+              }
+              
+              // Handle any pending widget verse navigation (cold launch)
+              if (pendingWidgetVerseRef.current) {
+                console.log('📱 Processing pending widget verse:', pendingWidgetVerseRef.current);
+                // Extra delay to ensure BiblePrayerTab is mounted and listener is active
+                setTimeout(() => {
+                  processWidgetVerse(pendingWidgetVerseRef.current);
+                  pendingWidgetVerseRef.current = null;
+                }, 1000);
               }
             }}
           >
