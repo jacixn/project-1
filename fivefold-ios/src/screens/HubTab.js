@@ -25,6 +25,7 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -150,8 +151,18 @@ const HubTab = () => {
       checkTokenStatus(true);
     }, 1500);
     
+    // Refresh token status when app comes to foreground
+    // (e.g. user taps notification saying token arrived)
+    const appStateListener = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        console.log('[HubTab] App came to foreground, checking token status');
+        checkTokenStatus(true);
+      }
+    });
+    
     return () => {
       clearTimeout(tokenCheckDelay);
+      appStateListener?.remove();
     };
   }, [user]);
   
