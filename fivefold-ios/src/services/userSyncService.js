@@ -316,25 +316,58 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded profile picture URL from cloud');
     }
     
-    // Download user-specific content from cloud (saved verses, theme, journal)
-    // Saved Bible Verses - cloud overwrites local since we clear on sign-out
-    if (cloudData.savedBibleVerses && Array.isArray(cloudData.savedBibleVerses)) {
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(cloudData.savedBibleVerses));
-      console.log(`[Sync] Downloaded ${cloudData.savedBibleVerses.length} saved verses from cloud`);
+    // ============================================================
+    // SMART MERGE: Always keep whichever data is more recent
+    // This prevents background sync from overwriting recent local changes
+    // ============================================================
+    
+    // Helper: merge arrays by ID, keeping more recent items
+    const mergeArraysById = async (key, cloudArray, idField = 'id') => {
+      if (!cloudArray || !Array.isArray(cloudArray)) return;
+      const localStr = await AsyncStorage.getItem(key);
+      const localArray = localStr ? JSON.parse(localStr) : [];
       
-      // Also update userStats with saved verses count
+      // Create map of local items by ID
+      const localMap = new Map();
+      localArray.forEach(item => {
+        const id = item[idField];
+        if (id) localMap.set(id, item);
+      });
+      
+      // Merge: cloud items + any local items not in cloud
+      cloudArray.forEach(item => {
+        const id = item[idField];
+        if (id) localMap.set(id, item); // Cloud wins for items that exist in both
+      });
+      
+      // But also add any LOCAL-ONLY items (created since last sync)
+      localArray.forEach(item => {
+        const id = item[idField];
+        if (id && !cloudArray.find(c => c[idField] === id)) {
+          localMap.set(id, item); // Keep local-only items
+        }
+      });
+      
+      const merged = Array.from(localMap.values());
+      await AsyncStorage.setItem(key, JSON.stringify(merged));
+      return merged;
+    };
+    
+    // Saved Bible Verses - merge by ID, keep local-only additions
+    if (cloudData.savedBibleVerses && Array.isArray(cloudData.savedBibleVerses)) {
+      const merged = await mergeArraysById('savedBibleVerses', cloudData.savedBibleVerses);
+      console.log(`[Sync] Merged saved verses: ${merged?.length || 0} total`);
+      
       const statsStr = await AsyncStorage.getItem('userStats');
       const stats = statsStr ? JSON.parse(statsStr) : {};
-      stats.savedVerses = cloudData.savedBibleVerses.length;
+      stats.savedVerses = merged?.length || 0;
       await AsyncStorage.setItem('userStats', JSON.stringify(stats));
-    } else {
-      console.log('[Sync] No saved verses found in cloud');
     }
     
-    // Journal Notes - cloud overwrites local
+    // Journal Notes - merge by ID, keep local-only additions
     if (cloudData.journalNotes && Array.isArray(cloudData.journalNotes)) {
-      await AsyncStorage.setItem('journalNotes', JSON.stringify(cloudData.journalNotes));
-      console.log(`[Sync] Downloaded ${cloudData.journalNotes.length} journal notes from cloud`);
+      const merged = await mergeArraysById('journalNotes', cloudData.journalNotes);
+      console.log(`[Sync] Merged journal notes: ${merged?.length || 0} total`);
     }
     
     // Theme Preferences - cloud overwrites local
@@ -354,22 +387,22 @@ export const downloadAndMergeCloudData = async (userId) => {
       completedTodos: cloudData.completedTodos,
     });
     
-    // Workout history
+    // Workout history - merge, keep local-only entries
     if (cleanedCloudData.workoutHistory && cleanedCloudData.workoutHistory.length > 0) {
-      await AsyncStorage.setItem('workoutHistory', JSON.stringify(cleanedCloudData.workoutHistory));
-      console.log(`[Sync] Downloaded workout history from cloud (${cleanedCloudData.workoutHistory.length} entries, cleaned)`);
+      const merged = await mergeArraysById('workoutHistory', cleanedCloudData.workoutHistory);
+      console.log(`[Sync] Merged workout history: ${merged?.length || 0} entries`);
     }
     
-    // Quiz history
+    // Quiz history - merge, keep local-only entries
     if (cleanedCloudData.quizHistory && cleanedCloudData.quizHistory.length > 0) {
-      await AsyncStorage.setItem('quizHistory', JSON.stringify(cleanedCloudData.quizHistory));
-      console.log(`[Sync] Downloaded quiz history from cloud (${cleanedCloudData.quizHistory.length} entries, cleaned)`);
+      const merged = await mergeArraysById('quizHistory', cleanedCloudData.quizHistory);
+      console.log(`[Sync] Merged quiz history: ${merged?.length || 0} entries`);
     }
     
-    // Prayer history
+    // Prayer history - merge, keep local-only entries
     if (cleanedCloudData.prayerHistory && cleanedCloudData.prayerHistory.length > 0) {
-      await AsyncStorage.setItem('prayerHistory', JSON.stringify(cleanedCloudData.prayerHistory));
-      console.log(`[Sync] Downloaded prayer history from cloud (${cleanedCloudData.prayerHistory.length} entries, cleaned)`);
+      const merged = await mergeArraysById('prayerHistory', cleanedCloudData.prayerHistory);
+      console.log(`[Sync] Merged prayer history: ${merged?.length || 0} entries`);
     }
     
     // User prayers (custom prayer settings/names/times)
@@ -388,32 +421,76 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded hub_token_schedule from cloud');
     }
     
-    // Active todos/tasks
+    // Active todos/tasks - merge by ID, preserve local completion state
     if (cloudData.todos) {
-      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(cloudData.todos));
-      console.log(`[Sync] Downloaded ${cloudData.todos.length} todos from cloud`);
+      const localStr = await AsyncStorage.getItem('fivefold_todos');
+      const localTodos = localStr ? JSON.parse(localStr) : [];
+      const localMap = new Map(localTodos.map(t => [t.id, t]));
+      
+      // Merge: keep local completion state if more recent
+      cloudData.todos.forEach(cloudTodo => {
+        const localTodo = localMap.get(cloudTodo.id);
+        if (localTodo) {
+          // If local is completed but cloud isn't, keep local (user completed it this session)
+          if (localTodo.completed && !cloudTodo.completed) {
+            // Keep local version
+          } else {
+            localMap.set(cloudTodo.id, cloudTodo);
+          }
+        } else {
+          localMap.set(cloudTodo.id, cloudTodo);
+        }
+      });
+      
+      const merged = Array.from(localMap.values());
+      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(merged));
+      console.log(`[Sync] Merged ${merged.length} todos`);
     }
     
-    // Completed todos/tasks (cleaned)
+    // Completed todos/tasks (cleaned) - merge, keep local-only completions
     if (cleanedCloudData.completedTodos && cleanedCloudData.completedTodos.length > 0) {
-      await AsyncStorage.setItem('completedTodos', JSON.stringify(cleanedCloudData.completedTodos));
-      console.log(`[Sync] Downloaded completed todos from cloud (${cleanedCloudData.completedTodos.length} entries, cleaned)`);
+      const merged = await mergeArraysById('completedTodos', cleanedCloudData.completedTodos);
+      console.log(`[Sync] Merged completed todos: ${merged?.length || 0} entries`);
     }
     
-    // App streak data - restore to BOTH keys for compatibility
+    // App streak data - SMART MERGE: keep whichever is more recent
     if (cloudData.appStreakData) {
-      await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
-      // Also set app_open_streak which AppStreakManager uses
-      await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
-      console.log('[Sync] Downloaded app streak data from cloud');
+      const localStreakStr = await AsyncStorage.getItem('app_open_streak');
+      const localStreak = localStreakStr ? JSON.parse(localStreakStr) : null;
+      
+      if (localStreak && localStreak.lastOpenDate) {
+        // Compare using totalOpens as a proxy for "more recent" (higher = more recent)
+        // Also check if local lastOpenDate is today (meaning user already tracked this session)
+        const today = new Date().toDateString();
+        const localIsToday = localStreak.lastOpenDate === today;
+        const localOpens = localStreak.totalOpens || 0;
+        const cloudOpens = cloudData.appStreakData.totalOpens || 0;
+        
+        if (localIsToday || localOpens >= cloudOpens) {
+          // Local is more recent or tracked today - DON'T overwrite
+          console.log('[Sync] Local streak data is more recent (today or higher opens), keeping local');
+        } else {
+          // Cloud is more recent - use cloud data
+          await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
+          await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
+          console.log('[Sync] Cloud streak data is more recent, using cloud');
+        }
+      } else {
+        // No local data - use cloud
+        await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
+        await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
+        console.log('[Sync] No local streak data, using cloud');
+      }
     } else if (cloudData.currentStreak > 0) {
-      // Fallback: create streak data from currentStreak field
-      const streakData = {
-        currentStreak: cloudData.currentStreak || 0,
-        lastOpenDate: new Date().toISOString().split('T')[0],
-      };
-      await AsyncStorage.setItem('app_open_streak', JSON.stringify(streakData));
-      console.log('[Sync] Created streak data from currentStreak:', cloudData.currentStreak);
+      const localStreakStr = await AsyncStorage.getItem('app_open_streak');
+      if (!localStreakStr) {
+        const streakData = {
+          currentStreak: cloudData.currentStreak || 0,
+          lastOpenDate: new Date().toISOString().split('T')[0],
+        };
+        await AsyncStorage.setItem('app_open_streak', JSON.stringify(streakData));
+        console.log('[Sync] Created streak data from currentStreak:', cloudData.currentStreak);
+      }
     }
     
     // Scheduled workouts (gym)
@@ -422,27 +499,50 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Downloaded ${cloudData.scheduledWorkouts.length} scheduled workouts from cloud`);
     }
     
-    // Simple prayers (the prayers shown on Bible tab)
+    // Simple prayers - SMART MERGE: preserve local completedAt timestamps
     if (cloudData.simplePrayers && Array.isArray(cloudData.simplePrayers)) {
-      console.log('[Sync] Found prayers in cloud:', JSON.stringify(cloudData.simplePrayers.map(p => ({ id: p.id, name: p.name }))));
-      await AsyncStorage.setItem('fivefold_simplePrayers', JSON.stringify(cloudData.simplePrayers));
-      console.log(`[Sync] Downloaded and saved ${cloudData.simplePrayers.length} prayers to fivefold_simplePrayers`);
+      const localStr = await AsyncStorage.getItem('fivefold_simplePrayers');
+      const localPrayers = localStr ? JSON.parse(localStr) : [];
       
-      // Verify the save worked
-      const verifyStr = await AsyncStorage.getItem('fivefold_simplePrayers');
-      const verified = verifyStr ? JSON.parse(verifyStr) : [];
-      console.log(`[Sync] Verified: ${verified.length} prayers now in local storage`);
-    } else {
-      console.log('[Sync] No prayers found in cloud (cloudData.simplePrayers is:', typeof cloudData.simplePrayers, ')');
+      // Build map of local completion states
+      const localCompletions = {};
+      localPrayers.forEach(p => {
+        if (p.completedAt) localCompletions[p.id] = { completedAt: p.completedAt, canComplete: p.canComplete };
+      });
+      
+      // Merge: use cloud prayers but preserve more recent local completedAt
+      const merged = cloudData.simplePrayers.map(cloudPrayer => {
+        const localCompletion = localCompletions[cloudPrayer.id];
+        if (localCompletion && localCompletion.completedAt) {
+          const localDate = new Date(localCompletion.completedAt);
+          const cloudDate = cloudPrayer.completedAt ? new Date(cloudPrayer.completedAt) : new Date(0);
+          if (localDate > cloudDate) {
+            // Local completion is more recent - keep it
+            return { ...cloudPrayer, completedAt: localCompletion.completedAt, canComplete: false };
+          }
+        }
+        return cloudPrayer;
+      });
+      
+      await AsyncStorage.setItem('fivefold_simplePrayers', JSON.stringify(merged));
+      console.log(`[Sync] Merged ${merged.length} prayers (preserved local completions)`);
     }
     
-    // Verse data (contains highlights) - used by VerseDataManager
+    // Verse data (contains highlights) - SMART MERGE: keep local additions
     if (cloudData.verseData) {
-      const highlightCount = Object.keys(cloudData.verseData).length;
-      await AsyncStorage.setItem('verse_data', JSON.stringify(cloudData.verseData));
-      console.log(`[Sync] Downloaded verse_data (${highlightCount} entries) from cloud`);
-    } else {
-      console.log('[Sync] No verse_data (highlights) found in cloud');
+      const localStr = await AsyncStorage.getItem('verse_data');
+      const localData = localStr ? JSON.parse(localStr) : {};
+      
+      // Merge: cloud + any local-only verse data
+      const merged = { ...cloudData.verseData };
+      for (const [verseId, localVerseData] of Object.entries(localData)) {
+        if (!merged[verseId]) {
+          merged[verseId] = localVerseData; // Local-only highlight/note
+        }
+      }
+      
+      await AsyncStorage.setItem('verse_data', JSON.stringify(merged));
+      console.log(`[Sync] Merged verse_data: ${Object.keys(merged).length} entries`);
     }
     
     // Highlight custom names
@@ -451,10 +551,19 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded highlight names from cloud');
     }
     
-    // Bookmarks
+    // Bookmarks - merge, keep local-only additions
     if (cloudData.bookmarks) {
-      await AsyncStorage.setItem('bookmarks', JSON.stringify(cloudData.bookmarks));
-      console.log('[Sync] Downloaded bookmarks from cloud');
+      const localStr = await AsyncStorage.getItem('bookmarks');
+      const localBookmarks = localStr ? JSON.parse(localStr) : (Array.isArray(cloudData.bookmarks) ? [] : {});
+      
+      if (Array.isArray(cloudData.bookmarks)) {
+        const merged = await mergeArraysById('bookmarks', cloudData.bookmarks);
+        console.log(`[Sync] Merged bookmarks: ${merged?.length || 0}`);
+      } else {
+        const merged = { ...cloudData.bookmarks, ...localBookmarks };
+        await AsyncStorage.setItem('bookmarks', JSON.stringify(merged));
+        console.log('[Sync] Merged bookmarks (object)');
+      }
     }
     
     // Reading streaks
@@ -535,10 +644,21 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded recent Bible searches from cloud');
     }
     
-    // Prayer completions
+    // Prayer completions - SMART MERGE: keep more recent completedAt per prayer
     if (cloudData.prayerCompletions) {
-      await AsyncStorage.setItem('prayer_completions', JSON.stringify(cloudData.prayerCompletions));
-      console.log('[Sync] Downloaded prayer completions from cloud');
+      const localStr = await AsyncStorage.getItem('prayer_completions');
+      const localCompletions = localStr ? JSON.parse(localStr) : {};
+      
+      const merged = { ...cloudData.prayerCompletions };
+      for (const [prayerId, localData] of Object.entries(localCompletions)) {
+        if (!merged[prayerId] || 
+            (localData.completedAt && (!merged[prayerId].completedAt || new Date(localData.completedAt) > new Date(merged[prayerId].completedAt)))) {
+          merged[prayerId] = localData;
+        }
+      }
+      
+      await AsyncStorage.setItem('prayer_completions', JSON.stringify(merged));
+      console.log('[Sync] Merged prayer completions (preserved local)');
     }
     
     // Prayer preferences
@@ -547,10 +667,18 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded prayer preferences from cloud');
     }
     
-    // Friend chat history
+    // Friend chat history - merge, keep local-only messages
     if (cloudData.friendChatHistory) {
-      await AsyncStorage.setItem('friendChatHistory', JSON.stringify(cloudData.friendChatHistory));
-      console.log('[Sync] Downloaded friend chat history from cloud');
+      const localStr = await AsyncStorage.getItem('friendChatHistory');
+      const localHistory = localStr ? JSON.parse(localStr) : [];
+      
+      if (Array.isArray(cloudData.friendChatHistory) && Array.isArray(localHistory)) {
+        const merged = await mergeArraysById('friendChatHistory', cloudData.friendChatHistory);
+        console.log(`[Sync] Merged friend chat history: ${merged?.length || 0}`);
+      } else {
+        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(cloudData.friendChatHistory));
+        console.log('[Sync] Downloaded friend chat history from cloud');
+      }
     }
     
     // Key Verses favorites
@@ -1078,6 +1206,7 @@ export const performFullSync = async (userId) => {
     // Sync user-specific content to cloud
     await syncSavedVersesToCloud(userId);
     await syncJournalNotesToCloud(userId);
+    await syncPrayersToCloud(userId);
     await syncThemePreferencesToCloud(userId);
     await syncAllHistoryToCloud(userId);
     

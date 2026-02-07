@@ -45,152 +45,146 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
-// Beautiful animated loading screen
+// Premium animated loading screen
 const AnimatedLoadingScreen = () => {
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const dotAnim1 = useRef(new Animated.Value(0)).current;
-  const dotAnim2 = useRef(new Animated.Value(0)).current;
-  const dotAnim3 = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.3)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const titleSlide = useRef(new Animated.Value(30)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const breatheAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const ringRotate = useRef(new Animated.Value(0)).current;
+  const ring2Rotate = useRef(new Animated.Value(0)).current;
+  const orb1Anim = useRef(new Animated.Value(0)).current;
+  const orb2Anim = useRef(new Animated.Value(0)).current;
+  const orb3Anim = useRef(new Animated.Value(0)).current;
+  const orb4Anim = useRef(new Animated.Value(0)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fade in
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    // Staggered entrance
+    Animated.sequence([
+      // Background fade in
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      // Logo entrance with spring
+      Animated.parallel([
+        Animated.spring(logoScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+      // Title slides up
+      Animated.parallel([
+        Animated.spring(titleSlide, { toValue: 0, tension: 80, friction: 10, useNativeDriver: true }),
+        Animated.timing(titleOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]),
+      // Subtitle and progress bar fade in
+      Animated.timing(subtitleOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
 
-    // Gentle continuous rotation
-    Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    // Pulse animation
+    // Continuous breathing glow on logo
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(breatheAnim, { toValue: 1.06, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(breatheAnim, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     ).start();
 
-    // Glow animation
+    // Shimmer sweep
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 2500, easing: Easing.linear, useNativeDriver: true })
     ).start();
 
-    // Bouncing dots
-    const animateDot = (anim, delay) => {
+    // Progress bar animation
+    Animated.timing(progressAnim, { toValue: 1, duration: 3000, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+
+    // Rotating rings
+    Animated.loop(
+      Animated.timing(ringRotate, { toValue: 1, duration: 8000, easing: Easing.linear, useNativeDriver: true })
+    ).start();
+    Animated.loop(
+      Animated.timing(ring2Rotate, { toValue: 1, duration: 12000, easing: Easing.linear, useNativeDriver: true })
+    ).start();
+
+    // Floating orbs with different speeds
+    const floatOrb = (anim, duration) => {
       Animated.loop(
         Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }),
+          Animated.timing(anim, { toValue: 1, duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
     };
-
-    animateDot(dotAnim1, 0);
-    animateDot(dotAnim2, 150);
-    animateDot(dotAnim3, 300);
+    floatOrb(orb1Anim, 3000);
+    floatOrb(orb2Anim, 4000);
+    floatOrb(orb3Anim, 3500);
+    floatOrb(orb4Anim, 5000);
   }, []);
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  const ringSpin = ringRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const ring2Spin = ring2Rotate.interpolate({ inputRange: [0, 1], outputRange: ['360deg', '0deg'] });
+  const shimmerTranslate = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 200] });
 
   return (
     <View style={loadingStyles.container}>
       <LinearGradient
-        colors={['#FFF8F0', '#FEF3E7', '#FFF5EB']}
+        colors={['#FFF9F0', '#FFF5EB', '#FEF0E0', '#FFF5EB']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={loadingStyles.gradient}
       />
-      
-      {/* Floating orbs background */}
-      <Animated.View style={[loadingStyles.orb, loadingStyles.orb1, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.6] }) }]} />
-      <Animated.View style={[loadingStyles.orb, loadingStyles.orb2, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.7] }) }]} />
-      <Animated.View style={[loadingStyles.orb, loadingStyles.orb3, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.5] }) }]} />
+
+      {/* Animated floating orbs */}
+      <Animated.View style={[loadingStyles.orb, { top: '8%', left: '-10%', width: 220, height: 220, backgroundColor: 'rgba(251, 191, 36, 0.08)', transform: [{ translateY: orb1Anim.interpolate({ inputRange: [0, 1], outputRange: [0, -25] }) }, { scale: orb1Anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.1, 1] }) }] }]} />
+      <Animated.View style={[loadingStyles.orb, { top: '55%', right: '-12%', width: 180, height: 180, backgroundColor: 'rgba(249, 115, 22, 0.07)', transform: [{ translateY: orb2Anim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }] }]} />
+      <Animated.View style={[loadingStyles.orb, { bottom: '12%', left: '5%', width: 130, height: 130, backgroundColor: 'rgba(234, 88, 12, 0.06)', transform: [{ translateX: orb3Anim.interpolate({ inputRange: [0, 1], outputRange: [0, 15] }) }] }]} />
+      <Animated.View style={[loadingStyles.orb, { top: '30%', right: '5%', width: 90, height: 90, backgroundColor: 'rgba(251, 191, 36, 0.1)', transform: [{ translateY: orb4Anim.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) }] }]} />
 
       <Animated.View style={[loadingStyles.content, { opacity: fadeAnim }]}>
-        {/* Logo with spin and pulse */}
-        <Animated.View style={[
-          loadingStyles.logoContainer,
-          {
-            transform: [
-              { rotate: spin },
-              { scale: pulseAnim },
-            ],
-          }
-        ]}>
-          {/* Glow effect behind logo */}
-          <Animated.View style={[
-            loadingStyles.logoGlow,
-            { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.5] }) }
-          ]} />
-          <Image
-            source={require('../../assets/logo.png')}
-            style={loadingStyles.logo}
-            resizeMode="contain"
-          />
-        </Animated.View>
-
-        {/* App name */}
-        <Text style={loadingStyles.appName}>Biblely</Text>
-
-        {/* Loading dots */}
-        <View style={loadingStyles.dotsContainer}>
-          <Animated.View style={[
-            loadingStyles.dot,
-            { transform: [{ translateY: dotAnim1.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }
-          ]} />
-          <Animated.View style={[
-            loadingStyles.dot,
-            { transform: [{ translateY: dotAnim2.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }
-          ]} />
-          <Animated.View style={[
-            loadingStyles.dot,
-            { transform: [{ translateY: dotAnim3.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }
-          ]} />
+        {/* Rotating decorative rings */}
+        <View style={loadingStyles.ringsContainer}>
+          <Animated.View style={[loadingStyles.ring, loadingStyles.ring1, { transform: [{ rotate: ringSpin }] }]} />
+          <Animated.View style={[loadingStyles.ring, loadingStyles.ring2, { transform: [{ rotate: ring2Spin }] }]} />
+          
+          {/* Logo with breathing pulse */}
+          <Animated.View style={[loadingStyles.logoWrapper, { transform: [{ scale: Animated.multiply(logoScale, breatheAnim) }], opacity: logoOpacity }]}>
+            {/* Soft glow behind logo */}
+            <View style={loadingStyles.logoGlow} />
+            <View style={loadingStyles.logoInner}>
+              <Image
+                source={require('../../assets/logo.png')}
+                style={loadingStyles.logo}
+                resizeMode="contain"
+              />
+              {/* Shimmer overlay */}
+              <Animated.View style={[loadingStyles.shimmer, { transform: [{ translateX: shimmerTranslate }] }]} />
+            </View>
+          </Animated.View>
         </View>
 
-        <Text style={loadingStyles.loadingText}>Preparing your journey...</Text>
+        {/* App name with slide-up entrance */}
+        <Animated.View style={{ transform: [{ translateY: titleSlide }], opacity: titleOpacity }}>
+          <Text style={loadingStyles.appName}>Biblely</Text>
+        </Animated.View>
+
+        {/* Elegant progress bar */}
+        <Animated.View style={[loadingStyles.progressContainer, { opacity: subtitleOpacity }]}>
+          <View style={loadingStyles.progressTrack}>
+            <Animated.View style={[loadingStyles.progressFill, { width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]}>
+              <LinearGradient
+                colors={['#F59E0B', '#F97316', '#EA580C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ flex: 1, borderRadius: 4 }}
+              />
+            </Animated.View>
+          </View>
+        </Animated.View>
+
+        {/* Subtitle */}
+        <Animated.Text style={[loadingStyles.loadingText, { opacity: subtitleOpacity }]}>
+          Preparing your journey
+        </Animated.Text>
       </Animated.View>
     </View>
   );
@@ -204,79 +198,106 @@ const loadingStyles = StyleSheet.create({
   },
   gradient: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
   },
   orb: {
     position: 'absolute',
     borderRadius: 999,
   },
-  orb1: {
-    width: 200,
-    height: 200,
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    top: '10%',
-    left: '-20%',
-  },
-  orb2: {
-    width: 150,
-    height: 150,
-    backgroundColor: 'rgba(249, 115, 22, 0.12)',
-    top: '60%',
-    right: '-15%',
-  },
-  orb3: {
-    width: 100,
-    height: 100,
-    backgroundColor: 'rgba(234, 88, 12, 0.1)',
-    bottom: '15%',
-    left: '10%',
-  },
   content: {
     alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  logoContainer: {
-    width: 200,
-    height: 200,
+  ringsContainer: {
+    width: 180,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
+  },
+  ring: {
+    position: 'absolute',
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+  ring1: {
+    width: 180,
+    height: 180,
+    borderColor: 'rgba(249, 115, 22, 0.15)',
+    borderStyle: 'dashed',
+  },
+  ring2: {
+    width: 210,
+    height: 210,
+    borderColor: 'rgba(251, 191, 36, 0.1)',
+    borderStyle: 'dotted',
+    borderWidth: 1,
+  },
+  logoWrapper: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoGlow: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: 'rgba(251, 191, 36, 0.3)',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+  },
+  logoInner: {
+    width: 110,
+    height: 110,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 90,
+    height: 90,
+  },
+  shimmer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    transform: [{ skewX: '-20deg' }],
   },
   appName: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 30,
-    letterSpacing: 1,
+    marginBottom: 32,
+    letterSpacing: 2,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+  progressContainer: {
+    width: '70%',
+    marginBottom: 20,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#F97316',
+  progressTrack: {
+    height: 4,
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
   },
   loadingText: {
     fontSize: 14,
-    color: '#78716C',
+    color: '#9CA3AF',
     fontWeight: '500',
+    letterSpacing: 0.5,
   },
 });
 

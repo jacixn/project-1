@@ -70,13 +70,18 @@ export const AuthProvider = ({ children }) => {
             const cachedProfile = JSON.parse(cachedData);
             setUserProfile(cachedProfile);
             console.log('[Auth] Using cached profile:', cachedProfile.username);
+            
+            // IMMEDIATELY unblock the app - don't wait for sync
+            setInitializing(false);
+            setLoading(false);
           }
           
           // Only do full sync on FRESH login (not every app open)
+          // This runs in the BACKGROUND after the app is already showing
           if (!hasCompletedInitialSync) {
             hasCompletedInitialSync = true;
             
-            // Fetch user profile from Firestore (once per session)
+            // Fetch user profile from Firestore (once per session, in background)
             let profile = await getUserProfile(firebaseUser.uid);
             
             // If profile doesn't exist or has no username, retry after a short delay
@@ -93,6 +98,12 @@ export const AuthProvider = ({ children }) => {
               console.log('[Auth] Profile loaded from Firestore:', profile.username);
             }
             
+            // If we had no cache, NOW unblock the app (first-time login)
+            setInitializing(false);
+            setLoading(false);
+            
+            // Everything below happens in background - user is already in the app
+            
             // Save push token for notifications
             try {
               const pushToken = await notificationService.getPushToken();
@@ -104,22 +115,23 @@ export const AuthProvider = ({ children }) => {
               console.warn('[Auth] Failed to save push token:', tokenError);
             }
             
-            // Sync data once per session (not on every auth state change)
-            console.log('[Auth] Syncing user data (once per session)...');
+            // Sync data once per session (runs in background)
+            console.log('[Auth] Background syncing user data...');
             await performFullSync(firebaseUser.uid);
-            console.log('[Auth] Sync complete');
+            console.log('[Auth] Background sync complete');
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setInitializing(false);
+          setLoading(false);
         }
       } else {
         setUserProfile(null);
         hasCompletedInitialSync = false;
         await AsyncStorage.removeItem(USER_CACHE_KEY);
+        setInitializing(false);
+        setLoading(false);
       }
-      
-      setInitializing(false);
-      setLoading(false);
     });
 
     return () => unsubscribe();
