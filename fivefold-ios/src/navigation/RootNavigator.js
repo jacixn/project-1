@@ -21,6 +21,24 @@ import MessagesScreen from '../screens/MessagesScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ChallengesScreen from '../screens/ChallengesScreen';
 import ChallengeQuizScreen from '../screens/ChallengeQuizScreen';
+import TasksDoneScreen from '../screens/TasksDoneScreen';
+import SavedVersesScreen from '../screens/SavedVersesScreen';
+import HighlightsScreen from '../screens/HighlightsScreen';
+import JournalScreen from '../screens/JournalScreen';
+import AchievementsScreen from '../screens/AchievementsScreen';
+import ExercisesScreen from '../screens/ExercisesScreen';
+import StartWorkoutScreen from '../screens/StartWorkoutScreen';
+import ScheduleTaskScreen from '../screens/ScheduleTaskScreen';
+import BibleStudyScreen from '../screens/BibleStudyScreen';
+import QuizGamesScreen from '../screens/QuizGamesScreen';
+import BibleTimelineScreen from '../screens/BibleTimelineScreen';
+import BibleMapsScreen from '../screens/BibleMapsScreen';
+import ThematicGuidesScreen from '../screens/ThematicGuidesScreen';
+import KeyVersesScreen from '../screens/KeyVersesScreen';
+import BibleFastFactsScreen from '../screens/BibleFastFactsScreen';
+import AudioLearningScreen from '../screens/AudioLearningScreen';
+import BibleReaderScreen from '../screens/BibleReaderScreen';
+import FriendChatScreen from '../screens/FriendChatScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -389,6 +407,115 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="Challenges" 
         component={ChallengesScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Tasks Done Screen */}
+      <Stack.Screen 
+        name="TasksDone" 
+        component={TasksDoneScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Saved Verses Screen */}
+      <Stack.Screen 
+        name="SavedVerses" 
+        component={SavedVersesScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Highlights Screen */}
+      <Stack.Screen 
+        name="Highlights" 
+        component={HighlightsScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Journal Screen */}
+      <Stack.Screen 
+        name="Journal" 
+        component={JournalScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Achievements Screen */}
+      <Stack.Screen 
+        name="Achievements" 
+        component={AchievementsScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Bible Study Screen */}
+      <Stack.Screen 
+        name="BibleStudy" 
+        component={BibleStudyScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Bible Study Sub-Screens */}
+      <Stack.Screen name="BibleCharacters" component={require('../screens/BibleCharactersScreen').default} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="QuizGames" component={QuizGamesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleTimeline" component={BibleTimelineScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleMaps" component={BibleMapsScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="ThematicGuides" component={ThematicGuidesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="KeyVersesScreen" component={KeyVersesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleFastFacts" component={BibleFastFactsScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="AudioLearning" component={AudioLearningScreen} options={{ animation: 'slide_from_right' }} />
+      
+      {/* Friend Chat Screen */}
+      <Stack.Screen 
+        name="FriendChat" 
+        component={FriendChatScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Bible Reader Screen */}
+      <Stack.Screen 
+        name="BibleReader" 
+        component={BibleReaderScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Schedule Task Screen */}
+      <Stack.Screen 
+        name="ScheduleTask" 
+        component={ScheduleTaskScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Start Workout Screen */}
+      <Stack.Screen 
+        name="StartWorkout" 
+        component={StartWorkoutScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Exercises Screen */}
+      <Stack.Screen 
+        name="Exercises" 
+        component={ExercisesScreen}
         options={{
           animation: 'slide_from_right',
         }}

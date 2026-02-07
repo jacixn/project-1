@@ -43,7 +43,7 @@ const MAPS_CONFIG = {
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
-const InteractiveBibleMaps = ({ visible, onClose }) => {
+const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const mapRef = useRef(null);
   
@@ -789,13 +789,7 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
     }
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+  const content = (
       <View style={[styles.fullScreenContainer, { backgroundColor: theme.background }]}>
         {/* Full Screen Map Background */}
         <View style={styles.fullScreenMapContainer}>
@@ -910,8 +904,12 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
             {/* Header */}
             <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)', marginTop: 60 }]}>
               <View style={styles.headerContent}>
-                <TouchableOpacity onPress={onClose} style={[styles.closeButton, { minWidth: 60, alignItems: 'center' }]}>
-                  <Text style={[{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+                <TouchableOpacity
+                  onPress={onClose}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { 
                   color: '#FFFFFF',
@@ -1136,8 +1134,12 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
                     </View>
                     
               <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => setSelectedLocation(null)} style={[styles.detailCloseButton, { minWidth: 60, alignItems: 'center' }]}>
-                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedLocation(null)}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
                 <Text style={[styles.detailTitle, { color: theme.text }]}>
                   {selectedLocation.name}
@@ -1257,6 +1259,20 @@ const InteractiveBibleMaps = ({ visible, onClose }) => {
           </Modal>
         )}
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

@@ -24,7 +24,7 @@ import AddExerciseModal from './AddExerciseModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false }) => {
+const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const scrollViewRef = useRef(null);
   const sectionRefs = useRef({});
@@ -292,13 +292,8 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     </TouchableOpacity>
   );
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+  const content = (
+    <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Transparent Blurred Header - Exact copy from Bible Timeline */}
         <BlurView 
@@ -323,17 +318,23 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                 onClose();
               }}
               style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                paddingHorizontal: 16, 
-                paddingVertical: 8, 
+                width: 40,
+                height: 40,
                 borderRadius: 20,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
               }}
+              activeOpacity={0.7}
             >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
             </TouchableOpacity>
-            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-              {selectionMode ? 'New' : 'Exercises'}
-            </Text>
+            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+              <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+                {selectionMode ? 'New' : 'Exercises'}
+              </Text>
+            </View>
             <TouchableOpacity
               onPress={() => {
                 hapticFeedback.light();
@@ -828,6 +829,21 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
           </ScrollView>
         </View>
       </Modal>
+    </>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

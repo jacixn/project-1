@@ -21,7 +21,7 @@ import { hapticFeedback } from '../utils/haptics';
 import { scoreTask } from '../utils/todoScorer';
 import { getStoredData } from '../utils/localStorage';
 
-const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
+const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -225,22 +225,30 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
   const calendarDays = generateCalendarDays();
   const today = new Date();
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+  const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={28} color={theme.text} />
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1,
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Schedule a Task
-          </Text>
+          <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>
+              Schedule a Task
+            </Text>
+          </View>
           <View style={styles.closeButton} />
         </BlurView>
 
@@ -578,6 +586,20 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd }) => {
           </SafeAreaView>
         </Modal>
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

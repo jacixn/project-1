@@ -14,7 +14,7 @@ import {
   RefreshControl,
   DeviceEventEmitter,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +37,7 @@ import WorkoutService from '../services/workoutService';
 // const { width } = Dimensions.get('window');
 
 const GymTab = () => {
+  const navigation = useNavigation();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
@@ -861,7 +862,7 @@ const GymTab = () => {
               style={[styles.startWorkoutButton, { backgroundColor: theme.primary }]}
               onPress={() => {
                 hapticFeedback.heavy();
-                setTemplateSelectionVisible(true);
+                navigation.navigate('StartWorkout');
               }}
             >
               <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
@@ -882,7 +883,7 @@ const GymTab = () => {
                 style={[styles.browseButton, { backgroundColor: theme.primary }]}
                 onPress={() => {
                   hapticFeedback.medium();
-                  setExercisesModalVisible(true);
+                  navigation.navigate('Exercises');
                 }}
               >
                 <Text style={styles.browseButtonText}>Browse</Text>
@@ -1007,17 +1008,9 @@ const GymTab = () => {
         </Animated.ScrollView>
       </View>
 
-      {/* Exercises Modal */}
-      <ExercisesModal
-        visible={exercisesModalVisible}
-        onClose={() => setExercisesModalVisible(false)}
-      />
+      {/* Exercises - now navigated via stack navigator for swipe-back support */}
 
-      {/* Template Selection Modal */}
-      <TemplateSelectionModal
-        visible={templateSelectionVisible}
-        onClose={() => setTemplateSelectionVisible(false)}
-      />
+      {/* Start Workout - now navigated via stack navigator for swipe-back support */}
 
       {/* Full History Modal */}
       <Modal

@@ -1399,6 +1399,27 @@ const ProfileTab = () => {
     };
   }, [selectedHighlightColor, highlightVersesWithText, highlightedVerses]);
 
+  // Listen for cross-screen navigation events (from SavedVerses/Highlights screens)
+  useEffect(() => {
+    const openBibleListener = DeviceEventEmitter.addListener('openBibleFromScreen', ({ verseRef }) => {
+      console.log('📖 Opening Bible from screen event:', verseRef);
+      navigation.navigate('BibleReader', { verseRef });
+    });
+
+    const openAiChatListener = DeviceEventEmitter.addListener('openAiChatFromScreen', ({ text, reference }) => {
+      console.log('🤖 Opening AI Chat from screen event:', reference);
+      setVerseToInterpret({ text, reference });
+      setTimeout(() => {
+        setShowAiChat(true);
+      }, 300);
+    });
+
+    return () => {
+      openBibleListener.remove();
+      openAiChatListener.remove();
+    };
+  }, []);
+
   const loadUserData = async () => {
     try {
       const storedStats = await getStoredData('userStats') || {};
@@ -2130,8 +2151,7 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            setShowTasksDone(true);
-            loadCompletedTasks(); // Load data in background after modal opens
+            navigation.navigate('TasksDone');
           }}
         >
           <MaterialIcons name="check-circle" size={24} color={theme.success} />
@@ -2157,12 +2177,7 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            // Reset search bar animation
-            savedVersesSearchAnim.setValue(1);
-            lastScrollY.current = 0;
-            scrollDirection.current = 'up';
-            setShowSavedVerses(true);
-            loadSavedVersesQuick(); // Quick load from storage - no API calls to prevent crash
+            navigation.navigate('SavedVerses');
           }}
         >
           <MaterialIcons name="bookmark" size={24} color={theme.info} />
@@ -2188,8 +2203,7 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            setShowHighlights(true);
-            loadHighlights(); // Load data in background after modal opens
+            navigation.navigate('Highlights');
           }}
         >
           <MaterialIcons name="palette" size={24} color={theme.warning} />
@@ -2215,8 +2229,7 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            setShowJournal(true);
-            loadJournalNotes(); // Load data in background after modal opens
+            navigation.navigate('Journal');
           }}
         >
           <MaterialIcons name="import-contacts" size={24} color={theme.info} />
@@ -2245,8 +2258,8 @@ const ProfileTab = () => {
       <AnimatedSettingsCard 
         style={styles.badgesCard}
         onPress={() => {
-          setShowAchievements(true);
           hapticFeedback.achievement();
+          navigation.navigate('Achievements');
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -2803,12 +2816,7 @@ const ProfileTab = () => {
         </View>
       </Modal>
 
-      {/* Achievements Modal */}
-      <AchievementsModal 
-        visible={showAchievements} 
-        onClose={() => setShowAchievements(false)}
-        userStats={userStats}
-      />
+      {/* Achievements - now navigated via stack navigator for swipe-back support */}
 
       {/* Animation Demo Modal */}
       <AnimationDemo
@@ -3115,16 +3123,8 @@ const ProfileTab = () => {
         </View>
       )}
 
-      {/* Saved Verses Modal - Interactive Dismissal Style */}
-      <Modal
-        visible={showSavedVerses}
-        animationType="none"
-        onRequestClose={() => {
-          setShowSavedVerses(false);
-          setSavedVersesSearch('');
-        }}
-        presentationStyle="fullScreen"
-      >
+      {/* Saved Verses - now navigated via stack navigator for swipe-back support */}
+      {false && (
         <View style={{
           flex: 1,
           backgroundColor: theme.background
@@ -3595,7 +3595,7 @@ const ProfileTab = () => {
               </View>
             </BlurView>
         </View>
-      </Modal>
+      )}
 
       {/* Settings Modal */}
       <Modal visible={showSettingsModal} animationType="slide" presentationStyle="pageSheet">
@@ -4196,13 +4196,8 @@ const ProfileTab = () => {
         initialVerseReference={verseReference}
       />
 
-      {/* Journal Modal - Calendar Based View */}
-      <Modal
-        visible={showJournal}
-        animationType="none"
-        onRequestClose={() => setShowJournal(false)}
-        presentationStyle="fullScreen"
-      >
+      {/* Journal - now navigated via stack navigator for swipe-back support */}
+      {false && (
         <View style={{
           flex: 1,
           backgroundColor: theme.background
@@ -4590,7 +4585,7 @@ const ProfileTab = () => {
               </View>
             </BlurView>
         </View>
-      </Modal>
+      )}
 
       {/* Add Journal Entry Modal */}
       <Modal
@@ -4764,17 +4759,8 @@ const ProfileTab = () => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Highlights Modal - Interactive Dismissal Style */}
-      <Modal
-        visible={showHighlights}
-        animationType="none"
-        onRequestClose={() => {
-          setShowHighlights(false);
-          setSelectedHighlightColor(null);
-          setHighlightVersesWithText([]);
-        }}
-        presentationStyle="fullScreen"
-      >
+      {/* Highlights - now navigated via stack navigator for swipe-back support */}
+      {false && (
         <View style={{
           flex: 1,
           backgroundColor: theme.background
@@ -5573,15 +5559,10 @@ const ProfileTab = () => {
         </KeyboardAvoidingView>
             )}
         </View>
-      </Modal>
+      )}
 
-      {/* Tasks Done Modal */}
-      <Modal
-        visible={showTasksDone}
-        animationType="none"
-        onRequestClose={() => setShowTasksDone(false)}
-        presentationStyle="fullScreen"
-      >
+      {/* Tasks Done - now navigated via stack navigator for swipe-back support */}
+      {false && (
         <View style={{
           flex: 1,
           backgroundColor: theme.background
@@ -5781,7 +5762,7 @@ const ProfileTab = () => {
               </View>
             </BlurView>
         </View>
-      </Modal>
+      )}
 
       {/* Streak Milestone Animation Overlay */}
       {showStreakMilestone && (

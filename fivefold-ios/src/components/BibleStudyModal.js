@@ -478,7 +478,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 };
 
 
-const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
+const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScreen = false, navigation }) => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
@@ -871,7 +871,27 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
   const handleSectionPress = (sectionId) => {
     hapticFeedback.light();
     
-    // Open modal overlays instead of changing selectedSection
+    // When used as a screen, navigate via stack navigator for swipe-back
+    if (asScreen && navigation) {
+      const screenMap = {
+        'timeline': 'BibleTimeline',
+        'characters': 'BibleCharacters',
+        'maps': 'BibleMaps',
+        'verses': 'KeyVersesScreen',
+        'facts': 'BibleFastFacts',
+        'themes': 'ThematicGuides',
+        'audio': 'AudioLearning',
+        'quiz': 'QuizGames',
+      };
+      
+      const screenName = screenMap[sectionId];
+      if (screenName) {
+        navigation.navigate(screenName);
+        return;
+      }
+    }
+    
+    // Fallback: Open modal overlays (for non-screen usage or unmapped sections)
     switch(sectionId) {
       case 'timeline':
         setShowTimelineModal(true);
@@ -898,7 +918,6 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
         setShowAudioModal(true);
         break;
       default:
-        // Fallback to old behavior for any unhandled sections
         setSelectedSection(sectionId);
     }
   };
@@ -1002,23 +1021,19 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
               }}>
                 <TouchableOpacity 
                   onPress={() => setShowModal(false)} 
-                  style={{ 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    paddingHorizontal: 16, 
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                  }}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
-                    Back
-                  </Text>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
                 
-                <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', textAlign: 'center' }}>
-                  Bible Characters
-                </Text>
+                <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                  <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600' }}>
+                    Bible Characters
+                  </Text>
+                </View>
                 
-                <View style={{ width: 60 }} />
+                <View style={{ width: 40 }} />
               </View>
             </BlurView>
           )}
@@ -1044,19 +1059,17 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
               <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
                 <TouchableOpacity
                   onPress={() => setShowModal(false)}
-                  style={{ 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    paddingHorizontal: 16, 
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                  }}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
-                <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-                  Fast Facts
-                </Text>
-                <View style={{ width: 60 }} />
+                <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                  <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
+                    Fast Facts
+                  </Text>
+                </View>
+                <View style={{ width: 40 }} />
               </View>
             </BlurView>
           )}
@@ -1581,13 +1594,8 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
     );
   };
 
-  return (
-    <Modal 
-      visible={visible} 
-      animationType="slide" 
-      presentationStyle="fullScreen"
-      statusBarTranslucent={false}
-    >
+  const content = (
+    <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
@@ -1626,34 +1634,33 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
               <TouchableOpacity 
                 onPress={selectedSection === 'main' ? onClose : () => setSelectedSection('main')} 
                 style={{ 
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                  paddingHorizontal: 18, 
-                  paddingVertical: 10,
-                  borderRadius: 25,
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
                 }}
+                activeOpacity={0.7}
               >
-                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '700' }}>
-                  {selectedSection === 'main' ? 'Close' : 'Back'}
-                </Text>
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
               </TouchableOpacity>
               
-              <Text style={{ 
-                color: theme.text, 
-                fontSize: 20, 
-                fontWeight: '800', 
-                textAlign: 'center',
-                letterSpacing: 0.5,
-              }}>
-                {selectedSection === 'maps' ? 'Bible Maps' :
-                 selectedSection === 'themes' ? 'Thematic Guides' :
-                 selectedSection === 'keyverses' ? 'Key Verses' :
-                 'Bible Study'}
-              </Text>
+              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 20, 
+                  fontWeight: '800', 
+                  textAlign: 'center',
+                  letterSpacing: 0.5,
+                }}>
+                  {selectedSection === 'maps' ? 'Bible Maps' :
+                   selectedSection === 'themes' ? 'Thematic Guides' :
+                   selectedSection === 'keyverses' ? 'Key Verses' :
+                   'Bible Study'}
+                </Text>
+              </View>
               
               <View style={{ width: 70 }} />
             </View>
@@ -1723,6 +1730,21 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }
         visible={showAudioModal}
         onClose={() => setShowAudioModal(false)}
       />
+    </>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle="fullScreen"
+      statusBarTranslucent={false}
+    >
+      {content}
     </Modal>
   );
 };

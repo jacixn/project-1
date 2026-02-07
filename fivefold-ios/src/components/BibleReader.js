@@ -44,7 +44,7 @@ import bibleAudioService from '../services/bibleAudioService';
 import AudioPlayerBar from './AudioPlayerBar';
 // Removed InteractiveSwipeBack import
 
-const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }) => {
+const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, asScreen = false }) => {
   
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { theme, isDark, isCresviaTheme, currentTheme } = useTheme();
@@ -2858,10 +2858,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                     hapticFeedback.light();
                     onClose();
                   }}
-                  style={[styles.youversionActionButton, { paddingHorizontal: 8 }]}
-                  activeOpacity={0.6}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]}>Close</Text>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -2905,18 +2905,28 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                 hapticFeedback.light();
                 onClose();
               }} 
-              style={[styles.closeButton, { backgroundColor: 'transparent' }]}
-              activeOpacity={0.6}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
+              }}
+              activeOpacity={0.7}
             >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
             </TouchableOpacity>
-            <Text style={[styles.title, { color: theme.text }]}>Holy Bible</Text>
+            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+              <Text style={[styles.title, { color: theme.text }]}>Holy Bible</Text>
+            </View>
             <TouchableOpacity 
               onPress={() => {
                 hapticFeedback.light();
             setShowSearchModal(true);
           }} 
-          style={styles.searchButton}
+          style={[styles.searchButton, { zIndex: 1 }]}
         >
           <MaterialIcons name="search" size={24} color={theme.text} />
         </TouchableOpacity>
@@ -3618,9 +3628,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   
                   if (onNavigateToAI) {
                     onNavigateToAI(verseData);
+                    // Don't call onClose - onNavigateToAI already handles navigation
+                  } else {
+                    onClose();
                   }
-                  
-                  onClose();
                 }}
                 style={[styles.searchActionButton, { 
                   backgroundColor: `${theme.primary}25`,
@@ -3778,14 +3789,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
     }
   };
 
-  return (
-    <>
-      <Modal 
-        visible={visible} 
-        animationType="slide" 
-        presentationStyle="fullScreen"
-        onRequestClose={() => {}} // Disable pull-down-to-close gesture
-      >
+  const bibleContent = (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <View 
@@ -4355,9 +4359,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
                   
                   if (onNavigateToAI) {
                     onNavigateToAI(null); // null means general chat
+                    // Don't call onClose when using onNavigateToAI - it already handles navigation
+                  } else {
+                    onClose();
                   }
-                  
-                  onClose(); // Close Bible reader after navigation
                   console.log('🤖 Navigating to AI chat');
                 } catch (error) {
                   console.error('Error opening AI chat:', error);
@@ -5824,8 +5829,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference }
           />
           
         </View>
-      </Modal>
+  );
 
+  if (asScreen) {
+    return bibleContent;
+  }
+
+  return (
+    <>
+      <Modal 
+        visible={visible} 
+        animationType="slide" 
+        presentationStyle="fullScreen"
+        onRequestClose={() => {}}
+      >
+        {bibleContent}
+      </Modal>
     </>
   );
 };

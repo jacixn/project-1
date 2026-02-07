@@ -29,6 +29,7 @@ import { GlassCard, GlassHeader } from '../components/GlassEffect';
 import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation, createSpringAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
+import { useNavigation } from '@react-navigation/native';
 
 // Components
 import TodoList from '../components/TodoList';
@@ -121,6 +122,7 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
 };
 
 const TodosTab = () => {
+  const navigation = useNavigation();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
@@ -275,9 +277,16 @@ const TodosTab = () => {
       await initializeTodoData();
     });
     
+    // Listen for tasks scheduled from ScheduleTaskScreen
+    const scheduleTaskListener = DeviceEventEmitter.addListener('scheduleTaskFromScreen', (task) => {
+      console.log('📅 Task scheduled from screen:', task);
+      handleTodoAdd(task);
+    });
+
     return () => {
       subscription.remove();
       userDataListener.remove();
+      scheduleTaskListener.remove();
     };
   }, []);
 
@@ -523,7 +532,7 @@ const TodosTab = () => {
           activeOpacity={0.8}
           onPress={() => {
             hapticFeedback.light();
-            setShowFullCalendar(true);
+            navigation.navigate('ScheduleTask');
           }}
         >
           <View style={styles.calendarGrid}>
@@ -926,12 +935,7 @@ const TodosTab = () => {
         )}
       </Animated.ScrollView>
 
-      {/* Full Calendar Modal */}
-      <FullCalendarModal
-        visible={showFullCalendar}
-        onClose={() => setShowFullCalendar(false)}
-        onTaskAdd={handleTodoAdd}
-      />
+      {/* Schedule Task - now navigated via stack navigator for swipe-back support */}
 
       {/* Tasks Overview Modal */}
       <TasksOverviewModal

@@ -24,7 +24,7 @@ import WorkoutService from "../services/workoutService";
 import ExercisesService from "../services/exercisesService";
 import ScheduleWorkoutModal from "./ScheduleWorkoutModal";
 
-const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
+const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [templates, setTemplates] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -422,14 +422,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
     );
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+  const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Quick Start Section */}
         <ScrollView
@@ -728,22 +721,26 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
                 hapticFeedback.light();
                 onClose();
               }}
-              style={[
-                styles.backButton,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.12)"
-                    : "rgba(0,0,0,0.08)",
-                },
-              ]}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.05)",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 1,
+              }}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.backButtonText, { color: theme.primary }]}>
-                Back
-              </Text>
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
             </TouchableOpacity>
-            <Text style={[styles.title, { color: theme.text }]}>
-              Start Workout
-            </Text>
+            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+              <Text style={[styles.title, { color: theme.text }]}>
+                Start Workout
+              </Text>
+            </View>
             <View style={{ width: 60 }} />
           </View>
         </BlurView>
@@ -1495,10 +1492,10 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
                         setShowExercisePickerInEditor(false);
                         setEditorSearchQuery('');
                       }}
-                      style={styles.embeddedPickerBack}
+                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                      activeOpacity={0.7}
                     >
-                      <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-                      <Text style={[styles.embeddedPickerBackText, { color: theme.text }]}>Back</Text>
+                      <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                     </TouchableOpacity>
                     <Text style={[styles.embeddedPickerTitle, { color: theme.text }]}>Select Exercise</Text>
                     <View style={{ width: 80 }} />
@@ -1579,6 +1576,21 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout }) => {
           }}
         />
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

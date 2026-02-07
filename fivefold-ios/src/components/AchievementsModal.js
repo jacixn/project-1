@@ -22,7 +22,7 @@ import { BlurView } from 'expo-blur';
 const { width, height } = Dimensions.get('window');
 const CARD_SIZE = (width - 50) / 2; // 2 cards per row for more impact and space
 
-const AchievementsModal = ({ visible, onClose, userStats }) => {
+const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [achievements, setAchievements] = useState([]);
@@ -405,8 +405,7 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
     </Animated.View>
   );
 
-  return (
-    <Modal visible={visible} animationType="none" transparent>
+  const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <LinearGradient
           colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
@@ -463,19 +462,20 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
                 <TouchableOpacity 
                   onPress={onClose} 
                   style={{ 
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
                     backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    paddingHorizontal: 18, 
-                    paddingVertical: 10,
-                    borderRadius: 22,
-                    borderWidth: 1,
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1,
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Close</Text>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
                 
-                <View style={{ alignItems: 'center' }}>
+                <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
                   <Text style={{ 
                     color: theme.text, 
                     fontSize: 17, 
@@ -552,6 +552,15 @@ const AchievementsModal = ({ visible, onClose, userStats }) => {
           </BlurView>
         </Animated.View>
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal visible={visible} animationType="none" transparent>
+      {content}
     </Modal>
   );
 };

@@ -45,7 +45,7 @@ const GUIDES_CONFIG = {
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 };
 
-const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
+const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState('all');
   const [selectedGuide, setSelectedGuide] = useState(null);
@@ -1284,8 +1284,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
     );
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+  const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
@@ -1419,6 +1418,15 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse }) => {
 
         {renderGuideDetail()}
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+      {content}
     </Modal>
   );
 };

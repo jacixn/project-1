@@ -31,7 +31,7 @@ const CATEGORY_ICON_FALLBACK = {
   'women-of-bible': 'W',
 };
 
-const QuizGames = ({ visible, onClose }) => {
+const QuizGames = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   
   // State
@@ -801,16 +801,24 @@ const QuizGames = ({ visible, onClose }) => {
     );
   };
 
+  const content = (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      {renderHeader()}
+      {currentScreen === 'home' && renderHome()}
+      {currentScreen === 'setup' && renderSetup()}
+      {currentScreen === 'quiz' && renderQuiz()}
+      {currentScreen === 'results' && renderResults()}
+    </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        {renderHeader()}
-        {currentScreen === 'home' && renderHome()}
-        {currentScreen === 'setup' && renderSetup()}
-        {currentScreen === 'quiz' && renderQuiz()}
-        {currentScreen === 'results' && renderResults()}
-      </View>
+      {content}
     </Modal>
   );
 };

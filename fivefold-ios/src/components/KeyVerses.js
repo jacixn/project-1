@@ -43,7 +43,7 @@ const VERSES_CONFIG = {
   CACHE_DURATION: 0,
 };
 
-const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
+const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVerse, setSelectedVerse] = useState(null);
@@ -582,19 +582,24 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
   });
 
   if (loading) {
+    const loadingContent = (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <SimplePercentageLoader isVisible loadingText="Loading..." />
+      </View>
+    );
+    if (asScreen) {
+      return loadingContent;
+    }
     return (
       <Modal visible={visible}>
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-          <SimplePercentageLoader isVisible loadingText="Loading..." />
-        </View>
+        {loadingContent}
       </Modal>
     );
   }
 
   const filtered = getFilteredVerses();
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+  const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
@@ -616,10 +621,11 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
               <View style={styles.headerRow}>
                 <View style={{ width: 70 }}>
                   <TouchableOpacity 
-                    style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} 
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }} 
                     onPress={onClose}
+                    activeOpacity={0.7}
                   >
-                    <Text style={{ color: theme.primary, fontWeight: '600' }}>Back</Text>
+                    <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                   </TouchableOpacity>
                 </View>
                 <View style={{ alignItems: 'center' }}>
@@ -709,6 +715,15 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse }) => {
         </Animated.View>
         {renderVerseDetail()}
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+      {content}
     </Modal>
   );
 };

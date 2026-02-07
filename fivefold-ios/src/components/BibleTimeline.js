@@ -42,7 +42,7 @@ const TIMELINE_CONFIG = {
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 };
 
-const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
+const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedEra, setSelectedEra] = useState(null);
   // Static animation values for compatibility (no animations running)
@@ -882,13 +882,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
         <BlurView intensity={40} tint="systemMaterialDark" style={[styles.eraDetailCard, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
           {/* Close Button - Top Right */}
           <TouchableOpacity
-            style={[styles.closeButtonTopRight, { backgroundColor: `${selectedEra.color}20`, minWidth: 50, alignItems: 'center' }]}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1, position: 'absolute', top: 12, right: 12 }}
             onPress={() => {
               hapticFeedback.light();
               setSelectedEra(null);
             }}
+            activeOpacity={0.7}
           >
-            <Text style={[{ color: selectedEra.color, fontSize: 14, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+            <MaterialIcons name="arrow-back-ios-new" size={18} color={selectedEra.color} />
           </TouchableOpacity>
           
           <LinearGradient
@@ -978,9 +979,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
 
   // Removed pan responder for better performance
 
-    return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
+    const content = (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
         {/* Simple Loading with Percentage */}
@@ -1102,14 +1102,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
           <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
             <TouchableOpacity
               onPress={onClose}
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                paddingHorizontal: 16, 
-                paddingVertical: 8,
-                borderRadius: 20,
-              }}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+              activeOpacity={0.7}
             >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
             </TouchableOpacity>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               Bible Timeline
@@ -1118,6 +1114,15 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse }) => {
           </View>
         </BlurView>
     </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
+      {content}
     </Modal>
   );
 };

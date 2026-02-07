@@ -211,7 +211,7 @@ const TypewriterText = memo(({ text, style, speed = 30, onProgress, onVersePress
   );
 });
 
-const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
+const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -1332,13 +1332,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
     );
   };
 
-  return (
-    <Modal 
-      visible={visible} 
-      animationType="slide" 
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+  const content = (
+    <>
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}>
           
           <View style={styles.chatContainer}>
@@ -1583,10 +1578,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           {/* History Header */}
           <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity
-              style={[styles.historyCloseButton, { minWidth: 60, alignItems: 'center' }]}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setShowHistory(false)}
+              activeOpacity={0.7}
             >
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Close</Text>
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
             </TouchableOpacity>
             <Text style={[styles.historyTitle, { color: theme.text }]}>Chat History</Text>
             <TouchableOpacity
@@ -1706,16 +1702,20 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           <TouchableOpacity
             onPress={handleClose}
             style={{ 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-              paddingHorizontal: 16, 
-              paddingVertical: 8,
+              width: 40,
+              height: 40,
               borderRadius: 20,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1,
             }}
+            activeOpacity={0.7}
           >
-            <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]} numberOfLines={1}>Back</Text>
+            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
           </TouchableOpacity>
           
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 12 }}>
+          <View style={{ position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <View style={[styles.friendAvatarContainer, { 
               backgroundColor: theme.primary || '#7C3AED',
               marginRight: 10,
@@ -1742,6 +1742,21 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible }) => {
           </TouchableOpacity>
         </View>
       </BlurView>
+    </>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

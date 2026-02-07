@@ -58,7 +58,7 @@ const CATEGORY_THEMES = {
 const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
 const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 265 : 235;
 
-const BibleFastFacts = ({ visible, onClose }) => {
+const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedFact, setSelectedFact] = useState(null);
@@ -1008,48 +1008,64 @@ const BibleFastFacts = ({ visible, onClose }) => {
 
   // Loading state
   if (loading) {
+    const loadingContent = (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <SimplePercentageLoader 
+          isVisible={true}
+          loadingText="Loading Bible facts..."
+        />
+      </View>
+    );
+    if (asScreen) {
+      return loadingContent;
+    }
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-          <SimplePercentageLoader 
-            isVisible={true}
-            loadingText="Loading Bible facts..."
-          />
-        </View>
+        {loadingContent}
       </Modal>
     );
   }
 
   // Error state
   if (error && !factsData) {
+    const errorContent = (
+      <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        
+        <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 70 : 30 }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Fast Facts</Text>
+          <TouchableOpacity onPress={refreshFacts}>
+            <MaterialIcons name="refresh" size={24} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.errorContent}>
+          <MaterialIcons name="cloud-off" size={64} color={theme.textSecondary} />
+          <Text style={[styles.errorTitle, { color: theme.text }]}>Unable to Load Facts</Text>
+          <Text style={[styles.errorMessage, { color: theme.textSecondary }]}>{error}</Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: theme.primary }]} 
+            onPress={refreshFacts}
+          >
+            <Text style={[styles.retryButtonText, { color: theme.background }]}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+    if (asScreen) {
+      return errorContent;
+    }
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-        <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-          
-          <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 70 : 30 }]}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={[{ color: theme.primary, fontSize: 16, fontWeight: '600' }]}>Close</Text>
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Fast Facts</Text>
-            <TouchableOpacity onPress={refreshFacts}>
-              <MaterialIcons name="refresh" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.errorContent}>
-            <MaterialIcons name="cloud-off" size={64} color={theme.textSecondary} />
-            <Text style={[styles.errorTitle, { color: theme.text }]}>Unable to Load Facts</Text>
-            <Text style={[styles.errorMessage, { color: theme.textSecondary }]}>{error}</Text>
-            <TouchableOpacity 
-              style={[styles.retryButton, { backgroundColor: theme.primary }]} 
-              onPress={refreshFacts}
-            >
-              <Text style={[styles.retryButtonText, { color: theme.background }]}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {errorContent}
       </Modal>
     );
   }
@@ -1078,13 +1094,7 @@ const BibleFastFacts = ({ visible, onClose }) => {
     extrapolate: 'clamp',
   });
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
+  const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
@@ -1110,12 +1120,9 @@ const BibleFastFacts = ({ visible, onClose }) => {
                   }}
                   activeOpacity={0.7}
                   delayPressIn={0}
-                  style={[styles.backButton, { 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)',
-                  }]}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
                 >
-                  <Ionicons name="chevron-back" size={20} color={theme.primary} />
-                  <Text style={[styles.backButtonText, { color: theme.primary }]}>Back</Text>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
               </View>
               
@@ -1444,6 +1451,20 @@ const BibleFastFacts = ({ visible, onClose }) => {
           </Modal>
         )}
       </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 };

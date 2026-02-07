@@ -41,8 +41,8 @@ import { getUserProfile, isEmailVerified, resendVerificationEmail } from '../ser
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
-import FriendsScreen from './FriendsScreen';
-import LeaderboardScreen from './LeaderboardScreen';
+// FriendsScreen is now accessed via stack navigator in RootNavigator
+// LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -73,8 +73,7 @@ const HubTab = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [posting, setPosting] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
   const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
   const [expandedPost, setExpandedPost] = useState(null);
@@ -647,7 +646,7 @@ const HubTab = () => {
                   style={styles.premiumIconButton}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setShowFriends(true);
+                    navigation.navigate('Friends');
                   }}
                   activeOpacity={0.7}
                 >
@@ -676,7 +675,7 @@ const HubTab = () => {
                   style={styles.premiumIconButton}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setShowLeaderboard(true);
+                    navigation.navigate('Leaderboard');
                   }}
                   activeOpacity={0.7}
                 >
@@ -1059,25 +1058,9 @@ const HubTab = () => {
         </TouchableOpacity>
       )}
       
-      {/* Friends Modal */}
-      <Modal
-        visible={showFriends}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowFriends(false)}
-      >
-        <FriendsScreen navigation={navigation} onClose={() => setShowFriends(false)} />
-      </Modal>
+      {/* Friends - now navigated via stack navigator for swipe-back support */}
       
-      {/* Leaderboard Modal */}
-      <Modal
-        visible={showLeaderboard}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowLeaderboard(false)}
-      >
-        <LeaderboardScreen navigation={navigation} onClose={() => setShowLeaderboard(false)} />
-      </Modal>
+      {/* Leaderboard - now navigated via stack navigator for swipe-back support */}
     </View>
   );
 };

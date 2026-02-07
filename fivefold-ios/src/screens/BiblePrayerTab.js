@@ -15,7 +15,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -166,6 +166,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 };
 
 const BiblePrayerTab = () => {
+  const navigation = useNavigation();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
@@ -636,6 +637,31 @@ const BiblePrayerTab = () => {
     };
   }, [showVerseModal]);
 
+  // Listen for cross-screen navigation events from BibleStudyScreen
+  useEffect(() => {
+    const openBibleListener = DeviceEventEmitter.addListener('openBibleFromBibleStudy', ({ verseRef }) => {
+      handleNavigateToVerse(verseRef);
+    });
+
+    const openChatListener = DeviceEventEmitter.addListener('openAiChatFromBibleStudy', (versePayload) => {
+      setTimeout(() => {
+        navigation.navigate('FriendChat', { initialVerse: versePayload });
+      }, 200);
+    });
+
+    const openAiFromBibleListener = DeviceEventEmitter.addListener('openAiChatFromBible', ({ verseContent }) => {
+      setTimeout(() => {
+        navigation.navigate('FriendChat', { initialVerse: verseContent || null });
+      }, 300);
+    });
+
+    return () => {
+      openBibleListener.remove();
+      openChatListener.remove();
+      openAiFromBibleListener.remove();
+    };
+  }, []);
+
   const initializePrayerData = async () => {
     try {
       // Initialize daily reset system first
@@ -808,14 +834,13 @@ const BiblePrayerTab = () => {
     };
     
     console.log('💬 Setting verse data:', verseData);
-    setVerseToInterpret(verseData);
     
     // Close verse modal
     setShowVerseModal(false);
     
-    // Open Friend chat immediately
+    // Open Friend chat via stack navigation
     console.log('💬 Opening Friend chat now');
-    setShowFriendChat(true);
+    navigation.navigate('FriendChat', { initialVerse: verseData });
   };
 
   const handleGoToVerse = () => {
@@ -933,21 +958,15 @@ const BiblePrayerTab = () => {
     // Close prayer screen and open friend chat
     setShowPrayerScreen(false);
     setSelectedPrayer(null);
-    setShowFriendChat(true);
-  }, []);
+    navigation.navigate('FriendChat');
+  }, [navigation]);
 
   // Handle navigation to specific Bible verse
   const handleNavigateToVerse = useCallback((verseRef, mode = 'navigate') => {
     console.log('📖 BiblePrayerTab: Navigating to verse:', verseRef, 'mode:', mode);
-    if (mode === 'search') {
-      // For search mode, pass the verse reference as a search query
-      setVerseReference({ searchQuery: verseRef });
-    } else {
-      // For navigation mode, pass as normal verse reference
-      setVerseReference(verseRef);
-    }
-    setShowBible(true);
-  }, []);
+    const ref = mode === 'search' ? { searchQuery: verseRef } : verseRef;
+    navigation.navigate('BibleReader', { verseRef: ref });
+  }, [navigation]);
 
   const handlePrayerComplete = useCallback(async (prayerName) => {
     hapticFeedback.success(); // Success feedback when completing prayer
@@ -1056,8 +1075,8 @@ const BiblePrayerTab = () => {
           elevation: 1,
         }]}
         onPress={() => {
-          hapticFeedback.medium(); // Medium feedback when opening Bible
-          setShowBible(true); // Open modal like prayers do
+          hapticFeedback.medium();
+          navigation.navigate('BibleReader');
         }}
       >
         <MaterialIcons name="menu-book" size={24} color={iconColor} />
@@ -1166,7 +1185,7 @@ const BiblePrayerTab = () => {
         }]}
         onPress={() => {
           hapticFeedback.medium();
-          setShowBibleStudy(true);
+          navigation.navigate('BibleStudy');
         }}
       >
         <MaterialIcons name="school" size={24} color={iconColor} />
@@ -1292,58 +1311,9 @@ const BiblePrayerTab = () => {
 
 
 
-      {/* Bible Modal */}
-      {showBible && (
-        <BibleReader
-          visible={showBible}
-          onClose={() => {
-            setShowBible(false);
-            setVerseReference(null); // Clear verse reference when closing
-          }}
-          initialVerseReference={verseReference}
-          onNavigateToAI={(verseContent) => {
-            setShowBible(false);
-            setVerseReference(null);
-            if (verseContent) {
-              setVerseToInterpret(verseContent);
-            } else {
-              setVerseToInterpret(null); // General chat
-            }
-            setTimeout(() => setShowFriendChat(true), 300);
-          }}
-          onInterpretVerse={(verseContent, reference) => {
-            setShowBible(false);
-            setVerseReference(null);
-            setVerseToInterpret({ content: verseContent, reference });
-            setTimeout(() => setShowFriendChat(true), 300);
-          }}
-        />
-      )}
+      {/* Bible Reader - now navigated via stack navigator for swipe-back support */}
 
-      {/* Bible Study Modal */}
-      {showBibleStudy && (
-        <BibleStudyModal
-          visible={showBibleStudy}
-          onClose={() => setShowBibleStudy(false)}
-          onNavigateToVerse={(reference) => {
-            // Close BibleStudy first, then open Bible after a delay
-            setShowBibleStudy(false);
-            setTimeout(() => {
-              handleNavigateToVerse(reference);
-            }, 200);
-          }}
-          onDiscussVerse={(versePayload) => {
-            // Close BibleStudy first, then open chat after a delay
-            setShowBibleStudy(false);
-            setShowBible(false);
-            setVerseReference(null);
-            setTimeout(() => {
-              setVerseToInterpret(versePayload);
-              setShowFriendChat(true);
-            }, 200);
-          }}
-        />
-      )}
+      {/* Bible Study - now navigated via stack navigator for swipe-back support */}
 
       {/* Prayer Screen Modal */}
       {showPrayerScreen && (
@@ -1360,16 +1330,7 @@ const BiblePrayerTab = () => {
         />
       )}
 
-      {/* Friend Chat Modal */}
-        <AiBibleChat
-          visible={showFriendChat}
-          onClose={() => {
-            setShowFriendChat(false);
-            setVerseToInterpret(null);
-          }}
-          initialVerse={verseToInterpret}
-          onNavigateToBible={handleNavigateToVerse}
-        />
+      {/* Friend Chat - now navigated via stack navigator for swipe-back support */}
 
       {/* Verse of the Day Modal */}
       <Modal

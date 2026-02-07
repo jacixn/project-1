@@ -35,7 +35,7 @@ const storyImages = {
 
 const { width, height } = Dimensions.get('window');
 
-const AudioLearning = ({ visible, onClose }) => {
+const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   
   // State
@@ -854,17 +854,25 @@ const AudioLearning = ({ visible, onClose }) => {
     );
   };
 
+  const content = (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      
+      {/* Story list always rendered so it's visible when pulling down player */}
+      {renderStoryList()}
+      
+      {/* Player always mounted but fades in/out */}
+      {renderPlayer()}
+    </View>
+  );
+
+  if (asScreen) {
+    return content;
+  }
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        
-        {/* Story list always rendered so it's visible when pulling down player */}
-        {renderStoryList()}
-        
-        {/* Player always mounted but fades in/out */}
-        {renderPlayer()}
-      </View>
+      {content}
     </Modal>
   );
 };

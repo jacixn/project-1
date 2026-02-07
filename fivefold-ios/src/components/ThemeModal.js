@@ -78,7 +78,6 @@ const ThemeModal = ({ visible, onClose }) => {
   const lightThemes = [
     { id: 'blush-bloom', name: 'Blush Bloom', wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme },
     { id: 'eterna', name: 'Eterna', wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme },
-    { id: 'faith', name: 'Faith', wallpaper: themeWallpapers?.['faith'], isActive: isFaithTheme },
     { id: 'sailormoon', name: 'Sailor Moon', wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme },
     // Biblely Light variant
     { 
@@ -184,24 +183,25 @@ const ThemeModal = ({ visible, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Fixed Header - always visible */}
+        <View style={[styles.headerRow, { backgroundColor: theme.background, paddingTop: 16, paddingHorizontal: 20, marginBottom: 0, marginTop: 0, zIndex: 10 }]}>
+          <TouchableOpacity 
+            onPress={onClose}
+            style={[styles.closeCircle, { backgroundColor: theme.surface }]}
+          >
+            <MaterialIcons name="close" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.mainTitle, { color: theme.text }]}>Appearance</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={[styles.doneText, { color: theme.primary }]}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
         <ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Enhanced Header */}
-          <View style={styles.headerRow}>
-            <TouchableOpacity 
-              onPress={onClose}
-              style={[styles.closeCircle, { backgroundColor: theme.surface }]}
-            >
-              <MaterialIcons name="close" size={20} color={theme.text} />
-            </TouchableOpacity>
-            <Text style={[styles.mainTitle, { color: theme.text }]}>Appearance</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={[styles.doneText, { color: theme.primary }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Current Theme Display */}
           <GlassCard style={styles.currentThemeCard} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
@@ -291,14 +291,14 @@ const styles = StyleSheet.create({
   },
   // Current Theme Card
   currentThemeCard: {
-    padding: 20,
-    marginBottom: 24,
-    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderRadius: 12,
   },
   currentLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentName: {
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   currentMode: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '500',
   },
   // Sections
