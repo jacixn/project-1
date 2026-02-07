@@ -312,6 +312,7 @@ const TodosTab = () => {
   }, [showAboutModal]);
 
   // Refresh data when tab becomes focused (to show updated points from prayers)
+  // Listen for stat changes via events instead of polling every 30 seconds
   useEffect(() => {
     const refreshStats = async () => {
       try {
@@ -324,15 +325,18 @@ const TodosTab = () => {
       }
     };
 
-    // Refresh every 30 seconds to catch prayer completions
-    const interval = setInterval(refreshStats, 30000);
-    return () => clearInterval(interval);
+    const statsListener = DeviceEventEmitter.addListener('userStatsChanged', refreshStats);
+    const prayerListener = DeviceEventEmitter.addListener('prayerCompleted', refreshStats);
+    
+    return () => {
+      statsListener.remove();
+      prayerListener.remove();
+    };
   }, []);
 
   const initializeTodoData = async () => {
     try {
-      // Simulate loading time to show beautiful animation
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Loading animation plays while real data loads (no artificial delay)
       
       const storedTodos = await getStoredData('todos') || [];
       const storedStats = await getStoredData('userStats') || {

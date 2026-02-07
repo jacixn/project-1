@@ -57,59 +57,64 @@ export const AuthProvider = ({ children }) => {
 
   // Subscribe to auth state changes
   useEffect(() => {
+    let hasCompletedInitialSync = false;
+    
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
-          // Fetch user profile from Firestore with retry logic
-          // This handles the race condition during signup where the profile
-          // might not be written to Firestore yet
-          let profile = await getUserProfile(firebaseUser.uid);
-          
-          // If profile doesn't exist or has no username, retry after a short delay
-          // This can happen during signup when the auth state changes before Firestore write completes
-          if (!profile || !profile.username) {
-            console.log('[Auth] Profile not found or incomplete, retrying...');
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            profile = await getUserProfile(firebaseUser.uid);
+          // First, try to use cached profile (fast, no Firestore read)
+          const cachedData = await AsyncStorage.getItem(USER_CACHE_KEY);
+          if (cachedData) {
+            const cachedProfile = JSON.parse(cachedData);
+            setUserProfile(cachedProfile);
+            console.log('[Auth] Using cached profile:', cachedProfile.username);
           }
           
-          if (profile) {
-            setUserProfile(profile);
-            // Cache the user profile
-            await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
-            console.log('[Auth] Profile loaded:', profile.username);
-          }
-          
-          // Save push token for notifications
-          try {
-            const pushToken = await notificationService.getPushToken();
-            if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token') {
-              await savePushToken(firebaseUser.uid, pushToken);
-              console.log('[Auth] Push token saved for notifications');
+          // Only do full sync on FRESH login (not every app open)
+          if (!hasCompletedInitialSync) {
+            hasCompletedInitialSync = true;
+            
+            // Fetch user profile from Firestore (once per session)
+            let profile = await getUserProfile(firebaseUser.uid);
+            
+            // If profile doesn't exist or has no username, retry after a short delay
+            // This handles the race condition during signup
+            if (!profile || !profile.username) {
+              console.log('[Auth] Profile not found or incomplete, retrying...');
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              profile = await getUserProfile(firebaseUser.uid);
             }
-          } catch (tokenError) {
-            console.warn('[Auth] Failed to save push token:', tokenError);
+            
+            if (profile) {
+              setUserProfile(profile);
+              await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+              console.log('[Auth] Profile loaded from Firestore:', profile.username);
+            }
+            
+            // Save push token for notifications
+            try {
+              const pushToken = await notificationService.getPushToken();
+              if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token') {
+                await savePushToken(firebaseUser.uid, pushToken);
+                console.log('[Auth] Push token saved for notifications');
+              }
+            } catch (tokenError) {
+              console.warn('[Auth] Failed to save push token:', tokenError);
+            }
+            
+            // Sync data once per session (not on every auth state change)
+            console.log('[Auth] Syncing user data (once per session)...');
+            await performFullSync(firebaseUser.uid);
+            console.log('[Auth] Sync complete');
           }
-          
-          // Auto-sync data when user logs in or app opens
-          console.log('[Auth] Auto-syncing user data...');
-          await performFullSync(firebaseUser.uid);
-          
-          // Refresh profile after sync in case it was updated
-          const refreshedProfile = await getUserProfile(firebaseUser.uid);
-          if (refreshedProfile) {
-            setUserProfile(refreshedProfile);
-            await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(refreshedProfile));
-          }
-          
-          console.log('[Auth] Auto-sync complete');
         } catch (error) {
           console.error('Error fetching user profile:', error);
         }
       } else {
         setUserProfile(null);
+        hasCompletedInitialSync = false;
         await AsyncStorage.removeItem(USER_CACHE_KEY);
       }
       

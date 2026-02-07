@@ -36,8 +36,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { GlassHeader } from '../components/GlassEffect';
-import { subscribeToPosts, createPost, viewPost, deletePost, formatTimeAgo, cleanupOldPosts } from '../services/feedService';
-import { getUserProfile, isEmailVerified, resendVerificationEmail } from '../services/authService';
+import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo } from '../services/feedService';
+import { isEmailVerified, resendVerificationEmail } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
@@ -126,37 +126,32 @@ const HubTab = () => {
     ).start();
   }, []);
   
-  // Load posts and token status
+  // Load posts (one-time fetch, no real-time listener to save Firestore costs)
+  const loadPosts = async () => {
+    try {
+      const result = await getFeedPosts();
+      setPosts(result.posts);
+    } catch (error) {
+      console.error('[Hub] Error loading posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     
-    // Subscribe to posts
-    const unsubscribe = subscribeToPosts((newPosts) => {
-      setPosts(newPosts);
-      setLoading(false);
-    });
+    // One-time fetch of posts (no real-time listener)
+    loadPosts();
     
     // Delay initial token check to allow cloud data to download first
-    // This prevents creating a new schedule before cloud data arrives
     const tokenCheckDelay = setTimeout(() => {
       console.log('[HubTab] Initial token check (delayed) - syncing from Firebase');
-      checkTokenStatus(true); // Force Firebase sync on initial load
-    }, 1500); // 1.5 second delay to let cloud sync complete
-    
-    // Check token every minute after initial load (sync from Firebase)
-    const tokenInterval = setInterval(() => checkTokenStatus(true), 60000);
-    
-    // Clean up old posts (older than 7 days) to save storage costs
-    cleanupOldPosts().then((result) => {
-      if (result.deleted > 0) {
-        console.log(`[Hub] Cleaned up ${result.deleted} old posts`);
-      }
-    });
+      checkTokenStatus(true);
+    }, 1500);
     
     return () => {
-      unsubscribe();
       clearTimeout(tokenCheckDelay);
-      clearInterval(tokenInterval);
     };
   }, [user]);
   
@@ -259,6 +254,9 @@ const HubTab = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     
+    // Refresh posts
+    await loadPosts();
+    
     // Force refresh token from Firebase (for admin testing)
     if (user) {
       const status = await forceRefreshTokenFromFirebase(user.uid, userProfile?.username);
@@ -352,16 +350,8 @@ const HubTab = () => {
       return;
     }
     
-    // Fetch fresh profile from Firestore to ensure we have latest country/photo
-    let profileToUse = userProfile;
-    try {
-      const freshProfile = await getUserProfile(user.uid);
-      if (freshProfile) {
-        profileToUse = freshProfile;
-      }
-    } catch (err) {
-      console.log('[Hub] Using cached profile for post');
-    }
+    // Use cached profile from AuthContext (no extra Firestore read needed)
+    const profileToUse = userProfile;
     
     // Create the post
     const result = await createPost(user.uid, postContent, profileToUse);
@@ -370,17 +360,13 @@ const HubTab = () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPostContent('');
       setShowComposer(false);
+      await loadPosts(); // Refresh feed with new post
       await checkTokenStatus(true); // Refresh token status from Firebase
     } else {
       Alert.alert('Error', result.error || 'Failed to create post');
     }
     
     setPosting(false);
-  };
-  
-  const handleView = async (postId) => {
-    if (!user) return;
-    await viewPost(postId, user.uid);
   };
   
   const handleDeletePost = async (postId) => {
@@ -481,33 +467,48 @@ const HubTab = () => {
     });
   };
   
-  // Track last view time per post (0.1 second cooldown)
-  const lastViewTimeRef = useRef({});
+  // Batched view tracking - accumulates views and flushes to Firestore periodically
+  const pendingViewsRef = useRef({});
+  const viewFlushTimerRef = useRef(null);
+  
+  const flushViews = useCallback(async () => {
+    const pending = { ...pendingViewsRef.current };
+    pendingViewsRef.current = {};
+    
+    const postIds = Object.keys(pending);
+    if (postIds.length === 0) return;
+    
+    for (const postId of postIds) {
+      try {
+        await viewPost(postId, user?.uid);
+      } catch (e) {
+        console.log('[Views] Failed to flush view for', postId);
+      }
+    }
+    console.log(`[Views] Flushed ${postIds.length} view counts`);
+  }, [user]);
+  
+  // Flush views when component unmounts or every 30 seconds
+  useEffect(() => {
+    viewFlushTimerRef.current = setInterval(flushViews, 30000);
+    return () => {
+      clearInterval(viewFlushTimerRef.current);
+      flushViews(); // Flush remaining on unmount
+    };
+  }, [flushViews]);
+
+  const trackView = useCallback((postId) => {
+    if (!pendingViewsRef.current[postId]) {
+      pendingViewsRef.current[postId] = true;
+    }
+  }, []);
   
   const renderPost = ({ item }) => {
     const isOwner = item.userId === user?.uid;
     
-    // Track view - but don't count the original poster's views on their own post
-    if (user?.uid && item.id && !isOwner) {
-      const now = Date.now();
-      const lastView = lastViewTimeRef.current[item.id] || 0;
-      
-      // Check if current date is before May 1st
-      const currentDate = new Date();
-      const may1st = new Date(currentDate.getFullYear(), 4, 1); // Month is 0-indexed, so 4 = May
-      const isBeforeMay1st = currentDate < may1st;
-      
-      // Before May 1st: slow views (5-10 seconds), After May 1st: fast views (70-100ms)
-      const randomCooldown = isBeforeMay1st 
-        ? 5000 + Math.floor(Math.random() * 5001) // Random 5000-10000ms (5-10 seconds)
-        : 70 + Math.floor(Math.random() * 31); // Random 70-100ms
-      
-      const timeSinceLastView = now - lastView;
-      if (timeSinceLastView > randomCooldown) {
-        console.log(`[Views] Counting view - isBeforeMay1st: ${isBeforeMay1st}, cooldown: ${randomCooldown}ms, elapsed: ${timeSinceLastView}ms`);
-        lastViewTimeRef.current[item.id] = now;
-        handleView(item.id);
-      }
+    // Track view - batch and flush periodically (not per-scroll)
+    if (user?.uid && item.id && !isOwner && !pendingViewsRef.current[item.id]) {
+      trackView(item.id);
     }
     
     return (
@@ -520,9 +521,16 @@ const HubTab = () => {
         {/* Author Row */}
         <View style={styles.postHeader}>
           <View style={styles.authorInfo}>
-            {item.authorPhoto ? (
-              <Image source={{ uri: item.authorPhoto }} style={styles.authorAvatar} />
-            ) : (
+            {/* Use current profile image for own posts, snapshot for others */}
+            {(() => {
+              const photoUrl = (item.userId === user?.uid && userProfile?.profilePicture) 
+                ? userProfile.profilePicture 
+                : item.authorPhoto;
+              return photoUrl ? (
+                <Image source={{ uri: photoUrl }} style={styles.authorAvatar} />
+              ) : null;
+            })()}
+            {!((item.userId === user?.uid && userProfile?.profilePicture) || item.authorPhoto) && (
               <LinearGradient
                 colors={['#8B5CF6', '#6366F1']}
                 style={styles.authorAvatar}

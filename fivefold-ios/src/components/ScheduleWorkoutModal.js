@@ -100,6 +100,18 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
         await Notifications.cancelScheduledNotificationAsync(`${schedule.id}_${i}`).catch(() => {});
       }
       await Notifications.cancelScheduledNotificationAsync(schedule.id).catch(() => {});
+      
+      // Also cancel any stale workout reminder notifications from previous schedules
+      try {
+        const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+        for (const notif of allScheduled) {
+          if (notif.content?.data?.type === 'workout_reminder') {
+            await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.log('Could not clear old workout notifications:', e);
+      }
 
       const notifyMinutes = schedule.notifyBefore || 60;
       const [hours, minutes] = schedule.time.split(':').map(Number);
@@ -142,18 +154,20 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
               weekday: day + 1, // Expo uses 1=Sunday, 2=Monday, etc.
               hour: notifyHours,
               minute: notifyMins,
+              repeats: true,
             },
           });
         }
       } else {
         // One-time notification
-        const workoutDateTime = new Date(schedule.date);
-        workoutDateTime.setHours(hours, minutes, 0, 0);
+        // Parse date parts manually to avoid UTC timezone issues
+        const dateParts = schedule.date.split('-').map(Number);
+        const workoutDateTime = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes, 0, 0);
         
         const notifyTime = new Date(workoutDateTime.getTime() - notifyMinutes * 60 * 1000);
         
         if (notifyTime > new Date()) {
-          console.log(`📅 Scheduling one-time notification for ${notifyTime}`);
+          console.log(`📅 Scheduling one-time notification for ${notifyTime.toLocaleString()}`);
           
           await Notifications.scheduleNotificationAsync({
             identifier: schedule.id,
@@ -163,8 +177,10 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
               data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
               sound: soundSetting,
             },
-            trigger: { date: notifyTime },
+            trigger: notifyTime,
           });
+        } else {
+          console.log(`⏭️ Skipping notification - notify time ${notifyTime.toLocaleString()} is in the past`);
         }
       }
 

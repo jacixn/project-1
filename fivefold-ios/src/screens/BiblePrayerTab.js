@@ -455,7 +455,8 @@ const BiblePrayerTab = () => {
     // Update verse immediately
     updateDailyVerse();
 
-    // Set up interval to check for date change every minute
+    // Check for date change once per hour instead of every minute
+    // The daily verse only changes once per day, so frequent checking is wasteful
     const interval = setInterval(async () => {
       try {
         const currentVerse = await getDailyVerse();
@@ -465,7 +466,7 @@ const BiblePrayerTab = () => {
       } catch (error) {
         console.error('Error checking daily verse update:', error);
       }
-    }, 60000); // Check every minute
+    }, 3600000); // Check every hour (was every minute)
 
     return () => clearInterval(interval);
   }, [dailyVerse.reference]);

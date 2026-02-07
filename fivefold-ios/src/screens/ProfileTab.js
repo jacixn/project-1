@@ -1732,6 +1732,9 @@ const ProfileTab = () => {
             await updateLocalProfile({ profilePicture: downloadURL });
             console.log('[ProfilePhoto] Updated AuthContext profile cache');
           }
+          
+          // Notify other screens (HubTab etc.) that profile image changed
+          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: downloadURL });
         } catch (uploadError) {
           console.error('[ProfilePhoto] Upload failed, using local file:', uploadError);
           // Keep using local file if upload fails

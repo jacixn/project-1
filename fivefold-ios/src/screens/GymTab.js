@@ -13,6 +13,7 @@ import {
   Dimensions,
   RefreshControl,
   DeviceEventEmitter,
+  Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -1210,7 +1211,37 @@ const GymTab = () => {
                     ]}
                   >
                     {!day.empty && (
-                      <View style={[
+                      <TouchableOpacity 
+                        activeOpacity={day.hasScheduled ? 0.6 : 1}
+                        onPress={() => {
+                          if (day.hasScheduled && day.scheduledWorkouts?.length > 0) {
+                            hapticFeedback.medium();
+                            const schedule = day.scheduledWorkouts[0];
+                            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                            const scheduledDays = schedule.days?.map(d => dayNames[d]).join(', ') || 'Unknown';
+                            
+                            Alert.alert(
+                              'Scheduled Workout',
+                              schedule.type === 'recurring' 
+                                ? `Recurring every: ${scheduledDays}\n${schedule.templateName ? `Template: ${schedule.templateName}` : 'Empty workout'}`
+                                : `One-time on ${day.dateKey}`,
+                              [
+                                { text: 'Keep', style: 'cancel' },
+                                {
+                                  text: 'Delete Schedule',
+                                  style: 'destructive',
+                                  onPress: async () => {
+                                    hapticFeedback.medium();
+                                    await WorkoutService.deleteScheduledWorkout(schedule.id);
+                                    const updated = await WorkoutService.getScheduledWorkouts();
+                                    setScheduledWorkouts(updated);
+                                  }
+                                }
+                              ]
+                            );
+                          }
+                        }}
+                        style={[
                         styles.calendarDayInner,
                         day.hasWorkout && styles.calendarDayHasWorkout,
                         day.isToday && styles.calendarDayIsToday,
@@ -1259,7 +1290,7 @@ const GymTab = () => {
                             <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
                           </View>
                         )}
-                      </View>
+                      </TouchableOpacity>
                     )}
                   </Animated.View>
                 ))}

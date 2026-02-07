@@ -42,7 +42,7 @@ const sendExpoNotifications = async (messages) => {
   return result.data || [];
 };
 
-exports.sendTokenNotifications = onSchedule('every 1 minutes', async () => {
+exports.sendTokenNotifications = onSchedule('every 5 minutes', async () => {
   const today = getUtcTodayString();
   const utcMinutes = getUtcMinutes();
 

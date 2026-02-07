@@ -324,7 +324,7 @@ class NotificationService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '⏰ Missed Prayer',
+          title: 'Missed Prayer',
           body: `You may have missed ${this.getPrayerDisplayName(prayerSlot)} prayer. There's still time!`,
           data: { type: 'missed_prayer', prayerSlot },
           sound: true,
@@ -346,7 +346,7 @@ class NotificationService {
       
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🏆 Achievement Unlocked!',
+          title: 'Achievement Unlocked!',
           body: `${achievementTitle} (+${points} points)`,
           data: { type: 'achievement' },
           sound: settings.sound ? 'default' : false,
@@ -367,15 +367,15 @@ class NotificationService {
       
       switch (type) {
         case 'prayer':
-          title = '🔥 Prayer Streak';
+          title = 'Prayer Streak';
           body = `Keep your ${streakCount}-day prayer streak alive! Don't forget today's prayers.`;
           break;
         case 'task':
-          title = '✅ Task Streak';
+          title = 'Task Streak';
           body = `You're on a ${streakCount}-day task completion streak! Complete today's tasks.`;
           break;
         default:
-          title = '🔥 Streak Alert';
+          title = 'Streak Alert';
           body = `Maintain your ${streakCount}-day streak! Stay consistent.`;
       }
 
