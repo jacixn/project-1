@@ -275,14 +275,14 @@ const PrayerSection = () => {
       
       if (result.success) {
         // Award points
-        await giveUserPoints(500);
+        await giveUserPoints(25000);
         closePrayerDetails();
         await fetchPrayers();
         hapticFeedback.success();
         
         Alert.alert(
           'Prayer Completed! 🙏',
-          'Wonderful! You earned 500 points. Your prayer will return in 24 hours with fresh verses.',
+          'Wonderful! You earned 25,000 points. Your prayer will return in 24 hours with fresh verses.',
           [{ text: 'Amen! 🙏', style: 'default' }]
         );
       } else {

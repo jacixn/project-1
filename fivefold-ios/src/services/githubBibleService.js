@@ -1,6 +1,6 @@
 // GitHub Bible Service
 // Fetches Bible translations from private repo: https://github.com/jacixn/bible-versions
-// 35 complete English translations hosted on a private GitHub repository
+// 44 English translations hosted on a private GitHub repository
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVersionById } from '../data/bibleVersions';

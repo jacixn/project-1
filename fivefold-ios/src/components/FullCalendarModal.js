@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { scoreTask } from '../utils/todoScorer';
@@ -23,6 +24,7 @@ import { getStoredData } from '../utils/localStorage';
 
 const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -228,29 +230,20 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
   const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
-        <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: theme.background }]}>
           <TouchableOpacity
             onPress={onClose}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1,
-            }}
+            style={styles.backButton}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+            <MaterialIcons name="chevron-left" size={30} color={theme.text} />
           </TouchableOpacity>
-          <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>
-              Schedule a Task
-            </Text>
-          </View>
-          <View style={styles.closeButton} />
-        </BlurView>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Schedule a Task
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Year Selector */}
@@ -610,23 +603,21 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingBottom: 14,
   },
-  closeButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
+  backButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   content: {
     flex: 1,

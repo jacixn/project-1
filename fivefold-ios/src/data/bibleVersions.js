@@ -1,6 +1,6 @@
 // Bible Versions Data
-// Source: https://github.com/arron-taylor/bible-versions
-// 35 complete English Bible translations in JSON format
+// Source: Private repo - https://github.com/jacixn/bible-versions
+// 44 English Bible translations in JSON format
 
 export const bibleVersions = [
   // Popular Modern Translations
@@ -427,6 +427,179 @@ export const bibleVersions = [
     publisher: 'John Worsley',
     copyright: 'Public Domain',
     githubFile: 'WORSLEY NEW TESTAMENT.json'
+  },
+  
+  // Additional Translations (scraped)
+  {
+    id: 'erv',
+    name: 'English Revised Version',
+    abbreviation: 'ERV',
+    description: 'British revision of KJV',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Traditional',
+    publisher: 'Oxford University Press',
+    copyright: 'Public Domain',
+    githubFile: 'ENGLISH REVISED VERSION.json'
+  },
+  {
+    id: 'hcsb',
+    name: 'Holman Christian Standard Bible',
+    abbreviation: 'HCSB',
+    description: 'Optimal equivalence',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Modern',
+    publisher: 'Holman Bible Publishers',
+    copyright: 'Public Domain',
+    githubFile: 'HOLMAN CHRISTIAN STANDARD BIBLE.json'
+  },
+  {
+    id: 'isv',
+    name: 'International Standard Version',
+    abbreviation: 'ISV',
+    description: 'Readable & accurate',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Modern',
+    publisher: 'ISV Foundation',
+    copyright: 'Public Domain',
+    githubFile: 'INTERNATIONAL STANDARD VERSION.json'
+  },
+  {
+    id: 'jps',
+    name: 'JPS Tanakh 1917',
+    abbreviation: 'JPS',
+    description: 'Jewish Old Testament',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Jewish Publication Society',
+    copyright: 'Public Domain',
+    githubFile: 'JPS TANAKH 1917.json'
+  },
+  {
+    id: 'lamsa',
+    name: 'Lamsa Bible',
+    abbreviation: 'LAMSA',
+    description: 'From Aramaic Peshitta',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'George M. Lamsa',
+    copyright: 'Public Domain',
+    githubFile: 'LAMSA BIBLE.json'
+  },
+  {
+    id: 'lsb',
+    name: 'Legacy Standard Bible',
+    abbreviation: 'LSB',
+    description: 'Formal equivalence',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Three Sixteen Publishing',
+    copyright: 'Public Domain',
+    githubFile: 'LEGACY STANDARD BIBLE.json'
+  },
+  {
+    id: 'msb',
+    name: 'Majority Standard Bible',
+    abbreviation: 'MSB',
+    description: 'Byzantine text based',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Bible Hub',
+    copyright: 'Public Domain',
+    githubFile: 'MAJORITY STANDARD BIBLE.json'
+  },
+  {
+    id: 'nasb77',
+    name: 'NASB 1977',
+    abbreviation: 'NASB77',
+    description: 'Original NASB edition',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Lockman Foundation',
+    copyright: 'Public Domain',
+    githubFile: 'NASB 1977.json'
+  },
+  {
+    id: 'nasb95',
+    name: 'NASB 1995',
+    abbreviation: 'NASB95',
+    description: '1995 NASB update',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Lockman Foundation',
+    copyright: 'Public Domain',
+    githubFile: 'NASB 1995.json'
+  },
+  {
+    id: 'net',
+    name: 'NET Bible',
+    abbreviation: 'NET',
+    description: 'With translator notes',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Biblical Studies Press',
+    copyright: 'Public Domain',
+    githubFile: 'NET BIBLE.json'
+  },
+  
+  // Additional New Testament Only
+  {
+    id: 'godbey',
+    name: 'Godbey New Testament',
+    abbreviation: 'GODBEY',
+    description: 'NT only',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'W.B. Godbey',
+    copyright: 'Public Domain',
+    githubFile: 'GODBEY NEW TESTAMENT.json'
+  },
+  {
+    id: 'haweis',
+    name: 'Haweis New Testament',
+    abbreviation: 'HAWEIS',
+    description: 'NT only',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Thomas Haweis',
+    copyright: 'Public Domain',
+    githubFile: 'HAWEIS NEW TESTAMENT.json'
+  },
+  {
+    id: 'mace',
+    name: 'Mace New Testament',
+    abbreviation: 'MACE',
+    description: 'NT only',
+    language: 'English',
+    isFree: true,
+    isAvailable: true,
+    category: 'Study',
+    publisher: 'Daniel Mace',
+    copyright: 'Public Domain',
+    githubFile: 'MACE NEW TESTAMENT.json'
   }
 ];
 

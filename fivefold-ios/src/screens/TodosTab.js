@@ -46,6 +46,22 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 
+// Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M
+const formatCompact = (num) => {
+  if (num >= 1_000_000) {
+    const val = num / 1_000_000;
+    return val % 1 === 0 ? `${val}M` : `${parseFloat(val.toFixed(1))}M`;
+  }
+  if (num >= 10_000) {
+    const val = num / 1_000;
+    return val % 1 === 0 ? `${val}K` : `${parseFloat(val.toFixed(1))}K`;
+  }
+  if (num >= 1_000) {
+    return num.toLocaleString();
+  }
+  return `${num}`;
+};
+
 // Animated Todo Components (follows Rules of Hooks)
 const AnimatedTodoButton = ({ children, onPress, style, ...props }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -378,7 +394,7 @@ const TodosTab = () => {
           : todo
       );
       
-      const pointsEarned = 10000; // 10k points per task (more gradual)
+      const pointsEarned = 50000; // 50k points per task
       const newCompletedTasks = userStats.completedTasks + 1;
       
       const updatedStats = {
@@ -511,126 +527,23 @@ const TodosTab = () => {
       );
     };
 
-    return (
-      <LiquidGlassCalendarContainer>
-        {/* Today Banner */}
-        <View style={styles.todayBanner}>
-          <AnimatedTodoButton style={[styles.todayButton, { backgroundColor: theme.primary }]}>
-            <Text style={styles.todayButtonText}>Today</Text>
-          </AnimatedTodoButton>
-          <Text style={[styles.monthYear, { color: textColor, ...textOutlineStyle }]}>{currentMonth}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Days of Week Header */}
-        <View style={styles.weekHeader}>
-          {daysOfWeek.map((day, index) => (
-            <Text key={index} style={[styles.weekDay, { color: textSecondaryColor }]}>
-              {day}
-            </Text>
-          ))}
-        </View>
-
-        {/* Calendar Grid - Tappable to open full calendar */}
-        <TouchableOpacity 
-          activeOpacity={0.8}
-          onPress={() => {
-            hapticFeedback.light();
-            navigation.navigate('ScheduleTask');
-          }}
-        >
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((dayData, index) => {
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.calendarDay,
-                    dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
-                    dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
-                  ]}
-                >
-                  <Text style={[
-                    styles.dayNumber,
-                    { color: dayData.isToday ? '#fff' : textColor, ...textOutlineStyle },
-                    dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
-                  ]}>
-                    {dayData.day}
-                  </Text>
-                  {dayData.hasActivity && (
-                    <View style={[
-                      styles.activityDot,
-                      { backgroundColor: dayData.isToday ? '#fff' : theme.success }
-                    ]} />
-                  )}
-                </View>
-              );
-            })}
-          </View>
-          
-          {/* Tap to expand hint */}
-          <View style={styles.expandHint}>
-            <MaterialIcons name="calendar-today" size={16} color={theme.textSecondary} />
-            <Text style={[styles.expandHintText, { color: textSecondaryColor }]}>
-              Tap to schedule tasks
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </LiquidGlassCalendarContainer>
-    );
-  };
-
-  // Stats overview component (moved below tasks)
-  const StatsOverview = () => {
+    // Stats data (merged into this card)
     const activeTodos = todos.filter(todo => !todo.completed);
     const completedToday = todos.filter(todo => {
       if (!todo.completed || !todo.completedAt) return false;
-      const today = new Date().toISOString().split('T')[0];
+      const todayStr = new Date().toISOString().split('T')[0];
       const completedDate = new Date(todo.completedAt).toISOString().split('T')[0];
-      return today === completedDate;
+      return todayStr === completedDate;
     });
-
-    // Calculate today's points from tasks completed today
     const todayPoints = completedToday.reduce((total, todo) => total + (todo.points || 0), 0);
 
-    // Liquid Glass Container for Stats
-    const LiquidGlassStatsContainer = ({ children }) => {
-      // Use BlurView if: device doesn't support liquid glass OR user disabled it
-      const userPrefersBlur = global.liquidGlassUserPreference === false || liquidGlassEnabled === false;
-      
-      if (!isLiquidGlassSupported || userPrefersBlur) {
-        return (
-          <BlurView 
-            intensity={18} 
-            tint={isDark ? "dark" : "light"} 
-            style={[styles.statsCard, { 
-              backgroundColor: isDark 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : `${theme.primary}15`
-            }]}
-          >
-            {children}
-          </BlurView>
-        );
-      }
-
-      // Use Liquid Glass if: device supports it AND user enabled it
-      return (
-        <LiquidGlassView
-          interactive={true}
-          effect="clear"
-          colorScheme="system"
-          tintColor="rgba(255, 255, 255, 0.08)"
-          style={styles.liquidGlassStatsCard}
-        >
-          {children}
-        </LiquidGlassView>
-      );
-    };
-
     return (
-      <LiquidGlassStatsContainer>
+      <LiquidGlassCalendarContainer>
+        {/* Today's Progress Stats */}
         <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Today's Progress</Text>
+        <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+          Your daily tasks at a glance
+        </Text>
         
         <View style={styles.statsRow}>
           <View 
@@ -689,24 +602,97 @@ const TodosTab = () => {
             }]}
           >
             <Text style={[styles.statNumber, { color: theme.warning }]}>
-              {todayPoints}
+              {formatCompact(todayPoints)}
             </Text>
             <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
               Points
             </Text>
           </View>
         </View>
-      </LiquidGlassStatsContainer>
+
+        {/* Divider between stats and calendar */}
+        <View style={{ height: 1, backgroundColor: `${textSecondaryColor}20`, marginVertical: 14, marginHorizontal: 4 }} />
+
+        {/* This Week Calendar */}
+        <View style={styles.todayBanner}>
+          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle, marginBottom: 0 }]}>This Week</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              hapticFeedback.light();
+              navigation.navigate('ScheduleTask');
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          >
+            <Text style={[{ fontSize: 13, color: textSecondaryColor }]}>Tap to schedule tasks</Text>
+            <MaterialIcons name="chevron-right" size={18} color={textSecondaryColor} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Days of Week Header */}
+        <View style={styles.weekHeader}>
+          {daysOfWeek.map((day, index) => (
+            <Text key={index} style={[styles.weekDay, { color: textSecondaryColor }]}>
+              {day}
+            </Text>
+          ))}
+        </View>
+
+        {/* Calendar Grid - Tappable to open full calendar */}
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => {
+            hapticFeedback.light();
+            navigation.navigate('ScheduleTask');
+          }}
+        >
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((dayData, index) => {
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.calendarDay,
+                    dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
+                    dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
+                  ]}
+                >
+                  <Text style={[
+                    styles.dayNumber,
+                    { color: dayData.isToday ? '#fff' : textColor, ...textOutlineStyle },
+                    dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
+                  ]}>
+                    {dayData.day}
+                  </Text>
+                  {dayData.hasActivity && (
+                    <View style={[
+                      styles.activityDot,
+                      { backgroundColor: dayData.isToday ? '#fff' : theme.success }
+                    ]} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </LiquidGlassCalendarContainer>
     );
   };
 
   // Quick add suggestions
   const HistorySection = () => {
-    // Get last 10 completed todos sorted by completion time
+    // Get completed todos from the last 7 days, sorted by most recent
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
     const completedHistory = todos
-      .filter(todo => todo.completed)
-      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
-      .slice(0, 10);
+      .filter(todo => {
+        if (!todo.completed) return false;
+        const doneAt = new Date(todo.completedAt || todo.createdAt);
+        return doneAt >= sevenDaysAgo;
+      })
+      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
 
     // Liquid Glass Container for History
     const LiquidGlassHistoryContainer = ({ children }) => {
@@ -770,7 +756,7 @@ const TodosTab = () => {
       <LiquidGlassHistoryContainer>
         <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
         <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-          Last 10 completed tasks
+          Last 7 days ({completedHistory.length} completed)
         </Text>
         
         <View style={styles.suggestionsList}>
@@ -792,7 +778,17 @@ const TodosTab = () => {
                   {todo.text}
                 </Text>
                 <Text style={[styles.historyTime, { color: theme.textTertiary }]}>
-                  {todo.completedAt ? new Date(todo.completedAt).toLocaleTimeString() : 'Earlier'}
+                  {todo.completedAt ? (() => {
+                    const d = new Date(todo.completedAt);
+                    const now = new Date();
+                    const isToday = d.toDateString() === now.toDateString();
+                    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+                    const isYesterday = d.toDateString() === yesterday.toDateString();
+                    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    if (isToday) return time;
+                    if (isYesterday) return `Yesterday, ${time}`;
+                    return `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}, ${time}`;
+                  })() : 'Earlier'}
                 </Text>
               </View>
             </View>
@@ -921,8 +917,7 @@ const TodosTab = () => {
               onViewAll={() => setShowTasksOverview(true)}
             />
 
-            {/* Stats Overview - Now below tasks */}
-            <StatsOverview />
+            {/* Stats merged into CalendarHeader above */}
 
             {/* Quick Add Suggestions */}
             <HistorySection />
@@ -1390,9 +1385,9 @@ const styles = StyleSheet.create({
   // Liquid Glass Styles
   liquidGlassCalendarCard: {
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -1427,9 +1422,9 @@ const styles = StyleSheet.create({
   // Compact Calendar Styles - Like the reference image
   calendarCard: {
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

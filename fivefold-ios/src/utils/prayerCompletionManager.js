@@ -32,7 +32,7 @@ class PrayerCompletionManager {
   }
 
   // Complete a prayer and award points
-  static async completePrayer(prayerId, prayerName, points = 1000) {
+  static async completePrayer(prayerId, prayerName, points = 25000) {
     try {
       // Check if can complete
       const canComplete = await this.canCompletePrayer(prayerId);

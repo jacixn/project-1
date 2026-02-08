@@ -14,7 +14,9 @@ import {
   PanResponder,
   Image,
   Alert,
+  AppState,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -75,6 +77,9 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
   const [isInitializing, setIsInitializing] = useState(false); // Track if workout is being initialized
   const timerInterval = useRef(null);
+  const timerEndTime = useRef(null); // Absolute timestamp when rest ends
+  const restNotificationId = useRef(null); // ID for scheduled rest-complete notification
+  const isTimerRunningRef = useRef(false); // Mirror of isTimerRunning for AppState listener (avoids stale closures)
   const scrollViewRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -82,6 +87,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   const [isAtTop, setIsAtTop] = useState(true);
   const panGestureStarted = useRef(false); // Track if user actually started the gesture
   const isRestoring = useRef(false); // Track if we're currently restoring data
+  const hasInitializedForSession = useRef(false); // Prevent double init when hasActiveWorkout changes
 
   // Pan responder for pull-to-dismiss gesture
   const panResponder = useRef(
@@ -133,7 +139,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       console.log('🔄 Syncing workout data before closing - name:', workoutName, 'exercises:', exercises.length);
       updateWorkout({
         name: workoutName,
-        exercises: exercises,
+        exercises: cleanExercisesForSync(exercises),
       });
       console.log('🔄 Sync complete - activeWorkout should now have updated name');
     }
@@ -319,6 +325,18 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     initializeWorkout();
   }, [visible, hasActiveWorkout]);
 
+  // Strip Animated.Value objects from exercises before syncing to context
+  // (Animated.Values are non-serializable and cause AsyncStorage persistence to fail)
+  const cleanExercisesForSync = (exs) => {
+    return exs.map(ex => ({
+      ...ex,
+      sets: ex.sets.map(set => {
+        const { scaleAnim, glowAnim, pulseAnim, ...cleanSet } = set;
+        return cleanSet;
+      }),
+    }));
+  };
+
   // Sync workout data to context whenever it changes
   useEffect(() => {
     // Don't sync if no active workout
@@ -342,7 +360,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     console.log('🔄 Syncing workout data to context - exercises:', exercises.length, 'name:', workoutName);
     updateWorkout({
       name: workoutName,
-      exercises: exercises,
+      exercises: cleanExercisesForSync(exercises),
     });
   }, [workoutName, exercises, hasActiveWorkout]);
 
@@ -624,9 +642,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           
           // Only show timer if rest time is greater than 0
           if (restSeconds > 0) {
-            setRestTimerDuration(restSeconds);
-            setRestTimerRemaining(restSeconds);
-            setIsTimerRunning(true);
+            startTimerWithTimestamp(restSeconds);
             setShowRestTimer(true);
             setShowTimerPicker(false);
           }
@@ -857,16 +873,62 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     );
   };
 
-  const handleStartRestTimer = (duration) => {
+  // Schedule a local push notification for when rest ends
+  const scheduleRestNotification = async (durationSeconds) => {
+    try {
+      // Ensure we have notification permissions before scheduling
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== 'granted') {
+          console.warn('[RestTimer] Notification permission not granted');
+          return;
+        }
+      }
+      // Cancel any existing rest notification first
+      await cancelRestNotification();
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Rest Complete',
+          body: 'Time to start your next set!',
+          sound: 'default',
+        },
+        trigger: { seconds: Math.max(1, Math.round(durationSeconds)), type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL },
+      });
+      restNotificationId.current = id;
+    } catch (e) {
+      console.warn('[RestTimer] Could not schedule notification:', e.message);
+    }
+  };
+
+  const cancelRestNotification = async () => {
+    if (restNotificationId.current) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(restNotificationId.current);
+      } catch (e) { /* ignore */ }
+      restNotificationId.current = null;
+    }
+  };
+
+  // Start the rest timer using an absolute end timestamp
+  const startTimerWithTimestamp = (duration) => {
+    timerEndTime.current = Date.now() + duration * 1000;
     setRestTimerDuration(duration);
     setRestTimerRemaining(duration);
     setIsTimerRunning(true);
+    scheduleRestNotification(duration);
+  };
+
+  const handleStartRestTimer = (duration) => {
+    startTimerWithTimestamp(duration);
     setShowTimerPicker(false);
     hapticFeedback.success();
   };
 
   const handleStopRestTimer = () => {
     setIsTimerRunning(false);
+    timerEndTime.current = null;
+    cancelRestNotification();
     if (timerInterval.current) {
       clearInterval(timerInterval.current);
     }
@@ -878,6 +940,8 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     setShowRestTimer(false);
     setShowTimerPicker(true);
     setRestTimerRemaining(restTimerDuration);
+    timerEndTime.current = null;
+    cancelRestNotification();
     if (timerInterval.current) {
       clearInterval(timerInterval.current);
     }
@@ -888,6 +952,9 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     const newRemaining = Math.max(0, Math.min(5999, restTimerRemaining + seconds));
     setRestTimerRemaining(newRemaining);
     setRestTimerDuration(newRemaining);
+    // Recalculate end time and reschedule notification
+    timerEndTime.current = Date.now() + newRemaining * 1000;
+    scheduleRestNotification(newRemaining);
     hapticFeedback.light();
   };
 
@@ -899,34 +966,91 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     hapticFeedback.light();
   };
 
-  // Timer countdown effect
+  // Keep the ref in sync with the state so AppState listener always reads the latest value
   useEffect(() => {
-    if (isTimerRunning && restTimerRemaining > 0) {
-      timerInterval.current = setInterval(() => {
-        setRestTimerRemaining(prev => {
-          if (prev <= 1) {
-            setIsTimerRunning(false);
-            setShowRestTimer(false);
-            setShowTimerPicker(true);
-            setShowRestComplete(true);
-            hapticFeedback.success();
-            return restTimerDuration;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    isTimerRunningRef.current = isTimerRunning;
+  }, [isTimerRunning]);
+
+  // Helper: complete the timer (shared by interval tick & AppState handler)
+  const completeRestTimer = () => {
+    if (timerInterval.current) {
+      clearInterval(timerInterval.current);
+      timerInterval.current = null;
+    }
+    timerEndTime.current = null;
+    setIsTimerRunning(false);
+    setShowRestTimer(false);
+    setShowTimerPicker(true);
+    setRestTimerRemaining(0);
+    setShowRestComplete(true);
+    cancelRestNotification();
+    hapticFeedback.success();
+  };
+
+  // Helper: start (or restart) the countdown interval
+  const startCountdownInterval = () => {
+    if (timerInterval.current) {
+      clearInterval(timerInterval.current);
+      timerInterval.current = null;
+    }
+    timerInterval.current = setInterval(() => {
+      // Guard: if timerEndTime was already cleared, bail out
+      if (!timerEndTime.current) {
+        if (timerInterval.current) {
+          clearInterval(timerInterval.current);
+          timerInterval.current = null;
+        }
+        return;
+      }
+      const remaining = Math.round((timerEndTime.current - Date.now()) / 1000);
+      if (remaining <= 0) {
+        completeRestTimer();
+      } else {
+        setRestTimerRemaining(remaining);
+      }
+    }, 500); // Check every 500ms for responsive updates
+  };
+
+  // Timer countdown effect – uses absolute end timestamp so background time is counted
+  useEffect(() => {
+    if (isTimerRunning && timerEndTime.current) {
+      startCountdownInterval();
     } else {
       if (timerInterval.current) {
         clearInterval(timerInterval.current);
+        timerInterval.current = null;
       }
     }
 
     return () => {
       if (timerInterval.current) {
         clearInterval(timerInterval.current);
+        timerInterval.current = null;
       }
     };
-  }, [isTimerRunning, restTimerRemaining]);
+  }, [isTimerRunning]);
+
+  // AppState listener – recalculate timer immediately when app returns to foreground.
+  // Uses isTimerRunningRef (not the state variable) to avoid stale-closure issues,
+  // and restarts the interval so ticks are accurate after an iOS suspend/resume.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && isTimerRunningRef.current && timerEndTime.current) {
+        const remaining = Math.round((timerEndTime.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          // Timer finished while the app was in the background
+          completeRestTimer();
+        } else {
+          // Timer still running – immediately update the displayed time …
+          setRestTimerRemaining(remaining);
+          // … and restart the interval so it ticks accurately from now on
+          startCountdownInterval();
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, []); // empty deps – relies on refs, not closure state
 
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

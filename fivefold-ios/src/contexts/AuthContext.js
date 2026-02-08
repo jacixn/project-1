@@ -38,6 +38,9 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
+  // Tracks sign-in/sign-up progress steps for loading UI
+  const [authSteps, setAuthSteps] = useState(null);
+  // { type: 'signin'|'signup', steps: [{label, done}], current: number }
 
   // Load cached user data on mount
   useEffect(() => {
@@ -142,25 +145,36 @@ export const AuthProvider = ({ children }) => {
    */
   const signUp = useCallback(async ({ email, password, username, displayName }) => {
     setLoading(true);
+    const steps = [
+      { label: 'Creating your account', done: false },
+      { label: 'Setting up your profile', done: false },
+      { label: 'Preparing onboarding', done: false },
+    ];
+    setAuthSteps({ type: 'signup', steps: [...steps], current: 0 });
+
+    const markDone = (index) => {
+      steps[index].done = true;
+      const next = index + 1 < steps.length ? index + 1 : -1;
+      setAuthSteps({ type: 'signup', steps: [...steps], current: next });
+    };
+
     try {
       // CRITICAL: Clear onboarding flag so new user ALWAYS sees onboarding
-      // This prevents stale 'onboardingCompleted' from a previous user on same device
       await AsyncStorage.removeItem('onboardingCompleted');
       console.log('[Auth] Cleared onboardingCompleted for new user signup');
       
+      // Step 1: Create account
       const result = await authSignUp({ email, password, username, displayName });
+      markDone(0);
       
-      // IMPORTANT: The auth state change listener fires BEFORE the Firestore writes complete
-      // So we need to manually set the profile here after signup finishes
+      // Step 2: Set up profile
       if (result && result.uid) {
-        // Fetch the freshly created profile from Firestore
         const profile = await getUserProfile(result.uid);
         if (profile) {
           setUserProfile(profile);
           await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
           console.log('[Auth] Set user profile after signup:', profile.username);
         } else {
-          // Fallback: use the result data directly if Firestore read fails
           const fallbackProfile = {
             uid: result.uid,
             email: result.email,
@@ -175,11 +189,19 @@ export const AuthProvider = ({ children }) => {
           console.log('[Auth] Set fallback profile after signup');
         }
       }
+      markDone(1);
+      
+      // Step 3: Ready for onboarding
+      markDone(2);
+      
+      // Brief pause so user sees completion
+      await new Promise(r => setTimeout(r, 600));
       
       return result;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
+      setAuthSteps(null);
       setLoading(false);
     }
   }, []);
@@ -191,23 +213,43 @@ export const AuthProvider = ({ children }) => {
    */
   const signIn = useCallback(async (email, password) => {
     setLoading(true);
+    const steps = [
+      { label: 'Verifying credentials', done: false },
+      { label: 'Downloading your data', done: false },
+      { label: 'Setting up notifications', done: false },
+      { label: 'Preparing your experience', done: false },
+    ];
+    setAuthSteps({ type: 'signin', steps: [...steps], current: 0 });
+
+    const markDone = (index) => {
+      steps[index].done = true;
+      const next = index + 1 < steps.length ? index + 1 : -1;
+      setAuthSteps({ type: 'signin', steps: [...steps], current: next });
+    };
+
     try {
+      // Step 1: Verify credentials
       const result = await authSignIn(email, password);
       setUserProfile(result);
       await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(result));
+      markDone(0);
       
       // CRITICAL: Skip onboarding for existing users IMMEDIATELY
-      // This must happen before any async cloud operations to prevent race conditions
       await AsyncStorage.setItem('onboardingCompleted', 'true');
       console.log('[Auth] Skipping onboarding for returning user (set immediately)');
       
-      // Download cloud data to local storage (this can take time)
+      // Step 2: Download cloud data
       const { downloadAndMergeCloudData } = await import('../services/userSyncService');
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
         console.log('[Auth] Downloaded cloud data after sign in');
-        
-        // Save push token for message notifications
+      }
+      // Re-set onboarding flag in case download overwrote it
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      markDone(1);
+      
+      // Step 3: Set up notifications
+      if (result && result.uid) {
         try {
           const pushToken = await notificationService.getPushToken();
           if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token') {
@@ -217,17 +259,25 @@ export const AuthProvider = ({ children }) => {
         } catch (tokenError) {
           console.warn('[Auth] Failed to save push token:', tokenError);
         }
-        
-        // Emit event to reload theme after data is downloaded
+      }
+      markDone(2);
+      
+      // Step 4: Prepare experience
+      if (result && result.uid) {
         const { DeviceEventEmitter } = require('react-native');
         DeviceEventEmitter.emit('userDataDownloaded');
         console.log('[Auth] Emitted userDataDownloaded event');
       }
+      markDone(3);
+      
+      // Brief pause so user sees the completion checkmarks
+      await new Promise(r => setTimeout(r, 600));
       
       return result;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
+      setAuthSteps(null);
       setLoading(false);
     }
   }, []);
@@ -453,6 +503,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     initializing,
     isAuthenticated: !!user,
+    authSteps,
     
     // Methods
     signUp,

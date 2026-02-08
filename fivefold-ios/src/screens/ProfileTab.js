@@ -224,6 +224,7 @@ const ProfileTab = () => {
   const { user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading, updateLocalProfile } = useAuth();
   const [friendCount, setFriendCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
   // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
@@ -1890,27 +1891,13 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress - mirrors AchievementService (exp to 9, flat after)
-  const levelThresholds = [0, 1000, 3000, 7000, 15000, 31000, 63000, 127000, 255000]; // Level 1..9
-
-  const getThresholdForLevel = (lvl) => {
-    if (lvl <= 1) return 0;
-    if (lvl <= levelThresholds.length) return levelThresholds[lvl - 1];
-    const extraLevels = lvl - levelThresholds.length;
-    return levelThresholds[levelThresholds.length - 1] + extraLevels * 128000;
-  };
-
-  const getPointsNeededForNextLevel = (lvl) => {
-    if (lvl < 1) return 1000;
-    if (lvl < levelThresholds.length) {
-      return levelThresholds[lvl] - levelThresholds[lvl - 1];
-    }
-    return 128000; // flat after level 9
-  };
+  // Calculate level progress — uses AchievementService (10,000 pts per level)
+  const getThresholdForLevel = (lvl) => AchievementService.getPointsForLevel(lvl);
+  const POINTS_PER_LEVEL = 10000;
 
   const currentPoints = Math.max(userStats.points || 0, 0);
   const currentLevelThreshold = getThresholdForLevel(userStats.level);
-  const nextLevelPoints = getPointsNeededForNextLevel(userStats.level);
+  const nextLevelPoints = POINTS_PER_LEVEL;
   const nextTarget = currentLevelThreshold + nextLevelPoints;
   const progress = Math.min(
     nextLevelPoints > 0 ? (currentPoints - currentLevelThreshold) / nextLevelPoints : 0,
@@ -2434,6 +2421,59 @@ const ProfileTab = () => {
     }
   };
 
+  // Handle reset points
+  const handleResetPoints = () => {
+    Alert.alert(
+      'Reset Points',
+      'Are you sure you want to reset all your points to 0? This will also reset your level to 1. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            hapticFeedback.buttonPress();
+            try {
+              // Reset local points
+              await PrayerCompletionManager.resetPoints();
+              await AsyncStorage.setItem('fivefold_userStats', JSON.stringify({
+                ...JSON.parse(await AsyncStorage.getItem('fivefold_userStats') || '{}'),
+                points: 0,
+                level: 1,
+                totalPoints: 0,
+              }));
+              const existingStats = await AsyncStorage.getItem('userStats');
+              if (existingStats) {
+                const parsed = JSON.parse(existingStats);
+                parsed.totalPoints = 0;
+                parsed.level = 1;
+                await AsyncStorage.setItem('userStats', JSON.stringify(parsed));
+              }
+
+              // Reset in Firebase
+              if (user?.uid) {
+                const { doc, updateDoc } = await import('firebase/firestore');
+                const { db } = await import('../config/firebase');
+                await updateDoc(doc(db, 'users', user.uid), {
+                  totalPoints: 0,
+                  level: 1,
+                });
+              }
+
+              // Update local state
+              setUserStats(prev => ({ ...prev, totalPoints: 0, level: 1, points: 0 }));
+
+              Alert.alert('Points Reset', 'Your points have been reset to 0 and your level is now 1.');
+            } catch (error) {
+              console.error('[ProfileTab] Failed to reset points:', error);
+              Alert.alert('Error', 'Failed to reset points. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Handle sign out
   const handleSignOut = async () => {
     Alert.alert(
@@ -2446,10 +2486,12 @@ const ProfileTab = () => {
           style: 'destructive',
           onPress: async () => {
             hapticFeedback.buttonPress();
+            setSigningOut(true);
             try {
               await signOut();
               // RootNavigator will automatically show Auth screen
             } catch (error) {
+              setSigningOut(false);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           },
@@ -2462,7 +2504,7 @@ const ProfileTab = () => {
   // Account Section - Cloud Sync and Sign Out
   const AccountSection = () => (
     <View style={{ marginTop: 12 }}>
-      {/* Account Info */}
+      {/* Sign Out */}
       <AnimatedSettingsCard 
         style={styles.aboutCard}
         onPress={handleSignOut}
@@ -4100,6 +4142,39 @@ const ProfileTab = () => {
               borderWidth: 1,
               borderColor: 'rgba(255, 59, 48, 0.2)',
             }}>
+            {/* Reset Points */}
+            <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'rgba(255, 59, 48, 0.15)',
+                }}
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => handleResetPoints(), 300);
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(255, 149, 0, 0.2)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="restart-alt" size={20} color="#FF9500" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF9500' }}>Reset Points</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color="#FF9500" />
+            </TouchableOpacity>
+            {/* Delete Account */}
             <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
@@ -6059,6 +6134,22 @@ const ProfileTab = () => {
       onClose={() => setShowThemeModal(false)} 
     />
 
+    {/* Sign Out Loading Overlay */}
+    <Modal
+      visible={signingOut}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+    >
+      <View style={styles.signOutOverlay}>
+        <View style={styles.signOutCard}>
+          <ActivityIndicator size="large" color={theme.primary || '#7C3AED'} />
+          <Text style={styles.signOutText}>Signing out...</Text>
+          <Text style={styles.signOutSubtext}>Saving your data to the cloud</Text>
+        </View>
+      </View>
+    </Modal>
+
     </>
   );
 };
@@ -6986,6 +7077,30 @@ const styles = StyleSheet.create({
   badgeCount: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  signOutOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signOutCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    gap: 14,
+  },
+  signOutText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  signOutSubtext: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 13,
+    fontWeight: '400',
   },
 });
 

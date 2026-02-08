@@ -408,7 +408,7 @@ const ATTRIBUTION_OPTIONS = [
 // Premium features for paywall - compelling selling points
 const PREMIUM_FEATURES = [
   { icon: 'chat', text: 'Smart Bible companion - ask anything, anytime' },
-  { icon: 'menu-book', text: '35+ Bible translations to compare' },
+  { icon: 'menu-book', text: '44 Bible translations to compare' },
   { icon: 'headphones', text: 'Audio Bible stories - learn while you listen' },
   { icon: 'quiz', text: 'Bible quizzes - make Scripture stick' },
   { icon: 'auto-stories', text: 'Thematic guides for 50+ life moments' },
@@ -1037,7 +1037,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     const screenTheme = SCREEN_THEMES.welcome;
     
     const highlights = [
-      { icon: 'menu-book', text: '35+ Bible translations' },
+      { icon: 'menu-book', text: '44 Bible translations' },
       { icon: 'chat', text: 'Smart Bible companion' },
       { icon: 'task-alt', text: 'Smart task system' },
       { icon: 'fitness-center', text: 'Gym & workouts' },
@@ -1323,8 +1323,8 @@ const SimpleOnboarding = ({ onComplete }) => {
       },
       { 
         icon: '📖', 
-        title: '35+ Bible Translations', 
-        desc: 'Compare NIV, ESV, KJV and 32 more - see the original meaning from every angle', 
+        title: '44 Bible Translations', 
+        desc: 'Compare NIV, ESV, KJV and 41 more - see the original meaning from every angle', 
         color: '#42A5F5',
         badge: null
       },
@@ -1849,7 +1849,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               style={styles.showMoreButton}
             >
               <Text style={[styles.showMoreText, { color: screenTheme.accent }]}>
-                Show all 35+ translations
+                Show all 44 translations
               </Text>
               <MaterialIcons name="expand-more" size={20} color={screenTheme.accent} />
             </TouchableOpacity>
@@ -2401,7 +2401,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     // Price breakdown in USD (base prices)
     const basePrices = [
       { feature: 'Smart Bible Companion', usd: 4.99 },
-      { feature: '35+ Bible Translations', usd: 3.99 },
+      { feature: '44 Bible Translations', usd: 3.99 },
       { feature: 'Audio Bible Stories', usd: 2.99 },
       { feature: 'Bible Quizzes & Games', usd: 1.99 },
       { feature: 'Smart Task Scoring', usd: 3.99 },
@@ -2677,7 +2677,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     const screenTheme = SCREEN_THEMES.complete;
     
     const quickStats = [
-      { icon: 'menu-book', label: '35+ translations' },
+      { icon: 'menu-book', label: '44 translations' },
       { icon: 'chat', label: 'Smart companion' },
       { icon: 'headphones', label: 'Audio stories' },
       { icon: 'quiz', label: 'Bible quizzes' },

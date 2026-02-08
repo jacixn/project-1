@@ -871,6 +871,51 @@ const GymTab = () => {
             </TouchableOpacity>
           </LiquidGlassContainer>
 
+          {/* Physique Card */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Physique</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  Body progress map
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  navigation.navigate('Physique');
+                }}
+              >
+                <Text style={styles.browseButtonText}>View</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.exercisesPreview}>
+              <View style={[styles.exercisePreviewItem, { 
+                backgroundColor: `${theme.primary}20`,
+                borderColor: `${theme.primary}66`,
+                borderWidth: 1,
+              }]}>
+                <MaterialIcons name="accessibility-new" size={32} color={theme.primary} />
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  Muscle Map
+                </Text>
+              </View>
+              <View style={[styles.exercisePreviewItem, { 
+                backgroundColor: `${theme.primary}20`,
+                borderColor: `${theme.primary}66`,
+                borderWidth: 1,
+              }]}>
+                <MaterialIcons name="psychology" size={32} color={theme.primary} />
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  Balance Coach
+                </Text>
+              </View>
+            </View>
+          </LiquidGlassContainer>
+
           {/* Exercises Card */}
           <LiquidGlassContainer>
             <View style={styles.exercisesHeader}>

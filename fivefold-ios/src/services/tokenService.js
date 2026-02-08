@@ -97,9 +97,45 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
         
         console.log('[Token] Token delivered from Firebase sync at:', new Date().toLocaleTimeString());
       } else if (schedule.tokenDelivered) {
-        // Token was already delivered
+        // Token was already delivered (possibly by the server Cloud Function)
         const tokenData = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
         token = tokenData ? JSON.parse(tokenData) : null;
+        
+        // FIX: If Firebase says token was delivered but it doesn't exist locally
+        // (race condition: server marked tokenDelivered=true before client created it),
+        // create the token now so the user can actually post.
+        // But first check if the user already used their token today (don't re-create consumed tokens).
+        if (!token || token.date !== today) {
+          // Check if the token was already used today via Firestore
+          let alreadyUsedToday = false;
+          try {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            if (userDoc.exists() && userDoc.data().tokenUsedDate === today) {
+              alreadyUsedToday = true;
+              console.log('[Token] Token was already used today - not re-creating');
+            }
+          } catch (e) {
+            console.warn('[Token] Could not check tokenUsedDate:', e.message);
+          }
+          
+          if (!alreadyUsedToday) {
+            console.log('[Token] Firebase says delivered but token missing locally - creating now');
+            token = {
+              date: today,
+              available: true,
+              deliveredAt: new Date().toISOString(),
+            };
+            await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+          } else {
+            // Token was used - create a consumed token record so state is consistent
+            token = {
+              date: today,
+              available: false,
+              usedAt: new Date().toISOString(),
+            };
+            await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+          }
+        }
       }
       
       // Save to local storage

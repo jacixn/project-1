@@ -38,7 +38,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { GlassHeader } from '../components/GlassEffect';
 import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo } from '../services/feedService';
-import { isEmailVerified, resendVerificationEmail } from '../services/authService';
+import { isEmailVerified, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
@@ -326,21 +326,25 @@ const HubTab = () => {
       return;
     }
     
-    // Check email verification
-    if (!isEmailVerified()) {
+    // Refresh & check email verification (reload user to get latest status)
+    const verified = await refreshEmailVerificationStatus();
+    if (!verified) {
       Alert.alert(
         'Verify Your Email',
         'Please verify your email address before posting. Check your inbox for a verification link.',
         [
           { text: 'Cancel', style: 'cancel' },
           { 
-            text: 'Resend Email', 
+            text: 'Send Verification Email', 
             onPress: async () => {
               try {
                 await resendVerificationEmail();
-                Alert.alert('Email Sent', 'Verification email has been resent. Please check your inbox.');
+                Alert.alert(
+                  'Email Sent',
+                  'A verification link has been sent to your email. After verifying, come back and try posting again.'
+                );
               } catch (err) {
-                Alert.alert('Error', err.message);
+                Alert.alert('Error', err.message || 'Failed to send verification email. Please try again.');
               }
             }
           },

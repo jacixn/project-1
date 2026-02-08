@@ -27,6 +27,7 @@ import HighlightsScreen from '../screens/HighlightsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import ExercisesScreen from '../screens/ExercisesScreen';
+import PhysiqueScreen from '../screens/PhysiqueScreen';
 import StartWorkoutScreen from '../screens/StartWorkoutScreen';
 import ScheduleTaskScreen from '../screens/ScheduleTaskScreen';
 import BibleStudyScreen from '../screens/BibleStudyScreen';
@@ -451,33 +452,265 @@ const loadingStyles = StyleSheet.create({
   },
 });
 
+/**
+ * AuthProgressScreen — shows real-time sign-in / sign-up progress
+ * with the same dark aesthetic as the cold-launch loading screen.
+ */
+const AuthProgressScreen = ({ authSteps }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.6)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const stepsOpacity = useRef(new Animated.Value(0)).current;
+
+  // Per-step progress animations (driven by authSteps.steps[i].done)
+  const stepAnims = useRef(
+    (authSteps?.steps || []).map(() => ({
+      opacity: new Animated.Value(0),
+      slide: new Animated.Value(14),
+      progress: new Animated.Value(0),
+      check: new Animated.Value(0),
+    }))
+  ).current;
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(logoScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      ]).start();
+    }, 100);
+    setTimeout(() => {
+      Animated.timing(stepsOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    }, 300);
+  }, []);
+
+  // Animate steps as they appear and complete
+  useEffect(() => {
+    if (!authSteps?.steps) return;
+    authSteps.steps.forEach((step, i) => {
+      if (!stepAnims[i]) return;
+      const sa = stepAnims[i];
+      // Show step when it's current or done
+      if (i <= (authSteps.current === -1 ? authSteps.steps.length : authSteps.current)) {
+        Animated.parallel([
+          Animated.timing(sa.opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.spring(sa.slide, { toValue: 0, tension: 120, friction: 14, useNativeDriver: true }),
+        ]).start();
+      }
+      // Animate progress bar
+      if (step.done) {
+        Animated.timing(sa.progress, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
+          Animated.spring(sa.check, { toValue: 1, tension: 300, friction: 8, useNativeDriver: true }).start();
+        });
+      } else if (i === authSteps.current) {
+        // Active step: animate to 60% and hold (pulsing)
+        Animated.timing(sa.progress, { toValue: 0.6, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+      }
+    });
+  }, [authSteps]);
+
+  const title = authSteps?.type === 'signup' ? 'Creating Account' : 'Signing In';
+  const subtitle = authSteps?.type === 'signup'
+    ? 'Setting up your new account...'
+    : 'Welcome back, loading your data...';
+
+  return (
+    <Animated.View style={[authProgStyles.root, { opacity: fadeAnim }]}>
+      <LinearGradient colors={['#09090B', '#0F0D15', '#09090B']} style={StyleSheet.absoluteFill} />
+
+      {/* Logo */}
+      <Animated.View style={[authProgStyles.logoWrap, {
+        opacity: logoOpacity,
+        transform: [{ scale: logoScale }],
+      }]}>
+        <Image
+          source={require('../../assets/icon.png')}
+          style={authProgStyles.logo}
+          resizeMode="contain"
+        />
+      </Animated.View>
+
+      {/* Title */}
+      <Text style={authProgStyles.title}>{title}</Text>
+      <Text style={authProgStyles.subtitle}>{subtitle}</Text>
+
+      {/* Steps */}
+      <Animated.View style={[authProgStyles.stepsArea, { opacity: stepsOpacity }]}>
+        {(authSteps?.steps || []).map((step, i) => {
+          const sa = stepAnims[i];
+          if (!sa) return null;
+          return (
+            <Animated.View key={i} style={[authProgStyles.stepRow, {
+              opacity: sa.opacity,
+              transform: [{ translateY: sa.slide }],
+            }]}>
+              <View style={authProgStyles.indicator}>
+                {step.done ? (
+                  <Animated.View style={[authProgStyles.checkCircle, {
+                    transform: [{ scale: sa.check }],
+                  }]}>
+                    <Text style={authProgStyles.checkMark}>{'\u2713'}</Text>
+                  </Animated.View>
+                ) : (
+                  <View style={authProgStyles.pendingRing} />
+                )}
+              </View>
+              <View style={authProgStyles.stepBody}>
+                <Text style={[authProgStyles.stepLabel, step.done && authProgStyles.stepLabelDone]}>
+                  {step.label}
+                </Text>
+                {!step.done && (
+                  <View style={authProgStyles.progressTrack}>
+                    <Animated.View style={[authProgStyles.progressFill, {
+                      width: sa.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    }]}>
+                      <LinearGradient
+                        colors={['#7C3AED', '#A855F7']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={authProgStyles.progressGradient}
+                      />
+                    </Animated.View>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          );
+        })}
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+const authProgStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#09090B',
+  },
+  logoWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 36,
+  },
+  stepsArea: {
+    width: '80%',
+    maxWidth: 320,
+    gap: 16,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  indicator: {
+    width: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  checkCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkMark: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pendingRing: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  stepBody: {
+    flex: 1,
+    gap: 6,
+  },
+  stepLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  stepLabelDone: {
+    color: 'rgba(255,255,255,0.35)',
+  },
+  progressTrack: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+  },
+  progressGradient: {
+    flex: 1,
+    borderRadius: 2,
+  },
+});
+
 const RootNavigator = () => {
   const { theme, isDark } = useTheme();
-  const { isAuthenticated, initializing } = useAuth();
+  const { isAuthenticated, initializing, loading, authSteps } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   
-  // Check onboarding status when auth state changes
+  // Check onboarding status ONLY after auth loading completes
+  // This prevents race conditions where signIn hasn't finished setting onboardingCompleted
   useEffect(() => {
     const checkOnboarding = async () => {
-      if (isAuthenticated) {
-        // Small delay to allow sign-in process to complete setting onboardingCompleted
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+      if (isAuthenticated && !loading) {
         const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
         console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
         setNeedsOnboarding(onboardingCompleted !== 'true');
-      } else {
+      } else if (!isAuthenticated) {
         setNeedsOnboarding(null);
       }
-      setCheckingOnboarding(false);
+      if (!loading) {
+        setCheckingOnboarding(false);
+      }
     };
     
-    if (!initializing) {
-      setCheckingOnboarding(true); // Reset while checking
+    if (!initializing && !loading) {
+      setCheckingOnboarding(true);
       checkOnboarding();
     }
-  }, [isAuthenticated, initializing]);
+  }, [isAuthenticated, initializing, loading]);
   
   // Handle onboarding completion
   const handleOnboardingComplete = async () => {
@@ -485,8 +718,13 @@ const RootNavigator = () => {
     setNeedsOnboarding(false);
   };
   
-  // Show beautiful loading screen while checking auth/onboarding state
-  if (initializing || checkingOnboarding) {
+  // Show sign-in / sign-up loading screen with real progress steps
+  if (loading && authSteps) {
+    return <AuthProgressScreen authSteps={authSteps} />;
+  }
+  
+  // Show cold launch loading screen while checking auth/onboarding state
+  if (initializing || checkingOnboarding || loading) {
     return <AnimatedLoadingScreen />;
   }
   
@@ -678,6 +916,15 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="StartWorkout" 
         component={StartWorkoutScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Physique Screen */}
+      <Stack.Screen 
+        name="Physique" 
+        component={PhysiqueScreen}
         options={{
           animation: 'slide_from_right',
         }}

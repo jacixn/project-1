@@ -982,10 +982,10 @@ const BiblePrayerTab = () => {
     setPrayerHistory(updatedHistory);
     await saveData('prayerHistory', updatedHistory);
 
-    // Add 1000 points for prayer completion
+    // Add 25000 points for prayer completion
     try {
       const currentStats = await getStoredData('userStats');
-      const pointsEarned = 1000;
+      const pointsEarned = 25000;
       const updatedStats = {
         ...currentStats,
         totalPoints: (currentStats?.totalPoints || 0) + pointsEarned,
@@ -1013,7 +1013,7 @@ const BiblePrayerTab = () => {
         console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
       }
       
-      console.log('🙏 Prayer completed! +1000 points earned!');
+      console.log('Prayer completed! +25000 points earned!');
     } catch (error) {
       console.error('Failed to update points for prayer completion:', error);
     }

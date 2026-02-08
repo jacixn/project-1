@@ -40,7 +40,7 @@ const slidesConfig = [
 
 const featureCards = [
   { icon: 'task-alt', title: 'Habits that stick', desc: 'Tasks, streaks, and points that make discipline satisfying.' },
-  { icon: 'menu-book', title: 'Crystal-clear Bible', desc: '35+ translations plus simplified verses and thematic guides.' },
+  { icon: 'menu-book', title: 'Crystal-clear Bible', desc: '44 translations plus simplified verses and thematic guides.' },
   { icon: 'chat', title: 'Friend insights', desc: 'Ask and reflect with grounded spiritual answers when you need them.' },
   { icon: 'fitness-center', title: 'Faith + fitness', desc: 'Track workouts, set weight units, and see progress that aligns body and spirit.' },
 ];

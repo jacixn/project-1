@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   ScrollView,
   Animated,
@@ -103,14 +102,10 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
     return 'th';
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, StyleSheet.absoluteFill]}>
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={0.7}
@@ -233,7 +228,6 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
           </BlurView>
         </Animated.View>
       </View>
-    </Modal>
   );
 };
 

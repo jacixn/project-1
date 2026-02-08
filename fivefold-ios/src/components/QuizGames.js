@@ -222,10 +222,10 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Award points when quiz is completed (100 points per question)
+  // Award points when quiz is completed (5000 points per question)
   const awardQuizPoints = async (numQuestions) => {
     try {
-      const pointsEarned = numQuestions * 100; // 5 questions = 500, 10 = 1000, etc.
+      const pointsEarned = numQuestions * 5000; // 5 questions = 25k, 10 = 50k, etc.
       setBonusPointsEarned(pointsEarned);
       
       // Get current stats using the correct storage wrapper (fivefold_ prefix)
