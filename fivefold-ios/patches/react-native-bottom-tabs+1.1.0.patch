@@ -1,0 +1,22 @@
+diff --git a/node_modules/react-native-bottom-tabs/ios/TabViewImpl.swift b/node_modules/react-native-bottom-tabs/ios/TabViewImpl.swift
+index 72938be..61302ce 100644
+--- a/node_modules/react-native-bottom-tabs/ios/TabViewImpl.swift
++++ b/node_modules/react-native-bottom-tabs/ios/TabViewImpl.swift
+@@ -207,7 +207,16 @@ extension View {
+           self
+         #endif
+       } else {
+-        self
++        #if os(iOS)
++          // Force bottom tab bar on iPad (iPadOS 18+ defaults to top)
++          if UIDevice.current.userInterfaceIdiom == .pad {
++            self.environment(\.horizontalSizeClass, .compact)
++          } else {
++            self
++          }
++        #else
++          self
++        #endif
+       }
+     } else {
+       self

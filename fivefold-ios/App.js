@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { LogBox, Linking } from 'react-native';
+import { LogBox, Linking, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
 
@@ -13,7 +13,18 @@ import notificationService from './src/services/notificationService';
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import { Asset } from 'expo-asset';
 import iCloudSyncService from './src/services/iCloudSyncService';
+import {
+  performFullSync,
+  downloadAndMergeCloudData,
+  syncSavedVersesToCloud,
+  syncJournalNotesToCloud,
+  syncPrayersToCloud,
+  syncThemePreferencesToCloud,
+  syncAllHistoryToCloud,
+  syncUserStatsToCloud,
+} from './src/services/userSyncService';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
@@ -50,7 +61,7 @@ if (global.ErrorUtils && !global.__ERROR_HANDLER_INSTALLED__) {
 // Silence noisy warnings while debugging
 LogBox.ignoreLogs(['ReferenceError: Property']);
 
-// Splash Screen Component
+// Splash Screen Component (dark theme — used during Bible version reload)
 const SplashScreen = () => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
@@ -74,7 +85,7 @@ const SplashScreen = () => {
   return (
     <View style={{
       flex: 1,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: '#09090B',
       justifyContent: 'center',
       alignItems: 'center',
     }}>
@@ -95,7 +106,7 @@ const SplashScreen = () => {
         <Text style={{
           fontSize: 28,
           fontWeight: '700',
-          color: '#1A1A1A',
+          color: '#FAFAFA',
         }}>Biblely</Text>
       </Animated.View>
     </View>
@@ -450,8 +461,54 @@ const ThemedApp = () => {
   
   // Initialize notifications and API security on app start
   useEffect(() => {
+    // Preload the current theme's wallpaper into memory so it's ready before scrolling
+    const preloadWallpaper = async () => {
+      try {
+        const currentTheme = await AsyncStorage.getItem('fivefold_theme');
+        const wallpaperIndex = await AsyncStorage.getItem('fivefold_wallpaper_index');
+
+        // Map theme name to wallpaper require() 
+        const wallpaperMap = {
+          'blush': require('./src/themes/blush-bloom/wallpaper1.jpg'),
+          'cresvia': require('./src/themes/cresvia/wallpaper1.png'),
+          'eterna': require('./src/themes/eterna/wallpaper1.jpg'),
+          'spiderman': require('./src/themes/spiderman/wallpaper1.jpg'),
+          'faith': require('./src/themes/faith/wallpaper1.jpg'),
+          'sailormoon': require('./src/themes/sailormoon/wallpaper1.jpg'),
+        };
+
+        // Biblely theme has multiple wallpapers
+        const biblelyWallpapers = [
+          require('./src/themes/biblely/wallpaper1.jpg'),
+          require('./src/themes/biblely/wallpaper2.jpg'),
+          require('./src/themes/biblely/wallpaper3.jpg'),
+        ];
+
+        let wallpaperToLoad = null;
+
+        if (currentTheme && wallpaperMap[currentTheme]) {
+          wallpaperToLoad = wallpaperMap[currentTheme];
+        } else {
+          // Default/Biblely theme
+          const idx = wallpaperIndex ? parseInt(wallpaperIndex, 10) : 0;
+          wallpaperToLoad = biblelyWallpapers[idx] || biblelyWallpapers[0];
+        }
+
+        if (wallpaperToLoad) {
+          await Asset.loadAsync(wallpaperToLoad);
+          console.log('Wallpaper preloaded into memory');
+        }
+      } catch (error) {
+        // Non-critical — wallpaper will still load normally, just slightly delayed
+        console.log('Wallpaper preload skipped:', error.message);
+      }
+    };
+
     const initializeApp = async () => {
       try {
+        // Preload wallpaper FIRST (runs during loading screen)
+        await preloadWallpaper();
+
         // Initialize API security
         await initializeApiSecurity();
         console.log('API security initialized');
@@ -459,6 +516,12 @@ const ThemedApp = () => {
         // Initialize iCloud sync
         const iCloudAvailable = await iCloudSyncService.initialize();
         console.log('☁️ iCloud sync initialized:', iCloudAvailable ? 'available' : 'not available');
+
+        // Enable auto-sync: all data changes push to iCloud, foreground pulls from iCloud
+        if (iCloudAvailable) {
+          iCloudSyncService.enableAutoSync();
+          console.log('☁️ iCloud auto-sync enabled — syncing on every data change');
+        }
 
         // Initialize notifications
         await notificationService.initialize();
@@ -492,8 +555,129 @@ const ThemedApp = () => {
     // Cleanup on app unmount
     return () => {
       notificationService.cleanup();
+      iCloudSyncService.disableAutoSync();
     };
   }, []);
+
+  // ============================================================
+  // FIREBASE AUTO-SYNC
+  // Automatically syncs data to Firebase when local data changes
+  // and downloads from Firebase when app comes to foreground.
+  // This ensures account-based sync (same user on multiple devices).
+  // ============================================================
+  const firebaseSyncTimerRef = useRef(null);
+  const firebaseDirtyKeysRef = useRef(new Set());
+  const lastFirebaseDownloadRef = useRef(0);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const userId = user.uid;
+
+    // --- 1. Listen for data changes (via iCloud auto-sync notifications) ---
+    // When any synced key changes locally, schedule a batched Firebase upload
+    const removeKeyListener = iCloudSyncService.addListener((event, data) => {
+      if (event === 'key_changed' && data?.key) {
+        firebaseDirtyKeysRef.current.add(data.key);
+
+        // Debounce: batch all changes into one Firebase upload after 5 seconds of quiet
+        if (firebaseSyncTimerRef.current) {
+          clearTimeout(firebaseSyncTimerRef.current);
+        }
+
+        firebaseSyncTimerRef.current = setTimeout(async () => {
+          const dirtyKeys = new Set(firebaseDirtyKeysRef.current);
+          firebaseDirtyKeysRef.current.clear();
+
+          if (dirtyKeys.size === 0) return;
+
+          console.log(`[Firebase] Auto-syncing ${dirtyKeys.size} changed keys:`, [...dirtyKeys]);
+
+          try {
+            // Determine which sync functions to call based on changed keys
+            const syncPromises = [];
+
+            // Saved verses
+            if (dirtyKeys.has('savedBibleVerses')) {
+              syncPromises.push(syncSavedVersesToCloud(userId));
+            }
+
+            // Journal notes
+            if (dirtyKeys.has('journalNotes') || dirtyKeys.has('journal_notes')) {
+              syncPromises.push(syncJournalNotesToCloud(userId));
+            }
+
+            // Prayers
+            if (dirtyKeys.has('fivefold_simplePrayers') || dirtyKeys.has('userPrayers') || dirtyKeys.has('prayer_completions') || dirtyKeys.has('prayer_history')) {
+              syncPromises.push(syncPrayersToCloud(userId));
+            }
+
+            // Theme
+            if (dirtyKeys.has('theme_preference') || dirtyKeys.has('fivefold_theme') || dirtyKeys.has('fivefold_dark_mode')) {
+              syncPromises.push(syncThemePreferencesToCloud(userId));
+            }
+
+            // Stats/points
+            if (dirtyKeys.has('total_points') || dirtyKeys.has('fivefold_user_stats') || dirtyKeys.has('fivefold_userStats') || dirtyKeys.has('userLevel') || dirtyKeys.has('userPoints')) {
+              syncPromises.push(syncUserStatsToCloud(userId));
+            }
+
+            // History and everything else (todos, workouts, streaks, settings, etc.)
+            const historyKeys = [
+              'fivefold_todos', 'completedTodos', 'workoutHistory', 'quizHistory',
+              'prayerHistory', 'app_open_streak', 'app_streak_data', 'reading_streaks',
+              'readingProgress', 'selectedBibleVersion', 'weightUnit', 'verse_data',
+              'bookmarks', 'highlight_custom_names', 'achievements',
+            ];
+            if ([...dirtyKeys].some(k => historyKeys.includes(k))) {
+              syncPromises.push(syncAllHistoryToCloud(userId));
+            }
+
+            await Promise.allSettled(syncPromises);
+            console.log('[Firebase] Auto-sync complete');
+          } catch (error) {
+            console.warn('[Firebase] Auto-sync error:', error.message);
+          }
+        }, 5000); // 5 second debounce for Firebase (has costs, batch more)
+      }
+    });
+
+    // --- 2. Download from Firebase on foreground ---
+    // When app comes to foreground, pull latest data from Firebase
+    // Cooldown: at most once every 60 seconds to avoid excessive reads
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && userId) {
+        const now = Date.now();
+        const elapsed = now - lastFirebaseDownloadRef.current;
+
+        if (elapsed > 60000) { // 60 second cooldown
+          lastFirebaseDownloadRef.current = now;
+          console.log('[Firebase] App came to foreground — downloading latest data...');
+
+          setTimeout(async () => {
+            try {
+              const result = await downloadAndMergeCloudData(userId);
+              if (result) {
+                console.log('[Firebase] Foreground download complete — data merged');
+                // Emit event so screens can refresh their data
+                DeviceEventEmitter.emit('firebaseDataDownloaded');
+              }
+            } catch (error) {
+              console.warn('[Firebase] Foreground download error:', error.message);
+            }
+          }, 1500); // 1.5s delay — let iCloud sync finish first
+        }
+      }
+    });
+
+    return () => {
+      removeKeyListener();
+      appStateSubscription.remove();
+      if (firebaseSyncTimerRef.current) {
+        clearTimeout(firebaseSyncTimerRef.current);
+      }
+    };
+  }, [user?.uid]);
 
   // Listen for Bible version changes and trigger full app reload
   useEffect(() => {

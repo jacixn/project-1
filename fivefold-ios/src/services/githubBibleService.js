@@ -1,12 +1,13 @@
 // GitHub Bible Service
-// Fetches Bible translations from https://github.com/arron-taylor/bible-versions
-// 35 complete English translations, all free and open-source
+// Fetches Bible translations from private repo: https://github.com/jacixn/bible-versions
+// 35 complete English translations hosted on a private GitHub repository
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVersionById } from '../data/bibleVersions';
+import { GITHUB_CONFIG } from '../../github.config';
 
 // Files live under versions/{locale}/ in the repo; default to en but derive from version language when possible.
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/arron-taylor/bible-versions/main/versions/';
+const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/jacixn/bible-versions/main/versions/';
 const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Book name mapping (App ID → GitHub name)
@@ -286,14 +287,22 @@ class GitHubBibleService {
       // Fetch from GitHub with locale-aware path; fallback to English if needed
       const buildUrl = (lang) => `${GITHUB_BASE_URL}${lang}/${encodeURIComponent(githubFile)}`;
 
+      // Build auth headers for private repo access
+      const fetchOptions = {};
+      if (GITHUB_CONFIG.token) {
+        fetchOptions.headers = {
+          'Authorization': `token ${GITHUB_CONFIG.token}`,
+        };
+      }
+
       let url = buildUrl(languageFolder);
       console.log('📡 Fetching from GitHub:', url);
       
-      let response = await fetch(url);
+      let response = await fetch(url, fetchOptions);
       if (!response.ok && languageFolder !== 'en') {
         console.warn(`⚠️ ${languageFolder} fetch failed (${response.status}), retrying en fallback`);
         url = buildUrl('en');
-        response = await fetch(url);
+        response = await fetch(url, fetchOptions);
       }
 
       if (!response.ok) {

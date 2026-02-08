@@ -170,6 +170,16 @@ export const AnimatedWallpaper = ({
 
   const wallpaperSource = getWallpaperSource();
 
+  // Fade in wallpaper smoothly once the image is decoded and ready
+  const wallpaperOpacity = useRef(new Animated.Value(0)).current;
+  const onWallpaperLoad = () => {
+    Animated.timing(wallpaperOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const floatingTransform = floatAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -10],
@@ -322,7 +332,7 @@ export const AnimatedWallpaper = ({
                 style={[
                   styles.wallpaperImage,
                   {
-                    opacity: fadeAnim,
+                    opacity: Animated.multiply(fadeAnim, wallpaperOpacity),
                     transform: [
                       { translateY: parallaxAnim },
                       { scale: scaleAnim }
@@ -330,7 +340,9 @@ export const AnimatedWallpaper = ({
                   }
                 ]}
                 resizeMode="cover"
-                blurRadius={Platform.OS === 'ios' ? 1 : 2} // Very very light blur for iOS
+                blurRadius={Platform.OS === 'ios' ? 1 : 2}
+                onLoad={onWallpaperLoad}
+                fadeDuration={0} // Disable Android default fade — we handle it ourselves
               />
               
               {/* Additional blur overlay for iOS */}

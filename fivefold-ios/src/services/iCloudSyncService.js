@@ -2,6 +2,10 @@
  * iCloud Sync Service
  * Handles automatic synchronization of user data to iCloud
  * Data persists across devices and app reinstalls
+ * 
+ * Auto-sync: Once enableAutoSync() is called, ANY AsyncStorage write
+ * to a synced key automatically pushes to iCloud (debounced).
+ * On app foreground, data is pulled from iCloud.
  */
 
 import {
@@ -15,7 +19,7 @@ import {
   download,
 } from 'react-native-cloud-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 
 // Keys that should be synced to iCloud
 const SYNC_KEYS = [
@@ -58,6 +62,11 @@ class ICloudSyncService {
     this.isSyncing = false;
     this.syncListeners = [];
     this.containerPath = null;
+    this._autoSyncEnabled = false;
+    this._pendingSyncs = {};        // Debounce timers per key
+    this._appStateSubscription = null;
+    this._originalSetItem = null;   // Store original AsyncStorage.setItem
+    this._originalRemoveItem = null;
   }
 
   /**
@@ -634,8 +643,148 @@ class ICloudSyncService {
   }
 
   /**
+   * Enable automatic syncing:
+   * 1. Intercepts AsyncStorage.setItem — any write to a SYNC_KEY auto-pushes to iCloud (debounced 1.5s)
+   * 2. Listens for AppState "active" — pulls fresh data from iCloud when app comes to foreground
+   * 
+   * Call this ONCE after initialize() succeeds.
+   */
+  enableAutoSync() {
+    if (this._autoSyncEnabled) {
+      console.log('[iCloud] Auto-sync already enabled');
+      return;
+    }
+    if (!this.isAvailable) {
+      console.log('[iCloud] Auto-sync skipped — iCloud not available');
+      return;
+    }
+
+    this._autoSyncEnabled = true;
+    console.log('[iCloud] Auto-sync enabled — all data changes will sync to iCloud');
+
+    // --- 1. Intercept AsyncStorage.setItem ---
+    this._originalSetItem = AsyncStorage.setItem.bind(AsyncStorage);
+    this._originalRemoveItem = AsyncStorage.removeItem.bind(AsyncStorage);
+
+    const self = this;
+
+    AsyncStorage.setItem = async function(key, value, ...args) {
+      // Always do the original write first (fast, local)
+      const result = await self._originalSetItem(key, value, ...args);
+
+      // If this key should sync, schedule a debounced push to iCloud
+      if (SYNC_KEYS.includes(key) && self.isAvailable) {
+        self._scheduleSyncToCloud(key, value);
+      }
+
+      return result;
+    };
+
+    AsyncStorage.removeItem = async function(key, ...args) {
+      const result = await self._originalRemoveItem(key, ...args);
+
+      // If this key should sync, remove from cloud too
+      if (SYNC_KEYS.includes(key) && self.isAvailable) {
+        try {
+          const filePath = self.getFilePath(key);
+          if (filePath) {
+            const fileExists = await exist(filePath);
+            if (fileExists) {
+              await unlink(filePath);
+              console.log(`[iCloud] Removed ${key} from iCloud`);
+            }
+          }
+        } catch (error) {
+          // File might not exist, that's okay
+        }
+      }
+
+      return result;
+    };
+
+    // --- 2. AppState foreground listener ---
+    this._appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        console.log('[iCloud] App came to foreground — syncing from iCloud...');
+        // Small delay to let the app settle
+        setTimeout(() => {
+          this.syncFromCloud().then((result) => {
+            if (result.success) {
+              console.log(`[iCloud] Foreground sync complete: ${result.syncedCount} updated, ${result.conflictCount} merged`);
+              // Notify listeners so UI can refresh if needed
+              this.notifyListeners('foreground_sync_completed', result);
+            }
+          }).catch((err) => {
+            console.warn('[iCloud] Foreground sync error:', err.message);
+          });
+        }, 500);
+      }
+    });
+
+    console.log('[iCloud] AppState foreground listener active');
+  }
+
+  /**
+   * Schedule a debounced sync-to-cloud for a key.
+   * If the same key is written multiple times quickly (e.g. rapid saves),
+   * only the last write gets pushed to iCloud after 1.5s of quiet.
+   */
+  _scheduleSyncToCloud(key, value) {
+    // Clear any existing timer for this key
+    if (this._pendingSyncs[key]) {
+      clearTimeout(this._pendingSyncs[key]);
+    }
+
+    this._pendingSyncs[key] = setTimeout(async () => {
+      delete this._pendingSyncs[key];
+      try {
+        const parsed = JSON.parse(value);
+        const result = await this.syncToCloud(key, parsed);
+        if (result.success) {
+          await this.setLocalModifiedTime(key);
+        }
+        // Notify listeners that a key changed (used by App.js for Firebase sync)
+        this.notifyListeners('key_changed', { key });
+      } catch (error) {
+        console.warn(`[iCloud] Auto-sync failed for ${key}:`, error.message);
+      }
+    }, 1500); // 1.5 second debounce
+  }
+
+  /**
+   * Disable auto-sync and restore original AsyncStorage methods.
+   * Call on app cleanup if needed.
+   */
+  disableAutoSync() {
+    if (!this._autoSyncEnabled) return;
+
+    // Restore original AsyncStorage methods
+    if (this._originalSetItem) {
+      AsyncStorage.setItem = this._originalSetItem;
+      this._originalSetItem = null;
+    }
+    if (this._originalRemoveItem) {
+      AsyncStorage.removeItem = this._originalRemoveItem;
+      this._originalRemoveItem = null;
+    }
+
+    // Remove AppState listener
+    if (this._appStateSubscription) {
+      this._appStateSubscription.remove();
+      this._appStateSubscription = null;
+    }
+
+    // Clear any pending syncs
+    Object.values(this._pendingSyncs).forEach(clearTimeout);
+    this._pendingSyncs = {};
+
+    this._autoSyncEnabled = false;
+    console.log('[iCloud] Auto-sync disabled');
+  }
+
+  /**
    * Create a wrapper for AsyncStorage that auto-syncs
-   * Use this instead of direct AsyncStorage calls for synced keys
+   * (Legacy method — with enableAutoSync(), this is no longer needed)
    */
   createSyncedStorage() {
     const self = this;
