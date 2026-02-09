@@ -225,10 +225,10 @@ export const NotificationTemplates = {
   }),
 
   // Message notifications
-  newMessage: (senderName, preview) => ({
-    title: senderName,
-    body: preview.length > 50 ? preview.substring(0, 50) + '...' : preview,
-    data: { type: 'message' },
+  newMessage: (senderName, senderId) => ({
+    title: 'New Message',
+    body: `${senderName} sent you a message`,
+    data: { type: 'message', senderId, senderName },
   }),
 
   sharedVerse: (senderName) => ({
@@ -326,11 +326,11 @@ export const notifyEncouragement = async (recipientId, senderName, type) => {
  * Send message notification
  * @param {string} recipientId - Recipient's user ID
  * @param {string} senderName - Sender's name
- * @param {string} preview - Message preview
+ * @param {string} senderId - Sender's user ID
  * @returns {Promise<boolean>} - Success
  */
-export const notifyNewMessage = async (recipientId, senderName, preview) => {
-  const notification = NotificationTemplates.newMessage(senderName, preview);
+export const notifyNewMessage = async (recipientId, senderName, senderId) => {
+  const notification = NotificationTemplates.newMessage(senderName, senderId);
   return sendPushToUser(recipientId, notification);
 };
 

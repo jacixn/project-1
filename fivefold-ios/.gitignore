@@ -40,4 +40,6 @@ yarn-error.*
 github.config.js
 deepseek.config.js
 googleTts.config.js
+gemini.config.js
+ocr.config.js
 GoogleService-Info.plist

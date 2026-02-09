@@ -1,46 +1,154 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+/**
+ * TasksOverviewScreen
+ *
+ * Full tasks overview as a stack navigation screen.
+ * Loads todos from local storage, supports completion and deletion.
+ */
+
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  Modal,
-  StatusBar,
   Animated,
   Dimensions,
+  StatusBar,
+  DeviceEventEmitter,
+  Alert,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { getStoredData, saveData } from '../utils/localStorage';
+import AchievementService from '../services/achievementService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth, db } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const { width: SW } = Dimensions.get('window');
 
-const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDelete }) => {
+const TasksOverviewScreen = () => {
   const { theme, isDark } = useTheme();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  useEffect(() => {
-    if (visible) {
-      fadeAnim.setValue(0);
-      slideAnim.setValue(30);
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 10, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [visible]);
+  const [todos, setTodos] = useState([]);
+  const [userStats, setUserStats] = useState({ points: 0, level: 1, completedTasks: 0 });
+  const [loading, setLoading] = useState(true);
 
   // Colors
-  const bg = isDark ? '#0F0F1A' : '#F5F6FA';
+  const bg = theme.background;
   const cardBg = isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF';
   const cardBorder = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
   const textPrimary = isDark ? '#FFFFFF' : '#1A1A2E';
   const textSecondary = isDark ? 'rgba(255,255,255,0.6)' : '#666';
   const textTertiary = isDark ? 'rgba(255,255,255,0.35)' : '#999';
+
+  // Load data
+  const loadData = useCallback(async () => {
+    try {
+      const storedTodos = await getStoredData('todos') || [];
+      const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0 };
+      setTodos(storedTodos);
+      setUserStats(storedStats);
+    } catch (err) {
+      console.warn('Failed to load tasks data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadData();
+  }, [loadData]));
+
+  // Entrance animation
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(30);
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 10, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  // Complete task
+  const handleTodoComplete = useCallback(async (todoId) => {
+    const taskToComplete = todos.find(t => t.id === todoId);
+    if (!taskToComplete) return;
+
+    hapticFeedback.success();
+
+    const updatedTodos = todos.map(todo =>
+      todo.id === todoId
+        ? { ...todo, completed: true, completedAt: new Date().toISOString() }
+        : todo
+    );
+
+    const pointsEarned = taskToComplete.points || 500;
+    const newCompletedTasks = (userStats.completedTasks || 0) + 1;
+
+    const updatedStats = {
+      ...userStats,
+      totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+      points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+      completedTasks: newCompletedTasks,
+      level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
+    };
+
+    setTodos(updatedTodos);
+    setUserStats(updatedStats);
+
+    await saveData('todos', updatedTodos);
+    await saveData('userStats', updatedStats);
+
+    // Update central points storage
+    const centralPointsStr = await AsyncStorage.getItem('total_points');
+    const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
+    const newCentralTotal = Math.max(centralPoints, updatedStats.totalPoints);
+    await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+
+    // Sync to Firebase if user is logged in
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      setDoc(doc(db, 'users', currentUser.uid), {
+        totalPoints: newCentralTotal,
+        tasksCompleted: newCompletedTasks,
+        level: updatedStats.level,
+        lastActive: serverTimestamp(),
+      }, { merge: true }).catch(err => {
+        console.warn('Firebase task points sync failed:', err.message);
+      });
+    }
+
+    // Achievement check
+    const statsAfterAchievement = await AchievementService.checkAchievements(updatedStats);
+    if (statsAfterAchievement) {
+      setUserStats(statsAfterAchievement);
+    }
+
+    // Notify other components
+    DeviceEventEmitter.emit('taskCompleted', {
+      taskId: todoId,
+      points: pointsEarned,
+      newCompletedTasks,
+    });
+    DeviceEventEmitter.emit('todosChanged');
+  }, [todos, userStats]);
+
+  // Delete task
+  const handleTodoDelete = useCallback(async (todoId) => {
+    hapticFeedback.light();
+    const updatedTodos = todos.filter(todo => todo.id !== todoId);
+    setTodos(updatedTodos);
+    await saveData('todos', updatedTodos);
+    DeviceEventEmitter.emit('todosChanged');
+  }, [todos]);
 
   // Group tasks by date
   const groupedTasks = useMemo(() => {
@@ -109,7 +217,6 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
 
   const renderTaskCard = (todo, index) => {
     const tier = getTierConfig(todo.tier);
-    const hasAnalysis = todo.reasoning || todo.timeEstimate;
 
     return (
       <Animated.View
@@ -129,7 +236,7 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
           <View style={styles.taskTopRow}>
             <TouchableOpacity
               style={[styles.checkBtn, { borderColor: tier.color }]}
-              onPress={() => { hapticFeedback.success(); onTodoComplete(todo.id); }}
+              onPress={() => handleTodoComplete(todo.id)}
               activeOpacity={0.6}
             >
               <View style={[styles.checkInner, { backgroundColor: tier.color + '15' }]}>
@@ -145,7 +252,7 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
 
             <TouchableOpacity
               style={styles.deleteBtn}
-              onPress={() => { hapticFeedback.light(); onTodoDelete(todo.id); }}
+              onPress={() => handleTodoDelete(todo.id)}
               activeOpacity={0.6}
             >
               <MaterialIcons name="delete-outline" size={18} color={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)'} />
@@ -183,7 +290,7 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
           {todo.reasoning && (
             <View style={[styles.insightRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
               <MaterialIcons name="lightbulb-outline" size={13} color={textTertiary} />
-              <Text style={[styles.insightText, { color: textSecondary }]} numberOfLines={2}>
+              <Text style={[styles.insightText, { color: textSecondary }]}>
                 {todo.reasoning}
               </Text>
             </View>
@@ -204,95 +311,93 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: bg }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ── Header (scrolls with content) ── */}
-          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-            <TouchableOpacity
-              style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="close" size={20} color={textPrimary} />
-            </TouchableOpacity>
+      <Animated.ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header (scrolls with content) */}
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back-ios-new" size={18} color={textPrimary} />
+          </TouchableOpacity>
 
-            <View style={styles.headerCenter}>
-              <Text style={[styles.headerTitle, { color: textPrimary }]}>Your Tasks</Text>
-            </View>
-
-            <View style={{ width: 40 }} />
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>Your Tasks</Text>
           </View>
 
-          {/* ── Stats Banner ── */}
-          <Animated.View style={[styles.statsBanner, { opacity: fadeAnim }]}>
-            <View style={[styles.statCard, { backgroundColor: `${theme.primary}10`, borderColor: `${theme.primary}20` }]}>
-              <Text style={[styles.statNum, { color: theme.primary }]}>{totalTasks}</Text>
-              <Text style={[styles.statLbl, { color: textTertiary }]}>Active</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Stats Banner */}
+        <Animated.View style={[styles.statsBanner, { opacity: fadeAnim }]}>
+          <View style={[styles.statCard, { backgroundColor: `${theme.primary}10`, borderColor: `${theme.primary}20` }]}>
+            <Text style={[styles.statNum, { color: theme.primary }]}>{totalTasks}</Text>
+            <Text style={[styles.statLbl, { color: textTertiary }]}>Active</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: '#F59E0B10', borderColor: '#F59E0B20' }]}>
+            <Text style={[styles.statNum, { color: '#F59E0B' }]}>{totalPoints.toLocaleString()}</Text>
+            <Text style={[styles.statLbl, { color: textTertiary }]}>Points</Text>
+          </View>
+          {highCount > 0 && (
+            <View style={[styles.statCard, { backgroundColor: '#EF444410', borderColor: '#EF444420' }]}>
+              <Text style={[styles.statNum, { color: '#EF4444' }]}>{highCount}</Text>
+              <Text style={[styles.statLbl, { color: textTertiary }]}>Urgent</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#F59E0B10', borderColor: '#F59E0B20' }]}>
-              <Text style={[styles.statNum, { color: '#F59E0B' }]}>{totalPoints.toLocaleString()}</Text>
-              <Text style={[styles.statLbl, { color: textTertiary }]}>Points</Text>
-            </View>
-            {highCount > 0 && (
-              <View style={[styles.statCard, { backgroundColor: '#EF444410', borderColor: '#EF444420' }]}>
-                <Text style={[styles.statNum, { color: '#EF4444' }]}>{highCount}</Text>
-                <Text style={[styles.statLbl, { color: textTertiary }]}>Urgent</Text>
-              </View>
-            )}
-          </Animated.View>
-
-          {/* ── Content ── */}
-          {groupedTasks.length === 0 ? (
-            <Animated.View style={[styles.emptyState, {
-              backgroundColor: cardBg, borderColor: cardBorder,
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }]}>
-              <View style={[styles.emptyIconBg, { backgroundColor: `${theme.primary}10` }]}>
-                <MaterialIcons name="check-circle-outline" size={40} color={theme.primary} />
-              </View>
-              <Text style={[styles.emptyTitle, { color: textPrimary }]}>All Clear</Text>
-              <Text style={[styles.emptySubtitle, { color: textSecondary }]}>
-                No active tasks. Add one from the home screen to get started.
-              </Text>
-            </Animated.View>
-          ) : (
-            groupedTasks.map((group) => {
-              const section = getSectionIcon(group.dateKey);
-              const activeTasks = group.tasks.filter(t => !t.completed);
-              if (activeTasks.length === 0) return null;
-
-              return (
-                <View key={group.dateKey} style={styles.section}>
-                  {/* Section header */}
-                  <View style={styles.sectionHeader}>
-                    <View style={styles.sectionLeft}>
-                      <View style={[styles.sectionIconBg, { backgroundColor: section.color + '14' }]}>
-                        <MaterialIcons name={section.icon} size={16} color={section.color} />
-                      </View>
-                      <Text style={[styles.sectionTitle, { color: textPrimary }]}>{group.label}</Text>
-                    </View>
-                    <View style={[styles.sectionBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
-                      <Text style={[styles.sectionBadgeText, { color: textTertiary }]}>{activeTasks.length}</Text>
-                    </View>
-                  </View>
-
-                  {/* Task cards */}
-                  {activeTasks.map((todo, i) => renderTaskCard(todo, i))}
-                </View>
-              );
-            })
           )}
-        </ScrollView>
-      </View>
-    </Modal>
+        </Animated.View>
+
+        {/* Content */}
+        {groupedTasks.length === 0 ? (
+          <Animated.View style={[styles.emptyState, {
+            backgroundColor: cardBg, borderColor: cardBorder,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }]}>
+            <View style={[styles.emptyIconBg, { backgroundColor: `${theme.primary}10` }]}>
+              <MaterialIcons name="check-circle-outline" size={40} color={theme.primary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: textPrimary }]}>All Clear</Text>
+            <Text style={[styles.emptySubtitle, { color: textSecondary }]}>
+              No active tasks. Add one from the home screen to get started.
+            </Text>
+          </Animated.View>
+        ) : (
+          groupedTasks.map((group) => {
+            const section = getSectionIcon(group.dateKey);
+            const activeTasks = group.tasks.filter(t => !t.completed);
+            if (activeTasks.length === 0) return null;
+
+            return (
+              <View key={group.dateKey} style={styles.section}>
+                {/* Section header */}
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionLeft}>
+                    <View style={[styles.sectionIconBg, { backgroundColor: section.color + '14' }]}>
+                      <MaterialIcons name={section.icon} size={16} color={section.color} />
+                    </View>
+                    <Text style={[styles.sectionTitle, { color: textPrimary }]}>{group.label}</Text>
+                  </View>
+                  <View style={[styles.sectionBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                    <Text style={[styles.sectionBadgeText, { color: textTertiary }]}>{activeTasks.length}</Text>
+                  </View>
+                </View>
+
+                {/* Task cards */}
+                {activeTasks.map((todo, i) => renderTaskCard(todo, i))}
+              </View>
+            );
+          })
+        )}
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -306,7 +411,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
-  closeBtn: {
+  backBtn: {
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
@@ -429,4 +534,4 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '400' },
 });
 
-export default TasksOverviewModal;
+export default TasksOverviewScreen;

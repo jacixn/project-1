@@ -26,6 +26,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import BodyMap3D from '../components/BodyMap3D';
 import physiqueService from '../services/physiqueService';
 import WorkoutService from '../services/workoutService';
+import productionAiService from '../services/productionAiService';
 import { MUSCLE_GROUPS, SCORE_COLORS, getScoreColor } from '../data/exerciseMuscleMap';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -42,6 +43,8 @@ const PhysiqueScreen = () => {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [gender, setGender] = useState('male');
   const [suggestions, setSuggestions] = useState([]);
+  const [aiCoachText, setAiCoachText] = useState(null);
+  const [aiCoachLoading, setAiCoachLoading] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(20)).current;
@@ -59,16 +62,79 @@ const PhysiqueScreen = () => {
       const history = await WorkoutService.getWorkoutHistory();
       await physiqueService.recalculate(history);
 
-      setScores(physiqueService.getScores());
-      setOverallScore(physiqueService.getOverallScore());
-      setSuggestions(physiqueService.getBalanceSuggestions());
+      const currentScores = physiqueService.getScores();
+      const currentOverall = physiqueService.getOverallScore();
+      const fallbackSuggestions = physiqueService.getBalanceSuggestions();
+
+      setScores(currentScores);
+      setOverallScore(currentOverall);
+      setSuggestions(fallbackSuggestions);
       setLoading(false);
 
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+
+      // Fire AI coach in the background (non-blocking)
+      generateAiCoachFeedback(currentScores, currentOverall, history);
     } catch (error) {
       console.warn('[Physique] Load failed:', error);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    }
+  };
+
+  const generateAiCoachFeedback = async (currentScores, currentOverall, history) => {
+    try {
+      setAiCoachLoading(true);
+
+      // Build data for the AI
+      const pushMuscles = ['chest', 'frontDelts', 'triceps'];
+      const pullMuscles = ['lats', 'upperBack', 'biceps', 'rearDelts'];
+      const legMuscles  = ['quads', 'hamstrings', 'glutes', 'calves'];
+      const coreMuscles = ['abs', 'obliques', 'lowerBack'];
+
+      const avg = (ids) => {
+        const vals = ids.map(id => currentScores[id]?.score || 0);
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      };
+
+      const strongest = physiqueService.getStrongestMuscles(3).map(m => ({
+        id: m.id,
+        name: MUSCLE_GROUPS[m.id]?.name || m.id,
+        score: m.score,
+      }));
+      const weakest = physiqueService.getWeakestMuscles(3).map(m => ({
+        id: m.id,
+        name: MUSCLE_GROUPS[m.id]?.name || m.id,
+        score: m.score,
+      }));
+
+      const feedback = await productionAiService.generatePhysiqueCoachFeedback({
+        overallScore: currentOverall,
+        strongest,
+        weakest,
+        groupAverages: {
+          push: avg(pushMuscles),
+          pull: avg(pullMuscles),
+          legs: avg(legMuscles),
+          core: avg(coreMuscles),
+        },
+        totalWorkouts: history.length,
+      });
+
+      if (feedback) {
+        // Strip any dashes (em-dash, en-dash, hyphens used as dashes) from the response
+        const cleaned = feedback
+          .replace(/\u2014/g, ',')   // em-dash → comma
+          .replace(/\u2013/g, ',')   // en-dash → comma
+          .replace(/ - /g, ', ')     // spaced hyphen → comma
+          .replace(/^- /gm, '')      // leading bullet dashes
+          .trim();
+        setAiCoachText(cleaned);
+      }
+    } catch (e) {
+      console.warn('[AI Coach] Error:', e.message);
+    } finally {
+      setAiCoachLoading(false);
     }
   };
 
@@ -86,7 +152,7 @@ const PhysiqueScreen = () => {
   const selectedInfo = selectedMuscle ? MUSCLE_GROUPS[selectedMuscle] : null;
   const overallColor = getScoreColor(overallScore);
 
-  const bg = isDark ? '#09090B' : theme.background;
+  const bg = theme.background;
   const cardBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
   const cardBorder = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
   const textPrimary = isDark ? '#FAFAFA' : theme.text;
@@ -95,9 +161,9 @@ const PhysiqueScreen = () => {
 
   if (loading) {
     return (
-      <View style={[styles.safeArea, { backgroundColor: bg, paddingTop: insets.top }]}>
+      <View style={[styles.safeArea, { backgroundColor: bg }]}>
         <StatusBar barStyle="light-content" />
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={[styles.loadingText, { color: textSecondary }]}>Analyzing your workouts...</Text>
         </View>
@@ -106,7 +172,7 @@ const PhysiqueScreen = () => {
   }
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: bg, paddingTop: insets.top }]}>
+    <View style={[styles.safeArea, { backgroundColor: bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {isDark && (
@@ -121,8 +187,8 @@ const PhysiqueScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
-        <View style={styles.header}>
+        {/* ── Header — scrolls with content ── */}
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back-ios" size={20} color={textPrimary} />
           </TouchableOpacity>
@@ -217,23 +283,34 @@ const PhysiqueScreen = () => {
           </Animated.View>
         )}
 
-        {/* ── Balance Coach ── */}
+        {/* ── AI Balance Coach ── */}
         <View style={[styles.coachCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           <View style={styles.coachHeader}>
             <View style={[styles.coachIcon, { backgroundColor: theme.primary + '18' }]}>
               <MaterialIcons name="psychology" size={20} color={theme.primary} />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.coachTitle, { color: textPrimary }]}>Balance Coach</Text>
               <Text style={[styles.coachSub, { color: textTertiary }]}>Based on your training data</Text>
             </View>
+            {aiCoachLoading && (
+              <ActivityIndicator size="small" color={theme.primary} style={{ marginLeft: 8 }} />
+            )}
           </View>
-          {suggestions.map((text, i) => (
-            <View key={i} style={styles.suggestionRow}>
-              <View style={[styles.bullet, { backgroundColor: theme.primary }]} />
-              <Text style={[styles.suggestionText, { color: textSecondary }]}>{text}</Text>
-            </View>
-          ))}
+
+          {/* AI-generated paragraph (replaces bullet list when available) */}
+          {aiCoachText ? (
+            <Text style={[styles.aiCoachParagraph, { color: textSecondary }]}>
+              {aiCoachText}
+            </Text>
+          ) : (
+            suggestions.map((text, i) => (
+              <View key={i} style={styles.suggestionRow}>
+                <View style={[styles.bullet, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.suggestionText, { color: textSecondary }]}>{text}</Text>
+              </View>
+            ))
+          )}
         </View>
 
         {/* ── All Muscle Groups ── */}
@@ -276,7 +353,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 8,
     paddingBottom: 8,
   },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
@@ -323,6 +399,7 @@ const styles = StyleSheet.create({
   suggestionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
   bullet: { width: 5, height: 5, borderRadius: 3, marginTop: 7 },
   suggestionText: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 20 },
+  aiCoachParagraph: { fontSize: 14, fontWeight: '500', lineHeight: 22, letterSpacing: 0.1 },
 
   sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12, paddingHorizontal: 20 },
   muscleGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 8 },
@@ -334,6 +411,7 @@ const styles = StyleSheet.create({
   chipDot: { width: 6, height: 6, borderRadius: 3 },
   chipName: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
   chipScore: { fontSize: 17, fontWeight: '800' },
+
 });
 
 export default PhysiqueScreen;

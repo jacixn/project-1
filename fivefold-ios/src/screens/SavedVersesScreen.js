@@ -483,7 +483,7 @@ const SavedVersesScreen = ({ navigation }) => {
             justifyContent: 'space-between',
           }}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
               style={{ 
                 width: 40,
                 height: 40,

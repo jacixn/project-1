@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LogBox, Linking, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
@@ -29,6 +30,8 @@ import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import WorkoutService from './src/services/workoutService';
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -116,6 +119,88 @@ const SplashScreen = () => {
 // Import bible audio service to track audio state
 import bibleAudioService from './src/services/bibleAudioService';
 
+// ============================================================
+// 90-DAY HISTORY CLEANUP
+// Runs once on app startup to purge workout history & completed
+// tasks older than 90 days from both local storage and Firebase.
+// ============================================================
+const RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+
+const cleanOldCompletedTasks = async () => {
+  try {
+    const todosStr = await AsyncStorage.getItem('fivefold_todos');
+    if (!todosStr) return;
+    const todos = JSON.parse(todosStr);
+    if (!Array.isArray(todos)) return;
+
+    const cutoff = Date.now() - RETENTION_MS;
+    const cleaned = todos.filter(todo => {
+      // Only prune completed tasks — active tasks stay forever
+      if (!todo.completed) return true;
+      const dateStr = todo.completedAt || todo.createdAt;
+      if (!dateStr) return true; // keep if no date
+      const t = new Date(dateStr).getTime();
+      if (isNaN(t)) return true;
+      return t > cutoff;
+    });
+
+    if (cleaned.length < todos.length) {
+      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(cleaned));
+      console.log(`🧹 Cleaned completed tasks: ${todos.length} → ${cleaned.length} (removed ${todos.length - cleaned.length} entries older than 90 days)`);
+    }
+  } catch (e) {
+    console.warn('⚠️ Error cleaning old completed tasks:', e);
+  }
+};
+
+// Also clean the separate completedTodos key used by sync
+const cleanOldCompletedTodosSync = async () => {
+  try {
+    const str = await AsyncStorage.getItem('completedTodos');
+    if (!str) return;
+    const arr = JSON.parse(str);
+    if (!Array.isArray(arr)) return;
+
+    const cutoff = Date.now() - RETENTION_MS;
+    const cleaned = arr.filter(entry => {
+      if (!entry) return false;
+      const dateStr = entry.completedAt || entry.completedDate || entry.date || entry.createdAt;
+      if (!dateStr) return true;
+      const t = new Date(dateStr).getTime();
+      if (isNaN(t)) return true;
+      return t > cutoff;
+    });
+
+    if (cleaned.length < arr.length) {
+      await AsyncStorage.setItem('completedTodos', JSON.stringify(cleaned));
+      console.log(`🧹 Cleaned completedTodos sync key: ${arr.length} → ${cleaned.length}`);
+    }
+  } catch (e) {
+    console.warn('⚠️ Error cleaning completedTodos sync key:', e);
+  }
+};
+
+const runHistoryCleanup = async () => {
+  console.log('[Cleanup] Running 90-day history cleanup...');
+  await Promise.all([
+    WorkoutService.cleanOldHistory(),
+    cleanOldCompletedTasks(),
+    cleanOldCompletedTodosSync(),
+  ]);
+  console.log('[Cleanup] Done.');
+};
+
+// Helper: extract the active route name from navigation state (handles nested navigators)
+const getActiveRouteName = (state) => {
+  if (!state || !state.routes) return null;
+  const route = state.routes[state.index];
+  if (route.state) return getActiveRouteName(route.state);
+  return route.name;
+};
+
+// Shared context so AppNavigation can read the current route set by NavigationContainer.onStateChange
+const CurrentRouteContext = React.createContext(null);
+
 // App navigation wrapper with mini workout player
 const AppNavigation = () => {
   const { hasActiveWorkout, maximizeWorkout } = useWorkout();
@@ -123,6 +208,9 @@ const AppNavigation = () => {
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [modalTemplateData, setModalTemplateData] = useState(null);
   const [isAudioPlayerVisible, setIsAudioPlayerVisible] = useState(false);
+
+  // Read current route from context (set by NavigationContainer.onStateChange in ThemedApp)
+  const currentRoute = React.useContext(CurrentRouteContext);
   const [firstPlayer, setFirstPlayer] = useState(null); // 'workout' or 'audio' - tracks which came first
   const achievementToastRef = React.useRef(null);
 
@@ -231,7 +319,8 @@ const AppNavigation = () => {
         <MiniWorkoutPlayer 
           onPress={handleMiniPlayerPress} 
           bottomOffset={
-            isAudioPlayerVisible 
+            // Only offset for the audio bar if it's actually visible (not hidden on BibleReader)
+            (isAudioPlayerVisible && currentRoute !== 'BibleReader')
               ? (firstPlayer === 'workout' ? 95 : 180) // Workout first = bottom, otherwise top
               : 95 // Only workout = bottom
           }
@@ -242,7 +331,8 @@ const AppNavigation = () => {
       {/* Position depends on who came first */}
       {/* Audio on top = 150px (55px gap from bottom player), Audio on bottom = 95px */}
       {/* Don't show on auth/login screen */}
-      {user && (
+      {/* Hide on BibleReader screen — that screen already has inline audio controls */}
+      {user && currentRoute !== 'BibleReader' && (
         <PersistentAudioPlayerBar 
           bottomOffset={
             hasActiveWorkout 
@@ -278,6 +368,12 @@ const ThemedApp = () => {
   const navigationRef = useRef(null);
   const pendingNavigationRef = useRef(null); // Store pending navigation if nav isn't ready
   const prevUserIdRef = useRef(undefined); // Start as undefined, not null
+  const [currentRoute, setCurrentRoute] = useState(null);
+
+  // Run 90-day history cleanup once on app startup
+  useEffect(() => {
+    runHistoryCleanup();
+  }, []);
   
   // Listen for userDataDownloaded event to reload theme after sign-in sync
   useEffect(() => {
@@ -392,17 +488,99 @@ const ThemedApp = () => {
     };
   }, []);
   
+  // Map notification data to a navigation payload (same logic as notificationService)
+  const mapNotificationToNavPayload = (data) => {
+    if (!data?.type) return null;
+    
+    let tab = null;
+    let additionalData = null;
+    
+    switch (data.type) {
+      case 'prayer_reminder':
+      case 'missed_prayer':
+      case 'custom_prayer':
+        tab = 'BiblePrayer';
+        additionalData = { prayerSlot: data.prayerSlot, prayerName: data.prayerName };
+        break;
+      case 'workout_reminder':
+      case 'workout_overdue':
+        tab = 'Gym';
+        additionalData = { templateId: data.templateId, scheduleId: data.scheduleId };
+        break;
+      case 'task_reminder':
+        tab = 'Todos';
+        additionalData = { taskId: data.taskId };
+        break;
+      case 'weekly_body_checkin':
+        tab = 'Gym';
+        additionalData = { openNutrition: true };
+        break;
+      case 'daily_streak':
+      case 'streak_reminder':
+        tab = 'Profile';
+        additionalData = { streakType: data.streakType };
+        break;
+      case 'achievement':
+        tab = 'Profile';
+        break;
+      case 'message':
+        if (data.senderId) {
+          tab = 'Chat';
+          additionalData = {
+            otherUserId: data.senderId,
+            otherUser: { uid: data.senderId, displayName: data.senderName || 'Friend' },
+          };
+        } else {
+          tab = 'Hub';
+        }
+        break;
+      case 'friend_request':
+      case 'friend_accepted':
+      case 'challenge':
+      case 'challenge_received':
+      case 'challenge_result':
+        tab = 'Hub';
+        break;
+      default:
+        console.log('📱 [mapNotificationToNavPayload] Unknown type:', data.type);
+        return null;
+    }
+    
+    return tab ? { tab, data: additionalData, notificationType: data.type } : null;
+  };
+  
+  // Track the last navigation to prevent double-navigating from dual listeners
+  const lastNavTimestampRef = useRef(0);
+  
   // Handle notification-based navigation
   const handleNotificationNavigation = (payload) => {
     const { tab, data, notificationType } = payload;
     
+    // Deduplication: prevent the same navigation from firing twice within 2 seconds
+    // (both DeviceEventEmitter and direct Expo listener may fire for the same tap)
+    const now = Date.now();
+    if (now - lastNavTimestampRef.current < 2000) {
+      console.log('📱 Notification navigation deduplicated (already navigated recently)');
+      return;
+    }
+    lastNavTimestampRef.current = now;
+    
     console.log('📱 Notification navigation request:', { tab, notificationType });
     
-    // Navigate to the appropriate tab
+    // Navigate to the appropriate screen
     if (navigationRef.current?.isReady()) {
       try {
-        navigationRef.current.navigate(tab);
-        console.log('✅ Navigated to:', tab);
+        // For stack screens like Chat, pass data as route params
+        if (tab === 'Chat' && data) {
+          navigationRef.current.navigate('Chat', {
+            otherUser: data.otherUser,
+            otherUserId: data.otherUserId,
+          });
+          console.log('✅ Navigated directly to Chat with:', data.otherUser?.displayName);
+        } else {
+          navigationRef.current.navigate(tab);
+          console.log('✅ Navigated to:', tab);
+        }
         
         // Emit a secondary event for the specific screen to handle additional data
         if (data) {
@@ -424,12 +602,91 @@ const ThemedApp = () => {
     }
   };
   
-  // Listen for notification navigation events
+  // Listen for notification navigation events (from notificationService via DeviceEventEmitter)
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('notificationNavigation', handleNotificationNavigation);
     
     return () => {
       subscription.remove();
+    };
+  }, []);
+
+  // CRITICAL: Direct Expo notification response listener as a safety net.
+  // This catches notification taps even when the DeviceEventEmitter flow fails
+  // (e.g., cold start race condition, app killed state, etc.)
+  const handledResponseIdsRef = useRef(new Set());
+  useEffect(() => {
+    // 1. Register the listener for future taps while app is running
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const responseId = response.notification.request.identifier;
+      const data = response.notification.request.content?.data;
+      
+      console.log('📱 [App.js Direct Listener] Notification response:', responseId, data?.type);
+      
+      // Avoid double-processing (notificationService also handles this)
+      if (handledResponseIdsRef.current.has(responseId)) {
+        console.log('📱 [App.js Direct Listener] Already handled, skipping');
+        return;
+      }
+      handledResponseIdsRef.current.add(responseId);
+      
+      // Keep set small
+      if (handledResponseIdsRef.current.size > 20) {
+        const arr = [...handledResponseIdsRef.current];
+        handledResponseIdsRef.current = new Set(arr.slice(-10));
+      }
+      
+      // Process directly — don't rely on DeviceEventEmitter round-trip
+      const payload = mapNotificationToNavPayload(data);
+      if (payload) {
+        // Small delay to ensure navigation is mounted
+        setTimeout(() => handleNotificationNavigation(payload), 200);
+      }
+    });
+    
+    // 2. Check for cold-start notification (app launched from killed state by tapping a notification)
+    Notifications.getLastNotificationResponseAsync().then((lastResponse) => {
+      if (lastResponse) {
+        const responseId = lastResponse.notification.request.identifier;
+        const data = lastResponse.notification.request.content?.data;
+        
+        // Guard against stale responses from previous app sessions.
+        // Only process if the notification was interacted with in the last 30 seconds.
+        const actionTimestamp = lastResponse.actionIdentifier 
+          ? Date.now() // actionIdentifier present means it was a real tap
+          : 0;
+        const notifDate = lastResponse.notification?.date;
+        const responseAge = notifDate ? (Date.now() - notifDate) : Infinity;
+        
+        console.log('📱 [App.js Cold Start] Found last notification response:', responseId, data?.type, 'age:', Math.round(responseAge / 1000), 's');
+        
+        // Only process if notification is fresh (< 30 seconds old) and not already handled
+        if (responseAge < 30000 && !handledResponseIdsRef.current.has(responseId)) {
+          handledResponseIdsRef.current.add(responseId);
+          const payload = mapNotificationToNavPayload(data);
+          if (payload) {
+            // Longer delay for cold start — navigation might not be ready yet
+            const attemptNavigation = () => {
+              if (navigationRef.current?.isReady()) {
+                handleNotificationNavigation(payload);
+              } else {
+                // If navigation isn't ready, store it as pending
+                console.log('📱 [App.js Cold Start] Nav not ready, storing as pending');
+                pendingNavigationRef.current = payload;
+              }
+            };
+            setTimeout(attemptNavigation, 500);
+          }
+        } else if (responseAge >= 30000) {
+          console.log('📱 [App.js Cold Start] Stale response (', Math.round(responseAge / 1000), 's old), ignoring');
+        }
+      }
+    }).catch((err) => {
+      console.warn('📱 [App.js Cold Start] Error checking last response:', err.message);
+    });
+    
+    return () => {
+      responseSubscription.remove();
     };
   }, []);
 
@@ -723,7 +980,15 @@ const ThemedApp = () => {
           <NavigationContainer 
             key={`nav-${appKey}`}
             ref={navigationRef}
+            onStateChange={(state) => {
+              const routeName = getActiveRouteName(state);
+              setCurrentRoute(routeName);
+            }}
             onReady={() => {
+              // Set initial route
+              const state = navigationRef.current?.getRootState?.();
+              if (state) setCurrentRoute(getActiveRouteName(state));
+
               // Handle any pending navigation from notification tap
               if (pendingNavigationRef.current) {
                 console.log('📱 Processing pending notification navigation');
@@ -742,7 +1007,9 @@ const ThemedApp = () => {
               }
             }}
           >
-            <AppNavigation />
+            <CurrentRouteContext.Provider value={currentRoute}>
+              <AppNavigation />
+            </CurrentRouteContext.Provider>
           </NavigationContainer>
         </WorkoutProvider>
       </ErrorBoundary>

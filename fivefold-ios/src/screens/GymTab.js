@@ -34,6 +34,8 @@ import ExercisesModal from '../components/ExercisesModal';
 import WorkoutModal from '../components/WorkoutModal';
 import TemplateSelectionModal from '../components/TemplateSelectionModal';
 import WorkoutService from '../services/workoutService';
+import nutritionService from '../services/nutritionService';
+import bodyCompositionService from '../services/bodyCompositionService';
 
 // const { width } = Dimensions.get('window');
 
@@ -71,6 +73,9 @@ const GymTab = () => {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [selectedCalendarMonth, setSelectedCalendarMonth] = useState(new Date());
   const [scheduledWorkouts, setScheduledWorkouts] = useState([]);
+  const [nutritionProgress, setNutritionProgress] = useState(null);
+  const [bodyComp, setBodyComp] = useState(null);
+  const [bodyCompExpanded, setBodyCompExpanded] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -231,11 +236,27 @@ const GymTab = () => {
   // Force refresh all data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('🏋️ GymTab focused - refreshing workout data');
+      console.log('GymTab focused - refreshing workout data');
       loadWorkoutHistory();
       loadScheduledWorkouts();
+      loadNutritionProgress();
     }, [])
   );
+
+  const loadNutritionProgress = async () => {
+    try {
+      const today = nutritionService.getDateKey();
+      const progress = await nutritionService.getDailyProgress(today);
+      setNutritionProgress(progress);
+      // Load body composition
+      const profile = await nutritionService.getProfile();
+      if (profile && profile.weightKg && profile.heightCm) {
+        setBodyComp(bodyCompositionService.calculate(profile));
+      }
+    } catch (e) {
+      // silent
+    }
+  };
 
   const loadWorkoutHistory = async () => {
     try {
@@ -697,67 +718,12 @@ const GymTab = () => {
         }
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
+            { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
         >
-          {/* Welcome Card */}
+          {/* Weekly Calendar Card */}
           <LiquidGlassContainer>
-            <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Workout Stats</Text>
-            <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-              Your fitness journey
-            </Text>
-            
-            <View style={styles.statsRow}>
-              <View 
-                style={[styles.statItem, { 
-                  backgroundColor: `${theme.primary}30`,
-                  borderColor: `${theme.primary}99`,
-                  borderWidth: 0.8,
-                  borderRadius: 16,
-                }]}
-              >
-                <Text style={[styles.statNumber, { color: iconColor }]}>
-                  {workoutStats.totalWorkouts}
-                </Text>
-                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-                  Workouts
-                </Text>
-              </View>
-              
-              <View 
-                style={[styles.statItem, { 
-                  backgroundColor: `${theme.primary}30`,
-                  borderColor: `${theme.primary}99`,
-                  borderWidth: 0.8,
-                  borderRadius: 16,
-                }]}
-              >
-                <Text style={[styles.statNumber, { color: isBiblelyTheme ? '#4ADE80' : theme.success }]}>
-                  {workoutStats.streak}
-                </Text>
-                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-                  Week Streak
-                </Text>
-              </View>
-              
-              <View 
-                style={[styles.statItem, { 
-                  backgroundColor: `${theme.primary}30`,
-                  borderColor: `${theme.primary}99`,
-                  borderWidth: 0.8,
-                  borderRadius: 16,
-                }]}
-              >
-                <Text style={[styles.statNumber, { color: isBiblelyTheme ? '#FBBF24' : theme.warning }]}>
-                  {workoutStats.timeValue}
-                </Text>
-                <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-                  {workoutStats.timeLabel}
-                </Text>
-              </View>
-            </View>
-
             {/* Weekly Calendar Preview */}
             <TouchableOpacity 
               style={styles.weeklyCalendarContainer}
@@ -840,6 +806,55 @@ const GymTab = () => {
             </TouchableOpacity>
           </LiquidGlassContainer>
 
+          {/* Fuel Card */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Fuel</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  Track your nutrition
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  navigation.navigate('Nutrition');
+                }}
+              >
+                <Text style={styles.browseButtonText}>
+                  {nutritionProgress?.hasProfile ? 'Open' : 'Set Up'}
+                </Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            {nutritionProgress?.hasProfile ? (
+              <View style={styles.fuelProgressRow}>
+                <View style={styles.fuelProgressBarBg}>
+                  <View
+                    style={[
+                      styles.fuelProgressBarFill,
+                      {
+                        backgroundColor: theme.primary,
+                        width: `${Math.min(((nutritionProgress.consumed?.calories || 0) / (nutritionProgress.targets?.calories || 2000)) * 100, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.fuelProgressText, { color: textSecondaryColor }]}>
+                  {nutritionProgress.consumed?.calories || 0} / {nutritionProgress.targets?.calories || 0} cal
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.fuelSetupPrompt}>
+                <MaterialIcons name="restaurant-menu" size={20} color={textSecondaryColor} />
+                <Text style={[styles.fuelSetupText, { color: textSecondaryColor }]}>
+                  Set up your nutrition plan to track calories
+                </Text>
+              </View>
+            )}
+          </LiquidGlassContainer>
+
           {/* Start Workout Card */}
           <LiquidGlassContainer style={styles.comingSoonCard}>
             <View style={styles.startWorkoutHeader}>
@@ -916,6 +931,80 @@ const GymTab = () => {
             </View>
           </LiquidGlassContainer>
 
+          {/* Body Composition Card — compact preview, tap to view full details */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Body Composition</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  {bodyComp ? 'Your body insights' : 'Set up your profile'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  if (bodyComp) {
+                    navigation.navigate('BodyComposition');
+                  } else {
+                    navigation.navigate('Nutrition');
+                  }
+                }}
+              >
+                <Text style={styles.browseButtonText}>{bodyComp ? 'View' : 'Set Up'}</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {bodyComp ? (
+              <View style={styles.exercisesPreview}>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444'}20`,
+                  borderColor: `${bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444'}66`,
+                  borderWidth: 1,
+                }]}>
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Health Score
+                  </Text>
+                </View>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.primary}20`,
+                  borderColor: `${theme.primary}66`,
+                  borderWidth: 1,
+                }]}>
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Body Age
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.exercisesPreview}>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.primary}20`,
+                  borderColor: `${theme.primary}66`,
+                  borderWidth: 1,
+                }]}>
+                  <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Body Metrics
+                  </Text>
+                </View>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.success || '#10B981'}20`,
+                  borderColor: `${theme.success || '#10B981'}66`,
+                  borderWidth: 1,
+                }]}>
+                  <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Health Score
+                  </Text>
+                </View>
+              </View>
+            )}
+          </LiquidGlassContainer>
+
           {/* Exercises Card */}
           <LiquidGlassContainer>
             <View style={styles.exercisesHeader}>
@@ -961,96 +1050,7 @@ const GymTab = () => {
             </View>
           </LiquidGlassContainer>
 
-          {/* History Card */}
-          <LiquidGlassContainer style={styles.historyCard}>
-            <View style={styles.historyHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 4, ...textOutlineStyle }]}>
-                  History
-                </Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 0, ...textOutlineStyle }]}>
-                  {workoutHistory.length} {workoutHistory.length === 1 ? 'workout' : 'workouts'} completed
-                </Text>
-              </View>
-              <View style={[styles.historyBadge, { backgroundColor: theme.primary + '20' }]}>
-                <MaterialIcons name="history" size={24} color={theme.primary} />
-              </View>
-            </View>
-
-            {workoutHistory.length === 0 ? (
-              <View style={styles.emptyHistory}>
-                <MaterialIcons name="fitness-center" size={48} color={theme.textSecondary} opacity={0.3} />
-                <Text style={[styles.emptyHistoryText, { color: textColor, ...textOutlineStyle }]}>
-                  No workouts yet
-                </Text>
-                <Text style={[styles.emptyHistorySubtext, { color: textSecondaryColor }]}>
-                  Complete your first workout to see it here
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.historyList}>
-                {workoutHistory.slice(0, 5).map((workout, index) => (
-                  <TouchableOpacity
-                    key={workout.id}
-                    style={[
-                      styles.historyItem,
-                      {
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                        marginBottom: index !== Math.min(4, workoutHistory.length - 1) ? 10 : 0,
-                      },
-                    ]}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      // TODO: Show workout detail modal
-                    }}
-                  >
-                    <View style={[styles.workoutIcon, { backgroundColor: theme.primary + '20' }]}>
-                      <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
-                    </View>
-                    <View style={styles.workoutInfo}>
-                      <Text style={[styles.workoutName, { color: textColor, ...textOutlineStyle }]}>
-                        {workout.name}
-                      </Text>
-                      <View style={styles.workoutMeta}>
-                        <View style={styles.workoutMetaItem}>
-                          <MaterialIcons name="schedule" size={14} color={textSecondaryColor} />
-                          <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
-                            {formatDuration(workout.duration)}
-                          </Text>
-                        </View>
-                        <View style={styles.workoutMetaItem}>
-                          <MaterialIcons name="fitness-center" size={14} color={textSecondaryColor} />
-                          <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
-                            {workout.exercises?.length || 0} exercises
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <View style={styles.workoutDate}>
-                      <Text style={[styles.workoutDateText, { color: textSecondaryColor }]}>
-                        {formatDate(workout.completedAt)}
-                      </Text>
-                      <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-                {workoutHistory.length > 5 && (
-                  <TouchableOpacity
-                    style={styles.viewAllButton}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setShowFullHistoryModal(true);
-                    }}
-                  >
-                    <Text style={[styles.viewAllText, { color: theme.primary }]}>
-                      View All {workoutHistory.length} Workouts
-                    </Text>
-                    <MaterialIcons name="arrow-forward" size={18} color={theme.primary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </LiquidGlassContainer>
+          {/* History removed — now accessed via Profile > Workouts card */}
         </Animated.ScrollView>
       </View>
 
@@ -1058,102 +1058,7 @@ const GymTab = () => {
 
       {/* Start Workout - now navigated via stack navigator for swipe-back support */}
 
-      {/* Full History Modal */}
-      <Modal
-        visible={showFullHistoryModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFullHistoryModal(false)}
-      >
-        <View style={[styles.fullHistoryModal, { backgroundColor: theme.background }]}>
-          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-          
-          {/* Header */}
-          <View style={[styles.fullHistoryHeader, { 
-            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : `${theme.primary}15`,
-            borderBottomColor: theme.border,
-          }]}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                hapticFeedback.light();
-                setShowFullHistoryModal(false);
-              }}
-            >
-              <MaterialIcons name="close" size={28} color={theme.text} />
-            </TouchableOpacity>
-            <View style={styles.fullHistoryHeaderText}>
-              <Text style={[styles.fullHistoryTitle, { color: textColor, ...textOutlineStyle }]}>
-                Workout History
-              </Text>
-              <Text style={[styles.fullHistorySubtitle, { color: textSecondaryColor }]}>
-                {workoutHistory.length} {workoutHistory.length === 1 ? 'workout' : 'workouts'} completed
-              </Text>
-            </View>
-            <View style={styles.closeButtonPlaceholder} />
-          </View>
-
-          {/* All Workouts List */}
-          <ScrollView 
-            style={styles.fullHistoryContent}
-            contentContainerStyle={styles.fullHistoryContentContainer}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.primary}
-              />
-            }
-          >
-            {workoutHistory.map((workout, index) => (
-              <TouchableOpacity
-                key={workout.id}
-                style={[
-                  styles.fullHistoryItem,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                    marginBottom: 12,
-                  },
-                ]}
-                onPress={() => {
-                  hapticFeedback.light();
-                  // TODO: Show workout detail modal
-                }}
-              >
-                <View style={[styles.workoutIcon, { backgroundColor: theme.primary + '20' }]}>
-                  <MaterialIcons name="fitness-center" size={20} color={theme.primary} />
-                </View>
-                <View style={styles.workoutInfo}>
-                  <Text style={[styles.workoutName, { color: textColor, ...textOutlineStyle }]}>
-                    {workout.name}
-                  </Text>
-                  <View style={styles.workoutMeta}>
-                    <View style={styles.workoutMetaItem}>
-                      <MaterialIcons name="schedule" size={14} color={theme.textSecondary} />
-                      <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
-                        {formatDuration(workout.duration)}
-                      </Text>
-                    </View>
-                    <View style={styles.workoutMetaItem}>
-                      <MaterialIcons name="fitness-center" size={14} color={theme.textSecondary} />
-                      <Text style={[styles.workoutMetaText, { color: textSecondaryColor }]}>
-                        {workout.exercises?.length || 0} exercises
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.workoutDate}>
-                  <Text style={[styles.workoutDateText, { color: textSecondaryColor }]}>
-                    {formatDate(workout.completedAt)}
-                  </Text>
-                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
+      {/* Full History Modal removed — now a dedicated screen */}
 
       {/* Workout Calendar Modal */}
       <Modal
@@ -1727,6 +1632,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
+  },
+  fuelProgressRow: {
+    gap: 8,
+  },
+  fuelProgressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    overflow: 'hidden',
+  },
+  fuelProgressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  fuelProgressText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  fuelSetupPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  fuelSetupText: {
+    fontSize: 13,
+    flex: 1,
   },
   exercisesPreview: {
     flexDirection: 'row',
@@ -2307,10 +2240,8 @@ const styles = StyleSheet.create({
   
   // Weekly Calendar Preview Styles
   weeklyCalendarContainer: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginTop: 0,
+    paddingTop: 0,
   },
   weeklyCalendarHeader: {
     flexDirection: 'row',

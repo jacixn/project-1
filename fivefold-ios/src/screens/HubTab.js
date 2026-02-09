@@ -36,8 +36,10 @@ import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkout } from '../contexts/WorkoutContext';
+import bibleAudioService from '../services/bibleAudioService';
 import { GlassHeader } from '../components/GlassEffect';
-import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo } from '../services/feedService';
+import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles } from '../services/feedService';
 import { isEmailVerified, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
@@ -62,6 +64,7 @@ const formatNumber = (num) => {
 const HubTab = () => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
+  const { hasActiveWorkout } = useWorkout();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   
@@ -74,6 +77,7 @@ const HubTab = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [posting, setPosting] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
   const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
@@ -125,6 +129,18 @@ const HubTab = () => {
         Animated.spring(iconBounce2, { toValue: 0, tension: 300, friction: 10, useNativeDriver: true }),
       ])
     ).start();
+  }, []);
+
+  // Track audio player visibility so FAB can dodge it
+  useEffect(() => {
+    const checkAudio = () => {
+      const state = bibleAudioService.getPlaybackState?.();
+      const playing = !!(state && (state.isPlaying || state.isPaused) && state.currentVerse);
+      setIsAudioPlaying(playing);
+    };
+    checkAudio();
+    const interval = setInterval(checkAudio, 1000);
+    return () => clearInterval(interval);
   }, []);
   
   // Load posts (one-time fetch, no real-time listener to save Firestore costs)
@@ -536,16 +552,17 @@ const HubTab = () => {
         {/* Author Row */}
         <View style={styles.postHeader}>
           <View style={styles.authorInfo}>
-            {/* Use current profile image for own posts, snapshot for others */}
+            {/* Use enriched data (already merged by feedService), with own-profile fallback */}
             {(() => {
-              const photoUrl = (item.userId === user?.uid && userProfile?.profilePicture) 
-                ? userProfile.profilePicture 
+              // For own posts, also check live userProfile as an extra fallback
+              const photoUrl = isOwner
+                ? (item.authorPhoto || userProfile?.profilePicture)
                 : item.authorPhoto;
               return photoUrl ? (
                 <Image source={{ uri: photoUrl }} style={styles.authorAvatar} />
               ) : null;
             })()}
-            {!((item.userId === user?.uid && userProfile?.profilePicture) || item.authorPhoto) && (
+            {!(isOwner ? (item.authorPhoto || userProfile?.profilePicture) : item.authorPhoto) && (
               <LinearGradient
                 colors={['#8B5CF6', '#6366F1']}
                 style={styles.authorAvatar}
@@ -563,15 +580,17 @@ const HubTab = () => {
               
               <View style={styles.authorNameRow}>
                 <Text style={[styles.authorName, { color: theme.text }]}>
-                  {item.authorName}
+                  {isOwner ? (item.authorName || userProfile?.displayName) : item.authorName}
                 </Text>
-                {item.authorCountry && (
-                  <Text style={styles.authorCountry}>{item.authorCountry}</Text>
-                )}
+                {(isOwner ? (item.authorCountry || userProfile?.countryFlag) : item.authorCountry) ? (
+                  <Text style={styles.authorCountry}>
+                    {isOwner ? (item.authorCountry || userProfile?.countryFlag) : item.authorCountry}
+                  </Text>
+                ) : null}
               </View>
-              {item.authorUsername && (
+              {(item.authorUsername || (isOwner && userProfile?.username)) && (
                 <Text style={[styles.authorUsername, { color: theme.textSecondary }]}>
-                  @{item.authorUsername}
+                  @{item.authorUsername || (isOwner ? userProfile?.username : '')}
                 </Text>
               )}
             </View>
@@ -786,12 +805,14 @@ const HubTab = () => {
         />
       )}
       
-      {/* Floating Action Button */}
+      {/* Floating Action Button - moves up when mini players are active */}
       <Animated.View
         style={[
           styles.fabContainer,
           { 
-            bottom: insets.bottom + 100,
+            bottom: insets.bottom + 100
+              + (hasActiveWorkout ? 70 : 0)
+              + (isAudioPlaying ? 70 : 0),
             transform: [{ scale: fabScale }],
           },
         ]}

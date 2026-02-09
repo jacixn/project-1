@@ -335,9 +335,9 @@ export const sendMessage = async (conversationId, message, recipientId) => {
       [`unreadCount.${recipientId}`]: increment(1),
     });
 
-    // Send push notification
-    if (recipientId) {
-      notifyNewMessage(recipientId, message.senderName, preview).catch(err => {
+    // Send push notification (only to the OTHER person, never to yourself)
+    if (recipientId && recipientId !== message.senderId) {
+      notifyNewMessage(recipientId, message.senderName, message.senderId).catch(err => {
         console.warn('Failed to send message notification:', err);
       });
     }

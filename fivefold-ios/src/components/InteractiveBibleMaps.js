@@ -14,6 +14,7 @@ import {
   TextInput,
   Switch,
   RefreshControl,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
@@ -25,6 +26,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import {
+  LiquidGlassView,
+  isLiquidGlassSupported,
+} from '../utils/liquidGlassSafe';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,6 +81,9 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   const [showStats, setShowStats] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const [showPaths, setShowPaths] = useState(true);
+
+  // Liquid glass setting
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
 
   // Function to stop journey and clear all timeouts
   const stopJourney = () => {
@@ -223,6 +231,27 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       journeyTimeouts.current.forEach(timeoutId => clearTimeout(timeoutId));
       journeyTimeouts.current = [];
     };
+  }, []);
+
+  // Load liquid glass setting
+  useEffect(() => {
+    const loadLiquidGlass = async () => {
+      try {
+        const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+        if (setting !== null) {
+          setLiquidGlassEnabled(setting === 'true');
+        }
+      } catch (e) {
+        // default stays true
+      }
+    };
+    loadLiquidGlass();
+
+    // Listen for changes from settings
+    const sub = DeviceEventEmitter.addListener('liquidGlassChanged', (enabled) => {
+      setLiquidGlassEnabled(enabled);
+    });
+    return () => sub.remove();
   }, []);
 
   // Load user data on mount
@@ -789,6 +818,33 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     }
   };
 
+  // Liquid Glass wrapper — uses LiquidGlassView when supported, falls back to BlurView
+  const MapGlassContainer = ({ children, style, blurIntensity = 60, bgColor = 'rgba(0,0,0,0.2)' }) => {
+    if (!isLiquidGlassSupported || !liquidGlassEnabled) {
+      return (
+        <BlurView
+          intensity={isDark ? blurIntensity : Math.round(blurIntensity * 0.5)}
+          tint={isDark ? 'dark' : 'light'}
+          style={[style, { backgroundColor: bgColor }]}
+        >
+          {children}
+        </BlurView>
+      );
+    }
+
+    return (
+      <LiquidGlassView
+        interactive={true}
+        effect="clear"
+        colorScheme="system"
+        tintColor="rgba(255, 255, 255, 0.08)"
+        style={[style, { backgroundColor: 'transparent' }]}
+      >
+        {children}
+      </LiquidGlassView>
+    );
+  };
+
   const content = (
       <View style={[styles.fullScreenContainer, { backgroundColor: theme.background }]}>
         {/* Full Screen Map Background */}
@@ -902,28 +958,31 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
         <View style={styles.overlayContainer} pointerEvents="box-none">
           <View style={styles.safeAreaContainer} pointerEvents="box-none">
             {/* Header */}
-            <BlurView intensity={isDark ? 80 : 40} style={[styles.headerBlur, { backgroundColor: 'rgba(0,0,0,0.3)', marginTop: 60 }]}>
+            <MapGlassContainer style={[styles.headerBlur, { marginTop: 60 }]} blurIntensity={80} bgColor="rgba(0,0,0,0.3)">
               <View style={styles.headerContent}>
                 <TouchableOpacity
                   onPress={onClose}
-                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
                   activeOpacity={0.7}
                 >
-                  <MaterialIcons name="arrow-back-ios-new" size={18} color="#FFFFFF" />
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color="#1A1A2E" />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { 
-                  color: '#FFFFFF',
-                  fontWeight: '700'
+                  color: '#1A1A2E',
+                  fontWeight: '800',
+                  textShadowColor: 'rgba(255,255,255,0.6)',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 4,
                 }]}>
                   Interactive Bible Maps
                 </Text>
                 {/* Bookmark removed */}
                 <View style={styles.bookmarkButton} />
               </View>
-            </BlurView>
+            </MapGlassContainer>
 
             {/* Era Filters */}
-            <BlurView intensity={isDark ? 60 : 30} style={[styles.eraFiltersBlur, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+            <MapGlassContainer style={styles.eraFiltersBlur} blurIntensity={60} bgColor="rgba(0,0,0,0.2)">
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -935,8 +994,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     style={[
                       styles.eraTab,
                       {
-                        backgroundColor: activeEra === era.id ? era.color + '20' : 'transparent',
-                        borderColor: activeEra === era.id ? era.color : theme.border,
+                        backgroundColor: activeEra === era.id ? era.color + '25' : 'rgba(0,0,0,0.06)',
+                        borderColor: activeEra === era.id ? era.color : 'rgba(0,0,0,0.15)',
                       }
                     ]}
                     onPress={() => {
@@ -947,13 +1006,13 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     <MaterialIcons 
                       name={era.icon} 
                       size={16} 
-                      color={activeEra === era.id ? era.color : '#FFFFFF'} 
+                      color={activeEra === era.id ? era.color : '#1A1A2E'} 
                     />
                     <Text style={[
                       styles.eraTabText,
                       { 
-                        color: activeEra === era.id ? era.color : '#FFFFFF',
-                        fontWeight: '600'
+                        color: activeEra === era.id ? era.color : '#1A1A2E',
+                        fontWeight: '700',
                       }
                     ]}>
                       {era.name}
@@ -961,10 +1020,10 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </BlurView>
+            </MapGlassContainer>
 
             {/* Thematic Filters */}
-            <BlurView intensity={isDark ? 60 : 30} style={[styles.thematicFiltersBlur, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+            <MapGlassContainer style={styles.thematicFiltersBlur} blurIntensity={60} bgColor="rgba(0,0,0,0.2)">
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -976,8 +1035,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     style={[
                       styles.filterTab,
                       {
-                        backgroundColor: activeFilter === filter.id ? filter.color + '20' : 'transparent',
-                        borderColor: activeFilter === filter.id ? filter.color : theme.border,
+                        backgroundColor: activeFilter === filter.id ? filter.color + '25' : 'rgba(0,0,0,0.06)',
+                        borderColor: activeFilter === filter.id ? filter.color : 'rgba(0,0,0,0.15)',
                       }
                     ]}
                     onPress={() => {
@@ -988,13 +1047,13 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     <MaterialIcons 
                       name={filter.icon} 
                       size={14} 
-                      color={activeFilter === filter.id ? filter.color : '#FFFFFF'} 
+                      color={activeFilter === filter.id ? filter.color : '#1A1A2E'} 
                     />
                     <Text style={[
                       styles.filterTabText,
                       { 
-                        color: activeFilter === filter.id ? filter.color : '#FFFFFF',
-                        fontWeight: '600'
+                        color: activeFilter === filter.id ? filter.color : '#1A1A2E',
+                        fontWeight: '700',
                       }
                     ]}>
                       {filter.name}
@@ -1011,37 +1070,40 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     <>
                       <View style={styles.statItem}>
                         <Text style={[styles.statNumber, { color: theme.primary }]}>{stats.locationCount}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Locations</Text>
+                        <Text style={[styles.statLabel, { color: '#3A3A4A' }]}>Locations</Text>
                       </View>
                       <View style={styles.statItem}>
                         <Text style={[styles.statNumber, { color: theme.success }]}>{stats.journeyCount}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Journeys</Text>
+                        <Text style={[styles.statLabel, { color: '#3A3A4A' }]}>Journeys</Text>
                       </View>
                       <View style={styles.statItem}>
                         <Text style={[styles.statNumber, { color: theme.warning }]}>{stats.miracleCount}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Miracles</Text>
+                        <Text style={[styles.statLabel, { color: '#3A3A4A' }]}>Miracles</Text>
                       </View>
                       {stats.totalDistance > 0 && (
                         <View style={styles.statItem}>
                           <Text style={[styles.statNumber, { color: theme.info }]}>{stats.totalDistance.toLocaleString()}</Text>
-                          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Miles</Text>
+                          <Text style={[styles.statLabel, { color: '#3A3A4A' }]}>Miles</Text>
                         </View>
                       )}
                     </>
                   );
                 })()}
               </View>
-            </BlurView>
+            </MapGlassContainer>
 
             {/* Journey Controls */}
-            <BlurView intensity={isDark ? 80 : 40} style={[styles.journeyControlsBlur, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+            <MapGlassContainer style={styles.journeyControlsBlur} blurIntensity={80} bgColor="rgba(0,0,0,0.3)">
               <View style={styles.journeyControlsContent}>
                 <View style={styles.journeyHeaderRow}>
                   <Text style={[
                     styles.journeyTitle,
                     { 
-                      color: '#FFFFFF',
-                      fontWeight: '700'
+                      color: '#1A1A2E',
+                      fontWeight: '800',
+                      textShadowColor: 'rgba(255,255,255,0.5)',
+                      textShadowOffset: { width: 0, height: 0 },
+                      textShadowRadius: 3,
                     }
                   ]}>
                     Biblical Journeys
@@ -1067,8 +1129,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                       style={[
                         styles.journeyButton,
                         {
-                          backgroundColor: selectedJourney?.id === journey.id ? journey.color + '20' : 'rgba(255,255,255,0.1)',
-                          borderColor: selectedJourney?.id === journey.id ? journey.color : 'rgba(255,255,255,0.3)',
+                          backgroundColor: selectedJourney?.id === journey.id ? journey.color + '25' : 'rgba(0,0,0,0.06)',
+                          borderColor: selectedJourney?.id === journey.id ? journey.color : 'rgba(0,0,0,0.15)',
                         }
                       ]}
                       onPress={() => showJourneyDetails(journey)}
@@ -1078,8 +1140,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                         <Text style={[
                           styles.journeyButtonText,
                           { 
-                            color: selectedJourney?.id === journey.id ? journey.color : '#FFFFFF',
-                            fontWeight: '600'
+                            color: selectedJourney?.id === journey.id ? journey.color : '#1A1A2E',
+                            fontWeight: '700'
                           }
                         ]}>
                           {journey.name}
@@ -1093,8 +1155,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                       <Text style={[
                         styles.journeyDistance,
                         { 
-                          color: selectedJourney?.id === journey.id ? journey.color : 'rgba(255,255,255,0.8)',
-                          fontWeight: '500'
+                          color: selectedJourney?.id === journey.id ? journey.color : '#3A3A4A',
+                          fontWeight: '600'
                         }
                       ]}>
                         {journey.totalDistance}
@@ -1103,7 +1165,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   ))}
                 </ScrollView>
               </View>
-            </BlurView>
+            </MapGlassContainer>
           </View>
         </View>
 

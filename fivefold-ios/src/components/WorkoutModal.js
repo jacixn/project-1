@@ -15,6 +15,7 @@ import {
   Image,
   Alert,
   AppState,
+  InteractionManager,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -127,41 +128,35 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   ).current;
 
   const handleCloseModal = () => {
-    console.log('🏋️🏋️🏋️ handleCloseModal called - MINIMIZING (not ending)');
-    console.log('🏋️ hasActiveWorkout:', hasActiveWorkout);
-    console.log('🏋️ activeWorkout:', activeWorkout);
-    console.log('🏋️ Current exercises:', exercises.length);
-    console.log('🏋️ Current name:', workoutName);
-    console.log('🏋️ activeWorkout.name BEFORE sync:', activeWorkout?.name);
-    
-    // SYNC current workout data to context before closing
-    if (hasActiveWorkout) {
-      console.log('🔄 Syncing workout data before closing - name:', workoutName, 'exercises:', exercises.length);
-      updateWorkout({
-        name: workoutName,
-        exercises: cleanExercisesForSync(exercises),
-      });
-      console.log('🔄 Sync complete - activeWorkout should now have updated name');
-    }
-    
-    // ALWAYS minimize if there's an active workout, NEVER end it
-    // Only "Cancel Workout" button or "Finish" button should end the workout
-    minimizeWorkout();
-    
+    // ANIMATION FIRST — start the dismiss animation immediately so the user
+    // sees the modal slide away without any pause.  All state updates (sync,
+    // minimize) are deferred to AFTER the animation finishes.  This prevents
+    // expensive React re-renders from blocking the animation start.
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 250,
+        duration: 220,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 250,
+        duration: 220,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      console.log('🏋️ Animation complete - workout should still be active');
-      console.log('🏋️ activeWorkout.name AFTER animation:', activeWorkout?.name);
+      // Animation is done — modal is visually gone.
+      // Now safely sync and minimize without any visible jank.
+      if (hasActiveWorkout) {
+        updateWorkout({
+          name: workoutName,
+          exercises: cleanExercisesForSync(exercises),
+          note: workoutNote,
+          photo: workoutPhoto,
+          weightUnit: weightUnit,
+          startTime: workoutStartTime.toISOString(),
+        });
+      }
+      minimizeWorkout();
       onClose();
     });
   };
@@ -272,28 +267,52 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
             console.log('🏋️ Initial setup complete, sync re-enabled');
           }, 300);
         } else {
-          console.log('🏋️ Reopening EXISTING workout - restoring data from context');
+          console.log('[WorkoutModal] Reopening EXISTING workout - restoring data from context');
           // User is reopening an existing workout - restore data from context
           isRestoring.current = true; // Prevent sync during restoration
           maximizeWorkout();
           
-          // ALWAYS restore name, exercises, and startTime from activeWorkout
-          console.log('🏋️ Restoring name:', activeWorkout?.name);
-          console.log('🏋️ Restoring exercises count:', activeWorkout?.exercises?.length);
-          console.log('🏋️ Restoring startTime:', activeWorkout?.startTime);
-          
+          // Restore ALL fields from context
           if (activeWorkout?.name) {
             setWorkoutName(activeWorkout.name);
           }
           if (activeWorkout?.exercises) {
-            setExercises(activeWorkout.exercises);
+            // Re-create animation values for completed sets
+            // (they were stripped by cleanExercisesForSync when minimizing)
+            const restoredExercises = activeWorkout.exercises.map(ex => ({
+              ...ex,
+              sets: ex.sets.map(set => {
+                if (set.completed) {
+                  // Re-add animation values so completed sets look correct
+                  return {
+                    ...set,
+                    scaleAnim: new Animated.Value(1),   // Already at final value
+                    glowAnim: new Animated.Value(1),    // Already at final value
+                    pulseAnim: new Animated.Value(1),   // No pulse needed on restore
+                  };
+                }
+                return set;
+              }),
+            }));
+            setExercises(restoredExercises);
           } else {
-            console.warn('⚠️ No exercises found in activeWorkout!');
+            console.warn('[WorkoutModal] No exercises found in activeWorkout');
             setExercises([]);
           }
           // Restore the start time so the date display is correct
           if (activeWorkout?.startTime) {
             setWorkoutStartTime(new Date(activeWorkout.startTime));
+          }
+          // Restore note and photo (may have been set before minimize)
+          if (activeWorkout?.note !== undefined) {
+            setWorkoutNote(activeWorkout.note || '');
+          }
+          if (activeWorkout?.photo !== undefined) {
+            setWorkoutPhoto(activeWorkout.photo || null);
+          }
+          // Restore weight unit from context (fallback to AsyncStorage in separate loader)
+          if (activeWorkout?.weightUnit) {
+            setWeightUnit(activeWorkout.weightUnit);
           }
           
           setIsInitializing(false); // Done initializing
@@ -301,8 +320,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           // Allow sync after a brief delay to ensure state updates complete
           setTimeout(() => {
             isRestoring.current = false;
-            console.log('🏋️ Restoration complete, sync re-enabled');
-          }, 100);
+          }, 150);
         }
         
         // Reset alert states
@@ -344,25 +362,26 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       return;
     }
     
-    // Don't sync during restoration
+    // Don't sync during restoration (prevents overwriting context with stale local state)
     if (isRestoring.current) {
-      console.log('⏸️ Skipping sync during restoration');
       return;
     }
     
     // Don't sync on initial mount when exercises are empty and name is default
     // This prevents overwriting the template data from startWorkout()
     if (exercises.length === 0 && workoutName === 'Workout 1') {
-      console.log('⏸️ Skipping sync - appears to be initial empty state');
       return;
     }
     
-    console.log('🔄 Syncing workout data to context - exercises:', exercises.length, 'name:', workoutName);
     updateWorkout({
       name: workoutName,
       exercises: cleanExercisesForSync(exercises),
+      note: workoutNote,
+      photo: workoutPhoto,
+      weightUnit: weightUnit,
+      startTime: workoutStartTime.toISOString(),
     });
-  }, [workoutName, exercises, hasActiveWorkout]);
+  }, [workoutName, exercises, workoutNote, workoutPhoto, weightUnit, hasActiveWorkout]);
 
   // Animate modal in/out
   useEffect(() => {
@@ -1235,7 +1254,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
             </View>
           )}
 
-          {/* Workout Completion Modal INSIDE - This will show above everything */}
+          {/* Workout Completion Overlay */}
           {showCompletionModal && completedWorkoutData && (
             <View style={{
               position: 'absolute',
@@ -1498,12 +1517,6 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                 <Text style={[styles.exerciseName, { color: theme.primary }]}>
                   {exercise.name}
                 </Text>
-                <TouchableOpacity
-                  style={styles.exerciseMenuButton}
-                  onPress={() => hapticFeedback.light()}
-                >
-                  <MaterialIcons name="more-horiz" size={24} color={theme.textSecondary} />
-                </TouchableOpacity>
               </View>
 
               {/* Sets Table Header */}
@@ -2192,6 +2205,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           )}
 
         </Animated.View>
+
       </View>
     </Modal>
     </>

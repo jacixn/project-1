@@ -27,6 +27,11 @@ const POSTS_COLLECTION = 'hub_posts';
 const POSTS_PER_PAGE = 20;
 const POST_EXPIRY_DAYS = 7; // Posts older than 7 days get deleted
 
+// In-memory cache for author profiles so we don't re-fetch on every scroll/refresh
+// Key: userId, Value: { profile, fetchedAt }
+const authorProfileCache = {};
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes - short enough to pick up profile changes quickly
+
 /**
  * Create a new post
  */
@@ -60,6 +65,69 @@ export const createPost = async (userId, content, userProfile) => {
   } catch (error) {
     console.error('[Feed] Error creating post:', error);
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Enrich posts with fresh author profile data from the users collection.
+ * This ensures that when a user updates their profile picture, name, or country,
+ * their posts on the Hub immediately reflect the changes instead of showing
+ * stale snapshot data from when the post was created.
+ * 
+ * Uses an in-memory cache (2 min TTL) to avoid redundant Firestore reads.
+ */
+export const enrichPostsWithProfiles = async (posts) => {
+  if (!posts || posts.length === 0) return posts;
+  
+  try {
+    // Collect unique author IDs that need fresh data
+    const now = Date.now();
+    const userIdsToFetch = [];
+    const uniqueUserIds = [...new Set(posts.map(p => p.userId).filter(Boolean))];
+    
+    for (const uid of uniqueUserIds) {
+      const cached = authorProfileCache[uid];
+      if (!cached || (now - cached.fetchedAt) > CACHE_TTL_MS) {
+        userIdsToFetch.push(uid);
+      }
+    }
+    
+    // Batch-fetch profiles for users not in cache (or expired)
+    if (userIdsToFetch.length > 0) {
+      const fetchPromises = userIdsToFetch.map(async (uid) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          if (userDoc.exists()) {
+            authorProfileCache[uid] = {
+              profile: userDoc.data(),
+              fetchedAt: now,
+            };
+          }
+        } catch (err) {
+          console.log('[Feed] Could not fetch profile for', uid, err.message);
+        }
+      });
+      await Promise.all(fetchPromises);
+    }
+    
+    // Merge fresh profile data into posts (fall back to snapshot if not available)
+    return posts.map(post => {
+      const cached = authorProfileCache[post.userId];
+      if (cached && cached.profile) {
+        const fresh = cached.profile;
+        return {
+          ...post,
+          authorName: fresh.displayName || post.authorName,
+          authorPhoto: fresh.profilePicture || post.authorPhoto,
+          authorCountry: fresh.countryFlag || post.authorCountry,
+          authorUsername: fresh.username || post.authorUsername,
+        };
+      }
+      return post;
+    });
+  } catch (error) {
+    console.error('[Feed] Error enriching posts with profiles:', error);
+    return posts; // Return original posts if enrichment fails
   }
 };
 
@@ -98,8 +166,11 @@ export const getFeedPosts = async (lastDoc = null, pageSize = POSTS_PER_PAGE) =>
     
     const lastVisible = snapshot.docs[snapshot.docs.length - 1];
     
+    // Enrich posts with fresh author profile data
+    const enrichedPosts = await enrichPostsWithProfiles(posts);
+    
     return {
-      posts,
+      posts: enrichedPosts,
       lastDoc: lastVisible,
       hasMore: posts.length === pageSize,
     };
@@ -336,6 +407,7 @@ export default {
   createPost,
   getFeedPosts,
   subscribeToPosts,
+  enrichPostsWithProfiles,
   likePost,
   reactToPost,
   viewPost,

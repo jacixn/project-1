@@ -2844,24 +2844,14 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               </View>
               
               <View style={styles.youversionActions}>
-        <TouchableOpacity 
-          onPress={() => {
+                <TouchableOpacity 
+                  onPress={() => {
                     hapticFeedback.light();
                     setShowSearchModal(true);
                   }}
                   style={styles.youversionActionButton}
                 >
                   <MaterialIcons name="search" size={28} color={theme.text} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => {
-                    hapticFeedback.light();
-                    onClose();
-                  }}
-                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
                 </TouchableOpacity>
               </View>
             </View>

@@ -88,7 +88,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       id: 'smart',
       title: 'Smart Features',
       subtitle: 'Personalized spiritual guidance',
-      description: 'AI-powered recommendations for your faith journey',
+      description: 'Smart recommendations for your faith journey',
       icon: '🧠',
       gradient: ['#1e40af', '#3730a3', '#581c87'], // Deep royal blue to purple
       features: [

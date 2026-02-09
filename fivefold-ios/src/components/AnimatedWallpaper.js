@@ -1,19 +1,19 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { 
   View, 
   Image, 
   StyleSheet, 
   Animated, 
   Dimensions, 
-  ScrollView,
-  PanGestureHandler,
   Platform 
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-// 🌸 Animated Wallpaper Component with Scroll Effects
+// Animated Wallpaper Component with Scroll Effects
+// All scroll-driven animations use interpolation (runs on native thread)
+// instead of JS-driven addListener + setValue (which causes lag on cold launch)
 export const AnimatedWallpaper = ({ 
   children, 
   scrollY, 
@@ -23,16 +23,11 @@ export const AnimatedWallpaper = ({
   scaleOnScroll = false 
 }) => {
   const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper } = useTheme();
-  const parallaxAnim = useRef(new Animated.Value(0)).current;
-  const blurAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1.2)).current; // Start bigger
-  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // Floating animation for static elements
+  // Floating animation for static elements (this stays JS-driven, it's not scroll-related)
   const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Create floating animation
     const floatingAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -52,35 +47,39 @@ export const AnimatedWallpaper = ({
     return () => floatingAnimation.stop();
   }, []);
 
-  // Listen to scroll events
-  useEffect(() => {
-    if (!scrollY) return;
+  // --- NATIVE-DRIVEN scroll animations via interpolation ---
+  // These run entirely on the native UI thread, no JS bridge roundtrip.
+  // This is what prevents lag/glitchiness, especially on cold launch.
+  const fallbackAnim = useRef(new Animated.Value(0)).current;
+  const activeScrollY = scrollY || fallbackAnim;
 
-    const listener = scrollY.addListener(({ value }) => {
-      // Parallax effect
-      parallaxAnim.setValue(value * parallaxFactor);
+  // Parallax: moves wallpaper at a fraction of scroll speed
+  const parallaxTranslate = useMemo(() => 
+    activeScrollY.interpolate({
+      inputRange: [-1000, 0, 1000],
+      outputRange: [-1000 * parallaxFactor, 0, 1000 * parallaxFactor],
+    }),
+  [activeScrollY, parallaxFactor]);
 
-      // Blur effect based on scroll speed
-      if (blurOnScroll) {
-        const blurValue = Math.min(Math.abs(value) / 200, 10);
-        blurAnim.setValue(blurValue);
-      }
-
-      // Scale effect
-      if (scaleOnScroll) {
-        const scaleValue = 1.2 + (Math.abs(value) / 1000) * 0.2; // Start bigger
-        scaleAnim.setValue(Math.min(scaleValue, 1.5)); // Allow bigger scale
-      }
-
-      // Fade effect
-      if (fadeOnScroll) {
-        const fadeValue = Math.max(1 - Math.abs(value) / 500, 0.3);
-        fadeAnim.setValue(fadeValue);
-      }
+  // Scale: wallpaper grows slightly as user scrolls (if enabled)
+  const scaleTransform = useMemo(() => {
+    if (!scaleOnScroll) return 1.2; // Static default
+    return activeScrollY.interpolate({
+      inputRange: [-1000, 0, 1000],
+      outputRange: [1.4, 1.2, 1.4],
+      extrapolate: 'clamp',
     });
+  }, [activeScrollY, scaleOnScroll]);
 
-    return () => scrollY.removeListener(listener);
-  }, [scrollY, parallaxFactor, blurOnScroll, scaleOnScroll, fadeOnScroll]);
+  // Fade: wallpaper fades as user scrolls away from top (if enabled)
+  const fadeTransform = useMemo(() => {
+    if (!fadeOnScroll) return 1; // Static default
+    return activeScrollY.interpolate({
+      inputRange: [-500, 0, 500],
+      outputRange: [0.3, 1, 0.3],
+      extrapolate: 'clamp',
+    });
+  }, [activeScrollY, fadeOnScroll]);
 
   // Get wallpaper source based on theme
   const getWallpaperSource = () => {
@@ -170,12 +169,13 @@ export const AnimatedWallpaper = ({
 
   const wallpaperSource = getWallpaperSource();
 
-  // Fade in wallpaper smoothly once the image is decoded and ready
-  const wallpaperOpacity = useRef(new Animated.Value(0)).current;
+  // Start at partial opacity so the wallpaper is visible immediately on cold launch
+  // (prevents the glitchy "blank then sudden appear" effect), then fade to full when loaded
+  const wallpaperOpacity = useRef(new Animated.Value(0.5)).current;
   const onWallpaperLoad = () => {
     Animated.timing(wallpaperOpacity, {
       toValue: 1,
-      duration: 300,
+      duration: 250,
       useNativeDriver: true,
     }).start();
   };
@@ -201,10 +201,10 @@ export const AnimatedWallpaper = ({
               styles.gradientBackground,
               {
                 backgroundColor: theme.background,
-                opacity: fadeAnim,
+                opacity: fadeTransform,
                 transform: [
-                  { translateY: parallaxAnim },
-                  { scale: scaleAnim }
+                  { translateY: parallaxTranslate },
+                  { scale: scaleTransform }
                 ]
               }
             ]}
@@ -254,7 +254,7 @@ export const AnimatedWallpaper = ({
                   transform: [
                     { translateY: floatingTransform },
                     { rotate: rotateTransform },
-                    { translateY: parallaxAnim.interpolate({
+                    { translateY: parallaxTranslate.interpolate({
                         inputRange: [0, 100],
                         outputRange: [0, -20],
                         extrapolate: 'clamp'
@@ -286,7 +286,7 @@ export const AnimatedWallpaper = ({
                         outputRange: ['0deg', '-5deg'],
                       })
                     },
-                    { translateY: parallaxAnim.interpolate({
+                    { translateY: parallaxTranslate.interpolate({
                         inputRange: [0, 100],
                         outputRange: [0, 15],
                         extrapolate: 'clamp'
@@ -332,10 +332,12 @@ export const AnimatedWallpaper = ({
                 style={[
                   styles.wallpaperImage,
                   {
-                    opacity: Animated.multiply(fadeAnim, wallpaperOpacity),
+                    opacity: typeof fadeTransform === 'number' 
+                      ? wallpaperOpacity 
+                      : Animated.multiply(fadeTransform, wallpaperOpacity),
                     transform: [
-                      { translateY: parallaxAnim },
-                      { scale: scaleAnim }
+                      { translateY: parallaxTranslate },
+                      { scale: scaleTransform }
                     ]
                   }
                 ]}
@@ -351,7 +353,7 @@ export const AnimatedWallpaper = ({
                   style={[
                     styles.blurOverlay,
                     {
-                      opacity: fadeAnim.interpolate({
+                      opacity: typeof fadeTransform === 'number' ? 0.6 : fadeTransform.interpolate({
                         inputRange: [0, 1],
                         outputRange: [0.3, 0.6]
                       })
@@ -368,7 +370,7 @@ export const AnimatedWallpaper = ({
               styles.overlay,
               {
                 backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? theme.background + '60' : 'transparent',
-                opacity: fadeAnim
+                opacity: fadeTransform
               }
             ]}
           />

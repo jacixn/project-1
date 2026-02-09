@@ -141,6 +141,22 @@ const cleanHistoryData = (data) => {
     }
   }
   
+  // Clean food log — remove date entries older than 90 days
+  if (cleaned.foodLog && typeof cleaned.foodLog === 'object') {
+    const cutoffDate = new Date(Date.now() - HISTORY_RETENTION_MS);
+    const cutoffKey = cutoffDate.toISOString().split('T')[0]; // e.g. "2025-11-11"
+    const beforeCount = Object.keys(cleaned.foodLog).length;
+    for (const dateKey of Object.keys(cleaned.foodLog)) {
+      if (dateKey < cutoffKey) {
+        delete cleaned.foodLog[dateKey];
+      }
+    }
+    const afterCount = Object.keys(cleaned.foodLog).length;
+    if (beforeCount !== afterCount) {
+      console.log(`[Sync] Cleaned foodLog: ${beforeCount} → ${afterCount} days`);
+    }
+  }
+  
   return cleaned;
 };
 
@@ -388,9 +404,70 @@ export const downloadAndMergeCloudData = async (userId) => {
     });
     
     // Workout history - merge, keep local-only entries
+    // Note: workoutService uses @workout_history key
     if (cleanedCloudData.workoutHistory && cleanedCloudData.workoutHistory.length > 0) {
-      const merged = await mergeArraysById('workoutHistory', cleanedCloudData.workoutHistory);
+      const merged = await mergeArraysById('@workout_history', cleanedCloudData.workoutHistory);
       console.log(`[Sync] Merged workout history: ${merged?.length || 0} entries`);
+    }
+
+    // Workout templates - cloud + local-only
+    if (cloudData.workoutTemplates && Array.isArray(cloudData.workoutTemplates)) {
+      const merged = await mergeArraysById('@workout_templates', cloudData.workoutTemplates);
+      console.log(`[Sync] Merged workout templates: ${merged?.length || 0}`);
+    }
+
+    // Workout folders - cloud + local-only
+    if (cloudData.workoutFolders && Array.isArray(cloudData.workoutFolders)) {
+      const merged = await mergeArraysById('@workout_folders', cloudData.workoutFolders);
+      console.log(`[Sync] Merged workout folders: ${merged?.length || 0}`);
+    }
+
+    // Nutrition profile - cloud wins (more stable data)
+    if (cloudData.nutritionProfile) {
+      const localStr = await AsyncStorage.getItem('@nutrition_profile');
+      const localProfile = localStr ? JSON.parse(localStr) : null;
+      // Keep whichever was updated more recently
+      if (!localProfile || (cloudData.nutritionProfile.updatedAt && (!localProfile.updatedAt || new Date(cloudData.nutritionProfile.updatedAt) >= new Date(localProfile.updatedAt)))) {
+        await AsyncStorage.setItem('@nutrition_profile', JSON.stringify(cloudData.nutritionProfile));
+        console.log('[Sync] Downloaded nutrition profile from cloud');
+      } else {
+        console.log('[Sync] Local nutrition profile is more recent, keeping local');
+      }
+    }
+
+    // Food log - merge date keys (each key is a date like "2026-02-09")
+    if (cloudData.foodLog && typeof cloudData.foodLog === 'object') {
+      const localStr = await AsyncStorage.getItem('@food_log');
+      const localLog = localStr ? JSON.parse(localStr) : {};
+      // Merge: for each date, keep whichever has more entries
+      const merged = { ...cloudData.foodLog };
+      for (const [dateKey, localEntries] of Object.entries(localLog)) {
+        if (!merged[dateKey]) {
+          merged[dateKey] = localEntries;
+        } else {
+          // Keep whichever has more food entries for that day
+          const cloudEntries = merged[dateKey];
+          const cloudFoods = cloudEntries.foods?.length || 0;
+          const localFoods = localEntries.foods?.length || 0;
+          if (localFoods > cloudFoods) {
+            merged[dateKey] = localEntries;
+          }
+        }
+      }
+      await AsyncStorage.setItem('@food_log', JSON.stringify(merged));
+      console.log(`[Sync] Merged food log: ${Object.keys(merged).length} days`);
+    }
+
+    // Food favorites - merge by ID
+    if (cloudData.foodFavorites && Array.isArray(cloudData.foodFavorites)) {
+      const merged = await mergeArraysById('@food_favorites', cloudData.foodFavorites);
+      console.log(`[Sync] Merged food favorites: ${merged?.length || 0}`);
+    }
+
+    // Physique scores - cloud wins
+    if (cloudData.physiqueScores) {
+      await AsyncStorage.setItem('@physique_scores', JSON.stringify(cloudData.physiqueScores));
+      console.log('[Sync] Downloaded physique scores from cloud');
     }
     
     // Quiz history - merge, keep local-only entries
@@ -979,10 +1056,54 @@ export const syncAllHistoryToCloud = async (userId) => {
   try {
     const updateData = { lastActive: serverTimestamp() };
     
-    // Workout history
-    const workoutHistoryStr = await AsyncStorage.getItem('workoutHistory');
+    // Workout history (workoutService stores under @workout_history)
+    let workoutHistoryStr = await AsyncStorage.getItem('@workout_history');
+    if (!workoutHistoryStr) workoutHistoryStr = await AsyncStorage.getItem('workoutHistory');
     if (workoutHistoryStr) {
       updateData.workoutHistory = JSON.parse(workoutHistoryStr);
+      console.log(`[Sync] Including workout history (${updateData.workoutHistory.length} entries) in upload`);
+    }
+
+    // Workout templates
+    const workoutTemplatesStr = await AsyncStorage.getItem('@workout_templates');
+    if (workoutTemplatesStr) {
+      updateData.workoutTemplates = JSON.parse(workoutTemplatesStr);
+      console.log(`[Sync] Including workout templates (${updateData.workoutTemplates.length}) in upload`);
+    }
+
+    // Workout folders
+    const workoutFoldersStr = await AsyncStorage.getItem('@workout_folders');
+    if (workoutFoldersStr) {
+      updateData.workoutFolders = JSON.parse(workoutFoldersStr);
+      console.log(`[Sync] Including workout folders (${updateData.workoutFolders.length}) in upload`);
+    }
+
+    // Nutrition profile
+    const nutritionProfileStr = await AsyncStorage.getItem('@nutrition_profile');
+    if (nutritionProfileStr) {
+      updateData.nutritionProfile = JSON.parse(nutritionProfileStr);
+      console.log('[Sync] Including nutrition profile in upload');
+    }
+
+    // Food log
+    const foodLogStr = await AsyncStorage.getItem('@food_log');
+    if (foodLogStr) {
+      updateData.foodLog = JSON.parse(foodLogStr);
+      console.log('[Sync] Including food log in upload');
+    }
+
+    // Food favorites
+    const foodFavoritesStr = await AsyncStorage.getItem('@food_favorites');
+    if (foodFavoritesStr) {
+      updateData.foodFavorites = JSON.parse(foodFavoritesStr);
+      console.log(`[Sync] Including food favorites (${updateData.foodFavorites.length}) in upload`);
+    }
+
+    // Physique scores
+    const physiqueScoresStr = await AsyncStorage.getItem('@physique_scores');
+    if (physiqueScoresStr) {
+      updateData.physiqueScores = JSON.parse(physiqueScoresStr);
+      console.log('[Sync] Including physique scores in upload');
     }
     
     // Quiz history

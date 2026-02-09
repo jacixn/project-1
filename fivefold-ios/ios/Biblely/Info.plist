@@ -19,11 +19,11 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.43</string>
+	<string>1.0.46</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>43</string>
+	<string>46</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -36,11 +36,11 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Biblely needs access to your camera to take a profile photo.</string>
+	<string>Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Biblely needs permission to save images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Biblely needs access to your photo library to set your profile picture.</string>
+	<string>Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

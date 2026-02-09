@@ -349,7 +349,7 @@ const PrayerSection = () => {
       
       if (!result.success) {
         setTimeout(() => {
-          Alert.alert('Note', 'Using basic explanation. Set up your API key in Settings for AI explanations.');
+          Alert.alert('Note', 'Using basic explanation. Set up your API key in Settings for detailed explanations.');
         }, 2000);
       }
     } catch (error) {

@@ -35,7 +35,7 @@ import { useNavigation } from '@react-navigation/native';
 import TodoList from '../components/TodoList';
 import CalendarView from '../components/CalendarView';
 import FullCalendarModal from '../components/FullCalendarModal';
-import TasksOverviewModal from '../components/TasksOverviewModal';
+// TasksOverviewModal removed — now a stack screen (TasksOverviewScreen)
 import TaskCompletionCelebration from '../components/TaskCompletionCelebration';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
@@ -46,7 +46,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 
-// Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M
+// Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
   if (num >= 1_000_000) {
     const val = num / 1_000_000;
@@ -170,7 +170,7 @@ const TodosTab = () => {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showFullCalendar, setShowFullCalendar] = useState(false);
-  const [showTasksOverview, setShowTasksOverview] = useState(false);
+  // showTasksOverview removed — now navigates to TasksOverview screen
   const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
   const [completedTask, setCompletedTask] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -280,7 +280,6 @@ const TodosTab = () => {
     const handleCloseAllModals = () => {
       console.log('📱 TodosTab: Closing all modals (widget navigation)');
       setShowFullCalendar(false);
-      setShowTasksOverview(false);
       setShowCompletionCelebration(false);
       setShowAboutModal(false);
     };
@@ -344,9 +343,22 @@ const TodosTab = () => {
     const statsListener = DeviceEventEmitter.addListener('userStatsChanged', refreshStats);
     const prayerListener = DeviceEventEmitter.addListener('prayerCompleted', refreshStats);
     
+    // Listen for changes from TasksOverviewScreen (completions/deletions)
+    const todosChangedListener = DeviceEventEmitter.addListener('todosChanged', async () => {
+      try {
+        const storedTodos = await getStoredData('todos') || [];
+        const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0 };
+        setTodos(storedTodos);
+        setUserStats(storedStats);
+      } catch (err) {
+        // Failed to refresh todos after change event
+      }
+    });
+    
     return () => {
       statsListener.remove();
       prayerListener.remove();
+      todosChangedListener.remove();
     };
   }, []);
 
@@ -394,7 +406,7 @@ const TodosTab = () => {
           : todo
       );
       
-      const pointsEarned = 50000; // 50k points per task
+      const pointsEarned = taskToComplete.points || 500; // Use the task's actual scored points
       const newCompletedTasks = userStats.completedTasks + 1;
       
       const updatedStats = {
@@ -527,92 +539,8 @@ const TodosTab = () => {
       );
     };
 
-    // Stats data (merged into this card)
-    const activeTodos = todos.filter(todo => !todo.completed);
-    const completedToday = todos.filter(todo => {
-      if (!todo.completed || !todo.completedAt) return false;
-      const todayStr = new Date().toISOString().split('T')[0];
-      const completedDate = new Date(todo.completedAt).toISOString().split('T')[0];
-      return todayStr === completedDate;
-    });
-    const todayPoints = completedToday.reduce((total, todo) => total + (todo.points || 0), 0);
-
     return (
       <LiquidGlassCalendarContainer>
-        {/* Today's Progress Stats */}
-        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Today's Progress</Text>
-        <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-          Your daily tasks at a glance
-        </Text>
-        
-        <View style={styles.statsRow}>
-          <View 
-            style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}30`,
-              borderColor: `${theme.primary}99`,
-              borderWidth: 0.8,
-              borderRadius: 16,
-              shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 3,
-              elevation: 1,
-            }]}
-          >
-            <Text style={[styles.statNumber, { color: theme.primary }]}>
-              {activeTodos.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-              Active Tasks
-            </Text>
-          </View>
-          
-          <View 
-            style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}30`,
-              borderColor: `${theme.primary}99`,
-              borderWidth: 0.8,
-              borderRadius: 16,
-              shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 3,
-              elevation: 1,
-            }]}
-          >
-            <Text style={[styles.statNumber, { color: theme.success }]}>
-              {completedToday.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-              Completed
-            </Text>
-          </View>
-          
-          <View 
-            style={[styles.statItem, { 
-              backgroundColor: `${theme.primary}30`,
-              borderColor: `${theme.primary}99`,
-              borderWidth: 0.8,
-              borderRadius: 16,
-              shadowColor: theme.primary,
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 3,
-              elevation: 1,
-            }]}
-          >
-            <Text style={[styles.statNumber, { color: theme.warning }]}>
-              {formatCompact(todayPoints)}
-            </Text>
-            <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-              Points
-            </Text>
-          </View>
-        </View>
-
-        {/* Divider between stats and calendar */}
-        <View style={{ height: 1, backgroundColor: `${textSecondaryColor}20`, marginVertical: 14, marginHorizontal: 4 }} />
-
         {/* This Week Calendar */}
         <View style={styles.todayBanner}>
           <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle, marginBottom: 0 }]}>This Week</Text>
@@ -756,11 +684,11 @@ const TodosTab = () => {
       <LiquidGlassHistoryContainer>
         <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
         <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-          Last 7 days ({completedHistory.length} completed)
+          Last 5 completed
         </Text>
         
         <View style={styles.suggestionsList}>
-          {completedHistory.map((todo) => (
+          {completedHistory.slice(0, 5).map((todo) => (
               <View
               key={todo.id}
               style={[styles.historyItem, { 
@@ -897,7 +825,7 @@ const TodosTab = () => {
 
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
       >
@@ -914,7 +842,7 @@ const TodosTab = () => {
               onTodoComplete={handleTodoComplete}
               onTodoDelete={handleTodoDelete}
               userStats={userStats}
-              onViewAll={() => setShowTasksOverview(true)}
+              onViewAll={() => navigation.navigate('TasksOverview')}
             />
 
             {/* Stats merged into CalendarHeader above */}
@@ -936,14 +864,7 @@ const TodosTab = () => {
 
       {/* Schedule Task - now navigated via stack navigator for swipe-back support */}
 
-      {/* Tasks Overview Modal */}
-      <TasksOverviewModal
-        visible={showTasksOverview}
-        onClose={() => setShowTasksOverview(false)}
-        todos={todos}
-        onTodoComplete={handleTodoComplete}
-        onTodoDelete={handleTodoDelete}
-      />
+      {/* Tasks Overview — now a stack screen, navigated via navigation.navigate('TasksOverview') */}
 
       {/* Task Completion Celebration */}
       <TaskCompletionCelebration
@@ -1288,7 +1209,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 20, // Add horizontal margins for consistent width
-    marginBottom: 35, // Increased gap between Today's Progress and cards below
+    marginBottom: 35,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

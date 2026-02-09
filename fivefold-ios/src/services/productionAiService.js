@@ -473,6 +473,278 @@ Respond with ONLY a JSON object:
   async simplifyVerse(verseText) {
     return this.simplifyBibleVerse(verseText);
   }
+
+  /**
+   * Generate a smart workout plan based on the user's physique data.
+   * Returns a structured workout with exercises picked from the real exercise list.
+   *
+   * @param {Object} params
+   * @param {number}  params.overallScore
+   * @param {Array}   params.weakestMuscles  – [{name, score}]
+   * @param {Array}   params.strongestMuscles – [{name, score}]
+   * @param {Object}  params.groupAverages   – {push, pull, legs, core}
+   * @param {number}  params.totalWorkouts
+   * @param {Array}   params.exerciseNames   – list of available exercise names (pre-filtered)
+   * @returns {Promise<Object|null>} { name, reason, exercises: [{name, sets, reps}] }
+   */
+  async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseCount, dailyCalories, goal, currentWeight, targetWeight }) {
+    try {
+      console.log('[AI Workout] Generating smart workout…');
+
+      const hasNutrition = dailyCalories && goal;
+      const nutritionRule = hasNutrition
+        ? `\n- The user's nutrition data is provided. Consider their calorie intake and weight goal when suggesting intensity. For users losing weight (calorie deficit), favor moderate weights with higher reps (10-15) to preserve muscle. For users gaining weight (calorie surplus), favor progressive overload with heavier weights and lower reps (6-10).`
+        : '';
+
+      const weightRule = hasNutrition
+        ? `,"weight":"<suggested weight in kg as string, e.g. '20' or '40'>"`
+        : '';
+
+      const exerciseCountRule = exerciseCount
+        ? `- Pick exactly ${exerciseCount} exercises from the provided list ONLY. Never invent exercise names.`
+        : `- Pick 4 to 6 exercises from the provided list ONLY. Never invent exercise names.
+- For beginners (overallScore < 20), keep it simple with 4 exercises and 3 sets each.
+- For intermediate (20-50), use 5 exercises with 3-4 sets.
+- For advanced (50+), use 5-6 exercises with 3-4 sets.`;
+
+      const systemPrompt = `You are a smart workout planner inside a fitness app. Your job is to create a single, focused workout session that addresses the user's weak points while keeping things balanced.
+
+Rules:
+- Return ONLY valid JSON, no markdown, no explanation, no backticks.
+- JSON format: {"name":"<workout name>","reason":"<1 sentence why this workout is good for them, 15-25 words, encouraging>","exercises":[{"name":"<exact exercise name from the provided list>","sets":<number 3-4>,"reps":"<reps as string, e.g. '10' or '8-12'>"${weightRule}}]}
+${exerciseCountRule}
+- The workout should primarily target the user's weakest muscle groups.
+- Mix compound and isolation movements.
+- Order exercises logically: big compound movements first, isolation later.
+- The workout name should be short and catchy (2-4 words), like "Back & Bicep Blast" or "Leg Day Focus".
+- The reason should feel personal and motivating, no dashes, no emojis.${nutritionRule}`;
+
+      let nutritionBlock = '';
+      if (hasNutrition) {
+        nutritionBlock = `\nNutrition: ${dailyCalories} cal/day, goal: ${goal}${currentWeight ? `, current weight: ${currentWeight}kg` : ''}${targetWeight ? `, target: ${targetWeight}kg` : ''}`;
+      }
+
+      const userPrompt = `User physique data:
+Overall score: ${overallScore}/100
+Total workouts: ${totalWorkouts}
+Weakest muscles: ${weakestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
+Strongest muscles: ${strongestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
+Group averages: Push ${groupAverages.push}, Pull ${groupAverages.pull}, Legs ${groupAverages.legs}, Core ${groupAverages.core}${nutritionBlock}
+
+Available exercises (pick ONLY from this list):
+${exerciseNames.join('\n')}
+
+Generate a workout JSON.`;
+
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 500,
+      }));
+
+      if (!response.ok) {
+        console.warn('[AI Workout] API error:', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      let text = result?.choices?.[0]?.message?.content?.trim();
+      if (!text) return null;
+
+      // Strip markdown code fences if the model wraps in ```json ... ```
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+      const workout = JSON.parse(text);
+
+      // Validate structure
+      if (!workout.name || !workout.exercises || !Array.isArray(workout.exercises) || workout.exercises.length === 0) {
+        console.warn('[AI Workout] Invalid structure:', workout);
+        return null;
+      }
+
+      // Validate each exercise name exists in the provided list
+      const nameSet = new Set(exerciseNames.map(n => n.toLowerCase()));
+      workout.exercises = workout.exercises.filter(ex => nameSet.has(ex.name.toLowerCase()));
+
+      if (workout.exercises.length === 0) {
+        console.warn('[AI Workout] No valid exercises after filtering');
+        return null;
+      }
+
+      console.log('[AI Workout] Generated:', workout.name, `(${workout.exercises.length} exercises)`);
+      return workout;
+    } catch (error) {
+      console.warn('[AI Workout] Failed:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Generate personalised physique/balance coach feedback using AI.
+   * Returns a single encouraging paragraph (50-70 words).
+   *
+   * @param {Object} params
+   * @param {number} params.overallScore  – 0-100 overall physique score
+   * @param {Array}  params.strongest     – top muscles [{id, name, score}]
+   * @param {Array}  params.weakest       – bottom muscles [{id, name, score}]
+   * @param {Object} params.groupAverages – {push, pull, legs, core}
+   * @param {number} params.totalWorkouts – total workouts in history
+   * @returns {Promise<string>}
+   */
+  async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts }) {
+    try {
+      console.log('[AI Coach] Generating physique feedback…');
+
+      const strongNames = strongest.map(m => `${m.name} (${m.score})`).join(', ');
+      const weakNames   = weakest.map(m => `${m.name} (${m.score})`).join(', ');
+
+      const systemPrompt = `You are a world-class personal trainer and motivational fitness coach inside a workout app called Biblely. Your job is to give the user a short, warm, personalised training insight every time they check their physique screen.
+
+Rules:
+- Write EXACTLY one paragraph, between 50 and 70 words. Never exceed 70 words.
+- Start with a genuine, specific compliment about something the user is doing well (mention a muscle name or pattern).
+- Then give ONE clear, actionable suggestion for improvement — mention the specific weak area.
+- Tone: upbeat, encouraging, conversational — like a friend who also happens to be a coach. Use "you" and "your".
+- No bullet points, no lists, no headings, no emojis, no hashtags, no dashes of any kind (no hyphens, en-dashes, or em-dashes). Use commas instead.
+- Keep language simple — a 14-year-old should understand every word.
+- Never say "I" — you are speaking directly to the user.
+- Do NOT include any greeting, sign-off, or label like "Coach says:".`;
+
+      const userPrompt = `Here is the user's current physique data:
+
+Overall score: ${overallScore}/100
+Total workouts logged: ${totalWorkouts}
+Strongest muscles: ${strongNames || 'None yet'}
+Weakest muscles: ${weakNames || 'None yet'}
+Group averages — Push: ${groupAverages.push}, Pull: ${groupAverages.pull}, Legs: ${groupAverages.legs}, Core: ${groupAverages.core}
+
+Write one paragraph of feedback (50-70 words).`;
+
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt },
+        ],
+        temperature: 0.85,
+        max_tokens: 200,
+      }));
+
+      if (!response.ok) {
+        console.warn('[AI Coach] API error:', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      const text = result?.choices?.[0]?.message?.content?.trim();
+      if (!text) return null;
+
+      console.log('[AI Coach] Feedback generated ✅');
+      return text;
+    } catch (error) {
+      console.warn('[AI Coach] Failed to generate feedback:', error.message);
+      return null; // caller will fall back to rule-based suggestions
+    }
+  }
+
+  /**
+   * Generate personalised daily nutrition targets using AI analysis.
+   * Takes the user's body profile and returns optimised calorie/macro targets.
+   *
+   * @param {Object} params
+   * @param {string} params.gender
+   * @param {number} params.age
+   * @param {number} params.heightCm
+   * @param {number} params.weightKg
+   * @param {number} [params.bodyFatPercent]
+   * @param {number} params.targetWeightKg
+   * @param {string} params.goal          – 'lose' | 'gain' | 'maintain'
+   * @param {string} params.activityLevel – sedentary | light | moderate | active | veryActive
+   * @param {number} params.baseTDEE      – the Mifflin-St Jeor TDEE as a starting point
+   * @returns {Promise<Object|null>} { dailyCalories, protein, carbs, fat, explanation }
+   */
+  async generateNutritionPlan({ gender, age, heightCm, weightKg, bodyFatPercent, targetWeightKg, goal, activityLevel, baseTDEE }) {
+    try {
+      console.log('[AI Nutrition] Generating personalised plan…');
+
+      const bfLine = bodyFatPercent ? `Body fat: ${bodyFatPercent}%` : 'Body fat: unknown';
+      const weightDiff = Math.abs(weightKg - targetWeightKg);
+
+      const systemPrompt = `You are an expert sports nutritionist inside a fitness app. The user has entered their body profile. Your job is to return an optimised daily calorie and macro plan.
+
+Rules:
+- Return ONLY valid JSON, no markdown, no explanation, no backticks.
+- JSON format: {"dailyCalories":<number>,"protein":<grams>,"carbs":<grams>,"fat":<grams>,"explanation":"<1-2 sentences, warm and personal, no dashes or bullet points>"}
+- Base your calculation on the provided TDEE but adjust it intelligently:
+  * For weight loss: deficit of 300-600 cal depending on how much weight they need to lose. Larger deficit for people with more to lose, smaller for those close to target.
+  * For weight gain: surplus of 200-400 cal. Lean bulk approach.
+  * For maintenance: stay close to TDEE.
+- Protein: prioritise muscle preservation. For weight loss, aim for 1.8-2.2g per kg of body weight. For muscle gain, 1.6-2.0g/kg. For maintenance, 1.4-1.8g/kg.
+- Fat: never go below 0.8g per kg body weight for hormonal health. Typically 25-35% of calories.
+- Carbs: fill the remaining calories after protein and fat are set.
+- Consider age: older users need more protein, younger users can handle more carbs.
+- Consider body fat if provided: higher body fat can tolerate a slightly larger deficit.
+- Safety: never go below 1200 cal for women or 1400 for men.
+- The explanation should be encouraging and mention one specific insight about their plan.
+- Round all numbers to the nearest whole number.`;
+
+      const userPrompt = `User profile:
+Gender: ${gender}
+Age: ${age}
+Height: ${heightCm} cm
+Current weight: ${weightKg} kg
+Target weight: ${targetWeightKg} kg
+${bfLine}
+Goal: ${goal} (weight difference: ${weightDiff} kg)
+Activity level: ${activityLevel}
+Base TDEE (Mifflin-St Jeor): ${baseTDEE} cal
+
+Generate an optimised nutrition plan JSON.`;
+
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt },
+        ],
+        temperature: 0.5,
+        max_tokens: 300,
+      }));
+
+      if (!response.ok) {
+        console.warn('[AI Nutrition] API error:', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      let text = result?.choices?.[0]?.message?.content?.trim();
+      if (!text) return null;
+
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      const plan = JSON.parse(text);
+
+      if (!plan.dailyCalories || typeof plan.dailyCalories !== 'number') {
+        console.warn('[AI Nutrition] Invalid structure:', plan);
+        return null;
+      }
+
+      console.log('[AI Nutrition] Plan generated:', plan.dailyCalories, 'cal');
+      return {
+        dailyCalories: Math.round(plan.dailyCalories),
+        protein: Math.round(plan.protein || 0),
+        carbs: Math.round(plan.carbs || 0),
+        fat: Math.round(plan.fat || 0),
+        explanation: plan.explanation || '',
+      };
+    } catch (error) {
+      console.warn('[AI Nutrition] Failed:', error.message);
+      return null;
+    }
+  }
 }
 
 // Create singleton instance

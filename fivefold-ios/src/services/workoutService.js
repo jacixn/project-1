@@ -7,6 +7,9 @@ const TEMPLATES_KEY = '@workout_templates';
 const FOLDERS_KEY = '@workout_folders';
 const SCHEDULED_WORKOUTS_KEY = '@scheduled_workouts';
 
+// 90 days in milliseconds
+const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
 class WorkoutService {
   
   // Get all workout templates
@@ -432,6 +435,30 @@ class WorkoutService {
     } catch (error) {
       console.error('Error checking workout completion:', error);
       return false;
+    }
+  }
+
+  // Clean up workout history older than 90 days (local)
+  static async cleanOldHistory() {
+    try {
+      const history = await this.getWorkoutHistory();
+      if (!history || history.length === 0) return;
+
+      const cutoff = Date.now() - HISTORY_RETENTION_MS;
+      const filtered = history.filter(entry => {
+        const dateStr = entry.completedAt || entry.startTime || entry.endTime;
+        if (!dateStr) return true; // keep entries without a date (don't delete unknowns)
+        const entryTime = new Date(dateStr).getTime();
+        if (isNaN(entryTime)) return true;
+        return entryTime > cutoff;
+      });
+
+      if (filtered.length < history.length) {
+        await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
+        console.log(`🧹 Cleaned workout history: ${history.length} → ${filtered.length} (removed ${history.length - filtered.length} entries older than 90 days)`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Error cleaning old workout history:', error);
     }
   }
 

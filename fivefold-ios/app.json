@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.jesusxoi.biblely",
       "buildNumber": "46",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library so you can choose a profile picture to personalize your spiritual journey.",
+        "NSCameraUsageDescription": "Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.",
+        "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.",
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
         "BGTaskSchedulerPermittedIdentifiers": [
           "com.jesusxoi.biblely.refresh",

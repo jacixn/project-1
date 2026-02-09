@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,28 @@ import {
   ScrollView,
   Animated,
   Share,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import WorkoutService from '../services/workoutService';
 
 const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 0 }) => {
   const { theme, isDark } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateSaved, setTemplateSaved] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setShowSaveTemplate(false);
+      setTemplateSaved(false);
+      setTemplateName(workoutData?.name || '');
       Animated.parallel([
         Animated.spring(scaleAnim, {
           toValue: 1,
@@ -90,6 +99,48 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
       });
     } catch (error) {
       console.error('Error sharing:', error);
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    const name = templateName.trim();
+    if (!name) {
+      Alert.alert('Name Required', 'Please enter a name for this template.');
+      return;
+    }
+    try {
+      hapticFeedback.medium();
+      const templateExercises = (workoutData.exercises || []).map(ex => {
+        // Get the most common set config from completed sets
+        const completedSets = (ex.sets || []).filter(s => s.completed);
+        const reps = completedSets.length > 0 ? completedSets[0].reps || '10' : '10';
+        const weight = completedSets.length > 0 ? completedSets[0].weight || '' : '';
+        return {
+          name: ex.name,
+          bodyPart: ex.bodyPart || 'Full Body',
+          equipment: ex.equipment || 'Body Weight',
+          target: ex.target || '',
+          sets: completedSets.length || 3,
+          reps: String(reps),
+          weight: weight ? String(weight) : null,
+          restTime: ex.restTime || 120,
+        };
+      });
+
+      const template = {
+        id: Date.now().toString(),
+        name: name,
+        exercises: templateExercises,
+        createdAt: new Date().toISOString(),
+      };
+
+      await WorkoutService.addTemplate(template);
+      hapticFeedback.success();
+      setTemplateSaved(true);
+      setShowSaveTemplate(false);
+    } catch (error) {
+      console.error('Error saving template:', error);
+      Alert.alert('Error', 'Failed to save template. Please try again.');
     }
   };
 
@@ -223,6 +274,56 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
                 </View>
               ))}
             </View>
+
+            {/* Save as Template */}
+            {!templateSaved && !showSaveTemplate && (
+              <TouchableOpacity
+                style={[styles.saveTemplateBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: theme.primary + '30' }]}
+                onPress={() => { hapticFeedback.light(); setShowSaveTemplate(true); }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="bookmark-border" size={20} color={theme.primary} />
+                <Text style={[styles.saveTemplateBtnText, { color: theme.primary }]}>Save as Template</Text>
+              </TouchableOpacity>
+            )}
+
+            {showSaveTemplate && (
+              <View style={[styles.saveTemplateCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', borderColor: theme.primary + '30' }]}>
+                <Text style={[styles.saveTemplateLabel, { color: theme.text }]}>Template Name</Text>
+                <TextInput
+                  style={[styles.saveTemplateInput, { color: theme.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }]}
+                  value={templateName}
+                  onChangeText={setTemplateName}
+                  placeholder="e.g. Push Day A"
+                  placeholderTextColor={theme.textSecondary}
+                  autoFocus
+                />
+                <View style={styles.saveTemplateActions}>
+                  <TouchableOpacity
+                    style={[styles.saveTemplateCancelBtn, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }]}
+                    onPress={() => setShowSaveTemplate(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.saveTemplateCancelText, { color: theme.textSecondary }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveTemplateConfirmBtn, { backgroundColor: theme.primary }]}
+                    onPress={handleSaveAsTemplate}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="bookmark" size={16} color="#FFF" />
+                    <Text style={styles.saveTemplateConfirmText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {templateSaved && (
+              <View style={[styles.savedFeedback, { backgroundColor: '#10B981' + '15', borderColor: '#10B981' + '40' }]}>
+                <MaterialIcons name="check-circle" size={20} color="#10B981" />
+                <Text style={[styles.savedFeedbackText, { color: '#10B981' }]}>Template saved</Text>
+              </View>
+            )}
               </ScrollView>
             </View>
           </BlurView>
@@ -244,7 +345,8 @@ const styles = StyleSheet.create({
   container: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    height: '75%',
+    maxHeight: 600,
     borderRadius: 24,
     overflow: 'hidden',
   },
@@ -363,6 +465,86 @@ const styles = StyleSheet.create({
   bestSet: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  saveTemplateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  saveTemplateBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  saveTemplateCard: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  saveTemplateLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  saveTemplateInput: {
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  saveTemplateActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  saveTemplateCancelBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveTemplateCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  saveTemplateConfirmBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  saveTemplateConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  savedFeedback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  savedFeedbackText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

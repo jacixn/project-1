@@ -66,6 +66,7 @@ import ThemeModal from '../components/ThemeModal';
 import VoicePickerModal from '../components/VoicePickerModal';
 import AchievementService from '../services/achievementService';
 import JournalCalendar from '../components/JournalCalendar';
+import WorkoutService from '../services/workoutService';
 
 
 // Animated Profile Card Components (follows Rules of Hooks)
@@ -261,7 +262,17 @@ const ProfileTab = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('Faithful Friend');
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicture, setProfilePictureRaw] = useState(null);
+  const profilePictureRef = useRef(null);
+  
+  // Wrapper that only triggers a re-render when the URI actually changes.
+  // This prevents the Image component from flickering on tab focus.
+  const setProfilePicture = useCallback((uri) => {
+    if (uri !== profilePictureRef.current) {
+      profilePictureRef.current = uri;
+      setProfilePictureRaw(uri);
+    }
+  }, []);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
@@ -294,6 +305,7 @@ const ProfileTab = () => {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(null); // 'privacy' | 'terms' | 'support' | null
   const [showBible, setShowBible] = useState(false);
   const [verseReference, setVerseReference] = useState(null);
 
@@ -325,6 +337,9 @@ const ProfileTab = () => {
   // Tasks Done State
   const [showTasksDone, setShowTasksDone] = useState(false);
   const [completedTodosList, setCompletedTodosList] = useState([]);
+  
+  // Gym History
+  const [workoutCount, setWorkoutCount] = useState(0);
   const [savedVersesSort, setSavedVersesSort] = useState('desc'); // 'asc' | 'desc'
   const [savedVersesSearch, setSavedVersesSearch] = useState('');
   const [currentBibleVersion, setCurrentBibleVersion] = useState('nlt'); // Track current version
@@ -1186,22 +1201,25 @@ const ProfileTab = () => {
           setSelectedCountry(countryObj);
         }
         
-        // Update profile picture from Firebase (cloud URL)
-        if (authUserProfile.profilePicture) {
-          console.log('[Profile] Setting profile picture from auth:', authUserProfile.profilePicture);
-          setProfilePicture(authUserProfile.profilePicture);
-        }
-        
-        // Sync all auth data to local storage
+        // Update profile picture - check auth first, fallback to AsyncStorage
         const storedProfile = await AsyncStorage.getItem('userProfile');
         const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
         
-        // Update local profile with Firebase data
+        if (authUserProfile.profilePicture) {
+          console.log('[Profile] Setting profile picture from auth:', authUserProfile.profilePicture);
+          setProfilePicture(authUserProfile.profilePicture);
+          localProfile.profilePicture = authUserProfile.profilePicture;
+        } else if (localProfile.profilePicture) {
+          // AuthContext doesn't have picture but AsyncStorage does - keep it
+          console.log('[Profile] Auth missing profile picture, keeping AsyncStorage value:', localProfile.profilePicture);
+          setProfilePicture(localProfile.profilePicture);
+        }
+        
+        // Update local profile with Firebase data (but don't overwrite profilePicture if auth doesn't have it)
         if (authUserProfile.displayName) localProfile.name = authUserProfile.displayName;
         if (authUserProfile.country) localProfile.country = authUserProfile.country;
         if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
         if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
-        if (authUserProfile.profilePicture) localProfile.profilePicture = authUserProfile.profilePicture;
         
         setUserProfile(localProfile);
         await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
@@ -1426,39 +1444,83 @@ const ProfileTab = () => {
       const storedStats = await getStoredData('userStats') || {};
       const storedProfile = await AsyncStorage.getItem('userProfile');
       
+      // IMPORTANT: Read AuthContext cache directly from AsyncStorage instead of
+      // using the authUserProfile closure, which can be STALE when called from
+      // useFocusEffect (its useCallback has [] deps, so it captures the initial closure).
+      // The @biblely_user_cache key is always kept up-to-date by AuthContext.
+      let freshAuthProfile = authUserProfile;
+      try {
+        const authCacheStr = await AsyncStorage.getItem('@biblely_user_cache');
+        if (authCacheStr) {
+          const authCacheProfile = JSON.parse(authCacheStr);
+          // Use the fresh cache if it has a display name (i.e., it's a valid profile)
+          if (authCacheProfile && authCacheProfile.displayName) {
+            freshAuthProfile = authCacheProfile;
+          }
+        }
+      } catch (cacheError) {
+        console.log('[Profile] Error reading auth cache, using closure value:', cacheError.message);
+      }
+      
       // Prioritize Firebase auth profile data if user is signed in
-      if (authUserProfile && authUserProfile.displayName) {
-        console.log('[Profile] Using Firebase auth profile:', authUserProfile.displayName);
-        setUserName(authUserProfile.displayName);
-        setEditName(authUserProfile.displayName);
+      if (freshAuthProfile && freshAuthProfile.displayName) {
+        console.log('[Profile] Using Firebase auth profile:', freshAuthProfile.displayName);
+        setUserName(freshAuthProfile.displayName);
+        setEditName(freshAuthProfile.displayName);
         
         // Load isPublic setting (for global leaderboard visibility)
-        if (authUserProfile.isPublic !== undefined) {
-          setIsPublicProfile(authUserProfile.isPublic);
+        if (freshAuthProfile.isPublic !== undefined) {
+          setIsPublicProfile(freshAuthProfile.isPublic);
         } else {
-          // Check the auth cache as fallback
-          const authCache = await AsyncStorage.getItem('@biblely_user_cache');
-          if (authCache) {
-            const cachedProfile = JSON.parse(authCache);
-            if (cachedProfile.isPublic !== undefined) {
-              setIsPublicProfile(cachedProfile.isPublic);
-            }
+          // Check the auth cache as fallback (already loaded above)
+        }
+        
+        // Load profile picture - check multiple sources with fallback chain
+        // Priority: 1) Auth cache (cloud URL), 2) AsyncStorage userProfile, 3) Legacy key
+        let resolvedProfilePicture = null;
+        
+        if (freshAuthProfile.profilePicture) {
+          console.log('[Profile] Using cloud profile picture from auth cache:', freshAuthProfile.profilePicture);
+          resolvedProfilePicture = freshAuthProfile.profilePicture;
+        }
+        
+        // Also check AsyncStorage userProfile - use whichever is a cloud URL, or whichever exists
+        const localProfileData = storedProfile ? JSON.parse(storedProfile) : {};
+        if (localProfileData.profilePicture) {
+          if (!resolvedProfilePicture) {
+            console.log('[Profile] Auth has no profile picture, using AsyncStorage:', localProfileData.profilePicture);
+            resolvedProfilePicture = localProfileData.profilePicture;
+          } else if (
+            !resolvedProfilePicture.startsWith('http') && 
+            localProfileData.profilePicture.startsWith('http')
+          ) {
+            // Prefer cloud URL over local file path
+            console.log('[Profile] Preferring cloud URL from AsyncStorage:', localProfileData.profilePicture);
+            resolvedProfilePicture = localProfileData.profilePicture;
           }
         }
         
-        // Load profile picture from Firebase (cloud URL takes priority)
-        if (authUserProfile.profilePicture) {
-          console.log('[Profile] Using cloud profile picture from auth:', authUserProfile.profilePicture);
-          setProfilePicture(authUserProfile.profilePicture);
+        // Last resort: legacy storage key
+        if (!resolvedProfilePicture) {
+          const legacyPhoto = await getStoredData('profilePicture');
+          if (legacyPhoto) {
+            console.log('[Profile] Using legacy storage profile picture:', legacyPhoto);
+            resolvedProfilePicture = legacyPhoto;
+          }
+        }
+        
+        if (resolvedProfilePicture) {
+          setProfilePicture(resolvedProfilePicture);
         }
         
         // Also update local profile to match
         const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
-        localProfile.name = authUserProfile.displayName;
-        if (authUserProfile.country) localProfile.country = authUserProfile.country;
-        if (authUserProfile.countryFlag) localProfile.countryFlag = authUserProfile.countryFlag;
-        if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
-        if (authUserProfile.profilePicture) localProfile.profilePicture = authUserProfile.profilePicture;
+        localProfile.name = freshAuthProfile.displayName;
+        if (freshAuthProfile.country) localProfile.country = freshAuthProfile.country;
+        if (freshAuthProfile.countryFlag) localProfile.countryFlag = freshAuthProfile.countryFlag;
+        if (freshAuthProfile.countryCode) localProfile.countryCode = freshAuthProfile.countryCode;
+        // Preserve the best profile picture we found in the local profile
+        if (resolvedProfilePicture) localProfile.profilePicture = resolvedProfilePicture;
         setUserProfile(localProfile);
         await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
       } else if (storedProfile) {
@@ -1582,6 +1644,14 @@ const ProfileTab = () => {
       if (storedTodos) {
         const todos = JSON.parse(storedTodos);
         actualCompletedCount = todos.filter(todo => todo.completed).length;
+      }
+      
+      // Load workout history count
+      try {
+        const workoutHistory = await WorkoutService.getWorkoutHistory();
+        setWorkoutCount(workoutHistory ? workoutHistory.length : 0);
+      } catch (e) {
+        console.log('[Profile] Error loading workout history count:', e.message);
       }
       
       setUserStats({
@@ -1740,6 +1810,16 @@ const ProfileTab = () => {
           console.error('[ProfilePhoto] Upload failed, using local file:', uploadError);
           // Keep using local file if upload fails
           finalUri = imageUri;
+          
+          // CRITICAL: Still update AuthContext with local file URI so it doesn't
+          // get overwritten by stale data when switching tabs
+          if (updateLocalProfile) {
+            await updateLocalProfile({ profilePicture: imageUri });
+            console.log('[ProfilePhoto] Updated AuthContext with local file URI (upload failed)');
+          }
+          
+          // Still notify other screens even on upload failure
+          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: imageUri });
         }
       }
       
@@ -1904,41 +1984,31 @@ const ProfileTab = () => {
     1
   );
 
-  // Profile Header Component
+  // Profile Header Component - defined as a render function (not a component)
+  // to avoid remounting the Image on every parent re-render
   const ProfileHeader = () => {
-    // Liquid Glass Container for Profile Header
-    const LiquidGlassProfileContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
-        return (
-          <BlurView 
-            intensity={18} 
-            tint={isDark ? "dark" : "light"} 
-            style={[styles.profileCard, { 
-              backgroundColor: isDark 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : `${theme.primary}15`
-            }]}
-          >
-            {children}
-          </BlurView>
-        );
-      }
-
-      return (
-        <LiquidGlassView
-          interactive={true}
-          effect="clear"
-          colorScheme="system"
-          tintColor="rgba(255, 255, 255, 0.08)"
-          style={styles.liquidGlassProfileCard}
-        >
-          {children}
-        </LiquidGlassView>
-      );
-    };
+    // Wrapper element chosen based on Liquid Glass support
+    const WrapperElement = isLiquidGlassSupported ? LiquidGlassView : BlurView;
+    const wrapperProps = isLiquidGlassSupported
+      ? {
+          interactive: true,
+          effect: "clear",
+          colorScheme: "system",
+          tintColor: "rgba(255, 255, 255, 0.08)",
+          style: styles.liquidGlassProfileCard,
+        }
+      : {
+          intensity: 18,
+          tint: isDark ? "dark" : "light",
+          style: [styles.profileCard, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15`
+          }],
+        };
 
     return (
-      <LiquidGlassProfileContainer>
+      <WrapperElement {...wrapperProps}>
       {/* Edit Button with Fluid Animation */}
       <FluidButton
         style={styles.editButton}
@@ -2085,45 +2155,33 @@ const ProfileTab = () => {
           />
         </View>
       </View>
-      </LiquidGlassProfileContainer>
+      </WrapperElement>
     );
   };
 
   // Stats Grid Component
   const StatsGrid = () => {
-    // Liquid Glass Container for Stats Grid
-    const LiquidGlassStatsContainer = ({ children }) => {
-      if (!isLiquidGlassSupported) {
-        return (
-          <BlurView 
-            intensity={18} 
-            tint={isDark ? "dark" : "light"} 
-            style={[styles.statsCard, { 
-              backgroundColor: isDark 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : `${theme.primary}15`
-            }]}
-          >
-            {children}
-          </BlurView>
-        );
-      }
-
-      return (
-        <LiquidGlassView
-          interactive={true}
-          effect="clear"
-          colorScheme="system"
-          tintColor="rgba(255, 255, 255, 0.08)"
-          style={styles.liquidGlassStatsCard}
-        >
-          {children}
-        </LiquidGlassView>
-      );
-    };
+    const WrapperElement = isLiquidGlassSupported ? LiquidGlassView : BlurView;
+    const wrapperProps = isLiquidGlassSupported
+      ? {
+          interactive: true,
+          effect: "clear",
+          colorScheme: "system",
+          tintColor: "rgba(255, 255, 255, 0.08)",
+          style: styles.liquidGlassStatsCard,
+        }
+      : {
+          intensity: 18,
+          tint: isDark ? "dark" : "light",
+          style: [styles.statsCard, { 
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : `${theme.primary}15`
+          }],
+        };
 
     return (
-      <LiquidGlassStatsContainer>
+      <WrapperElement {...wrapperProps}>
       <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>{t.yourJourney || 'Your Journey'}</Text>
       
       <View style={styles.statsGrid}>
@@ -2141,15 +2199,15 @@ const ProfileTab = () => {
           }]}
           onPress={() => {
             hapticFeedback.light();
-            navigation.navigate('TasksDone');
+            navigation.navigate('GymHistory');
           }}
         >
-          <MaterialIcons name="check-circle" size={24} color={theme.success} />
+          <MaterialIcons name="fitness-center" size={24} color={theme.primary} />
           <Text style={[styles.statValue, { color: textColor, ...textOutlineStyle }]}>
-            {userStats.completedTasks || 0}
+            {workoutCount}
           </Text>
           <Text style={[styles.statLabel, { color: textSecondaryColor }]}>
-            {t.tasksDone || 'Tasks Done'}
+            Workouts
           </Text>
         </AnimatedStatCard>
         
@@ -2231,7 +2289,7 @@ const ProfileTab = () => {
           </Text>
         </AnimatedStatCard>
       </View>
-      </LiquidGlassStatsContainer>
+      </WrapperElement>
     );
   };
 
@@ -2548,6 +2606,53 @@ const ProfileTab = () => {
     </AnimatedSettingsCard>
   );
 
+  // Legal Section - Privacy Policy, Terms of Service, Support
+  const LegalSection = () => (
+    <AnimatedSettingsCard style={styles.aboutCard}>
+      <View style={{ padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <MaterialIcons name="gavel" size={20} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle, marginLeft: 10, fontSize: 16, fontWeight: '700' }]}>
+            Legal
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => { hapticFeedback.buttonPress(); setShowLegalModal('privacy'); }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+          activeOpacity={0.6}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons name="privacy-tip" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <Text style={{ color: textColor, fontSize: 15, marginLeft: 12, ...textOutlineStyle }}>Privacy Policy</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { hapticFeedback.buttonPress(); setShowLegalModal('terms'); }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+          activeOpacity={0.6}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons name="description" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <Text style={{ color: textColor, fontSize: 15, marginLeft: 12, ...textOutlineStyle }}>Terms of Service</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { hapticFeedback.buttonPress(); setShowLegalModal('support'); }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 }}
+          activeOpacity={0.6}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons name="help-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <Text style={{ color: textColor, fontSize: 15, marginLeft: 12, ...textOutlineStyle }}>Support & FAQ</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
+        </TouchableOpacity>
+      </View>
+    </AnimatedSettingsCard>
+  );
+
   // About Section - Separate card
   const AboutSection = () => (
     <AnimatedSettingsCard 
@@ -2556,7 +2661,7 @@ const ProfileTab = () => {
         hapticFeedback.buttonPress();
         Alert.alert(
             'About Biblely', 
-            'A Christian productivity app for faith and focus.\n\nVersion 1.0.0\n\nMade with ❤️ for believers worldwide.'
+            'A Christian productivity app for faith and focus.\n\nVersion 1.0.46\n\nMade with \u2764\uFE0F for believers worldwide.'
           );
         }}
     >
@@ -2651,7 +2756,7 @@ const ProfileTab = () => {
         contentContainerStyle={styles.twitterScrollContent}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: wallpaperScrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
         refreshControl={
@@ -2665,20 +2770,21 @@ const ProfileTab = () => {
           />
         }
       >
-        {/* Profile Header */}
-        <ProfileHeader />
+        {/* Profile Header - called as function to avoid remounting on re-render */}
+        {ProfileHeader()}
         
-        {/* Stats Grid */}
-        <StatsGrid />
+        {/* Stats Grid - called as function to avoid remounting on re-render */}
+        {StatsGrid()}
         
-        {/* Badges Section */}
-        <BadgesSection />
+        {/* Badges Section - called as function to avoid remounting on re-render */}
+        {BadgesSection()}
         
         
         {/* Account Section - Sign In/Out */}
         <AccountSection />
         
         <ChangesButton />
+        <LegalSection />
         <AboutSection />
       </Animated.ScrollView>
 
@@ -5890,6 +5996,160 @@ const ProfileTab = () => {
 
     </View>
     </AnimatedWallpaper>
+
+    {/* Legal Modal - Privacy Policy / Terms of Service / Support */}
+    <Modal
+      visible={showLegalModal !== null}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowLegalModal(null)}
+    >
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0F0F23' : '#FAFAFA' }}>
+        {/* Header */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          paddingTop: Platform.OS === 'ios' ? 60 : 20, paddingHorizontal: 20, paddingBottom: 16,
+          borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          backgroundColor: isDark ? '#0F0F23' : '#FAFAFA',
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons
+              name={showLegalModal === 'privacy' ? 'privacy-tip' : showLegalModal === 'terms' ? 'description' : 'help-outline'}
+              size={22} color={isDark ? '#A5B4FC' : '#6366F1'}
+            />
+            <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#FFF' : '#1a1a2e', marginLeft: 10 }}>
+              {showLegalModal === 'privacy' ? 'Privacy Policy' : showLegalModal === 'terms' ? 'Terms of Service' : 'Support & FAQ'}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => { hapticFeedback.medium(); setShowLegalModal(null); }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcons name="close" size={18} color={isDark ? '#FFF' : '#333'} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+          {showLegalModal === 'privacy' && (
+            <>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 8, 2026</Text>
+              <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
+                Biblely ("we", "our", or "the app") is a faith and productivity companion. Your privacy matters to us. This policy explains what data we collect, how we use it, and your rights.
+              </Text>
+
+              {[
+                { title: '1. Data We Collect', content: 'Account information: When you create an account, we collect your email address, display name, username, and optional profile photo.\n\nUser-generated content: Prayers, journal entries, to-do items, saved Bible verses, workout logs, nutrition data, and social feed posts you choose to create within the app.\n\nHealth and fitness data: Workout history, nutrition tracking (food logs, calorie and macro data), body profile information (height, weight, age, body fat percentage), and body composition estimates. This data is used solely to provide personalised fitness and nutrition features within the app.\n\nUsage data: App interaction data such as streaks, points, quiz scores, and feature usage \u2014 used to provide achievements and personalised experiences.\n\nPhotos: If you choose to use the camera or photo library, images are processed for profile pictures or food analysis. Photos used for food scanning are sent for nutritional analysis and are not stored on our servers.' },
+                { title: '2. How We Use Your Data', content: '\u2022 To provide and personalise app features (Bible reading, prayer tracking, workouts, nutrition, todos)\n\u2022 To sync your data across devices via Firebase and iCloud\n\u2022 To send push notifications (prayer reminders, streak alerts) that you opt into\n\u2022 To generate personalised insights\n\u2022 To enable social features (prayer wall, messaging, friend connections)' },
+                { title: '3. Data Storage', content: 'Local storage: Your data is also stored locally on your device using AsyncStorage, so the app works offline.\n\nCloud sync (Firebase): Your data is synced to Google Firebase (Firestore) servers to enable cross-device access and social features.\n\niCloud sync: On iOS, your data may also be synced via Apple iCloud (CloudKit) if you are signed into iCloud.' },
+                { title: '4. Third-Party Services', content: '\u2022 Google Firebase \u2014 authentication, cloud database, file storage\n\u2022 Apple iCloud / CloudKit \u2014 data sync\n\u2022 Google Cloud Text-to-Speech \u2014 audio Bible reading\n\u2022 Expo Push Notification Service \u2014 notification delivery' },
+                { title: '5. Data Sharing', content: 'We do not sell, rent, or share your personal data with third parties for marketing purposes. Data is only shared with the third-party services listed above, solely to provide app functionality.' },
+                { title: '6. Analytics and Tracking', content: 'We do not use any analytics or tracking SDKs. We do not track you across apps or websites. No advertising identifiers are collected.' },
+                { title: '7. Data Retention', content: 'Your data is retained as long as your account exists. Food logs older than 90 days are automatically cleaned from local storage. You can delete all your data at any time by deleting your account (Settings > Delete Account).' },
+                { title: '8. Your Rights', content: 'Access: You can view all your data within the app.\n\nDeletion: You can delete your account and all associated data from Settings > Delete Account. This permanently removes your data from Firebase and your device.\n\nPortability: Your data is stored locally on your device and accessible through standard device backup mechanisms.' },
+                { title: '9. Children\'s Privacy', content: 'Biblely is not directed at children under 13. We do not knowingly collect data from children under 13.' },
+                { title: '10. Security', content: 'We use industry-standard security measures including Firebase Authentication, encrypted connections (HTTPS/TLS), and secure password hashing.' },
+                { title: '11. Changes', content: 'We may update this privacy policy from time to time. We will notify you of significant changes through the app or by updating the "Last updated" date.' },
+                { title: '12. Contact', content: 'If you have questions about this privacy policy or your data, contact us at:\n\nbiblelyios@gmail.com' },
+              ].map((section, i) => (
+                <View key={i} style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#A5B4FC' : '#6366F1', marginBottom: 8 }}>{section.title}</Text>
+                  <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22 }}>{section.content}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {showLegalModal === 'terms' && (
+            <>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 8, 2026</Text>
+              <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
+                Welcome to Biblely. By using the app, you agree to these Terms of Service. If you do not agree, please do not use the app.
+              </Text>
+
+              {[
+                { title: '1. Description of Service', content: 'Biblely is a faith and productivity companion app that provides Bible reading, prayer tracking, workout logging, nutrition tracking, task management, and social features. The app is provided free of charge with no subscriptions or in-app purchases.' },
+                { title: '2. Account Registration', content: 'To access certain features (cloud sync, social features, messaging), you must create an account with a valid email address. You are responsible for maintaining the confidentiality of your account credentials.' },
+                { title: '3. Acceptable Use', content: 'You agree not to:\n\n\u2022 Use the app for any unlawful purpose\n\u2022 Post offensive, hateful, or inappropriate content on the prayer wall or social features\n\u2022 Harass, bully, or threaten other users\n\u2022 Attempt to interfere with or disrupt the app\'s services\n\u2022 Create multiple accounts for deceptive purposes\n\u2022 Scrape, copy, or redistribute Bible translations or app content' },
+                { title: '4. User Content', content: 'You retain ownership of content you create (prayers, journal entries, todos, posts). By posting content to social features, you grant us a non-exclusive license to display that content to other users within the app. You can delete your content at any time.' },
+                { title: '5. Bible Content', content: 'Bible translations available in the app are provided for personal, non-commercial use only. You may not redistribute, sell, or commercially use Bible text obtained through the app.' },
+                { title: '6. Health and Fitness Disclaimer', content: 'Biblely provides workout tracking, nutrition tracking, and body composition estimates for informational and wellness purposes only. These features are NOT medical advice and should not be used as a substitute for professional medical advice, diagnosis, or treatment. Always consult a healthcare professional before making significant changes to your diet or exercise routine.' },
+                { title: '7. Intellectual Property', content: 'The app, its design, code, graphics, and non-Bible content are owned by Biblely. You may not copy, modify, distribute, or reverse engineer the app or its components.' },
+                { title: '8. Account Termination', content: 'You may delete your account at any time through Settings > Delete Account. We reserve the right to suspend or terminate accounts that violate these terms.' },
+                { title: '9. Limitation of Liability', content: 'The app is provided "as is" without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the app.' },
+                { title: '10. Changes to Terms', content: 'We may update these terms from time to time. Continued use of the app after changes constitutes acceptance of the new terms.' },
+                { title: '11. Contact', content: 'If you have questions about these terms, contact us at:\n\nbiblelyios@gmail.com' },
+              ].map((section, i) => (
+                <View key={i} style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#A5B4FC' : '#6366F1', marginBottom: 8 }}>{section.title}</Text>
+                  <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22 }}>{section.content}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {showLegalModal === 'support' && (
+            <>
+              <Text style={{ fontSize: 14, color: isDark ? '#999' : '#666', marginBottom: 24 }}>
+                We're here to help you get the most out of Biblely.
+              </Text>
+
+              {[
+                // Account
+                { q: 'How do I create an account?', a: 'Tap "Create Account" on the welcome screen. Enter your email, create a password, choose a display name and username, and you\'re all set. It takes less than a minute.' },
+                { q: 'Do I need an account to use the app?', a: 'Yes, a free account is required to use Biblely. Creating one takes just a few seconds with your email. Your account enables cloud sync so your data is safe and available across devices.' },
+                { q: 'I forgot my password. How do I reset it?', a: 'On the sign-in screen, tap "Forgot Password?" and enter your email address. You\'ll receive a password reset link within a few minutes. Check your spam folder if you don\'t see it.' },
+                { q: 'How do I delete my account?', a: 'Go to your Profile, tap the Settings gear icon, scroll down to "Danger Zone," and tap "Delete Account." You\'ll need to enter your password to confirm. This permanently removes all your data from our servers.' },
+                { q: 'How do I change my profile picture?', a: 'Go to your Profile and tap on your profile photo or the camera icon. You can take a new photo or choose one from your photo library.' },
+                // Privacy & Data
+                { q: 'Is my data private?', a: 'Yes. We do not sell or share your data with third parties for marketing. We do not use analytics or tracking SDKs. Your data is only used to provide app features. See our Privacy Policy for full details.' },
+                { q: 'Does the app work offline?', a: 'Yes. Your data is stored locally on your device, so you can read the Bible, view your prayers, check your tasks, and review workouts even without an internet connection. Data syncs when you\'re back online.' },
+                { q: 'My data isn\'t syncing across devices.', a: 'Make sure you\'re signed in with the same account on both devices and that you have an internet connection. Try closing and reopening the app. Data syncs automatically when the app is in the foreground.' },
+                // Bible
+                { q: 'How do I change my Bible translation?', a: 'In the Bible reader, tap the translation name at the top to open the translation picker. Choose from over 40 available translations including KJV, NIV, ESV, NLT, and many more.' },
+                { q: 'Can I listen to the Bible?', a: 'Yes. Open any chapter in the Bible reader and tap the audio/play button. The text will be read aloud using natural text-to-speech. You can follow along as it reads.' },
+                { q: 'How do I save or highlight verses?', a: 'While reading, tap and hold on a verse to see options. You can highlight it with different colours, save it to your collection, or share it with friends.' },
+                // Prayer
+                { q: 'What is the Prayer Wall?', a: 'The Prayer Wall is a community space where you can share prayer requests and pray for others. Your prayers can be anonymous or public. It\'s a way to support and encourage fellow believers.' },
+                { q: 'How do prayer reminders work?', a: 'Go to your Profile settings and enable prayer reminders. You can choose the time of day you\'d like to be reminded. The app will send you a gentle notification to take a moment for prayer.' },
+                // Fitness & Nutrition
+                { q: 'How does food scanning work?', a: 'Tap the "+" button in the Fuel section, then choose Camera or Photo Library. Take or select a photo of your meal and the app will estimate its calories, protein, carbs, and fat. You can edit the values before saving.' },
+                { q: 'How are my calorie targets calculated?', a: 'Your daily targets are personalised based on your profile (age, height, weight, activity level, and goal). The app uses established nutrition science formulas to calculate your ideal intake.' },
+                { q: 'Are the body composition estimates accurate?', a: 'Body composition values are estimated using established research formulas based on your profile data. They\'re useful for tracking trends over time, but may differ from clinical measurements. For medical accuracy, please consult a healthcare professional.' },
+                { q: 'How do I start a workout?', a: 'Go to the Gym tab and tap "Start Workout." You can choose from dozens of templates or create your own. During the workout, log your sets, reps, and weights for each exercise.' },
+                // Tasks
+                { q: 'How does task scoring work?', a: 'When you add a task, the app analyses its complexity and assigns it a point value. Quick tasks earn fewer points, while complex or time-intensive tasks earn more. Complete tasks to build your streak and earn points.' },
+                { q: 'Can I schedule tasks for future dates?', a: 'Yes. Tap the calendar icon when creating or viewing a task to pick a specific date. Tasks are organised by date in the "View All" screen, with the closest deadlines shown first.' },
+                // Themes & Customisation
+                { q: 'How do I change the app theme?', a: 'Go to your Profile, then tap the Settings gear icon. Under "Appearance," you can choose from multiple beautiful themes including light mode, dark mode, and special themed styles.' },
+                // General
+                { q: 'Is Biblely really free?', a: 'Yes, completely free. No subscriptions, no in-app purchases, no hidden fees. Every feature is available to everyone.' },
+                { q: 'How do I report a bug or suggest a feature?', a: 'Email us at biblelyios@gmail.com. We read every message and appreciate your feedback. Include as much detail as possible so we can help quickly.' },
+              ].map((faq, i) => (
+                <View key={i} style={{
+                  marginBottom: 16, padding: 16, borderRadius: 14,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF',
+                  borderWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+                  borderColor: 'rgba(0,0,0,0.06)',
+                }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: isDark ? '#FFF' : '#1a1a2e', marginBottom: 8 }}>{faq.q}</Text>
+                  <Text style={{ fontSize: 14, color: isDark ? '#AAA' : '#555', lineHeight: 21 }}>{faq.a}</Text>
+                </View>
+              ))}
+
+              <View style={{
+                marginTop: 12, padding: 20, borderRadius: 16,
+                backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#EDE9FE',
+              }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#A5B4FC' : '#6366F1', marginBottom: 8 }}>Contact Us</Text>
+                <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22 }}>
+                  Email: biblelyios@gmail.com{'\n\n'}We typically respond within 48 hours.
+                </Text>
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
 
     {/* About Modal */}
     <Modal

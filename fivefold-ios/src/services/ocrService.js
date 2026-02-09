@@ -1,8 +1,10 @@
 // OCR Service - Uses Cloud-based OCR API (OCR.space free tier)
 // No native dependencies required - works with Expo
 
+import { OCR_CONFIG } from '../../ocr.config';
+
 const OCR_API_URL = 'https://api.ocr.space/parse/image';
-const OCR_API_KEY = 'K88462037888957'; // Free API key for OCR.space
+const OCR_API_KEY = OCR_CONFIG?.apiKey || '';
 
 class OCRService {
   constructor() {

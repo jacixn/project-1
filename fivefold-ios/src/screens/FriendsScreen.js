@@ -68,6 +68,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
   const [challengeFriend, setChallengeFriend] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState({}); // { friendUid: count }
   const [pendingChallenges, setPendingChallenges] = useState({}); // { friendUid: count }
+  const [lastMessageTimes, setLastMessageTimes] = useState({}); // { friendUid: timestamp }
   
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -190,16 +191,23 @@ const FriendsScreen = ({ navigation, onClose }) => {
         console.log('Could not load prayer partner:', err);
       }
       
-      // Load unread message counts per friend
+      // Load unread message counts and last message times per friend
       try {
         const conversations = await getConversations(user.uid);
         const unreadMap = {};
+        const timeMap = {};
         conversations.forEach(conv => {
-          if (conv.unreadCount > 0 && conv.otherUserId) {
-            unreadMap[conv.otherUserId] = conv.unreadCount;
+          if (conv.otherUserId) {
+            if (conv.unreadCount > 0) {
+              unreadMap[conv.otherUserId] = conv.unreadCount;
+            }
+            // Track last message time for sorting
+            const t = conv.lastMessageAt?.toDate?.() || conv.lastMessageAt;
+            if (t) timeMap[conv.otherUserId] = new Date(t).getTime();
           }
         });
         setUnreadMessages(unreadMap);
+        setLastMessageTimes(timeMap);
       } catch (err) {
         console.log('Could not load unread messages:', err);
       }
@@ -371,13 +379,6 @@ const FriendsScreen = ({ navigation, onClose }) => {
           }
         ]}
       >
-        {/* Rank indicator for top friends */}
-        {index < 3 && (
-          <View style={[styles.rankIndicator, { backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32' }]}>
-            <Text style={styles.rankText}>{index + 1}</Text>
-          </View>
-        )}
-        
         {/* Avatar */}
         <View style={styles.avatarContainer}>
           {item.profilePicture ? (
@@ -390,8 +391,6 @@ const FriendsScreen = ({ navigation, onClose }) => {
               <MaterialIcons name="person" size={32} color={theme.primary} />
             </LinearGradient>
           )}
-          {/* Online indicator (placeholder) */}
-          <View style={[styles.onlineIndicator, { backgroundColor: '#10B981' }]} />
         </View>
         
         {/* Info */}
@@ -461,16 +460,20 @@ const FriendsScreen = ({ navigation, onClose }) => {
           
           {/* Challenge */}
           <TouchableOpacity
-            style={[styles.friendActionButtonLarge, { backgroundColor: '#F59E0B20' }]}
+            style={[styles.friendActionButtonLarge, {
+              backgroundColor: pendingChallenges[item.uid] > 0 ? '#10B98120' : '#F59E0B20',
+              borderWidth: pendingChallenges[item.uid] > 0 ? 1.5 : 0,
+              borderColor: pendingChallenges[item.uid] > 0 ? '#10B981' : 'transparent',
+            }]}
             onPress={() => {
               setChallengeFriend(item);
               setChallengeModalVisible(true);
             }}
           >
-            <FontAwesome5 name="trophy" size={22} color="#F59E0B" />
-            {/* Pending challenge badge */}
+            <FontAwesome5 name="trophy" size={22} color={pendingChallenges[item.uid] > 0 ? '#10B981' : '#F59E0B'} />
+            {/* Pending challenge indicator */}
             {pendingChallenges[item.uid] > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#F59E0B' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#10B981' }]}>
                 <Text style={styles.notificationBadgeText}>
                   {pendingChallenges[item.uid] > 9 ? '9+' : pendingChallenges[item.uid]}
                 </Text>
@@ -918,7 +921,16 @@ const FriendsScreen = ({ navigation, onClose }) => {
           {/* Friends Tab */}
           {activeTab === 'friends' && (
             <FlatList
-              data={friends}
+              data={[...friends].sort((a, b) => {
+                // Sort by most recent message first, then by unread, then alphabetical
+                const aTime = lastMessageTimes[a.uid] || 0;
+                const bTime = lastMessageTimes[b.uid] || 0;
+                if (aTime !== bTime) return bTime - aTime;
+                const aUnread = unreadMessages[a.uid] || 0;
+                const bUnread = unreadMessages[b.uid] || 0;
+                if (aUnread !== bUnread) return bUnread - aUnread;
+                return (a.displayName || '').localeCompare(b.displayName || '');
+              })}
               keyExtractor={(item) => item.uid}
               renderItem={renderFriendCard}
               contentContainerStyle={styles.listContent}
@@ -1075,8 +1087,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
   },
   backButton: {
     width: 44,

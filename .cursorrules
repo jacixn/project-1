@@ -12,6 +12,9 @@
   - subtle text shadow for edge clarity
 - Buttons on pastel backgrounds should not rely on low-opacity white fills; use darker fills or add a scrim.
 
+## App Copy / Wording
+- **NEVER use the word "AI" in any user-facing text**. This includes buttons, labels, descriptions, disclaimers, loading states, and any other text the user can see. Instead, use natural alternatives like "smart", "personalised", "analysing", etc. The features should feel magical without calling attention to the underlying technology.
+
 ## Notifications
 - **NEVER use emojis in notification titles or body text**. Keep all notifications clean and professional without any emoji characters. This applies to:
   - Prayer reminders
@@ -19,3 +22,29 @@
   - Task reminders
   - Streak notifications
   - All other push notifications
+
+## Bible Data
+- The app has **44 Bible translations** hosted on a **private** GitHub repo (`jacixn/bible-versions`).
+- Access requires a PAT stored in `fivefold-ios/github.config.js` (gitignored).
+- After a fresh clone, `github.config.js` must be manually recreated — see `techContext.md` for format.
+- If Bible data is ever lost, it can be re-scraped from BibleHub.com — full instructions in `techContext.md` under "Bible Data Architecture".
+- Scraper scripts live at `/Users/jz/Desktop/bible-scraper/`.
+
+## Nutrition / Fuel Feature
+- Food photo analysis uses **Google Gemini Vision API** via `fivefold-ios/gemini.config.js` (gitignored).
+- After a fresh clone, `gemini.config.js` must be recreated with: `export const GEMINI_CONFIG = { apiKey: '<your-key>' };`
+- Get the key from https://aistudio.google.com/apikey
+- Without the key, food scanning gracefully degrades to manual entry only.
+- TDEE calculation uses the Mifflin-St Jeor equation.
+- Nutrition data is stored locally in AsyncStorage (`@nutrition_profile`, `@food_log`, `@food_favorites`).
+
+## OCR Service
+- OCR.space API key is stored in `fivefold-ios/ocr.config.js` (gitignored).
+- After a fresh clone, recreate with: `export const OCR_CONFIG = { apiKey: '<your-key>' };`
+- Get a free key from https://ocr.space/ocrapi/freekey
+
+## Legal / App Store
+- Privacy Policy, Terms of Service, and Support pages are in `fivefold-ios/legal/`.
+- These HTML files must be hosted (e.g. GitHub Pages) and the URLs added to App Store Connect.
+- Links to these pages are in the Settings/Profile screen under "Legal".
+- App Store marketing copy is in `fivefold-ios/legal/app-store-copy.md`.

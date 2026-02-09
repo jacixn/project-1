@@ -28,8 +28,12 @@ import JournalScreen from '../screens/JournalScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import ExercisesScreen from '../screens/ExercisesScreen';
 import PhysiqueScreen from '../screens/PhysiqueScreen';
+import BodyCompositionScreen from '../screens/BodyCompositionScreen';
+import GymHistoryScreen from '../screens/GymHistoryScreen';
 import StartWorkoutScreen from '../screens/StartWorkoutScreen';
+import NutritionScreen from '../screens/NutritionScreen';
 import ScheduleTaskScreen from '../screens/ScheduleTaskScreen';
+import TasksOverviewScreen from '../screens/TasksOverviewScreen';
 import BibleStudyScreen from '../screens/BibleStudyScreen';
 import QuizGamesScreen from '../screens/QuizGamesScreen';
 import BibleTimelineScreen from '../screens/BibleTimelineScreen';
@@ -911,6 +915,15 @@ const RootNavigator = () => {
           animation: 'slide_from_right',
         }}
       />
+
+      {/* Tasks Overview Screen */}
+      <Stack.Screen 
+        name="TasksOverview" 
+        component={TasksOverviewScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
       
       {/* Start Workout Screen */}
       <Stack.Screen 
@@ -925,6 +938,33 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="Physique" 
         component={PhysiqueScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Body Composition Screen */}
+      <Stack.Screen 
+        name="BodyComposition" 
+        component={BodyCompositionScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Gym History Screen */}
+      <Stack.Screen 
+        name="GymHistory" 
+        component={GymHistoryScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Nutrition Screen */}
+      <Stack.Screen 
+        name="Nutrition" 
+        component={NutritionScreen}
         options={{
           animation: 'slide_from_right',
         }}

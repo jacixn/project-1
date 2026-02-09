@@ -19,10 +19,14 @@ import { BlurView } from "expo-blur";
 import { useTheme } from "../contexts/ThemeContext";
 import { hapticFeedback } from "../utils/haptics";
 import WorkoutExercisePicker from "./WorkoutExercisePicker";
-import MiniWorkoutPlayer from "./MiniWorkoutPlayer";
 import WorkoutService from "../services/workoutService";
 import ExercisesService from "../services/exercisesService";
 import ScheduleWorkoutModal from "./ScheduleWorkoutModal";
+import physiqueService from "../services/physiqueService";
+import productionAiService from "../services/productionAiService";
+import { MUSCLE_GROUPS } from "../data/exerciseMuscleMap";
+import { LinearGradient } from "expo-linear-gradient";
+import nutritionService from "../services/nutritionService";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -57,6 +61,13 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   // Schedule modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [templateToSchedule, setTemplateToSchedule] = useState(null);
+
+  // Smart workout state
+  const [smartWorkout, setSmartWorkout] = useState(null);
+  const [smartWorkoutLoading, setSmartWorkoutLoading] = useState(false);
+  const smartWorkoutFadeAnim = useRef(new Animated.Value(0)).current;
+  const [exerciseCountPref, setExerciseCountPref] = useState(null); // null = auto, or 3/4/5/6
+  const exerciseCountPrefRef = useRef(null);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(1000)).current;
@@ -100,11 +111,12 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     }
   }, [showTemplateDetail]);
 
-  // Load templates when modal opens
+  // Load templates + generate smart workout when modal opens
   useEffect(() => {
     if (visible) {
       loadTemplates();
       loadFolders();
+      generateSmartWorkout();
     }
   }, [visible]);
 
@@ -148,6 +160,154 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     } catch (error) {
       console.error("Error loading folders:", error);
     }
+  };
+
+  // ─── Smart Workout Generation ───
+  const generateSmartWorkout = async () => {
+    try {
+      setSmartWorkoutLoading(true);
+      smartWorkoutFadeAnim.setValue(0);
+
+      // 1. Load workout history and physique data
+      const history = await WorkoutService.getWorkoutHistory();
+      await physiqueService.recalculate(history);
+
+      const overallScore = physiqueService.getOverallScore();
+      const scores = physiqueService.getScores();
+
+      const pushMuscles = ['chest', 'frontDelts', 'triceps'];
+      const pullMuscles = ['lats', 'upperBack', 'biceps', 'rearDelts'];
+      const legMuscles  = ['quads', 'hamstrings', 'glutes', 'calves'];
+      const coreMuscles = ['abs', 'obliques', 'lowerBack'];
+
+      const avg = (ids) => {
+        const vals = ids.map(id => scores[id]?.score || 0);
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      };
+
+      const weakest = physiqueService.getWeakestMuscles(4).map(m => ({
+        name: MUSCLE_GROUPS[m.id]?.name || m.id,
+        score: m.score,
+      }));
+      const strongest = physiqueService.getStrongestMuscles(3).map(m => ({
+        name: MUSCLE_GROUPS[m.id]?.name || m.id,
+        score: m.score,
+      }));
+
+      // 2. Load exercises and filter to those targeting weak muscles
+      const allExercises = await ExercisesService.getExercises();
+      const strengthExercises = allExercises.filter(ex => ex.category === 'Strength');
+
+      // Find body parts related to weak muscles
+      const weakBodyParts = new Set();
+      weakest.forEach(m => {
+        const name = m.name.toLowerCase();
+        if (name.includes('chest') || name.includes('pec')) weakBodyParts.add('Chest');
+        if (name.includes('delt') || name.includes('shoulder')) weakBodyParts.add('Shoulders');
+        if (name.includes('lat') || name.includes('back') || name.includes('trap')) weakBodyParts.add('Back');
+        if (name.includes('bicep') || name.includes('tricep') || name.includes('forearm')) weakBodyParts.add('Arms');
+        if (name.includes('quad') || name.includes('ham') || name.includes('glute') || name.includes('calf') || name.includes('calves')) weakBodyParts.add('Legs');
+        if (name.includes('ab') || name.includes('oblique') || name.includes('core')) weakBodyParts.add('Core');
+      });
+
+      // Collect relevant exercises (weak areas + some variety)
+      const relevantExercises = strengthExercises.filter(ex => weakBodyParts.has(ex.bodyPart));
+      // Add some compound movements from other body parts for variety
+      const compoundExtras = strengthExercises
+        .filter(ex => !weakBodyParts.has(ex.bodyPart))
+        .slice(0, 15);
+      const pool = [...relevantExercises, ...compoundExtras];
+
+      // Cap at ~60 exercise names to avoid huge prompts
+      const exerciseNames = pool.slice(0, 60).map(ex => ex.name);
+
+      // 2b. Load nutrition profile (optional)
+      let nutritionParams = {};
+      try {
+        const nutritionProfile = await nutritionService.getProfile();
+        if (nutritionProfile) {
+          const tdeeData = nutritionService.calculateTDEE(nutritionProfile);
+          nutritionParams = {
+            dailyCalories: tdeeData.dailyCalories,
+            goal: nutritionProfile.goal,
+            currentWeight: nutritionProfile.weightKg,
+            targetWeight: nutritionProfile.targetWeightKg,
+          };
+        }
+      } catch (e) {
+        // Nutrition data is optional, continue without it
+      }
+
+      // 3. Call AI
+      const workout = await productionAiService.generateSmartWorkout({
+        overallScore,
+        weakestMuscles: weakest,
+        strongestMuscles: strongest,
+        groupAverages: {
+          push: avg(pushMuscles),
+          pull: avg(pullMuscles),
+          legs: avg(legMuscles),
+          core: avg(coreMuscles),
+        },
+        totalWorkouts: history.length,
+        exerciseNames,
+        exerciseCount: exerciseCountPrefRef.current,
+        ...nutritionParams,
+      });
+
+      if (workout && workout.exercises.length > 0) {
+        // Match AI exercise names back to full exercise objects for bodyPart/equipment
+        const exerciseMap = {};
+        allExercises.forEach(ex => { exerciseMap[ex.name.toLowerCase()] = ex; });
+
+        workout.exercises = workout.exercises
+          .map(aiEx => {
+            const match = exerciseMap[aiEx.name.toLowerCase()];
+            if (!match) return null; // Only allow exercises that exist in the app
+            const w = aiEx.weight;
+            const validWeight = (w && w !== '0' && w !== '0kg' && w !== 0) ? w : null;
+            return {
+              name: match.name,
+              bodyPart: match.bodyPart || 'Full Body',
+              equipment: match.equipment || 'Body Weight',
+              target: match.target || '',
+              sets: aiEx.sets || 3,
+              reps: aiEx.reps || '10',
+              weight: validWeight,
+              restTime: 120,
+            };
+          })
+          .filter(Boolean);
+
+        setSmartWorkout(workout);
+        Animated.timing(smartWorkoutFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }
+    } catch (error) {
+      console.warn('[SmartWorkout] Error:', error.message);
+    } finally {
+      setSmartWorkoutLoading(false);
+    }
+  };
+
+  const handleStartSmartWorkout = () => {
+    if (!smartWorkout) return;
+    hapticFeedback.heavy();
+
+    // Build a template object from the AI workout
+    const template = {
+      id: 'smart_' + Date.now().toString(),
+      name: smartWorkout.name,
+      exercises: smartWorkout.exercises,
+    };
+
+    onClose();
+    setTimeout(() => {
+      DeviceEventEmitter.emit('openWorkoutModal', { template });
+    }, 300);
   };
 
   const handleCreateFolder = async () => {
@@ -454,6 +614,114 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               Start an Empty Workout
             </Text>
           </TouchableOpacity>
+
+          {/* ── Suggested For You ── */}
+          {(smartWorkoutLoading || smartWorkout) && (
+            <Animated.View style={{ opacity: smartWorkout ? smartWorkoutFadeAnim : 1, marginTop: 20, marginBottom: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Suggested For You</Text>
+                <TouchableOpacity
+                  onPress={() => { if (!smartWorkoutLoading) { setSmartWorkout(null); generateSmartWorkout(); } }}
+                  disabled={smartWorkoutLoading}
+                  style={{ padding: 4, opacity: smartWorkoutLoading ? 0.4 : 1 }}
+                  activeOpacity={0.6}
+                >
+                  <MaterialIcons name="refresh" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Exercise count preference pills */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 6 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 4 }}>Exercises:</Text>
+                {[null, 3, 4, 5, 6].map(count => {
+                  const isSelected = exerciseCountPref === count;
+                  return (
+                    <TouchableOpacity
+                      key={count ?? 'auto'}
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setExerciseCountPref(count);
+                        exerciseCountPrefRef.current = count;
+                        if (!smartWorkoutLoading) {
+                          setSmartWorkout(null);
+                          setTimeout(() => generateSmartWorkout(), 50);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor: isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                        borderWidth: 1,
+                        borderColor: isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: isSelected ? '700' : '500',
+                        color: isSelected ? '#FFF' : theme.textSecondary,
+                      }}>
+                        {count === null ? 'Auto' : count}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {smartWorkoutLoading && !smartWorkout ? (
+                <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '25' }]}>
+                  <View style={styles.smartCardShimmer}>
+                    <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                    <Text style={[styles.smartCardShimmerText, { color: theme.textSecondary }]}>
+                      Analyzing your training history...
+                    </Text>
+                  </View>
+                </View>
+              ) : smartWorkout ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleStartSmartWorkout}
+                  style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF', borderColor: theme.primary + '30' }]}
+                >
+                  {/* Accent strip */}
+                  <LinearGradient
+                    colors={[theme.primary, theme.primary + 'AA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.smartCardAccent}
+                  />
+
+                  <View style={styles.smartCardContent}>
+                    {/* Header row */}
+                    <View style={styles.smartCardHeader}>
+                      <View style={[styles.smartCardIconCircle, { backgroundColor: theme.primary + '15' }]}>
+                        <MaterialIcons name="auto-awesome" size={18} color={theme.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.smartCardName, { color: theme.text }]}>{smartWorkout.name}</Text>
+                        <Text style={[styles.smartCardReason, { color: theme.textSecondary }]}>{smartWorkout.reason}</Text>
+                      </View>
+                      <View style={[styles.smartCardStartBadge, { backgroundColor: theme.primary }]}>
+                        <MaterialIcons name="play-arrow" size={18} color="#FFF" />
+                        <Text style={styles.smartCardStartText}>Start</Text>
+                      </View>
+                    </View>
+
+                    {/* Exercise pills */}
+                    <View style={styles.smartCardExercises}>
+                      {smartWorkout.exercises.map((ex, i) => (
+                        <View key={i} style={[styles.smartCardExPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : theme.primary + '0A', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '18' }]}>
+                          <Text style={[styles.smartCardExName, { color: theme.text }]} numberOfLines={1}>{ex.name}</Text>
+                          <Text style={[styles.smartCardExDetail, { color: theme.textSecondary }]}>{ex.sets} x {ex.reps}{ex.weight && ex.weight !== '0' ? ` @ ${ex.weight}kg` : ''}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ) : null}
+            </Animated.View>
+          )}
 
           {/* Templates Section */}
           <View style={styles.templatesHeader}>
@@ -1555,11 +1823,8 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
           </View>
         </Modal>
 
-        {/* Mini Workout Player - Shows in template selection screen */}
-        <MiniWorkoutPlayer onPress={() => {
-          onClose(); // Close the template modal
-          DeviceEventEmitter.emit("openWorkoutModal");
-        }} />
+        {/* Mini Workout Player removed — it overlapped template cards and duplicated
+           the active workout display. Users resume workouts from the Gym tab. */}
 
         {/* Schedule Workout Modal */}
         <ScheduleWorkoutModal
@@ -2301,6 +2566,90 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 17,
     fontWeight: "600",
+  },
+
+  // ── Smart Workout Card ──
+  smartCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  smartCardShimmer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 20,
+  },
+  smartCardShimmerText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  smartCardAccent: {
+    height: 4,
+    width: '100%',
+  },
+  smartCardContent: {
+    padding: 16,
+  },
+  smartCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  smartCardIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smartCardName: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  smartCardReason: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
+  smartCardStartBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  smartCardStartText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  smartCardExercises: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  smartCardExPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  smartCardExName: {
+    fontSize: 12,
+    fontWeight: '600',
+    maxWidth: 120,
+  },
+  smartCardExDetail: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });
 

@@ -24,6 +24,8 @@ class NotificationService {
     this.expoPushToken = null;
     this.notificationListener = null;
     this.responseListener = null;
+    // Track handled notification response IDs to prevent double-processing
+    this._handledResponseIds = new Set();
   }
 
   getNextOccurrenceDate(hour, minute) {
@@ -43,6 +45,18 @@ class NotificationService {
   // Initialize notification permissions and token
   async initialize() {
     try {
+      // CRITICAL: Set up notification response listeners FIRST, before any async
+      // operations. This ensures we don't miss notification taps that launched the
+      // app from a killed state. The response event can fire at any time after the
+      // listener is registered, so we must register before awaiting anything.
+      this.setupNotificationListeners();
+
+      // Now check for a cold-start notification response.
+      // When the app is launched from a killed state by tapping a notification,
+      // addNotificationResponseReceivedListener may NOT fire because the event was
+      // already consumed. getLastNotificationResponseAsync() catches this case.
+      await this._handleColdStartNotification();
+
       // Request permissions
       const { status } = await this.requestPermissions();
       if (status !== 'granted') {
@@ -54,13 +68,44 @@ class NotificationService {
       this.expoPushToken = await this.getPushToken();
       console.log('Expo Push Token:', this.expoPushToken);
 
-      // Set up listeners
-      this.setupNotificationListeners();
-
       return true;
     } catch (error) {
       console.error('Failed to initialize notifications:', error);
       return false;
+    }
+  }
+
+  // Handle notification that launched the app from a killed state
+  async _handleColdStartNotification() {
+    try {
+      const lastResponse = await Notifications.getLastNotificationResponseAsync();
+      if (lastResponse) {
+        const responseId = lastResponse.notification.request.identifier;
+        
+        // Guard against stale responses from previous app sessions.
+        // Only process if the notification is fresh (< 30 seconds old).
+        const notifDate = lastResponse.notification?.date;
+        const responseAge = notifDate ? (Date.now() - notifDate) : Infinity;
+        
+        console.log('📱 [Cold Start] Found last notification response:', responseId, 'age:', Math.round(responseAge / 1000), 's');
+
+        if (responseAge >= 30000) {
+          console.log('📱 [Cold Start] Stale response, ignoring');
+          return;
+        }
+
+        // Only process if we haven't already handled this response via the listener
+        if (!this._handledResponseIds.has(responseId)) {
+          console.log('📱 [Cold Start] Processing cold-start notification tap');
+          this.handleNotificationResponse(lastResponse);
+        } else {
+          console.log('📱 [Cold Start] Already handled by listener, skipping');
+        }
+      } else {
+        console.log('📱 [Cold Start] No pending notification response (normal launch)');
+      }
+    } catch (error) {
+      console.warn('Failed to check cold-start notification:', error.message);
     }
   }
 
@@ -123,7 +168,22 @@ class NotificationService {
 
     // Listener for when a user taps on a notification
     this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification response:', response);
+      const responseId = response.notification.request.identifier;
+      console.log('📱 [Response Listener] Notification tapped:', responseId);
+
+      // Track this response ID so we don't double-process with cold-start handler
+      if (this._handledResponseIds.has(responseId)) {
+        console.log('📱 [Response Listener] Already handled, skipping duplicate');
+        return;
+      }
+      this._handledResponseIds.add(responseId);
+
+      // Clean up old IDs to prevent memory growth (keep last 20)
+      if (this._handledResponseIds.size > 20) {
+        const idsArray = [...this._handledResponseIds];
+        this._handledResponseIds = new Set(idsArray.slice(-10));
+      }
+
       this.handleNotificationResponse(response);
     });
   }
@@ -131,8 +191,12 @@ class NotificationService {
   // Handle notification tap responses
   handleNotificationResponse(response) {
     const { data } = response.notification.request.content;
+    const responseId = response.notification.request.identifier;
+
+    // Mark as handled (for deduplication with cold-start handler)
+    this._handledResponseIds.add(responseId);
     
-    console.log('📱 Notification tapped with data:', data);
+    console.log('📱 Notification tapped with data:', data, '| id:', responseId);
     
     // Determine which tab to navigate to based on notification type
     let targetTab = null;
@@ -175,6 +239,34 @@ class NotificationService {
         // Navigate to Profile tab (where achievements are shown)
         targetTab = 'Profile';
         console.log('📱 Navigating to Profile tab for achievement');
+        break;
+
+      case 'message':
+        // Navigate directly to the chat with the sender
+        if (data?.senderId) {
+          targetTab = 'Chat';
+          additionalData = {
+            otherUserId: data.senderId,
+            otherUser: { uid: data.senderId, displayName: data.senderName || 'Friend' },
+          };
+          console.log('📱 Navigating directly to Chat with:', data.senderName);
+        } else {
+          targetTab = 'Hub';
+          console.log('📱 No senderId in notification, navigating to Hub');
+        }
+        break;
+
+      case 'friend_request':
+      case 'friend_accepted':
+        targetTab = 'Hub';
+        console.log('📱 Navigating to Hub tab for friend event');
+        break;
+
+      case 'challenge':
+      case 'challenge_received':
+      case 'challenge_result':
+        targetTab = 'Hub';
+        console.log('📱 Navigating to Hub tab for challenge');
         break;
         
       default:
@@ -834,6 +926,47 @@ class NotificationService {
       await this.cancelNotificationsByType('workout_overdue');
     } catch (error) {
       console.error('Failed to cancel workout overdue notification:', error);
+    }
+  }
+
+  /**
+   * Schedule a weekly Saturday body check-in notification.
+   * Fires every Saturday at 10:00 AM local time, reminding
+   * the user to update their weight and body fat %.
+   */
+  async scheduleWeeklyBodyCheckIn() {
+    try {
+      // Cancel any existing body check-in notifications first
+      await this.cancelNotificationsByType('weekly_body_checkin');
+
+      const settings = await getStoredData('notificationSettings') || { sound: true };
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Weekly Check-In',
+          body: 'Time for your weekly weigh-in. Update your weight and body fat to keep your plan accurate.',
+          data: { type: 'weekly_body_checkin' },
+          sound: settings.sound ? 'default' : false,
+        },
+        trigger: {
+          weekday: 7, // Saturday (1=Sunday, 7=Saturday)
+          hour: 10,
+          minute: 0,
+          repeats: true,
+        },
+      });
+
+      console.log('Weekly body check-in notification scheduled for every Saturday at 10:00 AM');
+    } catch (error) {
+      console.error('Failed to schedule weekly body check-in:', error);
+    }
+  }
+
+  async cancelWeeklyBodyCheckIn() {
+    try {
+      await this.cancelNotificationsByType('weekly_body_checkin');
+    } catch (error) {
+      console.error('Failed to cancel weekly body check-in:', error);
     }
   }
 }

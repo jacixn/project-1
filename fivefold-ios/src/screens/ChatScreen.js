@@ -42,6 +42,7 @@ import EncouragementPicker from '../components/EncouragementPicker';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../services/storageService';
+import profanityFilter from '../services/profanityFilterService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
@@ -126,6 +127,18 @@ const ChatScreen = () => {
     if (!inputText.trim() || sending || !conversationId) return;
 
     const text = inputText.trim();
+
+    // Check for profanity before sending
+    if (profanityFilter.containsProfanity(text)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Message Blocked',
+        'Inappropriate language was detected in your message. Please keep conversations respectful and kind. Your message was not sent.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
     setInputText('');
     setSending(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
