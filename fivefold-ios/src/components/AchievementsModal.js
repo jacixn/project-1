@@ -79,6 +79,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
   const [searchQuery, setSearchQuery] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showCompletedOnly, setShowCompletedOnly] = useState(false);
   const [prestigeRound, setPrestigeRound] = useState(0);
   const [showPrestigeCelebration, setShowPrestigeCelebration] = useState(false);
   const [celebrationPrestige, setCelebrationPrestige] = useState(0);
@@ -87,6 +88,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
   const slideAnim = useRef(new Animated.Value(50)).current;
   const celebrationScale = useRef(new Animated.Value(0)).current;
   const celebrationGlow = useRef(new Animated.Value(0)).current;
+  const celebrationLoopRef = useRef(null);
 
   // Collapsible search bar animation
   const searchBarAnim = useRef(new Animated.Value(1)).current;
@@ -125,15 +127,21 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
       // Animate celebration modal
       celebrationScale.setValue(0);
       celebrationGlow.setValue(0);
-      Animated.sequence([
-        Animated.spring(celebrationScale, { toValue: 1, tension: 40, friction: 5, useNativeDriver: true }),
-        Animated.loop(
+      // Stop any previous loop before starting a new one
+      if (celebrationLoopRef.current) {
+        celebrationLoopRef.current.stop();
+        celebrationLoopRef.current = null;
+      }
+      Animated.spring(celebrationScale, { toValue: 1, tension: 40, friction: 5, useNativeDriver: true }).start(() => {
+        const glowLoop = Animated.loop(
           Animated.sequence([
             Animated.timing(celebrationGlow, { toValue: 1, duration: 1500, useNativeDriver: true }),
             Animated.timing(celebrationGlow, { toValue: 0, duration: 1500, useNativeDriver: true }),
           ])
-        ),
-      ]).start();
+        );
+        celebrationLoopRef.current = glowLoop;
+        glowLoop.start();
+      });
     });
     return () => sub.remove();
   }, []);
@@ -179,14 +187,15 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
     setAchievements(mapped);
   };
 
-  // Filter by search + category
+  // Filter by search + category + completed toggle
   const filteredAchievements = achievements.filter((a) => {
     const matchesSearch =
       searchQuery === '' ||
       a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || a.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesCompleted = !showCompletedOnly || a.completed;
+    return matchesSearch && matchesCategory && matchesCompleted;
   });
 
   // Count completed
@@ -502,7 +511,28 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
                 </Text>
               </View>
 
-              <View style={{ width: 70 }} />
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.selection();
+                  setShowCompletedOnly((prev) => !prev);
+                }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: showCompletedOnly ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  name="check-circle"
+                  size={20}
+                  color={showCompletedOnly ? '#FFFFFF' : theme.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Collapsible Search bar */}
@@ -674,6 +704,13 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
 
             <TouchableOpacity
               onPress={() => {
+                // Stop the infinite glow loop before closing
+                if (celebrationLoopRef.current) {
+                  celebrationLoopRef.current.stop();
+                  celebrationLoopRef.current = null;
+                }
+                celebrationGlow.stopAnimation();
+                celebrationScale.stopAnimation();
                 setShowPrestigeCelebration(false);
                 hapticFeedback.medium();
                 generateAchievements();

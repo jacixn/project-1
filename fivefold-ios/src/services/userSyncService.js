@@ -233,8 +233,10 @@ export const syncUserStatsToCloud = async (userId) => {
     // Add profile fields
     if (localProfile) {
       if (localProfile.displayName) updateData.displayName = localProfile.displayName;
+      if (localProfile.profilePicture) updateData.profilePicture = localProfile.profilePicture;
       if (localProfile.country) updateData.country = localProfile.country;
       if (localProfile.countryFlag) updateData.countryFlag = localProfile.countryFlag;
+      if (localProfile.countryCode) updateData.countryCode = localProfile.countryCode;
       if (localProfile.isPublic !== undefined) updateData.isPublic = localProfile.isPublic;
     }
     
@@ -703,6 +705,12 @@ export const downloadAndMergeCloudData = async (userId) => {
     if (cloudData.weightUnit) {
       await AsyncStorage.setItem('weightUnit', cloudData.weightUnit);
       console.log('[Sync] Downloaded weight unit from cloud');
+    }
+
+    // Height unit preference
+    if (cloudData.heightUnit) {
+      await AsyncStorage.setItem('heightUnit', cloudData.heightUnit);
+      console.log('[Sync] Downloaded height unit from cloud');
     }
     
     // Bible maps bookmarks
@@ -1284,6 +1292,12 @@ export const syncAllHistoryToCloud = async (userId) => {
     const weightUnitStr = await AsyncStorage.getItem('weightUnit');
     if (weightUnitStr) {
       updateData.weightUnit = weightUnitStr;
+    }
+
+    // Height unit preference
+    const heightUnitStr = await AsyncStorage.getItem('heightUnit');
+    if (heightUnitStr) {
+      updateData.heightUnit = heightUnitStr;
     }
     
     // Bible maps bookmarks

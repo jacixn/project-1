@@ -39,8 +39,23 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { hapticFeedback } from '../utils/haptics';
+import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
+import { getReferralCount } from '../services/referralService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
+
+const getStreakAnimSource = (animId) => {
+  switch (animId) {
+    case 'fire2':     return require('../../assets/Fire2.json');
+    case 'redcar':    return require('../../assets/Red-Car.json');
+    case 'bulb':      return require('../../assets/Bulb Transparent.json');
+    case 'amongus':   return require('../../assets/Loading 50 _ Among Us.json');
+    case 'lightning':  return require('../../assets/Lightning.json');
+    default:          return require('../../assets/fire-animation.json');
+  }
+};
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,6 +66,8 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   
   // Badge toggles for current user
   const [badgeToggles, setBadgeToggles] = useState({});
+  const [myReferralCount, setMyReferralCount] = useState(0);
+  const [myStreakAnim, setMyStreakAnim] = useState('fire1');
   useEffect(() => {
     AsyncStorage.getItem('fivefold_badge_toggles').then(raw => {
       if (raw) {
@@ -62,6 +79,8 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         });
       }
     });
+    getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
+    AsyncStorage.getItem('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
   }, []);
   
   // State
@@ -459,15 +478,28 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={1}>
               {item.displayName || 'User'}
             </Text>
-            {/* Country flag or globe */}
-            {item.countryFlag ? (
-              <Text style={{ fontSize: 14, marginLeft: 2 }}>{item.countryFlag}</Text>
-            ) : (
-              <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 2, opacity: 0.5 }} />
+            {/* Country flag or globe — respect toggle for current user */}
+            {!(item.isCurrentUser && badgeToggles.country === false) && (
+              item.countryFlag ? (
+                <Text style={{ fontSize: 14, marginLeft: 2 }}>{item.countryFlag}</Text>
+              ) : (
+                <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 2, opacity: 0.5 }} />
+              )
             )}
-            {/* Profile badges — hide toggled-off badges for current user */}
-            {AchievementService.getEarnedBadgesFromStats(item)
-              .filter(badge => !(item.isCurrentUser && badgeToggles[badge.id] === false))
+            {/* Streak animation badge */}
+            {item.isCurrentUser && badgeToggles.streak !== false && (
+              <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 4 }} />
+            )}
+            {/* Profile badges — gated only by referrals + toggles, no achievements */}
+            {AchievementService.PROFILE_BADGES
+              .filter(badge => {
+                const toggles = item.isCurrentUser ? badgeToggles : (item.badgeToggles || {});
+                if (toggles[badge.id] === false) return false;
+                const req = BADGE_REFERRAL_GATES[badge.id];
+                const refCount = item.isCurrentUser ? myReferralCount : (item.referralCount || 0);
+                if (req != null && refCount < req) return false;
+                return true;
+              })
               .map(badge => (
               badge.image
                 ? <Image key={badge.id} source={badge.image} style={{ width: 16, height: 16, marginLeft: 4, borderRadius: 4 }} resizeMode="contain" />
@@ -569,11 +601,21 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
               {second.displayName?.split(' ')[0] || 'User'}
             </Text>
-            {second.countryFlag ? (
+            {!(second.isCurrentUser && badgeToggles.country === false) && second.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{second.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(second)
-              .filter(badge => !(second.isCurrentUser && badgeToggles[badge.id] === false))
+            {second.isCurrentUser && badgeToggles.streak !== false && (
+              <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 16, height: 16, marginLeft: 3 }} />
+            )}
+            {AchievementService.PROFILE_BADGES
+              .filter(badge => {
+                const toggles = second.isCurrentUser ? badgeToggles : (second.badgeToggles || {});
+                if (toggles[badge.id] === false) return false;
+                const req = BADGE_REFERRAL_GATES[badge.id];
+                const refCount = second.isCurrentUser ? myReferralCount : (second.referralCount || 0);
+                if (req != null && refCount < req) return false;
+                return true;
+              })
               .map(badge => (
               badge.image
                 ? <Image key={badge.id} source={badge.image} style={{ width: 14, height: 14, marginLeft: 3, borderRadius: 3 }} resizeMode="contain" />
@@ -622,11 +664,21 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             <Text style={[styles.podiumName, styles.podiumNameFirst, { color: theme.text }]} numberOfLines={1}>
               {first.displayName?.split(' ')[0] || 'User'}
             </Text>
-            {first.countryFlag ? (
+            {!(first.isCurrentUser && badgeToggles.country === false) && first.countryFlag ? (
               <Text style={{ fontSize: 14, marginLeft: 4 }}>{first.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(first)
-              .filter(badge => !(first.isCurrentUser && badgeToggles[badge.id] === false))
+            {first.isCurrentUser && badgeToggles.streak !== false && (
+              <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 3 }} />
+            )}
+            {AchievementService.PROFILE_BADGES
+              .filter(badge => {
+                const toggles = first.isCurrentUser ? badgeToggles : (first.badgeToggles || {});
+                if (toggles[badge.id] === false) return false;
+                const req = BADGE_REFERRAL_GATES[badge.id];
+                const refCount = first.isCurrentUser ? myReferralCount : (first.referralCount || 0);
+                if (req != null && refCount < req) return false;
+                return true;
+              })
               .map(badge => (
               badge.image
                 ? <Image key={badge.id} source={badge.image} style={{ width: 16, height: 16, marginLeft: 3, borderRadius: 4 }} resizeMode="contain" />
@@ -672,11 +724,21 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             <Text style={[styles.podiumName, { color: theme.text }]} numberOfLines={1}>
               {third.displayName?.split(' ')[0] || 'User'}
             </Text>
-            {third.countryFlag ? (
+            {!(third.isCurrentUser && badgeToggles.country === false) && third.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{third.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(third)
-              .filter(badge => !(third.isCurrentUser && badgeToggles[badge.id] === false))
+            {third.isCurrentUser && badgeToggles.streak !== false && (
+              <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 16, height: 16, marginLeft: 3 }} />
+            )}
+            {AchievementService.PROFILE_BADGES
+              .filter(badge => {
+                const toggles = third.isCurrentUser ? badgeToggles : (third.badgeToggles || {});
+                if (toggles[badge.id] === false) return false;
+                const req = BADGE_REFERRAL_GATES[badge.id];
+                const refCount = third.isCurrentUser ? myReferralCount : (third.referralCount || 0);
+                if (req != null && refCount < req) return false;
+                return true;
+              })
               .map(badge => (
               badge.image
                 ? <Image key={badge.id} source={badge.image} style={{ width: 14, height: 14, marginLeft: 3, borderRadius: 3 }} resizeMode="contain" />

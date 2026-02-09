@@ -34,6 +34,7 @@ const SYNC_KEYS = [
   'fivefold_user_stats',  // User stats (points, level, etc.)
   'selectedBibleVersion', // Bible version preference
   'weightUnit',           // Weight unit preference
+  'heightUnit',           // Height unit preference
   'purchasedBibleVersions', // Purchased versions
   'prayer_history',       // Prayer history
   'prayer_completions',   // Prayer completions

@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
+import { getReferralCount } from '../services/referralService';
 
 const { width: SW } = Dimensions.get('window');
 const THEME_CARD_W = (SW - 52) / 2;
@@ -27,29 +27,55 @@ const THEME_CARD_W = (SW - 52) / 2;
 const STREAK_ANIM_KEY = 'fivefold_streak_animation';
 const BLUETICK_ENABLED_KEY = 'fivefold_bluetick_enabled';
 
-// ── Achievement gate per item ─────────────────────────────────
-const ANIM_GATES = {
-  fire1:      null,
-  fire2:      { id: 'app_streak_15', title: 'Fifteen Day Fire', desc: 'Maintain a 15-day streak', icon: 'local-fire-department', color: '#FF6B00' },
-  redcar:     { id: 'chars_5',       title: 'History Buff',     desc: 'Read 5 Bible characters',  icon: 'person',               color: '#E53935' },
-  bulb:       { id: 'read_25',       title: 'Daily Reader',     desc: 'Read 25 verses',           icon: 'menu-book',            color: '#FFC107' },
-  amongus:    { id: 'tasks_25',      title: 'Productivity Pro', desc: 'Complete 25 tasks',         icon: 'check-circle',         color: '#4CAF50' },
-  lightning:  { id: 'saved_25',       title: 'Verse Vault',      desc: 'Save 25 verses',            icon: 'bookmark',             color: '#7C4DFF' },
+// ── Referral gates ────────────────────────────────────────────
+// null = free (0 referrals), number = referrals needed to unlock
+const ANIM_REFERRAL_GATES = {
+  fire1:     null,   // Holy Fire — free
+  fire2:     12,     // Inferno — 12 referrals
+  redcar:    6,      // Red Car — 6 referrals
+  bulb:      4,      // Bright Idea — 4 referrals
+  amongus:   50,     // Among Us — 50 referrals
+  lightning: 10,     // Lightning — 10 referrals
 };
 
-const THEME_GATES = {
-  'biblely-jesusnlambs': null,
-  'blush-bloom':   { id: 'read_50',      title: 'Scripture Seeker', desc: 'Read 50 verses',       icon: 'menu-book',         color: '#EC407A' },
-  'eterna':        { id: 'app_streak_15', title: 'Fifteen Day Fire', desc: '15-day app streak',    icon: 'local-fire-department', color: '#FF6B00' },
-  'sailormoon':    { id: 'prayers_5',     title: 'Faithful Five',    desc: 'Complete 5 prayers',    icon: 'self-improvement',  color: '#AB47BC' },
-  'biblely-light': { id: 'saved_5',       title: 'Treasure Hunter',  desc: 'Save 5 verses',        icon: 'bookmark',          color: '#42A5F5' },
-  'cresvia':       { id: 'tasks_10',      title: 'Task Machine',     desc: 'Complete 10 tasks',     icon: 'check-circle',      color: '#7C4DFF' },
-  'spiderman':     { id: 'audio_5',       title: 'Audio Explorer',   desc: 'Listen to 5 audios',    icon: 'headphones',        color: '#EF5350' },
-  'biblely-classic':{ id: 'saved_10',     title: 'Scripture Keeper',  desc: 'Save 10 verses',       icon: 'bookmark',          color: '#FFA726' },
+const THEME_REFERRAL_GATES = {
+  'biblely-jesusnlambs': null,  // Jesus & Lambs — free
+  'blush-bloom':         3,     // Blush Bloom — 3 referrals
+  'eterna':              7,     // Eterna — 7 referrals
+  'sailormoon':          8,     // Sailor Moon — 8 referrals
+  'biblely-light':       100,   // Biblely — 100 referrals
+  'cresvia':             5,     // Cresvia — 5 referrals
+  'spiderman':           14,    // Spiderman — 14 referrals
+  'biblely-classic':     9,     // Classic — 9 referrals
 };
 
-// ── Badge definitions (each with its own gate) ───────────────
+const BADGE_REFERRAL_GATES = {
+  country:  null,  // Country flag — free
+  streak:   null,  // Streak animation badge — free
+  verified: 1,     // Blue Tick — 1 referral
+  biblely:  70,    // Biblely Badge — 70 referrals
+};
+
+// ── Badge definitions ─────────────────────────────────────────
 const BADGES = [
+  {
+    id: 'country',
+    name: 'Country',
+    desc: 'Show your country flag next to your name',
+    icon: 'public',
+    image: null,
+    color: '#10B981',
+    gradient: ['#10B981', '#059669'],
+  },
+  {
+    id: 'streak',
+    name: 'Streak Animation',
+    desc: 'Show your streak animation as a badge',
+    icon: 'local-fire-department',
+    image: null,
+    color: '#FF6B00',
+    gradient: ['#FF6B00', '#FF9500'],
+  },
   {
     id: 'verified',
     name: 'Blue Tick',
@@ -58,7 +84,6 @@ const BADGES = [
     image: null,
     color: '#1DA1F2',
     gradient: ['#1DA1F2', '#0D8BD9'],
-    gate: { id: 'saved_5', title: 'Treasure Hunter', desc: 'Save 5 verses', icon: 'bookmark', color: '#1DA1F2' },
   },
   {
     id: 'biblely',
@@ -68,18 +93,17 @@ const BADGES = [
     image: require('../../assets/logo.png'),
     color: '#F59E0B',
     gradient: ['#F59E0B', '#D97706'],
-    gate: { id: 'app_streak_30', title: 'Monthly Devotion', desc: '30-day app streak', icon: 'local-fire-department', color: '#F59E0B' },
   },
 ];
 
 // ── Streak animation definitions ──────────────────────────────
 const STREAK_ANIMS = [
-  { id: 'fire1',     name: 'Holy Fire',  source: require('../../assets/fire-animation.json'),        colors: ['#FF6B00', '#FF9500'] },
-  { id: 'fire2',     name: 'Inferno',    source: require('../../assets/Fire2.json'),                 colors: ['#FF3D00', '#FF6E40'] },
-  { id: 'redcar',    name: 'Red Car',    source: require('../../assets/Red-Car.json'),               colors: ['#E53935', '#EF5350'] },
-  { id: 'bulb',      name: 'Bright Idea', source: require('../../assets/Bulb Transparent.json'),     colors: ['#FFC107', '#FFD54F'] },
-  { id: 'amongus',   name: 'Among Us',   source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'] },
-  { id: 'lightning', name: 'Lightning',   source: require('../../assets/Lightning.json'),             colors: ['#7C4DFF', '#B388FF'] },
+  { id: 'fire1',     name: 'Holy Fire',    source: require('../../assets/fire-animation.json'),        colors: ['#FF6B00', '#FF9500'] },
+  { id: 'fire2',     name: 'Inferno',      source: require('../../assets/Fire2.json'),                 colors: ['#FF3D00', '#FF6E40'] },
+  { id: 'redcar',    name: 'Red Car',      source: require('../../assets/Red-Car.json'),               colors: ['#E53935', '#EF5350'] },
+  { id: 'bulb',      name: 'Bright Idea',  source: require('../../assets/Bulb Transparent.json'),     colors: ['#FFC107', '#FFD54F'] },
+  { id: 'amongus',   name: 'Among Us',     source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'] },
+  { id: 'lightning', name: 'Lightning',     source: require('../../assets/Lightning.json'),             colors: ['#7C4DFF', '#B388FF'] },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -94,16 +118,15 @@ const CustomisationScreen = () => {
   } = useTheme();
 
   const [selectedAnim, setSelectedAnim] = useState('fire1');
-  const [badgeToggles, setBadgeToggles] = useState({}); // { verified: true, biblely: true }
-  const [unlockedIds, setUnlockedIds] = useState([]);
-  const [permanentFlags, setPermanentFlags] = useState({});
+  const [badgeToggles, setBadgeToggles] = useState({});
+  const [referralCount, setReferralCount] = useState(0);
 
   // Locked popup state
-  const [lockedPopup, setLockedPopup] = useState(null); // { itemName, gate }
+  const [lockedPopup, setLockedPopup] = useState(null); // { itemName, required }
   const popupScale = useRef(new Animated.Value(0)).current;
   const popupOpacity = useRef(new Animated.Value(0)).current;
 
-  // entrance animations
+  // Entrance animations
   const headerFade = useRef(new Animated.Value(0)).current;
   const s1 = useRef(new Animated.Value(0)).current;
   const s2 = useRef(new Animated.Value(0)).current;
@@ -121,61 +144,37 @@ const CustomisationScreen = () => {
 
   const load = async () => {
     try {
-      const [animId, badgeTogglesRaw, oldBtVal, achRaw] = await Promise.all([
+      const [animId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
         AsyncStorage.getItem(STREAK_ANIM_KEY),
         AsyncStorage.getItem('fivefold_badge_toggles'),
-        AsyncStorage.getItem(BLUETICK_ENABLED_KEY), // migrate old key
-        AsyncStorage.getItem('fivefold_achievements_unlocked'),
+        AsyncStorage.getItem(BLUETICK_ENABLED_KEY),
+        getReferralCount(),
       ]);
       if (animId) setSelectedAnim(animId);
+      setReferralCount(count);
 
-      // Load badge toggles (migrate old bluetick key if needed)
       let toggles = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : null;
       if (!toggles) {
-        // First time — migrate from old key
-        const btOn = oldBtVal !== 'false'; // default true
-        toggles = { verified: btOn, biblely: true };
+        const btOn = oldBtVal !== 'false';
+        toggles = { country: true, streak: true, verified: btOn, biblely: true };
         await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(toggles));
       }
       setBadgeToggles(toggles);
-
-      const ids = achRaw ? JSON.parse(achRaw) : [];
-      setUnlockedIds(ids);
-
-      const allGateIds = [
-        ...Object.values(ANIM_GATES).filter(Boolean).map(g => g.id),
-        ...Object.values(THEME_GATES).filter(Boolean).map(g => g.id),
-        ...BADGES.map(b => b.gate.id),
-      ];
-      const uniqueIds = [...new Set(allGateIds)];
-      const flagKeys = uniqueIds.map(id => `fivefold_unlock_${id}`);
-      const flagValues = await AsyncStorage.multiGet(flagKeys);
-      const flags = {};
-      flagValues.forEach(([key, val]) => {
-        const achId = key.replace('fivefold_unlock_', '');
-        if (val === 'true' || ids.includes(achId)) {
-          flags[achId] = true;
-          if (val !== 'true' && ids.includes(achId)) {
-            AsyncStorage.setItem(key, 'true');
-          }
-        }
-      });
-      setPermanentFlags(flags);
     } catch (e) {
       console.warn('[Customisation] load error:', e);
     }
   };
 
-  const isUnlocked = (gate) => {
-    if (!gate) return true;
-    return permanentFlags[gate.id] || unlockedIds.includes(gate.id);
+  // ── Referral gate helpers ──────────────────────────────────
+  const isItemUnlocked = (requiredReferrals) => {
+    if (requiredReferrals === null || requiredReferrals === undefined) return true;
+    return referralCount >= requiredReferrals;
   };
 
-  // ── Show locked popup ───────────────────────────────────────
-  const showLockedPopup = (itemName, gate) => {
+  const showLockedPopup = (itemName, required) => {
     popupScale.setValue(0);
     popupOpacity.setValue(0);
-    setLockedPopup({ itemName, gate });
+    setLockedPopup({ itemName, required });
     Animated.parallel([
       Animated.spring(popupScale, { toValue: 1, tension: 65, friction: 8, useNativeDriver: true }),
       Animated.timing(popupOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
@@ -190,10 +189,10 @@ const CustomisationScreen = () => {
   };
 
   const pickAnim = async (id) => {
-    const gate = ANIM_GATES[id];
-    if (!isUnlocked(gate)) {
+    const required = ANIM_REFERRAL_GATES[id];
+    if (!isItemUnlocked(required)) {
       const anim = STREAK_ANIMS.find(a => a.id === id);
-      showLockedPopup(anim?.name || 'Animation', gate);
+      showLockedPopup(anim?.name || 'Animation', required);
       return;
     }
     setSelectedAnim(id);
@@ -204,16 +203,15 @@ const CustomisationScreen = () => {
     const updated = { ...badgeToggles, [badgeId]: val };
     setBadgeToggles(updated);
     await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(updated));
-    // Also keep old key in sync for backward compat
     if (badgeId === 'verified') {
       await AsyncStorage.setItem(BLUETICK_ENABLED_KEY, val.toString());
     }
   };
 
   const pickTheme = (t) => {
-    const gate = THEME_GATES[t.id];
-    if (!isUnlocked(gate)) {
-      showLockedPopup(t.name + ' Theme', gate);
+    const required = THEME_REFERRAL_GATES[t.id];
+    if (!isItemUnlocked(required)) {
+      showLockedPopup(t.name + ' Theme', required);
       return;
     }
     if (t.isBiblelyVariant) {
@@ -259,14 +257,28 @@ const CustomisationScreen = () => {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
 
+        {/* ── Referral count banner ──────────────────────── */}
+        <View style={[st.referralBanner, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: bdr }]}>
+          <View style={[st.referralIcon, { backgroundColor: `${theme.primary}15` }]}>
+            <MaterialIcons name="person-add" size={20} color={theme.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: tx }}>Your Referrals</Text>
+            <Text style={{ fontSize: 12, color: tx2, marginTop: 1 }}>Refer friends to unlock customisations</Text>
+          </View>
+          <View style={[st.referralCountBadge, { backgroundColor: theme.primary }]}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>{referralCount}</Text>
+          </View>
+        </View>
+
         {/* ── STREAK ANIMATIONS ──────────────────────────── */}
         <AnimSection anim={s1}>
           <SectionHeader icon="local-fire-department" iconBg="#FF6B0020" iconColor="#FF8C00" title="Streak Animation" subtitle="Your daily streak effect" textColor={tx} subtitleColor={tx2} />
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.animRow} decelerationRate="fast">
             {STREAK_ANIMS.map((a) => {
-              const gate = ANIM_GATES[a.id];
-              const unlocked = isUnlocked(gate);
+              const required = ANIM_REFERRAL_GATES[a.id];
+              const unlocked = isItemUnlocked(required);
               const active = selectedAnim === a.id;
               return (
                 <TouchableOpacity
@@ -274,12 +286,12 @@ const CustomisationScreen = () => {
                   activeOpacity={0.8}
                   onPress={() => pickAnim(a.id)}
                   style={[st.animCard, {
-                    borderColor: active ? a.colors[0] : bdr,
-                    borderWidth: active ? 2.5 : 1,
+                    borderColor: active && unlocked ? a.colors[0] : bdr,
+                    borderWidth: active && unlocked ? 2.5 : 1,
                     backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
                   }]}
                 >
-                  <LinearGradient colors={active ? a.colors : [bdr, bdr]} style={st.animStrip} />
+                  <LinearGradient colors={active && unlocked ? a.colors : [bdr, bdr]} style={st.animStrip} />
                   <View style={st.animLottie}>
                     <LottieView source={a.source} autoPlay loop style={{ width: 80, height: 80 }} />
                   </View>
@@ -290,9 +302,9 @@ const CustomisationScreen = () => {
                       <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
                         <MaterialIcons name="lock" size={22} color="#fff" />
                       </LinearGradient>
-                      <View style={[st.animGateBadge, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                        <MaterialIcons name="emoji-events" size={10} color="#FFD700" />
-                        <Text style={st.animGateText} numberOfLines={1}>{gate.title}</Text>
+                      <View style={st.animGateBadge}>
+                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
+                        <Text style={st.animGateText}>{required} {required === 1 ? 'referral' : 'referrals'}</Text>
                       </View>
                     </View>
                   ) : active ? (
@@ -317,30 +329,28 @@ const CustomisationScreen = () => {
 
           <View style={{ gap: 10 }}>
             {BADGES.map((badge) => {
-              const unlocked = isUnlocked(badge.gate);
-              const toggledOn = badgeToggles[badge.id] !== false; // default true
+              const required = BADGE_REFERRAL_GATES[badge.id];
+              const unlocked = isItemUnlocked(required);
+              const toggledOn = badgeToggles[badge.id] !== false;
 
               if (!unlocked) {
                 return (
                   <TouchableOpacity
                     key={badge.id}
                     activeOpacity={0.8}
-                    onPress={() => showLockedPopup(badge.name, badge.gate)}
+                    onPress={() => showLockedPopup(badge.name, required)}
                     style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
                   >
-                    {/* Left — lock icon in badge color */}
                     <LinearGradient colors={badge.gradient} style={st.badgeIconGrad}>
                       <MaterialIcons name="lock" size={20} color="#fff" />
                     </LinearGradient>
-                    {/* Info */}
                     <View style={{ flex: 1, marginLeft: 14 }}>
                       <Text style={[st.badgeName, { color: tx }]}>{badge.name}</Text>
                       <Text style={[st.badgeDesc, { color: tx2 }]}>{badge.desc}</Text>
                     </View>
-                    {/* Achievement hint */}
                     <View style={[st.badgeGateChip, { backgroundColor: badge.color + '15' }]}>
-                      <MaterialIcons name="emoji-events" size={12} color={badge.color} />
-                      <Text style={[st.badgeGateChipText, { color: badge.color }]}>{badge.gate.title}</Text>
+                      <MaterialIcons name="person-add" size={12} color={badge.color} />
+                      <Text style={[st.badgeGateChipText, { color: badge.color }]}>{required} {required === 1 ? 'referral' : 'referrals'}</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -351,7 +361,6 @@ const CustomisationScreen = () => {
                   key={badge.id}
                   style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: badge.color + '30' }]}
                 >
-                  {/* Badge icon/image */}
                   <LinearGradient colors={badge.gradient} style={st.badgeIconGrad}>
                     {badge.image ? (
                       <Image source={badge.image} style={{ width: 26, height: 26, borderRadius: 6 }} resizeMode="contain" />
@@ -359,14 +368,12 @@ const CustomisationScreen = () => {
                       <MaterialIcons name={badge.icon} size={22} color="#fff" />
                     )}
                   </LinearGradient>
-                  {/* Info */}
                   <View style={{ flex: 1, marginLeft: 14 }}>
                     <Text style={[st.badgeName, { color: tx }]}>{badge.name}</Text>
                     <Text style={[st.badgeDesc, { color: tx2 }]}>
                       {toggledOn ? 'Visible on your profile' : 'Hidden from your profile'}
                     </Text>
                   </View>
-                  {/* Toggle */}
                   <Switch
                     value={toggledOn}
                     onValueChange={(val) => toggleBadge(badge.id, val)}
@@ -385,8 +392,8 @@ const CustomisationScreen = () => {
 
           <View style={st.themeGrid}>
             {allThemes.map((t) => {
-              const gate = THEME_GATES[t.id];
-              const unlocked = isUnlocked(gate);
+              const required = THEME_REFERRAL_GATES[t.id];
+              const unlocked = isItemUnlocked(required);
               const active = t.isActive;
 
               return (
@@ -395,8 +402,8 @@ const CustomisationScreen = () => {
                   activeOpacity={0.85}
                   onPress={() => pickTheme(t)}
                   style={[st.themeCard, {
-                    borderColor: active ? theme.primary : bdr,
-                    borderWidth: active ? 2.5 : 1,
+                    borderColor: active && unlocked ? theme.primary : bdr,
+                    borderWidth: active && unlocked ? 2.5 : 1,
                   }]}
                 >
                   {t.wallpaper ? (
@@ -412,8 +419,8 @@ const CustomisationScreen = () => {
                         <MaterialIcons name="lock" size={18} color="#fff" />
                       </View>
                       <View style={st.themeGateBadge}>
-                        <MaterialIcons name="emoji-events" size={10} color="#FFD700" />
-                        <Text style={st.themeGateText} numberOfLines={1}>{gate.title}</Text>
+                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
+                        <Text style={st.themeGateText}>{required} {required === 1 ? 'referral' : 'referrals'}</Text>
                       </View>
                     </View>
                   )}
@@ -428,7 +435,7 @@ const CustomisationScreen = () => {
                     <Text style={st.themeName}>{t.name}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={st.themeMode}>{t.mode}</Text>
-                      {!gate && (
+                      {required === null && (
                         <View style={st.themeFreeBadge}>
                           <Text style={st.themeFreeText}>FREE</Text>
                         </View>
@@ -453,7 +460,6 @@ const CustomisationScreen = () => {
             padding: 24,
             alignItems: 'center',
           }}>
-            {/* Preview of current icon */}
             <View style={{
               width: 72,
               height: 72,
@@ -470,7 +476,6 @@ const CustomisationScreen = () => {
               />
             </View>
 
-            {/* Coming Soon badge */}
             <LinearGradient
               colors={['#6366F1', '#8B5CF6']}
               start={{ x: 0, y: 0 }}
@@ -506,16 +511,16 @@ const CustomisationScreen = () => {
           }]}>
             {/* Gradient top accent */}
             <LinearGradient
-              colors={lockedPopup?.gate?.color ? [lockedPopup.gate.color, lockedPopup.gate.color + '80'] : ['#FF6B00', '#FF950080']}
+              colors={[theme.primary, theme.primary + '80']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={st.popupAccent}
             />
 
             {/* Lock icon */}
-            <View style={[st.popupIconWrap, { backgroundColor: (lockedPopup?.gate?.color || '#FF6B00') + '18' }]}>
+            <View style={[st.popupIconWrap, { backgroundColor: theme.primary + '18' }]}>
               <LinearGradient
-                colors={[lockedPopup?.gate?.color || '#FF6B00', (lockedPopup?.gate?.color || '#FF6B00') + 'CC']}
+                colors={[theme.primary, theme.primary + 'CC']}
                 style={st.popupIconGrad}
               >
                 <MaterialIcons name="lock" size={28} color="#fff" />
@@ -531,26 +536,38 @@ const CustomisationScreen = () => {
             {/* Divider */}
             <View style={[st.popupDivider, { backgroundColor: bdr }]} />
 
-            {/* Achievement requirement */}
-            <Text style={[st.popupUnlockLabel, { color: tx2 }]}>UNLOCK BY EARNING</Text>
+            {/* Referral requirement */}
+            <Text style={[st.popupUnlockLabel, { color: tx2 }]}>UNLOCK BY REFERRING</Text>
 
-            <View style={[st.popupAchCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: bdr }]}>
-              <View style={[st.popupAchIcon, { backgroundColor: (lockedPopup?.gate?.color || '#FF6B00') + '20' }]}>
-                <MaterialIcons name={lockedPopup?.gate?.icon || 'emoji-events'} size={22} color={lockedPopup?.gate?.color || '#FF6B00'} />
+            <View style={[st.popupReqCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: bdr }]}>
+              <View style={[st.popupReqIcon, { backgroundColor: theme.primary + '20' }]}>
+                <MaterialIcons name="person-add" size={22} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[st.popupAchTitle, { color: tx }]}>
-                  {lockedPopup?.gate?.title}
+                <Text style={[st.popupReqTitle, { color: tx }]}>
+                  {lockedPopup?.required} {lockedPopup?.required === 1 ? 'Referral' : 'Referrals'} Needed
                 </Text>
-                <Text style={[st.popupAchDesc, { color: tx2 }]}>
-                  {lockedPopup?.gate?.desc}
+                <Text style={[st.popupReqDesc, { color: tx2 }]}>
+                  You have {referralCount} — {lockedPopup?.required - referralCount > 0 ? `${lockedPopup?.required - referralCount} more to go` : 'almost there!'}
                 </Text>
               </View>
-              <MaterialIcons name="emoji-events" size={18} color="#FFD700" />
             </View>
 
+            {/* Progress bar */}
+            <View style={[st.popupProgress, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+              <LinearGradient
+                colors={[theme.primary, theme.primary + 'CC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[st.popupProgressFill, { width: `${Math.min(100, (referralCount / (lockedPopup?.required || 1)) * 100)}%` }]}
+              />
+            </View>
+            <Text style={{ fontSize: 11, color: tx2, marginBottom: 16 }}>
+              {referralCount}/{lockedPopup?.required} referrals
+            </Text>
+
             {/* Dismiss button */}
-            <TouchableOpacity onPress={hideLockedPopup} style={[st.popupBtn, { backgroundColor: lockedPopup?.gate?.color || '#FF6B00' }]}>
+            <TouchableOpacity onPress={hideLockedPopup} style={[st.popupBtn, { backgroundColor: theme.primary }]}>
               <Text style={st.popupBtnText}>Got it</Text>
             </TouchableOpacity>
           </Animated.View>
@@ -605,6 +622,20 @@ const st = StyleSheet.create({
 
   scroll: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 40 },
 
+  // Referral banner
+  referralBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 16, borderWidth: 1, marginTop: 8, marginBottom: 4,
+  },
+  referralIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  referralCountBadge: {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   // Section header
   secHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, marginTop: 24, gap: 12 },
   secIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -620,7 +651,7 @@ const st = StyleSheet.create({
 
   animLockWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   animLockOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  animGateBadge: { position: 'absolute', bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  animGateBadge: { position: 'absolute', bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.5)' },
   animGateText: { fontSize: 9, fontWeight: '700', color: '#FFD700' },
 
   activeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
@@ -628,7 +659,6 @@ const st = StyleSheet.create({
   freeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   freeText: { fontSize: 10, fontWeight: '600' },
 
-  // Verified badge
   // Badges
   badgeCard: {
     flexDirection: 'row', alignItems: 'center',
@@ -686,13 +716,20 @@ const st = StyleSheet.create({
 
   popupUnlockLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 10 },
 
-  popupAchCard: {
+  popupReqCard: {
     flexDirection: 'row', alignItems: 'center', width: '100%',
-    padding: 14, borderRadius: 14, borderWidth: 1, gap: 12, marginBottom: 20,
+    padding: 14, borderRadius: 14, borderWidth: 1, gap: 12, marginBottom: 16,
   },
-  popupAchIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  popupAchTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  popupAchDesc: { fontSize: 12, fontWeight: '400' },
+  popupReqIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  popupReqTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  popupReqDesc: { fontSize: 12, fontWeight: '400' },
+
+  popupProgress: {
+    width: '100%', height: 6, borderRadius: 3, marginBottom: 6, overflow: 'hidden',
+  },
+  popupProgressFill: {
+    height: '100%', borderRadius: 3,
+  },
 
   popupBtn: {
     width: '100%', paddingVertical: 14, borderRadius: 14,

@@ -17,41 +17,9 @@ import { hapticFeedback } from '../utils/haptics';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
-// ── Map achievement IDs to customisation unlocks ─────────────────────
-const UNLOCK_MAP = {
-  // Streak animations
-  app_streak_15: { type: 'Streak Animation', name: 'Inferno', icon: 'local-fire-department', color: '#FF6B00' },
-  chars_5:       { type: 'Streak Animation', name: 'Red Car', icon: 'directions-car', color: '#E53935' },
-  read_25:       { type: 'Streak Animation', name: 'Bright Idea', icon: 'lightbulb', color: '#FFC107' },
-  tasks_25:      { type: 'Streak Animation', name: 'Among Us', icon: 'smart-toy', color: '#4CAF50' },
-  saved_25:      { type: 'Streak Animation', name: 'Lightning', icon: 'bolt', color: '#7C4DFF' },
-  // Themes
-  read_50:       { type: 'Theme', name: 'Blush Bloom', icon: 'palette', color: '#EC407A' },
-  // app_streak_15 already mapped above — will be merged
-  prayers_5:     { type: 'Theme', name: 'Sailor Moon', icon: 'palette', color: '#AB47BC' },
-  saved_5:       { type: 'Badge & Theme', name: 'Blue Tick + Biblely Light', icon: 'verified', color: '#1DA1F2' },
-  tasks_10:      { type: 'Theme', name: 'Cresvia', icon: 'palette', color: '#7C4DFF' },
-  audio_5:       { type: 'Theme', name: 'Spiderman', icon: 'palette', color: '#EF5350' },
-  saved_10:      { type: 'Theme', name: 'Biblely Classic', icon: 'palette', color: '#FFA726' },
-  // Badge
-  app_streak_30: { type: 'Badge', name: 'Biblely Badge', icon: 'workspace-premium', color: '#F59E0B' },
-};
-
-// Build a multi-unlock map for achievements that unlock more than one thing
-const MULTI_UNLOCK_MAP = {};
-// app_streak_15 unlocks both Inferno animation AND Eterna theme
-MULTI_UNLOCK_MAP['app_streak_15'] = [
-  { type: 'Streak Animation', name: 'Inferno', icon: 'local-fire-department', color: '#FF6B00' },
-  { type: 'Theme', name: 'Eterna', icon: 'palette', color: '#FF6B00' },
-];
-MULTI_UNLOCK_MAP['saved_5'] = [
-  { type: 'Badge', name: 'Blue Tick', icon: 'verified', color: '#1DA1F2' },
-  { type: 'Theme', name: 'Biblely Light', icon: 'palette', color: '#42A5F5' },
-];
-
-function getUnlocksForAchievement(achievementId) {
-  if (MULTI_UNLOCK_MAP[achievementId]) return MULTI_UNLOCK_MAP[achievementId];
-  if (UNLOCK_MAP[achievementId]) return [UNLOCK_MAP[achievementId]];
+// Customisation items are no longer gated by achievements — everything is free.
+// This helper returns an empty array so the toast never shows unlock sections.
+function getUnlocksForAchievement() {
   return [];
 }
 
@@ -72,6 +40,24 @@ const AchievementToast = forwardRef((props, ref) => {
   const unlockSlide = useRef(new Animated.Value(30)).current;
   const unlockFade = useRef(new Animated.Value(0)).current;
 
+  // Store references to running loop animations so we can stop them on dismiss
+  const pulseLoopRef = useRef(null);
+  const shimmerLoopRef = useRef(null);
+
+  /** Stop all running infinite loops and reset their values */
+  const stopLoops = useCallback(() => {
+    if (pulseLoopRef.current) {
+      pulseLoopRef.current.stop();
+      pulseLoopRef.current = null;
+    }
+    if (shimmerLoopRef.current) {
+      shimmerLoopRef.current.stop();
+      shimmerLoopRef.current = null;
+    }
+    iconPulse.setValue(1);
+    shimmerAnim.setValue(0);
+  }, []);
+
   const showNext = useCallback(() => {
     if (queueRef.current.length === 0) {
       isShowingRef.current = false;
@@ -82,6 +68,9 @@ const AchievementToast = forwardRef((props, ref) => {
     const next = queueRef.current.shift();
     setCurrent(next);
     setVisible(true);
+
+    // Stop any leftover loops from previous toast before starting fresh
+    stopLoops();
 
     // Reset animations
     backdropOpacity.setValue(0);
@@ -108,21 +97,25 @@ const AchievementToast = forwardRef((props, ref) => {
         Animated.timing(ringOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
       ]).start();
 
-      // Icon pulse
-      Animated.loop(
+      // Icon pulse — store reference so we can stop it later
+      const pulseLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(iconPulse, { toValue: 1.15, duration: 800, useNativeDriver: true }),
           Animated.timing(iconPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
-      ).start();
+      );
+      pulseLoopRef.current = pulseLoop;
+      pulseLoop.start();
 
-      // Shimmer
-      Animated.loop(
+      // Shimmer — store reference so we can stop it later
+      const shimmerLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(shimmerAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
           Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
-      ).start();
+      );
+      shimmerLoopRef.current = shimmerLoop;
+      shimmerLoop.start();
 
       // Unlock items slide in
       if (next.unlocks && next.unlocks.length > 0) {
@@ -134,9 +127,12 @@ const AchievementToast = forwardRef((props, ref) => {
         }, 400);
       }
     });
-  }, []);
+  }, [stopLoops]);
 
   const dismiss = useCallback(() => {
+    // CRITICAL: Stop infinite loops BEFORE running exit animations
+    stopLoops();
+
     Animated.parallel([
       Animated.timing(backdropOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
       Animated.timing(cardScale, { toValue: 0.8, duration: 200, useNativeDriver: true }),
@@ -147,7 +143,7 @@ const AchievementToast = forwardRef((props, ref) => {
       // Show next in queue after brief pause
       setTimeout(() => showNext(), 300);
     });
-  }, [showNext]);
+  }, [showNext, stopLoops]);
 
   useImperativeHandle(ref, () => ({
     show: (title, points, achievementId, icon) => {

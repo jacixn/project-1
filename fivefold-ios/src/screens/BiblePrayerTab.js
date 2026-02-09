@@ -798,6 +798,10 @@ const BiblePrayerTab = () => {
     hapticFeedback.light();
     setShowDismissOptions(false);
     
+    // CRITICAL: Stop infinite animation loops before closing
+    shimmerAnim.stopAnimation();
+    iconPulse.stopAnimation();
+    
     // Animate out
     Animated.parallel([
       Animated.spring(verseModalScale, {

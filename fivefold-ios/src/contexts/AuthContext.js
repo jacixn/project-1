@@ -87,6 +87,7 @@ const ALL_USER_DATA_KEYS = [
   'selectedBibleVersion',
   'selectedLanguage',
   'weightUnit',
+  'heightUnit',
   'highlightViewMode',
   'smart_features_enabled',
   'purchasedBibleVersions',
@@ -188,6 +189,10 @@ const ALL_USER_DATA_KEYS = [
   'fivefold_groqApiKey',
   'app_settings',
   'app_language',
+  'fivefold_vibration',
+  'fivefold_liquidGlass',
+  'audio_stories_sort_order',
+  'audio_stories_playback_mode',
 ];
 
 /**
@@ -202,6 +207,10 @@ export const AuthProvider = ({ children }) => {
   // Tracks sign-in/sign-up progress steps for loading UI
   const [authSteps, setAuthSteps] = useState(null);
   // { type: 'signin'|'signup', steps: [{label, done}], current: number }
+  
+  // Flag: when true, onAuthStateChanged MUST NOT run performFullSync
+  // because the signIn/signUp flow handles its own sync after clearing stale data.
+  const isAuthFlowActive = React.useRef(false);
 
   // Load cached user data on mount
   useEffect(() => {
@@ -279,10 +288,17 @@ export const AuthProvider = ({ children }) => {
               console.warn('[Auth] Failed to save push token:', tokenError);
             }
             
-            // Sync data once per session (runs in background)
-            console.log('[Auth] Background syncing user data...');
-            await performFullSync(firebaseUser.uid);
-            console.log('[Auth] Background sync complete');
+            // ONLY sync if signIn/signUp is NOT actively running.
+            // Those flows clear stale data first and do their own download/sync.
+            // Running performFullSync here in parallel would race with the clear
+            // and push the OLD user's data into the NEW user's Firestore doc.
+            if (isAuthFlowActive.current) {
+              console.log('[Auth] Skipping background sync — auth flow is handling it');
+            } else {
+              console.log('[Auth] Background syncing user data...');
+              await performFullSync(firebaseUser.uid);
+              console.log('[Auth] Background sync complete');
+            }
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -306,6 +322,7 @@ export const AuthProvider = ({ children }) => {
    */
   const signUp = useCallback(async ({ email, password, username, displayName }) => {
     setLoading(true);
+    isAuthFlowActive.current = true; // Prevent onAuthStateChanged from syncing
     const steps = [
       { label: 'Creating your account', done: false },
       { label: 'Setting up your profile', done: false },
@@ -323,6 +340,7 @@ export const AuthProvider = ({ children }) => {
       // CRITICAL: Clear ALL user-specific local data for new account
       // This prevents stale data from a previous account on the same device
       await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
+      await AsyncStorage.removeItem(USER_CACHE_KEY);
       console.log('[Auth] Cleared all stale local data for new user signup');
       
       // Step 1: Create account
@@ -363,6 +381,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
+      isAuthFlowActive.current = false; // Allow background sync again
       setAuthSteps(null);
       setLoading(false);
     }
@@ -375,6 +394,7 @@ export const AuthProvider = ({ children }) => {
    */
   const signIn = useCallback(async (email, password) => {
     setLoading(true);
+    isAuthFlowActive.current = true; // Prevent onAuthStateChanged from syncing
     const steps = [
       { label: 'Verifying credentials', done: false },
       { label: 'Downloading your data', done: false },
@@ -390,20 +410,25 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
+      // CRITICAL: Clear ALL stale data from previous account BEFORE signing in.
+      // This MUST happen before authSignIn() because authSignIn triggers
+      // onAuthStateChanged which could read stale local data and push it
+      // to the new user's Firestore document.
+      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
+      await AsyncStorage.removeItem(USER_CACHE_KEY);
+      console.log('[Auth] Pre-cleared all stale data before sign-in');
+      
+      // IMMEDIATELY mark onboarding complete for returning users BEFORE authSignIn
+      // triggers onAuthStateChanged. Otherwise the navigator sees no onboarding flag
+      // and sends a returning user to the onboarding screen.
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      console.log('[Auth] Pre-set onboardingCompleted for returning user');
+      
       // Step 1: Verify credentials
       const result = await authSignIn(email, password);
       setUserProfile(result);
       await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(result));
       markDone(0);
-      
-      // CRITICAL: Clear ALL stale data from previous account BEFORE downloading new data
-      // This prevents data from a different user contaminating this user's account
-      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
-      console.log('[Auth] Cleared stale data before downloading new user data');
-      
-      // Skip onboarding for existing users
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
-      console.log('[Auth] Skipping onboarding for returning user (set immediately)');
       
       // Step 2: Download cloud data into clean local state
       const { downloadAndMergeCloudData } = await import('../services/userSyncService');
@@ -444,6 +469,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
+      isAuthFlowActive.current = false; // Allow background sync again
       setAuthSteps(null);
       setLoading(false);
     }

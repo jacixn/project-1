@@ -127,7 +127,27 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     })
   ).current;
 
+  /** Stop all infinite pulse animations on completed sets to prevent CPU leak */
+  const stopAllSetAnimations = () => {
+    exercises.forEach(ex => {
+      (ex.sets || []).forEach(set => {
+        if (set.pulseAnim && typeof set.pulseAnim.stopAnimation === 'function') {
+          set.pulseAnim.stopAnimation();
+        }
+        if (set.glowAnim && typeof set.glowAnim.stopAnimation === 'function') {
+          set.glowAnim.stopAnimation();
+        }
+        if (set.scaleAnim && typeof set.scaleAnim.stopAnimation === 'function') {
+          set.scaleAnim.stopAnimation();
+        }
+      });
+    });
+  };
+
   const handleCloseModal = () => {
+    // CRITICAL: Stop all infinite set pulse loops before closing
+    stopAllSetAnimations();
+
     // ANIMATION FIRST — start the dismiss animation immediately so the user
     // sees the modal slide away without any pause.  All state updates (sync,
     // minimize) are deferred to AFTER the animation finishes.  This prevents
@@ -797,6 +817,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   const handleCancelWorkout = () => {
     setShowFinishConfirm(false);
     hapticFeedback.light();
+    stopAllSetAnimations(); // Stop infinite pulse loops
     endWorkout(); // End workout when user cancels
     onClose(); // Close without saving
   };
@@ -884,6 +905,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           onPress: () => {
             console.log('🏋️ User confirmed cancel - ending workout');
             hapticFeedback.success();
+            stopAllSetAnimations();
             endWorkout();
             onClose();
           }
@@ -1168,6 +1190,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                   style={{ backgroundColor: theme.error || '#EF4444', padding: 18, borderRadius: 16, marginBottom: 12 }}
                   onPress={() => {
                     hapticFeedback.success();
+                    stopAllSetAnimations();
                     setShowEmptyWorkoutAlert(false);
                     endWorkout(); // End workout to remove mini player
                     onClose();
@@ -1229,6 +1252,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                   style={{ backgroundColor: theme.error || '#EF4444', padding: 18, borderRadius: 16, marginBottom: 12 }}
                   onPress={() => {
                     hapticFeedback.success();
+                    stopAllSetAnimations();
                     setShowNoSetsAlert(false);
                     endWorkout(); // End workout to remove mini player and discard everything
                     onClose();
@@ -1269,6 +1293,8 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                 visible={true}
                 onClose={() => {
                   console.log('Completion modal closing');
+                  // Stop all set pulse loops before clearing exercises
+                  stopAllSetAnimations();
                   setShowCompletionModal(false);
                   setWorkoutName('Workout 1');
                   setExercises([]);

@@ -36,10 +36,22 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import nutritionService, { ACTIVITY_LABELS } from '../services/nutritionService';
 import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
 import notificationService from '../services/notificationService';
+
+// ─── Unit conversion helpers ───
+const kgToLbs = (kg) => +(kg * 2.20462).toFixed(1);
+const lbsToKg = (lbs) => +(lbs / 2.20462).toFixed(1);
+const cmToFtIn = (cm) => {
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return { feet, inches };
+};
+const ftInToCm = (feet, inches) => +((feet * 12 + inches) * 2.54).toFixed(1);
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const RING_SIZE = 200;
@@ -65,10 +77,13 @@ const NutritionScreen = () => {
   const [formBirthday, setFormBirthday] = useState(null); // Date object
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [genderLocked, setGenderLocked] = useState(false); // true after first setup
-  const [formHeight, setFormHeight] = useState('');
-  const [formWeight, setFormWeight] = useState('');
+  const [formHeight, setFormHeight] = useState('');       // display value in user's unit
+  const [formHeightInches, setFormHeightInches] = useState(''); // only used when heightUnit='ft'
+  const [formWeight, setFormWeight] = useState('');        // display value in user's unit
   const [formBodyFat, setFormBodyFat] = useState('');
-  const [formTargetWeight, setFormTargetWeight] = useState('');
+  const [formTargetWeight, setFormTargetWeight] = useState(''); // display value in user's unit
+  const [weightUnit, setWeightUnit] = useState('kg');      // 'kg' or 'lbs'
+  const [heightUnit, setHeightUnit] = useState('cm');      // 'cm' or 'ft'
   const [formGoal, setFormGoal] = useState('maintain');
   const [formActivity, setFormActivity] = useState('moderate');
 
@@ -346,7 +361,7 @@ const NutritionScreen = () => {
     }
   };
 
-  const prefillForm = (p) => {
+  const prefillForm = async (p) => {
     setFormGender(p.gender || 'male');
     // Load birthday if saved, otherwise try to reconstruct from age
     if (p.birthday) {
@@ -360,10 +375,43 @@ const NutritionScreen = () => {
     if (p.gender) {
       setGenderLocked(true);
     }
-    setFormHeight(String(p.heightCm || ''));
-    setFormWeight(String(p.weightKg || ''));
+
+    // Load unit preferences
+    const storedWU = await AsyncStorage.getItem('weightUnit');
+    const storedHU = await AsyncStorage.getItem('heightUnit');
+    const wU = storedWU || 'kg';
+    const hU = storedHU || 'cm';
+    setWeightUnit(wU);
+    setHeightUnit(hU);
+
+    // Convert canonical values (always stored in cm/kg) to display units
+    if (p.heightCm) {
+      if (hU === 'ft') {
+        const { feet, inches } = cmToFtIn(p.heightCm);
+        setFormHeight(String(feet));
+        setFormHeightInches(String(inches));
+      } else {
+        setFormHeight(String(p.heightCm));
+        setFormHeightInches('');
+      }
+    } else {
+      setFormHeight('');
+      setFormHeightInches('');
+    }
+
+    if (p.weightKg) {
+      setFormWeight(wU === 'lbs' ? String(kgToLbs(p.weightKg)) : String(p.weightKg));
+    } else {
+      setFormWeight('');
+    }
+
+    if (p.targetWeightKg) {
+      setFormTargetWeight(wU === 'lbs' ? String(kgToLbs(p.targetWeightKg)) : String(p.targetWeightKg));
+    } else {
+      setFormTargetWeight('');
+    }
+
     setFormBodyFat(p.bodyFatPercent ? String(p.bodyFatPercent) : '');
-    setFormTargetWeight(String(p.targetWeightKg || ''));
     setFormGoal(p.goal || 'maintain');
     setFormActivity(p.activityLevel || 'moderate');
   };
@@ -408,24 +456,45 @@ const NutritionScreen = () => {
   // ─── Save profile with AI analysis ───
   const handleSaveProfile = async () => {
     const age = calculatedAge;
-    const height = parseFloat(formHeight);
-    const weight = parseFloat(formWeight);
-    const targetWeight = parseFloat(formTargetWeight);
+
+    // Convert display values back to canonical metric units
+    let height; // always in cm
+    if (heightUnit === 'ft') {
+      const ft = parseFloat(formHeight) || 0;
+      const inches = parseFloat(formHeightInches) || 0;
+      height = ftInToCm(ft, inches);
+    } else {
+      height = parseFloat(formHeight);
+    }
+
+    let weight; // always in kg
+    let targetWeight; // always in kg
+    if (weightUnit === 'lbs') {
+      weight = lbsToKg(parseFloat(formWeight));
+      targetWeight = lbsToKg(parseFloat(formTargetWeight));
+    } else {
+      weight = parseFloat(formWeight);
+      targetWeight = parseFloat(formTargetWeight);
+    }
 
     if (!formBirthday || !age || age < 10 || age > 100) {
       Alert.alert('Invalid Birthday', 'Please select a valid birthday.');
       return;
     }
     if (!height || height < 100 || height > 250) {
-      Alert.alert('Invalid Height', 'Please enter a valid height in cm (100-250).');
+      Alert.alert('Invalid Height', heightUnit === 'ft'
+        ? 'Please enter a valid height (e.g. 5 ft 9 in).'
+        : 'Please enter a valid height in cm (100-250).');
       return;
     }
     if (!weight || weight < 30 || weight > 300) {
-      Alert.alert('Invalid Weight', 'Please enter a valid weight in kg (30-300).');
+      const wLabel = weightUnit === 'lbs' ? 'lbs (66-660)' : 'kg (30-300)';
+      Alert.alert('Invalid Weight', `Please enter a valid weight in ${wLabel}.`);
       return;
     }
     if (!targetWeight || targetWeight < 30 || targetWeight > 300) {
-      Alert.alert('Invalid Target Weight', 'Please enter a valid target weight in kg (30-300).');
+      const wLabel = weightUnit === 'lbs' ? 'lbs (66-660)' : 'kg (30-300)';
+      Alert.alert('Invalid Target Weight', `Please enter a valid target weight in ${wLabel}.`);
       return;
     }
 
@@ -806,8 +875,9 @@ const NutritionScreen = () => {
     const tw = parseFloat(formTargetWeight);
     if (!w || !tw || w <= 0 || tw <= 0) return null;
     const diff = w - tw;
-    if (diff > 1) return { key: 'lose', label: 'Lose Weight', icon: 'trending-down', color: '#EF4444', desc: `${Math.round(diff)} kg to lose` };
-    if (diff < -1) return { key: 'gain', label: 'Gain Muscle', icon: 'trending-up', color: '#10B981', desc: `${Math.round(Math.abs(diff))} kg to gain` };
+    const uLabel = weightUnit === 'lbs' ? 'lbs' : 'kg';
+    if (diff > 1) return { key: 'lose', label: 'Lose Weight', icon: 'trending-down', color: '#EF4444', desc: `${Math.round(diff)} ${uLabel} to lose` };
+    if (diff < -1) return { key: 'gain', label: 'Gain Muscle', icon: 'trending-up', color: '#10B981', desc: `${Math.round(Math.abs(diff))} ${uLabel} to gain` };
     return { key: 'maintain', label: 'Maintain', icon: 'horizontal-rule', color: '#6366F1', desc: 'Stay at your current weight' };
   })();
 
@@ -933,16 +1003,43 @@ const NutritionScreen = () => {
               )}
             </View>
             <View style={styles.formRowItem}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Height (cm)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
-                value={formHeight}
-                onChangeText={setFormHeight}
-                keyboardType="decimal-pad"
-                placeholder="175"
-                placeholderTextColor={textTertiary}
-                maxLength={5}
-              />
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>
+                {heightUnit === 'ft' ? 'Height (ft / in)' : 'Height (cm)'}
+              </Text>
+              {heightUnit === 'ft' ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder, flex: 1 }]}
+                    value={formHeight}
+                    onChangeText={setFormHeight}
+                    keyboardType="number-pad"
+                    placeholder="5"
+                    placeholderTextColor={textTertiary}
+                    maxLength={1}
+                  />
+                  <Text style={{ color: textSecondary, fontSize: 14, fontWeight: '500' }}>ft</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder, flex: 1 }]}
+                    value={formHeightInches}
+                    onChangeText={setFormHeightInches}
+                    keyboardType="number-pad"
+                    placeholder="9"
+                    placeholderTextColor={textTertiary}
+                    maxLength={2}
+                  />
+                  <Text style={{ color: textSecondary, fontSize: 14, fontWeight: '500' }}>in</Text>
+                </View>
+              ) : (
+                <TextInput
+                  style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
+                  value={formHeight}
+                  onChangeText={setFormHeight}
+                  keyboardType="decimal-pad"
+                  placeholder="175"
+                  placeholderTextColor={textTertiary}
+                  maxLength={5}
+                />
+              )}
             </View>
           </View>
 
@@ -968,30 +1065,30 @@ const NutritionScreen = () => {
           {/* Current + Target in a row */}
           <View style={styles.formRow}>
             <View style={styles.formRowItem}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Current (kg)</Text>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Current ({weightUnit === 'lbs' ? 'lbs' : 'kg'})</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
                 value={formWeight}
                 onChangeText={setFormWeight}
                 keyboardType="decimal-pad"
-                placeholder="74"
+                placeholder={weightUnit === 'lbs' ? '163' : '74'}
                 placeholderTextColor={textTertiary}
-                maxLength={5}
+                maxLength={6}
               />
             </View>
             <View style={styles.formRowArrow}>
               <MaterialIcons name="arrow-forward" size={20} color={textTertiary} />
             </View>
             <View style={styles.formRowItem}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Target (kg)</Text>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Target ({weightUnit === 'lbs' ? 'lbs' : 'kg'})</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
                 value={formTargetWeight}
                 onChangeText={setFormTargetWeight}
                 keyboardType="decimal-pad"
-                placeholder="65"
+                placeholder={weightUnit === 'lbs' ? '143' : '65'}
                 placeholderTextColor={textTertiary}
-                maxLength={5}
+                maxLength={6}
               />
             </View>
           </View>

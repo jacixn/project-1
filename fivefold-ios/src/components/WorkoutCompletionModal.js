@@ -43,9 +43,18 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
         }),
       ]).start();
     } else {
+      // Stop any running animations before resetting values
+      scaleAnim.stopAnimation();
+      fadeAnim.stopAnimation();
       scaleAnim.setValue(0);
       fadeAnim.setValue(0);
     }
+
+    return () => {
+      // Cleanup on unmount or visibility change
+      scaleAnim.stopAnimation();
+      fadeAnim.stopAnimation();
+    };
   }, [visible]);
 
   if (!workoutData) return null;

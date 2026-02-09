@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
-import { checkUsernameAvailability } from '../services/authService';
+import { checkUsernameAvailability, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
+import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
 import { getFriendCount } from '../services/friendsService';
 import {
   View,
@@ -287,10 +288,15 @@ const ProfileTab = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralInfo, setReferralInfo] = useState({ referredBy: null, referredByUsername: null, referredByDisplayName: null, referralCount: 0 });
+  const [referralUsername, setReferralUsername] = useState('');
+  const [referralLoading, setReferralLoading] = useState(false);
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showBibleVersionModal, setShowBibleVersionModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
+  const [heightUnit, setHeightUnit] = useState('cm'); // 'cm' or 'ft'
   const [audioVoiceGender, setAudioVoiceGender] = useState('female'); // 'male' or 'female'
   const [showVoicePickerModal, setShowVoicePickerModal] = useState(false);
   const [currentVoiceName, setCurrentVoiceName] = useState('Default');
@@ -327,6 +333,8 @@ const ProfileTab = () => {
   // Customisation State
   const [selectedStreakAnim, setSelectedStreakAnim] = useState('fire1');
   const [bluetickToggle, setBluetickToggle] = useState(true);
+  const [countryFlagToggle, setCountryFlagToggle] = useState(true);
+  const [streakBadgeToggle, setStreakBadgeToggle] = useState(true);
   
   // Streak animation values
   const streakFireScale = useRef(new Animated.Value(0)).current;
@@ -1790,6 +1798,14 @@ const ProfileTab = () => {
       } else {
         setWeightUnit('kg'); // Default to kg
       }
+
+      // Load height unit preference
+      const storedHeightUnit = await AsyncStorage.getItem('heightUnit');
+      if (storedHeightUnit) {
+        setHeightUnit(storedHeightUnit);
+      } else {
+        setHeightUnit('cm'); // Default to cm
+      }
       
       // Load audio voice preference
       const audioSettings = bibleAudioService.getSettings();
@@ -1849,8 +1865,19 @@ const ProfileTab = () => {
         badgeTogglesObj.verified = oldBt !== 'false';
       }
       setBluetickToggle(badgeTogglesObj.verified !== false);
-      const allBadges = AchievementService.getEarnedBadgesFromStats(mergedStats);
-      const visibleBadges = allBadges.filter(b => badgeTogglesObj[b.id] !== false);
+      setCountryFlagToggle(badgeTogglesObj.country !== false);
+      setStreakBadgeToggle(badgeTogglesObj.streak !== false);
+
+      // Badges are gated ONLY by referrals + toggles — no achievement conditions
+      const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
+      let refCount = 0;
+      try { refCount = await getReferralCount(); } catch (_) {}
+      const visibleBadges = AchievementService.PROFILE_BADGES.filter(b => {
+        if (badgeTogglesObj[b.id] === false) return false;
+        const req = BADGE_REFERRAL_GATES[b.id];
+        if (req != null && refCount < req) return false;
+        return true;
+      });
       setEarnedBadges(visibleBadges);
       
       // Load selected streak animation
@@ -2223,21 +2250,13 @@ const ProfileTab = () => {
           <Image 
             source={{ uri: profilePicture }} 
             style={styles.profileImage}
-            onError={async () => {
-              // Image file is gone (likely from app rebuild) - clear the invalid path
-              console.log('[Profile] Image file missing, clearing invalid path');
-              setProfilePicture(null);
-              try {
-                const storedProfile = await AsyncStorage.getItem('userProfile');
-                if (storedProfile) {
-                  const profile = JSON.parse(storedProfile);
-                  profile.profilePicture = null;
-                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-                }
-                await saveData('profilePicture', null);
-              } catch (e) {
-                console.log('[Profile] Failed to clear invalid path:', e.message);
-              }
+            onError={() => {
+              // Only log the error — do NOT clear the stored URL.
+              // Transient network issues or slow loads should not permanently
+              // nuke the user's profile picture from all local storage.
+              // The URL in Firestore/AsyncStorage is still valid and will
+              // work again on next load.
+              console.log('[Profile] Image failed to load (may be transient):', profilePicture);
             }}
           />
         ) : (
@@ -2248,8 +2267,25 @@ const ProfileTab = () => {
       <View style={{ alignItems: 'center' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
         <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
-          {userName} {selectedCountry?.flag || '🌍'}
+          {userName}{countryFlagToggle ? ` ${selectedCountry?.flag || '🌍'}` : ''}
         </Text>
+        {/* Streak animation badge */}
+        {streakBadgeToggle && (
+          <LottieView
+            source={
+              selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
+              selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
+              selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
+              selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
+              selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
+              require('../../assets/fire-animation.json')
+            }
+            autoPlay
+            loop
+            style={{ width: 26, height: 26, marginLeft: 2, marginTop: -2 }}
+          />
+        )}
+        {/* Static badges (blue tick, biblely, etc.) */}
         {earnedBadges.map(badge => (
           badge.image ? (
             <Image
@@ -2337,9 +2373,19 @@ const ProfileTab = () => {
             borderRadius: 20,
           }}
         >
-          <Text style={{ fontSize: 18, marginRight: 6 }}>
-            {AppStreakManager.getStreakEmoji(appStreak)}
-          </Text>
+          <LottieView
+            source={
+              selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
+              selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
+              selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
+              selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
+              selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
+              require('../../assets/fire-animation.json')
+            }
+            autoPlay
+            loop
+            style={{ width: 28, height: 28, marginRight: 4 }}
+          />
           <Text style={[{
             fontSize: 15,
             fontWeight: '700',
@@ -2695,6 +2741,55 @@ const ProfileTab = () => {
         },
       ]
     );
+  };
+
+  // ── Referral System ──────────────────────────────────────
+  const loadReferralInfo = useCallback(async () => {
+    try {
+      const info = await getReferralInfo();
+      setReferralInfo(info);
+    } catch (error) {
+      console.error('[Referral] Error loading referral info:', error);
+    }
+  }, []);
+
+  // Load referral info when settings modal opens
+  useEffect(() => {
+    if (showSettingsModal || showReferralModal) {
+      loadReferralInfo();
+    }
+  }, [showSettingsModal, showReferralModal, loadReferralInfo]);
+
+  const referralSubmitLock = useRef(false);
+  const handleSubmitReferral = async () => {
+    // Hard lock — prevents any double-tap even if React state hasn't re-rendered yet
+    if (referralSubmitLock.current) return;
+    referralSubmitLock.current = true;
+
+    if (!referralUsername.trim() || referralUsername.trim().length < 3) {
+      Alert.alert('Enter a Username', 'Please enter the username of the person who referred you (at least 3 characters).');
+      referralSubmitLock.current = false;
+      return;
+    }
+
+    setReferralLoading(true);
+    try {
+      const result = await submitReferral(referralUsername.trim());
+      if (result.success) {
+        Alert.alert('Referral Saved', result.message);
+        setReferralUsername('');
+        await loadReferralInfo();
+        setShowReferralModal(false);
+      } else {
+        Alert.alert('Referral Failed', result.message);
+      }
+    } catch (error) {
+      console.error('[Referral] Error submitting referral:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again later.');
+    } finally {
+      setReferralLoading(false);
+      referralSubmitLock.current = false;
+    }
   };
 
   // Handle sign out
@@ -4216,6 +4311,51 @@ const ProfileTab = () => {
               </View>
             </TouchableOpacity>
 
+              {/* Height Unit */}
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+                onPress={async () => {
+                  hapticFeedback.buttonPress();
+                  const newUnit = heightUnit === 'cm' ? 'ft' : 'cm';
+                  setHeightUnit(newUnit);
+                  await AsyncStorage.setItem('heightUnit', newUnit);
+                  const storedProfile = await AsyncStorage.getItem('userProfile');
+                  if (storedProfile) {
+                    const profile = JSON.parse(storedProfile);
+                    profile.heightUnit = newUnit;
+                    await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="straighten" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Height Unit</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
+                    {heightUnit === 'cm' ? 'CM' : 'FT'}
+                  </Text>
+                  <MaterialIcons name="sync" size={18} color={theme.textTertiary} />
+                </View>
+              </TouchableOpacity>
+
               {/* Haptic Feedback */}
               <View style={{
                 flexDirection: 'row',
@@ -4319,6 +4459,62 @@ const ProfileTab = () => {
               </View>
               <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
             </TouchableOpacity>
+            </View>
+
+            {/* REFERRAL SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: modalTextTertiaryColor,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Referral
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowReferralModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="person-add" size={20} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Referred By</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
+                      {referralInfo.referredByUsername
+                        ? `@${referralInfo.referredByUsername} referred you`
+                        : 'Enter who referred you'}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
             </View>
             
             {/* DANGER ZONE */}
@@ -4656,6 +4852,262 @@ const ProfileTab = () => {
             </View>
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* Referral Modal */}
+      <Modal visible={showReferralModal} animationType="slide" presentationStyle="pageSheet">
+        <KeyboardAvoidingView 
+          style={{ flex: 1, backgroundColor: theme.background }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 16,
+          }}>
+            <TouchableOpacity 
+              onPress={() => {
+                setShowReferralModal(false);
+                setReferralUsername('');
+              }}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                borderRadius: 20,
+              }}
+            >
+              <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Done</Text>
+            </TouchableOpacity>
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: '700', 
+              color: theme.text,
+              letterSpacing: 0.3,
+            }}>Referral</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 20, paddingTop: 8 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* If already referred — show who referred them */}
+            {referralInfo.referredByUsername ? (
+              <View style={{
+                backgroundColor: theme.card,
+                borderRadius: 16,
+                padding: 24,
+                alignItems: 'center',
+                marginBottom: 24,
+              }}>
+                <View style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: `${theme.primary}20`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}>
+                  <MaterialIcons name="person" size={32} color={theme.primary} />
+                </View>
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: '700',
+                  color: theme.text,
+                  marginBottom: 6,
+                }}>
+                  {referralInfo.referredByDisplayName || referralInfo.referredByUsername} referred you
+                </Text>
+                <Text style={{
+                  fontSize: 15,
+                  color: theme.textSecondary,
+                  marginBottom: 4,
+                }}>
+                  @{referralInfo.referredByUsername}
+                </Text>
+                {referralInfo.referralDate && (
+                  <Text style={{
+                    fontSize: 13,
+                    color: theme.textTertiary || theme.textSecondary,
+                    marginTop: 8,
+                  }}>
+                    Referred on {referralInfo.referralDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              /* No referrer yet — show input form */
+              <>
+                <View style={{
+                  backgroundColor: theme.card,
+                  borderRadius: 16,
+                  padding: 24,
+                  marginBottom: 16,
+                }}>
+                  <View style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: `${theme.primary}15`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                    alignSelf: 'center',
+                  }}>
+                    <MaterialIcons name="person-add" size={28} color={theme.primary} />
+                  </View>
+                  <Text style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: theme.text,
+                    textAlign: 'center',
+                    marginBottom: 8,
+                  }}>
+                    Who referred you?
+                  </Text>
+                  <Text style={{
+                    fontSize: 14,
+                    color: theme.textSecondary,
+                    textAlign: 'center',
+                    lineHeight: 20,
+                    marginBottom: 24,
+                  }}>
+                    If someone invited you to Biblely, enter their username below to give them credit. This can only be set once.
+                  </Text>
+
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                  }}>
+                    <Text style={{ fontSize: 18, color: theme.textSecondary, marginRight: 4 }}>@</Text>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 16,
+                        color: theme.text,
+                        paddingVertical: 14,
+                      }}
+                      placeholder="Enter their username"
+                      placeholderTextColor={theme.textTertiary || theme.textSecondary}
+                      value={referralUsername}
+                      onChangeText={(text) => setReferralUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={20}
+                      returnKeyType="done"
+                      onSubmitEditing={handleSubmitReferral}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: referralUsername.trim().length >= 3 ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                    borderRadius: 14,
+                    paddingVertical: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 24,
+                    opacity: referralLoading ? 0.7 : 1,
+                  }}
+                  onPress={handleSubmitReferral}
+                  disabled={referralLoading || referralUsername.trim().length < 3}
+                  activeOpacity={0.8}
+                >
+                  {referralLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: '700',
+                      color: referralUsername.trim().length >= 3 ? '#fff' : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'),
+                    }}>
+                      Submit Referral
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Info card */}
+                <View style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                  borderRadius: 12,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, marginBottom: 10 }}>
+                    How referrals work
+                  </Text>
+                  <View style={{ gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                      <MaterialIcons name="check-circle" size={16} color={theme.primary} style={{ marginTop: 1 }} />
+                      <Text style={{ fontSize: 13, color: theme.textSecondary, flex: 1, lineHeight: 18 }}>
+                        Both your email and the referrer's email must be verified
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                      <MaterialIcons name="check-circle" size={16} color={theme.primary} style={{ marginTop: 1 }} />
+                      <Text style={{ fontSize: 13, color: theme.textSecondary, flex: 1, lineHeight: 18 }}>
+                        You can only set your referrer once — it cannot be changed
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                      <MaterialIcons name="check-circle" size={16} color={theme.primary} style={{ marginTop: 1 }} />
+                      <Text style={{ fontSize: 13, color: theme.textSecondary, flex: 1, lineHeight: 18 }}>
+                        Referrals cannot go both ways between two people
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* Referral count — always show */}
+            {referralInfo.referralCount > 0 && (
+              <View style={{
+                backgroundColor: theme.card,
+                borderRadius: 16,
+                padding: 20,
+                marginTop: referralInfo.referredByUsername ? 0 : 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+              }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: `${theme.primary}15`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <MaterialIcons name="group" size={24} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>
+                    {referralInfo.referralCount}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                    {referralInfo.referralCount === 1 ? 'person joined through you' : 'people joined through you'}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Admin Analytics Modal */}

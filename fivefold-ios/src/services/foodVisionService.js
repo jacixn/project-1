@@ -14,7 +14,9 @@ try {
   console.warn('[FoodVision] gemini.config.js not found — food photo analysis will be unavailable');
 }
 
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
+// Use the auto-updating "latest" alias so the app always calls the newest
+// stable Flash model and never breaks when Google retires an older version.
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-flash-latest:generateContent';
 
 const ANALYSIS_PROMPT = `You are a nutrition expert. Analyze the food in this photo and provide nutritional estimates.
 
@@ -74,7 +76,11 @@ class FoodVisionService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn('[FoodVision] API error:', response.status, errorText);
+        console.warn(`[FoodVision] API error ${response.status}:`, errorText);
+        // Common causes: 404 = model deprecated/shut down, 400 = bad request, 403 = invalid API key
+        if (response.status === 404) {
+          console.warn('[FoodVision] Model may have been shut down — check https://ai.google.dev/gemini-api/docs/deprecations');
+        }
         return null;
       }
 

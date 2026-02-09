@@ -32,6 +32,14 @@ const POST_EXPIRY_DAYS = 7; // Posts older than 7 days get deleted
 const authorProfileCache = {};
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes - short enough to pick up profile changes quickly
 
+/** Invalidate cached profile for a user so the next enrichment re-fetches from Firestore */
+export const invalidateAuthorCache = (userId) => {
+  if (userId && authorProfileCache[userId]) {
+    delete authorProfileCache[userId];
+    console.log('[Feed] Invalidated author cache for', userId);
+  }
+};
+
 /**
  * Create a new post
  */
@@ -110,7 +118,10 @@ export const enrichPostsWithProfiles = async (posts) => {
       await Promise.all(fetchPromises);
     }
     
-    // Merge fresh profile data into posts (fall back to snapshot if not available)
+    // Merge fresh profile data into posts.
+    // When we have a fresh profile, ALWAYS use the fresh profilePicture (even if null)
+    // so that all posts by the same user show the same picture (or default avatar).
+    // Only fall back to the post snapshot if we couldn't fetch the profile at all.
     return posts.map(post => {
       const cached = authorProfileCache[post.userId];
       if (cached && cached.profile) {
@@ -118,9 +129,14 @@ export const enrichPostsWithProfiles = async (posts) => {
         return {
           ...post,
           authorName: fresh.displayName || post.authorName,
-          authorPhoto: fresh.profilePicture || post.authorPhoto,
+          authorPhoto: fresh.profilePicture != null ? fresh.profilePicture : post.authorPhoto,
           authorCountry: fresh.countryFlag || post.authorCountry,
           authorUsername: fresh.username || post.authorUsername,
+          // Badge-relevant fields
+          savedVerses: fresh.savedVerses ?? post.savedVerses ?? 0,
+          appStreak: fresh.appStreak ?? post.appStreak ?? 0,
+          referralCount: fresh.referralCount ?? post.referralCount ?? 0,
+          badgeToggles: fresh.badgeToggles ?? post.badgeToggles ?? {},
         };
       }
       return post;

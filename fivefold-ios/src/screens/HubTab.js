@@ -39,13 +39,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkout } from '../contexts/WorkoutContext';
 import bibleAudioService from '../services/bibleAudioService';
 import { GlassHeader } from '../components/GlassEffect';
-import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles } from '../services/feedService';
+import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles, invalidateAuthorCache } from '../services/feedService';
 import { isEmailVerified, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
+import LottieView from 'lottie-react-native';
+import AchievementService from '../services/achievementService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getReferralCount } from '../services/referralService';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
+
+const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
+
+const getStreakAnimSource = (animId) => {
+  switch (animId) {
+    case 'fire2':     return require('../../assets/Fire2.json');
+    case 'redcar':    return require('../../assets/Red-Car.json');
+    case 'bulb':      return require('../../assets/Bulb Transparent.json');
+    case 'amongus':   return require('../../assets/Loading 50 _ Among Us.json');
+    case 'lightning':  return require('../../assets/Lightning.json');
+    default:          return require('../../assets/fire-animation.json');
+  }
+};
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -82,6 +99,11 @@ const HubTab = () => {
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
   const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
   const [expandedPost, setExpandedPost] = useState(null);
+  
+  // Badge display state for current user
+  const [myBadgeToggles, setMyBadgeToggles] = useState({});
+  const [myReferralCount, setMyReferralCount] = useState(0);
+  const [myStreakAnim, setMyStreakAnim] = useState('fire1');
   
   // Expanded post animations
   const expandAnim = useRef(new Animated.Value(0)).current;
@@ -143,6 +165,15 @@ const HubTab = () => {
     return () => clearInterval(interval);
   }, []);
   
+  // Load badge toggles + referral count for current user badge display
+  useEffect(() => {
+    AsyncStorage.getItem('fivefold_badge_toggles').then(raw => {
+      if (raw) setMyBadgeToggles(JSON.parse(raw));
+    }).catch(() => {});
+    getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
+    AsyncStorage.getItem('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
+  }, []);
+
   // Load posts (one-time fetch, no real-time listener to save Firestore costs)
   const loadPosts = async () => {
     try {
@@ -223,8 +254,18 @@ const HubTab = () => {
       await checkTokenStatus(true); // Force Firebase sync
     });
 
+    // When the user changes their profile picture, invalidate the author cache
+    // so the feed re-fetches the fresh picture for all their posts
+    const picSub = DeviceEventEmitter.addListener('profileImageChanged', () => {
+      if (user?.uid) {
+        invalidateAuthorCache(user.uid);
+        console.log('[HubTab] Profile image changed - cache invalidated, will refresh on next load');
+      }
+    });
+
     return () => {
       subscription.remove();
+      picSub.remove();
     };
   }, [user, userProfile]);
   
@@ -582,11 +623,33 @@ const HubTab = () => {
                 <Text style={[styles.authorName, { color: theme.text }]}>
                   {isOwner ? (item.authorName || userProfile?.displayName) : item.authorName}
                 </Text>
-                {(isOwner ? (item.authorCountry || userProfile?.countryFlag) : item.authorCountry) ? (
-                  <Text style={styles.authorCountry}>
-                    {isOwner ? (item.authorCountry || userProfile?.countryFlag) : item.authorCountry}
-                  </Text>
-                ) : null}
+                {/* Country flag — respect toggle for own posts */}
+                {(() => {
+                  const flag = isOwner ? (item.authorCountry || userProfile?.countryFlag) : item.authorCountry;
+                  const hidden = isOwner && myBadgeToggles.country === false;
+                  if (!flag || hidden) return null;
+                  return <Text style={styles.authorCountry}>{flag}</Text>;
+                })()}
+                {/* Streak animation badge (current user only) */}
+                {isOwner && myBadgeToggles.streak !== false && (
+                  <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 4 }} />
+                )}
+                {/* Profile badges — gated only by referrals + toggles, no achievements */}
+                {(() => {
+                  const toggles = isOwner ? myBadgeToggles : (item.badgeToggles || {});
+                  const refCount = isOwner ? myReferralCount : (item.referralCount || 0);
+                  return AchievementService.PROFILE_BADGES
+                    .filter(badge => {
+                      if (toggles[badge.id] === false) return false;
+                      const req = BADGE_REFERRAL_GATES[badge.id];
+                      if (req != null && refCount < req) return false;
+                      return true;
+                    })
+                    .map(badge => badge.image
+                      ? <Image key={badge.id} source={badge.image} style={{ width: 16, height: 16, marginLeft: 4, borderRadius: 4 }} resizeMode="contain" />
+                      : <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 4 }} />
+                    );
+                })()}
               </View>
               {(item.authorUsername || (isOwner && userProfile?.username)) && (
                 <Text style={[styles.authorUsername, { color: theme.textSecondary }]}>

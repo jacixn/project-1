@@ -440,6 +440,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [selectedMode, setSelectedMode] = useState('dark');
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('niv');
   const [weightUnit, setWeightUnit] = useState('kg');
+  const [heightUnit, setHeightUnit] = useState('cm');
   const [showAllVersions, setShowAllVersions] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default to English
   
@@ -757,7 +758,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       steps.push({ id: 'language', label: 'Applying language preferences...', icon: 'translate', done: false });
     }
     
-    steps.push({ id: 'units', label: `Setting weight to ${weightUnit === 'kg' ? 'kilograms (kg)' : 'pounds (lbs)'}...`, icon: 'fitness-center', done: false });
+    steps.push({ id: 'units', label: `Setting units: ${weightUnit === 'kg' ? 'kg' : 'lbs'} / ${heightUnit === 'cm' ? 'cm' : 'ft'}...`, icon: 'fitness-center', done: false });
 
     const themeName = availableThemes?.find(t => t.id === selectedTheme)?.name || selectedTheme;
     steps.push({ id: 'theme', label: `Applying ${themeName} theme...`, icon: 'palette', done: false });
@@ -795,6 +796,7 @@ const SimpleOnboarding = ({ onComplete }) => {
             mode: selectedMode,
             bibleVersion: selectedBibleVersion,
             weightUnit: weightUnit,
+            heightUnit: heightUnit,
             language: selectedLanguage,
             joinedDate: new Date().toISOString(),
           };
@@ -831,6 +833,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         } else if (step.id === 'units') {
           await Promise.all([
             AsyncStorage.setItem('weightUnit', weightUnit),
+            AsyncStorage.setItem('heightUnit', heightUnit),
             minDelay,
           ]);
         } else if (step.id === 'theme') {
@@ -860,6 +863,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                   mode: selectedMode,
                   bibleVersion: selectedBibleVersion,
                   weightUnit: weightUnit,
+                  heightUnit: heightUnit,
                   language: selectedLanguage,
                   onboardingCompleted: true,
                   onboardingCompletedAt: new Date().toISOString(),
@@ -1960,16 +1964,21 @@ const SimpleOnboarding = ({ onComplete }) => {
   const WeightScreen = () => {
     const screenTheme = SCREEN_THEMES.weight;
     
-    const units = [
+    const weightUnits = [
       { id: 'kg', label: 'Kilograms (kg)', icon: '🌍', desc: 'Used in most countries' },
       { id: 'lb', label: 'Pounds (lb)', icon: '🇺🇸', desc: 'Used in USA & UK' },
+    ];
+
+    const heightUnits = [
+      { id: 'cm', label: 'Centimetres (cm)', icon: '📏', desc: 'Used in most countries' },
+      { id: 'ft', label: 'Feet & inches (ft)', icon: '📐', desc: 'Used in USA & UK' },
     ];
     
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
         <ProgressBar screenTheme={screenTheme} />
         
-        <View style={styles.weightScreenContent}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <View style={styles.weightTopSection}>
             <View style={styles.weightIconContainer}>
               <MaterialIcons name="fitness-center" size={48} color={screenTheme.accent} />
@@ -1980,11 +1989,11 @@ const SimpleOnboarding = ({ onComplete }) => {
             </Text>
             
             <Text style={[styles.screenSubtitle, { color: '#666' }]}>
-              This helps us display your workout progress correctly
+              This helps us display your progress correctly
             </Text>
             
             <View style={styles.weightOptions}>
-              {units.map((unit) => {
+              {weightUnits.map((unit) => {
                 const isSelected = weightUnit === unit.id;
                 return (
                   <TouchableOpacity
@@ -2012,8 +2021,53 @@ const SimpleOnboarding = ({ onComplete }) => {
                 );
               })}
             </View>
+
+            {/* Height unit section */}
+            <View style={{ marginTop: 28 }}>
+              <View style={[styles.weightIconContainer, { marginBottom: 8 }]}>
+                <MaterialIcons name="straighten" size={48} color={screenTheme.accent} />
+              </View>
+              
+              <Text style={[styles.screenTitle, { color: '#333' }]}>
+                How do you measure height?
+              </Text>
+
+              <Text style={[styles.screenSubtitle, { color: '#666' }]}>
+                Used for nutrition and workout calculations
+              </Text>
+
+              <View style={styles.weightOptions}>
+                {heightUnits.map((unit) => {
+                  const isSelected = heightUnit === unit.id;
+                  return (
+                    <TouchableOpacity
+                      key={unit.id}
+                      style={[
+                        styles.weightOption,
+                        isSelected && [styles.weightOptionSelected, { borderColor: screenTheme.accent }],
+                      ]}
+                      onPress={() => {
+                        hapticFeedback.selection();
+                        setHeightUnit(unit.id);
+                      }}
+                    >
+                      <Text style={styles.weightEmoji}>{unit.icon}</Text>
+                      <Text style={[styles.weightLabel, isSelected && { color: screenTheme.accent, fontWeight: '700' }]}>
+                        {unit.label}
+                      </Text>
+                      <Text style={styles.weightDesc}>{unit.desc}</Text>
+                      {isSelected && (
+                        <View style={[styles.weightCheck, { backgroundColor: screenTheme.accent }]}>
+                          <MaterialIcons name="check" size={16} color="#FFF" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
-        </View>
+        </ScrollView>
         
         <TouchableOpacity 
           onPress={handleNext}

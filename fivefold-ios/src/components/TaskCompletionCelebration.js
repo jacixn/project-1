@@ -110,11 +110,31 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
         handleClose();
       }, 2500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        // Stop all running animations on cleanup to prevent JS thread buildup
+        scaleAnim.stopAnimation();
+        checkScaleAnim.stopAnimation();
+        pointsScaleAnim.stopAnimation();
+        confettiAnims.forEach(anim => {
+          anim.y.stopAnimation();
+          anim.rotation.stopAnimation();
+          anim.opacity.stopAnimation();
+        });
+      };
     }
   }, [visible, task]);
 
   const handleClose = () => {
+    // Stop all running animations immediately
+    checkScaleAnim.stopAnimation();
+    pointsScaleAnim.stopAnimation();
+    confettiAnims.forEach(anim => {
+      anim.y.stopAnimation();
+      anim.rotation.stopAnimation();
+      anim.opacity.stopAnimation();
+    });
+
     Animated.timing(scaleAnim, {
       toValue: 0,
       duration: 200,
