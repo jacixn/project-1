@@ -408,12 +408,17 @@ const TodosTab = () => {
       
       const pointsEarned = taskToComplete.points || 500; // Use the task's actual scored points
       const newCompletedTasks = userStats.completedTasks + 1;
+
+      // Track per-tier completions for achievements
+      const tier = taskToComplete.tier || 'mid';
+      const tierKey = tier === 'low' ? 'lowTierCompleted' : tier === 'high' ? 'highTierCompleted' : 'midTierCompleted';
       
       const updatedStats = {
         ...userStats,
         totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
         completedTasks: newCompletedTasks,
+        [tierKey]: (userStats[tierKey] || 0) + 1,
         level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
       };
       
@@ -422,25 +427,23 @@ const TodosTab = () => {
       
       await saveData('todos', updatedTodos);
       await saveData('userStats', updatedStats);
+      // Also sync to raw userStats key for consistency
+      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
       
-      // Also update the central points storage (for consistency with PrayerCompletionManager)
-      const centralPointsStr = await AsyncStorage.getItem('total_points');
-      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-      const newCentralTotal = Math.max(centralPoints, updatedStats.totalPoints);
-      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      // total_points is now managed centrally by achievementService.checkAchievements()
       
       // Sync to Firebase if user is logged in
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
-          totalPoints: newCentralTotal,
+          totalPoints: updatedStats.totalPoints,
           tasksCompleted: newCompletedTasks,
           level: updatedStats.level,
           lastActive: serverTimestamp(),
         }, { merge: true }).catch(err => {
           console.warn('Firebase task points sync failed:', err.message);
         });
-        console.log(`Task points synced to Firebase: ${newCentralTotal}`);
+        console.log(`Task points synced to Firebase: ${updatedStats.totalPoints}`);
       }
 
       // Global Achievement Check - Handles awarding extra points and showing the alert

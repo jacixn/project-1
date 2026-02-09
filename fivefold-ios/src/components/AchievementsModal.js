@@ -5,74 +5,151 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  ScrollView,
-  View as SafeAreaView, // Switched to View to ignore bottom safe area as requested
   TextInput,
-  FlatList,
   Dimensions,
   Platform,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import AchievementService from '../services/achievementService';
 
-const { width, height } = Dimensions.get('window');
-const CARD_SIZE = (width - 50) / 2; // 2 cards per row for more impact and space
+const { width } = Dimensions.get('window');
+const CARD_SIZE = (width - 50) / 2;
+
+/** Human-friendly description for each achievement type */
+const DESCRIPTION_MAP = {
+  prayersCompleted:    (t) => `Complete ${t} prayer${t > 1 ? 's' : ''}`,
+  savedVerses:         (t) => `Save ${t} verse${t > 1 ? 's' : ''}`,
+  versesShared:        (t) => `Share ${t} verse${t > 1 ? 's' : ''}`,
+  audiosPlayed:        (t) => `Listen to ${t} Bible audio${t > 1 ? 's' : ''}`,
+  charactersRead:      (t) => `Read ${t} Bible character${t > 1 ? 's' : ''}`,
+  timelineErasViewed:  (t) => `Explore ${t} timeline era${t > 1 ? 's' : ''}`,
+  versesRead:          (t) => `Read ${t} verse${t > 1 ? 's' : ''}`,
+  mapsVisited:         (t) => `Visit ${t} Bible map location${t > 1 ? 's' : ''}`,
+  completedTasks:      (t) => `Complete ${t} task${t > 1 ? 's' : ''}`,
+  lowTierCompleted:    (t) => `Complete ${t} low-tier task${t > 1 ? 's' : ''}`,
+  midTierCompleted:    (t) => `Complete ${t} mid-tier task${t > 1 ? 's' : ''}`,
+  highTierCompleted:   (t) => `Complete ${t} high-tier task${t > 1 ? 's' : ''}`,
+  appStreak:           (t) => `Open the app ${t} day${t > 1 ? 's' : ''} in a row`,
+  totalPoints:         (t) => `Earn ${t.toLocaleString()} total points`,
+  workoutsCompleted:   (t) => `Complete ${t} workout${t > 1 ? 's' : ''}`,
+  gymWeekStreak:       (t) => `Work out ${t} week${t > 1 ? 's' : ''} in a row`,
+  exercisesLogged:     (t) => `Log ${t} exercise${t > 1 ? 's' : ''} total`,
+  setsCompleted:       (t) => `Complete ${t} set${t > 1 ? 's' : ''}`,
+  workoutMinutes:      (t) => `Train for ${t} minute${t > 1 ? 's' : ''} total`,
+};
+
+/** Category labels for section headers */
+const CATEGORY_LABELS = {
+  prayer: 'Prayer',
+  saved: 'Saved Verses',
+  shared: 'Sharing',
+  audio: 'Audio',
+  characters: 'Bible Characters',
+  timeline: 'Timeline',
+  reading: 'Reading',
+  maps: 'Bible Maps',
+  tasks: 'Tasks',
+  tasks_low: 'Low Tier Tasks',
+  tasks_mid: 'Mid Tier Tasks',
+  tasks_high: 'High Tier Tasks',
+  streak: 'Daily Streak',
+  goals: 'Points Goals',
+  workouts: 'Workouts',
+  gym_streak: 'Gym Streak',
+  exercises: 'Exercises',
+  sets: 'Sets',
+  gym_time: 'Gym Time',
+};
+
+/** Category ordering */
+const CATEGORY_ORDER = [
+  'prayer', 'saved', 'shared', 'audio', 'characters', 'timeline', 'reading', 'maps',
+  'tasks', 'tasks_low', 'tasks_mid', 'tasks_high', 'streak', 'goals',
+  'workouts', 'gym_streak', 'exercises', 'sets', 'gym_time',
+];
 
 const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [achievements, setAchievements] = useState([]);
-  
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [prestigeRound, setPrestigeRound] = useState(0);
+  const [showPrestigeCelebration, setShowPrestigeCelebration] = useState(false);
+  const [celebrationPrestige, setCelebrationPrestige] = useState(0);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  
+  const celebrationScale = useRef(new Animated.Value(0)).current;
+  const celebrationGlow = useRef(new Animated.Value(0)).current;
+
   // Collapsible search bar animation
   const searchBarAnim = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
-  
+
   const handleScroll = (event) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-    
+
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
-      
       Animated.timing(searchBarAnim, {
         toValue: direction === 'down' ? 0 : 1,
         duration: 250,
         useNativeDriver: false,
       }).start();
     }
-    
+
     lastScrollY.current = currentScrollY;
   };
 
+  // Load prestige count on mount
+  useEffect(() => {
+    AchievementService.getPrestigeCount().then(setPrestigeRound);
+  }, []);
+
+  // Listen for the all-achievements-completed event
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('allAchievementsCompleted', ({ prestigeRound: round }) => {
+      setCelebrationPrestige(round);
+      setShowPrestigeCelebration(true);
+      setPrestigeRound(round);
+      hapticFeedback.success();
+
+      // Animate celebration modal
+      celebrationScale.setValue(0);
+      celebrationGlow.setValue(0);
+      Animated.sequence([
+        Animated.spring(celebrationScale, { toValue: 1, tension: 40, friction: 5, useNativeDriver: true }),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(celebrationGlow, { toValue: 1, duration: 1500, useNativeDriver: true }),
+            Animated.timing(celebrationGlow, { toValue: 0, duration: 1500, useNativeDriver: true }),
+          ])
+        ),
+      ]).start();
+    });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     if (visible) {
-      // Reset search bar animation
       searchBarAnim.setValue(1);
       lastScrollY.current = 0;
       scrollDirection.current = 'up';
-      
+
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-        })
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }),
       ]).start();
       generateAchievements();
+      AchievementService.getPrestigeCount().then(setPrestigeRound);
     } else {
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
@@ -81,262 +158,63 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
 
   const generateAchievements = () => {
     const stats = userStats || {};
-    const completedTasks = stats.completedTasks || 0;
-    const points = stats.points || 0;
-    const level = stats.level || 1;
-    const streakDays = stats.streak || 0;
-    const prayersCompleted = stats.prayersCompleted || 0;
-    const versesRead = stats.versesRead || 0;
-    const savedVerses = stats.savedVerses || 0;
+    const definitions = AchievementService.getAchievementDefinitions();
 
-    const makeMilestone = ({
-      id,
-      title,
-      description,
-      category,
-      icon,
-      value,
-      current,
-      rewardPoints,
-    }) => ({
-      id,
-      title,
-      description,
-      category,
-      icon,
-      target: value,
-      progress: Math.min(current, value),
-      completed: current >= value,
-      points: rewardPoints,
+    const mapped = definitions.map((def) => {
+      const current = stats[def.type] || 0;
+      const descFn = DESCRIPTION_MAP[def.type];
+      return {
+        id: def.id,
+        title: def.title,
+        description: descFn ? descFn(def.target) : `Reach ${def.target}`,
+        category: def.category,
+        icon: def.icon,
+        target: def.target,
+        progress: Math.min(current, def.target),
+        completed: current >= def.target,
+        points: def.points,
+      };
     });
 
-    const tierReward = (i, total) => {
-      // Gradual rewards matching AchievementService
-      const percent = i / total;
-      if (percent >= 0.95) return 10000000; // 10 Million
-      if (percent >= 0.85) return 5000000;  // 5 Million
-      if (percent >= 0.7) return 2500000;   // 2.5 Million
-      if (percent >= 0.5) return 1000000;   // 1 Million
-      if (percent >= 0.3) return 500000;    // 500k
-      if (percent >= 0.2) return 250000;    // 250k
-      if (percent >= 0.1) return 100000;    // 100k
-      if (i >= 5) return 50000;             // 50k
-      if (i >= 2) return 25000;             // 25k
-      if (i === 1) return 15000;            // 15k
-      return 10000;                         // 10k for the very first one
-    };
-
-    const taskMilestones = [
-      1, 10, 25, 50, 75, 100, 150, 200, 300,
-      400, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `tasks_${value}`,
-        title:
-          value === 1 ? 'First Win' :
-          value === 100 ? 'Task Centurion' :
-          value === 1000 ? 'Task Titan' :
-          value === 5000 ? 'Relentless' :
-          `Task Milestone`,
-        description: `Complete ${value} total tasks`,
-        category: 'tasks',
-        icon: 'assignment-turned-in',
-        value,
-        current: completedTasks,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const streakMilestones = [
-      7, 14, 21, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300, 365,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `streak_${value}`,
-        title:
-          value === 7 ? 'Week Strong' :
-          value === 30 ? 'One Month' :
-          value === 180 ? 'Half Year' :
-          value === 365 ? 'One Year' :
-          'Streak Milestone',
-        description: `Maintain a ${value}-day app streak`,
-        category: 'streak',
-        icon: 'whatshot',
-        value,
-        current: streakDays,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const prayerMilestones = [
-      1, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `prayers_${value}`,
-        title:
-          value === 1 ? 'First Prayer' :
-          value === 100 ? 'Prayer Centurion' :
-          value === 1000 ? 'Prayer Veteran' :
-          'Prayer Milestone',
-        description: `Complete ${value} prayers`,
-        category: 'prayer',
-        icon: 'healing',
-        value,
-        current: prayersCompleted,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const verseMilestones = [
-      1, 50, 100, 200, 300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `verses_${value}`,
-        title:
-          value === 1 ? 'First Verse' :
-          value === 500 ? 'Scripture Builder' :
-          value === 2000 ? 'Scripture Scholar' :
-          value === 10000 ? 'Scripture Sage' :
-          'Reading Milestone',
-        description: `Read ${value.toLocaleString()} Bible verses`,
-        category: 'reading',
-        icon: 'menu-book',
-        value,
-        current: versesRead,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const savedVerseMilestones = [
-      1, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `saved_verses_${value}`,
-        title:
-          value === 1 ? 'First Save' :
-          value === 25 ? 'Verse Keeper' :
-          value === 100 ? 'Archive Builder' :
-          value === 300 ? 'Living Library' :
-          'Saved Verses',
-        description: `Save ${value} verses`,
-        category: 'reading',
-        icon: 'bookmark',
-        value,
-        current: savedVerses,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const levelMilestones = [
-      5, 10, 15, 20, 25,
-    ].map((value, i, arr) =>
-      makeMilestone({
-        id: `level_${value}`,
-        title:
-          value === 5 ? 'Getting Stronger' :
-          value === 10 ? 'Built Different' :
-          value === 25 ? 'Elite' :
-          'Level Up',
-        description: `Reach level ${value}`,
-        category: 'level',
-        icon: 'military-tech',
-        value,
-        current: level,
-        rewardPoints: tierReward(i, arr.length),
-      })
-    );
-
-    const special = [
-      {
-        id: 'special_balanced_disciple',
-        title: 'Balanced Disciple',
-        description: '100 tasks, 100 prayers, 500 verses',
-        category: 'special',
-        icon: 'emoji-events',
-        target: 1,
-        progress: (completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500) ? 1 : 0,
-        completed: completedTasks >= 100 && prayersCompleted >= 100 && versesRead >= 500,
-        points: 1000000,
-      },
-      {
-        id: 'special_devoted_builder',
-        title: 'Devoted Builder',
-        description: '500 tasks, 50,000 points, 60-day streak',
-        category: 'special',
-        icon: 'emoji-events',
-        target: 1,
-        progress: (completedTasks >= 500 && points >= 50000 && streakDays >= 60) ? 1 : 0,
-        completed: completedTasks >= 500 && points >= 50000 && streakDays >= 60,
-        points: 2500000,
-      },
-      {
-        id: 'special_scripture_and_prayer',
-        title: 'Scripture & Prayer',
-        description: '2,000 verses and 500 prayers',
-        category: 'special',
-        icon: 'emoji-events',
-        target: 1,
-        progress: (versesRead >= 2000 && prayersCompleted >= 500) ? 1 : 0,
-        completed: versesRead >= 2000 && prayersCompleted >= 500,
-        points: 2500000,
-      },
-      {
-        id: 'special_deep_rooted',
-        title: 'Deep Rooted',
-        description: '180-day streak, 1,000 prayers, 5,000 verses',
-        category: 'special',
-        icon: 'emoji-events',
-        target: 1,
-        progress: (streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000) ? 1 : 0,
-        completed: streakDays >= 180 && prayersCompleted >= 1000 && versesRead >= 5000,
-        points: 5000000,
-      },
-      {
-        id: 'special_fivefold_legend',
-        title: 'Fivefold Legend',
-        description: '2,000 tasks, 250,000 points, 365-day streak',
-        category: 'special',
-        icon: 'emoji-events',
-        target: 1,
-        progress: (completedTasks >= 2000 && points >= 250000 && streakDays >= 365) ? 1 : 0,
-        completed: completedTasks >= 2000 && points >= 250000 && streakDays >= 365,
-        points: 10000000,
-      },
-    ];
-
-    const allAchievements = [
-      ...taskMilestones,
-      ...streakMilestones,
-      ...prayerMilestones,
-      ...verseMilestones,
-      ...savedVerseMilestones,
-      ...levelMilestones,
-      ...special,
-    ];
-
-    setAchievements(allAchievements);
+    setAchievements(mapped);
   };
 
-  const filteredAchievements = achievements.filter(achievement => {
-    const matchesSearch = achievement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         achievement.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+  // Filter by search + category
+  const filteredAchievements = achievements.filter((a) => {
+    const matchesSearch =
+      searchQuery === '' ||
+      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || a.category === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
+
+  // Count completed
+  const completedCount = achievements.filter((a) => a.completed).length;
 
   const renderAchievement = ({ item }) => (
     <Animated.View
       style={{
         transform: [{ scale: item.completed ? 1 : 0.98 }],
-        opacity: item.completed ? 1 : 0.8
+        opacity: item.completed ? 1 : 0.8,
       }}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         activeOpacity={0.8}
         style={[
-          styles.achievementCard, 
-          { 
-            backgroundColor: item.completed ? `${theme.primary}15` : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-            borderColor: item.completed ? theme.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          }
+          styles.achievementCard,
+          {
+            backgroundColor: item.completed
+              ? `${theme.primary}15`
+              : isDark
+              ? 'rgba(255,255,255,0.05)'
+              : 'rgba(0,0,0,0.03)',
+            borderColor: item.completed
+              ? theme.primary
+              : isDark
+              ? 'rgba(255,255,255,0.1)'
+              : 'rgba(0,0,0,0.05)',
+          },
         ]}
       >
         {item.completed && (
@@ -348,54 +226,74 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
           />
         )}
 
-        <View style={[styles.achievementIcon, { 
-          backgroundColor: item.completed ? theme.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          shadowColor: theme.primary,
-          shadowOpacity: item.completed ? 0.5 : 0,
-          shadowRadius: 10,
-          elevation: item.completed ? 10 : 0
-        }]}>
-          <MaterialIcons 
-            name={item.icon} 
-            size={28} 
-            color={item.completed ? '#FFFFFF' : theme.textTertiary} 
+        <View
+          style={[
+            styles.achievementIcon,
+            {
+              backgroundColor: item.completed
+                ? theme.primary
+                : isDark
+                ? 'rgba(255,255,255,0.1)'
+                : 'rgba(0,0,0,0.05)',
+              shadowColor: theme.primary,
+              shadowOpacity: item.completed ? 0.5 : 0,
+              shadowRadius: 10,
+              elevation: item.completed ? 10 : 0,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name={item.icon}
+            size={28}
+            color={item.completed ? '#FFFFFF' : theme.textTertiary}
           />
         </View>
-        
+
         <View style={{ flex: 1 }}>
           <Text style={[styles.achievementTitle, { color: theme.text }]} numberOfLines={1}>
             {item.title}
           </Text>
-          
+
           <Text style={[styles.achievementDesc, { color: theme.textSecondary }]} numberOfLines={2}>
             {item.description}
           </Text>
-          
+
           <View style={styles.achievementProgress}>
-            <View style={[styles.progressBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+            <View
+              style={[
+                styles.progressBar,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+              ]}
+            >
               <LinearGradient
                 colors={[theme.primary, `${theme.primary}80`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[
-                  styles.progressFill, 
-                  { 
-                    width: `${Math.min((item.progress / item.target) * 100, 100)}%`
-                  }
-                ]} 
+                  styles.progressFill,
+                  { width: `${Math.min((item.progress / item.target) * 100, 100)}%` },
+                ]}
               />
             </View>
             <View style={{ gap: 4 }}>
               <Text style={[styles.progressText, { color: theme.textTertiary }]}>
                 {item.progress.toLocaleString()}/{item.target.toLocaleString()}
               </Text>
-              <Text style={[styles.pointsText, { color: item.completed ? theme.primary : theme.textTertiary, fontWeight: '800' }]}>
+              <Text
+                style={[
+                  styles.pointsText,
+                  {
+                    color: item.completed ? theme.primary : theme.textTertiary,
+                    fontWeight: '800',
+                  },
+                ]}
+              >
                 +{Number(item.points || 0).toLocaleString()} PTS
               </Text>
             </View>
           </View>
         </View>
-        
+
         {item.completed && (
           <View style={[styles.completedBadge, { backgroundColor: theme.primary }]}>
             <MaterialIcons name="check" size={12} color="#FFFFFF" />
@@ -405,107 +303,221 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
     </Animated.View>
   );
 
+  // ── Category filter chips ──
+  const renderCategoryChips = () => {
+    const categories = [
+      { key: 'all', label: 'All' },
+      ...CATEGORY_ORDER.map((key) => ({ key, label: CATEGORY_LABELS[key] || key })),
+    ];
+
+    return (
+      <Animated.View
+        style={{
+          height: searchBarAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 44],
+          }),
+          opacity: searchBarAnim,
+          overflow: 'hidden',
+        }}
+      >
+        <Animated.ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10, gap: 8 }}
+        >
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.key;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setSelectedCategory(cat.key);
+                }}
+                activeOpacity={0.7}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  backgroundColor: isActive
+                    ? theme.primary
+                    : isDark
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'rgba(0,0,0,0.05)',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '700',
+                    color: isActive ? '#FFFFFF' : theme.textSecondary,
+                  }}
+                >
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.ScrollView>
+      </Animated.View>
+    );
+  };
+
   const content = (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LinearGradient
-          colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
-          style={StyleSheet.absoluteFill}
-        />
-        
-        <Animated.View style={[styles.container, { 
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          {/* Content - FlatList starts from top */}
-          <Animated.FlatList
-            data={filteredAchievements}
-            renderItem={renderAchievement}
-            keyExtractor={item => item.id}
-            numColumns={2}
-            contentContainerStyle={{
-              padding: 16,
-              paddingBottom: 100,
-            }}
-            showsVerticalScrollIndicator={false}
-            columnWrapperStyle={{ justifyContent: 'space-between' }}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            ListHeaderComponent={
-              <Animated.View style={{
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <LinearGradient
+        colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <Animated.View
+        style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+      >
+        {/* Content */}
+        <Animated.FlatList
+          data={filteredAchievements}
+          renderItem={renderAchievement}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={{
+            padding: 16,
+            paddingBottom: 100,
+            ...(filteredAchievements.length === 0 ? { flex: 1 } : {}),
+          }}
+          showsVerticalScrollIndicator={false}
+          columnWrapperStyle={
+            filteredAchievements.length > 0 ? { justifyContent: 'space-between' } : undefined
+          }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          ListHeaderComponent={
+            <Animated.View
+              style={{
                 height: searchBarAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [Platform.OS === 'ios' ? 100 : 80, Platform.OS === 'ios' ? 158 : 128],
+                  outputRange: [Platform.OS === 'ios' ? 100 : 80, Platform.OS === 'ios' ? 210 : 180],
                 }),
-              }} />
-            }
-          />
+              }}
+            />
+          }
+          ListEmptyComponent={
+            <View
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}
+            >
+              <MaterialIcons
+                name="emoji-events"
+                size={64}
+                color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}
+              />
+              <Text
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 17,
+                  fontWeight: '700',
+                  marginTop: 16,
+                }}
+              >
+                No Matches
+              </Text>
+              <Text
+                style={{
+                  color: theme.textTertiary,
+                  fontSize: 14,
+                  marginTop: 6,
+                  textAlign: 'center',
+                  paddingHorizontal: 40,
+                }}
+              >
+                Try a different search or category.
+              </Text>
+            </View>
+          }
+        />
 
-          {/* Premium Transparent Header */}
-          <BlurView 
-            intensity={50} 
-            tint={isDark ? 'dark' : 'light'} 
-            style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              zIndex: 1000,
-            }}
-          >
-            <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-            <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-              <View style={{ 
+        {/* Premium Transparent Header */}
+        <BlurView
+          intensity={50}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+            <View
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-              }}>
-                <TouchableOpacity 
-                  onPress={onClose} 
-                  style={{ 
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1,
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-                </TouchableOpacity>
-                
-                <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-                  <Text style={{ 
-                    color: theme.text, 
-                    fontSize: 17, 
-                    fontWeight: '700',
-                    letterSpacing: 0.3,
-                  }}>
+              }}
+            >
+              <TouchableOpacity
+                onPress={onClose}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              </TouchableOpacity>
+
+              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text
+                    style={{
+                      color: theme.text,
+                      fontSize: 17,
+                      fontWeight: '700',
+                      letterSpacing: 0.3,
+                    }}
+                  >
                     Achievements
                   </Text>
-                  <View style={{ 
-                    width: 30, 
-                    height: 3, 
-                    backgroundColor: theme.primary, 
-                    borderRadius: 2,
-                    marginTop: 4
-                  }} />
+                  {prestigeRound > 0 && (
+                    <View style={{
+                      backgroundColor: theme.primary,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 10,
+                    }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>
+                        Round {prestigeRound + 1}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                
-                <View style={{ width: 70 }} />
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {completedCount}/{achievements.length} unlocked{prestigeRound > 0 ? ` \u2022 ${prestigeRound}x completed` : ''}
+                </Text>
               </View>
-              
-              {/* Collapsible Search bar */}
-              <Animated.View style={{
+
+              <View style={{ width: 70 }} />
+            </View>
+
+            {/* Collapsible Search bar */}
+            <Animated.View
+              style={{
                 height: searchBarAnim.interpolate({
                   inputRange: [0, 1],
                   outputRange: [0, 58],
                 }),
                 opacity: searchBarAnim,
                 overflow: 'hidden',
-              }}>
-                <View style={{
+              }}
+            >
+              <View
+                style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                   borderRadius: 14,
                   paddingHorizontal: 14,
@@ -515,118 +527,207 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
                   borderWidth: 1,
                   borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                   marginTop: 16,
-                }}>
-                  <MaterialIcons name="search" size={20} color={theme.textTertiary} />
-                  <TextInput
+                }}
+              >
+                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginLeft: 10,
+                    paddingVertical: 2,
+                  }}
+                  placeholder="Search achievements..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={{
-                      flex: 1,
-                      fontSize: 15,
-                      color: theme.text,
-                      marginLeft: 10,
-                      paddingVertical: 2,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
-                    placeholder="Search milestones..."
-                    placeholderTextColor={theme.textTertiary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSearchQuery('')}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialIcons name="close" size={14} color={theme.text} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </Animated.View>
+                  >
+                    <MaterialIcons name="close" size={14} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </Animated.View>
-          </BlurView>
+          </Animated.View>
+
+          {/* Category filter chips */}
+          {renderCategoryChips()}
+        </BlurView>
+      </Animated.View>
+    </View>
+  );
+
+  const prestigeCelebrationModal = (
+    <Modal visible={showPrestigeCelebration} animationType="fade" transparent>
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.75)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32,
+      }}>
+        <Animated.View style={{
+          transform: [{ scale: celebrationScale }],
+          width: '100%',
+          maxWidth: 340,
+          borderRadius: 32,
+          overflow: 'hidden',
+        }}>
+          <LinearGradient
+            colors={isDark ? ['#1a1a2e', '#16213e', '#0f3460'] : ['#667eea', '#764ba2', '#f093fb']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ padding: 32, alignItems: 'center' }}
+          >
+            {/* Trophy icon */}
+            <Animated.View style={{
+              opacity: celebrationGlow.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1],
+              }),
+              transform: [{
+                scale: celebrationGlow.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 1.1],
+                }),
+              }],
+            }}>
+              <View style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                shadowColor: '#FFD700',
+                shadowOpacity: 0.6,
+                shadowRadius: 20,
+                elevation: 12,
+              }}>
+                <MaterialIcons name="emoji-events" size={56} color="#FFD700" />
+              </View>
+            </Animated.View>
+
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 26,
+              fontWeight: '900',
+              textAlign: 'center',
+              letterSpacing: 0.5,
+              marginBottom: 8,
+            }}>
+              Incredible!
+            </Text>
+
+            <Text style={{
+              color: 'rgba(255,255,255,0.9)',
+              fontSize: 16,
+              fontWeight: '600',
+              textAlign: 'center',
+              lineHeight: 24,
+              marginBottom: 8,
+            }}>
+              You've completed every single achievement!
+            </Text>
+
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 16,
+              marginBottom: 20,
+            }}>
+              <Text style={{
+                color: '#FFD700',
+                fontSize: 18,
+                fontWeight: '800',
+                textAlign: 'center',
+              }}>
+                Round {celebrationPrestige} Complete
+              </Text>
+            </View>
+
+            <Text style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 14,
+              fontWeight: '500',
+              textAlign: 'center',
+              lineHeight: 22,
+              marginBottom: 28,
+            }}>
+              All achievements have been reset. Time to earn them all over again — let's go!
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowPrestigeCelebration(false);
+                hapticFeedback.medium();
+                generateAchievements();
+              }}
+              activeOpacity={0.8}
+              style={{
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 36,
+                paddingVertical: 14,
+                borderRadius: 20,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+            >
+              <Text style={{
+                color: '#667eea',
+                fontSize: 16,
+                fontWeight: '800',
+                letterSpacing: 0.3,
+              }}>
+                Let's Go!
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
         </Animated.View>
       </View>
+    </Modal>
   );
 
   if (asScreen) {
-    return content;
+    return (
+      <>
+        {content}
+        {prestigeCelebrationModal}
+      </>
+    );
   }
 
   return (
-    <Modal visible={visible} animationType="none" transparent>
-      {content}
-    </Modal>
+    <>
+      <Modal visible={visible} animationType="none" transparent>
+        {content}
+      </Modal>
+      {prestigeCelebrationModal}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 0 : 0, // HeaderContainer handles blur and padding
-  },
-  headerContainer: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 11,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 40,
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: 8,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  achievementsContainer: {
-    padding: 16,
-    paddingTop: 20,
-    paddingBottom: 100, // Space for bottom of list
+    paddingTop: Platform.OS === 'ios' ? 0 : 0,
   },
   achievementCard: {
     width: CARD_SIZE,

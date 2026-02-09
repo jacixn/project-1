@@ -313,26 +313,26 @@ const PrayerSection = () => {
       
       newStats.level = AchievementService.getLevelFromPoints(newStats.points);
       await saveData('userStats', newStats);
+      await AsyncStorage.setItem('userStats', JSON.stringify(newStats));
       
-      // Update central total_points key
-      const centralPointsStr = await AsyncStorage.getItem('total_points');
-      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-      const newCentralTotal = Math.max(centralPoints + points, newStats.points);
-      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      // total_points is now managed centrally by achievementService.checkAchievements()
       
       // SYNC TO FIREBASE
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
-          totalPoints: newCentralTotal,
+          totalPoints: newStats.totalPoints,
           prayersCompleted: newStats.prayersCompleted,
           level: newStats.level,
           lastActive: serverTimestamp(),
         }, { merge: true }).catch(err => {
           console.warn('Firebase prayer points sync failed:', err.message);
         });
-        console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
+        console.log(`🔥 Prayer points synced to Firebase: ${newStats.totalPoints}`);
       }
+
+      // Check achievements and sync total_points centrally
+      await AchievementService.checkAchievements(newStats);
     } catch (error) {
       console.error('❌ ERROR GIVING POINTS:', error);
     }

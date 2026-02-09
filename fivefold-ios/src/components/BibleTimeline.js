@@ -23,6 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import AchievementService from '../services/achievementService';
 
 const { width, height } = Dimensions.get('window');
 const screenHeight = Dimensions.get('screen').height;
@@ -228,6 +229,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const handleBubblePress = (era) => {
     hapticFeedback.medium();
     setSelectedEra(era);
+    AchievementService.incrementStat('timelineErasViewed');
     // Removed selection animation for better performance
   };
 

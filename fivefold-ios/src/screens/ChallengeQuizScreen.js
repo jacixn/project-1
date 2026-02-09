@@ -183,31 +183,28 @@ const ChallengeQuizScreen = () => {
       
       // Save updated stats locally
       await saveData('userStats', updatedStats);
+      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
       
-      // ALSO update the central total_points key for consistency
-      const centralPointsStr = await AsyncStorage.getItem('total_points');
-      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-      const newCentralTotal = Math.max(centralPoints + points, updatedStats.points);
-      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      // total_points is now managed centrally by achievementService.checkAchievements()
       
       // SYNC TO FIREBASE - This is critical!
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
-          totalPoints: newCentralTotal,
+          totalPoints: updatedStats.totalPoints,
           quizzesTaken: updatedStats.quizzesCompleted,
           level: updatedStats.level,
           lastActive: serverTimestamp(),
         }, { merge: true }).catch(err => {
           console.warn('Firebase quiz points sync failed:', err.message);
         });
-        console.log(`🔥 Challenge quiz points synced to Firebase: ${newCentralTotal}`);
+        console.log(`🔥 Challenge quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
       // Check achievements
       await AchievementService.checkAchievements(updatedStats);
       
-      console.log(`🏆 Challenge quiz completed! Awarded ${points} points for ${correctAnswers}/${totalQuestions} correct. Total: ${newCentralTotal}`);
+      console.log(`🏆 Challenge quiz completed! Awarded ${points} points for ${correctAnswers}/${totalQuestions} correct. Total: ${updatedStats.totalPoints}`);
       
       return points;
     } catch (error) {

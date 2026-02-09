@@ -297,6 +297,30 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - lottie-ios (4.5.0)
+  - lottie-react-native (7.3.5):
+    - hermes-engine
+    - lottie-ios (= 4.5.0)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RCTDeprecation (0.81.4)
   - RCTRequired (0.81.4)
   - RCTTypeSafety (0.81.4):
@@ -2544,6 +2568,7 @@ DEPENDENCIES:
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - ImageColors (from `../node_modules/react-native-image-colors/ios`)
   - "LiquidGlass (from `../node_modules/@callstack/liquid-glass`)"
+  - lottie-react-native (from `../node_modules/lottie-react-native`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTTypeSafety (from `../node_modules/react-native/Libraries/TypeSafety`)
@@ -2631,6 +2656,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - lottie-ios
     - SwiftUIIntrospect
 
 EXTERNAL SOURCES:
@@ -2703,6 +2729,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-image-colors/ios"
   LiquidGlass:
     :path: "../node_modules/@callstack/liquid-glass"
+  lottie-react-native:
+    :path: "../node_modules/lottie-react-native"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2905,6 +2933,8 @@ SPEC CHECKSUMS:
   hermes-engine: 35c763d57c9832d0eef764316ca1c4d043581394
   ImageColors: e12eb73e29bc1feaa3c228db8c174a1b25acb59d
   LiquidGlass: 81701faa3afd04068eb79d0300d3adf4c3fc4fab
+  lottie-ios: a881093fab623c467d3bce374367755c272bdd59
+  lottie-react-native: 8e5dd0e51847600666057d2c9b95815ac9fdb165
   RCTDeprecation: 7487d6dda857ccd4cb3dd6ecfccdc3170e85dcbc
   RCTRequired: 54128b7df8be566881d48c7234724a78cb9b6157
   RCTTypeSafety: d2b07797a79e45d7b19e1cd2f53c79ab419fe217

@@ -2,13 +2,12 @@
  * Achievements Screen
  * 
  * Wrapper screen for AchievementsModal to enable stack navigation with swipe-back.
- * Loads user stats from AsyncStorage and passes them to the modal component.
+ * Loads user stats from both storage keys (merged) and passes them to the modal.
  */
 
 import React, { useState, useEffect } from 'react';
 import AchievementsModal from '../components/AchievementsModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStoredData } from '../utils/localStorage';
+import AchievementService from '../services/achievementService';
 
 const AchievementsScreen = ({ navigation }) => {
   const [userStats, setUserStats] = useState({});
@@ -16,8 +15,8 @@ const AchievementsScreen = ({ navigation }) => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const storedStats = await getStoredData('userStats') || {};
-        setUserStats(storedStats);
+        const mergedStats = await AchievementService.getStats();
+        setUserStats(mergedStats);
       } catch (error) {
         console.error('Error loading user stats:', error);
       }

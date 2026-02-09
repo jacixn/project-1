@@ -31,6 +31,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -259,6 +260,7 @@ const ProfileTab = () => {
     prayersCompleted: 0,
   });
   const [userName, setUserName] = useState('Faithful Friend');
+  const [earnedBadges, setEarnedBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('Faithful Friend');
@@ -319,6 +321,15 @@ const ProfileTab = () => {
   const [appStreak, setAppStreak] = useState(0);
   const [showStreakMilestone, setShowStreakMilestone] = useState(false);
   const [streakAnimation, setStreakAnimation] = useState(null);
+  const [streakOpenDates, setStreakOpenDates] = useState([]);
+  const streakVisibleRef = useRef(false);
+  
+  // Streak animation values
+  const streakFireScale = useRef(new Animated.Value(0)).current;
+  const streakFireFlicker = useRef(new Animated.Value(1)).current;
+  const streakNumberScale = useRef(new Animated.Value(0)).current;
+  const streakFadeIn = useRef(new Animated.Value(0)).current;
+  // (Lottie handles flame layers internally)
   
   // Journal State
   const [journalNotes, setJournalNotes] = useState([]);
@@ -572,26 +583,81 @@ const ProfileTab = () => {
     try {
       const streakData = await AppStreakManager.trackAppOpen();
       setAppStreak(streakData.currentStreak);
-      // Keep userStats in sync so Achievements reflects the real app streak
+      setStreakOpenDates(streakData.openDates || []);
+      // Sync app streak into userStats via AchievementService so streak achievements trigger
+      await AchievementService.setStat('appStreak', streakData.currentStreak);
       setUserStats(prev => ({
         ...prev,
         streak: streakData.currentStreak,
+        appStreak: streakData.currentStreak,
       }));
       
-      // Check for milestone and show animation
+      // Clear milestone flag if any
       if (streakData.milestoneReached) {
-        setShowStreakMilestone(true);
-        const animation = AppStreakManager.getStreakAnimation(streakData.currentStreak);
-        setStreakAnimation(animation);
-        
-        // Clear milestone flag
         await AppStreakManager.clearMilestoneFlag();
-        
-        // Hide animation after 3 seconds
-        setTimeout(() => {
-          setShowStreakMilestone(false);
-        }, 3000);
       }
+      
+      // Always show the streak screen
+      streakVisibleRef.current = true;
+      setShowStreakMilestone(true);
+      
+      // Reset animation values
+      streakFireScale.setValue(0);
+      streakFireFlicker.setValue(1);
+      streakNumberScale.setValue(0);
+      streakFadeIn.setValue(0);
+      
+      // Start entrance animations
+      Animated.sequence([
+        // Fire scales in with a bounce
+        Animated.spring(streakFireScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 60,
+          useNativeDriver: true,
+        }),
+        // Then the number pops in
+        Animated.spring(streakNumberScale, {
+          toValue: 1,
+          friction: 5,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      // Fade in the rest
+      Animated.timing(streakFadeIn, {
+        toValue: 1,
+        duration: 600,
+        delay: 300,
+        useNativeDriver: true,
+      }).start();
+      
+      // Start continuous fire flicker (main body)
+      const flicker = () => {
+        Animated.sequence([
+          Animated.timing(streakFireFlicker, {
+            toValue: 1.06,
+            duration: 400 + Math.random() * 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(streakFireFlicker, {
+            toValue: 0.96,
+            duration: 350 + Math.random() * 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(streakFireFlicker, {
+            toValue: 1,
+            duration: 300 + Math.random() * 150,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          if (streakVisibleRef.current) flicker();
+        });
+      };
+      setTimeout(flicker, 400);
+      
+      // Lottie handles the fire animation internally — no extra animations needed
     } catch (error) {
       console.error('Error loading app streak:', error);
     }
@@ -1757,7 +1823,7 @@ const ProfileTab = () => {
         console.log('[Profile] Error loading workout history count:', e.message);
       }
       
-      setUserStats({
+      const mergedStats = {
         points: totalPoints,
         level: level,
         completedTasks: actualCompletedCount, // Use actual count, not cached
@@ -1767,7 +1833,11 @@ const ProfileTab = () => {
         prayersCompleted: 12,
         ...storedStats,
         completedTasks: actualCompletedCount, // Override cached value with actual
-      });
+      };
+      setUserStats(mergedStats);
+
+      // Load profile badges from stats
+      setEarnedBadges(AchievementService.getEarnedBadgesFromStats(mergedStats));
       
       console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
@@ -2158,9 +2228,20 @@ const ProfileTab = () => {
       </TouchableOpacity>
       
       <View style={{ alignItems: 'center' }}>
-      <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
-        {userName} {selectedCountry?.flag || '🌍'}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
+          {userName} {selectedCountry?.flag || '🌍'}
+        </Text>
+        {earnedBadges.map(badge => (
+          <MaterialIcons
+            key={badge.id}
+            name={badge.icon}
+            size={22}
+            color={badge.color}
+            style={{ marginLeft: 4 }}
+          />
+        ))}
+      </View>
         
         {/* Username with tap to copy */}
         {authUserProfile?.username ? (
@@ -2236,7 +2317,7 @@ const ProfileTab = () => {
       </View>
       
       <Text style={[styles.userLevel, { color: textSecondaryColor }]}>
-        {t.level || 'Level'} {userStats.level} {t.believer || 'Believer'}
+        {t.level || 'Level'} {userStats.level}
       </Text>
       
       {/* Level Progress */}
@@ -2764,7 +2845,7 @@ const ProfileTab = () => {
         hapticFeedback.buttonPress();
         Alert.alert(
             'About Biblely', 
-            'A Christian productivity app for faith and focus.\n\nVersion 1.0.46\n\nMade with \u2764\uFE0F for believers worldwide.'
+            'A Christian productivity app for faith and focus.\n\nVersion 1.0.47\n\nMade with \u2764\uFE0F for believers worldwide.'
           );
         }}
     >
@@ -4409,6 +4490,45 @@ const ProfileTab = () => {
               borderWidth: 1,
               borderColor: 'rgba(255, 59, 48, 0.2)',
             }}>
+            {/* Fix Score */}
+            <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'rgba(255, 59, 48, 0.15)',
+                }}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                try {
+                  const correctedPoints = await AchievementService.recalculateScore();
+                  const correctedLevel = AchievementService.getLevelFromPoints(correctedPoints);
+                  setUserStats(prev => ({ ...prev, totalPoints: correctedPoints, points: correctedPoints, level: correctedLevel }));
+                  Alert.alert('Score Fixed', `Your score has been recalculated to ${correctedPoints.toLocaleString()} points.`);
+                } catch (err) {
+                  Alert.alert('Error', 'Failed to fix score. Please try again.');
+                }
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="auto-fix-high" size={20} color="#34C759" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#34C759' }}>Fix Score</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color="#34C759" />
+            </TouchableOpacity>
             {/* Reset Points */}
             <TouchableOpacity 
                 style={{
@@ -6312,51 +6432,231 @@ const ProfileTab = () => {
         </View>
       )}
 
-      {/* Streak Milestone Animation Overlay */}
-      {showStreakMilestone && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 10000
-        }}>
-          <View style={{
-            backgroundColor: theme.card,
-            borderRadius: 24,
-            padding: 40,
+      {/* Streak Screen Overlay */}
+      <Modal
+        visible={showStreakMilestone}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          streakVisibleRef.current = false;
+          setShowStreakMilestone(false);
+        }}
+      >
+        <BlurView
+          intensity={50}
+          tint="dark"
+          style={{
+            flex: 1,
+            justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: theme.warning,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.4,
-            shadowRadius: 20,
-            elevation: 10
-          }}>
-            <Text style={{ fontSize: 80, marginBottom: 16 }}>
-              {AppStreakManager.getStreakEmoji(appStreak)}
-            </Text>
-            <Text style={{
-              fontSize: 32,
-              fontWeight: '800',
-              color: theme.warning,
-              marginBottom: 8
+            backgroundColor: 'rgba(0,0,0,0.6)',
+          }}
+        >
+          <View style={{ alignItems: 'center', paddingHorizontal: 36, width: '100%' }}>
+
+            {/* ── Animated Fire ─────────────────────────────── */}
+            <Animated.View style={{
+              transform: [{ scale: Animated.multiply(streakFireScale, streakFireFlicker) }],
+              marginBottom: 4,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              {appStreak} Day Streak
-            </Text>
-            <Text style={{
-              fontSize: 18,
-              color: textSecondaryColor,
-              textAlign: 'center'
+              {/* Warm glow behind the fire */}
+              <View style={{
+                position: 'absolute',
+                width: 130,
+                height: 130,
+                borderRadius: 65,
+                backgroundColor: 'rgba(255, 149, 0, 0.15)',
+                shadowColor: '#FF6B00',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.6,
+                shadowRadius: 50,
+              }} />
+              <Text style={{ fontSize: 110, textAlign: 'center' }}>🔥</Text>
+            </Animated.View>
+
+            {/* ── Streak Number ────────────────────────────── */}
+            <Animated.View style={{
+              transform: [{ scale: streakNumberScale }],
+              marginBottom: 2,
             }}>
-              You're on fire! Keep it up!
-            </Text>
+              <Text style={{
+                fontSize: 76,
+                fontWeight: '800',
+                color: '#FFFFFF',
+                textAlign: 'center',
+                textShadowColor: 'rgba(255, 149, 0, 0.6)',
+                textShadowOffset: { width: 0, height: 3 },
+                textShadowRadius: 16,
+              }}>
+                {appStreak}
+              </Text>
+            </Animated.View>
+
+            {/* ── "day streak" label ──────────────────────── */}
+            <Animated.View style={{ opacity: streakFadeIn, width: '100%', alignItems: 'center' }}>
+              <Text style={{
+                fontSize: 22,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                textAlign: 'center',
+                marginBottom: 8,
+                letterSpacing: 0.5,
+              }}>
+                day streak
+              </Text>
+
+              {/* Motivational subtitle */}
+              <Text style={{
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.6)',
+                textAlign: 'center',
+                lineHeight: 20,
+                marginBottom: 28,
+                paddingHorizontal: 20,
+              }}>
+                {appStreak === 0
+                  ? 'welcome! open the app again tomorrow to start your streak'
+                  : appStreak < 3
+                    ? 'great start! keep building your daily prayer habit'
+                    : appStreak < 7
+                      ? 'you\'re on a roll! keep the momentum going'
+                      : appStreak < 15
+                        ? 'incredible dedication! you\'re unstoppable'
+                        : appStreak < 30
+                          ? 'amazing consistency! you\'re a true champion'
+                          : 'legendary! you are an absolute inspiration'}
+              </Text>
+
+              {/* ── Weekly Calendar Strip ─────────────────── */}
+              {(() => {
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                const dayLabels = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'];
+                const openDateStrings = streakOpenDates.map(d => d);
+
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - dayOfWeek);
+
+                const days = [];
+                for (let i = 0; i < 7; i++) {
+                  const d = new Date(weekStart);
+                  d.setDate(weekStart.getDate() + i);
+                  days.push({
+                    label: dayLabels[i],
+                    date: d.getDate(),
+                    dateStr: d.toDateString(),
+                    isToday: d.toDateString() === today.toDateString(),
+                    isActive: openDateStrings.includes(d.toDateString()),
+                    isFuture: d > today,
+                  });
+                }
+
+                return (
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    borderRadius: 22,
+                    paddingVertical: 18,
+                    paddingHorizontal: 8,
+                    marginBottom: 36,
+                    width: '100%',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.06)',
+                  }}>
+                    {/* Combined day label + circle rows */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                      {days.map((day) => (
+                        <View key={day.dateStr} style={{ alignItems: 'center', width: 40 }}>
+                          <Text style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: day.isToday ? '#FF9500' : 'rgba(255,255,255,0.4)',
+                            textAlign: 'center',
+                            marginBottom: 8,
+                            textTransform: 'lowercase',
+                          }}>
+                            {day.label}
+                          </Text>
+                          <View style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
+                            backgroundColor: day.isToday
+                              ? '#FF9500'
+                              : day.isActive
+                                ? 'rgba(255, 149, 0, 0.25)'
+                                : 'rgba(255,255,255,0.06)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: day.isActive && !day.isToday ? 1.5 : 0,
+                            borderColor: day.isActive && !day.isToday ? 'rgba(255, 149, 0, 0.5)' : 'transparent',
+                          }}>
+                            <Text style={{
+                              fontSize: 14,
+                              fontWeight: day.isToday ? '700' : '500',
+                              color: day.isToday
+                                ? '#FFFFFF'
+                                : day.isActive
+                                  ? '#FF9500'
+                                  : day.isFuture
+                                    ? 'rgba(255,255,255,0.2)'
+                                    : 'rgba(255,255,255,0.35)',
+                            }}>
+                              {day.date}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })()}
+
+              {/* ── Continue Button ───────────────────────── */}
+              <TouchableOpacity
+                onPress={() => {
+                  streakVisibleRef.current = false;
+                  setShowStreakMilestone(false);
+                }}
+                activeOpacity={0.85}
+                style={{
+                  borderRadius: 18,
+                  alignSelf: 'stretch',
+                  overflow: 'hidden',
+                  shadowColor: '#FF9500',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 16,
+                  elevation: 10,
+                }}
+              >
+                <LinearGradient
+                  colors={['#FFB347', '#FF9500', '#F57C00']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    paddingVertical: 17,
+                    paddingHorizontal: 48,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                    textAlign: 'center',
+                    letterSpacing: 0.3,
+                  }}>
+                    continue
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
-        </View>
-      )}
+        </BlurView>
+      </Modal>
 
     </View>
     </AnimatedWallpaper>

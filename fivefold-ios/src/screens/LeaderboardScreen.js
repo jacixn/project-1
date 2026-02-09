@@ -39,6 +39,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { hapticFeedback } from '../utils/haptics';
+import AchievementService from '../services/achievementService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -151,54 +152,38 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const loadFriendsLeaderboard = async () => {
     const friends = await getFriendsWithStats(user.uid);
     
-    // Get fresh points from ALL possible local storage sources
-    let freshTotalPoints = userProfile?.totalPoints || 0;
-    let freshStreak = userProfile?.currentStreak || 0;
+    // Read points from single source of truth: total_points key
+    let freshTotalPoints = 0;
+    let freshStreak = 0;
     
     try {
       const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
       
-      // Source 1: PrayerCompletionManager's total_points
-      const prayerPointsStr = await AsyncStorage.getItem('total_points');
-      if (prayerPointsStr) {
-        freshTotalPoints = Math.max(freshTotalPoints, parseInt(prayerPointsStr, 10) || 0);
+      // Single source of truth for points
+      const totalPointsStr = await AsyncStorage.getItem('total_points');
+      if (totalPointsStr) {
+        freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
       }
       
-      // Source 2: userStats
-      const statsStr = await AsyncStorage.getItem('userStats');
-      if (statsStr) {
-        const stats = JSON.parse(statsStr);
-        freshTotalPoints = Math.max(freshTotalPoints, stats.points || 0, stats.totalPoints || 0);
-        freshStreak = Math.max(freshStreak, stats.currentStreak || 0, stats.streak || 0);
-      }
-      
-      // Source 3: fivefold_userStats (another key that might be used)
-      const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
-      if (fivefoldStatsStr) {
-        const fStats = JSON.parse(fivefoldStatsStr);
-        freshTotalPoints = Math.max(freshTotalPoints, fStats.points || 0, fStats.totalPoints || 0);
-        freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
-      }
-      
-      // Source 4: app_open_streak (AppStreakManager's key - THE ACTUAL STREAK)
+      // Streak from app_open_streak (AppStreakManager's key)
       const appStreakStr = await AsyncStorage.getItem('app_open_streak');
       if (appStreakStr) {
         const appStreakData = JSON.parse(appStreakStr);
-        freshStreak = Math.max(freshStreak, appStreakData.currentStreak || 0);
+        freshStreak = appStreakData.currentStreak || 0;
       }
       
-      console.log('[Leaderboard] Fresh points found:', {
-        total_points: prayerPointsStr,
-        userStats: statsStr ? JSON.parse(statsStr) : null,
-        fivefold_userStats: fivefoldStatsStr ? JSON.parse(fivefoldStatsStr) : null,
-        app_open_streak: appStreakStr ? JSON.parse(appStreakStr) : null,
-        finalPoints: freshTotalPoints,
-        finalStreak: freshStreak,
-      });
+      console.log('[Leaderboard] Fresh data:', { freshTotalPoints, freshStreak });
     } catch (err) {
       console.warn('Error getting fresh points:', err);
     }
     
+    // Get local stats for badge display
+    let localBadgeStats = {};
+    try {
+      const mergedStats = await AchievementService.getStats();
+      localBadgeStats = mergedStats || {};
+    } catch (e) {}
+
     // Add current user to the list with fresh data
     const currentUserEntry = {
       uid: user.uid,
@@ -209,6 +194,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       totalPoints: freshTotalPoints,
       currentStreak: freshStreak,
       isCurrentUser: true,
+      prayersCompleted: localBadgeStats.prayersCompleted || userProfile?.prayersCompleted || 0,
     };
     
     const allUsers = [currentUserEntry, ...friends];
@@ -259,38 +245,22 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         });
       });
       
-      // Get fresh local points for current user (same as friends leaderboard)
-      let freshTotalPoints = userProfile?.totalPoints || 0;
-      let freshStreak = userProfile?.currentStreak || 0;
+      // Read points from single source of truth: total_points key
+      let freshTotalPoints = 0;
+      let freshStreak = 0;
       
       try {
-        // Source 1: total_points key
-        const prayerPointsStr = await AsyncStorage.getItem('total_points');
-        if (prayerPointsStr) {
-          freshTotalPoints = Math.max(freshTotalPoints, parseInt(prayerPointsStr, 10) || 0);
+        // Single source of truth for points
+        const totalPointsStr = await AsyncStorage.getItem('total_points');
+        if (totalPointsStr) {
+          freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
         }
         
-        // Source 2: userStats object
-        const statsStr = await AsyncStorage.getItem('userStats');
-        if (statsStr) {
-          const stats = JSON.parse(statsStr);
-          freshTotalPoints = Math.max(freshTotalPoints, stats.points || 0, stats.totalPoints || 0);
-          freshStreak = Math.max(freshStreak, stats.currentStreak || 0, stats.streak || 0);
-        }
-        
-        // Source 3: fivefold_userStats
-        const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
-        if (fivefoldStatsStr) {
-          const fStats = JSON.parse(fivefoldStatsStr);
-          freshTotalPoints = Math.max(freshTotalPoints, fStats.points || 0, fStats.totalPoints || 0);
-          freshStreak = Math.max(freshStreak, fStats.currentStreak || 0, fStats.streak || 0);
-        }
-        
-        // Source 4: app_open_streak (AppStreakManager's key - THE ACTUAL STREAK)
+        // Streak from app_open_streak (AppStreakManager's key)
         const appStreakStr = await AsyncStorage.getItem('app_open_streak');
         if (appStreakStr) {
           const appStreakData = JSON.parse(appStreakStr);
-          freshStreak = Math.max(freshStreak, appStreakData.currentStreak || 0);
+          freshStreak = appStreakData.currentStreak || 0;
         }
       } catch (err) {
         console.warn('[Global Leaderboard] Error getting fresh local points:', err);
@@ -299,11 +269,18 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       // Update current user's entry with fresh local data
       const currentUserIndex = users.findIndex(u => u.uid === user.uid);
       if (currentUserIndex !== -1) {
-        // User is in global list, update with fresh points
-        users[currentUserIndex].totalPoints = Math.max(users[currentUserIndex].totalPoints || 0, freshTotalPoints);
-        users[currentUserIndex].currentStreak = Math.max(users[currentUserIndex].currentStreak || 0, freshStreak);
+        // User is in global list, update with fresh local points (single source of truth)
+        users[currentUserIndex].totalPoints = freshTotalPoints;
+        users[currentUserIndex].currentStreak = freshStreak;
       } else if (userProfile?.isPublic) {
         // User should be in global but isn't in query results, add them
+        // Get local stats for badge display
+        let localBadgeStats2 = {};
+        try {
+          const mergedStats2 = await AchievementService.getStats();
+          localBadgeStats2 = mergedStats2 || {};
+        } catch (e) {}
+
         users.push({
           uid: user.uid,
           displayName: userProfile?.displayName || user.displayName || 'You',
@@ -314,6 +291,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           currentStreak: freshStreak,
           isCurrentUser: true,
           isPublic: true,
+          prayersCompleted: localBadgeStats2.prayersCompleted || userProfile?.prayersCompleted || 0,
         });
       }
       
@@ -467,10 +445,14 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             </Text>
             {/* Country flag or globe */}
             {item.countryFlag ? (
-              <Text style={{ fontSize: 14, marginLeft: 6 }}>{item.countryFlag}</Text>
+              <Text style={{ fontSize: 14, marginLeft: 2 }}>{item.countryFlag}</Text>
             ) : (
-              <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 6, opacity: 0.5 }} />
+              <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 2, opacity: 0.5 }} />
             )}
+            {/* Profile badges (e.g. blue tick) */}
+            {AchievementService.getEarnedBadgesFromStats(item).map(badge => (
+              <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 4 }} />
+            ))}
             {item.isCurrentUser && (
               <View style={[styles.youBadge, { backgroundColor: theme.primary + '20' }]}>
                 <Text style={[styles.youBadgeText, { color: theme.primary }]}>You</Text>
@@ -570,6 +552,9 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {second.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{second.countryFlag}</Text>
             ) : null}
+            {AchievementService.getEarnedBadgesFromStats(second).map(badge => (
+              <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
+            ))}
           </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
             {formatNumber(getScoreValue(second))}
@@ -616,6 +601,9 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {first.countryFlag ? (
               <Text style={{ fontSize: 14, marginLeft: 4 }}>{first.countryFlag}</Text>
             ) : null}
+            {AchievementService.getEarnedBadgesFromStats(first).map(badge => (
+              <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 3 }} />
+            ))}
           </View>
           <Text style={[styles.podiumScore, styles.podiumScoreFirst, { color: '#FFD700' }]}>
             {formatNumber(getScoreValue(first))}
@@ -659,6 +647,9 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {third.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{third.countryFlag}</Text>
             ) : null}
+            {AchievementService.getEarnedBadgesFromStats(third).map(badge => (
+              <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
+            ))}
           </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
             {formatNumber(getScoreValue(third))}
@@ -879,8 +870,6 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           {[
             { key: 'points', label: 'Points', icon: 'star', color: '#FFD700' },
             { key: 'streak', label: 'Streak', icon: 'local-fire-department', color: '#FF6B35' },
-            { key: 'workouts', label: 'Gym', icon: 'fitness-center', color: '#10B981' },
-            { key: 'tasks', label: 'Tasks', icon: 'check-circle', color: '#8B5CF6' },
           ].map(option => (
             <TouchableOpacity
               key={option.key}
@@ -1231,7 +1220,7 @@ const styles = StyleSheet.create({
   cardNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   cardName: {
     fontSize: 16,

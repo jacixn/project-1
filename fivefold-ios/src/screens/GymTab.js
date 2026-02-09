@@ -34,6 +34,7 @@ import ExercisesModal from '../components/ExercisesModal';
 import WorkoutModal from '../components/WorkoutModal';
 import TemplateSelectionModal from '../components/TemplateSelectionModal';
 import WorkoutService from '../services/workoutService';
+import AchievementService from '../services/achievementService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 
@@ -262,6 +263,33 @@ const GymTab = () => {
     try {
       const history = await WorkoutService.getWorkoutHistory();
       setWorkoutHistory(history);
+
+      // Sync gym week streak to achievement stats
+      if (history && history.length > 0) {
+        const getWeekKey = (date) => {
+          const d = new Date(date);
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          const monday = new Date(d.setDate(diff));
+          monday.setHours(0, 0, 0, 0);
+          return monday.toISOString().split('T')[0];
+        };
+        const workoutsByWeek = {};
+        history.forEach(w => {
+          const wk = getWeekKey(w.completedAt);
+          workoutsByWeek[wk] = (workoutsByWeek[wk] || 0) + 1;
+        });
+        let streak = 0;
+        let checkWeek = new Date(getWeekKey(new Date()));
+        while (true) {
+          const wk = checkWeek.toISOString().split('T')[0];
+          if ((workoutsByWeek[wk] || 0) >= 1) {
+            streak++;
+            checkWeek.setDate(checkWeek.getDate() - 7);
+          } else break;
+        }
+        AchievementService.setStat('gymWeekStreak', streak);
+      }
     } catch (error) {
       console.error('Error loading workout history:', error);
     }

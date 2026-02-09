@@ -87,6 +87,7 @@ import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
 import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
+import AchievementService from '../services/achievementService';
 
 // Prayer times are now user-configurable - no hardcoded defaults
 
@@ -931,6 +932,7 @@ const BiblePrayerTab = () => {
         // Save to camera roll
         await MediaLibrary.saveToLibraryAsync(uri);
         
+        AchievementService.incrementStat('versesShared');
         hapticFeedback.success();
         Alert.alert('Saved', 'Verse card saved to your photos');
       }
@@ -993,27 +995,27 @@ const BiblePrayerTab = () => {
         prayersCompleted: (currentStats?.prayersCompleted || 0) + 1,
       };
       await saveData('userStats', updatedStats);
+      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
       
-      // Update central total_points key
-      const centralPointsStr = await AsyncStorage.getItem('total_points');
-      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-      const newCentralTotal = Math.max(centralPoints + pointsEarned, updatedStats.totalPoints);
-      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      // total_points is now managed centrally by achievementService.checkAchievements()
       
       // SYNC TO FIREBASE
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
-          totalPoints: newCentralTotal,
+          totalPoints: updatedStats.totalPoints,
           prayersCompleted: updatedStats.prayersCompleted,
           lastActive: serverTimestamp(),
         }, { merge: true }).catch(err => {
           console.warn('Firebase prayer points sync failed:', err.message);
         });
-        console.log(`🔥 Prayer points synced to Firebase: ${newCentralTotal}`);
+        console.log(`🔥 Prayer points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
       console.log('Prayer completed! +25000 points earned!');
+
+      // Check achievements and sync total_points centrally
+      await AchievementService.checkAchievements(updatedStats);
     } catch (error) {
       console.error('Failed to update points for prayer completion:', error);
     }

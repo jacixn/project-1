@@ -42,6 +42,7 @@ import productionAiService from '../services/productionAiService';
 import { GITHUB_CONFIG } from '../../github.config';
 import bibleAudioService from '../services/bibleAudioService';
 import AudioPlayerBar from './AudioPlayerBar';
+import AchievementService from '../services/achievementService';
 // Removed InteractiveSwipeBack import
 
 const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, asScreen = false }) => {
@@ -1575,6 +1576,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     setShowAudioPlayer(true);
     setCurrentAudioVerse(verseToPlay);
     setAudioAutoPlayEnabled(false);
+    AchievementService.incrementStat('audiosPlayed');
     
     try {
       await bibleAudioService.speakVerse({
@@ -1595,6 +1597,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     setShowAudioPlayer(true);
     setCurrentAudioVerse(verseToPlay);
     setAudioAutoPlayEnabled(true);
+    AchievementService.incrementStat('audiosPlayed');
     
     try {
       if (startIndex !== -1 && verses.length > 0) {
@@ -1800,11 +1803,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       currentSavedVerses.push(newVerse);
       await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
-      // Update stats
-      const stats = await AsyncStorage.getItem('userStats');
-      const userStats = stats ? JSON.parse(stats) : {};
-      userStats.savedVerses = currentSavedVerses.length;
-      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      // Update stats and check achievements
+      AchievementService.setStat('savedVerses', currentSavedVerses.length);
       
       const newSavedVerses = new Set([...savedVerses, verseId]);
       setSavedVerses(newSavedVerses);
@@ -1912,11 +1912,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       currentSavedVerses.push(newVerse);
       await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
-      // Update stats
-      const stats = await AsyncStorage.getItem('userStats');
-      const userStats = stats ? JSON.parse(stats) : {};
-      userStats.savedVerses = currentSavedVerses.length;
-      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      // Update stats and check achievements
+      AchievementService.setStat('savedVerses', currentSavedVerses.length);
       
       // Mark all verses in the range as saved
       const newSavedVersesSet = new Set([...savedVerses]);
@@ -2006,11 +2003,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       currentSavedVerses.push(newVerse);
       await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
-      // Update stats
-      const stats = await AsyncStorage.getItem('userStats');
-      const userStats = stats ? JSON.parse(stats) : {};
-      userStats.savedVerses = currentSavedVerses.length;
-      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      // Update stats and check achievements
+      AchievementService.setStat('savedVerses', currentSavedVerses.length);
       
       // Mark all verses in the range as saved (for heart icon display)
       const newSavedVersesSet = new Set([...savedVerses]);
@@ -2710,10 +2704,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     const shareContent = `"${verseText}"\n\n- ${reference}\n\nShared from FiveFold Bible App`;
     
     try {
-      await Share.share({
+      const result = await Share.share({
         message: shareContent,
         title: reference
       });
+      if (result.action !== Share.dismissedAction) {
+        AchievementService.incrementStat('versesShared');
+      }
       hapticFeedback.success();
     } catch (error) {
       console.error('Error sharing verse:', error);
@@ -2771,11 +2768,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       // Save to AsyncStorage
       await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(savedVersesList));
       
-      // Update user stats
-      const stats = await AsyncStorage.getItem('userStats');
-      const userStats = stats ? JSON.parse(stats) : {};
-      userStats.savedVerses = savedVersesList.length;
-      await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+      // Update user stats and check achievements
+      AchievementService.setStat('savedVerses', savedVersesList.length);
       
     } catch (error) {
       console.error('Error saving/unsaving verse:', error);

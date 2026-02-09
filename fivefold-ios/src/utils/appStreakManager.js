@@ -13,6 +13,11 @@ class AppStreakManager {
 
       // Check if we already tracked today
       if (lastOpen === today) {
+        // Ensure openDates includes today even for existing data
+        if (!streakData.openDates) {
+          streakData.openDates = [today];
+          await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(streakData));
+        }
         console.log(`📱 Already tracked app open today. Current streak: ${streakData.currentStreak} days`);
         return streakData;
       }
@@ -40,13 +45,22 @@ class AppStreakManager {
       // Check for milestones
       const milestone = this.checkMilestone(newStreak, streakData.currentStreak || 0);
 
+      // Track open dates for the weekly calendar (keep last 30 days)
+      const openDates = streakData.openDates || [];
+      if (!openDates.includes(today)) {
+        openDates.push(today);
+      }
+      // Keep only last 30 entries
+      const trimmedDates = openDates.slice(-30);
+
       const updatedStreak = {
         currentStreak: newStreak,
         longestStreak: Math.max(newStreak, streakData.longestStreak || 0),
         lastOpenDate: today,
         totalOpens: (streakData.totalOpens || 0) + 1,
         lastMilestone: milestone ? newStreak : streakData.lastMilestone,
-        milestoneReached: milestone
+        milestoneReached: milestone,
+        openDates: trimmedDates,
       };
 
       await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(updatedStreak));

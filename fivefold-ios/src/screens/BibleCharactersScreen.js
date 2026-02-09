@@ -29,6 +29,7 @@ import { Audio } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleCharactersService from '../services/bibleCharactersService';
+import AchievementService from '../services/achievementService';
 
 const { width } = Dimensions.get('window');
 
@@ -293,7 +294,7 @@ const BibleCharactersScreen = ({ navigation }) => {
             <AnimatedIndividualCharacterCard key={index}
               character={{ name: character, available: !!characterProfiles[character] }}
               group={group} index={index} isDark={isDark} theme={theme}
-              onPress={() => { hapticFeedback.light(); if (characterProfiles[character]) setSelectedCharacter(character); }}
+              onPress={() => { hapticFeedback.light(); if (characterProfiles[character]) { setSelectedCharacter(character); AchievementService.incrementStat('charactersRead'); } }}
             />
           ))}
         </View>

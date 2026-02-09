@@ -176,36 +176,16 @@ export const syncUserStatsToCloud = async (userId) => {
     
     console.log('[Sync] localStats from getStoredData:', localStats);
     
-    // IMPORTANT: Get points from ALL possible sources
-    // Points are stored in multiple places due to legacy code
-    
-    // Source 1: PrayerCompletionManager stores points here
-    const prayerPointsStr = await AsyncStorage.getItem('total_points');
-    const prayerPoints = prayerPointsStr ? parseInt(prayerPointsStr, 10) : 0;
-    
-    // Source 2: userStats can have points in either 'totalPoints' or 'points' field
-    const statsPoints = Math.max(
-      localStats.totalPoints || 0,
-      localStats.points || 0
-    );
-    
-    // Source 3: Check fivefold_userStats too (some code uses this key)
-    const fivefoldStatsStr = await AsyncStorage.getItem('fivefold_userStats');
-    let fivefoldPoints = 0;
-    if (fivefoldStatsStr) {
-      try {
-        const fivefoldStats = JSON.parse(fivefoldStatsStr);
-        fivefoldPoints = Math.max(fivefoldStats.totalPoints || 0, fivefoldStats.points || 0);
-      } catch (e) {}
-    }
+    // Read points from single source of truth: total_points key
+    // (managed centrally by achievementService.checkAchievements())
+    const totalPointsStr = await AsyncStorage.getItem('total_points');
+    const pointsToSync = totalPointsStr ? parseInt(totalPointsStr, 10) : 0;
     
     // Prepare update data
     const updateData = {
       lastActive: serverTimestamp(),
     };
     
-    // Use the MAX of all point sources to ensure we don't lose any points
-    const pointsToSync = Math.max(prayerPoints, statsPoints, fivefoldPoints);
     if (pointsToSync > 0) {
       updateData.totalPoints = pointsToSync;
       // Also update level based on points
@@ -213,22 +193,16 @@ export const syncUserStatsToCloud = async (userId) => {
       updateData.level = AchievementService.getLevelFromPoints(pointsToSync);
     }
     
-    console.log('[Sync] Point sources:', { 
-      total_points: prayerPoints, 
-      'userStats.totalPoints': localStats.totalPoints,
-      'userStats.points': localStats.points,
-      fivefold_userStats: fivefoldPoints,
-      syncing: pointsToSync 
-    });
+    console.log('[Sync] Points to sync:', pointsToSync);
     
     // Add other stats fields
     // IMPORTANT: Get streak from app_open_streak (AppStreakManager's key) - this is the actual streak
-    let streakToSync = localStats.currentStreak || 0;
+    let streakToSync = 0;
     try {
       const appStreakStr = await AsyncStorage.getItem('app_open_streak');
       if (appStreakStr) {
         const appStreakData = JSON.parse(appStreakStr);
-        streakToSync = Math.max(streakToSync, appStreakData.currentStreak || 0);
+        streakToSync = appStreakData.currentStreak || 0;
       }
     } catch (e) {
       console.warn('[Sync] Error reading app_open_streak:', e);
@@ -288,10 +262,17 @@ export const downloadAndMergeCloudData = async (userId) => {
     const localProfile = await getStoredData('userProfile') || {};
     
     // Merge strategy: Cloud wins for numeric/tracked values, local for recent edits
+    // For totalPoints: local total_points key is the single source of truth
+    // (managed centrally by achievementService.checkAchievements())
+    const localTotalPointsStr = await AsyncStorage.getItem('total_points');
+    const localTotalPoints = localTotalPointsStr ? parseInt(localTotalPointsStr, 10) : 0;
+    
     const mergedStats = {
       ...localStats,
-      // Cloud values take priority for these tracked fields
-      totalPoints: Math.max(localStats.totalPoints || 0, cloudData.totalPoints || 0),
+      // totalPoints: use local total_points as source of truth, NOT Math.max with cloud
+      totalPoints: localTotalPoints,
+      points: localTotalPoints,
+      // Activity counters: Math.max is fine since these only go up
       currentStreak: Math.max(localStats.currentStreak || 0, cloudData.currentStreak || 0),
       level: Math.max(localStats.level || 1, cloudData.level || 1),
       prayersCompleted: Math.max(localStats.prayersCompleted || 0, cloudData.prayersCompleted || 0),
@@ -316,12 +297,8 @@ export const downloadAndMergeCloudData = async (userId) => {
     await saveData('userStats', mergedStats);
     await saveData('userProfile', mergedProfile);
     
-    // CRITICAL: Also save total_points to the key that PrayerCompletionManager reads from
-    // This ensures points are correctly displayed on the Profile screen
-    if (mergedStats.totalPoints > 0) {
-      await AsyncStorage.setItem('total_points', String(mergedStats.totalPoints));
-      console.log('[Sync] Set total_points to:', mergedStats.totalPoints);
-    }
+    // total_points is managed centrally by achievementService.checkAchievements()
+    // Do NOT overwrite it from cloud data during sync
     
     // Also save profile picture URL to local storage for ProfileTab
     if (cloudData.profilePicture) {
@@ -386,13 +363,20 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Merged journal notes: ${merged?.length || 0} total`);
     }
     
-    // Theme Preferences - cloud overwrites local
+    // Theme Preferences - ONLY apply cloud theme if local has NO theme set
+    // This prevents background sync from overwriting the user's current theme choice
     if (cloudData.themePreferences) {
-      const { theme, darkMode, wallpaperIndex } = cloudData.themePreferences;
-      if (theme) await AsyncStorage.setItem('fivefold_theme', theme);
-      if (darkMode !== undefined) await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(darkMode));
-      if (wallpaperIndex !== undefined) await AsyncStorage.setItem('fivefold_wallpaper_index', String(wallpaperIndex));
-      console.log('[Sync] Downloaded theme preferences from cloud');
+      const localTheme = await AsyncStorage.getItem('fivefold_theme');
+      if (!localTheme) {
+        // No local theme = fresh install or new device, apply cloud theme
+        const { theme, darkMode, wallpaperIndex } = cloudData.themePreferences;
+        if (theme) await AsyncStorage.setItem('fivefold_theme', theme);
+        if (darkMode !== undefined) await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(darkMode));
+        if (wallpaperIndex !== undefined) await AsyncStorage.setItem('fivefold_wallpaper_index', String(wallpaperIndex));
+        console.log('[Sync] Applied cloud theme to fresh install (no local theme found)');
+      } else {
+        console.log('[Sync] Skipping cloud theme - local theme already set:', localTheme);
+      }
     }
     
     // Clean history data from cloud before saving locally (remove entries older than 90 days)

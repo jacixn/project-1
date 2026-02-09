@@ -25,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AchievementService from '../services/achievementService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import {
   LiquidGlassView,
@@ -654,10 +655,14 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     }
   };
 
-  // LOCATION VISIT TRACKING (simplified - achievements removed)
+  // LOCATION VISIT TRACKING
   const markLocationVisited = (locationId) => {
     if (!visitedLocations.includes(locationId)) {
-      setVisitedLocations(prev => [...prev, locationId]);
+      setVisitedLocations(prev => {
+        const updated = [...prev, locationId];
+        AchievementService.setStat('mapsVisited', updated.length);
+        return updated;
+      });
     }
   };
 

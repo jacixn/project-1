@@ -93,11 +93,16 @@ const TasksOverviewScreen = () => {
     const pointsEarned = taskToComplete.points || 500;
     const newCompletedTasks = (userStats.completedTasks || 0) + 1;
 
+    // Track per-tier completions for achievements
+    const tier = taskToComplete.tier || 'mid';
+    const tierKey = tier === 'low' ? 'lowTierCompleted' : tier === 'high' ? 'highTierCompleted' : 'midTierCompleted';
+
     const updatedStats = {
       ...userStats,
       totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
       points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
       completedTasks: newCompletedTasks,
+      [tierKey]: (userStats[tierKey] || 0) + 1,
       level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
     };
 
@@ -106,18 +111,16 @@ const TasksOverviewScreen = () => {
 
     await saveData('todos', updatedTodos);
     await saveData('userStats', updatedStats);
+    // Also sync to raw userStats key for consistency
+    await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
 
-    // Update central points storage
-    const centralPointsStr = await AsyncStorage.getItem('total_points');
-    const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-    const newCentralTotal = Math.max(centralPoints, updatedStats.totalPoints);
-    await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+    // total_points is now managed centrally by achievementService.checkAchievements()
 
     // Sync to Firebase if user is logged in
     const currentUser = auth.currentUser;
     if (currentUser) {
       setDoc(doc(db, 'users', currentUser.uid), {
-        totalPoints: newCentralTotal,
+        totalPoints: updatedStats.totalPoints,
         tasksCompleted: newCompletedTasks,
         level: updatedStats.level,
         lastActive: serverTimestamp(),

@@ -174,6 +174,30 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  // Save a timestamp whenever the user changes theme locally
+  const saveThemeTimestamp = async () => {
+    try {
+      await AsyncStorage.setItem('fivefold_theme_updated_at', Date.now().toString());
+    } catch (e) {
+      // Silent
+    }
+  };
+
+  // Background sync theme to Firebase (fire and forget)
+  const syncThemeToCloud = async () => {
+    try {
+      const { syncThemePreferencesToCloud } = await import('../services/userSyncService');
+      const { auth } = await import('../config/firebase');
+      if (auth.currentUser?.uid) {
+        await syncThemePreferencesToCloud(auth.currentUser.uid);
+        console.log('[Theme] Synced theme change to cloud');
+      }
+    } catch (e) {
+      // Silent fail - background operation
+      console.log('[Theme] Cloud sync skipped:', e.message);
+    }
+  };
+
   const changeTheme = async (themeName) => {
     try {
       // Handle Biblely variants (Jesus & Lambs, Classic) - they're variants of 'biblely' theme
@@ -186,6 +210,8 @@ export const ThemeProvider = ({ children }) => {
         // It's a dark theme
         setIsDarkMode(true);
         await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        await saveThemeTimestamp();
+        syncThemeToCloud();
         return;
       }
       
@@ -198,6 +224,8 @@ export const ThemeProvider = ({ children }) => {
         // It's a dark theme
         setIsDarkMode(true);
         await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        await saveThemeTimestamp();
+        syncThemeToCloud();
         return;
       }
       
@@ -221,6 +249,9 @@ export const ThemeProvider = ({ children }) => {
           setIsDarkMode(true);
           await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
         }
+        
+        await saveThemeTimestamp();
+        syncThemeToCloud();
       }
     } catch (error) {
       console.log('Error saving theme preference:', error);
@@ -232,6 +263,8 @@ export const ThemeProvider = ({ children }) => {
       const newDarkMode = !isDarkMode;
       setIsDarkMode(newDarkMode);
       await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(newDarkMode));
+      await saveThemeTimestamp();
+      syncThemeToCloud();
     } catch (error) {
       console.log('Error saving dark mode preference:', error);
     }
@@ -256,6 +289,9 @@ export const ThemeProvider = ({ children }) => {
         setIsDarkMode(shouldBeDark);
         await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(shouldBeDark));
       }
+      
+      await saveThemeTimestamp();
+      syncThemeToCloud();
     } catch (error) {
       console.log('Error saving wallpaper preference:', error);
     }

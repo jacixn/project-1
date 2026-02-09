@@ -250,31 +250,28 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
       
       // Save updated stats using the correct storage wrapper
       await saveData('userStats', updatedStats);
+      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
       
-      // ALSO update the central total_points key for consistency
-      const centralPointsStr = await AsyncStorage.getItem('total_points');
-      const centralPoints = centralPointsStr ? parseInt(centralPointsStr, 10) : 0;
-      const newCentralTotal = Math.max(centralPoints + pointsEarned, updatedStats.points);
-      await AsyncStorage.setItem('total_points', newCentralTotal.toString());
+      // total_points is now managed centrally by achievementService.checkAchievements()
       
       // SYNC TO FIREBASE - This is critical!
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
-          totalPoints: newCentralTotal,
+          totalPoints: updatedStats.totalPoints,
           quizzesTaken: updatedStats.quizzesCompleted,
           level: updatedStats.level,
           lastActive: serverTimestamp(),
         }, { merge: true }).catch(err => {
           console.warn('Firebase quiz points sync failed:', err.message);
         });
-        console.log(`🔥 Quiz points synced to Firebase: ${newCentralTotal}`);
+        console.log(`🔥 Quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
       // Check achievements
       await AchievementService.checkAchievements(updatedStats);
       
-      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${newCentralTotal}`);
+      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${updatedStats.totalPoints}`);
       hapticFeedback.success(); // Haptic for earning points!
       
       return pointsEarned;

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import AchievementService from './achievementService';
 
 const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
@@ -111,24 +112,29 @@ class WorkoutService {
       await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(history));
       console.log('✅ Workout saved to history');
       
-      // UPDATE userStats.workoutsCompleted - CRITICAL for leaderboard
+      // UPDATE userStats via AchievementService (syncs both keys + triggers achievements)
       try {
-        const statsStr = await AsyncStorage.getItem('userStats');
-        const userStats = statsStr ? JSON.parse(statsStr) : {};
-        const newWorkoutsCompleted = (userStats.workoutsCompleted || 0) + 1;
-        
-        userStats.workoutsCompleted = newWorkoutsCompleted;
-        await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
-        console.log('✅ Updated userStats.workoutsCompleted:', newWorkoutsCompleted);
-        
+        // Count exercises and completed sets from this workout
+        const exerciseCount = (workout.exercises || []).length;
+        const setsCount = (workout.exercises || []).reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 0), 0);
+        const workoutMinutes = Math.floor((workout.duration || 0) / 60);
+
+        await AchievementService.incrementStat('workoutsCompleted');
+        if (exerciseCount > 0) await AchievementService.incrementStat('exercisesLogged', exerciseCount);
+        if (setsCount > 0) await AchievementService.incrementStat('setsCompleted', setsCount);
+        if (workoutMinutes > 0) await AchievementService.incrementStat('workoutMinutes', workoutMinutes);
+
+        console.log(`✅ Updated workout stats: +1 workout, +${exerciseCount} exercises, +${setsCount} sets, +${workoutMinutes} min`);
+
         // SYNC TO FIREBASE
         const currentUser = auth.currentUser;
         if (currentUser) {
+          const stats = await AchievementService.getStats();
           await setDoc(doc(db, 'users', currentUser.uid), {
-            workoutsCompleted: newWorkoutsCompleted,
+            workoutsCompleted: stats.workoutsCompleted || 1,
             lastActive: serverTimestamp(),
           }, { merge: true });
-          console.log('✅ Synced workoutsCompleted to Firebase:', newWorkoutsCompleted);
+          console.log('✅ Synced workoutsCompleted to Firebase:', stats.workoutsCompleted);
         }
       } catch (statsError) {
         console.warn('⚠️ Failed to update workout stats:', statsError);
