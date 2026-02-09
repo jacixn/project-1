@@ -30,6 +30,167 @@ const AuthContext = createContext(null);
 const USER_CACHE_KEY = '@biblely_user_cache';
 
 /**
+ * COMPLETE list of every user-specific AsyncStorage key.
+ * Used by sign-out, sign-up, and sign-in to ensure ZERO data leaks between accounts.
+ * If you add a new user-specific key ANYWHERE in the app, add it here too.
+ */
+const ALL_USER_DATA_KEYS = [
+  // ── Profile & Auth ──────────────────────────────────────
+  'onboardingCompleted',
+  'onboarding_complete',
+  'userProfile',
+  'fivefold_userProfile',
+  'fivefold_userName',
+  'fivefold_profilePicture',
+  'user_profile',
+
+  // ── User Stats & Points ─────────────────────────────────
+  'userStats',
+  'fivefold_userStats',
+  'fivefold_user_stats',
+  'total_points',
+  'userLevel',
+  'userPoints',
+
+  // ── Achievements ────────────────────────────────────────
+  'fivefold_achievements_unlocked',
+  'fivefold_achievements_prestige',
+  'achievements',
+
+  // ── Permanent Unlock Flags (customisation gates) ────────
+  'fivefold_unlock_app_streak_15',
+  'fivefold_unlock_chars_5',
+  'fivefold_unlock_read_25',
+  'fivefold_unlock_tasks_25',
+  'fivefold_unlock_saved_25',
+  'fivefold_unlock_read_50',
+  'fivefold_unlock_prayers_5',
+  'fivefold_unlock_saved_5',
+  'fivefold_unlock_tasks_10',
+  'fivefold_unlock_audio_5',
+  'fivefold_unlock_saved_10',
+  'fivefold_unlock_app_streak_30',
+
+  // ── Customisation Preferences ───────────────────────────
+  'fivefold_streak_animation',
+  'fivefold_badge_toggles',
+  'fivefold_bluetick_enabled',
+  'fivefold_streak_modal_last_shown',
+
+  // ── Theme & Display ─────────────────────────────────────
+  'fivefold_theme',
+  'fivefold_dark_mode',
+  'fivefold_wallpaper_index',
+  'fivefold_theme_updated_at',
+  'theme_preference',
+  'wallpaper_preference',
+  'selectedBibleVersion',
+  'selectedLanguage',
+  'weightUnit',
+  'highlightViewMode',
+  'smart_features_enabled',
+  'purchasedBibleVersions',
+
+  // ── Saved Content ───────────────────────────────────────
+  'savedBibleVerses',
+  'fivefold_savedBibleVerses',
+  'fivefold_favoriteVerses',
+  'journalNotes',
+  'journal_notes',
+  'journal_notes_migrated',
+  'bookmarks',
+
+  // ── Verse Data & Highlights ─────────────────────────────
+  'verse_data',
+  'highlight_names',
+  'highlight_custom_names',
+  'reading_streaks',
+  'readingProgress',
+  'currentReadingPlan',
+
+  // ── Daily Verse ─────────────────────────────────────────
+  'daily_verse_data_v6',
+  'daily_verse_index_v6',
+  'shuffled_verses_v6',
+  'daily_verse_last_update_v6',
+  'daily_verse',
+  'votd_dismiss_type',
+  'votd_dismissed_date',
+
+  // ── Prayers ─────────────────────────────────────────────
+  'prayerHistory',
+  'prayer_completions',
+  'prayer_preferences',
+  'userPrayers',
+  'fivefold_userPrayers',
+  'customPrayerNames',
+  'customPrayerTimes',
+  'prayers',
+  'fivefold_prayers',
+  'simplePrayers',
+  'fivefold_simplePrayers',
+  'enhancedPrayers',
+
+  // ── App Streak ──────────────────────────────────────────
+  'app_streak_data',
+  'app_open_streak',
+  'app_open_dates',
+
+  // ── Tasks/Todos ─────────────────────────────────────────
+  'todos',
+  'fivefold_todos',
+  'completedTodos',
+
+  // ── Workout/Fitness ─────────────────────────────────────
+  'workoutHistory',
+  '@workout_history',
+  '@workout_templates',
+  '@workout_folders',
+  '@scheduled_workouts',
+  'quizHistory',
+
+  // ── Nutrition & Physique ────────────────────────────────
+  '@nutrition_profile',
+  '@food_log',
+  '@food_favorites',
+  '@physique_scores',
+
+  // ── Bible Features ──────────────────────────────────────
+  'bible_maps_bookmarks',
+  'bible_maps_visited',
+  'bible_fast_facts_favorites',
+  'recentBibleSearches',
+
+  // ── Thematic Guides ─────────────────────────────────────
+  'fivefold_thematicGuideReflections',
+  'fivefold_completedThematicGuides',
+
+  // ── Hub & Tokens ────────────────────────────────────────
+  'hub_token_notification_sent',
+  'hub_posting_token',
+  'hub_token_schedule',
+  'hub_token_last_delivery',
+
+  // ── Notifications ───────────────────────────────────────
+  'notificationPreferences',
+  'notificationSettings',
+
+  // ── Social ──────────────────────────────────────────────
+  'friendChatHistory',
+
+  // ── Onboarding Selections ───────────────────────────────
+  'userPainPoint',
+  'userAttribution',
+
+  // ── Settings/Misc ───────────────────────────────────────
+  'fivefold_settings',
+  'fivefold_lastResetDate',
+  'fivefold_groqApiKey',
+  'app_settings',
+  'app_language',
+];
+
+/**
  * Auth Provider Component
  * Wraps the app and provides auth state to all children
  */
@@ -161,33 +322,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // CRITICAL: Clear ALL user-specific local data for new account
       // This prevents stale data from a previous account on the same device
-      const staleDataKeys = [
-        'onboardingCompleted',
-        'userProfile', 'fivefold_userProfile',
-        'userStats', 'fivefold_userStats', 'total_points',
-        'savedBibleVerses', 'fivefold_savedBibleVerses',
-        'journalNotes', 'bookmarks', 'verse_data', 'highlight_names', 'reading_streaks',
-        'fivefold_theme', 'fivefold_dark_mode', 'fivefold_wallpaper_index',
-        'selectedBibleVersion', 'selectedLanguage', 'weightUnit',
-        'prayerHistory', 'workoutHistory', '@workout_history',
-        '@workout_templates', '@workout_folders', '@scheduled_workouts',
-        'quizHistory', 'prayer_completions', 'prayer_preferences',
-        'userPrayers', 'fivefold_userPrayers', 'customPrayerNames', 'customPrayerTimes',
-        'prayers', 'fivefold_prayers', 'simplePrayers', 'fivefold_simplePrayers',
-        'todos', 'fivefold_todos', 'completedTodos',
-        'readingProgress', 'currentReadingPlan',
-        'daily_verse_data_v6', 'daily_verse_index_v6', 'shuffled_verses_v6', 'daily_verse_last_update_v6',
-        'app_streak_data', 'app_open_streak', 'app_open_dates',
-        'userPainPoint', 'userAttribution',
-        'notificationPreferences', 'notificationSettings',
-        'bible_maps_bookmarks', 'bible_maps_visited',
-        'bible_fast_facts_favorites', 'recentBibleSearches',
-        'friendChatHistory', 'fivefold_favoriteVerses',
-        '@nutrition_profile', '@food_log', '@food_favorites',
-        '@physique_scores',
-        'hub_token_notification_sent', 'hub_posting_token', 'hub_token_schedule', 'hub_token_last_delivery',
-      ];
-      await AsyncStorage.multiRemove(staleDataKeys);
+      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
       console.log('[Auth] Cleared all stale local data for new user signup');
       
       // Step 1: Create account
@@ -261,11 +396,16 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(result));
       markDone(0);
       
-      // CRITICAL: Skip onboarding for existing users IMMEDIATELY
+      // CRITICAL: Clear ALL stale data from previous account BEFORE downloading new data
+      // This prevents data from a different user contaminating this user's account
+      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
+      console.log('[Auth] Cleared stale data before downloading new user data');
+      
+      // Skip onboarding for existing users
       await AsyncStorage.setItem('onboardingCompleted', 'true');
       console.log('[Auth] Skipping onboarding for returning user (set immediately)');
       
-      // Step 2: Download cloud data
+      // Step 2: Download cloud data into clean local state
       const { downloadAndMergeCloudData } = await import('../services/userSyncService');
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
@@ -369,103 +509,7 @@ export const AuthProvider = ({ children }) => {
       
       // Clear user-specific data to prevent data sharing between accounts
       // These are the keys that should be unique per user
-      const userSpecificKeys = [
-        // CRITICAL: Onboarding flag - must clear so new user sees onboarding
-        'onboardingCompleted',
-        // Saved content
-        'savedBibleVerses',
-        'fivefold_savedBibleVerses',
-        'journalNotes',
-        'bookmarks',
-        // Verse data (highlights stored here by VerseDataManager)
-        'verse_data',
-        'highlight_names',
-        'reading_streaks',
-        // User preferences (theme, settings)
-        'fivefold_theme',
-        'fivefold_dark_mode',
-        'fivefold_wallpaper_index',
-        'selectedBibleVersion',
-        'selectedLanguage',
-        'weightUnit',
-        // User stats
-        'userStats',
-        'fivefold_userStats',
-        'userProfile',
-        'fivefold_userProfile',
-        'total_points',
-        // Prayer/workout history
-        'prayerHistory',
-        'workoutHistory',
-        '@workout_history',
-        '@workout_templates',
-        '@workout_folders',
-        'quizHistory',
-        'prayer_completions',
-        'prayer_preferences',
-        // User prayers (custom prayer data - the prayers shown on Bible tab)
-        'userPrayers',
-        'fivefold_userPrayers',
-        'customPrayerNames',
-        'customPrayerTimes',
-        'prayers',
-        'fivefold_prayers',
-        'simplePrayers',
-        'fivefold_simplePrayers',
-        // Hub posting tokens - DO NOT CLEAR on sign-out
-        // These are synced to cloud and will be overwritten when new user signs in
-        // Clearing them causes race condition where new schedule is created before cloud data downloads
-        // 'hub_posting_token',
-        // 'hub_token_schedule',
-        // 'hub_token_last_delivery',
-        // Scheduled workouts
-        '@scheduled_workouts',
-        // Reading progress
-        'readingProgress',
-        'currentReadingPlan',
-        // Verse of the day (actual keys used by dailyVerse.js)
-        'daily_verse_data_v6',
-        'daily_verse_index_v6',
-        'shuffled_verses_v6',
-        'daily_verse_last_update_v6',
-        // App streak (user-specific) - BOTH keys used by AppStreakManager
-        'app_streak_data',
-        'app_open_streak',
-        'app_open_dates',
-        // Onboarding selections
-        'userPainPoint',
-        'userAttribution',
-        // Token notification flag
-        'hub_token_notification_sent',
-        'hub_posting_token',
-        'hub_token_schedule',
-        'hub_token_last_delivery',
-        // Tasks/Todos
-        'todos',
-        'fivefold_todos',
-        'completedTodos',
-        // Notifications
-        'notificationPreferences',
-        // Bible maps data
-        'bible_maps_bookmarks',
-        'bible_maps_visited',
-        // Bible fast facts
-        'bible_fast_facts_favorites',
-        // Recent searches
-        'recentBibleSearches',
-        // Friend chat history
-        'friendChatHistory',
-        // Key Verses favorites
-        'fivefold_favoriteVerses',
-        // Nutrition data
-        '@nutrition_profile',
-        '@food_log',
-        '@food_favorites',
-        // Physique/Body composition
-        '@physique_scores',
-        // Notification settings
-        'notificationSettings',
-      ];
+      const userSpecificKeys = ALL_USER_DATA_KEYS;
       
       await AsyncStorage.multiRemove(userSpecificKeys);
       console.log('[Auth] Cleared user-specific data on sign out');

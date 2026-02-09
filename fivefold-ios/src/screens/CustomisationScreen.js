@@ -108,6 +108,7 @@ const CustomisationScreen = () => {
   const s1 = useRef(new Animated.Value(0)).current;
   const s2 = useRef(new Animated.Value(0)).current;
   const s3 = useRef(new Animated.Value(0)).current;
+  const s4 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     load();
@@ -115,6 +116,7 @@ const CustomisationScreen = () => {
     setTimeout(() => Animated.spring(s1, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }).start(), 80);
     setTimeout(() => Animated.spring(s2, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }).start(), 200);
     setTimeout(() => Animated.spring(s3, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }).start(), 320);
+    setTimeout(() => Animated.spring(s4, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }).start(), 440);
   }, []);
 
   const load = async () => {
@@ -436,6 +438,56 @@ const CustomisationScreen = () => {
                 </TouchableOpacity>
               );
             })}
+          </View>
+        </AnimSection>
+
+        {/* ── APP ICON ─────────────────────────────────────── */}
+        <AnimSection anim={s4}>
+          <SectionHeader icon="phone-iphone" iconBg="#6366F120" iconColor="#6366F1" title="App Icon" subtitle="Customise your home screen icon" textColor={tx} subtitleColor={tx2} />
+
+          <View style={{
+            backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: bdr,
+            padding: 24,
+            alignItems: 'center',
+          }}>
+            {/* Preview of current icon */}
+            <View style={{
+              width: 72,
+              height: 72,
+              borderRadius: 18,
+              backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}>
+              <Image
+                source={require('../../assets/logo.png')}
+                style={{ width: 52, height: 52, borderRadius: 12 }}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Coming Soon badge */}
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 0.5 }}>Coming Soon</Text>
+            </LinearGradient>
+
+            <Text style={{ color: tx2, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+              Choose from multiple app icons{'\n'}to personalise your home screen
+            </Text>
           </View>
         </AnimSection>
 

@@ -285,7 +285,7 @@ const AppNavigation = () => {
     const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
       console.log('🏆 Achievement unlocked listener triggered:', data);
       if (achievementToastRef.current) {
-        achievementToastRef.current.show(data.title, data.points);
+        achievementToastRef.current.show(data.title, data.points, data.id, data.icon);
       }
     });
 

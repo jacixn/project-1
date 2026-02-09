@@ -337,11 +337,26 @@ class AchievementService {
         console.warn('[AchievementService] Firebase sync error (non-fatal):', firebaseErr.message);
       }
 
+      // ── Set permanent unlock flags for customisation gates ──
+      const CUSTOMISATION_GATE_IDS = new Set([
+        'app_streak_15', 'chars_5', 'read_25', 'tasks_25', 'saved_25',
+        'read_50', 'prayers_5', 'saved_5', 'tasks_10', 'audio_5', 'saved_10',
+        'app_streak_30',
+      ]);
+      const flagWrites = newlyUnlocked
+        .filter(a => CUSTOMISATION_GATE_IDS.has(a.id))
+        .map(a => [`fivefold_unlock_${a.id}`, 'true']);
+      if (flagWrites.length > 0) {
+        await AsyncStorage.multiSet(flagWrites).catch(() => {});
+      }
+
       // ── Trigger toast notifications ──
       newlyUnlocked.forEach(achievement => {
         DeviceEventEmitter.emit('achievementUnlocked', {
+          id: achievement.id,
           title: achievement.title,
           points: achievement.points,
+          icon: achievement.icon,
         });
       });
 

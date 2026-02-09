@@ -217,6 +217,18 @@ export const syncUserStatsToCloud = async (userId) => {
     if (localStats.completedTasks !== undefined) updateData.tasksCompleted = localStats.completedTasks;
     if (localStats.workoutsCompleted !== undefined) updateData.workoutsCompleted = localStats.workoutsCompleted;
     if (localStats.quizzesTaken !== undefined) updateData.quizzesTaken = localStats.quizzesTaken;
+    // Achievement-relevant activity counters
+    if (localStats.savedVerses !== undefined) updateData.savedVerses = localStats.savedVerses;
+    if (localStats.versesShared !== undefined) updateData.versesShared = localStats.versesShared;
+    if (localStats.audiosPlayed !== undefined) updateData.audiosPlayed = localStats.audiosPlayed;
+    if (localStats.charactersRead !== undefined) updateData.charactersRead = localStats.charactersRead;
+    if (localStats.timelineErasViewed !== undefined) updateData.timelineErasViewed = localStats.timelineErasViewed;
+    if (localStats.mapsVisited !== undefined) updateData.mapsVisited = localStats.mapsVisited;
+    if (localStats.versesRead !== undefined) updateData.versesRead = localStats.versesRead;
+    if (localStats.exercisesLogged !== undefined) updateData.exercisesLogged = localStats.exercisesLogged;
+    if (localStats.setsCompleted !== undefined) updateData.setsCompleted = localStats.setsCompleted;
+    if (localStats.workoutMinutes !== undefined) updateData.workoutMinutes = localStats.workoutMinutes;
+    if (localStats.gymWeekStreak !== undefined) updateData.gymWeekStreak = localStats.gymWeekStreak;
     
     // Add profile fields
     if (localProfile) {
@@ -279,6 +291,18 @@ export const downloadAndMergeCloudData = async (userId) => {
       completedTasks: Math.max(localStats.completedTasks || 0, cloudData.tasksCompleted || 0),
       workoutsCompleted: Math.max(localStats.workoutsCompleted || 0, cloudData.workoutsCompleted || 0),
       quizzesTaken: Math.max(localStats.quizzesTaken || 0, cloudData.quizzesTaken || 0),
+      // Achievement-relevant activity counters
+      savedVerses: Math.max(localStats.savedVerses || 0, cloudData.savedVerses || 0),
+      versesShared: Math.max(localStats.versesShared || 0, cloudData.versesShared || 0),
+      audiosPlayed: Math.max(localStats.audiosPlayed || 0, cloudData.audiosPlayed || 0),
+      charactersRead: Math.max(localStats.charactersRead || 0, cloudData.charactersRead || 0),
+      timelineErasViewed: Math.max(localStats.timelineErasViewed || 0, cloudData.timelineErasViewed || 0),
+      mapsVisited: Math.max(localStats.mapsVisited || 0, cloudData.mapsVisited || 0),
+      versesRead: Math.max(localStats.versesRead || 0, cloudData.versesRead || 0),
+      exercisesLogged: Math.max(localStats.exercisesLogged || 0, cloudData.exercisesLogged || 0),
+      setsCompleted: Math.max(localStats.setsCompleted || 0, cloudData.setsCompleted || 0),
+      workoutMinutes: Math.max(localStats.workoutMinutes || 0, cloudData.workoutMinutes || 0),
+      gymWeekStreak: Math.max(localStats.gymWeekStreak || 0, cloudData.gymWeekStreak || 0),
       joinedDate: cloudData.joinedDate?.toDate?.()?.toISOString() || localStats.joinedDate || new Date().toISOString(),
     };
     
@@ -748,6 +772,57 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded Key Verses favorites from cloud');
     }
     
+    // ── Achievement & Customisation Data ──────────────────────────
+    // Unlocked achievements — merge: union of local + cloud
+    if (cloudData.achievementsUnlocked && Array.isArray(cloudData.achievementsUnlocked)) {
+      const localStr = await AsyncStorage.getItem('fivefold_achievements_unlocked');
+      const localIds = localStr ? JSON.parse(localStr) : [];
+      const merged = [...new Set([...localIds, ...cloudData.achievementsUnlocked])];
+      await AsyncStorage.setItem('fivefold_achievements_unlocked', JSON.stringify(merged));
+      console.log(`[Sync] Merged achievements: ${merged.length} total (local ${localIds.length} + cloud ${cloudData.achievementsUnlocked.length})`);
+    }
+
+    // Prestige count — keep whichever is higher
+    if (cloudData.achievementsPrestige !== undefined) {
+      const localStr = await AsyncStorage.getItem('fivefold_achievements_prestige');
+      const localPrestige = localStr ? parseInt(localStr, 10) : 0;
+      const mergedPrestige = Math.max(localPrestige, cloudData.achievementsPrestige || 0);
+      await AsyncStorage.setItem('fivefold_achievements_prestige', mergedPrestige.toString());
+      console.log(`[Sync] Merged prestige: ${mergedPrestige} (local ${localPrestige}, cloud ${cloudData.achievementsPrestige})`);
+    }
+
+    // Permanent unlock flags — union of local + cloud
+    if (cloudData.permanentUnlocks && typeof cloudData.permanentUnlocks === 'object') {
+      const writes = [];
+      for (const [achId, val] of Object.entries(cloudData.permanentUnlocks)) {
+        if (val) {
+          writes.push([`fivefold_unlock_${achId}`, 'true']);
+        }
+      }
+      if (writes.length > 0) {
+        await AsyncStorage.multiSet(writes);
+        console.log(`[Sync] Restored ${writes.length} permanent unlock flags from cloud`);
+      }
+    }
+
+    // Selected streak animation — only apply if no local selection yet
+    if (cloudData.selectedStreakAnimation) {
+      const localAnim = await AsyncStorage.getItem('fivefold_streak_animation');
+      if (!localAnim) {
+        await AsyncStorage.setItem('fivefold_streak_animation', cloudData.selectedStreakAnimation);
+        console.log(`[Sync] Restored streak animation from cloud: ${cloudData.selectedStreakAnimation}`);
+      }
+    }
+
+    // Badge toggles — only apply if no local toggles yet
+    if (cloudData.badgeToggles && typeof cloudData.badgeToggles === 'object') {
+      const localToggles = await AsyncStorage.getItem('fivefold_badge_toggles');
+      if (!localToggles) {
+        await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(cloudData.badgeToggles));
+        console.log('[Sync] Restored badge toggles from cloud');
+      }
+    }
+
     return {
       stats: mergedStats,
       profile: mergedProfile,
@@ -1260,6 +1335,55 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including Key Verses favorites in upload');
     }
     
+    // ── Achievement & Customisation Data ──────────────────────────
+    // Unlocked achievements list
+    const achievementsStr = await AsyncStorage.getItem('fivefold_achievements_unlocked');
+    if (achievementsStr) {
+      updateData.achievementsUnlocked = JSON.parse(achievementsStr);
+      console.log(`[Sync] Including ${updateData.achievementsUnlocked.length} unlocked achievements in upload`);
+    }
+
+    // Prestige count
+    const prestigeStr = await AsyncStorage.getItem('fivefold_achievements_prestige');
+    if (prestigeStr) {
+      updateData.achievementsPrestige = parseInt(prestigeStr, 10);
+      console.log(`[Sync] Including prestige count (${updateData.achievementsPrestige}) in upload`);
+    }
+
+    // Permanent unlock flags for customisation gates
+    const CUSTOMISATION_GATE_IDS = [
+      'app_streak_15', 'chars_5', 'read_25', 'tasks_25', 'saved_25',
+      'read_50', 'prayers_5', 'saved_5', 'tasks_10', 'audio_5', 'saved_10',
+      'app_streak_30',
+    ];
+    const unlockFlagKeys = CUSTOMISATION_GATE_IDS.map(id => `fivefold_unlock_${id}`);
+    const unlockFlagValues = await AsyncStorage.multiGet(unlockFlagKeys);
+    const permanentUnlocks = {};
+    unlockFlagValues.forEach(([key, val]) => {
+      if (val === 'true') {
+        const achId = key.replace('fivefold_unlock_', '');
+        permanentUnlocks[achId] = true;
+      }
+    });
+    if (Object.keys(permanentUnlocks).length > 0) {
+      updateData.permanentUnlocks = permanentUnlocks;
+      console.log(`[Sync] Including ${Object.keys(permanentUnlocks).length} permanent unlock flags in upload`);
+    }
+
+    // Selected streak animation
+    const streakAnimStr = await AsyncStorage.getItem('fivefold_streak_animation');
+    if (streakAnimStr) {
+      updateData.selectedStreakAnimation = streakAnimStr;
+      console.log(`[Sync] Including streak animation (${streakAnimStr}) in upload`);
+    }
+
+    // Badge toggles
+    const badgeTogglesStr = await AsyncStorage.getItem('fivefold_badge_toggles');
+    if (badgeTogglesStr) {
+      updateData.badgeToggles = JSON.parse(badgeTogglesStr);
+      console.log('[Sync] Including badge toggles in upload');
+    }
+
     // Daily verse data (verse of the day - per user)
     const dailyVerseDataStr = await AsyncStorage.getItem('daily_verse_data_v6');
     const dailyVerseIndexStr = await AsyncStorage.getItem('daily_verse_index_v6');
