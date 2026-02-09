@@ -40,6 +40,7 @@ import {
 import { db } from '../config/firebase';
 import { hapticFeedback } from '../utils/haptics';
 import AchievementService from '../services/achievementService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,6 +48,21 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
   const insets = useSafeAreaInsets();
+  
+  // Badge toggles for current user
+  const [badgeToggles, setBadgeToggles] = useState({});
+  useEffect(() => {
+    AsyncStorage.getItem('fivefold_badge_toggles').then(raw => {
+      if (raw) {
+        setBadgeToggles(JSON.parse(raw));
+      } else {
+        // Fallback to old key
+        AsyncStorage.getItem('fivefold_bluetick_enabled').then(val => {
+          setBadgeToggles({ verified: val !== 'false' });
+        });
+      }
+    });
+  }, []);
   
   // State
   const [activeTab, setActiveTab] = useState('friends');
@@ -449,9 +465,13 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             ) : (
               <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 2, opacity: 0.5 }} />
             )}
-            {/* Profile badges (e.g. blue tick) */}
-            {AchievementService.getEarnedBadgesFromStats(item).map(badge => (
-              <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 4 }} />
+            {/* Profile badges — hide toggled-off badges for current user */}
+            {AchievementService.getEarnedBadgesFromStats(item)
+              .filter(badge => !(item.isCurrentUser && badgeToggles[badge.id] === false))
+              .map(badge => (
+              badge.image
+                ? <Image key={badge.id} source={badge.image} style={{ width: 16, height: 16, marginLeft: 4, borderRadius: 4 }} resizeMode="contain" />
+                : <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 4 }} />
             ))}
             {item.isCurrentUser && (
               <View style={[styles.youBadge, { backgroundColor: theme.primary + '20' }]}>
@@ -552,8 +572,12 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {second.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{second.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(second).map(badge => (
-              <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
+            {AchievementService.getEarnedBadgesFromStats(second)
+              .filter(badge => !(second.isCurrentUser && badgeToggles[badge.id] === false))
+              .map(badge => (
+              badge.image
+                ? <Image key={badge.id} source={badge.image} style={{ width: 14, height: 14, marginLeft: 3, borderRadius: 3 }} resizeMode="contain" />
+                : <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
             ))}
           </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>
@@ -601,8 +625,12 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {first.countryFlag ? (
               <Text style={{ fontSize: 14, marginLeft: 4 }}>{first.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(first).map(badge => (
-              <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 3 }} />
+            {AchievementService.getEarnedBadgesFromStats(first)
+              .filter(badge => !(first.isCurrentUser && badgeToggles[badge.id] === false))
+              .map(badge => (
+              badge.image
+                ? <Image key={badge.id} source={badge.image} style={{ width: 16, height: 16, marginLeft: 3, borderRadius: 4 }} resizeMode="contain" />
+                : <MaterialIcons key={badge.id} name={badge.icon} size={16} color={badge.color} style={{ marginLeft: 3 }} />
             ))}
           </View>
           <Text style={[styles.podiumScore, styles.podiumScoreFirst, { color: '#FFD700' }]}>
@@ -647,8 +675,12 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {third.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{third.countryFlag}</Text>
             ) : null}
-            {AchievementService.getEarnedBadgesFromStats(third).map(badge => (
-              <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
+            {AchievementService.getEarnedBadgesFromStats(third)
+              .filter(badge => !(third.isCurrentUser && badgeToggles[badge.id] === false))
+              .map(badge => (
+              badge.image
+                ? <Image key={badge.id} source={badge.image} style={{ width: 14, height: 14, marginLeft: 3, borderRadius: 3 }} resizeMode="contain" />
+                : <MaterialIcons key={badge.id} name={badge.icon} size={14} color={badge.color} style={{ marginLeft: 3 }} />
             ))}
           </View>
           <Text style={[styles.podiumScore, { color: theme.textSecondary }]}>

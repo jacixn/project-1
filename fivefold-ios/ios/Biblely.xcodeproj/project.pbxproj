@@ -8,13 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		0703F7959EADAB182BB8D414 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00010E897515DD053E931506 /* ExpoModulesProvider.swift */; };
-		0EB96B6D750FCB0CDFF7DCD9 /* libPods-Biblely.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C04ABA62000B31B0EFE5A45E /* libPods-Biblely.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		18AB099E4B148ED7282A9CFD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */; };
 		2A4C32F12F00883E006372D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F02F00883E006372D4 /* WidgetKit.framework */; };
 		2A4C32F32F00883E006372D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F22F00883E006372D4 /* SwiftUI.framework */; };
 		2A4C33022F00884D006372D4 /* BiblelyVerseWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2A4C32EF2F00883D006372D4 /* BiblelyVerseWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		956082C41DB9C325BBBA1D9C /* Pods_Biblely.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FAF27D5A6369B8C45DE2444 /* Pods_Biblely.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -53,9 +53,9 @@
 		2A4C32F22F00883E006372D4 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Biblely/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4955B5E6A8E96CED8EE9EE4C /* Pods-Biblely.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Biblely.release.xcconfig"; path = "Target Support Files/Pods-Biblely/Pods-Biblely.release.xcconfig"; sourceTree = "<group>"; };
+		4FAF27D5A6369B8C45DE2444 /* Pods_Biblely.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Biblely.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Biblely/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C04ABA62000B31B0EFE5A45E /* libPods-Biblely.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Biblely.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD78B72A902865EB2DD460C9 /* Pods-Biblely.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Biblely.debug.xcconfig"; path = "Target Support Files/Pods-Biblely/Pods-Biblely.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Biblely/AppDelegate.swift; sourceTree = "<group>"; };
@@ -92,7 +92,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0EB96B6D750FCB0CDFF7DCD9 /* libPods-Biblely.a in Frameworks */,
+				956082C41DB9C325BBBA1D9C /* Pods_Biblely.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,7 +137,7 @@
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				2A4C32F02F00883E006372D4 /* WidgetKit.framework */,
 				2A4C32F22F00883E006372D4 /* SwiftUI.framework */,
-				C04ABA62000B31B0EFE5A45E /* libPods-Biblely.a */,
+				4FAF27D5A6369B8C45DE2444 /* Pods_Biblely.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

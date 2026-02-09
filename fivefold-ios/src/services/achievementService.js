@@ -405,8 +405,17 @@ class AchievementService {
       name: 'Verified',
       icon: 'verified',          // MaterialIcons 'verified' = blue tick
       color: '#1DA1F2',          // Twitter-blue
-      condition: (stats) => (stats.prayersCompleted || 0) >= 1,
-      description: 'Complete your first prayer',
+      condition: (stats) => (stats.savedVerses || 0) >= 5,
+      description: 'Save 5 verses to your collection',
+    },
+    {
+      id: 'biblely',
+      name: 'Biblely',
+      icon: null,                // Uses logo image instead
+      image: require('../../assets/logo.png'),
+      color: '#F59E0B',          // Gold/amber
+      condition: (stats) => (stats.appStreak || 0) >= 30,
+      description: 'Maintain a 30-day app streak',
     },
   ];
 

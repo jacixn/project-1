@@ -324,6 +324,10 @@ const ProfileTab = () => {
   const [streakOpenDates, setStreakOpenDates] = useState([]);
   const streakVisibleRef = useRef(false);
   
+  // Customisation State
+  const [selectedStreakAnim, setSelectedStreakAnim] = useState('fire1');
+  const [bluetickToggle, setBluetickToggle] = useState(true);
+  
   // Streak animation values
   const streakFireScale = useRef(new Animated.Value(0)).current;
   const streakFireFlicker = useRef(new Animated.Value(1)).current;
@@ -579,6 +583,60 @@ const ProfileTab = () => {
     }
   };
 
+  // Show the streak modal with animations
+  const showStreakModal = () => {
+    streakVisibleRef.current = true;
+    setShowStreakMilestone(true);
+    
+    // Reset animation values
+    streakFireScale.setValue(0);
+    streakFireFlicker.setValue(1);
+    streakNumberScale.setValue(0);
+    streakFadeIn.setValue(0);
+    
+    // Start entrance animations
+    Animated.sequence([
+      Animated.spring(streakFireScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+      Animated.spring(streakNumberScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    Animated.timing(streakFadeIn, {
+      toValue: 1,
+      duration: 600,
+      delay: 300,
+      useNativeDriver: true,
+    }).start();
+    
+    // Start continuous fire flicker
+    const flicker = () => {
+      Animated.sequence([
+        Animated.timing(streakFireFlicker, {
+          toValue: 1.06,
+          duration: 400 + Math.random() * 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(streakFireFlicker, {
+          toValue: 0.97,
+          duration: 300 + Math.random() * 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        if (streakVisibleRef.current) flicker();
+      });
+    };
+    flicker();
+  };
+
   const loadAppStreak = async () => {
     try {
       const streakData = await AppStreakManager.trackAppOpen();
@@ -597,67 +655,13 @@ const ProfileTab = () => {
         await AppStreakManager.clearMilestoneFlag();
       }
       
-      // Always show the streak screen
-      streakVisibleRef.current = true;
-      setShowStreakMilestone(true);
-      
-      // Reset animation values
-      streakFireScale.setValue(0);
-      streakFireFlicker.setValue(1);
-      streakNumberScale.setValue(0);
-      streakFadeIn.setValue(0);
-      
-      // Start entrance animations
-      Animated.sequence([
-        // Fire scales in with a bounce
-        Animated.spring(streakFireScale, {
-          toValue: 1,
-          friction: 4,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        // Then the number pops in
-        Animated.spring(streakNumberScale, {
-          toValue: 1,
-          friction: 5,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      
-      // Fade in the rest
-      Animated.timing(streakFadeIn, {
-        toValue: 1,
-        duration: 600,
-        delay: 300,
-        useNativeDriver: true,
-      }).start();
-      
-      // Start continuous fire flicker (main body)
-      const flicker = () => {
-        Animated.sequence([
-          Animated.timing(streakFireFlicker, {
-            toValue: 1.06,
-            duration: 400 + Math.random() * 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(streakFireFlicker, {
-            toValue: 0.96,
-            duration: 350 + Math.random() * 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(streakFireFlicker, {
-            toValue: 1,
-            duration: 300 + Math.random() * 150,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          if (streakVisibleRef.current) flicker();
-        });
-      };
-      setTimeout(flicker, 400);
-      
-      // Lottie handles the fire animation internally — no extra animations needed
+      // Show streak modal once per day
+      const today = new Date().toDateString();
+      const lastShown = await AsyncStorage.getItem('fivefold_streak_modal_last_shown');
+      if (lastShown !== today) {
+        await AsyncStorage.setItem('fivefold_streak_modal_last_shown', today);
+        showStreakModal();
+      }
     } catch (error) {
       console.error('Error loading app streak:', error);
     }
@@ -1836,8 +1840,22 @@ const ProfileTab = () => {
       };
       setUserStats(mergedStats);
 
-      // Load profile badges from stats
-      setEarnedBadges(AchievementService.getEarnedBadgesFromStats(mergedStats));
+      // Load profile badges from stats (respecting per-badge toggles)
+      const badgeTogglesRaw = await AsyncStorage.getItem('fivefold_badge_toggles');
+      const badgeTogglesObj = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : {};
+      // Backward compat: check old key if no toggles saved yet
+      if (!badgeTogglesRaw) {
+        const oldBt = await AsyncStorage.getItem('fivefold_bluetick_enabled');
+        badgeTogglesObj.verified = oldBt !== 'false';
+      }
+      setBluetickToggle(badgeTogglesObj.verified !== false);
+      const allBadges = AchievementService.getEarnedBadgesFromStats(mergedStats);
+      const visibleBadges = allBadges.filter(b => badgeTogglesObj[b.id] !== false);
+      setEarnedBadges(visibleBadges);
+      
+      // Load selected streak animation
+      const savedAnim = await AsyncStorage.getItem('fivefold_streak_animation');
+      if (savedAnim) setSelectedStreakAnim(savedAnim);
       
       console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
@@ -2233,13 +2251,22 @@ const ProfileTab = () => {
           {userName} {selectedCountry?.flag || '🌍'}
         </Text>
         {earnedBadges.map(badge => (
-          <MaterialIcons
-            key={badge.id}
-            name={badge.icon}
-            size={22}
-            color={badge.color}
-            style={{ marginLeft: 4 }}
-          />
+          badge.image ? (
+            <Image
+              key={badge.id}
+              source={badge.image}
+              style={{ width: 28, height: 28, marginLeft: 5, borderRadius: 7 }}
+              resizeMode="contain"
+            />
+          ) : (
+            <MaterialIcons
+              key={badge.id}
+              name={badge.icon}
+              size={22}
+              color={badge.color}
+              style={{ marginLeft: 4 }}
+            />
+          )
         ))}
       </View>
         
@@ -2293,16 +2320,23 @@ const ProfileTab = () => {
           </TouchableOpacity>
         )}
         
-        {/* Streak Display */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginTop: 4,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          backgroundColor: `${theme.warning}20`,
-          borderRadius: 20,
-        }}>
+        {/* Streak Display — tap to show streak modal */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            hapticFeedback.buttonPress();
+            showStreakModal();
+          }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            backgroundColor: `${theme.warning}20`,
+            borderRadius: 20,
+          }}
+        >
           <Text style={{ fontSize: 18, marginRight: 6 }}>
             {AppStreakManager.getStreakEmoji(appStreak)}
           </Text>
@@ -2313,7 +2347,7 @@ const ProfileTab = () => {
           }]}>
             {appStreak} Day Streak
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
       
       <Text style={[styles.userLevel, { color: textSecondaryColor }]}>
@@ -2477,79 +2511,26 @@ const ProfileTab = () => {
     );
   };
 
-  // Badges Section
-  const BadgesSection = () => {
-    const sampleBadges = [
-      { id: 1, name: "First Prayer", icon: "favorite", earned: true },
-      { id: 2, name: "Bible Reader", icon: "menu-book", earned: true },
-      { id: 3, name: "Task Master", icon: "check-circle", earned: false },
-      { id: 4, name: "Week Warrior", icon: "local-fire-department", earned: false },
-    ];
-
-    return (
-      <AnimatedSettingsCard 
-        style={styles.badgesCard}
-        onPress={() => {
-          hapticFeedback.achievement();
-          navigation.navigate('Achievements');
-        }}
-      >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Achievements</Text>
-          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
+  // Badges Section — compact card matching Settings/Customisation style
+  const BadgesSection = () => (
+    <AnimatedSettingsCard 
+      style={styles.aboutCard}
+      onPress={() => {
+        hapticFeedback.achievement();
+        navigation.navigate('Achievements');
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+        <View style={styles.settingLeft}>
+          <MaterialIcons name="emoji-events" size={24} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
+            Achievements
+          </Text>
         </View>
-        
-        <View style={styles.badgesGrid}>
-          {sampleBadges.map(badge => (
-            <View 
-              key={badge.id} 
-              style={[
-                styles.badgeItem, 
-                { 
-                  backgroundColor: `${theme.primary}30`,
-                  borderColor: `${theme.primary}99`,
-                  borderWidth: 0.8,
-                  borderRadius: 16,
-                  shadowColor: theme.primary,
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 3,
-                  elevation: 1,
-                }
-              ]}
-            >
-              <MaterialIcons 
-                name={badge.icon} 
-                size={20} 
-                color={iconColor} 
-              />
-              <Text style={[
-                styles.badgeText, 
-                { color: textColor, ...textOutlineStyle }
-              ]}>
-                {badge.name}
-              </Text>
-            </View>
-          ))}
-        </View>
-        
-          <View style={[styles.viewAllButton, { 
-            backgroundColor: `${theme.primary}30`,
-            borderColor: `${theme.primary}99`,
-            borderWidth: 0.8,
-            shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 3,
-            elevation: 1,
-          }]}>
-            <Text style={[styles.viewAllText, { color: iconColor }]}>
-              View All Achievements
-            </Text>
-          </View>
-      </AnimatedSettingsCard>
-    );
-  };
+        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
+      </View>
+    </AnimatedSettingsCard>
+  );
 
   // Handle sync to cloud
   const handleSync = async () => {
@@ -2769,6 +2750,27 @@ const ProfileTab = () => {
     </View>
   );
 
+  // Customisation Button - sits above Settings
+  const CustomisationButton = () => (
+    <AnimatedSettingsCard 
+      style={styles.aboutCard}
+      onPress={() => {
+        hapticFeedback.buttonPress();
+        navigation.navigate('Customisation');
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+        <View style={styles.settingLeft}>
+          <MaterialIcons name="palette" size={24} color={iconColor} />
+          <Text style={[styles.aboutButtonText, { color: textColor, ...textOutlineStyle }]}>
+            Customisation
+          </Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={24} color={iconColor} />
+      </View>
+    </AnimatedSettingsCard>
+  );
+
   // Changes Button - sits between Settings and About
   const ChangesButton = () => (
     <AnimatedSettingsCard 
@@ -2964,12 +2966,11 @@ const ProfileTab = () => {
         {BadgesSection()}
         
         
-        {/* Account Section - Sign In/Out */}
-        <AccountSection />
         
+        <CustomisationButton />
         <ChangesButton />
         <LegalSection />
-        <AboutSection />
+        {/* AboutSection removed */}
       </Animated.ScrollView>
 
       {/* Edit Profile Modal */}
@@ -3987,44 +3988,7 @@ const ProfileTab = () => {
               marginBottom: 24,
               overflow: 'hidden',
             }}>
-              {/* Theme */}
-            <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                }}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                  setTimeout(() => setShowThemeModal(true), 300);
-              }}
-              activeOpacity={0.7}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: `${theme.primary}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                <MaterialIcons name="palette" size={20} color={theme.primary} />
-              </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Theme</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: modalTextSecondaryColor }}>
-                    {isBlushTheme ? 'Blush' : isEternaTheme ? 'Eterna' : isCresviaTheme ? 'Cresvia' : isSpidermanTheme ? 'Spiderman' : isFaithTheme ? 'Faith' : isSailormoonTheme ? 'Sailor Moon' : isBiblelyTheme ? (selectedWallpaperIndex === 1 ? 'Jesus & Lambs' : selectedWallpaperIndex === 2 ? 'Classic' : 'Biblely') : 'Default'}
-                </Text>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </View>
-            </TouchableOpacity>
-            
+              {/* Theme — moved to Customisation screen */}
               {/* Liquid Glass Toggle */}
               {isLiquidGlassSupportedByDevice && (
                 <View style={{
@@ -4468,6 +4432,62 @@ const ProfileTab = () => {
                 </View>
               </>
             )}
+
+            {/* ACCOUNT SECTION - Sign Out */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: theme.textSecondary,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Account
+            </Text>
+
+            <View style={{
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setTimeout(() => handleSignOut(), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="logout" size={20} color={theme.error || '#EF4444'} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.error || '#EF4444' }}>Sign Out</Text>
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                      {authUserProfile?.email || user?.email || 'Signed in'}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.error || '#EF4444'} />
+              </TouchableOpacity>
+            </View>
 
             {/* DANGER ZONE SECTION */}
             <Text style={{
@@ -6462,19 +6482,19 @@ const ProfileTab = () => {
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              {/* Warm glow behind the fire */}
-              <View style={{
-                position: 'absolute',
-                width: 130,
-                height: 130,
-                borderRadius: 65,
-                backgroundColor: 'rgba(255, 149, 0, 0.15)',
-                shadowColor: '#FF6B00',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 50,
-              }} />
-              <Text style={{ fontSize: 110, textAlign: 'center' }}>🔥</Text>
+              <LottieView
+                source={
+                  selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
+                  selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
+                  selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
+                  selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
+                  selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
+                  require('../../assets/fire-animation.json')
+                }
+                autoPlay
+                loop
+                style={{ width: 130, height: 130 }}
+              />
             </Animated.View>
 
             {/* ── Streak Number ────────────────────────────── */}
@@ -6487,9 +6507,6 @@ const ProfileTab = () => {
                 fontWeight: '800',
                 color: '#FFFFFF',
                 textAlign: 'center',
-                textShadowColor: 'rgba(255, 149, 0, 0.6)',
-                textShadowOffset: { width: 0, height: 3 },
-                textShadowRadius: 16,
               }}>
                 {appStreak}
               </Text>

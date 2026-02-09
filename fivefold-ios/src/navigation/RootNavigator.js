@@ -44,6 +44,7 @@ import BibleFastFactsScreen from '../screens/BibleFastFactsScreen';
 import AudioLearningScreen from '../screens/AudioLearningScreen';
 import BibleReaderScreen from '../screens/BibleReaderScreen';
 import FriendChatScreen from '../screens/FriendChatScreen';
+import CustomisationScreen from '../screens/CustomisationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -898,6 +899,15 @@ const RootNavigator = () => {
         }}
       />
       
+      {/* Customisation Screen */}
+      <Stack.Screen 
+        name="Customisation" 
+        component={CustomisationScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
       {/* Bible Reader Screen */}
       <Stack.Screen 
         name="BibleReader" 
