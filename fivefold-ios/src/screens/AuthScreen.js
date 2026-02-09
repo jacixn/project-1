@@ -218,7 +218,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         />
         
         <View style={styles.overlayContent}>
-          <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ flex: 1 }}>
             <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
               {/* Spacer to position text higher */}
               <View style={{ flex: 0.08 }} />
@@ -256,10 +256,10 @@ const AuthScreen = ({ onAuthSuccess }) => {
               </TouchableOpacity>
               </View>
               
-              {/* Bottom spacing for buttons */}
-              <View style={{ height: 50 }} />
+              {/* Bottom spacing */}
+              <View style={{ height: 20 }} />
             </Animated.View>
-          </SafeAreaView>
+          </View>
         </View>
       </View>
     );

@@ -16,6 +16,8 @@ import {
   FlatList,
   Animated,
   Switch,
+  ActivityIndicator,
+  Easing,
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -441,6 +443,11 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [showAllVersions, setShowAllVersions] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default to English
   
+  // Setup/Loading screen state
+  const [showSetupScreen, setShowSetupScreen] = useState(false);
+  const [setupSteps, setSetupSteps] = useState([]);
+  const [currentSetupStep, setCurrentSetupStep] = useState(-1);
+
   // Migration state
   const [hasExistingData, setHasExistingData] = useState(false);
   const [existingDataSummary, setExistingDataSummary] = useState(null);
@@ -731,41 +738,56 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   const finishOnboarding = async () => {
+    // Build the list of setup steps based on what the user configured
+    const steps = [];
+    
+    steps.push({ id: 'profile', label: `Setting up your profile${userName ? `, ${userName.trim()}` : ''}...`, icon: 'person', done: false });
+    
+    if (profileImage) {
+      steps.push({ id: 'photo', label: 'Uploading your profile photo...', icon: 'photo-camera', done: false });
+    }
+    
+    if (selectedCountry) {
+      steps.push({ id: 'country', label: `Setting location to ${selectedCountry.flag || ''} ${selectedCountry.name}...`, icon: 'public', done: false });
+    }
+    
+    steps.push({ id: 'bible', label: `Setting Bible to ${selectedBibleVersion?.toUpperCase() || 'NIV'}...`, icon: 'menu-book', done: false });
+    
+    if (selectedLanguage && selectedLanguage !== 'en') {
+      steps.push({ id: 'language', label: 'Applying language preferences...', icon: 'translate', done: false });
+    }
+    
+    steps.push({ id: 'units', label: `Setting weight to ${weightUnit === 'kg' ? 'kilograms (kg)' : 'pounds (lbs)'}...`, icon: 'fitness-center', done: false });
+
+    const themeName = availableThemes?.find(t => t.id === selectedTheme)?.name || selectedTheme;
+    steps.push({ id: 'theme', label: `Applying ${themeName} theme...`, icon: 'palette', done: false });
+    
+    if (notificationsEnabled) {
+      steps.push({ id: 'notifications', label: 'Enabling notifications...', icon: 'notifications-active', done: false });
+    }
+    
+    steps.push({ id: 'sync', label: 'Syncing to the cloud...', icon: 'cloud-upload', done: false });
+    steps.push({ id: 'finish', label: 'Finishing touches...', icon: 'auto-awesome', done: false });
+
+    setSetupSteps(steps);
+    setCurrentSetupStep(-1);
+    setShowSetupScreen(true);
+
+    // Now run each step with a visual delay
     try {
-      // Upload profile image to Firebase Storage if selected
-      let uploadedProfileUrl = null;
-      if (profileImage && user?.uid) {
-        try {
-          uploadedProfileUrl = await uploadProfilePicture(user.uid, profileImage);
-          console.log('[Onboarding] Profile image uploaded:', uploadedProfileUrl);
-        } catch (uploadError) {
-          console.warn('[Onboarding] Failed to upload profile image:', uploadError);
-        }
-      }
-      
-      // Save user profile locally
-      const profileData = {
-        name: userName.trim() || 'Friend',
-        profilePicture: uploadedProfileUrl || profileImage,
-        country: selectedCountry?.name || null,
-        countryCode: selectedCountry?.code || null,
-        countryFlag: selectedCountry?.flag || null,
-        theme: selectedTheme,
-        mode: selectedMode,
-        bibleVersion: selectedBibleVersion,
-        weightUnit: weightUnit,
-        language: selectedLanguage,
-        joinedDate: new Date().toISOString(),
-      };
-      await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
-      
-      // SYNC TO FIREBASE - Critical for data persistence across devices/accounts
-      if (user?.uid) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await updateDoc(userRef, {
-            displayName: userName.trim() || 'Friend',
-            profilePicture: uploadedProfileUrl || profileImage || null,
+      for (let i = 0; i < steps.length; i++) {
+        setCurrentSetupStep(i);
+        hapticFeedback.selection();
+
+        const step = steps[i];
+        
+        // Minimum visual delay so users can see what's happening
+        const minDelay = new Promise(resolve => setTimeout(resolve, 700));
+
+        if (step.id === 'profile') {
+          const profileData = {
+            name: userName.trim() || 'Friend',
+            profilePicture: profileImage || null,
             country: selectedCountry?.name || null,
             countryCode: selectedCountry?.code || null,
             countryFlag: selectedCountry?.flag || null,
@@ -774,66 +796,123 @@ const SimpleOnboarding = ({ onComplete }) => {
             bibleVersion: selectedBibleVersion,
             weightUnit: weightUnit,
             language: selectedLanguage,
-            onboardingCompleted: true,
-            onboardingCompletedAt: new Date().toISOString(),
-          });
-          console.log('[Onboarding] Profile synced to Firebase');
-        } catch (syncError) {
-          console.warn('[Onboarding] Failed to sync to Firebase:', syncError);
+            joinedDate: new Date().toISOString(),
+          };
+          await Promise.all([
+            AsyncStorage.setItem('userProfile', JSON.stringify(profileData)),
+            minDelay,
+          ]);
+        } else if (step.id === 'photo') {
+          let uploadedUrl = null;
+          if (profileImage && user?.uid) {
+            try {
+              uploadedUrl = await uploadProfilePicture(user.uid, profileImage);
+              await persistProfileImage(profileImage);
+            } catch (e) {
+              console.warn('[Setup] Photo upload failed:', e);
+            }
+          }
+          await minDelay;
+          // Store for later sync step
+          step._uploadedUrl = uploadedUrl;
+        } else if (step.id === 'country') {
+          // Country saved as part of profile, just visual
+          await minDelay;
+        } else if (step.id === 'bible') {
+          await Promise.all([
+            AsyncStorage.setItem('selectedBibleVersion', selectedBibleVersion),
+            minDelay,
+          ]);
+        } else if (step.id === 'language') {
+          await Promise.all([
+            AsyncStorage.setItem('selectedLanguage', selectedLanguage),
+            minDelay,
+          ]);
+        } else if (step.id === 'units') {
+          await Promise.all([
+            AsyncStorage.setItem('weightUnit', weightUnit),
+            minDelay,
+          ]);
+        } else if (step.id === 'theme') {
+          await Promise.all([
+            changeTheme(selectedTheme),
+            minDelay,
+          ]);
+          if (selectedMode === 'dark' && !isDark) await toggleDarkMode();
+          if (selectedMode === 'light' && isDark) await toggleDarkMode();
+        } else if (step.id === 'notifications') {
+          // Notifications already requested during onboarding
+          await minDelay;
+        } else if (step.id === 'sync') {
+          // Sync everything to Firebase
+          if (user?.uid) {
+            try {
+              const uploadedPhotoUrl = steps.find(s => s.id === 'photo')?._uploadedUrl;
+              const userRef = doc(db, 'users', user.uid);
+              await Promise.all([
+                updateDoc(userRef, {
+                  displayName: userName.trim() || 'Friend',
+                  profilePicture: uploadedPhotoUrl || profileImage || null,
+                  country: selectedCountry?.name || null,
+                  countryCode: selectedCountry?.code || null,
+                  countryFlag: selectedCountry?.flag || null,
+                  theme: selectedTheme,
+                  mode: selectedMode,
+                  bibleVersion: selectedBibleVersion,
+                  weightUnit: weightUnit,
+                  language: selectedLanguage,
+                  onboardingCompleted: true,
+                  onboardingCompletedAt: new Date().toISOString(),
+                  ...(selectedAttribution ? { attribution: selectedAttribution } : {}),
+                  ...(selectedPainPoint ? { painPoint: selectedPainPoint } : {}),
+                }),
+                minDelay,
+              ]);
+
+              // Update AuthContext cache
+              const cacheStr = await AsyncStorage.getItem('@biblely_user_cache');
+              const cached = cacheStr ? JSON.parse(cacheStr) : {};
+              await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify({
+                ...cached,
+                displayName: userName.trim() || 'Friend',
+                profilePicture: uploadedPhotoUrl || profileImage || cached.profilePicture || null,
+                country: selectedCountry?.name || null,
+                countryCode: selectedCountry?.code || null,
+                countryFlag: selectedCountry?.flag || null,
+              }));
+            } catch (syncError) {
+              console.warn('[Setup] Firebase sync failed:', syncError);
+              await minDelay;
+            }
+          } else {
+            await minDelay;
+          }
+        } else if (step.id === 'finish') {
+          // Save remaining individual settings
+          if (selectedPainPoint) {
+            await AsyncStorage.setItem('userPainPoint', selectedPainPoint);
+          }
+          if (selectedAttribution) {
+            await AsyncStorage.setItem('userAttribution', selectedAttribution);
+          }
+          await Promise.all([
+            AsyncStorage.setItem('onboardingCompleted', 'true'),
+            minDelay,
+          ]);
         }
+
+        // Mark step as done
+        setSetupSteps(prev => prev.map((s, idx) => idx === i ? { ...s, done: true } : s));
       }
-      
-      // Save individual settings
-      if (selectedPainPoint) {
-        await AsyncStorage.setItem('userPainPoint', selectedPainPoint);
-      }
-      if (selectedAttribution) {
-        await AsyncStorage.setItem('userAttribution', selectedAttribution);
-      }
-      
-      // Save Bible version preference
-      await AsyncStorage.setItem('selectedBibleVersion', selectedBibleVersion);
-      
-      // Save language preference
-      await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
-      
-      // Save weight unit preference
-      await AsyncStorage.setItem('weightUnit', weightUnit);
-      
-      // Persist profile image locally if selected
-      if (profileImage) {
-        await persistProfileImage(profileImage);
-      }
-      
-      // Also update AuthContext cache so background sync doesn't overwrite
-      try {
-        const cacheStr = await AsyncStorage.getItem('@biblely_user_cache');
-        const cached = cacheStr ? JSON.parse(cacheStr) : {};
-        const updatedCache = {
-          ...cached,
-          displayName: userName.trim() || 'Friend',
-          profilePicture: uploadedProfileUrl || profileImage || cached.profilePicture || null,
-          country: selectedCountry?.name || null,
-          countryCode: selectedCountry?.code || null,
-          countryFlag: selectedCountry?.flag || null,
-        };
-        await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify(updatedCache));
-        console.log('[Onboarding] Updated AuthContext cache');
-      } catch (cacheError) {
-        console.warn('[Onboarding] Failed to update auth cache:', cacheError);
-      }
-      
-      // Apply theme
-      await changeTheme(selectedTheme);
-      if (selectedMode === 'dark' && !isDark) await toggleDarkMode();
-      if (selectedMode === 'light' && isDark) await toggleDarkMode();
-      
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+
+      // All done - brief pause then complete
       hapticFeedback.success();
+      await new Promise(resolve => setTimeout(resolve, 800));
       onComplete();
     } catch (error) {
-      console.error('Failed to save onboarding data:', error);
+      console.error('Failed during setup:', error);
       await AsyncStorage.setItem('onboardingCompleted', 'true');
+      hapticFeedback.success();
       onComplete();
     }
   };
@@ -1059,7 +1138,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           />
           
           <Text style={[styles.welcomeTitle, { color: '#333' }]}>
-            Hey, I'm Biblely!
+            Hey {userName}, I'm Biblely!
           </Text>
           
           <Text style={[styles.welcomeSubtitle, { color: '#666' }]}>
@@ -2677,10 +2756,12 @@ const SimpleOnboarding = ({ onComplete }) => {
     const screenTheme = SCREEN_THEMES.complete;
     
     const quickStats = [
-      { icon: 'menu-book', label: '44 translations' },
-      { icon: 'chat', label: 'Smart companion' },
-      { icon: 'headphones', label: 'Audio stories' },
-      { icon: 'quiz', label: 'Bible quizzes' },
+      { icon: 'menu-book', label: '44 Bible translations' },
+      { icon: 'fitness-center', label: 'Gym & workouts' },
+      { icon: 'task-alt', label: 'Smart tasks & goals' },
+      { icon: 'favorite', label: 'Prayer tracking' },
+      { icon: 'restaurant', label: 'Nutrition tracker' },
+      { icon: 'people', label: 'Community & friends' },
     ];
     
     return (
@@ -2729,6 +2810,187 @@ const SimpleOnboarding = ({ onComplete }) => {
           <Text style={styles.mainButtonText}>Start My Journey</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
         </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
+  // SCREEN: Setup Loading
+  // ============================================
+  const SetupScreen = () => {
+    const stepAnims = useRef(setupSteps.map(() => ({
+      opacity: new Animated.Value(0),
+      translateY: new Animated.Value(20),
+      scale: new Animated.Value(0.8),
+    }))).current;
+
+    const progressAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const headerOpacity = useRef(new Animated.Value(0)).current;
+    const headerScale = useRef(new Animated.Value(0.9)).current;
+
+    useEffect(() => {
+      // Animate header in
+      Animated.parallel([
+        Animated.timing(headerOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(headerScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      ]).start();
+
+      // Pulse animation for active step
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }, []);
+
+    useEffect(() => {
+      if (currentSetupStep >= 0 && currentSetupStep < stepAnims.length) {
+        const anim = stepAnims[currentSetupStep];
+        Animated.parallel([
+          Animated.timing(anim.opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.spring(anim.translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+          Animated.spring(anim.scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
+        ]).start();
+
+        // Update progress bar
+        Animated.timing(progressAnim, {
+          toValue: (currentSetupStep + 1) / setupSteps.length,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }).start();
+      }
+    }, [currentSetupStep]);
+
+    const progressWidth = progressAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0%', '100%'],
+    });
+
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
+        <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 28 }}>
+          {/* Header */}
+          <Animated.View style={{
+            alignItems: 'center',
+            marginBottom: 40,
+            opacity: headerOpacity,
+            transform: [{ scale: headerScale }],
+          }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#4CAF50',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20,
+              shadowColor: '#4CAF50',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+            }}>
+              <MaterialIcons name="settings" size={36} color="#FFF" />
+            </View>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: '#1A1A2E', textAlign: 'center', marginBottom: 6 }}>
+              Setting Up Your App
+            </Text>
+            <Text style={{ fontSize: 15, color: '#666', textAlign: 'center' }}>
+              Just a moment, {userName || 'friend'}...
+            </Text>
+          </Animated.View>
+
+          {/* Progress Bar */}
+          <View style={{
+            height: 6,
+            backgroundColor: '#E0E0E0',
+            borderRadius: 3,
+            marginBottom: 32,
+            overflow: 'hidden',
+          }}>
+            <Animated.View style={{
+              height: '100%',
+              backgroundColor: '#4CAF50',
+              borderRadius: 3,
+              width: progressWidth,
+            }} />
+          </View>
+
+          {/* Steps List */}
+          <View style={{ gap: 0 }}>
+            {setupSteps.map((step, index) => {
+              const anim = stepAnims[index];
+              const isActive = index === currentSetupStep;
+              const isDone = step.done;
+              const isUpcoming = index > currentSetupStep;
+
+              return (
+                <Animated.View
+                  key={step.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    marginBottom: 4,
+                    borderRadius: 14,
+                    backgroundColor: isActive ? 'rgba(76, 175, 80, 0.08)' : 'transparent',
+                    opacity: isUpcoming ? 0.2 : (isDone ? 1 : anim?.opacity),
+                    transform: [
+                      { translateY: isUpcoming ? 0 : (anim?.translateY || 0) },
+                      { scale: isActive ? pulseAnim : 1 },
+                    ],
+                  }}
+                >
+                  {/* Icon */}
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: isDone ? '#4CAF50' : isActive ? '#4CAF50' : '#E0E0E0',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 14,
+                  }}>
+                    {isDone ? (
+                      <MaterialIcons name="check" size={18} color="#FFF" />
+                    ) : isActive ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <MaterialIcons name={step.icon} size={16} color="#999" />
+                    )}
+                  </View>
+
+                  {/* Label */}
+                  <Text style={{
+                    flex: 1,
+                    fontSize: 15,
+                    fontWeight: isActive ? '600' : isDone ? '500' : '400',
+                    color: isDone ? '#4CAF50' : isActive ? '#1A1A2E' : '#999',
+                  }}>
+                    {isDone ? step.label.replace('...', '') : step.label}
+                  </Text>
+
+                  {/* Done Checkmark */}
+                  {isDone && (
+                    <MaterialIcons name="done" size={18} color="#4CAF50" />
+                  )}
+                </Animated.View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Bottom hint */}
+        <View style={{ paddingBottom: 40, alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: '#999' }}>
+            This will only take a moment
+          </Text>
+        </View>
       </SafeAreaView>
     );
   };
@@ -2905,6 +3167,11 @@ const SimpleOnboarding = ({ onComplete }) => {
 
   // Render current screen
   const renderScreen = () => {
+    // Show setup loading screen
+    if (showSetupScreen) {
+      return <SetupScreen />;
+    }
+
     // Show loading while checking for data
     if (checkingData) {
       return (

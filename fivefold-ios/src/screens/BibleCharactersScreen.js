@@ -121,10 +121,14 @@ const BibleCharactersScreen = ({ navigation }) => {
   const characterGroupDetailScrollRef = useRef(null);
 
   const getCardColors = () => {
+    // Use theme colors so cards match the active theme
+    const p = theme.primary || '#667eea';
+    const pL = theme.primaryLight || theme.accent || p;
+    const pD = theme.primaryDark || p;
     if (isDark) {
-      return ['#3B82F6', '#2563EB', '#1D4ED8', '#60A5FA', '#3B82F6', '#2563EB', '#1E40AF', '#1E3A8A'];
+      return [p, pD, pD, pL, p, pD, pD, pD];
     } else {
-      return ['#60A5FA', '#3B82F6', '#2563EB', '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8'];
+      return [pL, p, pD, pL, pL, p, pD, pD];
     }
   };
 

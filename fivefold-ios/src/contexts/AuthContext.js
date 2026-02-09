@@ -159,9 +159,36 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
-      // CRITICAL: Clear onboarding flag so new user ALWAYS sees onboarding
-      await AsyncStorage.removeItem('onboardingCompleted');
-      console.log('[Auth] Cleared onboardingCompleted for new user signup');
+      // CRITICAL: Clear ALL user-specific local data for new account
+      // This prevents stale data from a previous account on the same device
+      const staleDataKeys = [
+        'onboardingCompleted',
+        'userProfile', 'fivefold_userProfile',
+        'userStats', 'fivefold_userStats', 'total_points',
+        'savedBibleVerses', 'fivefold_savedBibleVerses',
+        'journalNotes', 'bookmarks', 'verse_data', 'highlight_names', 'reading_streaks',
+        'fivefold_theme', 'fivefold_dark_mode', 'fivefold_wallpaper_index',
+        'selectedBibleVersion', 'selectedLanguage', 'weightUnit',
+        'prayerHistory', 'workoutHistory', '@workout_history',
+        '@workout_templates', '@workout_folders', '@scheduled_workouts',
+        'quizHistory', 'prayer_completions', 'prayer_preferences',
+        'userPrayers', 'fivefold_userPrayers', 'customPrayerNames', 'customPrayerTimes',
+        'prayers', 'fivefold_prayers', 'simplePrayers', 'fivefold_simplePrayers',
+        'todos', 'fivefold_todos', 'completedTodos',
+        'readingProgress', 'currentReadingPlan',
+        'daily_verse_data_v6', 'daily_verse_index_v6', 'shuffled_verses_v6', 'daily_verse_last_update_v6',
+        'app_streak_data', 'app_open_streak', 'app_open_dates',
+        'userPainPoint', 'userAttribution',
+        'notificationPreferences', 'notificationSettings',
+        'bible_maps_bookmarks', 'bible_maps_visited',
+        'bible_fast_facts_favorites', 'recentBibleSearches',
+        'friendChatHistory', 'fivefold_favoriteVerses',
+        '@nutrition_profile', '@food_log', '@food_favorites',
+        '@physique_scores',
+        'hub_token_notification_sent', 'hub_posting_token', 'hub_token_schedule', 'hub_token_last_delivery',
+      ];
+      await AsyncStorage.multiRemove(staleDataKeys);
+      console.log('[Auth] Cleared all stale local data for new user signup');
       
       // Step 1: Create account
       const result = await authSignUp({ email, password, username, displayName });
@@ -370,6 +397,9 @@ export const AuthProvider = ({ children }) => {
         // Prayer/workout history
         'prayerHistory',
         'workoutHistory',
+        '@workout_history',
+        '@workout_templates',
+        '@workout_folders',
         'quizHistory',
         'prayer_completions',
         'prayer_preferences',
@@ -427,6 +457,14 @@ export const AuthProvider = ({ children }) => {
         'friendChatHistory',
         // Key Verses favorites
         'fivefold_favoriteVerses',
+        // Nutrition data
+        '@nutrition_profile',
+        '@food_log',
+        '@food_favorites',
+        // Physique/Body composition
+        '@physique_scores',
+        // Notification settings
+        'notificationSettings',
       ];
       
       await AsyncStorage.multiRemove(userSpecificKeys);

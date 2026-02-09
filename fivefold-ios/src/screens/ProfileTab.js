@@ -307,6 +307,10 @@ const ProfileTab = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(null); // 'privacy' | 'terms' | 'support' | null
   const [showBible, setShowBible] = useState(false);
+  const [showAdminAnalytics, setShowAdminAnalytics] = useState(false);
+  const [attributionData, setAttributionData] = useState(null);
+  const [loadingAttribution, setLoadingAttribution] = useState(false);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
   const [verseReference, setVerseReference] = useState(null);
 
   const [purchasedVersions, setPurchasedVersions] = useState(['kjv', 'web']); // Free versions
@@ -378,7 +382,76 @@ const ProfileTab = () => {
     
     lastScrollY.current = currentScrollY;
   };
-  
+
+  // Admin Analytics - check if current user is admin
+  const ADMIN_EMAILS = ['biblelyios@gmail.com'];
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+
+  const fetchAttributionData = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingAttribution(true);
+    try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      
+      const counts = {};
+      let total = 0;
+      snapshot.forEach(docSnap => {
+        total++;
+        const data = docSnap.data();
+        if (data.attribution) {
+          counts[data.attribution] = (counts[data.attribution] || 0) + 1;
+        }
+      });
+      
+      // Map IDs to display names
+      const LABEL_MAP = {
+        tiktok: 'TikTok',
+        instagram: 'Instagram',
+        twitter: 'X / Twitter',
+        friend: 'Friend / Family',
+        appstore: 'App Store',
+        google: 'Google Search',
+        youtube: 'YouTube',
+        church: 'Church',
+        other: 'Other',
+      };
+
+      const COLOR_MAP = {
+        tiktok: '#000000',
+        instagram: '#E1306C',
+        twitter: '#1DA1F2',
+        friend: '#FF7043',
+        appstore: '#007AFF',
+        google: '#4285F4',
+        youtube: '#FF0000',
+        church: '#8E24AA',
+        other: '#78909C',
+      };
+
+      // Build sorted array
+      const sorted = Object.entries(counts)
+        .map(([id, count]) => ({
+          id,
+          label: LABEL_MAP[id] || id,
+          count,
+          color: COLOR_MAP[id] || '#999',
+          percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      setAttributionData(sorted);
+      setTotalUsersCount(total);
+    } catch (error) {
+      console.error('[Admin] Failed to fetch attribution data:', error);
+      Alert.alert('Error', 'Failed to load analytics data.');
+    } finally {
+      setLoadingAttribution(false);
+    }
+  }, [isAdmin]);
+
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
 
@@ -1192,11 +1265,17 @@ const ProfileTab = () => {
         }
         
         // Update country
-        if (authUserProfile.country || authUserProfile.countryFlag) {
+        if (authUserProfile.country || authUserProfile.countryFlag || authUserProfile.countryCode) {
+          // Look up flag from countries data if not stored
+          let flag = authUserProfile.countryFlag || '';
+          if (!flag && authUserProfile.countryCode) {
+            const match = countries.find(c => c.code === authUserProfile.countryCode);
+            if (match) flag = match.flag;
+          }
           const countryObj = {
             code: authUserProfile.countryCode || '',
             name: authUserProfile.country || '',
-            flag: authUserProfile.countryFlag || ''
+            flag: flag,
           };
           setSelectedCountry(countryObj);
         }
@@ -1523,6 +1602,20 @@ const ProfileTab = () => {
         if (resolvedProfilePicture) localProfile.profilePicture = resolvedProfilePicture;
         setUserProfile(localProfile);
         await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+
+        // Rebuild selectedCountry with proper flag lookup
+        if (freshAuthProfile.countryCode || freshAuthProfile.country) {
+          let flag = freshAuthProfile.countryFlag || '';
+          if (!flag && freshAuthProfile.countryCode) {
+            const match = countries.find(c => c.code === freshAuthProfile.countryCode);
+            if (match) flag = match.flag;
+          }
+          setSelectedCountry({
+            code: freshAuthProfile.countryCode || '',
+            name: freshAuthProfile.country || '',
+            flag: flag,
+          });
+        }
       } else if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         setUserProfile(profile);
@@ -1566,11 +1659,21 @@ const ProfileTab = () => {
         }
         
         // Set country object from profile data
-        if (profile.countryCode) {
+        if (profile.countryCode || profile.country) {
+          // Look up flag from countries data if missing
+          let flag = profile.countryFlag || '';
+          if (!flag && profile.countryCode) {
+            const match = countries.find(c => c.code === profile.countryCode);
+            if (match) flag = match.flag;
+          }
+          if (!flag && profile.country) {
+            const match = countries.find(c => c.name === profile.country);
+            if (match) flag = match.flag;
+          }
           const countryObj = {
-            code: profile.countryCode,
-            name: profile.country,
-            flag: profile.countryFlag
+            code: profile.countryCode || '',
+            name: profile.country || '',
+            flag: flag,
           };
           setSelectedCountry(countryObj);
         }
@@ -4227,6 +4330,64 @@ const ProfileTab = () => {
               </View>
             </View>
 
+            {/* ADMIN ANALYTICS - Only visible to admin */}
+            {isAdmin && (
+              <>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: theme.primary,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  marginBottom: 12,
+                  marginLeft: 4,
+                }}>
+                  Admin
+                </Text>
+                <View style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  borderRadius: 16,
+                  marginBottom: 24,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 16,
+                    }}
+                    onPress={() => {
+                      hapticFeedback.buttonPress();
+                      setShowSettingsModal(false);
+                      setTimeout(() => {
+                        setShowAdminAnalytics(true);
+                        fetchAttributionData();
+                      }, 300);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: `${theme.primary}20`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <MaterialIcons name="bar-chart" size={20} color={theme.primary} />
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Analytics</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
             {/* DANGER ZONE SECTION */}
             <Text style={{
               fontSize: 12,
@@ -4353,6 +4514,209 @@ const ProfileTab = () => {
                 <MaterialIcons name="chevron-right" size={20} color="#FF3B30" />
             </TouchableOpacity>
             </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Admin Analytics Modal */}
+      <Modal visible={showAdminAnalytics} animationType="slide" presentationStyle="pageSheet">
+        <View style={{ flex: 1, backgroundColor: isDark ? '#111' : '#F5F5F7' }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: Platform.OS === 'ios' ? 60 : 20,
+            paddingBottom: 16,
+            backgroundColor: isDark ? '#111' : '#F5F5F7',
+          }}>
+            <TouchableOpacity onPress={() => setShowAdminAnalytics(false)} style={{ padding: 4 }}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>User Analytics</Text>
+            <TouchableOpacity onPress={fetchAttributionData} style={{ padding: 4 }}>
+              <MaterialIcons name="refresh" size={24} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            {/* Total Users Card */}
+            <View style={{
+              backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+              borderRadius: 20,
+              padding: 24,
+              marginBottom: 20,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Total Users</Text>
+              <Text style={{ fontSize: 48, fontWeight: '800', color: theme.primary }}>{totalUsersCount}</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 4 }}>
+                {attributionData ? `${attributionData.reduce((sum, d) => sum + d.count, 0)} answered "How did you find us?"` : ''}
+              </Text>
+            </View>
+
+            {/* Attribution Chart */}
+            <View style={{
+              backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 4 }}>Where Users Come From</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 20 }}>Based on onboarding responses</Text>
+
+              {loadingAttribution ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14 }}>Loading analytics...</Text>
+                </View>
+              ) : attributionData && attributionData.length > 0 ? (
+                <>
+                  {/* Bar Chart */}
+                  {attributionData.map((item, index) => {
+                    const maxCount = attributionData[0]?.count || 1;
+                    const barWidth = Math.max((item.count / maxCount) * 100, 8);
+                    return (
+                      <View key={item.id} style={{ marginBottom: 16 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text }}>
+                            {index === 0 ? '👑 ' : ''}{item.label}
+                          </Text>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: item.color }}>
+                            {item.count} ({item.percentage}%)
+                          </Text>
+                        </View>
+                        <View style={{
+                          height: 28,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                          borderRadius: 14,
+                          overflow: 'hidden',
+                        }}>
+                          <View style={{
+                            height: '100%',
+                            width: `${barWidth}%`,
+                            backgroundColor: item.color,
+                            borderRadius: 14,
+                            justifyContent: 'center',
+                            paddingLeft: 10,
+                          }}>
+                            {barWidth > 25 && (
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>{item.count} users</Text>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  {/* Top Source Highlight */}
+                  {attributionData.length > 0 && (
+                    <View style={{
+                      marginTop: 16,
+                      padding: 16,
+                      backgroundColor: `${attributionData[0].color}15`,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: `${attributionData[0].color}30`,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                    }}>
+                      <MaterialIcons name="trending-up" size={24} color={attributionData[0].color} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>
+                          Top Source: {attributionData[0].label}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                          {attributionData[0].percentage}% of users who answered found you here. Focus your advertising here.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <MaterialIcons name="analytics" size={48} color={theme.textSecondary} />
+                  <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14, textAlign: 'center' }}>
+                    No attribution data yet.{'\n'}Users will see "How did you find us?" during onboarding.
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Breakdown Table */}
+            {attributionData && attributionData.length > 0 && (
+              <View style={{
+                backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                borderRadius: 20,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.08,
+                shadowRadius: 8,
+                elevation: 3,
+              }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 16 }}>Detailed Breakdown</Text>
+                
+                {/* Table Header */}
+                <View style={{ flexDirection: 'row', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                  <Text style={{ flex: 1, fontSize: 12, fontWeight: '700', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>Source</Text>
+                  <Text style={{ width: 60, fontSize: 12, fontWeight: '700', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Users</Text>
+                  <Text style={{ width: 60, fontSize: 12, fontWeight: '700', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'right' }}>Share</Text>
+                </View>
+
+                {attributionData.map((item, index) => (
+                  <View key={item.id} style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    borderBottomWidth: index < attributionData.length - 1 ? 1 : 0,
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                  }}>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color }} />
+                      <Text style={{ fontSize: 14, fontWeight: index === 0 ? '700' : '500', color: theme.text }}>{item.label}</Text>
+                    </View>
+                    <Text style={{ width: 60, fontSize: 14, fontWeight: '600', color: theme.text, textAlign: 'center' }}>{item.count}</Text>
+                    <Text style={{ width: 60, fontSize: 14, fontWeight: '600', color: item.color, textAlign: 'right' }}>{item.percentage}%</Text>
+                  </View>
+                ))}
+
+                {/* Not Answered Row */}
+                {totalUsersCount > 0 && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    marginTop: 4,
+                    borderTopWidth: 1,
+                    borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  }}>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: isDark ? '#555' : '#CCC' }} />
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: theme.textSecondary, fontStyle: 'italic' }}>Didn't answer</Text>
+                    </View>
+                    <Text style={{ width: 60, fontSize: 14, fontWeight: '600', color: theme.textSecondary, textAlign: 'center' }}>
+                      {totalUsersCount - attributionData.reduce((sum, d) => sum + d.count, 0)}
+                    </Text>
+                    <Text style={{ width: 60, fontSize: 14, fontWeight: '600', color: theme.textSecondary, textAlign: 'right' }}>
+                      {Math.round(((totalUsersCount - attributionData.reduce((sum, d) => sum + d.count, 0)) / totalUsersCount) * 100)}%
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </ScrollView>
         </View>
       </Modal>
