@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { errorHandler } from '../utils/errorHandler';
 
 const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/quiz-data';
@@ -14,7 +14,7 @@ class QuizService {
 
   async isCacheValid() {
     try {
-      const timestamp = await AsyncStorage.getItem(CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const now = Date.now();
@@ -28,7 +28,7 @@ class QuizService {
 
   async loadFromCache() {
     try {
-      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      const cached = await userStorage.getRaw(CACHE_KEY);
       if (cached) {
         this.cache = JSON.parse(cached);
         console.log('Loaded quiz data from cache');
@@ -42,8 +42,8 @@ class QuizService {
 
   async saveToCache(data) {
     try {
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(CACHE_TIMESTAMP_KEY, Date.now().toString());
       console.log('Saved quiz data to cache');
     } catch (error) {
       errorHandler.silent('Quiz Cache Save', error);
@@ -162,8 +162,8 @@ class QuizService {
 
   async clearCache() {
     try {
-      await AsyncStorage.removeItem(CACHE_KEY);
-      await AsyncStorage.removeItem(CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(CACHE_KEY);
+      await userStorage.remove(CACHE_TIMESTAMP_KEY);
       this.cache = null;
       console.log('Cleared quiz data cache');
     } catch (error) {

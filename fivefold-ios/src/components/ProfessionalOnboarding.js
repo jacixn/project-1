@@ -21,6 +21,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -94,8 +95,8 @@ const ProfessionalOnboarding = ({ onComplete }) => {
       // Get all keys and clear any we find
       const allKeys = await AsyncStorage.getAllKeys();
       const allKeysToRemove = allKeys.filter(key => 
-        keysToRemove.includes(key) || 
-        key.startsWith('fivefold_') ||
+        keysToRemove.some(k => key.endsWith(':' + k) || key === k) || 
+        key.includes('fivefold_') ||
         key.includes('prayer') ||
         key.includes('todo') ||
         key.includes('completion')
@@ -126,8 +127,8 @@ const ProfessionalOnboarding = ({ onComplete }) => {
       const allKeys = await AsyncStorage.getAllKeys();
       console.log('🔍 Keys after clearing:', allKeys);
       
-      const profile = await AsyncStorage.getItem('userProfile');
-      const prayerData = await AsyncStorage.getItem('fivefold_prayerHistory');
+      const profile = await userStorage.getRaw('userProfile');
+      const prayerData = await userStorage.getRaw('fivefold_prayerHistory');
       console.log('🔍 Profile after clear:', profile);
       console.log('🔍 Prayer history after clear:', prayerData);
     };
@@ -279,7 +280,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
         joinedDate: new Date().toISOString(),
         isNewUser: true,
       };
-      await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
+      await userStorage.setRaw('userProfile', JSON.stringify(profileData));
       console.log('✅ Profile saved:', profileData);
       hapticFeedback.success();
     } catch (error) {
@@ -291,7 +292,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
   // Complete onboarding
   const completeOnboarding = async () => {
     try {
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await userStorage.setRaw('onboardingCompleted', 'true');
       hapticFeedback.success();
       onComplete();
     } catch (error) {
@@ -315,8 +316,8 @@ const ProfessionalOnboarding = ({ onComplete }) => {
             await clearAllUserData();
             
             // Set default values for skipped user
-            await AsyncStorage.setItem('onboardingCompleted', 'true');
-            await AsyncStorage.setItem('userProfile', JSON.stringify({
+            await userStorage.setRaw('onboardingCompleted', 'true');
+            await userStorage.setRaw('userProfile', JSON.stringify({
               name: 'Friend',
               profilePicture: null,
               country: { name: 'Not Specified', code: 'NA', flag: '🌍' },
@@ -326,7 +327,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
             }));
             
             // Initialize empty default data for new user
-            await AsyncStorage.setItem('fivefold_userStats', JSON.stringify({
+            await userStorage.setRaw('fivefold_userStats', JSON.stringify({
               totalPoints: 0,
               level: 1,
               completedTasks: 0,
@@ -335,8 +336,8 @@ const ProfessionalOnboarding = ({ onComplete }) => {
               currentStreak: 0,
               joinedDate: new Date().toISOString()
             }));
-            await AsyncStorage.setItem('fivefold_todos', JSON.stringify([]));
-            await AsyncStorage.setItem('fivefold_prayerHistory', JSON.stringify([]));
+            await userStorage.setRaw('fivefold_todos', JSON.stringify([]));
+            await userStorage.setRaw('fivefold_prayerHistory', JSON.stringify([]));
             
             onComplete();
           }

@@ -8,7 +8,7 @@
 
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { GOOGLE_TTS_CONFIG } from '../../googleTts.config';
 
 const VOICE_SETTINGS_KEY = 'google_tts_voice_settings';
@@ -57,7 +57,7 @@ class GoogleTtsService {
       }
       
       // Load cache index from AsyncStorage
-      const stored = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const stored = await userStorage.getRaw(CACHE_INDEX_KEY);
       if (stored) {
         this.cacheIndex = JSON.parse(stored);
         console.log(`[GoogleTTS] Loaded cache index with ${Object.keys(this.cacheIndex).length} entries`);
@@ -159,7 +159,7 @@ class GoogleTtsService {
       };
       
       // Save index to AsyncStorage
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
+      await userStorage.setRaw(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
       
       console.log(`[GoogleTTS] Cached audio: ${cacheKey} (total cached: ${Object.keys(this.cacheIndex).length})`);
       return filePath;
@@ -180,7 +180,7 @@ class GoogleTtsService {
         await FileSystem.deleteAsync(entry.path, { idempotent: true });
       }
       delete this.cacheIndex[cacheKey];
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
+      await userStorage.setRaw(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
     } catch (error) {
       console.log('[GoogleTTS] Cache removal error:', error);
     }
@@ -233,7 +233,7 @@ class GoogleTtsService {
       await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true });
       await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
       this.cacheIndex = {};
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
+      await userStorage.setRaw(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
       console.log('[GoogleTTS] Cache cleared');
       return true;
     } catch (error) {
@@ -254,7 +254,7 @@ class GoogleTtsService {
         pitch: 0,
         dynamicMode: false,
       };
-      await AsyncStorage.removeItem(VOICE_SETTINGS_KEY);
+      await userStorage.remove(VOICE_SETTINGS_KEY);
       await this.clearCache();
       console.log('[GoogleTTS] Reset complete');
       return true;
@@ -269,7 +269,7 @@ class GoogleTtsService {
    */
   async loadSettings() {
     try {
-      const stored = await AsyncStorage.getItem(VOICE_SETTINGS_KEY);
+      const stored = await userStorage.getRaw(VOICE_SETTINGS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         const savedVoiceKey = parsed.voiceKey;
@@ -283,7 +283,7 @@ class GoogleTtsService {
           console.log('[GoogleTTS] Saved voice key invalid, resetting to default:', savedVoiceKey);
           this.currentVoiceKey = 'wavenet-female-us'; // Reliable default
           // Save the corrected settings immediately
-          await AsyncStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
+          await userStorage.setRaw(VOICE_SETTINGS_KEY, JSON.stringify({
             voiceKey: this.currentVoiceKey,
             settings: parsed.settings || this.settings,
           }));
@@ -304,7 +304,7 @@ class GoogleTtsService {
    */
   async saveSettings() {
     try {
-      await AsyncStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
+      await userStorage.setRaw(VOICE_SETTINGS_KEY, JSON.stringify({
         voiceKey: this.currentVoiceKey,
         settings: this.settings,
       }));

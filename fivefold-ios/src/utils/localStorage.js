@@ -1,9 +1,16 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/**
+ * localStorage.js — Convenience wrappers around userStorage.
+ *
+ * saveData / getStoredData automatically add a `fivefold_` prefix to the key
+ * and delegate to the UID-scoped userStorage module, so all data written
+ * through these helpers is isolated per Firebase account.
+ */
+
+import userStorage from './userStorage';
 
 export const getStoredData = async (key) => {
   try {
-    const item = await AsyncStorage.getItem(`fivefold_${key}`);
-    return item ? JSON.parse(item) : null;
+    return await userStorage.get(`fivefold_${key}`);
   } catch (error) {
     console.error(`Error reading ${key} from storage:`, error);
     return null;
@@ -12,8 +19,7 @@ export const getStoredData = async (key) => {
 
 export const saveData = async (key, data) => {
   try {
-    await AsyncStorage.setItem(`fivefold_${key}`, JSON.stringify(data));
-    return true;
+    return await userStorage.set(`fivefold_${key}`, data);
   } catch (error) {
     console.error(`Error saving ${key} to storage:`, error);
     return false;

@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 import { Alert } from 'react-native';
 
 export const resetOnboardingForTesting = async () => {
   try {
     // Clear onboarding completion flag
-    await AsyncStorage.removeItem('onboardingCompleted');
+    await userStorage.remove('onboardingCompleted');
     
     // Clear all user data for completely fresh start
     const keysToRemove = [
@@ -26,11 +27,11 @@ export const resetOnboardingForTesting = async () => {
       'smart_features_enabled'
     ];
     
-    // Get all keys and clear any fivefold-related data
+    // Get all keys and clear any user-related data (raw keys include UID scope)
     const allKeys = await AsyncStorage.getAllKeys();
     const allKeysToRemove = allKeys.filter(key => 
-      keysToRemove.includes(key) || 
-      key.startsWith('fivefold_') ||
+      keysToRemove.some(k => key.endsWith(':' + k) || key === k) || 
+      key.includes('fivefold_') ||
       key.includes('prayer') ||
       key.includes('todo') ||
       key.includes('completion') ||
@@ -39,6 +40,7 @@ export const resetOnboardingForTesting = async () => {
     );
     
     if (allKeysToRemove.length > 0) {
+      // Use raw AsyncStorage since keys are already fully qualified (UID-scoped)
       await AsyncStorage.multiRemove(allKeysToRemove);
     }
     
@@ -59,7 +61,7 @@ export const resetOnboardingForTesting = async () => {
 
 export const forceShowOnboarding = async () => {
   try {
-    await AsyncStorage.removeItem('onboardingCompleted');
+    await userStorage.remove('onboardingCompleted');
     console.log('✅ Onboarding flag cleared - will show on next app restart');
     return true;
   } catch (error) {
@@ -172,7 +174,7 @@ export const deleteAccountCompletely = async (password = null) => {
       !systemKeys.some(systemKey => key.startsWith(systemKey))
     );
     
-    // Remove all app data
+    // Remove all app data (raw keys are already fully qualified)
     if (appKeysToRemove.length > 0) {
       await AsyncStorage.multiRemove(appKeysToRemove);
       console.log('[Delete] Removed local keys:', appKeysToRemove.length);

@@ -36,7 +36,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import nutritionService, { ACTIVITY_LABELS } from '../services/nutritionService';
 import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
@@ -377,8 +377,8 @@ const NutritionScreen = () => {
     }
 
     // Load unit preferences
-    const storedWU = await AsyncStorage.getItem('weightUnit');
-    const storedHU = await AsyncStorage.getItem('heightUnit');
+    const storedWU = await userStorage.getRaw('weightUnit');
+    const storedHU = await userStorage.getRaw('heightUnit');
     const wU = storedWU || 'kg';
     const hU = storedHU || 'cm';
     setWeightUnit(wU);

@@ -14,8 +14,9 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// AsyncStorage import removed — all storage now goes through userStorage
 import { db } from '../config/firebase';
+import userStorage from '../utils/userStorage';
 import { getStoredData, saveData } from '../utils/localStorage';
 
 // Storage keys that are synced to cloud
@@ -178,7 +179,7 @@ export const syncUserStatsToCloud = async (userId) => {
     
     // Read points from single source of truth: total_points key
     // (managed centrally by achievementService.checkAchievements())
-    const totalPointsStr = await AsyncStorage.getItem('total_points');
+    const totalPointsStr = await userStorage.getRaw('total_points');
     const pointsToSync = totalPointsStr ? parseInt(totalPointsStr, 10) : 0;
     
     // Prepare update data
@@ -199,7 +200,7 @@ export const syncUserStatsToCloud = async (userId) => {
     // IMPORTANT: Get streak from app_open_streak (AppStreakManager's key) - this is the actual streak
     let streakToSync = 0;
     try {
-      const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+      const appStreakStr = await userStorage.getRaw('app_open_streak');
       if (appStreakStr) {
         const appStreakData = JSON.parse(appStreakStr);
         streakToSync = appStreakData.currentStreak || 0;
@@ -278,7 +279,7 @@ export const downloadAndMergeCloudData = async (userId) => {
     // Merge strategy: Cloud wins for numeric/tracked values, local for recent edits
     // For totalPoints: local total_points key is the single source of truth
     // (managed centrally by achievementService.checkAchievements())
-    const localTotalPointsStr = await AsyncStorage.getItem('total_points');
+    const localTotalPointsStr = await userStorage.getRaw('total_points');
     const localTotalPoints = localTotalPointsStr ? parseInt(localTotalPointsStr, 10) : 0;
     
     const mergedStats = {
@@ -328,10 +329,10 @@ export const downloadAndMergeCloudData = async (userId) => {
     
     // Also save profile picture URL to local storage for ProfileTab
     if (cloudData.profilePicture) {
-      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const storedProfile = await userStorage.getRaw('userProfile');
       const localProfileData = storedProfile ? JSON.parse(storedProfile) : {};
       localProfileData.profilePicture = cloudData.profilePicture;
-      await AsyncStorage.setItem('userProfile', JSON.stringify(localProfileData));
+      await userStorage.setRaw('userProfile', JSON.stringify(localProfileData));
       console.log('[Sync] Downloaded profile picture URL from cloud');
     }
     
@@ -343,7 +344,7 @@ export const downloadAndMergeCloudData = async (userId) => {
     // Helper: merge arrays by ID, keeping more recent items
     const mergeArraysById = async (key, cloudArray, idField = 'id') => {
       if (!cloudArray || !Array.isArray(cloudArray)) return;
-      const localStr = await AsyncStorage.getItem(key);
+      const localStr = await userStorage.getRaw(key);
       const localArray = localStr ? JSON.parse(localStr) : [];
       
       // Create map of local items by ID
@@ -368,7 +369,7 @@ export const downloadAndMergeCloudData = async (userId) => {
       });
       
       const merged = Array.from(localMap.values());
-      await AsyncStorage.setItem(key, JSON.stringify(merged));
+      await userStorage.setRaw(key, JSON.stringify(merged));
       return merged;
     };
     
@@ -377,10 +378,10 @@ export const downloadAndMergeCloudData = async (userId) => {
       const merged = await mergeArraysById('savedBibleVerses', cloudData.savedBibleVerses);
       console.log(`[Sync] Merged saved verses: ${merged?.length || 0} total`);
       
-      const statsStr = await AsyncStorage.getItem('userStats');
+      const statsStr = await userStorage.getRaw('userStats');
       const stats = statsStr ? JSON.parse(statsStr) : {};
       stats.savedVerses = merged?.length || 0;
-      await AsyncStorage.setItem('userStats', JSON.stringify(stats));
+      await userStorage.setRaw('userStats', JSON.stringify(stats));
     }
     
     // Journal Notes - merge by ID, keep local-only additions
@@ -392,13 +393,13 @@ export const downloadAndMergeCloudData = async (userId) => {
     // Theme Preferences - ONLY apply cloud theme if local has NO theme set
     // This prevents background sync from overwriting the user's current theme choice
     if (cloudData.themePreferences) {
-      const localTheme = await AsyncStorage.getItem('fivefold_theme');
+      const localTheme = await userStorage.getRaw('fivefold_theme');
       if (!localTheme) {
         // No local theme = fresh install or new device, apply cloud theme
         const { theme, darkMode, wallpaperIndex } = cloudData.themePreferences;
-        if (theme) await AsyncStorage.setItem('fivefold_theme', theme);
-        if (darkMode !== undefined) await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(darkMode));
-        if (wallpaperIndex !== undefined) await AsyncStorage.setItem('fivefold_wallpaper_index', String(wallpaperIndex));
+        if (theme) await userStorage.setRaw('fivefold_theme', theme);
+        if (darkMode !== undefined) await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(darkMode));
+        if (wallpaperIndex !== undefined) await userStorage.setRaw('fivefold_wallpaper_index', String(wallpaperIndex));
         console.log('[Sync] Applied cloud theme to fresh install (no local theme found)');
       } else {
         console.log('[Sync] Skipping cloud theme - local theme already set:', localTheme);
@@ -434,11 +435,11 @@ export const downloadAndMergeCloudData = async (userId) => {
 
     // Nutrition profile - cloud wins (more stable data)
     if (cloudData.nutritionProfile) {
-      const localStr = await AsyncStorage.getItem('@nutrition_profile');
+      const localStr = await userStorage.getRaw('@nutrition_profile');
       const localProfile = localStr ? JSON.parse(localStr) : null;
       // Keep whichever was updated more recently
       if (!localProfile || (cloudData.nutritionProfile.updatedAt && (!localProfile.updatedAt || new Date(cloudData.nutritionProfile.updatedAt) >= new Date(localProfile.updatedAt)))) {
-        await AsyncStorage.setItem('@nutrition_profile', JSON.stringify(cloudData.nutritionProfile));
+        await userStorage.setRaw('@nutrition_profile', JSON.stringify(cloudData.nutritionProfile));
         console.log('[Sync] Downloaded nutrition profile from cloud');
       } else {
         console.log('[Sync] Local nutrition profile is more recent, keeping local');
@@ -447,7 +448,7 @@ export const downloadAndMergeCloudData = async (userId) => {
 
     // Food log - merge date keys (each key is a date like "2026-02-09")
     if (cloudData.foodLog && typeof cloudData.foodLog === 'object') {
-      const localStr = await AsyncStorage.getItem('@food_log');
+      const localStr = await userStorage.getRaw('@food_log');
       const localLog = localStr ? JSON.parse(localStr) : {};
       // Merge: for each date, keep whichever has more entries
       const merged = { ...cloudData.foodLog };
@@ -464,7 +465,7 @@ export const downloadAndMergeCloudData = async (userId) => {
           }
         }
       }
-      await AsyncStorage.setItem('@food_log', JSON.stringify(merged));
+      await userStorage.setRaw('@food_log', JSON.stringify(merged));
       console.log(`[Sync] Merged food log: ${Object.keys(merged).length} days`);
     }
 
@@ -476,7 +477,7 @@ export const downloadAndMergeCloudData = async (userId) => {
 
     // Physique scores - cloud wins
     if (cloudData.physiqueScores) {
-      await AsyncStorage.setItem('@physique_scores', JSON.stringify(cloudData.physiqueScores));
+      await userStorage.setRaw('@physique_scores', JSON.stringify(cloudData.physiqueScores));
       console.log('[Sync] Downloaded physique scores from cloud');
     }
     
@@ -494,23 +495,23 @@ export const downloadAndMergeCloudData = async (userId) => {
     
     // User prayers (custom prayer settings/names/times)
     if (cloudData.userPrayers) {
-      await AsyncStorage.setItem('userPrayers', JSON.stringify(cloudData.userPrayers));
+      await userStorage.setRaw('userPrayers', JSON.stringify(cloudData.userPrayers));
       console.log('[Sync] Downloaded userPrayers from cloud');
     }
     
     // Hub posting token data
     if (cloudData.hubPostingToken) {
-      await AsyncStorage.setItem('hub_posting_token', JSON.stringify(cloudData.hubPostingToken));
+      await userStorage.setRaw('hub_posting_token', JSON.stringify(cloudData.hubPostingToken));
       console.log('[Sync] Downloaded hub_posting_token from cloud');
     }
     if (cloudData.hubTokenSchedule) {
-      await AsyncStorage.setItem('hub_token_schedule', JSON.stringify(cloudData.hubTokenSchedule));
+      await userStorage.setRaw('hub_token_schedule', JSON.stringify(cloudData.hubTokenSchedule));
       console.log('[Sync] Downloaded hub_token_schedule from cloud');
     }
     
     // Active todos/tasks - merge by ID, preserve local completion state
     if (cloudData.todos) {
-      const localStr = await AsyncStorage.getItem('fivefold_todos');
+      const localStr = await userStorage.getRaw('fivefold_todos');
       const localTodos = localStr ? JSON.parse(localStr) : [];
       const localMap = new Map(localTodos.map(t => [t.id, t]));
       
@@ -530,7 +531,7 @@ export const downloadAndMergeCloudData = async (userId) => {
       });
       
       const merged = Array.from(localMap.values());
-      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(merged));
+      await userStorage.setRaw('fivefold_todos', JSON.stringify(merged));
       console.log(`[Sync] Merged ${merged.length} todos`);
     }
     
@@ -542,7 +543,7 @@ export const downloadAndMergeCloudData = async (userId) => {
     
     // App streak data - SMART MERGE: keep whichever is more recent
     if (cloudData.appStreakData) {
-      const localStreakStr = await AsyncStorage.getItem('app_open_streak');
+      const localStreakStr = await userStorage.getRaw('app_open_streak');
       const localStreak = localStreakStr ? JSON.parse(localStreakStr) : null;
       
       if (localStreak && localStreak.lastOpenDate) {
@@ -558,37 +559,37 @@ export const downloadAndMergeCloudData = async (userId) => {
           console.log('[Sync] Local streak data is more recent (today or higher opens), keeping local');
         } else {
           // Cloud is more recent - use cloud data
-          await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
-          await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
+          await userStorage.setRaw('app_streak_data', JSON.stringify(cloudData.appStreakData));
+          await userStorage.setRaw('app_open_streak', JSON.stringify(cloudData.appStreakData));
           console.log('[Sync] Cloud streak data is more recent, using cloud');
         }
       } else {
         // No local data - use cloud
-        await AsyncStorage.setItem('app_streak_data', JSON.stringify(cloudData.appStreakData));
-        await AsyncStorage.setItem('app_open_streak', JSON.stringify(cloudData.appStreakData));
+        await userStorage.setRaw('app_streak_data', JSON.stringify(cloudData.appStreakData));
+        await userStorage.setRaw('app_open_streak', JSON.stringify(cloudData.appStreakData));
         console.log('[Sync] No local streak data, using cloud');
       }
     } else if (cloudData.currentStreak > 0) {
-      const localStreakStr = await AsyncStorage.getItem('app_open_streak');
+      const localStreakStr = await userStorage.getRaw('app_open_streak');
       if (!localStreakStr) {
         const streakData = {
           currentStreak: cloudData.currentStreak || 0,
           lastOpenDate: new Date().toISOString().split('T')[0],
         };
-        await AsyncStorage.setItem('app_open_streak', JSON.stringify(streakData));
+        await userStorage.setRaw('app_open_streak', JSON.stringify(streakData));
         console.log('[Sync] Created streak data from currentStreak:', cloudData.currentStreak);
       }
     }
     
     // Scheduled workouts (gym)
     if (cloudData.scheduledWorkouts) {
-      await AsyncStorage.setItem('@scheduled_workouts', JSON.stringify(cloudData.scheduledWorkouts));
+      await userStorage.setRaw('@scheduled_workouts', JSON.stringify(cloudData.scheduledWorkouts));
       console.log(`[Sync] Downloaded ${cloudData.scheduledWorkouts.length} scheduled workouts from cloud`);
     }
     
     // Simple prayers - SMART MERGE: preserve local completedAt timestamps
     if (cloudData.simplePrayers && Array.isArray(cloudData.simplePrayers)) {
-      const localStr = await AsyncStorage.getItem('fivefold_simplePrayers');
+      const localStr = await userStorage.getRaw('fivefold_simplePrayers');
       const localPrayers = localStr ? JSON.parse(localStr) : [];
       
       // Build map of local completion states
@@ -611,13 +612,13 @@ export const downloadAndMergeCloudData = async (userId) => {
         return cloudPrayer;
       });
       
-      await AsyncStorage.setItem('fivefold_simplePrayers', JSON.stringify(merged));
+      await userStorage.setRaw('fivefold_simplePrayers', JSON.stringify(merged));
       console.log(`[Sync] Merged ${merged.length} prayers (preserved local completions)`);
     }
     
     // Verse data (contains highlights) - SMART MERGE: keep local additions
     if (cloudData.verseData) {
-      const localStr = await AsyncStorage.getItem('verse_data');
+      const localStr = await userStorage.getRaw('verse_data');
       const localData = localStr ? JSON.parse(localStr) : {};
       
       // Merge: cloud + any local-only verse data
@@ -628,19 +629,19 @@ export const downloadAndMergeCloudData = async (userId) => {
         }
       }
       
-      await AsyncStorage.setItem('verse_data', JSON.stringify(merged));
+      await userStorage.setRaw('verse_data', JSON.stringify(merged));
       console.log(`[Sync] Merged verse_data: ${Object.keys(merged).length} entries`);
     }
     
     // Highlight custom names
     if (cloudData.highlightNames) {
-      await AsyncStorage.setItem('highlight_names', JSON.stringify(cloudData.highlightNames));
+      await userStorage.setRaw('highlight_names', JSON.stringify(cloudData.highlightNames));
       console.log('[Sync] Downloaded highlight names from cloud');
     }
     
     // Bookmarks - merge, keep local-only additions
     if (cloudData.bookmarks) {
-      const localStr = await AsyncStorage.getItem('bookmarks');
+      const localStr = await userStorage.getRaw('bookmarks');
       const localBookmarks = localStr ? JSON.parse(localStr) : (Array.isArray(cloudData.bookmarks) ? [] : {});
       
       if (Array.isArray(cloudData.bookmarks)) {
@@ -648,32 +649,32 @@ export const downloadAndMergeCloudData = async (userId) => {
         console.log(`[Sync] Merged bookmarks: ${merged?.length || 0}`);
       } else {
         const merged = { ...cloudData.bookmarks, ...localBookmarks };
-        await AsyncStorage.setItem('bookmarks', JSON.stringify(merged));
+        await userStorage.setRaw('bookmarks', JSON.stringify(merged));
         console.log('[Sync] Merged bookmarks (object)');
       }
     }
     
     // Reading streaks
     if (cloudData.readingStreaks) {
-      await AsyncStorage.setItem('reading_streaks', JSON.stringify(cloudData.readingStreaks));
+      await userStorage.setRaw('reading_streaks', JSON.stringify(cloudData.readingStreaks));
       console.log('[Sync] Downloaded reading streaks from cloud');
     }
     
     // Reading progress
     if (cloudData.readingProgress) {
-      await AsyncStorage.setItem('readingProgress', JSON.stringify(cloudData.readingProgress));
+      await userStorage.setRaw('readingProgress', JSON.stringify(cloudData.readingProgress));
       console.log('[Sync] Downloaded reading progress from cloud');
     }
     
     // Current reading plan
     if (cloudData.currentReadingPlan) {
-      await AsyncStorage.setItem('currentReadingPlan', JSON.stringify(cloudData.currentReadingPlan));
+      await userStorage.setRaw('currentReadingPlan', JSON.stringify(cloudData.currentReadingPlan));
       console.log('[Sync] Downloaded current reading plan from cloud');
     }
     
     // Notification preferences
     if (cloudData.notificationPreferences) {
-      await AsyncStorage.setItem('notificationPreferences', JSON.stringify(cloudData.notificationPreferences));
+      await userStorage.setRaw('notificationPreferences', JSON.stringify(cloudData.notificationPreferences));
       console.log('[Sync] Downloaded notification preferences from cloud');
     }
     
@@ -681,65 +682,65 @@ export const downloadAndMergeCloudData = async (userId) => {
     if (cloudData.dailyVerseSync) {
       const dvSync = cloudData.dailyVerseSync;
       if (dvSync.data) {
-        await AsyncStorage.setItem('daily_verse_data_v6', JSON.stringify(dvSync.data));
+        await userStorage.setRaw('daily_verse_data_v6', JSON.stringify(dvSync.data));
       }
       if (dvSync.index !== undefined && dvSync.index !== null) {
-        await AsyncStorage.setItem('daily_verse_index_v6', String(dvSync.index));
+        await userStorage.setRaw('daily_verse_index_v6', String(dvSync.index));
       }
       if (dvSync.shuffledVerses) {
-        await AsyncStorage.setItem('shuffled_verses_v6', JSON.stringify(dvSync.shuffledVerses));
+        await userStorage.setRaw('shuffled_verses_v6', JSON.stringify(dvSync.shuffledVerses));
       }
       if (dvSync.lastUpdate) {
-        await AsyncStorage.setItem('daily_verse_last_update_v6', dvSync.lastUpdate);
+        await userStorage.setRaw('daily_verse_last_update_v6', dvSync.lastUpdate);
       }
       console.log('[Sync] Downloaded daily verse data from cloud');
     }
     
     // Selected Bible version preference
     if (cloudData.selectedBibleVersion) {
-      await AsyncStorage.setItem('selectedBibleVersion', cloudData.selectedBibleVersion);
+      await userStorage.setRaw('selectedBibleVersion', cloudData.selectedBibleVersion);
       console.log('[Sync] Downloaded selected Bible version from cloud');
     }
     
     // Weight unit preference
     if (cloudData.weightUnit) {
-      await AsyncStorage.setItem('weightUnit', cloudData.weightUnit);
+      await userStorage.setRaw('weightUnit', cloudData.weightUnit);
       console.log('[Sync] Downloaded weight unit from cloud');
     }
 
     // Height unit preference
     if (cloudData.heightUnit) {
-      await AsyncStorage.setItem('heightUnit', cloudData.heightUnit);
+      await userStorage.setRaw('heightUnit', cloudData.heightUnit);
       console.log('[Sync] Downloaded height unit from cloud');
     }
     
     // Bible maps bookmarks
     if (cloudData.bibleMapsBookmarks) {
-      await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(cloudData.bibleMapsBookmarks));
+      await userStorage.setRaw('bible_maps_bookmarks', JSON.stringify(cloudData.bibleMapsBookmarks));
       console.log('[Sync] Downloaded bible maps bookmarks from cloud');
     }
     
     // Bible maps visited
     if (cloudData.bibleMapsVisited) {
-      await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(cloudData.bibleMapsVisited));
+      await userStorage.setRaw('bible_maps_visited', JSON.stringify(cloudData.bibleMapsVisited));
       console.log('[Sync] Downloaded bible maps visited from cloud');
     }
     
     // Bible fast facts favorites
     if (cloudData.bibleFastFactsFavorites) {
-      await AsyncStorage.setItem('bible_fast_facts_favorites', JSON.stringify(cloudData.bibleFastFactsFavorites));
+      await userStorage.setRaw('bible_fast_facts_favorites', JSON.stringify(cloudData.bibleFastFactsFavorites));
       console.log('[Sync] Downloaded bible fast facts favorites from cloud');
     }
     
     // Recent Bible searches
     if (cloudData.recentBibleSearches) {
-      await AsyncStorage.setItem('recentBibleSearches', JSON.stringify(cloudData.recentBibleSearches));
+      await userStorage.setRaw('recentBibleSearches', JSON.stringify(cloudData.recentBibleSearches));
       console.log('[Sync] Downloaded recent Bible searches from cloud');
     }
     
     // Prayer completions - SMART MERGE: keep more recent completedAt per prayer
     if (cloudData.prayerCompletions) {
-      const localStr = await AsyncStorage.getItem('prayer_completions');
+      const localStr = await userStorage.getRaw('prayer_completions');
       const localCompletions = localStr ? JSON.parse(localStr) : {};
       
       const merged = { ...cloudData.prayerCompletions };
@@ -750,83 +751,79 @@ export const downloadAndMergeCloudData = async (userId) => {
         }
       }
       
-      await AsyncStorage.setItem('prayer_completions', JSON.stringify(merged));
+      await userStorage.setRaw('prayer_completions', JSON.stringify(merged));
       console.log('[Sync] Merged prayer completions (preserved local)');
     }
     
     // Prayer preferences
     if (cloudData.prayerPreferences) {
-      await AsyncStorage.setItem('prayer_preferences', JSON.stringify(cloudData.prayerPreferences));
+      await userStorage.setRaw('prayer_preferences', JSON.stringify(cloudData.prayerPreferences));
       console.log('[Sync] Downloaded prayer preferences from cloud');
     }
     
     // Friend chat history - merge, keep local-only messages
     if (cloudData.friendChatHistory) {
-      const localStr = await AsyncStorage.getItem('friendChatHistory');
+      const localStr = await userStorage.getRaw('friendChatHistory');
       const localHistory = localStr ? JSON.parse(localStr) : [];
       
       if (Array.isArray(cloudData.friendChatHistory) && Array.isArray(localHistory)) {
         const merged = await mergeArraysById('friendChatHistory', cloudData.friendChatHistory);
         console.log(`[Sync] Merged friend chat history: ${merged?.length || 0}`);
       } else {
-        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(cloudData.friendChatHistory));
+        await userStorage.setRaw('friendChatHistory', JSON.stringify(cloudData.friendChatHistory));
         console.log('[Sync] Downloaded friend chat history from cloud');
       }
     }
     
     // Key Verses favorites
     if (cloudData.favoriteVerses) {
-      await AsyncStorage.setItem('fivefold_favoriteVerses', JSON.stringify(cloudData.favoriteVerses));
+      await userStorage.setRaw('fivefold_favoriteVerses', JSON.stringify(cloudData.favoriteVerses));
       console.log('[Sync] Downloaded Key Verses favorites from cloud');
     }
     
     // ── Achievement & Customisation Data ──────────────────────────
     // Unlocked achievements — merge: union of local + cloud
     if (cloudData.achievementsUnlocked && Array.isArray(cloudData.achievementsUnlocked)) {
-      const localStr = await AsyncStorage.getItem('fivefold_achievements_unlocked');
+      const localStr = await userStorage.getRaw('fivefold_achievements_unlocked');
       const localIds = localStr ? JSON.parse(localStr) : [];
       const merged = [...new Set([...localIds, ...cloudData.achievementsUnlocked])];
-      await AsyncStorage.setItem('fivefold_achievements_unlocked', JSON.stringify(merged));
+      await userStorage.setRaw('fivefold_achievements_unlocked', JSON.stringify(merged));
       console.log(`[Sync] Merged achievements: ${merged.length} total (local ${localIds.length} + cloud ${cloudData.achievementsUnlocked.length})`);
     }
 
     // Prestige count — keep whichever is higher
     if (cloudData.achievementsPrestige !== undefined) {
-      const localStr = await AsyncStorage.getItem('fivefold_achievements_prestige');
+      const localStr = await userStorage.getRaw('fivefold_achievements_prestige');
       const localPrestige = localStr ? parseInt(localStr, 10) : 0;
       const mergedPrestige = Math.max(localPrestige, cloudData.achievementsPrestige || 0);
-      await AsyncStorage.setItem('fivefold_achievements_prestige', mergedPrestige.toString());
+      await userStorage.setRaw('fivefold_achievements_prestige', mergedPrestige.toString());
       console.log(`[Sync] Merged prestige: ${mergedPrestige} (local ${localPrestige}, cloud ${cloudData.achievementsPrestige})`);
     }
 
     // Permanent unlock flags — union of local + cloud
     if (cloudData.permanentUnlocks && typeof cloudData.permanentUnlocks === 'object') {
-      const writes = [];
       for (const [achId, val] of Object.entries(cloudData.permanentUnlocks)) {
         if (val) {
-          writes.push([`fivefold_unlock_${achId}`, 'true']);
+          await userStorage.setRaw(`fivefold_unlock_${achId}`, 'true');
         }
       }
-      if (writes.length > 0) {
-        await AsyncStorage.multiSet(writes);
-        console.log(`[Sync] Restored ${writes.length} permanent unlock flags from cloud`);
-      }
+      console.log('[Sync] Restored permanent unlock flags from cloud');
     }
 
     // Selected streak animation — only apply if no local selection yet
     if (cloudData.selectedStreakAnimation) {
-      const localAnim = await AsyncStorage.getItem('fivefold_streak_animation');
+      const localAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (!localAnim) {
-        await AsyncStorage.setItem('fivefold_streak_animation', cloudData.selectedStreakAnimation);
+        await userStorage.setRaw('fivefold_streak_animation', cloudData.selectedStreakAnimation);
         console.log(`[Sync] Restored streak animation from cloud: ${cloudData.selectedStreakAnimation}`);
       }
     }
 
     // Badge toggles — only apply if no local toggles yet
     if (cloudData.badgeToggles && typeof cloudData.badgeToggles === 'object') {
-      const localToggles = await AsyncStorage.getItem('fivefold_badge_toggles');
+      const localToggles = await userStorage.getRaw('fivefold_badge_toggles');
       if (!localToggles) {
-        await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(cloudData.badgeToggles));
+        await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(cloudData.badgeToggles));
         console.log('[Sync] Restored badge toggles from cloud');
       }
     }
@@ -994,7 +991,7 @@ export const syncSavedVersesToCloud = async (userId) => {
   if (!userId) return false;
   
   try {
-    const savedVersesStr = await AsyncStorage.getItem('savedBibleVerses');
+    const savedVersesStr = await userStorage.getRaw('savedBibleVerses');
     console.log('[Sync] Saved verses from AsyncStorage:', savedVersesStr ? 'found' : 'not found');
     
     if (savedVersesStr) {
@@ -1026,7 +1023,7 @@ export const syncJournalNotesToCloud = async (userId) => {
   if (!userId) return false;
   
   try {
-    const journalNotesStr = await AsyncStorage.getItem('journalNotes');
+    const journalNotesStr = await userStorage.getRaw('journalNotes');
     if (journalNotesStr) {
       const journalNotes = JSON.parse(journalNotesStr);
       await setDoc(doc(db, 'users', userId), {
@@ -1052,12 +1049,12 @@ export const syncPrayersToCloud = async (userId) => {
   
   try {
     // Try the main key first (fivefold_ prefix is added by saveData)
-    let prayersStr = await AsyncStorage.getItem('fivefold_simplePrayers');
+    let prayersStr = await userStorage.getRaw('fivefold_simplePrayers');
     console.log('[Sync] Checking fivefold_simplePrayers:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
     
     if (!prayersStr) {
       // Fallback to non-prefixed key
-      prayersStr = await AsyncStorage.getItem('simplePrayers');
+      prayersStr = await userStorage.getRaw('simplePrayers');
       console.log('[Sync] Checking simplePrayers fallback:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
     }
     
@@ -1089,9 +1086,9 @@ export const syncThemePreferencesToCloud = async (userId) => {
   if (!userId) return false;
   
   try {
-    const theme = await AsyncStorage.getItem('fivefold_theme');
-    const darkModeStr = await AsyncStorage.getItem('fivefold_dark_mode');
-    const wallpaperIndexStr = await AsyncStorage.getItem('fivefold_wallpaper_index');
+    const theme = await userStorage.getRaw('fivefold_theme');
+    const darkModeStr = await userStorage.getRaw('fivefold_dark_mode');
+    const wallpaperIndexStr = await userStorage.getRaw('fivefold_wallpaper_index');
     
     const themePreferences = {};
     if (theme) themePreferences.theme = theme;
@@ -1124,120 +1121,120 @@ export const syncAllHistoryToCloud = async (userId) => {
     const updateData = { lastActive: serverTimestamp() };
     
     // Workout history (workoutService stores under @workout_history)
-    let workoutHistoryStr = await AsyncStorage.getItem('@workout_history');
-    if (!workoutHistoryStr) workoutHistoryStr = await AsyncStorage.getItem('workoutHistory');
+    let workoutHistoryStr = await userStorage.getRaw('@workout_history');
+    if (!workoutHistoryStr) workoutHistoryStr = await userStorage.getRaw('workoutHistory');
     if (workoutHistoryStr) {
       updateData.workoutHistory = JSON.parse(workoutHistoryStr);
       console.log(`[Sync] Including workout history (${updateData.workoutHistory.length} entries) in upload`);
     }
 
     // Workout templates
-    const workoutTemplatesStr = await AsyncStorage.getItem('@workout_templates');
+    const workoutTemplatesStr = await userStorage.getRaw('@workout_templates');
     if (workoutTemplatesStr) {
       updateData.workoutTemplates = JSON.parse(workoutTemplatesStr);
       console.log(`[Sync] Including workout templates (${updateData.workoutTemplates.length}) in upload`);
     }
 
     // Workout folders
-    const workoutFoldersStr = await AsyncStorage.getItem('@workout_folders');
+    const workoutFoldersStr = await userStorage.getRaw('@workout_folders');
     if (workoutFoldersStr) {
       updateData.workoutFolders = JSON.parse(workoutFoldersStr);
       console.log(`[Sync] Including workout folders (${updateData.workoutFolders.length}) in upload`);
     }
 
     // Nutrition profile
-    const nutritionProfileStr = await AsyncStorage.getItem('@nutrition_profile');
+    const nutritionProfileStr = await userStorage.getRaw('@nutrition_profile');
     if (nutritionProfileStr) {
       updateData.nutritionProfile = JSON.parse(nutritionProfileStr);
       console.log('[Sync] Including nutrition profile in upload');
     }
 
     // Food log
-    const foodLogStr = await AsyncStorage.getItem('@food_log');
+    const foodLogStr = await userStorage.getRaw('@food_log');
     if (foodLogStr) {
       updateData.foodLog = JSON.parse(foodLogStr);
       console.log('[Sync] Including food log in upload');
     }
 
     // Food favorites
-    const foodFavoritesStr = await AsyncStorage.getItem('@food_favorites');
+    const foodFavoritesStr = await userStorage.getRaw('@food_favorites');
     if (foodFavoritesStr) {
       updateData.foodFavorites = JSON.parse(foodFavoritesStr);
       console.log(`[Sync] Including food favorites (${updateData.foodFavorites.length}) in upload`);
     }
 
     // Physique scores
-    const physiqueScoresStr = await AsyncStorage.getItem('@physique_scores');
+    const physiqueScoresStr = await userStorage.getRaw('@physique_scores');
     if (physiqueScoresStr) {
       updateData.physiqueScores = JSON.parse(physiqueScoresStr);
       console.log('[Sync] Including physique scores in upload');
     }
     
     // Quiz history
-    const quizHistoryStr = await AsyncStorage.getItem('quizHistory');
+    const quizHistoryStr = await userStorage.getRaw('quizHistory');
     if (quizHistoryStr) {
       updateData.quizHistory = JSON.parse(quizHistoryStr);
     }
     
     // Prayer history
-    const prayerHistoryStr = await AsyncStorage.getItem('prayerHistory');
+    const prayerHistoryStr = await userStorage.getRaw('prayerHistory');
     if (prayerHistoryStr) {
       updateData.prayerHistory = JSON.parse(prayerHistoryStr);
     }
     
     // User prayers (custom prayer settings/names/times)
-    const userPrayersStr = await AsyncStorage.getItem('userPrayers');
+    const userPrayersStr = await userStorage.getRaw('userPrayers');
     if (userPrayersStr) {
       updateData.userPrayers = JSON.parse(userPrayersStr);
       console.log('[Sync] Including userPrayers in upload');
     }
     
     // Hub posting token data
-    const hubTokenStr = await AsyncStorage.getItem('hub_posting_token');
+    const hubTokenStr = await userStorage.getRaw('hub_posting_token');
     if (hubTokenStr) {
       updateData.hubPostingToken = JSON.parse(hubTokenStr);
       console.log('[Sync] Including hub_posting_token in upload');
     }
-    const hubScheduleStr = await AsyncStorage.getItem('hub_token_schedule');
+    const hubScheduleStr = await userStorage.getRaw('hub_token_schedule');
     if (hubScheduleStr) {
       updateData.hubTokenSchedule = JSON.parse(hubScheduleStr);
       console.log('[Sync] Including hub_token_schedule in upload');
     }
     
     // Active todos/tasks
-    const todosStr = await AsyncStorage.getItem('fivefold_todos');
+    const todosStr = await userStorage.getRaw('fivefold_todos');
     if (todosStr) {
       updateData.todos = JSON.parse(todosStr);
     }
     
     // Completed todos/tasks
-    const completedTodosStr = await AsyncStorage.getItem('completedTodos');
+    const completedTodosStr = await userStorage.getRaw('completedTodos');
     if (completedTodosStr) {
       updateData.completedTodos = JSON.parse(completedTodosStr);
     }
     
     // App streak data - read from app_open_streak (AppStreakManager's actual key)
-    const streakDataStr = await AsyncStorage.getItem('app_open_streak');
+    const streakDataStr = await userStorage.getRaw('app_open_streak');
     if (streakDataStr) {
       updateData.appStreakData = JSON.parse(streakDataStr);
       console.log('[Sync] Syncing streak data to cloud:', updateData.appStreakData);
     } else {
       // Fallback to old key for backwards compatibility
-      const oldStreakDataStr = await AsyncStorage.getItem('app_streak_data');
+      const oldStreakDataStr = await userStorage.getRaw('app_streak_data');
       if (oldStreakDataStr) {
         updateData.appStreakData = JSON.parse(oldStreakDataStr);
       }
     }
     
     // Scheduled workouts (gym)
-    const scheduledWorkoutsStr = await AsyncStorage.getItem('@scheduled_workouts');
+    const scheduledWorkoutsStr = await userStorage.getRaw('@scheduled_workouts');
     if (scheduledWorkoutsStr) {
       updateData.scheduledWorkouts = JSON.parse(scheduledWorkoutsStr);
       console.log('[Sync] Including scheduled workouts in upload');
     }
     
     // Highlights - stored in verse_data key by VerseDataManager
-    const verseDataStr = await AsyncStorage.getItem('verse_data');
+    const verseDataStr = await userStorage.getRaw('verse_data');
     console.log('[Sync] verse_data from AsyncStorage:', verseDataStr ? `found (${verseDataStr.length} chars)` : 'not found');
     if (verseDataStr) {
       const verseData = JSON.parse(verseDataStr);
@@ -1247,103 +1244,103 @@ export const syncAllHistoryToCloud = async (userId) => {
     }
     
     // Highlight custom names
-    const highlightNamesStr = await AsyncStorage.getItem('highlight_names');
+    const highlightNamesStr = await userStorage.getRaw('highlight_names');
     if (highlightNamesStr) {
       updateData.highlightNames = JSON.parse(highlightNamesStr);
     }
     
     // Bookmarks
-    const bookmarksStr = await AsyncStorage.getItem('bookmarks');
+    const bookmarksStr = await userStorage.getRaw('bookmarks');
     if (bookmarksStr) {
       updateData.bookmarks = JSON.parse(bookmarksStr);
     }
     
     // Reading streaks
-    const readingStreaksStr = await AsyncStorage.getItem('reading_streaks');
+    const readingStreaksStr = await userStorage.getRaw('reading_streaks');
     if (readingStreaksStr) {
       updateData.readingStreaks = JSON.parse(readingStreaksStr);
     }
     
     // Reading progress
-    const readingProgressStr = await AsyncStorage.getItem('readingProgress');
+    const readingProgressStr = await userStorage.getRaw('readingProgress');
     if (readingProgressStr) {
       updateData.readingProgress = JSON.parse(readingProgressStr);
     }
     
     // Current reading plan
-    const currentReadingPlanStr = await AsyncStorage.getItem('currentReadingPlan');
+    const currentReadingPlanStr = await userStorage.getRaw('currentReadingPlan');
     if (currentReadingPlanStr) {
       updateData.currentReadingPlan = JSON.parse(currentReadingPlanStr);
     }
     
     // Notification preferences
-    const notificationPrefsStr = await AsyncStorage.getItem('notificationPreferences');
+    const notificationPrefsStr = await userStorage.getRaw('notificationPreferences');
     if (notificationPrefsStr) {
       updateData.notificationPreferences = JSON.parse(notificationPrefsStr);
     }
     
     // Selected Bible version preference
-    const selectedBibleVersionStr = await AsyncStorage.getItem('selectedBibleVersion');
+    const selectedBibleVersionStr = await userStorage.getRaw('selectedBibleVersion');
     if (selectedBibleVersionStr) {
       updateData.selectedBibleVersion = selectedBibleVersionStr;
     }
     
     // Weight unit preference
-    const weightUnitStr = await AsyncStorage.getItem('weightUnit');
+    const weightUnitStr = await userStorage.getRaw('weightUnit');
     if (weightUnitStr) {
       updateData.weightUnit = weightUnitStr;
     }
 
     // Height unit preference
-    const heightUnitStr = await AsyncStorage.getItem('heightUnit');
+    const heightUnitStr = await userStorage.getRaw('heightUnit');
     if (heightUnitStr) {
       updateData.heightUnit = heightUnitStr;
     }
     
     // Bible maps bookmarks
-    const bibleMapsBookmarksStr = await AsyncStorage.getItem('bible_maps_bookmarks');
+    const bibleMapsBookmarksStr = await userStorage.getRaw('bible_maps_bookmarks');
     if (bibleMapsBookmarksStr) {
       updateData.bibleMapsBookmarks = JSON.parse(bibleMapsBookmarksStr);
     }
     
     // Bible maps visited
-    const bibleMapsVisitedStr = await AsyncStorage.getItem('bible_maps_visited');
+    const bibleMapsVisitedStr = await userStorage.getRaw('bible_maps_visited');
     if (bibleMapsVisitedStr) {
       updateData.bibleMapsVisited = JSON.parse(bibleMapsVisitedStr);
     }
     
     // Bible fast facts favorites
-    const bibleFastFactsFavoritesStr = await AsyncStorage.getItem('bible_fast_facts_favorites');
+    const bibleFastFactsFavoritesStr = await userStorage.getRaw('bible_fast_facts_favorites');
     if (bibleFastFactsFavoritesStr) {
       updateData.bibleFastFactsFavorites = JSON.parse(bibleFastFactsFavoritesStr);
     }
     
     // Recent Bible searches
-    const recentSearchesStr = await AsyncStorage.getItem('recentBibleSearches');
+    const recentSearchesStr = await userStorage.getRaw('recentBibleSearches');
     if (recentSearchesStr) {
       updateData.recentBibleSearches = JSON.parse(recentSearchesStr);
     }
     
     // Prayer completions
-    const prayerCompletionsStr = await AsyncStorage.getItem('prayer_completions');
+    const prayerCompletionsStr = await userStorage.getRaw('prayer_completions');
     if (prayerCompletionsStr) {
       updateData.prayerCompletions = JSON.parse(prayerCompletionsStr);
     }
     
     // Prayer preferences
-    const prayerPrefsStr = await AsyncStorage.getItem('prayer_preferences');
+    const prayerPrefsStr = await userStorage.getRaw('prayer_preferences');
     if (prayerPrefsStr) {
       updateData.prayerPreferences = JSON.parse(prayerPrefsStr);
     }
     
     // Friend chat history
-    const friendChatHistoryStr = await AsyncStorage.getItem('friendChatHistory');
+    const friendChatHistoryStr = await userStorage.getRaw('friendChatHistory');
     if (friendChatHistoryStr) {
       updateData.friendChatHistory = JSON.parse(friendChatHistoryStr);
     }
     
     // Key Verses favorites (uses fivefold_ prefix via saveData)
-    const favoriteVersesStr = await AsyncStorage.getItem('fivefold_favoriteVerses');
+    const favoriteVersesStr = await userStorage.getRaw('fivefold_favoriteVerses');
     if (favoriteVersesStr) {
       updateData.favoriteVerses = JSON.parse(favoriteVersesStr);
       console.log('[Sync] Including Key Verses favorites in upload');
@@ -1351,14 +1348,14 @@ export const syncAllHistoryToCloud = async (userId) => {
     
     // ── Achievement & Customisation Data ──────────────────────────
     // Unlocked achievements list
-    const achievementsStr = await AsyncStorage.getItem('fivefold_achievements_unlocked');
+    const achievementsStr = await userStorage.getRaw('fivefold_achievements_unlocked');
     if (achievementsStr) {
       updateData.achievementsUnlocked = JSON.parse(achievementsStr);
       console.log(`[Sync] Including ${updateData.achievementsUnlocked.length} unlocked achievements in upload`);
     }
 
     // Prestige count
-    const prestigeStr = await AsyncStorage.getItem('fivefold_achievements_prestige');
+    const prestigeStr = await userStorage.getRaw('fivefold_achievements_prestige');
     if (prestigeStr) {
       updateData.achievementsPrestige = parseInt(prestigeStr, 10);
       console.log(`[Sync] Including prestige count (${updateData.achievementsPrestige}) in upload`);
@@ -1370,39 +1367,37 @@ export const syncAllHistoryToCloud = async (userId) => {
       'read_50', 'prayers_5', 'saved_5', 'tasks_10', 'audio_5', 'saved_10',
       'app_streak_30',
     ];
-    const unlockFlagKeys = CUSTOMISATION_GATE_IDS.map(id => `fivefold_unlock_${id}`);
-    const unlockFlagValues = await AsyncStorage.multiGet(unlockFlagKeys);
     const permanentUnlocks = {};
-    unlockFlagValues.forEach(([key, val]) => {
+    for (const id of CUSTOMISATION_GATE_IDS) {
+      const val = await userStorage.getRaw(`fivefold_unlock_${id}`);
       if (val === 'true') {
-        const achId = key.replace('fivefold_unlock_', '');
-        permanentUnlocks[achId] = true;
+        permanentUnlocks[id] = true;
       }
-    });
+    }
     if (Object.keys(permanentUnlocks).length > 0) {
       updateData.permanentUnlocks = permanentUnlocks;
       console.log(`[Sync] Including ${Object.keys(permanentUnlocks).length} permanent unlock flags in upload`);
     }
 
     // Selected streak animation
-    const streakAnimStr = await AsyncStorage.getItem('fivefold_streak_animation');
+    const streakAnimStr = await userStorage.getRaw('fivefold_streak_animation');
     if (streakAnimStr) {
       updateData.selectedStreakAnimation = streakAnimStr;
       console.log(`[Sync] Including streak animation (${streakAnimStr}) in upload`);
     }
 
     // Badge toggles
-    const badgeTogglesStr = await AsyncStorage.getItem('fivefold_badge_toggles');
+    const badgeTogglesStr = await userStorage.getRaw('fivefold_badge_toggles');
     if (badgeTogglesStr) {
       updateData.badgeToggles = JSON.parse(badgeTogglesStr);
       console.log('[Sync] Including badge toggles in upload');
     }
 
     // Daily verse data (verse of the day - per user)
-    const dailyVerseDataStr = await AsyncStorage.getItem('daily_verse_data_v6');
-    const dailyVerseIndexStr = await AsyncStorage.getItem('daily_verse_index_v6');
-    const shuffledVersesStr = await AsyncStorage.getItem('shuffled_verses_v6');
-    const dailyVerseLastUpdateStr = await AsyncStorage.getItem('daily_verse_last_update_v6');
+    const dailyVerseDataStr = await userStorage.getRaw('daily_verse_data_v6');
+    const dailyVerseIndexStr = await userStorage.getRaw('daily_verse_index_v6');
+    const shuffledVersesStr = await userStorage.getRaw('shuffled_verses_v6');
+    const dailyVerseLastUpdateStr = await userStorage.getRaw('daily_verse_last_update_v6');
     
     if (dailyVerseDataStr || dailyVerseIndexStr) {
       updateData.dailyVerseSync = {

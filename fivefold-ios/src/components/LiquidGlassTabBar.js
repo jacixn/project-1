@@ -9,7 +9,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import {
   LiquidGlassView,
   LiquidGlassContainerView,
@@ -42,7 +42,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
   useEffect(() => {
     const loadProfilePicture = async () => {
       try {
-        const userProfileData = await AsyncStorage.getItem('userProfile');
+        const userProfileData = await userStorage.getRaw('userProfile');
         if (userProfileData) {
           const profile = JSON.parse(userProfileData);
           setProfilePicture(profile.profilePicture);

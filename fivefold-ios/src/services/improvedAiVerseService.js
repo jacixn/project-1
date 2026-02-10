@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import productionAiService from './productionAiService'; // Use YOUR existing AI service!
 import RealBibleService from './realBibleService'; // Use YOUR existing Bible service!
 
@@ -81,7 +81,7 @@ class ImprovedAIVerseService {
   static async filterRecentVerses(references, userId) {
     try {
       const historyKey = `${CONFIG.VERSE_HISTORY_KEY}_${userId}`;
-      const historyData = await AsyncStorage.getItem(historyKey);
+      const historyData = await userStorage.getRaw(historyKey);
       
       if (!historyData) {
         return references; // No history, all verses are fresh
@@ -176,7 +176,7 @@ class ImprovedAIVerseService {
   static async saveToHistory(verses, userId) {
     try {
       const historyKey = `${CONFIG.VERSE_HISTORY_KEY}_${userId}`;
-      const existingData = await AsyncStorage.getItem(historyKey);
+      const existingData = await userStorage.getRaw(historyKey);
       const history = existingData ? JSON.parse(existingData) : [];
       
       // Add new verses to history
@@ -191,7 +191,7 @@ class ImprovedAIVerseService {
       // Keep only last 100 entries to prevent storage bloat
       const trimmedHistory = updatedHistory.slice(-100);
       
-      await AsyncStorage.setItem(historyKey, JSON.stringify(trimmedHistory));
+      await userStorage.setRaw(historyKey, JSON.stringify(trimmedHistory));
       console.log('💾 Saved 2 verses to history');
       
     } catch (error) {

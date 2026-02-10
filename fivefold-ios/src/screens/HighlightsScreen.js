@@ -22,7 +22,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { hapticFeedback } from '../utils/haptics';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
@@ -108,10 +108,10 @@ const HighlightsScreen = ({ navigation }) => {
       const names = await VerseDataManager.getHighlightNames();
       setCustomHighlightNames(names);
       
-      const mode = await AsyncStorage.getItem('highlightViewMode');
+      const mode = await userStorage.getRaw('highlightViewMode');
       if (mode) setHighlightViewMode(mode);
       
-      const version = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+      const version = await userStorage.getRaw('selectedBibleVersion') || 'nlt';
       setCurrentBibleVersion(version);
     } catch (error) {
       console.error('Error loading highlights:', error);
@@ -142,7 +142,7 @@ const HighlightsScreen = ({ navigation }) => {
 
   const saveHighlightViewMode = async (mode) => {
     try {
-      await AsyncStorage.setItem('highlightViewMode', mode);
+      await userStorage.setRaw('highlightViewMode', mode);
       setHighlightViewMode(mode);
       hapticFeedback.light();
     } catch (error) {

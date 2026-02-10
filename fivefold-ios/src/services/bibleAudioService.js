@@ -8,7 +8,7 @@
  */
 
 import * as Speech from 'expo-speech';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { Alert, Linking } from 'react-native';
 import chatterboxService from './chatterboxService';
 import googleTtsService from './googleTtsService';
@@ -415,7 +415,7 @@ class BibleAudioService {
    */
   async loadSettings() {
     try {
-      const stored = await AsyncStorage.getItem(AUDIO_SETTINGS_KEY);
+      const stored = await userStorage.getRaw(AUDIO_SETTINGS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         this.settings = { ...this.settings, ...parsed };
@@ -431,7 +431,7 @@ class BibleAudioService {
    */
   async saveSettings() {
     try {
-      await AsyncStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(this.settings));
+      await userStorage.setRaw(AUDIO_SETTINGS_KEY, JSON.stringify(this.settings));
     } catch (error) {
       console.log('[BibleAudio] Failed to save settings:', error);
     }

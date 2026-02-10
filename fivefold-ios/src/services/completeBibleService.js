@@ -1,7 +1,7 @@
 // Complete Bible Service - Now uses GitHub exclusively (no more bible-api.com)
 // Wrapper around githubBibleService for backward compatibility
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { getVersionById } from '../data/bibleVersions';
 import githubBibleService from './githubBibleService';
 import bibleReferenceParser from '../utils/bibleReferenceParser';
@@ -16,7 +16,7 @@ class CompleteBibleService {
   // Set the current language
   async setLanguage(languageCode) {
     this.currentLanguage = languageCode || 'en';
-    await AsyncStorage.setItem('bibleLanguage', this.currentLanguage);
+    await userStorage.setRaw('bibleLanguage', this.currentLanguage);
   }
 
   // Get the current language
@@ -26,7 +26,7 @@ class CompleteBibleService {
     }
     
     try {
-      const savedLanguage = await AsyncStorage.getItem('app_language');
+      const savedLanguage = await userStorage.getRaw('app_language');
       this.currentLanguage = savedLanguage || 'en';
       return this.currentLanguage;
     } catch (error) {
@@ -42,7 +42,7 @@ class CompleteBibleService {
     }
 
     try {
-      const storedVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedVersion = await userStorage.getRaw('selectedBibleVersion');
       const versionId = storedVersion || 'kjv';
       this.currentVersion = getVersionById(versionId);
       return this.currentVersion;

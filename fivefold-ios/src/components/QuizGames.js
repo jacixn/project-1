@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
 import AchievementService from '../services/achievementService';
@@ -250,7 +250,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
       
       // Save updated stats using the correct storage wrapper
       await saveData('userStats', updatedStats);
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

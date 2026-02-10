@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 
 // All available Bible verses for prayers - organized by themes/times
 export const allPrayerVerses = {
@@ -170,7 +170,7 @@ export class VerseManager {
   // Get the current verse rotation state
   static async getRotationState() {
     try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
+      const stored = await userStorage.getRaw(this.STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
       }
@@ -198,7 +198,7 @@ export class VerseManager {
   // Save verse rotation state
   static async saveRotationState(state) {
     try {
-      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+      await userStorage.setRaw(this.STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
       console.error('Error saving verse rotation state:', error);
     }
@@ -260,7 +260,7 @@ export class VerseManager {
       const prayerVerseKey = `prayer_verses_${prayerId}`;
       
       // Check if we already have verses for this prayer
-      const existingData = await AsyncStorage.getItem(prayerVerseKey);
+      const existingData = await userStorage.getRaw(prayerVerseKey);
       
       if (existingData) {
         const prayerData = JSON.parse(existingData);
@@ -279,7 +279,7 @@ export class VerseManager {
         } else {
           console.log(`📖 Prayer ${prayerId}: 24 hours passed, getting new verses`);
           // Remove old verses
-          await AsyncStorage.removeItem(prayerVerseKey);
+          await userStorage.remove(prayerVerseKey);
         }
       }
       
@@ -302,7 +302,7 @@ export class VerseManager {
         prayerId: prayerId
       };
       
-      await AsyncStorage.setItem(prayerVerseKey, JSON.stringify(prayerData));
+      await userStorage.setRaw(prayerVerseKey, JSON.stringify(prayerData));
       
       console.log(`📖 Prayer ${prayerId}: Stored new verses:`, selectedVerses.map(v => v.reference));
       return selectedVerses;
@@ -382,12 +382,12 @@ export class VerseManager {
   static async markPrayerCompleted(prayerId) {
     try {
       const prayerVerseKey = `prayer_verses_${prayerId}`;
-      const existingData = await AsyncStorage.getItem(prayerVerseKey);
+      const existingData = await userStorage.getRaw(prayerVerseKey);
       
       if (existingData) {
         const prayerData = JSON.parse(existingData);
         prayerData.completedAt = new Date().toISOString();
-        await AsyncStorage.setItem(prayerVerseKey, JSON.stringify(prayerData));
+        await userStorage.setRaw(prayerVerseKey, JSON.stringify(prayerData));
         console.log(`📖 Prayer ${prayerId}: Marked as completed`);
       }
     } catch (error) {
@@ -399,7 +399,7 @@ export class VerseManager {
   static async forceNewVersesForPrayer(prayerId) {
     try {
       const prayerVerseKey = `prayer_verses_${prayerId}`;
-      await AsyncStorage.removeItem(prayerVerseKey);
+      await userStorage.remove(prayerVerseKey);
       console.log(`📖 Prayer ${prayerId}: Forced new verses - old verses cleared`);
     } catch (error) {
       console.error('Error forcing new verses:', error);

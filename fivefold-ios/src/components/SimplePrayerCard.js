@@ -22,7 +22,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import notificationService from '../services/notificationService';
@@ -809,7 +809,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       
       updatedStats.level = AchievementService.getLevelFromPoints(updatedStats.points);
       await saveData('userStats', updatedStats);
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

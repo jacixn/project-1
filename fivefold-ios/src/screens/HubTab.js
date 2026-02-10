@@ -26,6 +26,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   AppState,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -40,13 +41,13 @@ import { useWorkout } from '../contexts/WorkoutContext';
 import bibleAudioService from '../services/bibleAudioService';
 import { GlassHeader } from '../components/GlassEffect';
 import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles, invalidateAuthorCache } from '../services/feedService';
-import { isEmailVerified, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
+import { isEmailVerified, sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
 import { getChallenges, subscribeToChallenges } from '../services/challengeService';
 import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
@@ -94,6 +95,7 @@ const HubTab = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [posting, setPosting] = useState(false);
+  const [postingSuccess, setPostingSuccess] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
@@ -117,6 +119,11 @@ const HubTab = () => {
   const headerGlow = useRef(new Animated.Value(0)).current;
   const iconBounce1 = useRef(new Animated.Value(0)).current;
   const iconBounce2 = useRef(new Animated.Value(0)).current;
+  
+  // Posting overlay animations
+  const postingOverlayAnim = useRef(new Animated.Value(0)).current;
+  const postingIconSpin = useRef(new Animated.Value(0)).current;
+  const postingScale = useRef(new Animated.Value(0.3)).current;
   
   // Header glow animation
   useEffect(() => {
@@ -167,11 +174,11 @@ const HubTab = () => {
   
   // Load badge toggles + referral count for current user badge display
   useEffect(() => {
-    AsyncStorage.getItem('fivefold_badge_toggles').then(raw => {
+    userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) setMyBadgeToggles(JSON.parse(raw));
     }).catch(() => {});
     getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
-    AsyncStorage.getItem('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
+    userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
   }, []);
 
   // Load posts (one-time fetch, no real-time listener to save Firestore costs)
@@ -373,6 +380,9 @@ const HubTab = () => {
   };
   
   const handlePost = async () => {
+    // Guard against double-tap immediately
+    if (posting) return;
+    
     if (!postContent.trim()) {
       Alert.alert('Empty Post', 'Please write something to share.');
       return;
@@ -383,26 +393,52 @@ const HubTab = () => {
       return;
     }
     
+    // Lock posting state BEFORE any async work
+    setPosting(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Start overlay animation
+    postingOverlayAnim.setValue(0);
+    postingIconSpin.setValue(0);
+    postingScale.setValue(0.3);
+    Animated.parallel([
+      Animated.timing(postingOverlayAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.spring(postingScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    // Continuous spin animation
+    const spinLoop = Animated.loop(
+      Animated.timing(postingIconSpin, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    spinLoop.start();
+    
     // Refresh & check email verification (reload user to get latest status)
     const verified = await refreshEmailVerificationStatus();
     if (!verified) {
+      spinLoop.stop();
+      setPosting(false);
       Alert.alert(
         'Verify Your Email',
-        'Please verify your email address before posting. Check your inbox for a verification link.',
+        'Please verify your email address before posting.',
         [
           { text: 'Cancel', style: 'cancel' },
           { 
-            text: 'Send Verification Email', 
-            onPress: async () => {
-              try {
-                await resendVerificationEmail();
-                Alert.alert(
-                  'Email Sent',
-                  'A verification link has been sent to your email. After verifying, come back and try posting again.'
-                );
-              } catch (err) {
-                Alert.alert('Error', err.message || 'Failed to send verification email. Please try again.');
-              }
+            text: 'Verify Now', 
+            onPress: () => {
+              navigation.navigate('EmailVerification', { fromSignup: false });
             }
           },
         ]
@@ -410,13 +446,11 @@ const HubTab = () => {
       return;
     }
     
-    setPosting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
     // Use the token
     const username = userProfile?.displayName || userProfile?.username || null;
     const tokenResult = await useToken(user.uid, username);
     if (!tokenResult.success) {
+      spinLoop.stop();
       Alert.alert('Error', tokenResult.error || 'Failed to use token');
       setPosting(false);
       return;
@@ -428,17 +462,42 @@ const HubTab = () => {
     // Create the post
     const result = await createPost(user.uid, postContent, profileToUse);
     
+    spinLoop.stop();
+    
     if (result.success) {
+      // Show success state briefly
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setPostingSuccess(true);
+      
+      // Wait for success animation to show
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Fade out overlay
+      Animated.timing(postingOverlayAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       setPostContent('');
       setShowComposer(false);
+      setPostingSuccess(false);
+      setPosting(false);
       await loadPosts(); // Refresh feed with new post
       await checkTokenStatus(true); // Refresh token status from Firebase
     } else {
+      // Fade out overlay on error
+      Animated.timing(postingOverlayAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setPosting(false);
       Alert.alert('Error', result.error || 'Failed to create post');
     }
-    
-    setPosting(false);
   };
   
   const handleDeletePost = async (postId) => {
@@ -749,8 +808,20 @@ const HubTab = () => {
               <Animated.View style={{ transform: [{ translateY: iconBounce1.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
                 <TouchableOpacity
                   style={styles.premiumIconButton}
-                  onPress={() => {
+                  onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    const verified = await refreshEmailVerificationStatus();
+                    if (!verified) {
+                      Alert.alert(
+                        'Verify Your Email',
+                        'Please verify your email to access messaging and connect with friends.',
+                        [
+                          { text: 'Later', style: 'cancel' },
+                          { text: 'Verify Now', onPress: () => navigation.navigate('EmailVerification', { fromSignup: false }) },
+                        ]
+                      );
+                      return;
+                    }
                     navigation.navigate('Friends');
                   }}
                   activeOpacity={0.7}
@@ -778,8 +849,20 @@ const HubTab = () => {
               <Animated.View style={{ transform: [{ translateY: iconBounce2.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
                 <TouchableOpacity
                   style={styles.premiumIconButton}
-                  onPress={() => {
+                  onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    const verified = await refreshEmailVerificationStatus();
+                    if (!verified) {
+                      Alert.alert(
+                        'Verify Your Email',
+                        'Please verify your email to access the leaderboard and challenges.',
+                        [
+                          { text: 'Later', style: 'cancel' },
+                          { text: 'Verify Now', onPress: () => navigation.navigate('EmailVerification', { fromSignup: false }) },
+                        ]
+                      );
+                      return;
+                    }
                     navigation.navigate('Leaderboard');
                   }}
                   activeOpacity={0.7}
@@ -1047,6 +1130,86 @@ const HubTab = () => {
               </View>
             </View>
           </KeyboardAvoidingView>
+          
+          {/* Full-screen posting overlay */}
+          {posting && (
+            <Animated.View
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 999,
+                opacity: postingOverlayAnim,
+              }}
+              pointerEvents="auto"
+            >
+              <Animated.View style={{
+                transform: [{ scale: postingScale }],
+                alignItems: 'center',
+              }}>
+                {postingSuccess ? (
+                  <>
+                    <View style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      backgroundColor: '#10B981',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 20,
+                      shadowColor: '#10B981',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 12,
+                    }}>
+                      <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+                    </View>
+                    <Text style={{
+                      fontSize: 24,
+                      fontWeight: '700',
+                      color: isDark ? '#FFFFFF' : '#1a1a2e',
+                      marginBottom: 8,
+                    }}>Shared!</Text>
+                    <Text style={{
+                      fontSize: 15,
+                      color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
+                    }}>Your post is now live</Text>
+                  </>
+                ) : (
+                  <>
+                    <Animated.View style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      backgroundColor: theme.primary + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 20,
+                      transform: [{
+                        rotate: postingIconSpin.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      }],
+                    }}>
+                      <Ionicons name="paper-plane" size={32} color={theme.primary} />
+                    </Animated.View>
+                    <Text style={{
+                      fontSize: 24,
+                      fontWeight: '700',
+                      color: isDark ? '#FFFFFF' : '#1a1a2e',
+                      marginBottom: 8,
+                    }}>Sharing...</Text>
+                    <Text style={{
+                      fontSize: 15,
+                      color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
+                    }}>Sending your post to the world</Text>
+                  </>
+                )}
+              </Animated.View>
+            </Animated.View>
+          )}
         </View>
       </Modal>
       

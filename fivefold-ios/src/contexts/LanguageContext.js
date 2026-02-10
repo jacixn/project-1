@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { translations, availableLanguages } from '../translations/languages';
 
 const LanguageContext = createContext();
@@ -16,7 +16,7 @@ export const LanguageProvider = ({ children }) => {
 
   const loadSavedLanguage = async () => {
     try {
-      const savedLanguage = await AsyncStorage.getItem('app_language');
+      const savedLanguage = await userStorage.getRaw('app_language');
       // Only allow English language to be loaded
       if (savedLanguage === 'en' && translations[savedLanguage]) {
         setLanguage(savedLanguage);
@@ -25,7 +25,7 @@ export const LanguageProvider = ({ children }) => {
         // Force English if any other language was saved
         setLanguage('en');
         setCurrentTranslations(translations.en);
-        await AsyncStorage.setItem('app_language', 'en');
+        await userStorage.setRaw('app_language', 'en');
       }
     } catch (error) {
       console.error('Error loading language:', error);
@@ -52,7 +52,7 @@ export const LanguageProvider = ({ children }) => {
       setCurrentTranslations(translations[newLanguage]);
       
       // Save to storage
-      await AsyncStorage.setItem('app_language', newLanguage);
+      await userStorage.setRaw('app_language', newLanguage);
       
       // Extra delay for effect
       await new Promise(resolve => setTimeout(resolve, 300));

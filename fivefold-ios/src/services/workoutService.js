@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import AchievementService from './achievementService';
@@ -16,7 +16,7 @@ class WorkoutService {
   // Get all workout templates
   static async getTemplates() {
     try {
-      const templatesJson = await AsyncStorage.getItem(TEMPLATES_KEY);
+      const templatesJson = await userStorage.getRaw(TEMPLATES_KEY);
       if (templatesJson) {
         return JSON.parse(templatesJson);
       }
@@ -32,7 +32,7 @@ class WorkoutService {
   // Save templates
   static async saveTemplates(templates) {
     try {
-      await AsyncStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+      await userStorage.setRaw(TEMPLATES_KEY, JSON.stringify(templates));
       console.log('✅ Templates saved successfully');
     } catch (error) {
       console.error('Error saving templates:', error);
@@ -84,7 +84,7 @@ class WorkoutService {
   // Get all workout history
   static async getWorkoutHistory() {
     try {
-      const historyJson = await AsyncStorage.getItem(WORKOUT_HISTORY_KEY);
+      const historyJson = await userStorage.getRaw(WORKOUT_HISTORY_KEY);
       if (historyJson) {
         return JSON.parse(historyJson);
       }
@@ -109,7 +109,7 @@ class WorkoutService {
       // Add to beginning of history (most recent first)
       history.unshift(completedWorkout);
       
-      await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(history));
+      await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(history));
       console.log('✅ Workout saved to history');
       
       // UPDATE userStats via AchievementService (syncs both keys + triggers achievements)
@@ -216,7 +216,7 @@ class WorkoutService {
     try {
       const history = await this.getWorkoutHistory();
       const filtered = history.filter(w => w.id !== workoutId);
-      await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
+      await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
       console.log('✅ Workout deleted:', workoutId);
     } catch (error) {
       console.error('Error deleting workout:', error);
@@ -227,7 +227,7 @@ class WorkoutService {
   // Clear all workout history (for testing/debugging)
   static async clearHistory() {
     try {
-      await AsyncStorage.removeItem(WORKOUT_HISTORY_KEY);
+      await userStorage.remove(WORKOUT_HISTORY_KEY);
       console.log('✅ Workout history cleared');
     } catch (error) {
       console.error('Error clearing history:', error);
@@ -238,7 +238,7 @@ class WorkoutService {
   // Clear all templates (for testing/debugging)
   static async clearTemplates() {
     try {
-      await AsyncStorage.removeItem(TEMPLATES_KEY);
+      await userStorage.remove(TEMPLATES_KEY);
       console.log('✅ Templates cleared');
     } catch (error) {
       console.error('Error clearing templates:', error);
@@ -251,7 +251,7 @@ class WorkoutService {
   // Get all folders
   static async getFolders() {
     try {
-      const foldersJson = await AsyncStorage.getItem(FOLDERS_KEY);
+      const foldersJson = await userStorage.getRaw(FOLDERS_KEY);
       if (foldersJson) {
         return JSON.parse(foldersJson);
       }
@@ -265,7 +265,7 @@ class WorkoutService {
   // Save folders
   static async saveFolders(folders) {
     try {
-      await AsyncStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
+      await userStorage.setRaw(FOLDERS_KEY, JSON.stringify(folders));
       console.log('✅ Folders saved successfully');
     } catch (error) {
       console.error('Error saving folders:', error);
@@ -321,7 +321,7 @@ class WorkoutService {
   // Get all scheduled workouts
   static async getScheduledWorkouts() {
     try {
-      const scheduledJson = await AsyncStorage.getItem(SCHEDULED_WORKOUTS_KEY);
+      const scheduledJson = await userStorage.getRaw(SCHEDULED_WORKOUTS_KEY);
       if (scheduledJson) {
         return JSON.parse(scheduledJson);
       }
@@ -335,7 +335,7 @@ class WorkoutService {
   // Save scheduled workouts
   static async saveScheduledWorkouts(scheduled) {
     try {
-      await AsyncStorage.setItem(SCHEDULED_WORKOUTS_KEY, JSON.stringify(scheduled));
+      await userStorage.setRaw(SCHEDULED_WORKOUTS_KEY, JSON.stringify(scheduled));
       console.log('✅ Scheduled workouts saved');
     } catch (error) {
       console.error('Error saving scheduled workouts:', error);
@@ -460,7 +460,7 @@ class WorkoutService {
       });
 
       if (filtered.length < history.length) {
-        await AsyncStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
+        await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
         console.log(`🧹 Cleaned workout history: ${history.length} → ${filtered.length} (removed ${history.length - filtered.length} entries older than 90 days)`);
       }
     } catch (error) {

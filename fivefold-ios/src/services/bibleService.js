@@ -2,7 +2,7 @@
 // Provides access to all 66 books, 1,189 chapters, 31,000+ verses
 // Uses API.Bible for complete verse data and AI for simple English translation
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import aiService from './aiService';
 import { getVersionById } from '../data/bibleVersions';
 
@@ -27,7 +27,7 @@ class BibleService {
     }
 
     try {
-      const storedVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedVersion = await userStorage.getRaw('selectedBibleVersion');
       const versionId = storedVersion || 'kjv'; // Default to KJV
       this.currentVersion = getVersionById(versionId);
       return this.currentVersion;
@@ -124,7 +124,7 @@ class BibleService {
       this.cachedBooks = this.booksData;
       
       // Cache the books locally for offline access
-      await AsyncStorage.setItem('fivefold_bible_books', JSON.stringify(this.cachedBooks));
+      await userStorage.setRaw('fivefold_bible_books', JSON.stringify(this.cachedBooks));
       
       return this.cachedBooks;
     } catch (error) {
@@ -206,7 +206,7 @@ class BibleService {
       this.cachedVerses.set(chapterId, verses);
       
       // Also save to local storage
-      await AsyncStorage.setItem(`fivefold_verses_${chapterId}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${chapterId}`, JSON.stringify(verses));
       
       return verses;
     } catch (error) {
@@ -214,7 +214,7 @@ class BibleService {
       
       // Try to load from cache if API fails
       try {
-        const cached = await AsyncStorage.getItem(`fivefold_verses_${chapterId}`);
+        const cached = await userStorage.getRaw(`fivefold_verses_${chapterId}`);
         if (cached) {
           const verses = JSON.parse(cached);
           this.cachedVerses.set(chapterId, verses);
@@ -255,7 +255,7 @@ class BibleService {
       if (simplifiedText && simplifiedText !== originalText) {
         // Cache it
         const cacheKey = `simplified_${reference.replace(/\s+/g, '_')}`;
-        await AsyncStorage.setItem(cacheKey, simplifiedText);
+        await userStorage.setRaw(cacheKey, simplifiedText);
         
         console.log('✅ Verse simplified successfully');
         return simplifiedText;
@@ -281,7 +281,7 @@ class BibleService {
 
       // Check AsyncStorage cache
       const cacheKey = `simplified_${memoryKey}`;
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await userStorage.getRaw(cacheKey);
       if (cached && cached.length > 0) {
         console.log(`💾 Using stored simplification for ${reference}`);
         this.simplifiedCache.set(memoryKey, cached);
@@ -295,7 +295,7 @@ class BibleService {
       // Only cache if we got a real simplification
       if (simplifiedText && simplifiedText !== originalText) {
         this.simplifiedCache.set(memoryKey, simplifiedText);
-        await AsyncStorage.setItem(cacheKey, simplifiedText);
+        await userStorage.setRaw(cacheKey, simplifiedText);
       }
       
       return simplifiedText;
@@ -341,7 +341,7 @@ class BibleService {
       this.cachedVerses.set(chapterId, verses);
       
       // Also update local storage
-      await AsyncStorage.setItem(`fivefold_verses_${chapterId}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${chapterId}`, JSON.stringify(verses));
       
       return simplifiedText;
     } catch (error) {

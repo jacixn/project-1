@@ -1,18 +1,18 @@
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 
 // Check if haptics are enabled
 let hapticsEnabled = true;
 
 // Load haptics setting on app start
-AsyncStorage.getItem('fivefold_vibration').then(value => {
+userStorage.getRaw('fivefold_vibration').then(value => {
   hapticsEnabled = value !== 'false';
 });
 
 // Listen for setting changes
 export const updateHapticsSetting = async (enabled) => {
   hapticsEnabled = enabled;
-  await AsyncStorage.setItem('fivefold_vibration', enabled ? 'true' : 'false');
+  await userStorage.setRaw('fivefold_vibration', enabled ? 'true' : 'false');
 };
 
 // Enhanced haptic feedback system with fluid interactions

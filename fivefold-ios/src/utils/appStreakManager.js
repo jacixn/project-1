@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 
 class AppStreakManager {
   static APP_STREAK_KEY = 'app_open_streak';
@@ -16,7 +16,7 @@ class AppStreakManager {
         // Ensure openDates includes today even for existing data
         if (!streakData.openDates) {
           streakData.openDates = [today];
-          await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(streakData));
+          await userStorage.setRaw(this.APP_STREAK_KEY, JSON.stringify(streakData));
         }
         console.log(`📱 Already tracked app open today. Current streak: ${streakData.currentStreak} days`);
         return streakData;
@@ -63,7 +63,7 @@ class AppStreakManager {
         openDates: trimmedDates,
       };
 
-      await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(updatedStreak));
+      await userStorage.setRaw(this.APP_STREAK_KEY, JSON.stringify(updatedStreak));
       
       console.log(`📱 App open tracked! Streak: ${newStreak} days ${milestone ? `🎉 MILESTONE!` : ''}`);
       
@@ -106,7 +106,7 @@ class AppStreakManager {
   // Get streak data
   static async getStreakData() {
     try {
-      const data = await AsyncStorage.getItem(this.APP_STREAK_KEY);
+      const data = await userStorage.getRaw(this.APP_STREAK_KEY);
       return data ? JSON.parse(data) : this.getDefaultStreakData();
     } catch (error) {
       console.error('Error getting streak data:', error);
@@ -131,7 +131,7 @@ class AppStreakManager {
     try {
       const streakData = await this.getStreakData();
       streakData.milestoneReached = false;
-      await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(streakData));
+      await userStorage.setRaw(this.APP_STREAK_KEY, JSON.stringify(streakData));
     } catch (error) {
       console.error('Error clearing milestone flag:', error);
     }
@@ -158,7 +158,7 @@ class AppStreakManager {
   // Reset streak (for testing or user request)
   static async resetStreak() {
     try {
-      await AsyncStorage.setItem(this.APP_STREAK_KEY, JSON.stringify(this.getDefaultStreakData()));
+      await userStorage.setRaw(this.APP_STREAK_KEY, JSON.stringify(this.getDefaultStreakData()));
       console.log('📱 Streak reset to 0');
     } catch (error) {
       console.error('Error resetting streak:', error);

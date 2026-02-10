@@ -17,7 +17,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import TimePicker from './TimePicker';
@@ -313,7 +313,7 @@ const PrayerSection = () => {
       
       newStats.level = AchievementService.getLevelFromPoints(newStats.points);
       await saveData('userStats', newStats);
-      await AsyncStorage.setItem('userStats', JSON.stringify(newStats));
+      await userStorage.setRaw('userStats', JSON.stringify(newStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

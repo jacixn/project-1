@@ -8,7 +8,7 @@
  * - Food favorites with usage tracking
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 const PROFILE_KEY = '@nutrition_profile';
 const FOOD_LOG_KEY = '@food_log';
@@ -54,7 +54,7 @@ class NutritionService {
         setupDate: profile.setupDate || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(PROFILE_KEY, JSON.stringify(data));
       console.log('[Nutrition] Profile saved');
       return data;
     } catch (e) {
@@ -68,7 +68,7 @@ class NutritionService {
    */
   async getProfile() {
     try {
-      const json = await AsyncStorage.getItem(PROFILE_KEY);
+      const json = await userStorage.getRaw(PROFILE_KEY);
       return json ? JSON.parse(json) : null;
     } catch (e) {
       console.warn('[Nutrition] Failed to load profile:', e.message);
@@ -81,7 +81,7 @@ class NutritionService {
    */
   async deleteProfile() {
     try {
-      await AsyncStorage.removeItem(PROFILE_KEY);
+      await userStorage.remove(PROFILE_KEY);
     } catch (e) {
       console.warn('[Nutrition] Failed to delete profile:', e.message);
     }
@@ -158,7 +158,7 @@ class NutritionService {
    */
   async _getFullLog() {
     try {
-      const json = await AsyncStorage.getItem(FOOD_LOG_KEY);
+      const json = await userStorage.getRaw(FOOD_LOG_KEY);
       return json ? JSON.parse(json) : {};
     } catch (e) {
       console.warn('[Nutrition] Failed to load food log:', e.message);
@@ -168,7 +168,7 @@ class NutritionService {
 
   async _saveFullLog(log) {
     try {
-      await AsyncStorage.setItem(FOOD_LOG_KEY, JSON.stringify(log));
+      await userStorage.setRaw(FOOD_LOG_KEY, JSON.stringify(log));
     } catch (e) {
       console.warn('[Nutrition] Failed to save food log:', e.message);
     }
@@ -286,7 +286,7 @@ class NutritionService {
 
   async getFavorites() {
     try {
-      const json = await AsyncStorage.getItem(FAVORITES_KEY);
+      const json = await userStorage.getRaw(FAVORITES_KEY);
       const favorites = json ? JSON.parse(json) : [];
       // Sort by usage count
       return favorites.sort((a, b) => (b.useCount || 0) - (a.useCount || 0));
@@ -307,7 +307,7 @@ class NutritionService {
         existing.protein = food.protein;
         existing.carbs = food.carbs;
         existing.fat = food.fat;
-        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+        await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
         return existing;
       }
 
@@ -324,7 +324,7 @@ class NutritionService {
       };
 
       favorites.push(entry);
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
       console.log('[Nutrition] Added favorite:', entry.name);
       return entry;
     } catch (e) {
@@ -337,7 +337,7 @@ class NutritionService {
     try {
       let favorites = await this.getFavorites();
       favorites = favorites.filter(f => f.id !== id);
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
     } catch (e) {
       console.warn('[Nutrition] Failed to remove favorite:', e.message);
     }
@@ -349,7 +349,7 @@ class NutritionService {
       const fav = favorites.find(f => f.name.toLowerCase() === name.toLowerCase());
       if (fav) {
         fav.useCount = (fav.useCount || 0) + 1;
-        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+        await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
       }
     } catch (e) {
       // silent

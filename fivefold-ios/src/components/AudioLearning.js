@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
 import { getColors } from 'react-native-image-colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
@@ -203,11 +203,11 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const savedSort = await AsyncStorage.getItem(SORT_PREFERENCE_KEY);
+        const savedSort = await userStorage.getRaw(SORT_PREFERENCE_KEY);
         if (savedSort) {
           setSortOrder(savedSort);
         }
-        const savedPlaybackMode = await AsyncStorage.getItem(PLAYBACK_MODE_KEY);
+        const savedPlaybackMode = await userStorage.getRaw(PLAYBACK_MODE_KEY);
         if (savedPlaybackMode) {
           setPlaybackMode(savedPlaybackMode);
         }
@@ -224,7 +224,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     setSortOrder(newOrder);
     hapticFeedback.selection();
     try {
-      await AsyncStorage.setItem(SORT_PREFERENCE_KEY, newOrder);
+      await userStorage.setRaw(SORT_PREFERENCE_KEY, newOrder);
     } catch (error) {
       console.log('Error saving sort preference:', error);
     }
@@ -236,7 +236,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     setPlaybackMode(newMode);
     hapticFeedback.selection();
     try {
-      await AsyncStorage.setItem(PLAYBACK_MODE_KEY, newMode);
+      await userStorage.setRaw(PLAYBACK_MODE_KEY, newMode);
     } catch (error) {
       console.log('Error saving playback mode:', error);
     }

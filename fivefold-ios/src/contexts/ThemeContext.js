@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { blushBloomTheme, blushBloomWallpaper } from '../themes/blush-bloom/theme';
 import { cresviaTheme, cresviaWallpaper } from '../themes/cresvia/theme';
 import { eternaTheme, eternaWallpaper } from '../themes/eterna/theme';
@@ -145,9 +145,9 @@ export const ThemeProvider = ({ children }) => {
 
   const loadThemePreference = async () => {
     try {
-      const savedTheme = await AsyncStorage.getItem('fivefold_theme');
-      const savedDarkMode = await AsyncStorage.getItem('fivefold_dark_mode');
-      const savedWallpaper = await AsyncStorage.getItem('fivefold_wallpaper_index');
+      const savedTheme = await userStorage.getRaw('fivefold_theme');
+      const savedDarkMode = await userStorage.getRaw('fivefold_dark_mode');
+      const savedWallpaper = await userStorage.getRaw('fivefold_wallpaper_index');
       
       if (savedTheme && themes[savedTheme]) {
         setCurrentTheme(savedTheme);
@@ -177,7 +177,7 @@ export const ThemeProvider = ({ children }) => {
   // Save a timestamp whenever the user changes theme locally
   const saveThemeTimestamp = async () => {
     try {
-      await AsyncStorage.setItem('fivefold_theme_updated_at', Date.now().toString());
+      await userStorage.setRaw('fivefold_theme_updated_at', Date.now().toString());
     } catch (e) {
       // Silent
     }
@@ -204,12 +204,12 @@ export const ThemeProvider = ({ children }) => {
       if (themeName === 'jesusnlambs') {
         // Jesus & Lambs is Biblely theme with wallpaper index 1
         setCurrentTheme('biblely');
-        await AsyncStorage.setItem('fivefold_theme', 'biblely');
+        await userStorage.setRaw('fivefold_theme', 'biblely');
         setSelectedWallpaperIndex(1);
-        await AsyncStorage.setItem('fivefold_wallpaper_index', '1');
+        await userStorage.setRaw('fivefold_wallpaper_index', '1');
         // It's a dark theme
         setIsDarkMode(true);
-        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(true));
         await saveThemeTimestamp();
         syncThemeToCloud();
         return;
@@ -218,12 +218,12 @@ export const ThemeProvider = ({ children }) => {
       if (themeName === 'classic') {
         // Classic is Biblely theme with wallpaper index 2
         setCurrentTheme('biblely');
-        await AsyncStorage.setItem('fivefold_theme', 'biblely');
+        await userStorage.setRaw('fivefold_theme', 'biblely');
         setSelectedWallpaperIndex(2);
-        await AsyncStorage.setItem('fivefold_wallpaper_index', '2');
+        await userStorage.setRaw('fivefold_wallpaper_index', '2');
         // It's a dark theme
         setIsDarkMode(true);
-        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+        await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(true));
         await saveThemeTimestamp();
         syncThemeToCloud();
         return;
@@ -231,23 +231,23 @@ export const ThemeProvider = ({ children }) => {
       
       if (themes[themeName]) {
         setCurrentTheme(themeName);
-        await AsyncStorage.setItem('fivefold_theme', themeName);
+        await userStorage.setRaw('fivefold_theme', themeName);
         
         // Reset wallpaper index when switching to non-Biblely themes
         if (themeName !== 'biblely') {
           setSelectedWallpaperIndex(0);
-          await AsyncStorage.setItem('fivefold_wallpaper_index', '0');
+          await userStorage.setRaw('fivefold_wallpaper_index', '0');
         }
         
         // Auto-set light mode for Blush Bloom, Eterna, Sailor Moon, Biblely themes
         if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'sailormoon' || themeName === 'biblely') {
           setIsDarkMode(false);
-          await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(false));
+          await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(false));
         }
         // Auto-set dark mode for Cresvia and Spiderman themes
         else if (themeName === 'cresvia' || themeName === 'spiderman') {
           setIsDarkMode(true);
-          await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(true));
+          await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(true));
         }
         
         await saveThemeTimestamp();
@@ -262,7 +262,7 @@ export const ThemeProvider = ({ children }) => {
     try {
       const newDarkMode = !isDarkMode;
       setIsDarkMode(newDarkMode);
-      await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(newDarkMode));
+      await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(newDarkMode));
       await saveThemeTimestamp();
       syncThemeToCloud();
     } catch (error) {
@@ -280,14 +280,14 @@ export const ThemeProvider = ({ children }) => {
     try {
       const safeIndex = Math.max(0, Math.min(index, (biblelyWallpapers?.length || 1) - 1));
       setSelectedWallpaperIndex(safeIndex);
-      await AsyncStorage.setItem('fivefold_wallpaper_index', safeIndex.toString());
+      await userStorage.setRaw('fivefold_wallpaper_index', safeIndex.toString());
       
       // Auto-set dark/light mode based on the wallpaper's mode
       const wallpaper = biblelyWallpapers?.[safeIndex];
       if (wallpaper) {
         const shouldBeDark = wallpaper.mode === 'dark';
         setIsDarkMode(shouldBeDark);
-        await AsyncStorage.setItem('fivefold_dark_mode', JSON.stringify(shouldBeDark));
+        await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(shouldBeDark));
       }
       
       await saveThemeTimestamp();

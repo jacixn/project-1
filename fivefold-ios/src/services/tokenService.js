@@ -8,7 +8,7 @@
  * - Notification when token arrives
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import * as Notifications from 'expo-notifications';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -53,15 +53,15 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
     
     if (firebaseSchedule && firebaseSchedule.date === today) {
       // Check if this is a NEW schedule (different arrival time than what we have locally)
-      const localScheduleData = await AsyncStorage.getItem(TOKEN_SCHEDULE_KEY);
+      const localScheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
       const localSchedule = localScheduleData ? JSON.parse(localScheduleData) : null;
       
       // If arrival time changed, this is a NEW schedule - reset everything
       if (!localSchedule || localSchedule.arrivalMinutes !== firebaseSchedule.arrivalMinutes) {
         // Clear notification sent flag
-        await AsyncStorage.removeItem(NOTIFICATION_SENT_KEY);
+        await userStorage.remove(NOTIFICATION_SENT_KEY);
         // Clear the old token so button isn't green
-        await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+        await userStorage.remove(TOKEN_STORAGE_KEY);
         console.log('[Token] New schedule detected - cleared old token and notification flag');
       }
       
@@ -90,7 +90,7 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
         };
         schedule.tokenDelivered = true;
         
-        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+        await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
         
         // Update Firebase to show delivered
         await saveScheduleToFirebase(userId, schedule);
@@ -98,7 +98,7 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
         console.log('[Token] Token delivered from Firebase sync at:', new Date().toLocaleTimeString());
       } else if (schedule.tokenDelivered) {
         // Token was already delivered (possibly by the server Cloud Function)
-        const tokenData = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+        const tokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
         token = tokenData ? JSON.parse(tokenData) : null;
         
         // FIX: If Firebase says token was delivered but it doesn't exist locally
@@ -125,7 +125,7 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
               available: true,
               deliveredAt: new Date().toISOString(),
             };
-            await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
           } else {
             // Token was used - create a consumed token record so state is consistent
             token = {
@@ -133,13 +133,13 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
               available: false,
               usedAt: new Date().toISOString(),
             };
-            await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
           }
         }
       }
       
       // Save to local storage
-      await AsyncStorage.setItem(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
+      await userStorage.setRaw(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
       
       // Cancel ALL existing token notifications first (important when syncing new time from Firebase)
       try {
@@ -300,8 +300,8 @@ export const getTokenStatus = async (userId, username = null) => {
       };
     }
     
-    const tokenData = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
-    const scheduleData = await AsyncStorage.getItem(TOKEN_SCHEDULE_KEY);
+    const tokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
+    const scheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
     
     const today = getTodayString();
     const now = new Date();
@@ -332,7 +332,7 @@ export const getTokenStatus = async (userId, username = null) => {
         timezoneOffsetMinutes: new Date().getTimezoneOffset(),
         useServerNotifications: true,
       };
-      await AsyncStorage.setItem(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
+      await userStorage.setRaw(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
       console.log('[Token] Created new schedule for user:', userId, 'arrival:', schedule.arrivalTime);
       
       // Save to Firebase so admin can see the schedule
@@ -356,8 +356,8 @@ export const getTokenStatus = async (userId, username = null) => {
       };
       schedule.tokenDelivered = true;
       
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
-      await AsyncStorage.setItem(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
+      await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
+      await userStorage.setRaw(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
       
       // Update Firebase to show token was delivered
       await saveScheduleToFirebase(userId, schedule);
@@ -366,7 +366,7 @@ export const getTokenStatus = async (userId, username = null) => {
     // Check if token is expired (from a previous day)
     if (token && isTokenExpired(token.date)) {
       token = null;
-      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+      await userStorage.remove(TOKEN_STORAGE_KEY);
     }
     
     return {
@@ -407,7 +407,7 @@ export const useToken = async (userId, username = null) => {
       usedAt: new Date().toISOString(),
     };
     
-    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+    await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
     
     // Also update in Firestore for cross-device sync
     if (userId) {
@@ -453,7 +453,7 @@ const isArrivalTimeReached = (arrivalMinutes) => {
  */
 const hasNotificationBeenSentToday = async () => {
   try {
-    const sent = await AsyncStorage.getItem(NOTIFICATION_SENT_KEY);
+    const sent = await userStorage.getRaw(NOTIFICATION_SENT_KEY);
     if (sent) {
       const data = JSON.parse(sent);
       return data.date === getTodayString();
@@ -469,7 +469,7 @@ const hasNotificationBeenSentToday = async () => {
  */
 const markNotificationSent = async () => {
   try {
-    await AsyncStorage.setItem(NOTIFICATION_SENT_KEY, JSON.stringify({
+    await userStorage.setRaw(NOTIFICATION_SENT_KEY, JSON.stringify({
       date: getTodayString(),
       sentAt: new Date().toISOString(),
     }));
@@ -563,7 +563,7 @@ export const checkAndDeliverToken = async (userId, username = null) => {
  */
 export const getTimeUntilToken = async () => {
   try {
-    const scheduleData = await AsyncStorage.getItem(TOKEN_SCHEDULE_KEY);
+    const scheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
     if (!scheduleData) return null;
     
     const schedule = JSON.parse(scheduleData);

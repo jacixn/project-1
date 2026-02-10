@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import OnboardingFlow from './OnboardingFlow';
 import { useTheme } from '../contexts/ThemeContext';
 import iCloudSyncService from '../services/iCloudSyncService';
@@ -28,7 +28,7 @@ const OnboardingWrapper = ({ children }) => {
   const checkOnboardingStatus = async () => {
     try {
       // First check local storage
-      let onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+      let onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
       console.log('Onboarding status (local):', onboardingCompleted);
       
       // If not completed locally, wait for iCloud sync to potentially restore data
@@ -48,9 +48,9 @@ const OnboardingWrapper = ({ children }) => {
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Check if we now have data from iCloud
-          onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-          const userProfile = await AsyncStorage.getItem('userProfile');
-          const userName = await AsyncStorage.getItem('userName');
+          onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
+          const userProfile = await userStorage.getRaw('userProfile');
+          const userName = await userStorage.getRaw('userName');
           
           console.log(`Attempt ${attempts} - onboarding: ${onboardingCompleted}, profile: ${!!userProfile}, name: ${!!userName}`);
           
@@ -60,7 +60,7 @@ const OnboardingWrapper = ({ children }) => {
             
             // Mark onboarding complete if we have user data
             if (userProfile || userName) {
-              await AsyncStorage.setItem('onboardingCompleted', 'true');
+              await userStorage.setRaw('onboardingCompleted', 'true');
               onboardingCompleted = 'true';
             }
             break;
@@ -88,14 +88,14 @@ const OnboardingWrapper = ({ children }) => {
 
   const handleOnboardingComplete = async () => {
     try {
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await userStorage.setRaw('onboardingCompleted', 'true');
       
       // Sync to iCloud so other devices know onboarding is done
       if (iCloudSyncService.isAvailable) {
         await iCloudSyncService.syncToCloud('onboardingCompleted', 'true');
         
         // Also sync the user profile
-        const userProfile = await AsyncStorage.getItem('userProfile');
+        const userProfile = await userStorage.getRaw('userProfile');
         if (userProfile) {
           await iCloudSyncService.syncToCloud('userProfile', JSON.parse(userProfile));
         }

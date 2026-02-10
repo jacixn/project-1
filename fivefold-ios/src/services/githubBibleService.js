@@ -3,6 +3,7 @@
 // 44 English translations hosted on a private GitHub repository
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { getVersionById } from '../data/bibleVersions';
 import { GITHUB_CONFIG } from '../../github.config';
 
@@ -271,7 +272,7 @@ class GitHubBibleService {
 
       // Check AsyncStorage cache
       const cacheKey = `bible_version_${versionId}`;
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await userStorage.getRaw(cacheKey);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
@@ -314,7 +315,7 @@ class GitHubBibleService {
 
       // Cache it
       this.versionCache.set(versionId, data);
-      await AsyncStorage.setItem(cacheKey, JSON.stringify({
+      await userStorage.setRaw(cacheKey, JSON.stringify({
         data,
         timestamp: Date.now()
       }));
@@ -425,8 +426,10 @@ class GitHubBibleService {
   async clearCache() {
     this.versionCache.clear();
     const keys = await AsyncStorage.getAllKeys();
-    const bibleKeys = keys.filter(key => key.startsWith('bible_version_'));
-    await AsyncStorage.multiRemove(bibleKeys);
+    const bibleKeys = keys.filter(key => key.includes('bible_version_'));
+    if (bibleKeys.length > 0) {
+      await AsyncStorage.multiRemove(bibleKeys);
+    }
     console.log('🧹 Cleared all Bible caches');
   }
 }

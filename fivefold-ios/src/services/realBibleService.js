@@ -2,7 +2,7 @@
 // Uses actual Bible APIs for different versions with proper licensing
 // Supports ESV, NLT, NIV, NASB, and more through various free APIs
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { getVersionById } from '../data/bibleVersions';
 
 // API Configuration for the 6 Bible versions
@@ -96,7 +96,7 @@ class RealBibleService {
     for (const [verseKey, versions] of Object.entries(sampleVerses)) {
       for (const [versionId, text] of Object.entries(versions)) {
         const cacheKey = `sample_${versionId}_${verseKey}`;
-        await AsyncStorage.setItem(cacheKey, text);
+        await userStorage.setRaw(cacheKey, text);
       }
     }
   }
@@ -108,7 +108,7 @@ class RealBibleService {
     }
 
     try {
-      const storedVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedVersion = await userStorage.getRaw('selectedBibleVersion');
       const versionId = storedVersion || 'kjv';
       this.currentVersion = getVersionById(versionId);
       return this.currentVersion;
@@ -202,7 +202,7 @@ class RealBibleService {
 
     try {
       this.cachedBooks = this.booksData;
-      await AsyncStorage.setItem('fivefold_bible_books', JSON.stringify(this.cachedBooks));
+      await userStorage.setRaw('fivefold_bible_books', JSON.stringify(this.cachedBooks));
       return this.cachedBooks;
     } catch (error) {
       console.error('Error getting Bible books:', error);
@@ -290,7 +290,7 @@ class RealBibleService {
           
           // For demo, we'll use sample data
           const sampleKey = `sample_${versionId}_${bookId}_${chapterNum}_1`;
-          const sampleText = await AsyncStorage.getItem(sampleKey);
+          const sampleText = await userStorage.getRaw(sampleKey);
           
           if (sampleText) {
             verses = [{ verse: 1, text: sampleText }];
@@ -311,7 +311,7 @@ class RealBibleService {
       
       // Check if we have sample data for this version
       const sampleKey = `sample_${versionId}_${bookId}_${chapterNum}_1`;
-      const sampleText = await AsyncStorage.getItem(sampleKey);
+      const sampleText = await userStorage.getRaw(sampleKey);
       
       if (sampleText) {
         return [{ verse: 1, text: sampleText }];
@@ -355,7 +355,7 @@ class RealBibleService {
 
       // First, try to get sample data for immediate demonstration
       const sampleKey = `sample_${versionId}_${bookId}_${chapterNum}_1`;
-      const sampleText = await AsyncStorage.getItem(sampleKey);
+      const sampleText = await userStorage.getRaw(sampleKey);
       
       let apiVerses = [];
       
@@ -389,7 +389,7 @@ class RealBibleService {
       this.versionCache.set(cacheKey, verses);
       
       // Cache in storage
-      await AsyncStorage.setItem(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
       
       console.log(`✅ Loaded ${verses.length} ${versionId.toUpperCase()} verses for ${book.name} ${chapterNum}`);
       return verses;
@@ -398,7 +398,7 @@ class RealBibleService {
       
       // Try to load from storage cache
       try {
-        const cached = await AsyncStorage.getItem(`fivefold_verses_${cacheKey}`);
+        const cached = await userStorage.getRaw(`fivefold_verses_${cacheKey}`);
         if (cached) {
           const verses = JSON.parse(cached);
           this.versionCache.set(cacheKey, verses);
@@ -443,7 +443,7 @@ class RealBibleService {
       
       // Update caches
       this.versionCache.set(cacheKey, verses);
-      await AsyncStorage.setItem(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
       
       return simplifiedText;
     } catch (error) {

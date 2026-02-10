@@ -41,7 +41,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
 import AchievementService from '../services/achievementService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
@@ -428,7 +428,7 @@ const TodosTab = () => {
       await saveData('todos', updatedTodos);
       await saveData('userStats', updatedStats);
       // Also sync to raw userStats key for consistency
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

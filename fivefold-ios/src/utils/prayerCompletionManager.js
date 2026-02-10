@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 import iCloudSyncService from '../services/iCloudSyncService';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -51,7 +51,7 @@ class PrayerCompletionManager {
       // Store completion
       const completions = await this.getCompletions();
       completions[prayerId] = completionData;
-      await AsyncStorage.setItem(this.COMPLETION_KEY, JSON.stringify(completions));
+      await userStorage.setRaw(this.COMPLETION_KEY, JSON.stringify(completions));
       
       // Sync to iCloud
       iCloudSyncService.syncToCloud(this.COMPLETION_KEY, completions).catch(err => {
@@ -72,7 +72,7 @@ class PrayerCompletionManager {
   // Get all prayer completions
   static async getCompletions() {
     try {
-      const data = await AsyncStorage.getItem(this.COMPLETION_KEY);
+      const data = await userStorage.getRaw(this.COMPLETION_KEY);
       return data ? JSON.parse(data) : {};
     } catch (error) {
       console.error('Error getting completions:', error);
@@ -85,7 +85,7 @@ class PrayerCompletionManager {
     try {
       const currentPoints = await this.getTotalPoints();
       const newTotal = currentPoints + points;
-      await AsyncStorage.setItem(this.POINTS_KEY, newTotal.toString());
+      await userStorage.setRaw(this.POINTS_KEY, newTotal.toString());
       
       // Sync to iCloud
       iCloudSyncService.syncToCloud(this.POINTS_KEY, newTotal).catch(err => {
@@ -115,7 +115,7 @@ class PrayerCompletionManager {
   // Get total points
   static async getTotalPoints() {
     try {
-      const points = await AsyncStorage.getItem(this.POINTS_KEY);
+      const points = await userStorage.getRaw(this.POINTS_KEY);
       return points ? parseInt(points, 10) : 0;
     } catch (error) {
       console.error('Error getting total points:', error);
@@ -174,7 +174,7 @@ class PrayerCompletionManager {
   // Reset all completions (for testing)
   static async resetCompletions() {
     try {
-      await AsyncStorage.removeItem(this.COMPLETION_KEY);
+      await userStorage.remove(this.COMPLETION_KEY);
       console.log('🔄 All prayer completions reset');
     } catch (error) {
       console.error('Error resetting completions:', error);
@@ -184,7 +184,7 @@ class PrayerCompletionManager {
   // Reset points (for testing)
   static async resetPoints() {
     try {
-      await AsyncStorage.removeItem(this.POINTS_KEY);
+      await userStorage.remove(this.POINTS_KEY);
       console.log('🔄 Points reset to 0');
     } catch (error) {
       console.error('Error resetting points:', error);

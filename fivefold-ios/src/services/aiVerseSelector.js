@@ -1,5 +1,5 @@
 import BibleReferenceGenerator from '../data/bibleReferenceGenerator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 // Smart Verse Selection System
 class SmartVerseSelector {
@@ -234,7 +234,7 @@ You have the entire Bible to choose from - select the BEST possible verses for t
   // Get user's recent verse history
   static async getRecentVerses() {
     try {
-      const historyData = await AsyncStorage.getItem(this.HISTORY_KEY);
+      const historyData = await userStorage.getRaw(this.HISTORY_KEY);
       
       if (!historyData) {
         return [];
@@ -276,7 +276,7 @@ You have the entire Bible to choose from - select the BEST possible verses for t
         .sort((a, b) => new Date(b.usedAt) - new Date(a.usedAt))
         .slice(0, this.MAX_HISTORY);
       
-      await AsyncStorage.setItem(this.HISTORY_KEY, JSON.stringify(trimmedHistory));
+      await userStorage.setRaw(this.HISTORY_KEY, JSON.stringify(trimmedHistory));
       
       
     } catch (error) {

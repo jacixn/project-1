@@ -1,7 +1,7 @@
 // Prayer-specific verses for different prayer times - Now loaded from remote source
 // Each prayer type has its own collection of verses that rotate
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 // Remote Prayer Verses Configuration
 const PRAYER_VERSES_CONFIG = {
@@ -50,7 +50,7 @@ let loadPromise = null;
 // Check if cache is valid
 const isCacheValid = async () => {
   try {
-    const timestamp = await AsyncStorage.getItem(PRAYER_VERSES_CONFIG.CACHE_TIMESTAMP_KEY);
+    const timestamp = await userStorage.getRaw(PRAYER_VERSES_CONFIG.CACHE_TIMESTAMP_KEY);
     if (!timestamp) return false;
     
     const cacheAge = Date.now() - parseInt(timestamp);
@@ -75,8 +75,8 @@ const fetchPrayerVersesFromRemote = async () => {
   const data = await response.json();
   
   // Cache the data
-  await AsyncStorage.setItem(PRAYER_VERSES_CONFIG.CACHE_KEY, JSON.stringify(data));
-  await AsyncStorage.setItem(PRAYER_VERSES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+  await userStorage.setRaw(PRAYER_VERSES_CONFIG.CACHE_KEY, JSON.stringify(data));
+  await userStorage.setRaw(PRAYER_VERSES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
   
   console.log('✅ Prayer verses fetched and cached successfully');
   return data;
@@ -87,7 +87,7 @@ const loadPrayerVerses = async () => {
   try {
     // Check cache first
     if (await isCacheValid()) {
-      const cachedData = await AsyncStorage.getItem(PRAYER_VERSES_CONFIG.CACHE_KEY);
+      const cachedData = await userStorage.getRaw(PRAYER_VERSES_CONFIG.CACHE_KEY);
       if (cachedData) {
         const data = JSON.parse(cachedData);
         prayerVersesData = data.prayerVerses;

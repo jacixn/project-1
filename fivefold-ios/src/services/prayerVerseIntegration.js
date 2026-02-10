@@ -1,4 +1,5 @@
 import AIVerseService from './aiVerseService';
+import userStorage from '../utils/userStorage';
 
 // Integration helper to connect AI verses with existing prayer system
 class PrayerVerseIntegration {
@@ -52,9 +53,8 @@ class PrayerVerseIntegration {
   // Check if user has set up their preferences
   static async getUserPreferences(userId) {
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const prefsKey = `user_preferences_${userId}`;
-      const prefsData = await AsyncStorage.getItem(prefsKey);
+      const prefsData = await userStorage.getRaw(prefsKey);
       
       if (prefsData) {
         return JSON.parse(prefsData);
@@ -80,9 +80,8 @@ class PrayerVerseIntegration {
   // Save user preferences
   static async saveUserPreferences(userId, preferences) {
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const prefsKey = `user_preferences_${userId}`;
-      await AsyncStorage.setItem(prefsKey, JSON.stringify(preferences));
+      await userStorage.setRaw(prefsKey, JSON.stringify(preferences));
     } catch (error) {
       console.error('Failed to save user preferences:', error);
     }

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 const EXERCISES_CONFIG = {
   GITHUB_USERNAME: 'jacixn',
@@ -24,13 +24,13 @@ class ExercisesService {
   static async isCacheValid() {
     try {
       // Check version first
-      const cachedVersion = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_VERSION_KEY);
+      const cachedVersion = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_VERSION_KEY);
       if (cachedVersion !== EXERCISES_CONFIG.CURRENT_VERSION) {
         console.log(`🔄 Cache version mismatch (cached: ${cachedVersion}, current: ${EXERCISES_CONFIG.CURRENT_VERSION})`);
         return false;
       }
 
-      const timestamp = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -67,9 +67,9 @@ class ExercisesService {
       const data = await response.json();
       
       // Cache the default exercises
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CACHE_VERSION_KEY, EXERCISES_CONFIG.CURRENT_VERSION);
+      await userStorage.setRaw(EXERCISES_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(EXERCISES_CONFIG.CACHE_VERSION_KEY, EXERCISES_CONFIG.CURRENT_VERSION);
       
       console.log(`✅ Successfully fetched ${data.length || 0} default exercises from GitHub`);
       console.log('💾 Cached for 30 days with version', EXERCISES_CONFIG.CURRENT_VERSION);
@@ -83,7 +83,7 @@ class ExercisesService {
   // Get custom exercises from local storage
   static async getCustomExercises() {
     try {
-      const customData = await AsyncStorage.getItem(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY);
+      const customData = await userStorage.getRaw(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY);
       if (customData) {
         const customExercises = JSON.parse(customData);
         console.log(`✅ Loaded ${customExercises.length} custom exercises`);
@@ -110,7 +110,7 @@ class ExercisesService {
       };
       
       customExercises.push(newExercise);
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(customExercises));
+      await userStorage.setRaw(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(customExercises));
       
       console.log('✅ Added custom exercise:', newExercise.name);
       return newExercise;
@@ -136,7 +136,7 @@ class ExercisesService {
         updatedAt: new Date().toISOString(),
       };
       
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(customExercises));
+      await userStorage.setRaw(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(customExercises));
       
       console.log('✅ Updated custom exercise:', customExercises[index].name);
       return customExercises[index];
@@ -152,7 +152,7 @@ class ExercisesService {
       const customExercises = await this.getCustomExercises();
       const filtered = customExercises.filter(ex => ex.id !== exerciseId);
       
-      await AsyncStorage.setItem(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(filtered));
+      await userStorage.setRaw(EXERCISES_CONFIG.CUSTOM_EXERCISES_KEY, JSON.stringify(filtered));
       
       console.log('✅ Deleted custom exercise:', exerciseId);
       return true;
@@ -174,9 +174,9 @@ class ExercisesService {
       console.log('🏋️ Cache valid:', cacheValid);
       
       if (cacheValid) {
-        const cachedData = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_KEY);
         if (cachedData) {
-          const cacheTimestamp = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
+          const cacheTimestamp = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
           const cacheAge = Date.now() - parseInt(cacheTimestamp);
           const daysOld = Math.round(cacheAge / (1000 * 60 * 60 * 24));
           console.log(`✅ Using cached default exercises (${daysOld} days old, expires in ${30 - daysOld} days)`);
@@ -201,7 +201,7 @@ class ExercisesService {
       
       // Try to use expired cache as fallback
       try {
-        const cachedData = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_KEY);
         const customExercises = await this.getCustomExercises();
         
         if (cachedData) {
@@ -222,9 +222,9 @@ class ExercisesService {
     try {
       console.log('🔄 Force refreshing default exercises from GitHub...');
       // Clear the cache completely
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_VERSION_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_VERSION_KEY);
       console.log('✅ Cache cleared');
       
       const defaultExercises = await this.fetchFromGitHub();
@@ -240,9 +240,9 @@ class ExercisesService {
   static async clearCache() {
     try {
       console.log('🗑️ Clearing exercise cache...');
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
-      await AsyncStorage.removeItem(EXERCISES_CONFIG.CACHE_VERSION_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(EXERCISES_CONFIG.CACHE_VERSION_KEY);
       console.log('✅ Cache cleared successfully');
     } catch (error) {
       console.error('❌ Error clearing cache:', error);
@@ -253,7 +253,7 @@ class ExercisesService {
   // Get cache info
   static async getCacheInfo() {
     try {
-      const timestamp = await AsyncStorage.getItem(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(EXERCISES_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) {
         return { cached: false };
       }

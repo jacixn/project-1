@@ -33,7 +33,7 @@ import githubBibleService from '../services/githubBibleService';
 import { hapticFeedback } from '../utils/haptics';
 
 import { CircleStrokeSpin, CirclePulseMultiple } from './ProgressHUDAnimations';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { bibleVersions, getVersionById } from '../data/bibleVersions';
 import VerseDataManager from '../utils/verseDataManager';
 import VerseJournalingModal from './VerseJournalingModal';
@@ -153,7 +153,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   useEffect(() => {
     const loadShareCardPrefs = async () => {
       try {
-        const prefs = await AsyncStorage.getItem('shareCardPreferences');
+        const prefs = await userStorage.getRaw('shareCardPreferences');
         if (prefs) {
           const parsed = JSON.parse(prefs);
           if (parsed.activeBg !== undefined) setShareCardActiveBg(parsed.activeBg);
@@ -179,10 +179,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const saveShareCardPrefs = async (updates) => {
     if (!shareCardPrefsLoaded.current) return;
     try {
-      const current = await AsyncStorage.getItem('shareCardPreferences');
+      const current = await userStorage.getRaw('shareCardPreferences');
       const parsed = current ? JSON.parse(current) : {};
       const newPrefs = { ...parsed, ...updates };
-      await AsyncStorage.setItem('shareCardPreferences', JSON.stringify(newPrefs));
+      await userStorage.setRaw('shareCardPreferences', JSON.stringify(newPrefs));
     } catch (err) {
       console.log('Failed to save share card prefs:', err);
     }
@@ -515,7 +515,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   useEffect(() => {
     const loadRecentSearches = async () => {
       try {
-        const stored = await AsyncStorage.getItem('recentBibleSearches');
+        const stored = await userStorage.getRaw('recentBibleSearches');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
@@ -533,7 +533,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     if (!reference) return;
     setRecentSearches(prev => {
       const next = [reference, ...prev.filter(r => r !== reference)].slice(0, 8);
-      AsyncStorage.setItem('recentBibleSearches', JSON.stringify(next)).catch(() => {});
+      userStorage.setRaw('recentBibleSearches', JSON.stringify(next)).catch(() => {});
       return next;
     });
   };
@@ -889,7 +889,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
   const loadSavedVerses = async () => {
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       if (savedVersesData) {
         const versesArray = JSON.parse(savedVersesData);
         const allSavedVerseIds = new Set();
@@ -993,7 +993,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
   const loadSelectedVersion = async () => {
     try {
-      const storedVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedVersion = await userStorage.getRaw('selectedBibleVersion');
       if (storedVersion) {
         setSelectedBibleVersion(storedVersion);
       }
@@ -1774,7 +1774,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     
     try {
       // Save to the same AsyncStorage key that ProfileTab uses
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       const currentSavedVerses = savedVersesData ? JSON.parse(savedVersesData) : [];
       
       // Check if already saved
@@ -1801,7 +1801,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       };
       
       currentSavedVerses.push(newVerse);
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
+      await userStorage.setRaw('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
@@ -1882,7 +1882,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     const rangeId = `${currentBook.id}_${currentChapter.number}_${actualStart}-${actualEnd}`;
     
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       const currentSavedVerses = savedVersesData ? JSON.parse(savedVersesData) : [];
       
       // Check if already saved
@@ -1910,7 +1910,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       };
       
       currentSavedVerses.push(newVerse);
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
+      await userStorage.setRaw('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
@@ -1972,7 +1972,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     const rangeId = `${currentBook.id}_${currentChapter.number}_${actualStart}-${actualEnd}`;
     
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       const currentSavedVerses = savedVersesData ? JSON.parse(savedVersesData) : [];
       
       // Check if already saved
@@ -2001,7 +2001,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       };
       
       currentSavedVerses.push(newVerse);
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(currentSavedVerses));
+      await userStorage.setRaw('savedBibleVerses', JSON.stringify(currentSavedVerses));
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
@@ -2043,7 +2043,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       console.log('📖 Changing version to:', versionId);
       const oldVersion = selectedBibleVersion;
       setSelectedBibleVersion(versionId);
-      await AsyncStorage.setItem('selectedBibleVersion', versionId);
+      await userStorage.setRaw('selectedBibleVersion', versionId);
       setShowVersionPicker(false);
       hapticFeedback.success();
       
@@ -2730,7 +2730,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
       
       // Get current saved verses
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       let savedVersesList = savedVersesData ? JSON.parse(savedVersesData) : [];
       
       // Check if verse is already saved
@@ -2766,7 +2766,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       }
       
       // Save to AsyncStorage
-      await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(savedVersesList));
+      await userStorage.setRaw('savedBibleVerses', JSON.stringify(savedVersesList));
       
       // Update user stats and check achievements
       AchievementService.setStat('savedVerses', savedVersesList.length);

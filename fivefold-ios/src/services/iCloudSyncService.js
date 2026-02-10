@@ -18,8 +18,8 @@ import {
   createDir,
   download,
 } from 'react-native-cloud-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, AppState } from 'react-native';
+import userStorage from '../utils/userStorage';
 
 // Keys that should be synced to iCloud
 const SYNC_KEYS = [
@@ -114,7 +114,7 @@ class ICloudSyncService {
         console.log('Sync from cloud result:', syncResult);
         
         // Check if this device has local data that hasn't been uploaded yet
-        const migrationComplete = await AsyncStorage.getItem(MIGRATION_COMPLETE_KEY);
+        const migrationComplete = await userStorage.getRaw(MIGRATION_COMPLETE_KEY);
         
         if (!migrationComplete) {
           // Check if we have local data worth uploading
@@ -126,7 +126,7 @@ class ICloudSyncService {
           }
           
           // Mark migration complete for this device
-          await AsyncStorage.setItem(MIGRATION_COMPLETE_KEY, new Date().toISOString());
+          await userStorage.setRaw(MIGRATION_COMPLETE_KEY, new Date().toISOString());
         }
       } else {
         console.log('iCloud not available - user may not be signed in');
@@ -159,9 +159,9 @@ class ICloudSyncService {
   async hasSignificantLocalData() {
     try {
       // Check for key data that indicates real usage
-      const verseData = await AsyncStorage.getItem('verse_data');
-      const totalPoints = await AsyncStorage.getItem('total_points');
-      const userProfile = await AsyncStorage.getItem('user_profile');
+      const verseData = await userStorage.getRaw('verse_data');
+      const totalPoints = await userStorage.getRaw('total_points');
+      const userProfile = await userStorage.getRaw('user_profile');
       
       // If we have verse data with content, or points > 0, we have real data
       if (verseData) {
@@ -217,7 +217,7 @@ class ICloudSyncService {
 
       for (const key of SYNC_KEYS) {
         try {
-          const localData = await AsyncStorage.getItem(key);
+          const localData = await userStorage.getRaw(key);
           
           if (localData) {
             // Check if data already exists in cloud
@@ -247,7 +247,7 @@ class ICloudSyncService {
                 const merged = await this.mergeData(key, localParsed, cloudParsed.data);
                 
                 // Save merged data locally
-                await AsyncStorage.setItem(key, JSON.stringify(merged.data));
+                await userStorage.setRaw(key, JSON.stringify(merged.data));
                 
                 // Upload merged data to cloud
                 await this.syncToCloud(key, merged.data);
@@ -276,8 +276,8 @@ class ICloudSyncService {
       }
 
       // Mark migration as complete
-      await AsyncStorage.setItem(MIGRATION_COMPLETE_KEY, new Date().toISOString());
-      await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      await userStorage.setRaw(MIGRATION_COMPLETE_KEY, new Date().toISOString());
+      await userStorage.setRaw(LAST_SYNC_KEY, new Date().toISOString());
 
       console.log(`Migration complete: ${migratedCount} keys migrated, ${skippedCount} skipped`);
       this.notifyListeners('migration_completed', { migratedCount, skippedCount });
@@ -329,17 +329,17 @@ class ICloudSyncService {
             const cloudParsed = JSON.parse(cloudData);
             
             // Get local data
-            const localData = await AsyncStorage.getItem(key);
+            const localData = await userStorage.getRaw(key);
             const localParsed = localData ? JSON.parse(localData) : null;
             
             // Resolve conflicts - cloud wins if newer, otherwise merge
             const resolved = await this.resolveConflict(key, localParsed, cloudParsed);
             
             if (resolved.action === 'use_cloud') {
-              await AsyncStorage.setItem(key, JSON.stringify(cloudParsed.data));
+              await userStorage.setRaw(key, JSON.stringify(cloudParsed.data));
               syncedCount++;
             } else if (resolved.action === 'merge') {
-              await AsyncStorage.setItem(key, JSON.stringify(resolved.data));
+              await userStorage.setRaw(key, JSON.stringify(resolved.data));
               conflictCount++;
             }
             // If action is 'keep_local', we don't change anything
@@ -353,7 +353,7 @@ class ICloudSyncService {
       }
 
       // Update last sync time
-      await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      await userStorage.setRaw(LAST_SYNC_KEY, new Date().toISOString());
 
       console.log(`Sync from iCloud complete: ${syncedCount} synced, ${conflictCount} merged`);
       this.notifyListeners('sync_completed', { syncedCount, conflictCount });
@@ -425,7 +425,7 @@ class ICloudSyncService {
 
       for (const key of SYNC_KEYS) {
         try {
-          const localData = await AsyncStorage.getItem(key);
+          const localData = await userStorage.getRaw(key);
           
           if (localData) {
             const parsed = JSON.parse(localData);
@@ -444,7 +444,7 @@ class ICloudSyncService {
       }
 
       // Update last sync time
-      await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      await userStorage.setRaw(LAST_SYNC_KEY, new Date().toISOString());
 
       console.log(`Full sync to iCloud complete: ${syncedCount} synced, ${errorCount} errors`);
       this.notifyListeners('sync_completed', { syncedCount, errorCount });
@@ -561,7 +561,7 @@ class ICloudSyncService {
    */
   async getLocalModifiedTime(key) {
     try {
-      const metadata = await AsyncStorage.getItem(`${key}_modified`);
+      const metadata = await userStorage.getRaw(`${key}_modified`);
       return metadata ? new Date(metadata).getTime() : 0;
     } catch {
       return 0;
@@ -573,7 +573,7 @@ class ICloudSyncService {
    */
   async setLocalModifiedTime(key) {
     try {
-      await AsyncStorage.setItem(`${key}_modified`, new Date().toISOString());
+      await userStorage.setRaw(`${key}_modified`, new Date().toISOString());
     } catch (error) {
       console.warn('Error setting modified time:', error);
     }
@@ -584,10 +584,10 @@ class ICloudSyncService {
    */
   async getDeviceId() {
     try {
-      let deviceId = await AsyncStorage.getItem('device_id');
+      let deviceId = await userStorage.getRaw('device_id');
       if (!deviceId) {
         deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await AsyncStorage.setItem('device_id', deviceId);
+        await userStorage.setRaw('device_id', deviceId);
       }
       return deviceId;
     } catch {
@@ -600,7 +600,7 @@ class ICloudSyncService {
    */
   async getLastSyncTime() {
     try {
-      const lastSync = await AsyncStorage.getItem(LAST_SYNC_KEY);
+      const lastSync = await userStorage.getRaw(LAST_SYNC_KEY);
       return lastSync ? new Date(lastSync) : null;
     } catch {
       return null;
@@ -664,12 +664,12 @@ class ICloudSyncService {
     console.log('[iCloud] Auto-sync enabled — all data changes will sync to iCloud');
 
     // --- 1. Intercept AsyncStorage.setItem ---
-    this._originalSetItem = AsyncStorage.setItem.bind(AsyncStorage);
-    this._originalRemoveItem = AsyncStorage.removeItem.bind(AsyncStorage);
+    this._originalSetItem = userStorage.setRaw.bind(userStorage);
+    this._originalRemoveItem = userStorage.remove.bind(userStorage);
 
     const self = this;
 
-    AsyncStorage.setItem = async function(key, value, ...args) {
+    userStorage.setRaw = async function(key, value, ...args) {
       // Always do the original write first (fast, local)
       const result = await self._originalSetItem(key, value, ...args);
 
@@ -681,7 +681,7 @@ class ICloudSyncService {
       return result;
     };
 
-    AsyncStorage.removeItem = async function(key, ...args) {
+    userStorage.remove = async function(key, ...args) {
       const result = await self._originalRemoveItem(key, ...args);
 
       // If this key should sync, remove from cloud too
@@ -761,11 +761,11 @@ class ICloudSyncService {
 
     // Restore original AsyncStorage methods
     if (this._originalSetItem) {
-      AsyncStorage.setItem = this._originalSetItem;
+      userStorage.setRaw = this._originalSetItem;
       this._originalSetItem = null;
     }
     if (this._originalRemoveItem) {
-      AsyncStorage.removeItem = this._originalRemoveItem;
+      userStorage.remove = this._originalRemoveItem;
       this._originalRemoveItem = null;
     }
 
@@ -792,11 +792,11 @@ class ICloudSyncService {
     
     return {
       async getItem(key) {
-        return AsyncStorage.getItem(key);
+        return userStorage.getRaw(key);
       },
       
       async setItem(key, value) {
-        await AsyncStorage.setItem(key, value);
+        await userStorage.setRaw(key, value);
         await self.setLocalModifiedTime(key);
         
         // Auto-sync to cloud if key is in sync list
@@ -811,7 +811,7 @@ class ICloudSyncService {
       },
       
       async removeItem(key) {
-        await AsyncStorage.removeItem(key);
+        await userStorage.remove(key);
         
         // Also remove from cloud
         if (SYNC_KEYS.includes(key) && self.isAvailable) {

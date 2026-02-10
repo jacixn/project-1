@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import AchievementService from '../services/achievementService';
 
@@ -60,7 +60,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   // Cache management functions
   const isCacheValid = async () => {
     try {
-      const timestamp = await AsyncStorage.getItem(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -88,8 +88,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       const data = await response.json();
       
       // Cache the data
-      await AsyncStorage.setItem(TIMELINE_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(TIMELINE_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
       console.log('✅ Successfully fetched and cached Bible timeline');
       return data;
@@ -138,7 +138,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       // Check cache first
       const cacheValid = await isCacheValid();
       if (cacheValid) {
-        const cachedData = await AsyncStorage.getItem(TIMELINE_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setTimelineDataState(data);
@@ -156,7 +156,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
         console.error('Remote fetch failed, using fallback:', remoteError);
         
         // Try cached data even if expired
-        const cachedData = await AsyncStorage.getItem(TIMELINE_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setTimelineDataState(data);
@@ -185,8 +185,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const refreshTimeline = async () => {
     try {
       // Clear cache and reload
-      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(TIMELINE_CONFIG.CACHE_KEY);
+      await userStorage.remove(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
       await loadTimeline();
     } catch (error) {
       console.error('Error refreshing timeline:', error);
@@ -199,8 +199,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     setRefreshing(true);
     hapticFeedback.light();
     try {
-      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(TIMELINE_CONFIG.CACHE_KEY);
+      await userStorage.remove(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
       await loadTimeline();
     } catch (error) {
       console.error('Error refreshing timeline:', error);
@@ -213,8 +213,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   useEffect(() => {
     if (visible) {
       // Clear old v1 cache to force fresh data load with imageUrls
-      AsyncStorage.removeItem('bible_timeline_data_v1').catch(() => {});
-      AsyncStorage.removeItem('bible_timeline_timestamp_v1').catch(() => {});
+      userStorage.remove('bible_timeline_data_v1').catch(() => {});
+      userStorage.remove('bible_timeline_timestamp_v1').catch(() => {});
       
       loadTimeline();
     }

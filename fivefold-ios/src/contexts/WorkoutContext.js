@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import notificationService from '../services/notificationService';
 
 const WorkoutContext = createContext();
@@ -25,7 +25,7 @@ export const WorkoutProvider = ({ children }) => {
   useEffect(() => {
     const loadPersistedWorkout = async () => {
       try {
-        const savedState = await AsyncStorage.getItem(WORKOUT_STORAGE_KEY);
+        const savedState = await userStorage.getRaw(WORKOUT_STORAGE_KEY);
         if (savedState) {
           const { workout, startTime } = JSON.parse(savedState);
           console.log('💾 Restored active workout from storage:', workout.name);
@@ -59,10 +59,10 @@ export const WorkoutProvider = ({ children }) => {
             workout: activeWorkout,
             startTime: workoutStartTimeRef.current.toISOString(),
           };
-          await AsyncStorage.setItem(WORKOUT_STORAGE_KEY, JSON.stringify(state));
+          await userStorage.setRaw(WORKOUT_STORAGE_KEY, JSON.stringify(state));
           console.log('💾 Persisted active workout to storage');
         } else {
-          await AsyncStorage.removeItem(WORKOUT_STORAGE_KEY);
+          await userStorage.remove(WORKOUT_STORAGE_KEY);
           console.log('💾 Removed workout from storage');
         }
       } catch (error) {

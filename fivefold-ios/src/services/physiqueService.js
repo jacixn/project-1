@@ -11,7 +11,7 @@
  *   70-100: Green (consistent)
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { MUSCLE_GROUP_IDS, getMusclesForExercise, getScoreColor, getScoreLabel } from '../data/exerciseMuscleMap';
 
 const STORAGE_KEY = '@physique_scores';
@@ -32,7 +32,7 @@ class PhysiqueService {
    */
   async initialize() {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const stored = await userStorage.getRaw(STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
         this._scores = data.muscles || {};
@@ -65,7 +65,7 @@ class PhysiqueService {
    */
   async _save() {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
+      await userStorage.setRaw(STORAGE_KEY, JSON.stringify({
         muscles: this._scores,
         lastCalculated: new Date().toISOString(),
       }));

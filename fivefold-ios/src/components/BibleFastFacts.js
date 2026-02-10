@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 
 const { width, height } = Dimensions.get('window');
@@ -131,7 +131,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   // Check if cache is valid
   const isCacheValid = async () => {
     try {
-      const timestamp = await AsyncStorage.getItem(FACTS_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(FACTS_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -164,8 +164,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
       const data = await response.json();
       
       // Cache the data
-      await AsyncStorage.setItem(FACTS_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(FACTS_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(FACTS_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(FACTS_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
       console.log(`✅ Successfully fetched ${data.facts?.length || 0} Bible facts from GitHub`);
       return data;
@@ -184,7 +184,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
       // Check cache first
       const cacheValid = await isCacheValid();
       if (cacheValid) {
-        const cachedData = await AsyncStorage.getItem(FACTS_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(FACTS_CONFIG.CACHE_KEY);
         if (cachedData) {
           console.log('📦 Loading Bible facts from cache');
           setFactsData(JSON.parse(cachedData));
@@ -201,7 +201,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
       setError('Could not load facts. Please check your internet connection.');
       
       // Try cache even if expired
-      const cachedData = await AsyncStorage.getItem(FACTS_CONFIG.CACHE_KEY);
+      const cachedData = await userStorage.getRaw(FACTS_CONFIG.CACHE_KEY);
       if (cachedData) {
         console.log('📦 Using expired cache due to network error');
         setFactsData(JSON.parse(cachedData));
@@ -216,7 +216,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
     setRefreshing(true);
     try {
       // Clear cache timestamp to force fresh fetch
-      await AsyncStorage.removeItem(FACTS_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(FACTS_CONFIG.CACHE_TIMESTAMP_KEY);
       
       // Fetch fresh data
       const remoteData = await fetchFactsFromRemote();
@@ -343,7 +343,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
 
   const loadFavorites = async () => {
     try {
-      const stored = await AsyncStorage.getItem('bible_fast_facts_favorites');
+      const stored = await userStorage.getRaw('bible_fast_facts_favorites');
       if (stored) {
         setFavorites(JSON.parse(stored));
       }
@@ -354,7 +354,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
 
   const saveFavorites = async (newFavorites) => {
     try {
-      await AsyncStorage.setItem('bible_fast_facts_favorites', JSON.stringify(newFavorites));
+      await userStorage.setRaw('bible_fast_facts_favorites', JSON.stringify(newFavorites));
       setFavorites(newFavorites);
     } catch (error) {
       console.error('Error saving favorites:', error);

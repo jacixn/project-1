@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import BibleReferenceGenerator from '../data/bibleReferenceGenerator';
 import DynamicBibleService from './dynamicBibleService';
 
@@ -24,7 +24,7 @@ class SequentialVerseManager {
    */
   static async initializeSystem() {
     try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
+      const stored = await userStorage.getRaw(this.STORAGE_KEY);
       
       if (stored) {
         const system = JSON.parse(stored);
@@ -206,7 +206,7 @@ class SequentialVerseManager {
    * Save system state to AsyncStorage
    */
   static async saveSystem(system) {
-    await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(system));
+    await userStorage.setRaw(this.STORAGE_KEY, JSON.stringify(system));
   }
   
   /**
@@ -214,7 +214,7 @@ class SequentialVerseManager {
    */
   static async getSystem() {
     try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
+      const stored = await userStorage.getRaw(this.STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
       console.error('Error getting system state:', error);
@@ -266,7 +266,7 @@ class SequentialVerseManager {
    */
   static async resetSystem() {
     try {
-      await AsyncStorage.removeItem(this.STORAGE_KEY);
+      await userStorage.remove(this.STORAGE_KEY);
       console.log('🔄 Sequential verse system reset');
       return await this.initializeSystem();
     } catch (error) {

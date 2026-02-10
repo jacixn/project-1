@@ -3,6 +3,9 @@
  * 
  * Provides authentication state and methods throughout the app.
  * Handles user session persistence and auth state changes.
+ * 
+ * All user-specific local data is now UID-scoped via userStorage,
+ * so data from one account can never leak into another.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -22,178 +25,13 @@ import {
 import { performFullSync } from '../services/userSyncService';
 import { savePushToken } from '../services/socialNotificationService';
 import notificationService from '../services/notificationService';
+import userStorage from '../utils/userStorage';
 
 // Create the context
 const AuthContext = createContext(null);
 
-// Local storage key for user data cache
+// Local storage key for user data cache (UID-scoped via userStorage)
 const USER_CACHE_KEY = '@biblely_user_cache';
-
-/**
- * COMPLETE list of every user-specific AsyncStorage key.
- * Used by sign-out, sign-up, and sign-in to ensure ZERO data leaks between accounts.
- * If you add a new user-specific key ANYWHERE in the app, add it here too.
- */
-const ALL_USER_DATA_KEYS = [
-  // ── Profile & Auth ──────────────────────────────────────
-  'onboardingCompleted',
-  'onboarding_complete',
-  'userProfile',
-  'fivefold_userProfile',
-  'fivefold_userName',
-  'fivefold_profilePicture',
-  'user_profile',
-
-  // ── User Stats & Points ─────────────────────────────────
-  'userStats',
-  'fivefold_userStats',
-  'fivefold_user_stats',
-  'total_points',
-  'userLevel',
-  'userPoints',
-
-  // ── Achievements ────────────────────────────────────────
-  'fivefold_achievements_unlocked',
-  'fivefold_achievements_prestige',
-  'achievements',
-
-  // ── Permanent Unlock Flags (customisation gates) ────────
-  'fivefold_unlock_app_streak_15',
-  'fivefold_unlock_chars_5',
-  'fivefold_unlock_read_25',
-  'fivefold_unlock_tasks_25',
-  'fivefold_unlock_saved_25',
-  'fivefold_unlock_read_50',
-  'fivefold_unlock_prayers_5',
-  'fivefold_unlock_saved_5',
-  'fivefold_unlock_tasks_10',
-  'fivefold_unlock_audio_5',
-  'fivefold_unlock_saved_10',
-  'fivefold_unlock_app_streak_30',
-
-  // ── Customisation Preferences ───────────────────────────
-  'fivefold_streak_animation',
-  'fivefold_badge_toggles',
-  'fivefold_bluetick_enabled',
-  'fivefold_streak_modal_last_shown',
-
-  // ── Theme & Display ─────────────────────────────────────
-  'fivefold_theme',
-  'fivefold_dark_mode',
-  'fivefold_wallpaper_index',
-  'fivefold_theme_updated_at',
-  'theme_preference',
-  'wallpaper_preference',
-  'selectedBibleVersion',
-  'selectedLanguage',
-  'weightUnit',
-  'heightUnit',
-  'highlightViewMode',
-  'smart_features_enabled',
-  'purchasedBibleVersions',
-
-  // ── Saved Content ───────────────────────────────────────
-  'savedBibleVerses',
-  'fivefold_savedBibleVerses',
-  'fivefold_favoriteVerses',
-  'journalNotes',
-  'journal_notes',
-  'journal_notes_migrated',
-  'bookmarks',
-
-  // ── Verse Data & Highlights ─────────────────────────────
-  'verse_data',
-  'highlight_names',
-  'highlight_custom_names',
-  'reading_streaks',
-  'readingProgress',
-  'currentReadingPlan',
-
-  // ── Daily Verse ─────────────────────────────────────────
-  'daily_verse_data_v6',
-  'daily_verse_index_v6',
-  'shuffled_verses_v6',
-  'daily_verse_last_update_v6',
-  'daily_verse',
-  'votd_dismiss_type',
-  'votd_dismissed_date',
-
-  // ── Prayers ─────────────────────────────────────────────
-  'prayerHistory',
-  'prayer_completions',
-  'prayer_preferences',
-  'userPrayers',
-  'fivefold_userPrayers',
-  'customPrayerNames',
-  'customPrayerTimes',
-  'prayers',
-  'fivefold_prayers',
-  'simplePrayers',
-  'fivefold_simplePrayers',
-  'enhancedPrayers',
-
-  // ── App Streak ──────────────────────────────────────────
-  'app_streak_data',
-  'app_open_streak',
-  'app_open_dates',
-
-  // ── Tasks/Todos ─────────────────────────────────────────
-  'todos',
-  'fivefold_todos',
-  'completedTodos',
-
-  // ── Workout/Fitness ─────────────────────────────────────
-  'workoutHistory',
-  '@workout_history',
-  '@workout_templates',
-  '@workout_folders',
-  '@scheduled_workouts',
-  'quizHistory',
-
-  // ── Nutrition & Physique ────────────────────────────────
-  '@nutrition_profile',
-  '@food_log',
-  '@food_favorites',
-  '@physique_scores',
-
-  // ── Bible Features ──────────────────────────────────────
-  'bible_maps_bookmarks',
-  'bible_maps_visited',
-  'bible_fast_facts_favorites',
-  'recentBibleSearches',
-
-  // ── Thematic Guides ─────────────────────────────────────
-  'fivefold_thematicGuideReflections',
-  'fivefold_completedThematicGuides',
-
-  // ── Hub & Tokens ────────────────────────────────────────
-  'hub_token_notification_sent',
-  'hub_posting_token',
-  'hub_token_schedule',
-  'hub_token_last_delivery',
-
-  // ── Notifications ───────────────────────────────────────
-  'notificationPreferences',
-  'notificationSettings',
-
-  // ── Social ──────────────────────────────────────────────
-  'friendChatHistory',
-
-  // ── Onboarding Selections ───────────────────────────────
-  'userPainPoint',
-  'userAttribution',
-
-  // ── Settings/Misc ───────────────────────────────────────
-  'fivefold_settings',
-  'fivefold_lastResetDate',
-  'fivefold_groqApiKey',
-  'app_settings',
-  'app_language',
-  'fivefold_vibration',
-  'fivefold_liquidGlass',
-  'audio_stories_sort_order',
-  'audio_stories_playback_mode',
-];
 
 /**
  * Auth Provider Component
@@ -216,10 +54,23 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadCachedUser = async () => {
       try {
-        const cachedData = await AsyncStorage.getItem(USER_CACHE_KEY);
-        if (cachedData) {
-          const parsed = JSON.parse(cachedData);
-          setUserProfile(parsed);
+        // Try to load user cache — we need to know the UID first to scope reads.
+        // On cold start, Firebase Auth persistence already knows the user, but
+        // we don't have the UID yet. Use a raw AsyncStorage scan for the cache key.
+        // The onAuthStateChanged listener will handle proper scoped loading.
+        const allKeys = await AsyncStorage.getAllKeys();
+        const cacheKey = allKeys.find(k => k.endsWith(':' + USER_CACHE_KEY));
+        if (cacheKey) {
+          const cachedData = await AsyncStorage.getItem(cacheKey);
+          if (cachedData) {
+            const parsed = JSON.parse(cachedData);
+            setUserProfile(parsed);
+            // Extract UID from the scoped key (format: u:{uid}:{key})
+            const uid = cacheKey.split(':')[1];
+            if (uid) {
+              await userStorage.initUser(uid);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading cached user:', error);
@@ -237,12 +88,14 @@ export const AuthProvider = ({ children }) => {
       
       if (firebaseUser) {
         try {
+          // Ensure userStorage is initialised for this UID
+          await userStorage.initUser(firebaseUser.uid);
+          
           // First, try to use cached profile (fast, no Firestore read)
-          const cachedData = await AsyncStorage.getItem(USER_CACHE_KEY);
+          const cachedData = await userStorage.get(USER_CACHE_KEY);
           if (cachedData) {
-            const cachedProfile = JSON.parse(cachedData);
-            setUserProfile(cachedProfile);
-            console.log('[Auth] Using cached profile:', cachedProfile.username);
+            setUserProfile(cachedData);
+            console.log('[Auth] Using cached profile:', cachedData.username);
             
             // IMMEDIATELY unblock the app - don't wait for sync
             setInitializing(false);
@@ -267,7 +120,7 @@ export const AuthProvider = ({ children }) => {
             
             if (profile) {
               setUserProfile(profile);
-              await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+              await userStorage.set(USER_CACHE_KEY, profile);
               console.log('[Auth] Profile loaded from Firestore:', profile.username);
             }
             
@@ -308,7 +161,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUserProfile(null);
         hasCompletedInitialSync = false;
-        await AsyncStorage.removeItem(USER_CACHE_KEY);
+        userStorage.clearUser();
         setInitializing(false);
         setLoading(false);
       }
@@ -337,22 +190,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
-      // CRITICAL: Clear ALL user-specific local data for new account
-      // This prevents stale data from a previous account on the same device
-      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
-      await AsyncStorage.removeItem(USER_CACHE_KEY);
-      console.log('[Auth] Cleared all stale local data for new user signup');
-      
       // Step 1: Create account
       const result = await authSignUp({ email, password, username, displayName });
       markDone(0);
+      
+      // Initialise UID-scoped storage for the brand-new user
+      // (no migration needed — this is a fresh account)
+      if (result?.uid) {
+        await userStorage.initUser(result.uid);
+      }
       
       // Step 2: Set up profile
       if (result && result.uid) {
         const profile = await getUserProfile(result.uid);
         if (profile) {
           setUserProfile(profile);
-          await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+          await userStorage.set(USER_CACHE_KEY, profile);
           console.log('[Auth] Set user profile after signup:', profile.username);
         } else {
           const fallbackProfile = {
@@ -365,7 +218,7 @@ export const AuthProvider = ({ children }) => {
             level: 1,
           };
           setUserProfile(fallbackProfile);
-          await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(fallbackProfile));
+          await userStorage.set(USER_CACHE_KEY, fallbackProfile);
           console.log('[Auth] Set fallback profile after signup');
         }
       }
@@ -410,34 +263,32 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
-      // CRITICAL: Clear ALL stale data from previous account BEFORE signing in.
-      // This MUST happen before authSignIn() because authSignIn triggers
-      // onAuthStateChanged which could read stale local data and push it
-      // to the new user's Firestore document.
-      await AsyncStorage.multiRemove(ALL_USER_DATA_KEYS);
-      await AsyncStorage.removeItem(USER_CACHE_KEY);
-      console.log('[Auth] Pre-cleared all stale data before sign-in');
-      
-      // IMMEDIATELY mark onboarding complete for returning users BEFORE authSignIn
-      // triggers onAuthStateChanged. Otherwise the navigator sees no onboarding flag
-      // and sends a returning user to the onboarding screen.
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
-      console.log('[Auth] Pre-set onboardingCompleted for returning user');
-      
       // Step 1: Verify credentials
       const result = await authSignIn(email, password);
-      setUserProfile(result);
-      await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(result));
       markDone(0);
       
-      // Step 2: Download cloud data into clean local state
+      // Initialise UID-scoped storage for this user.
+      // If this UID already has data on this device, initUser is a no-op.
+      // If another user was signed in before, their data is safely under their own UID prefix.
+      if (result?.uid) {
+        await userStorage.initUser(result.uid);
+      }
+
+      setUserProfile(result);
+      await userStorage.set(USER_CACHE_KEY, result);
+      
+      // Pre-set onboarding completed for returning users
+      await userStorage.setRaw('onboardingCompleted', 'true');
+      console.log('[Auth] Pre-set onboardingCompleted for returning user');
+      
+      // Step 2: Download cloud data into local state
       const { downloadAndMergeCloudData } = await import('../services/userSyncService');
       if (result && result.uid) {
         await downloadAndMergeCloudData(result.uid);
         console.log('[Auth] Downloaded cloud data after sign in');
       }
       // Re-set onboarding flag in case download overwrote it
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await userStorage.setRaw('onboardingCompleted', 'true');
       markDone(1);
       
       // Step 3: Set up notifications
@@ -477,7 +328,8 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign out the current user
-   * Syncs data to cloud first, then clears local data to prevent data leakage between accounts
+   * Syncs data to cloud first, then clears the active UID.
+   * Data stays safely namespaced in AsyncStorage under the old UID prefix.
    */
   const signOut = useCallback(async () => {
     setLoading(true);
@@ -530,15 +382,9 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setUserProfile(null);
       
-      // Clear user cache
-      await AsyncStorage.removeItem(USER_CACHE_KEY);
-      
-      // Clear user-specific data to prevent data sharing between accounts
-      // These are the keys that should be unique per user
-      const userSpecificKeys = ALL_USER_DATA_KEYS;
-      
-      await AsyncStorage.multiRemove(userSpecificKeys);
-      console.log('[Auth] Cleared user-specific data on sign out');
+      // Forget active user — data stays safely under u:{uid}: prefix
+      userStorage.clearUser();
+      console.log('[Auth] Signed out — UID-scoped data preserved safely');
       
       // Clean up local profile images
       try {
@@ -583,7 +429,7 @@ export const AuthProvider = ({ children }) => {
       const profile = await getUserProfile(user.uid);
       if (profile) {
         setUserProfile(profile);
-        await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(profile));
+        await userStorage.set(USER_CACHE_KEY, profile);
       }
       return profile;
     } catch (error) {
@@ -601,7 +447,7 @@ export const AuthProvider = ({ children }) => {
     
     const updatedProfile = { ...userProfile, ...updates };
     setUserProfile(updatedProfile);
-    await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(updatedProfile));
+    await userStorage.set(USER_CACHE_KEY, updatedProfile);
   }, [userProfile]);
 
   const value = {

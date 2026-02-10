@@ -1,7 +1,7 @@
 // Daily Verse Manager - Shows a curated verse each day
 // Cycles through 2,306 hand-picked quality verses (no genealogies or lists)
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 import githubBibleService from '../services/githubBibleService';
 import CURATED_VERSES from '../../daily-verses-references.json';
 
@@ -61,7 +61,7 @@ const shuffleArray = (array) => {
 // Get or create shuffled verse list
 const getShuffledVerses = async () => {
   try {
-    const stored = await AsyncStorage.getItem(SHUFFLED_VERSES_KEY);
+    const stored = await userStorage.getRaw(SHUFFLED_VERSES_KEY);
     if (stored) {
       const shuffled = JSON.parse(stored);
       console.log(`📖 Using existing shuffled list (${shuffled.length} verses)`);
@@ -71,7 +71,7 @@ const getShuffledVerses = async () => {
     // Create new shuffled list from curated verses
     const allVerses = loadCuratedVerses();
     const shuffled = shuffleArray(allVerses);
-    await AsyncStorage.setItem(SHUFFLED_VERSES_KEY, JSON.stringify(shuffled));
+    await userStorage.setRaw(SHUFFLED_VERSES_KEY, JSON.stringify(shuffled));
     console.log(`🔀 Created new shuffled list of ${shuffled.length} curated verses`);
     return shuffled;
   } catch (error) {
@@ -97,11 +97,11 @@ const getDailyVerse = async () => {
     const todayString = getTodayString();
     
     // Get user's preferred version first
-    const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'niv';
+    const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
     
     // Check if we already have today's verse
-    const cachedVerse = await AsyncStorage.getItem(DAILY_VERSE_KEY);
-    const lastUpdateDate = await AsyncStorage.getItem(LAST_UPDATE_DATE_KEY);
+    const cachedVerse = await userStorage.getRaw(DAILY_VERSE_KEY);
+    const lastUpdateDate = await userStorage.getRaw(LAST_UPDATE_DATE_KEY);
     
     if (cachedVerse && lastUpdateDate === todayString) {
       const parsedVerse = JSON.parse(cachedVerse);
@@ -145,7 +145,7 @@ const getDailyVerse = async () => {
             };
             
             // Update the cache with new version
-            await AsyncStorage.setItem(DAILY_VERSE_KEY, JSON.stringify(updatedVerse));
+            await userStorage.setRaw(DAILY_VERSE_KEY, JSON.stringify(updatedVerse));
             
             console.log(`✅ Verse re-fetched in ${preferredVersion.toUpperCase()}: ${updatedVerse.reference}`);
             return updatedVerse;
@@ -161,14 +161,14 @@ const getDailyVerse = async () => {
     const shuffledVerses = await getShuffledVerses();
     
     // Get current index
-    let verseIndex = parseInt(await AsyncStorage.getItem(VERSE_INDEX_KEY) || '0');
+    let verseIndex = parseInt(await userStorage.getRaw(VERSE_INDEX_KEY) || '0');
     
     // If we've gone through all verses, reshuffle and restart
     if (verseIndex >= shuffledVerses.length) {
       console.log('🔄 Completed full cycle! Reshuffling verses...');
       const allVerses = loadCuratedVerses();
       const newShuffled = shuffleArray(allVerses);
-      await AsyncStorage.setItem(SHUFFLED_VERSES_KEY, JSON.stringify(newShuffled));
+      await userStorage.setRaw(SHUFFLED_VERSES_KEY, JSON.stringify(newShuffled));
       verseIndex = 0;
     }
     
@@ -203,11 +203,11 @@ const getDailyVerse = async () => {
     };
     
     // Cache the verse
-    await AsyncStorage.setItem(DAILY_VERSE_KEY, JSON.stringify(dailyVerse));
-    await AsyncStorage.setItem(LAST_UPDATE_DATE_KEY, todayString);
+    await userStorage.setRaw(DAILY_VERSE_KEY, JSON.stringify(dailyVerse));
+    await userStorage.setRaw(LAST_UPDATE_DATE_KEY, todayString);
     
     // Increment index for tomorrow
-    await AsyncStorage.setItem(VERSE_INDEX_KEY, String(verseIndex + 1));
+    await userStorage.setRaw(VERSE_INDEX_KEY, String(verseIndex + 1));
     
     console.log(`✅ Daily verse loaded: ${dailyVerse.reference} (${dailyVerse.version})`);
     console.log(`📊 Progress: ${dailyVerse.progress} (${((verseIndex + 1) / shuffledVerses.length * 100).toFixed(1)}%)`);
@@ -231,8 +231,8 @@ const getDailyVerse = async () => {
  */
 const refreshDailyVerse = async () => {
   try {
-    await AsyncStorage.removeItem(DAILY_VERSE_KEY);
-    await AsyncStorage.removeItem(LAST_UPDATE_DATE_KEY);
+    await userStorage.remove(DAILY_VERSE_KEY);
+    await userStorage.remove(LAST_UPDATE_DATE_KEY);
     return await getDailyVerse();
   } catch (error) {
     console.error('Error refreshing daily verse:', error);
@@ -247,7 +247,7 @@ const refreshDailyVerse = async () => {
 const refetchDailyVerseInNewVersion = async () => {
   try {
     // Get the current cached verse to know which reference we're on
-    const cachedVerse = await AsyncStorage.getItem(DAILY_VERSE_KEY);
+    const cachedVerse = await userStorage.getRaw(DAILY_VERSE_KEY);
     
     if (!cachedVerse) {
       // No cached verse, just get the daily verse normally
@@ -258,7 +258,7 @@ const refetchDailyVerseInNewVersion = async () => {
     console.log(`🔄 Re-fetching same verse in new version: ${currentVerse.reference}`);
     
     // Get the new preferred version
-    const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'niv';
+    const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
     console.log(`📖 New version: ${preferredVersion.toUpperCase()}`);
     
     // Parse the reference to get book/chapter/verse info
@@ -300,7 +300,7 @@ const refetchDailyVerseInNewVersion = async () => {
     };
     
     // Update the cache with new version
-    await AsyncStorage.setItem(DAILY_VERSE_KEY, JSON.stringify(updatedVerse));
+    await userStorage.setRaw(DAILY_VERSE_KEY, JSON.stringify(updatedVerse));
     
     console.log(`✅ Verse re-fetched in ${preferredVersion.toUpperCase()}`);
     return updatedVerse;
@@ -317,10 +317,10 @@ const refetchDailyVerseInNewVersion = async () => {
  */
 const resetVerseCycle = async () => {
   try {
-    await AsyncStorage.removeItem(SHUFFLED_VERSES_KEY);
-    await AsyncStorage.setItem(VERSE_INDEX_KEY, '0');
-    await AsyncStorage.removeItem(DAILY_VERSE_KEY);
-    await AsyncStorage.removeItem(LAST_UPDATE_DATE_KEY);
+    await userStorage.remove(SHUFFLED_VERSES_KEY);
+    await userStorage.setRaw(VERSE_INDEX_KEY, '0');
+    await userStorage.remove(DAILY_VERSE_KEY);
+    await userStorage.remove(LAST_UPDATE_DATE_KEY);
     console.log('🔄 Verse cycle reset with new shuffle');
   } catch (error) {
     console.error('Error resetting verse cycle:', error);
@@ -334,7 +334,7 @@ const resetVerseCycle = async () => {
 const getProgress = async () => {
   try {
     const shuffledVerses = await getShuffledVerses();
-    const verseIndex = parseInt(await AsyncStorage.getItem(VERSE_INDEX_KEY) || '0');
+    const verseIndex = parseInt(await userStorage.getRaw(VERSE_INDEX_KEY) || '0');
     
     return {
       current: verseIndex + 1,

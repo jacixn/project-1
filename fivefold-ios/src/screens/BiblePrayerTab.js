@@ -80,7 +80,7 @@ import BibleStudyModal from '../components/BibleStudyModal';
 import PrayerScreen from '../components/PrayerScreen';
 import AiBibleChat from '../components/AiBibleChat';
 import { getStoredData, saveData } from '../utils/localStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 // Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
 import { db, auth } from '../config/firebase';
@@ -252,7 +252,7 @@ const BiblePrayerTab = () => {
   const loadUserName = async () => {
     try {
       // Try the auth cache first (most reliable source with displayName)
-      const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+      const authCache = await userStorage.getRaw('@biblely_user_cache');
       if (authCache) {
         const profile = JSON.parse(authCache);
         const name = profile.displayName || profile.name || '';
@@ -262,7 +262,7 @@ const BiblePrayerTab = () => {
       }
       
       // Fallback to userProfile
-      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const storedProfile = await userStorage.getRaw('userProfile');
       if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         const name = profile.displayName || profile.name || '';
@@ -281,7 +281,7 @@ const BiblePrayerTab = () => {
   // Load liquid glass setting
   const loadLiquidGlassSetting = async () => {
     try {
-      const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+      const setting = await userStorage.getRaw('fivefold_liquidGlass');
       if (setting !== null) {
         const enabled = setting === 'true';
         setLiquidGlassEnabled(enabled);
@@ -999,7 +999,7 @@ const BiblePrayerTab = () => {
         prayersCompleted: (currentStats?.prayersCompleted || 0) + 1,
       };
       await saveData('userStats', updatedStats);
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

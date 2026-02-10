@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
-import { checkUsernameAvailability, resendVerificationEmail, refreshEmailVerificationStatus } from '../services/authService';
+import { checkUsernameAvailability, sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
 import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
 import { getFriendCount } from '../services/friendsService';
 import {
@@ -43,10 +43,10 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getStoredData, saveData } from '../utils/localStorage';
+import userStorage from '../utils/userStorage';
 import { countries } from '../data/countries';
 import { resetOnboardingForTesting } from '../utils/onboardingReset';
 import AchievementsModal from '../components/AchievementsModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import AnimationDemo from '../components/AnimationDemo';
 import ProfilePhotoPicker from '../components/ProfilePhotoPicker';
 import NotificationSettings from '../components/NotificationSettings';
@@ -292,6 +292,7 @@ const ProfileTab = () => {
   const [referralInfo, setReferralInfo] = useState({ referredBy: null, referredByUsername: null, referredByDisplayName: null, referralCount: 0 });
   const [referralUsername, setReferralUsername] = useState('');
   const [referralLoading, setReferralLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showBibleVersionModal, setShowBibleVersionModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -480,7 +481,7 @@ const ProfileTab = () => {
 
   const loadSavedVerses = async (refreshAll = false) => {
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
         
@@ -494,13 +495,13 @@ const ProfileTab = () => {
         }));
         
         // Update stats in AsyncStorage
-        const stats = await AsyncStorage.getItem('userStats');
+        const stats = await userStorage.getRaw('userStats');
         const userStatsData = stats ? JSON.parse(stats) : {};
         userStatsData.savedVerses = verses.length;
-        await AsyncStorage.setItem('userStats', JSON.stringify(userStatsData));
+        await userStorage.setRaw('userStats', JSON.stringify(userStatsData));
         
         // Get preferred version
-        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+        const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'nlt';
         setCurrentBibleVersion(preferredVersion);
         
         // Determine batch size - refresh all on version change, otherwise first 15
@@ -538,7 +539,7 @@ const ProfileTab = () => {
         
         // Persist the updated verses back to storage so they remain in the new version
         if (refreshedCount > 0) {
-          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(updatedVerses));
+          await userStorage.setRaw('savedBibleVerses', JSON.stringify(updatedVerses));
           console.log(`💾 Persisted ${refreshedCount} refreshed verses to storage`);
         }
         
@@ -561,7 +562,7 @@ const ProfileTab = () => {
   // Load current Bible version
   const loadCurrentBibleVersion = async () => {
     try {
-      const version = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+      const version = await userStorage.getRaw('selectedBibleVersion') || 'nlt';
       setCurrentBibleVersion(version);
     } catch (error) {
       console.error('Error loading Bible version:', error);
@@ -571,7 +572,7 @@ const ProfileTab = () => {
   // Quick version that just loads from storage without API calls (for focus refresh)
   const loadSavedVersesQuick = async () => {
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
         setSavedVersesList(verses);
@@ -665,9 +666,9 @@ const ProfileTab = () => {
       
       // Show streak modal once per day
       const today = new Date().toDateString();
-      const lastShown = await AsyncStorage.getItem('fivefold_streak_modal_last_shown');
+      const lastShown = await userStorage.getRaw('fivefold_streak_modal_last_shown');
       if (lastShown !== today) {
-        await AsyncStorage.setItem('fivefold_streak_modal_last_shown', today);
+        await userStorage.setRaw('fivefold_streak_modal_last_shown', today);
         showStreakModal();
       }
     } catch (error) {
@@ -688,7 +689,7 @@ const ProfileTab = () => {
       setJournalLoading(true);
       
       // Read from the CORRECT storage key: 'journalNotes' (where + button saves)
-      const existingNotes = await AsyncStorage.getItem('journalNotes');
+      const existingNotes = await userStorage.getRaw('journalNotes');
       const notes = existingNotes ? JSON.parse(existingNotes) : [];
       
       // Also merge any notes from verse_data (long-press notes)
@@ -715,7 +716,7 @@ const ProfileTab = () => {
         if (isValidBibleReference(note.verseReference)) {
           try {
             console.log(`📖 Fetching verse: ${note.verseReference}`);
-            const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'niv';
+            const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
             const verseData = await verseByReferenceService.getVerseByReference(
               note.verseReference,
               preferredVersion
@@ -739,7 +740,7 @@ const ProfileTab = () => {
       console.error('Error loading journal notes:', error);
       // Attempt a fallback from journalNotes directly
       try {
-        const existingNotes = await AsyncStorage.getItem('journalNotes');
+        const existingNotes = await userStorage.getRaw('journalNotes');
         if (existingNotes) {
           const notes = JSON.parse(existingNotes);
           if (notes && notes.length > 0) {
@@ -758,7 +759,7 @@ const ProfileTab = () => {
   const loadJournalNotesQuick = async () => {
     try {
       // Read from storage without making API calls
-      const existingNotes = await AsyncStorage.getItem('journalNotes');
+      const existingNotes = await userStorage.getRaw('journalNotes');
       const notes = existingNotes ? JSON.parse(existingNotes) : [];
       
       // Also merge any notes from verse_data (long-press notes)
@@ -795,7 +796,7 @@ const ProfileTab = () => {
 
   const loadHighlightViewMode = async () => {
     try {
-      const mode = await AsyncStorage.getItem('highlightViewMode');
+      const mode = await userStorage.getRaw('highlightViewMode');
       if (mode) {
         setHighlightViewMode(mode);
       }
@@ -806,7 +807,7 @@ const ProfileTab = () => {
 
   const saveHighlightViewMode = async (mode) => {
     try {
-      await AsyncStorage.setItem('highlightViewMode', mode);
+      await userStorage.setRaw('highlightViewMode', mode);
       setHighlightViewMode(mode);
       hapticFeedback.light();
     } catch (error) {
@@ -879,7 +880,7 @@ const ProfileTab = () => {
   const loadCompletedTasks = async () => {
     try {
       console.log('🔍 Loading completed tasks from AsyncStorage...');
-      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
+      const storedTodos = await userStorage.getRaw('fivefold_todos');
       console.log('📦 Raw stored todos:', storedTodos);
       
       if (storedTodos) {
@@ -1359,7 +1360,7 @@ const ProfileTab = () => {
         }
         
         // Update profile picture - check auth first, fallback to AsyncStorage
-        const storedProfile = await AsyncStorage.getItem('userProfile');
+        const storedProfile = await userStorage.getRaw('userProfile');
         const localProfile = storedProfile ? JSON.parse(storedProfile) : {};
         
         if (authUserProfile.profilePicture) {
@@ -1379,7 +1380,7 @@ const ProfileTab = () => {
         if (authUserProfile.countryCode) localProfile.countryCode = authUserProfile.countryCode;
         
         setUserProfile(localProfile);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+        await userStorage.setRaw('userProfile', JSON.stringify(localProfile));
       }
     };
     loadAuthData();
@@ -1467,6 +1468,12 @@ const ProfileTab = () => {
           await loadCompletedTasks();
         } catch (e) {
           console.error('Error loading completed tasks:', e);
+        }
+        try {
+          const verified = await refreshEmailVerificationStatus();
+          setEmailVerified(verified);
+        } catch (e) {
+          console.error('Error checking email verification:', e);
         }
       };
       safeRefresh();
@@ -1599,7 +1606,7 @@ const ProfileTab = () => {
   const loadUserData = async () => {
     try {
       const storedStats = await getStoredData('userStats') || {};
-      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const storedProfile = await userStorage.getRaw('userProfile');
       
       // IMPORTANT: Read AuthContext cache directly from AsyncStorage instead of
       // using the authUserProfile closure, which can be STALE when called from
@@ -1607,7 +1614,7 @@ const ProfileTab = () => {
       // The @biblely_user_cache key is always kept up-to-date by AuthContext.
       let freshAuthProfile = authUserProfile;
       try {
-        const authCacheStr = await AsyncStorage.getItem('@biblely_user_cache');
+        const authCacheStr = await userStorage.getRaw('@biblely_user_cache');
         if (authCacheStr) {
           const authCacheProfile = JSON.parse(authCacheStr);
           // Use the fresh cache if it has a display name (i.e., it's a valid profile)
@@ -1679,7 +1686,7 @@ const ProfileTab = () => {
         // Preserve the best profile picture we found in the local profile
         if (resolvedProfilePicture) localProfile.profilePicture = resolvedProfilePicture;
         setUserProfile(localProfile);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+        await userStorage.setRaw('userProfile', JSON.stringify(localProfile));
 
         // Rebuild selectedCountry with proper flag lookup
         if (freshAuthProfile.countryCode || freshAuthProfile.country) {
@@ -1721,7 +1728,7 @@ const ProfileTab = () => {
                   console.log('[Profile] Invalid file path format, clearing');
                   setProfilePicture(null);
                   profile.profilePicture = null;
-                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                  await userStorage.setRaw('userProfile', JSON.stringify(profile));
                 } else {
                   // Still use the stored path - React Native Image component may handle it
                   console.log('[Profile] Keeping stored path, may be accessible later');
@@ -1783,7 +1790,7 @@ const ProfileTab = () => {
       }
 
       // Load Bible version preferences
-      const storedBibleVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedBibleVersion = await userStorage.getRaw('selectedBibleVersion');
       if (storedBibleVersion) {
         setSelectedBibleVersion(storedBibleVersion);
       } else {
@@ -1792,7 +1799,7 @@ const ProfileTab = () => {
       }
 
       // Load weight unit preference
-      const storedWeightUnit = await AsyncStorage.getItem('weightUnit');
+      const storedWeightUnit = await userStorage.getRaw('weightUnit');
       if (storedWeightUnit) {
         setWeightUnit(storedWeightUnit);
       } else {
@@ -1800,7 +1807,7 @@ const ProfileTab = () => {
       }
 
       // Load height unit preference
-      const storedHeightUnit = await AsyncStorage.getItem('heightUnit');
+      const storedHeightUnit = await userStorage.getRaw('heightUnit');
       if (storedHeightUnit) {
         setHeightUnit(storedHeightUnit);
       } else {
@@ -1818,7 +1825,7 @@ const ProfileTab = () => {
         setCurrentVoiceName(name.charAt(0).toUpperCase() + name.slice(1));
       }
 
-      const storedPurchasedVersions = await AsyncStorage.getItem('purchasedBibleVersions');
+      const storedPurchasedVersions = await userStorage.getRaw('purchasedBibleVersions');
       if (storedPurchasedVersions) {
         setPurchasedVersions(JSON.parse(storedPurchasedVersions));
       }
@@ -1828,7 +1835,7 @@ const ProfileTab = () => {
       const level = AchievementService.getLevelFromPoints(totalPoints);
       
       // Get actual completed tasks count from todos
-      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
+      const storedTodos = await userStorage.getRaw('fivefold_todos');
       let actualCompletedCount = 0;
       if (storedTodos) {
         const todos = JSON.parse(storedTodos);
@@ -1857,11 +1864,11 @@ const ProfileTab = () => {
       setUserStats(mergedStats);
 
       // Load profile badges from stats (respecting per-badge toggles)
-      const badgeTogglesRaw = await AsyncStorage.getItem('fivefold_badge_toggles');
+      const badgeTogglesRaw = await userStorage.getRaw('fivefold_badge_toggles');
       const badgeTogglesObj = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : {};
       // Backward compat: check old key if no toggles saved yet
       if (!badgeTogglesRaw) {
-        const oldBt = await AsyncStorage.getItem('fivefold_bluetick_enabled');
+        const oldBt = await userStorage.getRaw('fivefold_bluetick_enabled');
         badgeTogglesObj.verified = oldBt !== 'false';
       }
       setBluetickToggle(badgeTogglesObj.verified !== false);
@@ -1881,7 +1888,7 @@ const ProfileTab = () => {
       setEarnedBadges(visibleBadges);
       
       // Load selected streak animation
-      const savedAnim = await AsyncStorage.getItem('fivefold_streak_animation');
+      const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (savedAnim) setSelectedStreakAnim(savedAnim);
       
       console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}, ${actualCompletedCount} completed tasks`);
@@ -1936,7 +1943,7 @@ const ProfileTab = () => {
       
       console.log('Profile data to save:', profileData);
       
-      await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
+      await userStorage.setRaw('userProfile', JSON.stringify(profileData));
       setUserProfile(profileData);
       
       // Also save in old format for backwards compatibility
@@ -2046,7 +2053,7 @@ const ProfileTab = () => {
       
       // CRITICAL: Always save to userProfile (create if doesn't exist)
       let profile;
-      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const storedProfile = await userStorage.getRaw('userProfile');
       if (storedProfile) {
         profile = JSON.parse(storedProfile);
       } else {
@@ -2061,7 +2068,7 @@ const ProfileTab = () => {
       profile.profilePicture = finalUri;
       
       // Save immediately and await completion
-      await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+      await userStorage.setRaw('userProfile', JSON.stringify(profile));
       
       // Update local state to match
       setUserProfile(profile);
@@ -2085,7 +2092,7 @@ const ProfileTab = () => {
 
   const loadVibrationSetting = async () => {
     try {
-      const setting = await AsyncStorage.getItem('fivefold_vibration');
+      const setting = await userStorage.getRaw('fivefold_vibration');
       setVibrationEnabled(setting !== 'false');
     } catch (error) {
       console.log('Error loading vibration setting:', error);
@@ -2099,7 +2106,7 @@ const ProfileTab = () => {
 
   const loadLiquidGlassSetting = async () => {
     try {
-      const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+      const setting = await userStorage.getRaw('fivefold_liquidGlass');
       if (setting !== null) {
         const enabled = setting === 'true';
         setLiquidGlassEnabled(enabled);
@@ -2112,7 +2119,7 @@ const ProfileTab = () => {
 
   const handleLiquidGlassToggle = async (enabled) => {
     setLiquidGlassEnabled(enabled);
-    await AsyncStorage.setItem('fivefold_liquidGlass', enabled.toString());
+    await userStorage.setRaw('fivefold_liquidGlass', enabled.toString());
     global.liquidGlassUserPreference = enabled;
     hapticFeedback.light();
     
@@ -2131,7 +2138,7 @@ const ProfileTab = () => {
       
       // Set as selected version
       setSelectedBibleVersion(versionId);
-      await AsyncStorage.setItem('selectedBibleVersion', versionId);
+      await userStorage.setRaw('selectedBibleVersion', versionId);
       
       // Close modal
       setShowBibleVersionModal(false);
@@ -2674,11 +2681,11 @@ const ProfileTab = () => {
       await toggleLeaderboardVisibility(user.uid, value);
       
       // Also update the local auth cache so it persists on navigation
-      const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+      const authCache = await userStorage.getRaw('@biblely_user_cache');
       if (authCache) {
         const cachedProfile = JSON.parse(authCache);
         cachedProfile.isPublic = value;
-        await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify(cachedProfile));
+        await userStorage.setRaw('@biblely_user_cache', JSON.stringify(cachedProfile));
       }
       
       console.log('[Profile] Leaderboard visibility updated:', value);
@@ -2705,18 +2712,18 @@ const ProfileTab = () => {
             try {
               // Reset local points
               await PrayerCompletionManager.resetPoints();
-              await AsyncStorage.setItem('fivefold_userStats', JSON.stringify({
-                ...JSON.parse(await AsyncStorage.getItem('fivefold_userStats') || '{}'),
+              await userStorage.setRaw('fivefold_userStats', JSON.stringify({
+                ...JSON.parse(await userStorage.getRaw('fivefold_userStats') || '{}'),
                 points: 0,
                 level: 1,
                 totalPoints: 0,
               }));
-              const existingStats = await AsyncStorage.getItem('userStats');
+              const existingStats = await userStorage.getRaw('userStats');
               if (existingStats) {
                 const parsed = JSON.parse(existingStats);
                 parsed.totalPoints = 0;
                 parsed.level = 1;
-                await AsyncStorage.setItem('userStats', JSON.stringify(parsed));
+                await userStorage.setRaw('userStats', JSON.stringify(parsed));
               }
 
               // Reset in Firebase
@@ -3781,11 +3788,11 @@ const ProfileTab = () => {
                                     hapticFeedback.medium();
                           const newList = savedVersesList.filter(v => v.id !== verse.id);
                           setSavedVersesList(newList);
-                          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                          const stats = await AsyncStorage.getItem('userStats');
+                          await userStorage.setRaw('savedBibleVerses', JSON.stringify(newList));
+                          const stats = await userStorage.getRaw('userStats');
                           const userStats = stats ? JSON.parse(stats) : {};
                           userStats.savedVerses = newList.length;
-                          await AsyncStorage.setItem('userStats', JSON.stringify(userStats));
+                          await userStorage.setRaw('userStats', JSON.stringify(userStats));
                           setUserStats(userStats);
                                   }
                                 }
@@ -4065,6 +4072,128 @@ const ProfileTab = () => {
             contentContainerStyle={{ padding: 20, paddingTop: 8 }}
             showsVerticalScrollIndicator={false}
           >
+            {/* REFERRAL SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: modalTextTertiaryColor,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Referral
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowReferralModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="person-add" size={20} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Referred By</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
+                      {referralInfo.referredByUsername
+                        ? `@${referralInfo.referredByUsername} referred you`
+                        : 'Enter who referred you'}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* VERIFY EMAIL SECTION */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: modalTextTertiaryColor,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Verification
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  if (!emailVerified) {
+                    setShowSettingsModal(false);
+                    setTimeout(() => navigation.navigate('EmailVerification', { fromSignup: false }), 300);
+                  }
+                }}
+                activeOpacity={emailVerified ? 1 : 0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: emailVerified ? 'rgba(16,185,129,0.15)' : `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons
+                      name={emailVerified ? 'verified' : 'shield'}
+                      size={20}
+                      color={emailVerified ? '#10B981' : '#E67E22'}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
+                      {emailVerified ? 'Email Verified' : 'Verify Email'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: emailVerified ? '#10B981' : modalTextSecondaryColor, marginTop: 2 }}>
+                      {emailVerified ? 'Your email is verified' : 'Tap to verify your email'}
+                    </Text>
+                  </View>
+                </View>
+                {emailVerified ? (
+                  <MaterialIcons name="check-circle" size={22} color="#10B981" />
+                ) : (
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+
             {/* APPEARANCE SECTION */}
             <Text style={{
               fontSize: 12,
@@ -4280,12 +4409,12 @@ const ProfileTab = () => {
                 hapticFeedback.buttonPress();
                 const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
                 setWeightUnit(newUnit);
-                await AsyncStorage.setItem('weightUnit', newUnit);
-                const storedProfile = await AsyncStorage.getItem('userProfile');
+                await userStorage.setRaw('weightUnit', newUnit);
+                const storedProfile = await userStorage.getRaw('userProfile');
                 if (storedProfile) {
                   const profile = JSON.parse(storedProfile);
                   profile.weightUnit = newUnit;
-                  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                  await userStorage.setRaw('userProfile', JSON.stringify(profile));
                 }
               }}
                 activeOpacity={0.7}
@@ -4325,12 +4454,12 @@ const ProfileTab = () => {
                   hapticFeedback.buttonPress();
                   const newUnit = heightUnit === 'cm' ? 'ft' : 'cm';
                   setHeightUnit(newUnit);
-                  await AsyncStorage.setItem('heightUnit', newUnit);
-                  const storedProfile = await AsyncStorage.getItem('userProfile');
+                  await userStorage.setRaw('heightUnit', newUnit);
+                  const storedProfile = await userStorage.getRaw('userProfile');
                   if (storedProfile) {
                     const profile = JSON.parse(storedProfile);
                     profile.heightUnit = newUnit;
-                    await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+                    await userStorage.setRaw('userProfile', JSON.stringify(profile));
                   }
                 }}
                 activeOpacity={0.7}
@@ -4461,62 +4590,6 @@ const ProfileTab = () => {
             </TouchableOpacity>
             </View>
 
-            {/* REFERRAL SECTION */}
-            <Text style={{
-              fontSize: 12,
-              fontWeight: '700',
-              color: modalTextTertiaryColor,
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              marginBottom: 12,
-              marginLeft: 4,
-            }}>
-              Referral
-            </Text>
-            <View style={{
-              backgroundColor: theme.card,
-              borderRadius: 16,
-              marginBottom: 24,
-              overflow: 'hidden',
-            }}>
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  setShowSettingsModal(false);
-                  setTimeout(() => setShowReferralModal(true), 300);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: `${theme.primary}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="person-add" size={20} color={theme.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Referred By</Text>
-                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                      {referralInfo.referredByUsername
-                        ? `@${referralInfo.referredByUsername} referred you`
-                        : 'Enter who referred you'}
-                    </Text>
-                  </View>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-              </TouchableOpacity>
-            </View>
-            
             {/* DANGER ZONE */}
             <Text style={{
               fontSize: 12,
@@ -5370,10 +5443,10 @@ const ProfileTab = () => {
                   journalVerseTexts={journalVerseTexts}
                   onDeleteNote={async (noteId) => {
                     hapticFeedback.light();
-                    const raw = await AsyncStorage.getItem('journalNotes');
+                    const raw = await userStorage.getRaw('journalNotes');
                     const allNotes = raw ? JSON.parse(raw) : [];
                     const remaining = allNotes.filter(n => n.id !== noteId);
-                    await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
+                    await userStorage.setRaw('journalNotes', JSON.stringify(remaining));
                     setJournalNotes(remaining);
                   }}
                   onAddEntry={() => setIsAddingEntry(true)}
@@ -5623,10 +5696,10 @@ const ProfileTab = () => {
                           };
 
                           try {
-                            const existingNotes = await AsyncStorage.getItem('journalNotes');
+                            const existingNotes = await userStorage.getRaw('journalNotes');
                             const notes = existingNotes ? JSON.parse(existingNotes) : [];
                             notes.unshift(newEntry);
-                            await AsyncStorage.setItem('journalNotes', JSON.stringify(notes));
+                            await userStorage.setRaw('journalNotes', JSON.stringify(notes));
                             
                             setJournalNotes(notes);
                             setNewJournalNote({ reference: '', text: '' });

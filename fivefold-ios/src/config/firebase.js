@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase configuration
@@ -51,4 +52,7 @@ const db = getFirestore(app);
 // Initialize Storage
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+// Initialize Cloud Functions
+const functions = getFunctions(app);
+
+export { app, auth, db, storage, functions };

@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../contexts/ThemeContext';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -103,7 +103,7 @@ const NotificationSettings = ({ visible, onClose }) => {
   const rescheduleTaskNotifications = async (soundEnabled) => {
     try {
       // Load tasks from storage
-      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
+      const storedTodos = await userStorage.getRaw('fivefold_todos');
       if (!storedTodos) {
         console.log('No tasks found to reschedule notifications for');
         return;

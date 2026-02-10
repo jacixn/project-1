@@ -1,10 +1,10 @@
 import { NativeModules, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 
 export const restartApp = async () => {
   try {
     // Clear the onboarding flag to force onboarding to show
-    await AsyncStorage.removeItem('onboardingCompleted');
+    await userStorage.remove('onboardingCompleted');
     
     // For development, we can use DevSettings to reload
     if (__DEV__) {
@@ -30,7 +30,7 @@ export const restartApp = async () => {
 export const forceShowOnboarding = async () => {
   try {
     // Clear onboarding and force the wrapper to re-check
-    await AsyncStorage.removeItem('onboardingCompleted');
+    await userStorage.remove('onboardingCompleted');
     
     // Trigger a custom event that the OnboardingWrapper can listen to
     if (global.onboardingRestartCallback) {

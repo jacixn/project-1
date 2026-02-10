@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import Constants from 'expo-constants';
 import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -155,7 +155,7 @@ class NotificationService {
       if (notification.request.content.data?.type === 'token_arrived') {
         try {
           const today = new Date().toISOString().split('T')[0];
-          await AsyncStorage.setItem('hub_token_notification_sent', JSON.stringify({
+          await userStorage.setRaw('hub_token_notification_sent', JSON.stringify({
             date: today,
             sentAt: new Date().toISOString(),
           }));
@@ -806,7 +806,7 @@ class NotificationService {
   async getStoredPrayerTimes() {
     try {
       // Legacy storage without prefix
-      const legacyCustomTimesRaw = await AsyncStorage.getItem('customPrayerTimes');
+      const legacyCustomTimesRaw = await userStorage.getRaw('customPrayerTimes');
       if (legacyCustomTimesRaw) {
         const legacyTimes = JSON.parse(legacyCustomTimesRaw);
         if (legacyTimes && Object.keys(legacyTimes).length > 0) {
@@ -837,7 +837,7 @@ class NotificationService {
       }
 
       // Fallback to user-defined prayers list
-      const userPrayersRaw = await AsyncStorage.getItem('userPrayers');
+      const userPrayersRaw = await userStorage.getRaw('userPrayers');
       if (userPrayersRaw) {
         const userPrayers = JSON.parse(userPrayersRaw);
         const mappedTimes = {};

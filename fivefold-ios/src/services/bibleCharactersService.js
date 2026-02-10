@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import errorHandler from '../utils/errorHandler';
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/bible-characters.json';
@@ -41,7 +41,7 @@ class BibleCharactersService {
   // Check if cached data is still valid
   async isCacheValid() {
     try {
-      const expiry = await AsyncStorage.getItem(CACHE_EXPIRY_KEY);
+      const expiry = await userStorage.getRaw(CACHE_EXPIRY_KEY);
       if (!expiry) return false;
       
       const expiryTime = parseInt(expiry, 10);
@@ -55,7 +55,7 @@ class BibleCharactersService {
   // Load data from cache
   async loadFromCache() {
     try {
-      const cachedData = await AsyncStorage.getItem(CACHE_KEY);
+      const cachedData = await userStorage.getRaw(CACHE_KEY);
       if (cachedData) {
         const raw = JSON.parse(cachedData);
         const data = this.sanitizeData(raw);
@@ -75,8 +75,8 @@ class BibleCharactersService {
   async saveToCache(data) {
     try {
       const sanitized = this.sanitizeData(data);
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(sanitized));
-      await AsyncStorage.setItem(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
+      await userStorage.setRaw(CACHE_KEY, JSON.stringify(sanitized));
+      await userStorage.setRaw(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
       console.log('✅ Saved Bible characters to cache');
     } catch (error) {
       errorHandler.silent('Bible Characters Cache Save', error);
@@ -201,8 +201,8 @@ class BibleCharactersService {
   // Clear cache
   async clearCache() {
     try {
-      await AsyncStorage.removeItem(CACHE_KEY);
-      await AsyncStorage.removeItem(CACHE_EXPIRY_KEY);
+      await userStorage.remove(CACHE_KEY);
+      await userStorage.remove(CACHE_EXPIRY_KEY);
       console.log('🗑️ Cleared Bible characters cache');
     } catch (error) {
       errorHandler.silent('Bible Characters Cache Clear', error);

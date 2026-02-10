@@ -42,7 +42,7 @@ import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
 import { getReferralCount } from '../services/referralService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
 
@@ -69,18 +69,18 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const [myReferralCount, setMyReferralCount] = useState(0);
   const [myStreakAnim, setMyStreakAnim] = useState('fire1');
   useEffect(() => {
-    AsyncStorage.getItem('fivefold_badge_toggles').then(raw => {
+    userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) {
         setBadgeToggles(JSON.parse(raw));
       } else {
         // Fallback to old key
-        AsyncStorage.getItem('fivefold_bluetick_enabled').then(val => {
+        userStorage.getRaw('fivefold_bluetick_enabled').then(val => {
           setBadgeToggles({ verified: val !== 'false' });
         });
       }
     });
     getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
-    AsyncStorage.getItem('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
+    userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
   }, []);
   
   // State
@@ -192,16 +192,14 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
     let freshStreak = 0;
     
     try {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      
       // Single source of truth for points
-      const totalPointsStr = await AsyncStorage.getItem('total_points');
+      const totalPointsStr = await userStorage.getRaw('total_points');
       if (totalPointsStr) {
         freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
       }
       
       // Streak from app_open_streak (AppStreakManager's key)
-      const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+      const appStreakStr = await userStorage.getRaw('app_open_streak');
       if (appStreakStr) {
         const appStreakData = JSON.parse(appStreakStr);
         freshStreak = appStreakData.currentStreak || 0;
@@ -286,13 +284,13 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       
       try {
         // Single source of truth for points
-        const totalPointsStr = await AsyncStorage.getItem('total_points');
+        const totalPointsStr = await userStorage.getRaw('total_points');
         if (totalPointsStr) {
           freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
         }
         
         // Streak from app_open_streak (AppStreakManager's key)
-        const appStreakStr = await AsyncStorage.getItem('app_open_streak');
+        const appStreakStr = await userStorage.getRaw('app_open_streak');
         if (appStreakStr) {
           const appStreakData = JSON.parse(appStreakStr);
           freshStreak = appStreakData.currentStreak || 0;

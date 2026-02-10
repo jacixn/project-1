@@ -1,7 +1,7 @@
 // Secure AI Service - Uses proxy server for API calls
 // This replaces the old aiService.js which had the API key exposed
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 // Proxy server configuration
 // Use your computer's IP address so the phone can reach it
@@ -19,7 +19,7 @@ class SecureAIService {
   async initialize() {
     try {
       // Check if we have a stored token
-      authToken = await AsyncStorage.getItem('proxy_auth_token');
+      authToken = await userStorage.getRaw('proxy_auth_token');
       
       if (!authToken) {
         // Get a new token from the proxy server
@@ -42,7 +42,7 @@ class SecureAIService {
         authToken = data.token;
         
         // Store the token
-        await AsyncStorage.setItem('proxy_auth_token', authToken);
+        await userStorage.setRaw('proxy_auth_token', authToken);
       }
 
       // Verify the proxy server is healthy
@@ -102,7 +102,7 @@ class SecureAIService {
       if (response.status === 401) {
         // Token expired, try to refresh
         console.log('🔄 Token expired, refreshing...');
-        await AsyncStorage.removeItem('proxy_auth_token');
+        await userStorage.remove('proxy_auth_token');
         authToken = null;
         await this.initialize();
         
@@ -183,7 +183,7 @@ class SecureAIService {
 
       if (response.status === 401) {
         // Token expired, refresh and retry
-        await AsyncStorage.removeItem('proxy_auth_token');
+        await userStorage.remove('proxy_auth_token');
         authToken = null;
         await this.initialize();
         return this.chat(messages, stream);

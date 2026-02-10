@@ -22,7 +22,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
 import googleTtsService from '../services/googleTtsService';
@@ -456,7 +456,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const loadUserName = async () => {
     try {
       // Try the auth cache first (most reliable source with displayName)
-      const authCache = await AsyncStorage.getItem('@biblely_user_cache');
+      const authCache = await userStorage.getRaw('@biblely_user_cache');
       if (authCache) {
         const profile = JSON.parse(authCache);
         const name = profile.displayName || profile.name || 'Friend';
@@ -466,7 +466,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       }
       
       // Fallback to userProfile
-      const storedProfile = await AsyncStorage.getItem('userProfile');
+      const storedProfile = await userStorage.getRaw('userProfile');
       if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         const name = profile.displayName || profile.name || 'Friend';
@@ -509,7 +509,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   // Load chat history from AsyncStorage
   const loadChatHistory = async () => {
     try {
-      const storedHistory = await AsyncStorage.getItem('friendChatHistory');
+      const storedHistory = await userStorage.getRaw('friendChatHistory');
       if (storedHistory) {
         const history = JSON.parse(storedHistory);
         setChatHistory(history);
@@ -539,7 +539,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
     try {
       // Load current history to ensure we have the latest
-      const storedHistory = await AsyncStorage.getItem('friendChatHistory');
+      const storedHistory = await userStorage.getRaw('friendChatHistory');
       const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
       
       // Get the first user message for preview
@@ -568,7 +568,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         
         currentHistory.unshift(updatedConversation); // Add to top
         
-        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(currentHistory));
+        await userStorage.setRaw('friendChatHistory', JSON.stringify(currentHistory));
         setChatHistory(currentHistory);
         console.log('📝 Updated existing chat in history and moved to top');
       } else {
@@ -582,7 +582,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         };
         
         const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
-        await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
+        await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
         setChatHistory(updatedHistory);
         console.log('📝 Created new chat in history');
       }
@@ -608,7 +608,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const deleteConversation = async (conversationId) => {
     try {
       const updatedHistory = chatHistory.filter(conv => conv.id !== conversationId);
-      await AsyncStorage.setItem('friendChatHistory', JSON.stringify(updatedHistory));
+      await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
       setChatHistory(updatedHistory);
       hapticFeedback.success();
       console.log('🗑️ Deleted conversation:', conversationId);
@@ -629,7 +629,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem('friendChatHistory');
+              await userStorage.remove('friendChatHistory');
               setChatHistory([]);
               setShowHistory(false);
               hapticFeedback.success();
@@ -989,7 +989,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     
     // Load user profile for personalized responses
     try {
-      const debugProfile = await AsyncStorage.getItem('userProfile');
+      const debugProfile = await userStorage.getRaw('userProfile');
       if (debugProfile) {
         const parsed = JSON.parse(debugProfile);
         // Use parsed profile data for personalization
@@ -1298,7 +1298,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const testConnectivity = async () => {
     try {
       console.log('🧪 Testing Smart connectivity...');
-      const apiKey = await AsyncStorage.getItem('fivefold_groq_api_key');
+      const apiKey = await userStorage.getRaw('fivefold_groq_api_key');
       console.log('🧪 Smart test result:', apiKey ? `Enabled (${apiKey.length} chars)` : 'NOT ENABLED');
       Alert.alert('Smart Features Status', apiKey ? 'Smart features are active! Friend is ready to chat.' : 'Please enable smart features in Profile > Settings first.');
     } catch (error) {

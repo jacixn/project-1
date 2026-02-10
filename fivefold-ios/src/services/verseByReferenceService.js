@@ -1,6 +1,6 @@
 import completeBibleService from './completeBibleService';
 import githubBibleService from './githubBibleService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 /**
  * Service to fetch verse text by reference (e.g., "John 3:16", "Proverbs 3:5-6")
@@ -18,7 +18,7 @@ const getBibleService = (versionId) => {
 // NOTE: "simplify" is only available in the Holy Bible reader, not in other sections
 export const getPreferredVersion = async () => {
   try {
-    const version = await AsyncStorage.getItem('selectedBibleVersion');
+    const version = await userStorage.getRaw('selectedBibleVersion');
     // If user has "simplify" selected, use NIV instead (simplify only works in Bible Reader)
     // If no version selected, default to NIV
     if (!version || version === 'simplify') {

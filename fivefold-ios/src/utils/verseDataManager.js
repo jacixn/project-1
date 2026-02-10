@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 import iCloudSyncService from '../services/iCloudSyncService';
 
 class VerseDataManager {
@@ -38,7 +38,7 @@ class VerseDataManager {
   // Get all verse data
   static async getAllVerseData() {
     try {
-      const data = await AsyncStorage.getItem(this.VERSE_DATA_KEY);
+      const data = await userStorage.getRaw(this.VERSE_DATA_KEY);
       console.log('🗄️ Raw verse_data from storage:', data ? `${data.length} chars` : 'null/empty');
       if (data) {
         const parsed = JSON.parse(data);
@@ -61,7 +61,7 @@ class VerseDataManager {
         ...data,
         lastUpdated: new Date().toISOString()
       };
-      await AsyncStorage.setItem(this.VERSE_DATA_KEY, JSON.stringify(allData));
+      await userStorage.setRaw(this.VERSE_DATA_KEY, JSON.stringify(allData));
       
       // Sync to iCloud
       iCloudSyncService.syncToCloud(this.VERSE_DATA_KEY, allData).catch(err => {
@@ -230,7 +230,7 @@ class VerseDataManager {
   // Update reading streak
   static async updateReadingStreak() {
     try {
-      const streakData = await AsyncStorage.getItem(this.READING_STREAKS_KEY);
+      const streakData = await userStorage.getRaw(this.READING_STREAKS_KEY);
       const streaks = streakData ? JSON.parse(streakData) : {
         currentStreak: 0,
         longestStreak: 0,
@@ -258,7 +258,7 @@ class VerseDataManager {
         streaks.lastReadDate = today;
         streaks.totalDaysRead += 1;
         
-        await AsyncStorage.setItem(this.READING_STREAKS_KEY, JSON.stringify(streaks));
+        await userStorage.setRaw(this.READING_STREAKS_KEY, JSON.stringify(streaks));
         
         // Sync to iCloud
         iCloudSyncService.syncToCloud(this.READING_STREAKS_KEY, streaks).catch(err => {
@@ -278,7 +278,7 @@ class VerseDataManager {
   // Get reading streaks
   static async getReadingStreaks() {
     try {
-      const data = await AsyncStorage.getItem(this.READING_STREAKS_KEY);
+      const data = await userStorage.getRaw(this.READING_STREAKS_KEY);
       return data ? JSON.parse(data) : {
         currentStreak: 0,
         longestStreak: 0,
@@ -323,7 +323,7 @@ class VerseDataManager {
       
       if (newAchievements.length > 0) {
         const updatedAchievements = [...achievements, ...newAchievements];
-        await AsyncStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(updatedAchievements));
+        await userStorage.setRaw(this.ACHIEVEMENTS_KEY, JSON.stringify(updatedAchievements));
         
         // Sync to iCloud
         iCloudSyncService.syncToCloud(this.ACHIEVEMENTS_KEY, updatedAchievements).catch(err => {
@@ -344,7 +344,7 @@ class VerseDataManager {
   // Get achievements
   static async getAchievements() {
     try {
-      const data = await AsyncStorage.getItem(this.ACHIEVEMENTS_KEY);
+      const data = await userStorage.getRaw(this.ACHIEVEMENTS_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('Error getting achievements:', error);
@@ -413,7 +413,7 @@ class VerseDataManager {
 
   static async getJournalNotes() {
     try {
-      const data = await AsyncStorage.getItem(this.JOURNAL_NOTES_KEY);
+      const data = await userStorage.getRaw(this.JOURNAL_NOTES_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('Error getting journal notes:', error);
@@ -423,7 +423,7 @@ class VerseDataManager {
 
   static async saveJournalNotes(notes) {
     try {
-      await AsyncStorage.setItem(this.JOURNAL_NOTES_KEY, JSON.stringify(notes || []));
+      await userStorage.setRaw(this.JOURNAL_NOTES_KEY, JSON.stringify(notes || []));
       
       // Sync to iCloud
       iCloudSyncService.syncToCloud(this.JOURNAL_NOTES_KEY, notes || []).catch(err => {
@@ -436,7 +436,7 @@ class VerseDataManager {
 
   static async migrateJournalNotes() {
     try {
-      const migrated = await AsyncStorage.getItem(this.JOURNAL_MIGRATION_FLAG);
+      const migrated = await userStorage.getRaw(this.JOURNAL_MIGRATION_FLAG);
       if (migrated === 'true') return;
 
       const allData = await this.getAllVerseData();
@@ -459,7 +459,7 @@ class VerseDataManager {
         await this.saveJournalNotes(collected);
         console.log(`🗒️ Migrated ${collected.length} journal notes to dedicated store`);
       }
-      await AsyncStorage.setItem(this.JOURNAL_MIGRATION_FLAG, 'true');
+      await userStorage.setRaw(this.JOURNAL_MIGRATION_FLAG, 'true');
     } catch (error) {
       console.error('Error migrating journal notes:', error);
     }
@@ -485,7 +485,7 @@ class VerseDataManager {
   static async getDailyVerse() {
     try {
       const today = new Date().toDateString();
-      const storedData = await AsyncStorage.getItem(this.DAILY_VERSE_KEY);
+      const storedData = await userStorage.getRaw(this.DAILY_VERSE_KEY);
       const dailyVerseData = storedData ? JSON.parse(storedData) : null;
       
       // Check if we need a new daily verse
@@ -510,7 +510,7 @@ class VerseDataManager {
           theme: this.getDailyTheme()
         };
         
-        await AsyncStorage.setItem(this.DAILY_VERSE_KEY, JSON.stringify(newDailyVerse));
+        await userStorage.setRaw(this.DAILY_VERSE_KEY, JSON.stringify(newDailyVerse));
         return newDailyVerse;
       }
       
@@ -645,7 +645,7 @@ class VerseDataManager {
   // Get all custom highlight names
   static async getHighlightNames() {
     try {
-      const data = await AsyncStorage.getItem(this.HIGHLIGHT_NAMES_KEY);
+      const data = await userStorage.getRaw(this.HIGHLIGHT_NAMES_KEY);
       return data ? JSON.parse(data) : {};
     } catch (error) {
       console.error('Error getting highlight names:', error);
@@ -658,7 +658,7 @@ class VerseDataManager {
     try {
       const names = await this.getHighlightNames();
       names[hexColor] = customName;
-      await AsyncStorage.setItem(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      await userStorage.setRaw(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
       
       // Sync to iCloud
       iCloudSyncService.syncToCloud(this.HIGHLIGHT_NAMES_KEY, names).catch(err => {
@@ -678,7 +678,7 @@ class VerseDataManager {
     try {
       const names = await this.getHighlightNames();
       delete names[hexColor];
-      await AsyncStorage.setItem(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      await userStorage.setRaw(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
       console.log(`🏷️ Custom highlight name removed for: ${hexColor}`);
       return names;
     } catch (error) {

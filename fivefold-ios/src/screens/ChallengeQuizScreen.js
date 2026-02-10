@@ -25,7 +25,7 @@ import { submitScore, getChallenge } from '../services/challengeService';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AchievementService from '../services/achievementService';
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -183,7 +183,7 @@ const ChallengeQuizScreen = () => {
       
       // Save updated stats locally
       await saveData('userStats', updatedStats);
-      await AsyncStorage.setItem('userStats', JSON.stringify(updatedStats));
+      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
       
       // total_points is now managed centrally by achievementService.checkAchievements()
       

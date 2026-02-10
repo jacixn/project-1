@@ -24,7 +24,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import {
@@ -99,7 +99,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   // Cache management functions
   const isCacheValid = async () => {
     try {
-      const timestamp = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -127,8 +127,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       const data = await response.json();
       
       // Cache the data
-      await AsyncStorage.setItem(MAPS_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(MAPS_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(MAPS_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
       console.log('✅ Successfully fetched and cached Bible maps');
       return data;
@@ -163,7 +163,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     try {
       // Check cache first
       if (await isCacheValid()) {
-        const cachedData = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(MAPS_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setMapsData(data);
@@ -182,7 +182,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       
       // Try to use cached data even if expired
       try {
-        const cachedData = await AsyncStorage.getItem(MAPS_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(MAPS_CONFIG.CACHE_KEY);
         if (cachedData) {
           console.log('⚠️ Using expired cache due to fetch failure');
           const data = JSON.parse(cachedData);
@@ -206,8 +206,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     setRefreshing(true);
     hapticFeedback.light();
     try {
-      await AsyncStorage.removeItem(MAPS_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(MAPS_CONFIG.CACHE_KEY);
+      await userStorage.remove(MAPS_CONFIG.CACHE_TIMESTAMP_KEY);
       const data = await fetchMapsFromRemote();
       setMapsData(data);
       setError(null);
@@ -238,7 +238,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => {
     const loadLiquidGlass = async () => {
       try {
-        const setting = await AsyncStorage.getItem('fivefold_liquidGlass');
+        const setting = await userStorage.getRaw('fivefold_liquidGlass');
         if (setting !== null) {
           setLiquidGlassEnabled(setting === 'true');
         }
@@ -259,8 +259,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const visited = await AsyncStorage.getItem('bible_maps_visited');
-        const bookmarks = await AsyncStorage.getItem('bible_maps_bookmarks');
+        const visited = await userStorage.getRaw('bible_maps_visited');
+        const bookmarks = await userStorage.getRaw('bible_maps_bookmarks');
         
         if (visited) setVisitedLocations(JSON.parse(visited));
         if (bookmarks) setBookmarkedLocations(JSON.parse(bookmarks));
@@ -278,8 +278,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => {
     const saveUserData = async () => {
       try {
-        await AsyncStorage.setItem('bible_maps_visited', JSON.stringify(visitedLocations));
-        await AsyncStorage.setItem('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
+        await userStorage.setRaw('bible_maps_visited', JSON.stringify(visitedLocations));
+        await userStorage.setRaw('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
       } catch (error) {
         console.log('Error saving user data:', error);
       }

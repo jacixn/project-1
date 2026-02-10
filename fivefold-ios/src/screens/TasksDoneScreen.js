@@ -18,7 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 const TasksDoneScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
@@ -61,7 +61,7 @@ const TasksDoneScreen = ({ navigation }) => {
 
   const loadCompletedTasks = async () => {
     try {
-      const storedTodos = await AsyncStorage.getItem('fivefold_todos');
+      const storedTodos = await userStorage.getRaw('fivefold_todos');
       if (storedTodos) {
         const todos = JSON.parse(storedTodos);
         const completedHistory = todos

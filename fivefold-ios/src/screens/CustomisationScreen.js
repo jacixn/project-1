@@ -15,7 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { getReferralCount } from '../services/referralService';
@@ -145,9 +145,9 @@ const CustomisationScreen = () => {
   const load = async () => {
     try {
       const [animId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
-        AsyncStorage.getItem(STREAK_ANIM_KEY),
-        AsyncStorage.getItem('fivefold_badge_toggles'),
-        AsyncStorage.getItem(BLUETICK_ENABLED_KEY),
+        userStorage.getRaw(STREAK_ANIM_KEY),
+        userStorage.getRaw('fivefold_badge_toggles'),
+        userStorage.getRaw(BLUETICK_ENABLED_KEY),
         getReferralCount(),
       ]);
       if (animId) setSelectedAnim(animId);
@@ -157,7 +157,7 @@ const CustomisationScreen = () => {
       if (!toggles) {
         const btOn = oldBtVal !== 'false';
         toggles = { country: true, streak: true, verified: btOn, biblely: true };
-        await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(toggles));
+        await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(toggles));
       }
       setBadgeToggles(toggles);
     } catch (e) {
@@ -196,15 +196,15 @@ const CustomisationScreen = () => {
       return;
     }
     setSelectedAnim(id);
-    await AsyncStorage.setItem(STREAK_ANIM_KEY, id);
+    await userStorage.setRaw(STREAK_ANIM_KEY, id);
   };
 
   const toggleBadge = async (badgeId, val) => {
     const updated = { ...badgeToggles, [badgeId]: val };
     setBadgeToggles(updated);
-    await AsyncStorage.setItem('fivefold_badge_toggles', JSON.stringify(updated));
+    await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(updated));
     if (badgeId === 'verified') {
-      await AsyncStorage.setItem(BLUETICK_ENABLED_KEY, val.toString());
+      await userStorage.setRaw(BLUETICK_ENABLED_KEY, val.toString());
     }
   };
 

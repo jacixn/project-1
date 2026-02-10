@@ -22,7 +22,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { hapticFeedback } from '../utils/haptics';
 import verseByReferenceService from '../services/verseByReferenceService';
 
@@ -63,7 +63,7 @@ const SavedVersesScreen = ({ navigation }) => {
 
   const loadSavedVersesQuick = async () => {
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
         setSavedVersesList(verses);
@@ -71,7 +71,7 @@ const SavedVersesScreen = ({ navigation }) => {
         setSavedVersesList([]);
       }
       
-      const version = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+      const version = await userStorage.getRaw('selectedBibleVersion') || 'nlt';
       setCurrentBibleVersion(version);
     } catch (error) {
       console.error('Error quick loading saved verses:', error);
@@ -80,12 +80,12 @@ const SavedVersesScreen = ({ navigation }) => {
 
   const loadSavedVerses = async (refreshAll = false) => {
     try {
-      const savedVersesData = await AsyncStorage.getItem('savedBibleVerses');
+      const savedVersesData = await userStorage.getRaw('savedBibleVerses');
       if (savedVersesData) {
         const verses = JSON.parse(savedVersesData);
         setSavedVersesList(verses);
         
-        const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'nlt';
+        const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'nlt';
         setCurrentBibleVersion(preferredVersion);
         
         const BATCH_SIZE = refreshAll ? verses.length : 15;
@@ -118,7 +118,7 @@ const SavedVersesScreen = ({ navigation }) => {
         setSavedVersesList(updatedVerses);
         
         if (refreshedCount > 0) {
-          await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(updatedVerses));
+          await userStorage.setRaw('savedBibleVerses', JSON.stringify(updatedVerses));
         }
       } else {
         setSavedVersesList([]);
@@ -377,11 +377,11 @@ const SavedVersesScreen = ({ navigation }) => {
                               hapticFeedback.medium();
                               const newList = savedVersesList.filter(v => v.id !== verse.id);
                               setSavedVersesList(newList);
-                              await AsyncStorage.setItem('savedBibleVerses', JSON.stringify(newList));
-                              const stats = await AsyncStorage.getItem('userStats');
+                              await userStorage.setRaw('savedBibleVerses', JSON.stringify(newList));
+                              const stats = await userStorage.getRaw('userStats');
                               const userStatsObj = stats ? JSON.parse(stats) : {};
                               userStatsObj.savedVerses = newList.length;
-                              await AsyncStorage.setItem('userStats', JSON.stringify(userStatsObj));
+                              await userStorage.setRaw('userStats', JSON.stringify(userStatsObj));
                             }
                           }
                         ]

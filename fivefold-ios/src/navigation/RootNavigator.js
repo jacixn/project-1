@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, Animated, StyleSheet, Easing } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
@@ -45,9 +45,11 @@ import AudioLearningScreen from '../screens/AudioLearningScreen';
 import BibleReaderScreen from '../screens/BibleReaderScreen';
 import FriendChatScreen from '../screens/FriendChatScreen';
 import CustomisationScreen from '../screens/CustomisationScreen';
+import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+// refreshEmailVerificationStatus import removed - verification handled in onboarding
 
 const Stack = createNativeStackNavigator();
 
@@ -694,17 +696,19 @@ const RootNavigator = () => {
   const { isAuthenticated, initializing, loading, authSteps } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  // showVerificationPrompt removed - verification is now handled during onboarding
   
   // Check onboarding status ONLY after auth loading completes
   // This prevents race conditions where signIn hasn't finished setting onboardingCompleted
   useEffect(() => {
     const checkOnboarding = async () => {
       if (isAuthenticated && !loading) {
-        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+        const onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
         console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
         setNeedsOnboarding(onboardingCompleted !== 'true');
       } else if (!isAuthenticated) {
         setNeedsOnboarding(null);
+        setShowVerificationPrompt(false);
       }
       if (!loading) {
         setCheckingOnboarding(false);
@@ -717,9 +721,9 @@ const RootNavigator = () => {
     }
   }, [isAuthenticated, initializing, loading]);
   
-  // Handle onboarding completion
+  // Handle onboarding completion — check if email needs verification
   const handleOnboardingComplete = async () => {
-    await AsyncStorage.setItem('onboardingCompleted', 'true');
+    await userStorage.setRaw('onboardingCompleted', 'true');
     setNeedsOnboarding(false);
   };
   
@@ -977,6 +981,15 @@ const RootNavigator = () => {
         component={NutritionScreen}
         options={{
           animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Email Verification Screen (navigable from Hub, Profile, etc.) */}
+      <Stack.Screen 
+        name="EmailVerification" 
+        component={EmailVerificationScreen}
+        options={{
+          animation: 'slide_from_bottom',
         }}
       />
       

@@ -104,7 +104,7 @@ export const submitReferral = async (referrerUsername) => {
     if (!currentUserVerified) {
       return {
         success: false,
-        message: 'Your email must be verified before you can submit a referral. Please check your inbox for a verification link.',
+        message: 'Your email must be verified before you can submit a referral. Go to your profile and verify your email first.',
       };
     }
 

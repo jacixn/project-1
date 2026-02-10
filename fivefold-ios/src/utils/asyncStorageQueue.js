@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 
 class AsyncStorageQueue {
   constructor() {
@@ -35,27 +35,23 @@ class AsyncStorageQueue {
   }
 
   async getItem(key) {
-    return this.enqueue(() => AsyncStorage.getItem(key));
+    return this.enqueue(() => userStorage.getRaw(key));
   }
 
   async setItem(key, value) {
-    return this.enqueue(() => AsyncStorage.setItem(key, value));
+    return this.enqueue(() => userStorage.setRaw(key, value));
   }
 
   async removeItem(key) {
-    return this.enqueue(() => AsyncStorage.removeItem(key));
+    return this.enqueue(() => userStorage.remove(key));
   }
 
   async multiGet(keys) {
-    return this.enqueue(() => AsyncStorage.multiGet(keys));
-  }
-
-  async multiSet(keyValuePairs) {
-    return this.enqueue(() => AsyncStorage.multiSet(keyValuePairs));
+    return this.enqueue(() => userStorage.multiGet(keys));
   }
 
   async multiRemove(keys) {
-    return this.enqueue(() => AsyncStorage.multiRemove(keys));
+    return this.enqueue(() => userStorage.multiRemove(keys));
   }
 }
 

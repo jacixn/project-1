@@ -43,3 +43,7 @@ googleTts.config.js
 gemini.config.js
 ocr.config.js
 GoogleService-Info.plist
+
+# Cloud Functions
+functions/node_modules/
+functions/.env

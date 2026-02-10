@@ -2,7 +2,7 @@
 // Supports all major Bible versions with offline capabilities
 // Uses multiple APIs and fallback mechanisms for reliability
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import aiService from './aiService';
 import { getVersionById } from '../data/bibleVersions';
 
@@ -42,12 +42,12 @@ class EnhancedBibleService {
   async initializeOfflineData() {
     try {
       // Check if we have offline data initialized
-      const initialized = await AsyncStorage.getItem('offline_bible_initialized');
+      const initialized = await userStorage.getRaw('offline_bible_initialized');
       if (!initialized) {
         console.log('📖 Initializing offline Bible data...');
         // We'll populate this with sample verses for each version
         await this.setupOfflineVersions();
-        await AsyncStorage.setItem('offline_bible_initialized', 'true');
+        await userStorage.setRaw('offline_bible_initialized', 'true');
       }
     } catch (error) {
       console.error('Error initializing offline data:', error);
@@ -122,7 +122,7 @@ class EnhancedBibleService {
     for (const [chapterId, versions] of Object.entries(sampleVerses)) {
       for (const [versionId, verses] of Object.entries(versions)) {
         const cacheKey = `bible_${versionId}_${chapterId}`;
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(verses));
+        await userStorage.setRaw(cacheKey, JSON.stringify(verses));
       }
     }
   }
@@ -134,7 +134,7 @@ class EnhancedBibleService {
     }
 
     try {
-      const storedVersion = await AsyncStorage.getItem('selectedBibleVersion');
+      const storedVersion = await userStorage.getRaw('selectedBibleVersion');
       const versionId = storedVersion || 'kjv';
       this.currentVersion = getVersionById(versionId);
       return this.currentVersion;
@@ -228,7 +228,7 @@ class EnhancedBibleService {
 
     try {
       this.cachedBooks = this.booksData;
-      await AsyncStorage.setItem('fivefold_bible_books', JSON.stringify(this.cachedBooks));
+      await userStorage.setRaw('fivefold_bible_books', JSON.stringify(this.cachedBooks));
       return this.cachedBooks;
     } catch (error) {
       console.error('Error getting Bible books:', error);
@@ -287,7 +287,7 @@ class EnhancedBibleService {
     
     // For other versions, check offline cache first
     const cacheKey = `bible_${versionId}_${chapterId}`;
-    const cached = await AsyncStorage.getItem(cacheKey);
+    const cached = await userStorage.getRaw(cacheKey);
     
     if (cached) {
       return JSON.parse(cached);
@@ -308,7 +308,7 @@ class EnhancedBibleService {
     const transformedVerses = await this.transformVersesToVersion(data.verses, versionId, book.name, chapterNum);
     
     // Cache the transformed verses
-    await AsyncStorage.setItem(cacheKey, JSON.stringify(transformedVerses));
+    await userStorage.setRaw(cacheKey, JSON.stringify(transformedVerses));
     
     return transformedVerses;
   }
@@ -465,7 +465,7 @@ class EnhancedBibleService {
       this.versionCache.set(cacheKey, verses);
       
       // Cache in storage
-      await AsyncStorage.setItem(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
       
       return verses;
     } catch (error) {
@@ -473,7 +473,7 @@ class EnhancedBibleService {
       
       // Try to load from storage cache
       try {
-        const cached = await AsyncStorage.getItem(`fivefold_verses_${cacheKey}`);
+        const cached = await userStorage.getRaw(`fivefold_verses_${cacheKey}`);
         if (cached) {
           const verses = JSON.parse(cached);
           this.versionCache.set(cacheKey, verses);
@@ -517,7 +517,7 @@ class EnhancedBibleService {
       
       // Update caches
       this.versionCache.set(cacheKey, verses);
-      await AsyncStorage.setItem(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
+      await userStorage.setRaw(`fivefold_verses_${cacheKey}`, JSON.stringify(verses));
       
       return simplifiedText;
     } catch (error) {

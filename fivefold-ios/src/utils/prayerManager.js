@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from './userStorage';
 import { hapticFeedback } from './haptics';
 
 // Prayer management system - handles dynamic prayer creation/deletion
@@ -8,7 +8,7 @@ export class PrayerManager {
   // Get all user prayers
   static async getUserPrayers() {
     try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
+      const stored = await userStorage.getRaw(this.STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
       }
@@ -23,7 +23,7 @@ export class PrayerManager {
   // Save user prayers
   static async saveUserPrayers(prayers) {
     try {
-      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(prayers));
+      await userStorage.setRaw(this.STORAGE_KEY, JSON.stringify(prayers));
       return true;
     } catch (error) {
       console.error('Error saving user prayers:', error);
@@ -178,8 +178,8 @@ export class PrayerManager {
       }
       
       // Check for old prayer data
-      const oldCustomNames = await AsyncStorage.getItem('customPrayerNames');
-      const oldCustomTimes = await AsyncStorage.getItem('customPrayerTimes');
+      const oldCustomNames = await userStorage.getRaw('customPrayerNames');
+      const oldCustomTimes = await userStorage.getRaw('customPrayerTimes');
       
       if (oldCustomNames || oldCustomTimes) {
         const customNames = oldCustomNames ? JSON.parse(oldCustomNames) : {};
@@ -207,8 +207,8 @@ export class PrayerManager {
         
         // Clean up old data
         if (success) {
-          await AsyncStorage.removeItem('customPrayerNames');
-          await AsyncStorage.removeItem('customPrayerTimes');
+          await userStorage.remove('customPrayerNames');
+          await userStorage.remove('customPrayerTimes');
         }
         
         return { success, prayers: migratedPrayers };

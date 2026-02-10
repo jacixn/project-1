@@ -24,7 +24,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
@@ -74,7 +74,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   // Cache management functions
   const isCacheValid = async () => {
     try {
-      const timestamp = await AsyncStorage.getItem(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -102,8 +102,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       const data = await response.json();
       
       // Cache the data
-      await AsyncStorage.setItem(GUIDES_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(GUIDES_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
       console.log('✅ Successfully fetched and cached thematic guides');
       return data;
@@ -153,7 +153,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       // Check cache first
       const cacheValid = await isCacheValid();
       if (cacheValid) {
-        const cachedData = await AsyncStorage.getItem(GUIDES_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(GUIDES_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setGuidesData(data);
@@ -175,7 +175,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
         console.error('Remote fetch failed, using fallback:', remoteError);
         
         // Try cached data even if expired
-        const cachedData = await AsyncStorage.getItem(GUIDES_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(GUIDES_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setGuidesData(data);
@@ -260,8 +260,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   const refreshGuides = async () => {
     try {
       // Clear cache and reload
-      await AsyncStorage.removeItem(GUIDES_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(GUIDES_CONFIG.CACHE_KEY);
+      await userStorage.remove(GUIDES_CONFIG.CACHE_TIMESTAMP_KEY);
       await loadGuides();
     } catch (error) {
       console.error('Error refreshing guides:', error);

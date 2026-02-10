@@ -18,7 +18,7 @@ import {
   InteractionManager,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -349,7 +349,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
         setShowFinishConfirm(false);
         
         // Load weight unit preference
-        AsyncStorage.getItem('weightUnit').then(unit => {
+        userStorage.getRaw('weightUnit').then(unit => {
           if (unit) {
             setWeightUnit(unit);
           }

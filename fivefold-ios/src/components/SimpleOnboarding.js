@@ -20,7 +20,7 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../contexts/ThemeContext';
@@ -32,6 +32,8 @@ import { persistProfileImage } from '../utils/profileImageStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadProfilePicture } from '../services/storageService';
+import EmailVerificationScreen from '../screens/EmailVerificationScreen';
+import { sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -325,6 +327,7 @@ const SCREEN_THEMES = {
   photo: { bg: '#FCE4EC', accent: '#AD1457' },            // Pink - personal
   theme: { bg: '#F3E5F5', accent: '#7B1FA2' },            // Purple - personalization
   notifications: { bg: '#E0F2F1', accent: '#00695C' },    // Teal
+  verifyEmail: { bg: '#EDE7F6', accent: '#6C63FF' },      // Soft purple - trust/verify
   howFound: { bg: '#EDE7F6', accent: '#5E35B1' },         // Purple
   gift: { bg: '#FCE4EC', accent: '#AD1457' },             // Pink
   paywall: { bg: '#E3F2FD', accent: '#1565C0' },          // Blue
@@ -477,14 +480,14 @@ const SimpleOnboarding = ({ onComplete }) => {
           prayersStr,
           prayersStr2,
         ] = await Promise.all([
-          AsyncStorage.getItem('total_points'),
-          AsyncStorage.getItem('fivefold_userStats'),
-          AsyncStorage.getItem('userStats'),
-          AsyncStorage.getItem('fivefold_todos'),
-          AsyncStorage.getItem('@scheduled_workouts'),
-          AsyncStorage.getItem('fivefold_savedBibleVerses'),
-          AsyncStorage.getItem('fivefold_simplePrayers'),
-          AsyncStorage.getItem('simplePrayers'),
+          userStorage.getRaw('total_points'),
+          userStorage.getRaw('fivefold_userStats'),
+          userStorage.getRaw('userStats'),
+          userStorage.getRaw('fivefold_todos'),
+          userStorage.getRaw('@scheduled_workouts'),
+          userStorage.getRaw('fivefold_savedBibleVerses'),
+          userStorage.getRaw('fivefold_simplePrayers'),
+          userStorage.getRaw('simplePrayers'),
         ]);
         
         let totalPoints = 0;
@@ -584,6 +587,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'photo',
     'theme',
     'notifications',
+    'verifyEmail',
     'howFound',
     'gift',
     'complete'
@@ -602,6 +606,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'photo',
     'theme',
     'notifications',
+    'verifyEmail',
     'howFound',
     'gift',
     'complete'
@@ -712,7 +717,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           onPress: async () => {
             // Clear local data so it doesn't get accidentally synced later
             try {
-              await AsyncStorage.multiRemove([
+              await userStorage.multiRemove([
                 'total_points',
                 'userStats',
                 'fivefold_userStats',
@@ -801,7 +806,7 @@ const SimpleOnboarding = ({ onComplete }) => {
             joinedDate: new Date().toISOString(),
           };
           await Promise.all([
-            AsyncStorage.setItem('userProfile', JSON.stringify(profileData)),
+            userStorage.setRaw('userProfile', JSON.stringify(profileData)),
             minDelay,
           ]);
         } else if (step.id === 'photo') {
@@ -822,18 +827,18 @@ const SimpleOnboarding = ({ onComplete }) => {
           await minDelay;
         } else if (step.id === 'bible') {
           await Promise.all([
-            AsyncStorage.setItem('selectedBibleVersion', selectedBibleVersion),
+            userStorage.setRaw('selectedBibleVersion', selectedBibleVersion),
             minDelay,
           ]);
         } else if (step.id === 'language') {
           await Promise.all([
-            AsyncStorage.setItem('selectedLanguage', selectedLanguage),
+            userStorage.setRaw('selectedLanguage', selectedLanguage),
             minDelay,
           ]);
         } else if (step.id === 'units') {
           await Promise.all([
-            AsyncStorage.setItem('weightUnit', weightUnit),
-            AsyncStorage.setItem('heightUnit', heightUnit),
+            userStorage.setRaw('weightUnit', weightUnit),
+            userStorage.setRaw('heightUnit', heightUnit),
             minDelay,
           ]);
         } else if (step.id === 'theme') {
@@ -874,9 +879,9 @@ const SimpleOnboarding = ({ onComplete }) => {
               ]);
 
               // Update AuthContext cache
-              const cacheStr = await AsyncStorage.getItem('@biblely_user_cache');
+              const cacheStr = await userStorage.getRaw('@biblely_user_cache');
               const cached = cacheStr ? JSON.parse(cacheStr) : {};
-              await AsyncStorage.setItem('@biblely_user_cache', JSON.stringify({
+              await userStorage.setRaw('@biblely_user_cache', JSON.stringify({
                 ...cached,
                 displayName: userName.trim() || 'Friend',
                 profilePicture: uploadedPhotoUrl || profileImage || cached.profilePicture || null,
@@ -894,13 +899,13 @@ const SimpleOnboarding = ({ onComplete }) => {
         } else if (step.id === 'finish') {
           // Save remaining individual settings
           if (selectedPainPoint) {
-            await AsyncStorage.setItem('userPainPoint', selectedPainPoint);
+            await userStorage.setRaw('userPainPoint', selectedPainPoint);
           }
           if (selectedAttribution) {
-            await AsyncStorage.setItem('userAttribution', selectedAttribution);
+            await userStorage.setRaw('userAttribution', selectedAttribution);
           }
           await Promise.all([
-            AsyncStorage.setItem('onboardingCompleted', 'true'),
+            userStorage.setRaw('onboardingCompleted', 'true'),
             minDelay,
           ]);
         }
@@ -915,7 +920,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       onComplete();
     } catch (error) {
       console.error('Failed during setup:', error);
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await userStorage.setRaw('onboardingCompleted', 'true');
       hapticFeedback.success();
       onComplete();
     }
@@ -923,8 +928,8 @@ const SimpleOnboarding = ({ onComplete }) => {
 
   const handleSkip = async () => {
     hapticFeedback.selection();
-    await AsyncStorage.setItem('onboardingCompleted', 'true');
-    await AsyncStorage.setItem('userProfile', JSON.stringify({
+    await userStorage.setRaw('onboardingCompleted', 'true');
+    await userStorage.setRaw('userProfile', JSON.stringify({
       name: 'Friend',
       profilePicture: null,
       joinedDate: new Date().toISOString(),
@@ -1964,110 +1969,115 @@ const SimpleOnboarding = ({ onComplete }) => {
   const WeightScreen = () => {
     const screenTheme = SCREEN_THEMES.weight;
     
-    const weightUnits = [
-      { id: 'kg', label: 'Kilograms (kg)', icon: '🌍', desc: 'Used in most countries' },
-      { id: 'lb', label: 'Pounds (lb)', icon: '🇺🇸', desc: 'Used in USA & UK' },
-    ];
-
-    const heightUnits = [
-      { id: 'cm', label: 'Centimetres (cm)', icon: '📏', desc: 'Used in most countries' },
-      { id: 'ft', label: 'Feet & inches (ft)', icon: '📐', desc: 'Used in USA & UK' },
-    ];
-    
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
         <ProgressBar screenTheme={screenTheme} />
         
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-          <View style={styles.weightTopSection}>
-            <View style={styles.weightIconContainer}>
-              <MaterialIcons name="fitness-center" size={48} color={screenTheme.accent} />
+        <View style={{ flex: 1, alignItems: 'center', paddingTop: 40, paddingHorizontal: 24 }}>
+          <View style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: 'rgba(0,131,143,0.1)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}>
+            <MaterialIcons name="tune" size={28} color={screenTheme.accent} />
+          </View>
+          
+          <Text style={[styles.screenTitle, { color: '#333', marginBottom: 6 }]}>
+            Your Units
+          </Text>
+          
+          <Text style={[styles.screenSubtitle, { color: '#666', marginBottom: 32 }]}>
+            Choose your preferred measurement units
+          </Text>
+          
+          {/* Weight Unit */}
+          <View style={{ width: '100%', marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingLeft: 4 }}>
+              <MaterialIcons name="fitness-center" size={18} color={screenTheme.accent} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#555', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>Weight</Text>
             </View>
-            
-            <Text style={[styles.screenTitle, { color: '#333' }]}>
-              How do you measure weight?
-            </Text>
-            
-            <Text style={[styles.screenSubtitle, { color: '#666' }]}>
-              This helps us display your progress correctly
-            </Text>
-            
-            <View style={styles.weightOptions}>
-              {weightUnits.map((unit) => {
+            <View style={{ flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 14, padding: 4, gap: 4 }}>
+              {[
+                { id: 'kg', label: 'Kilograms (kg)' },
+                { id: 'lb', label: 'Pounds (lb)' },
+              ].map((unit) => {
                 const isSelected = weightUnit === unit.id;
                 return (
                   <TouchableOpacity
                     key={unit.id}
-                    style={[
-                      styles.weightOption,
-                      isSelected && [styles.weightOptionSelected, { borderColor: screenTheme.accent }],
-                    ]}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 14,
+                      borderRadius: 11,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isSelected ? screenTheme.accent : 'transparent',
+                    }}
                     onPress={() => {
                       hapticFeedback.selection();
                       setWeightUnit(unit.id);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.weightEmoji}>{unit.icon}</Text>
-                    <Text style={[styles.weightLabel, isSelected && { color: screenTheme.accent, fontWeight: '700' }]}>
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: isSelected ? '700' : '500',
+                      color: isSelected ? '#FFF' : '#555',
+                    }}>
                       {unit.label}
                     </Text>
-                    <Text style={styles.weightDesc}>{unit.desc}</Text>
-                    {isSelected && (
-                      <View style={[styles.weightCheck, { backgroundColor: screenTheme.accent }]}>
-                        <MaterialIcons name="check" size={16} color="#FFF" />
-                      </View>
-                    )}
                   </TouchableOpacity>
                 );
               })}
             </View>
+          </View>
 
-            {/* Height unit section */}
-            <View style={{ marginTop: 28 }}>
-              <View style={[styles.weightIconContainer, { marginBottom: 8 }]}>
-                <MaterialIcons name="straighten" size={48} color={screenTheme.accent} />
-              </View>
-              
-              <Text style={[styles.screenTitle, { color: '#333' }]}>
-                How do you measure height?
-              </Text>
-
-              <Text style={[styles.screenSubtitle, { color: '#666' }]}>
-                Used for nutrition and workout calculations
-              </Text>
-
-              <View style={styles.weightOptions}>
-                {heightUnits.map((unit) => {
-                  const isSelected = heightUnit === unit.id;
-                  return (
-                    <TouchableOpacity
-                      key={unit.id}
-                      style={[
-                        styles.weightOption,
-                        isSelected && [styles.weightOptionSelected, { borderColor: screenTheme.accent }],
-                      ]}
-                      onPress={() => {
-                        hapticFeedback.selection();
-                        setHeightUnit(unit.id);
-                      }}
-                    >
-                      <Text style={styles.weightEmoji}>{unit.icon}</Text>
-                      <Text style={[styles.weightLabel, isSelected && { color: screenTheme.accent, fontWeight: '700' }]}>
-                        {unit.label}
-                      </Text>
-                      <Text style={styles.weightDesc}>{unit.desc}</Text>
-                      {isSelected && (
-                        <View style={[styles.weightCheck, { backgroundColor: screenTheme.accent }]}>
-                          <MaterialIcons name="check" size={16} color="#FFF" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+          {/* Height Unit */}
+          <View style={{ width: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingLeft: 4 }}>
+              <MaterialIcons name="straighten" size={18} color={screenTheme.accent} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#555', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>Height</Text>
+            </View>
+            <View style={{ flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 14, padding: 4, gap: 4 }}>
+              {[
+                { id: 'cm', label: 'Centimetres (cm)' },
+                { id: 'ft', label: 'Feet & inches (ft)' },
+              ].map((unit) => {
+                const isSelected = heightUnit === unit.id;
+                return (
+                  <TouchableOpacity
+                    key={unit.id}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 14,
+                      borderRadius: 11,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isSelected ? screenTheme.accent : 'transparent',
+                    }}
+                    onPress={() => {
+                      hapticFeedback.selection();
+                      setHeightUnit(unit.id);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{
+                      fontSize: 15,
+                      fontWeight: isSelected ? '700' : '500',
+                      color: isSelected ? '#FFF' : '#555',
+                    }}>
+                      {unit.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
-        </ScrollView>
+        </View>
         
         <TouchableOpacity 
           onPress={handleNext}
@@ -2361,6 +2371,117 @@ const SimpleOnboarding = ({ onComplete }) => {
           <Text style={styles.mainButtonText}>Next</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
         </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
+  // SCREEN: Verify Email (Onboarding)
+  // ============================================
+  const VerifyEmailOnboardingScreen = () => {
+    const screenTheme = SCREEN_THEMES.verifyEmail;
+    const [showVerification, setShowVerification] = useState(false);
+
+    if (showVerification) {
+      return (
+        <EmailVerificationScreen
+          onDismiss={() => {
+            // After verification (success or skip), go to next onboarding step
+            handleNext();
+          }}
+        />
+      );
+    }
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+        
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+          <View style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: screenTheme.accent + '18',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+            <MaterialIcons name="verified-user" size={36} color={screenTheme.accent} />
+          </View>
+          
+          <Text style={{
+            fontSize: 26,
+            fontWeight: '800',
+            color: '#333',
+            textAlign: 'center',
+            marginBottom: 12,
+          }}>
+            Verify your email
+          </Text>
+          
+          <Text style={{
+            fontSize: 16,
+            color: '#666',
+            textAlign: 'center',
+            lineHeight: 24,
+            marginBottom: 40,
+            paddingHorizontal: 8,
+          }}>
+            Unlock the full experience by verifying your email. It only takes a moment.
+          </Text>
+          
+          <TouchableOpacity
+            style={{
+              width: '100%',
+              backgroundColor: screenTheme.accent,
+              paddingVertical: 16,
+              borderRadius: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 16,
+              shadowColor: screenTheme.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+            onPress={async () => {
+              hapticFeedback.buttonPress();
+              try {
+                await sendVerificationCode();
+              } catch (e) {
+                console.error('Error sending verification code:', e);
+              }
+              setShowVerification(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="mail-outline" size={20} color="#FFF" />
+            <Text style={{
+              fontSize: 17,
+              fontWeight: '700',
+              color: '#FFF',
+            }}>Verify Now</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.buttonPress();
+              handleNext();
+            }}
+            activeOpacity={0.7}
+            style={{ paddingVertical: 12 }}
+          >
+            <Text style={{
+              fontSize: 15,
+              color: '#999',
+              fontWeight: '500',
+            }}>Skip for now</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   };
@@ -3260,6 +3381,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'photo': return <PhotoScreen />;
       case 'theme': return <ThemeScreen />;
       case 'notifications': return <NotificationsScreen />;
+      case 'verifyEmail': return <VerifyEmailOnboardingScreen />;
       case 'howFound': return <HowFoundScreen />;
       case 'gift': return <GiftScreen />;
       case 'complete': return <CompleteScreen />;

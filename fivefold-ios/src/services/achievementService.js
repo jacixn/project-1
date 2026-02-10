@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { DeviceEventEmitter } from 'react-native';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
@@ -188,8 +188,8 @@ class AchievementService {
   static async _getMergedStats() {
     try {
       const [rawStr, prefixedStr] = await Promise.all([
-        AsyncStorage.getItem(RAW_KEY),
-        AsyncStorage.getItem(PREFIXED_KEY),
+        userStorage.getRaw(RAW_KEY),
+        userStorage.getRaw(PREFIXED_KEY),
       ]);
       const raw = rawStr ? JSON.parse(rawStr) : {};
       const prefixed = prefixedStr ? JSON.parse(prefixedStr) : {};
@@ -228,8 +228,8 @@ class AchievementService {
   static async _writeBothKeys(stats) {
     const json = JSON.stringify(stats);
     await Promise.all([
-      AsyncStorage.setItem(RAW_KEY, json),
-      AsyncStorage.setItem(PREFIXED_KEY, json),
+      userStorage.setRaw(RAW_KEY, json),
+      userStorage.setRaw(PREFIXED_KEY, json),
     ]);
   }
 
@@ -292,12 +292,12 @@ class AchievementService {
 
       if (newlyUnlocked.length === 0) {
         // No new achievements — just keep total_points in sync with userStats
-        await AsyncStorage.setItem(TOTAL_POINTS_KEY, currentStatsPoints.toString());
+        await userStorage.setRaw(TOTAL_POINTS_KEY, currentStatsPoints.toString());
         return null;
       }
 
       // Persist unlocked list
-      await AsyncStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
+      await userStorage.setRaw(this.ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
 
       // ── Award achievement bonus points ──────────────────────
       const totalPointsToAward = newlyUnlocked.reduce((sum, m) => sum + m.points, 0);
@@ -318,7 +318,7 @@ class AchievementService {
       await this._writeBothKeys(updatedStats);
 
       // ── Update central total_points key (single source of truth) ──
-      await AsyncStorage.setItem(TOTAL_POINTS_KEY, newPoints.toString());
+      await userStorage.setRaw(TOTAL_POINTS_KEY, newPoints.toString());
 
       // ── Sync to Firebase ──
       try {
@@ -355,10 +355,10 @@ class AchievementService {
       if (unlocked.length >= ACHIEVEMENTS.length) {
         const prestige = await this.getPrestigeCount();
         const newPrestige = prestige + 1;
-        await AsyncStorage.setItem(this.PRESTIGE_KEY, newPrestige.toString());
+        await userStorage.setRaw(this.PRESTIGE_KEY, newPrestige.toString());
 
         // Reset the unlocked list so they can be earned again
-        await AsyncStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify([]));
+        await userStorage.setRaw(this.ACHIEVEMENTS_KEY, JSON.stringify([]));
 
         console.log(`[Achievement] ALL COMPLETE! Prestige round ${newPrestige} — achievements reset.`);
 
@@ -378,7 +378,7 @@ class AchievementService {
 
   static async getUnlockedAchievements() {
     try {
-      const data = await AsyncStorage.getItem(this.ACHIEVEMENTS_KEY);
+      const data = await userStorage.getRaw(this.ACHIEVEMENTS_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
       return [];
@@ -390,7 +390,7 @@ class AchievementService {
    */
   static async getPrestigeCount() {
     try {
-      const val = await AsyncStorage.getItem(this.PRESTIGE_KEY);
+      const val = await userStorage.getRaw(this.PRESTIGE_KEY);
       return val ? parseInt(val, 10) : 0;
     } catch {
       return 0;
@@ -466,7 +466,7 @@ class AchievementService {
       await this._writeBothKeys(updatedStats);
 
       // Update the single source of truth
-      await AsyncStorage.setItem(TOTAL_POINTS_KEY, correctTotal.toString());
+      await userStorage.setRaw(TOTAL_POINTS_KEY, correctTotal.toString());
 
       // Sync corrected value to Firebase
       try {

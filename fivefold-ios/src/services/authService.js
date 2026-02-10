@@ -14,7 +14,6 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -29,9 +28,10 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../config/firebase';
 import { getStoredData } from '../utils/localStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 /**
  * Check if a username is available
@@ -101,12 +101,14 @@ export const signUp = async ({ email, password, username, displayName }) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
-  // Send email verification
+  // Send OTP verification code via Cloud Function
+  let maskedEmail = email;
   try {
-    await sendEmailVerification(user);
-    console.log('[Auth] Verification email sent to:', email);
+    const result = await sendVerificationCode();
+    maskedEmail = result.maskedEmail || email;
+    console.log('[Auth] Verification code sent to:', maskedEmail);
   } catch (verifyError) {
-    console.warn('[Auth] Failed to send verification email:', verifyError);
+    console.warn('[Auth] Failed to send verification code:', verifyError);
   }
   
   // Update the user's display name
@@ -144,9 +146,9 @@ export const signUp = async ({ email, password, username, displayName }) => {
   });
   
   // Clear local data so the new account starts fresh
-  await AsyncStorage.removeItem('fivefold_userStats');
-  await AsyncStorage.removeItem('userProfile');
-  await AsyncStorage.removeItem('fivefold_userName');
+  await userStorage.remove('fivefold_userStats');
+  await userStorage.remove('userProfile');
+  await userStorage.remove('fivefold_userName');
   console.log('[Auth] Created fresh account, cleared local data');
   
   // Initialize the friends document
@@ -163,6 +165,7 @@ export const signUp = async ({ email, password, username, displayName }) => {
     email: user.email,
     displayName: displayName || username,
     username: normalizedUsername,
+    maskedEmail,
   };
 };
 
@@ -206,10 +209,11 @@ export const isEmailVerified = () => {
 };
 
 /**
- * Resend verification email to current user
- * @returns {Promise<void>}
+ * Send a 6-digit verification code to the current user's email.
+ * Calls the sendVerificationCode Cloud Function.
+ * @returns {Promise<{success: boolean, maskedEmail: string}>}
  */
-export const resendVerificationEmail = async () => {
+export const sendVerificationCode = async () => {
   const user = auth.currentUser;
   if (!user) {
     throw new Error('No user signed in');
@@ -217,8 +221,33 @@ export const resendVerificationEmail = async () => {
   if (user.emailVerified) {
     throw new Error('Email is already verified');
   }
-  await sendEmailVerification(user);
-  console.log('[Auth] Verification email resent to:', user.email);
+
+  const callable = httpsCallable(functions, 'sendVerificationCode');
+  const result = await callable();
+  console.log('[Auth] Verification code sent to:', result.data.maskedEmail);
+  return result.data;
+};
+
+/**
+ * Verify the 6-digit code entered by the user.
+ * Calls the verifyEmailCode Cloud Function.
+ * @param {string} code – the 6-digit code
+ * @returns {Promise<{success: boolean, emailVerified: boolean}>}
+ */
+export const verifyEmailCode = async (code) => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user signed in');
+  }
+
+  const callable = httpsCallable(functions, 'verifyEmailCode');
+  const result = await callable({ code });
+
+  // Reload the local user so user.emailVerified updates
+  await user.reload();
+
+  console.log('[Auth] Email verified successfully');
+  return result.data;
 };
 
 /**
@@ -248,10 +277,10 @@ export const refreshEmailVerificationStatus = async () => {
  */
 export const signOut = async () => {
   // Clear cached user data so next sign in loads correct account data
-  await AsyncStorage.removeItem('@biblely_user_cache');
-  await AsyncStorage.removeItem('userProfile');
-  await AsyncStorage.removeItem('fivefold_userStats');
-  await AsyncStorage.removeItem('fivefold_userName');
+  await userStorage.remove('@biblely_user_cache');
+  await userStorage.remove('userProfile');
+  await userStorage.remove('fivefold_userStats');
+  await userStorage.remove('fivefold_userName');
   console.log('[Auth] Signed out and cleared local cache');
   
   await firebaseSignOut(auth);
@@ -375,6 +404,7 @@ export default {
   onAuthStateChange,
   getAuthErrorMessage,
   isEmailVerified,
-  resendVerificationEmail,
+  sendVerificationCode,
+  verifyEmailCode,
   refreshEmailVerificationStatus,
 };

@@ -23,7 +23,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { hapticFeedback } from '../utils/haptics';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
@@ -101,7 +101,7 @@ const JournalScreen = ({ navigation }) => {
     try {
       setJournalLoading(true);
       
-      const existingNotes = await AsyncStorage.getItem('journalNotes');
+      const existingNotes = await userStorage.getRaw('journalNotes');
       const notes = existingNotes ? JSON.parse(existingNotes) : [];
       
       const verseNotes = await VerseDataManager.getAllNotes();
@@ -123,7 +123,7 @@ const JournalScreen = ({ navigation }) => {
       for (const note of allNotes) {
         if (isValidBibleReference(note.verseReference)) {
           try {
-            const preferredVersion = await AsyncStorage.getItem('selectedBibleVersion') || 'niv';
+            const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
             const verseData = await verseByReferenceService.getVerseByReference(
               note.verseReference,
               preferredVersion
@@ -140,7 +140,7 @@ const JournalScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error loading journal notes:', error);
       try {
-        const existingNotes = await AsyncStorage.getItem('journalNotes');
+        const existingNotes = await userStorage.getRaw('journalNotes');
         if (existingNotes) {
           const notes = JSON.parse(existingNotes);
           if (notes && notes.length > 0) {
@@ -188,10 +188,10 @@ const JournalScreen = ({ navigation }) => {
             journalVerseTexts={journalVerseTexts}
             onDeleteNote={async (noteId) => {
               hapticFeedback.light();
-              const raw = await AsyncStorage.getItem('journalNotes');
+              const raw = await userStorage.getRaw('journalNotes');
               const allNotes = raw ? JSON.parse(raw) : [];
               const remaining = allNotes.filter(n => n.id !== noteId);
-              await AsyncStorage.setItem('journalNotes', JSON.stringify(remaining));
+              await userStorage.setRaw('journalNotes', JSON.stringify(remaining));
               setJournalNotes(remaining);
             }}
             onAddEntry={() => setIsAddingEntry(true)}
@@ -386,10 +386,10 @@ const JournalScreen = ({ navigation }) => {
                   };
 
                   try {
-                    const existingNotes = await AsyncStorage.getItem('journalNotes');
+                    const existingNotes = await userStorage.getRaw('journalNotes');
                     const notes = existingNotes ? JSON.parse(existingNotes) : [];
                     notes.unshift(newEntry);
-                    await AsyncStorage.setItem('journalNotes', JSON.stringify(notes));
+                    await userStorage.setRaw('journalNotes', JSON.stringify(notes));
                     
                     setJournalNotes(notes);
                     setNewJournalNote({ reference: '', text: '' });

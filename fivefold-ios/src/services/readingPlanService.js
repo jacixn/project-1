@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 // GitHub Configuration
 const GITHUB_CONFIG = {
@@ -19,7 +19,7 @@ class ReadingPlanService {
   // Check if cache is still valid
   static async isCacheValid() {
     try {
-      const timestamp = await AsyncStorage.getItem(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY);
+      const timestamp = await userStorage.getRaw(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
       
       const cacheAge = Date.now() - parseInt(timestamp);
@@ -51,8 +51,8 @@ class ReadingPlanService {
       });
       
       // Cache the data
-      await AsyncStorage.setItem(GITHUB_CONFIG.CACHE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+      await userStorage.setRaw(GITHUB_CONFIG.CACHE_KEY, JSON.stringify(data));
+      await userStorage.setRaw(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
       console.log('✅ Successfully fetched and cached reading plan');
       return data;
@@ -73,7 +73,7 @@ class ReadingPlanService {
       console.log('📖 Cache valid:', cacheValid);
       
       if (cacheValid) {
-        const cachedData = await AsyncStorage.getItem(GITHUB_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(GITHUB_CONFIG.CACHE_KEY);
         if (cachedData) {
           console.log('✅ Using cached reading plan data');
           return JSON.parse(cachedData);
@@ -88,7 +88,7 @@ class ReadingPlanService {
       
       // Try to use expired cache as fallback
       try {
-        const cachedData = await AsyncStorage.getItem(GITHUB_CONFIG.CACHE_KEY);
+        const cachedData = await userStorage.getRaw(GITHUB_CONFIG.CACHE_KEY);
         if (cachedData) {
           console.log('⚠️ Using expired cache as fallback');
           return JSON.parse(cachedData);
@@ -106,8 +106,8 @@ class ReadingPlanService {
   // Force refresh from GitHub
   static async refresh() {
     try {
-      await AsyncStorage.removeItem(GITHUB_CONFIG.CACHE_KEY);
-      await AsyncStorage.removeItem(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY);
+      await userStorage.remove(GITHUB_CONFIG.CACHE_KEY);
+      await userStorage.remove(GITHUB_CONFIG.CACHE_TIMESTAMP_KEY);
       return await this.fetchFromGitHub();
     } catch (error) {
       console.error('Error refreshing reading plan:', error);

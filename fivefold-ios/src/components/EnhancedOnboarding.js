@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { countries } from '../data/countries';
@@ -192,8 +192,8 @@ const EnhancedOnboarding = ({ onComplete }) => {
         createdAt: new Date().toISOString(),
       };
 
-      await AsyncStorage.setItem('userProfile', JSON.stringify(userProfile));
-      await AsyncStorage.setItem('smart_features_enabled', smartFeaturesEnabled.toString());
+      await userStorage.setRaw('userProfile', JSON.stringify(userProfile));
+      await userStorage.setRaw('smart_features_enabled', smartFeaturesEnabled.toString());
       
       console.log('✅ User profile saved:', userProfile);
 

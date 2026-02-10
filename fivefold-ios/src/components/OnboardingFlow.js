@@ -13,7 +13,7 @@ import {
   SafeAreaView,
   FlatList,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -188,11 +188,11 @@ const OnboardingFlow = ({ onComplete }) => {
         onboardingCompleted: true,
       };
       
-      await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-        await AsyncStorage.setItem('selectedBibleVersion', selectedBibleVersion);
-        await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
-      await AsyncStorage.setItem('weightUnit', weightUnit);
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      await userStorage.setRaw('userProfile', JSON.stringify(profile));
+        await userStorage.setRaw('selectedBibleVersion', selectedBibleVersion);
+        await userStorage.setRaw('selectedLanguage', selectedLanguage);
+      await userStorage.setRaw('weightUnit', weightUnit);
+      await userStorage.setRaw('onboardingCompleted', 'true');
         
         await changeTheme(selectedTheme);
       if (selectedMode === 'dark' && !isDark) await toggleDarkMode();

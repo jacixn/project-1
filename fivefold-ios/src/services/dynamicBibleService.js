@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userStorage from '../utils/userStorage';
 
 // Dynamic Bible Verse Fetching Service
 // Handles fetching, caching, and offline support for Bible verses
@@ -117,7 +117,7 @@ class DynamicBibleService {
   // Cache management
   static async getCachedVerse(reference, version) {
     try {
-      const cacheData = await AsyncStorage.getItem(this.CACHE_KEY);
+      const cacheData = await userStorage.getRaw(this.CACHE_KEY);
       
       if (!cacheData) {
         return null;
@@ -139,7 +139,7 @@ class DynamicBibleService {
       if (fetchedAt < expiryDate) {
         console.log(`🗑️ Cache expired for ${reference}`);
         delete cache[cacheKey];
-        await AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(cache));
+        await userStorage.setRaw(this.CACHE_KEY, JSON.stringify(cache));
         return null;
       }
       
@@ -153,7 +153,7 @@ class DynamicBibleService {
   
   static async cacheVerse(reference, version, verseData) {
     try {
-      const cacheData = await AsyncStorage.getItem(this.CACHE_KEY);
+      const cacheData = await userStorage.getRaw(this.CACHE_KEY);
       const cache = cacheData ? JSON.parse(cacheData) : {};
       
       const cacheKey = `${reference}_${version}`;
@@ -173,7 +173,7 @@ class DynamicBibleService {
         console.log(`🧹 Cleaned ${toRemove.length} old cache entries`);
       }
       
-      await AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(cache));
+      await userStorage.setRaw(this.CACHE_KEY, JSON.stringify(cache));
       console.log(`💾 Cached: ${reference}`);
       
     } catch (error) {
@@ -209,7 +209,7 @@ class DynamicBibleService {
   // Cache management utilities
   static async clearCache() {
     try {
-      await AsyncStorage.removeItem(this.CACHE_KEY);
+      await userStorage.remove(this.CACHE_KEY);
       console.log('🧹 Bible verse cache cleared');
     } catch (error) {
       console.error('Error clearing cache:', error);
@@ -218,7 +218,7 @@ class DynamicBibleService {
   
   static async getCacheStats() {
     try {
-      const cacheData = await AsyncStorage.getItem(this.CACHE_KEY);
+      const cacheData = await userStorage.getRaw(this.CACHE_KEY);
       
       if (!cacheData) {
         return { size: 0, entries: 0 };
