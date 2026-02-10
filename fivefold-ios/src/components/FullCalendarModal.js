@@ -171,7 +171,7 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
       taskDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
       
       // Try to get AI scoring, but fallback if it fails
-      let scoreResult = { points: 1000, tier: 'mid', reasoning: 'Default scoring', timeEstimate: '30 min' };
+      let scoreResult = { points: 92, tier: 'mid', reasoning: 'Default scoring', timeEstimate: '30 min' };
       try {
         scoreResult = await scoreTask(taskText.trim());
       } catch (scoreError) {
@@ -189,7 +189,7 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
         scheduledTime: `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}`,
         scheduledDateTime: taskDateTime.toISOString(),
         reminderBefore: reminderBefore,
-        points: scoreResult.points || 1000,
+        points: scoreResult.points || 92,
         tier: scoreResult.tier || 'mid',
         reasoning: scoreResult.reasoning || '',
         timeEstimate: scoreResult.timeEstimate || '',

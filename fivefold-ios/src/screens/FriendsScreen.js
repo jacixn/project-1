@@ -131,6 +131,32 @@ const FriendsScreen = ({ navigation, onClose }) => {
     }
   }, [user]);
   
+  // Refresh unread counts when screen comes back into focus (e.g. after reading a chat)
+  useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user?.uid) {
+        // Silently refresh unread counts without full reload
+        getConversations(user.uid).then(conversations => {
+          const unreadMap = {};
+          const timeMap = {};
+          conversations.forEach(conv => {
+            if (conv.otherUserId) {
+              if (conv.unreadCount > 0) {
+                unreadMap[conv.otherUserId] = conv.unreadCount;
+              }
+              const t = conv.lastMessageAt?.toDate?.() || conv.lastMessageAt;
+              if (t) timeMap[conv.otherUserId] = new Date(t).getTime();
+            }
+          });
+          setUnreadMessages(unreadMap);
+          setLastMessageTimes(timeMap);
+        }).catch(err => console.log('Focus refresh unread failed:', err));
+      }
+    });
+    return unsubscribe;
+  }, [navigation, user]);
+  
   // Search with debounce
   useEffect(() => {
     if (searchTimeout.current) {

@@ -799,7 +799,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayersCompleted: 0
       };
       
-      const pointsEarned = 25000; // 25k points per prayer
+      const pointsEarned = 175; // 175 points per prayer
       const updatedStats = {
         ...currentStats,
         points: (currentStats.points || 0) + pointsEarned,

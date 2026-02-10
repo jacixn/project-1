@@ -2162,9 +2162,17 @@ const ProfileTab = () => {
         setPurchasedVersions(JSON.parse(storedPurchasedVersions));
       }
       
-      // Load actual points from PrayerCompletionManager
-      const totalPoints = await PrayerCompletionManager.getTotalPoints();
-      const level = AchievementService.getLevelFromPoints(totalPoints);
+      // ── Recalculate score from scratch to fix any inflation ──
+      // This runs the proper recalculation on every profile load so stale
+      // inflated values get corrected automatically.
+      let correctTotal;
+      try {
+        correctTotal = await AchievementService.recalculateScore();
+      } catch (e) {
+        console.warn('[Profile] recalculateScore failed, falling back:', e.message);
+        correctTotal = 0;
+      }
+      const level = AchievementService.getLevelFromPoints(correctTotal);
       
       // Get actual completed tasks count from todos
       const storedTodos = await userStorage.getRaw('fivefold_todos');
@@ -2183,15 +2191,11 @@ const ProfileTab = () => {
       }
       
       const mergedStats = {
-        points: totalPoints,
-        level: level,
-        completedTasks: actualCompletedCount, // Use actual count, not cached
-        streak: 0,
-        badges: [],
-        versesRead: 25,
-        prayersCompleted: 12,
-        ...storedStats,
-        completedTasks: actualCompletedCount, // Override cached value with actual
+        ...storedStats,                        // Base from stored stats (activity counters etc.)
+        points: correctTotal,                  // Override with recalculated total
+        totalPoints: correctTotal,             // Keep in sync
+        level: level,                          // Always derive from points
+        completedTasks: actualCompletedCount,  // Use actual count, not cached
       };
       setUserStats(mergedStats);
 
@@ -2528,9 +2532,9 @@ const ProfileTab = () => {
   const enableDeepSeekAI = () => {};
   const clearApiKey = () => {};
 
-  // Calculate level progress — uses AchievementService (10,000 pts per level)
+  // Calculate level progress — uses AchievementService (300 pts per level)
   const getThresholdForLevel = (lvl) => AchievementService.getPointsForLevel(lvl);
-  const POINTS_PER_LEVEL = 10000;
+  const POINTS_PER_LEVEL = 300;
 
   const currentPoints = Math.max(userStats.points || 0, 0);
   const currentLevelThreshold = getThresholdForLevel(userStats.level);
@@ -5822,7 +5826,7 @@ const ProfileTab = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: 20,
-            paddingTop: Platform.OS === 'ios' ? 60 : 20,
+            paddingTop: 16,
             paddingBottom: 16,
             backgroundColor: isDark ? '#111' : '#F5F5F7',
           }}>
@@ -7844,7 +7848,7 @@ const ProfileTab = () => {
         {/* Header */}
         <View style={{
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-          paddingTop: Platform.OS === 'ios' ? 60 : 20, paddingHorizontal: 20, paddingBottom: 16,
+          paddingTop: 16, paddingHorizontal: 20, paddingBottom: 16,
           borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           backgroundColor: isDark ? '#0F0F23' : '#FAFAFA',
         }}>

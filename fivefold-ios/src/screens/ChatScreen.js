@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Easing,
   ActivityIndicator,
   StatusBar,
   Keyboard,
@@ -43,9 +44,272 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../services/storageService';
 import profanityFilter from '../services/profanityFilterService';
+import userStorage from '../utils/userStorage';
+import { BlurView } from 'expo-blur';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
+
+// ── First-Time Messaging Disclaimer ──
+const MessagingDisclaimer = ({ visible, onAccept, theme, isDark }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const shieldAnim = useRef(new Animated.Value(0)).current;
+  const checkmarkAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+  const buttonAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // Staggered entrance
+      Animated.sequence([
+        // Backdrop
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        // Card scale in
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 65,
+          friction: 9,
+          useNativeDriver: true,
+        }),
+        // Shield bounce
+        Animated.spring(shieldAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+        // Stagger checkmarks
+        Animated.stagger(120, checkmarkAnims.map(anim =>
+          Animated.spring(anim, {
+            toValue: 1,
+            tension: 100,
+            friction: 8,
+            useNativeDriver: true,
+          })
+        )),
+        // Button pop
+        Animated.spring(buttonAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const handleAccept = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Animate out
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0.8,
+        duration: 200,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onAccept());
+  };
+
+  if (!visible) return null;
+
+  const guidelines = [
+    { icon: 'favorite', text: 'Be kind, respectful, and uplifting in every message' },
+    { icon: 'shield', text: 'Messages are filtered to keep conversations safe' },
+    { icon: 'visibility-off', text: 'Messages auto-delete 24 hours after being read' },
+    { icon: 'gavel', text: 'Misuse may result in your account being restricted' },
+  ];
+
+  return (
+    <Animated.View style={[disclaimerStyles.overlay, { opacity: opacityAnim }]}>
+      <BlurView intensity={40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      
+      <Animated.View style={[
+        disclaimerStyles.card,
+        {
+          backgroundColor: isDark ? 'rgba(30,30,30,0.97)' : 'rgba(255,255,255,0.97)',
+          transform: [{ scale: scaleAnim }],
+          shadowColor: theme.primary,
+        }
+      ]}>
+        {/* Shield Icon */}
+        <Animated.View style={[
+          disclaimerStyles.shieldContainer,
+          {
+            transform: [
+              { scale: shieldAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+              { rotate: shieldAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '-10deg', '0deg'] }) },
+            ],
+            opacity: shieldAnim,
+          }
+        ]}>
+          <LinearGradient
+            colors={[theme.primary, theme.primary + 'CC']}
+            style={disclaimerStyles.shieldGradient}
+          >
+            <MaterialIcons name="verified-user" size={36} color="#FFF" />
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Title */}
+        <Text style={[disclaimerStyles.title, { color: theme.text }]}>
+          Community Guidelines
+        </Text>
+        <Text style={[disclaimerStyles.subtitle, { color: theme.textSecondary }]}>
+          We want every conversation to reflect love,{'\n'}respect, and encouragement.
+        </Text>
+
+        {/* Guidelines */}
+        <View style={disclaimerStyles.guidelinesContainer}>
+          {guidelines.map((item, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                disclaimerStyles.guidelineRow,
+                {
+                  opacity: checkmarkAnims[index],
+                  transform: [{
+                    translateX: checkmarkAnims[index].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-30, 0],
+                    }),
+                  }],
+                }
+              ]}
+            >
+              <View style={[disclaimerStyles.guidelineIcon, { backgroundColor: theme.primary + '18' }]}>
+                <MaterialIcons name={item.icon} size={18} color={theme.primary} />
+              </View>
+              <Text style={[disclaimerStyles.guidelineText, { color: theme.text }]}>
+                {item.text}
+              </Text>
+            </Animated.View>
+          ))}
+        </View>
+
+        {/* Accept Button */}
+        <Animated.View style={{
+          transform: [{ scale: buttonAnim }],
+          opacity: buttonAnim,
+          width: '100%',
+        }}>
+          <TouchableOpacity
+            style={[disclaimerStyles.acceptButton, { backgroundColor: theme.primary }]}
+            onPress={handleAccept}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="check-circle" size={20} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={disclaimerStyles.acceptButtonText}>I Understand</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Footer */}
+        <Text style={[disclaimerStyles.footer, { color: theme.textTertiary }]}>
+          This message is shown once for your safety.
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+const disclaimerStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  card: {
+    width: '100%',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 20,
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  shieldContainer: {
+    marginBottom: 16,
+  },
+  shieldGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  guidelinesContainer: {
+    width: '100%',
+    gap: 14,
+    marginBottom: 28,
+  },
+  guidelineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  guidelineIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guidelineText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '500',
+  },
+  acceptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    width: '100%',
+  },
+  acceptButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  footer: {
+    fontSize: 12,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+});
 
 const ChatScreen = () => {
   const navigation = useNavigation();
@@ -63,13 +327,36 @@ const ChatScreen = () => {
   const [sending, setSending] = useState(false);
   const [showEncouragements, setShowEncouragements] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
+    checkFirstTimeMessaging();
     initializeChat();
   }, []);
+
+  // Check if user has seen the messaging guidelines
+  const checkFirstTimeMessaging = async () => {
+    try {
+      const seen = await userStorage.getRaw('chat_guidelines_accepted');
+      if (!seen) {
+        setShowDisclaimer(true);
+      }
+    } catch (err) {
+      console.log('Error checking chat guidelines:', err);
+    }
+  };
+
+  const handleAcceptDisclaimer = async () => {
+    setShowDisclaimer(false);
+    try {
+      await userStorage.setRaw('chat_guidelines_accepted', 'true');
+    } catch (err) {
+      console.log('Error saving chat guidelines acceptance:', err);
+    }
+  };
 
   useEffect(() => {
     if (!conversationId) return;
@@ -268,6 +555,11 @@ const ChatScreen = () => {
     const isVerse = item.type === 'verse';
     const isImage = item.type === 'image';
 
+    // Only show avatar on the LAST message in a consecutive group from the same sender
+    // (next message is from a different sender, or this is the last message, or next has a timestamp gap)
+    const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+    const isLastInGroup = !nextMsg || nextMsg.senderId !== item.senderId || shouldShowTimestamp(index + 1);
+
     // Calculate image dimensions
     const getImageDimensions = () => {
       if (!item.metadata?.width || !item.metadata?.height) {
@@ -290,8 +582,10 @@ const ChatScreen = () => {
         <View style={[
           styles.messageRow,
           isMe ? styles.messageRowMe : styles.messageRowOther,
+          !isLastInGroup && { marginBottom: 2 },
         ]}>
-          {!isMe && (
+          {/* Only show avatar on the last message in a consecutive group */}
+          {!isMe && isLastInGroup && (
             otherUser?.profilePicture ? (
               <Image source={{ uri: otherUser.profilePicture }} style={styles.messageAvatar} />
             ) : (
@@ -299,6 +593,10 @@ const ChatScreen = () => {
                 <MaterialIcons name="person" size={14} color={theme.primary} />
               </View>
             )
+          )}
+          {/* Invisible spacer to keep alignment when avatar is hidden */}
+          {!isMe && !isLastInGroup && (
+            <View style={{ width: 28, marginRight: 8 }} />
           )}
           
           <View style={[
@@ -414,6 +712,14 @@ const ChatScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {/* First-time messaging disclaimer */}
+      <MessagingDisclaimer
+        visible={showDisclaimer}
+        onAccept={handleAcceptDisclaimer}
+        theme={theme}
+        isDark={isDark}
+      />
       
       {/* Header */}
       <View style={[

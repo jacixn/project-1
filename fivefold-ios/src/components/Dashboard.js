@@ -5,14 +5,14 @@ import { getNextPrayerTime } from '../utils/solarCalculations';
 import { LiquidGlassStatsCard, LiquidGlassProgressCard } from './LiquidGlassCard';
 
 const Dashboard = ({ userStats, prayerTimes, location, onSettingsPress, onExportPress, onBiblePress }) => {
-  const level = Math.floor((userStats?.totalPoints || 0) / 100) + 1;
+  const level = Math.floor((userStats?.totalPoints || 0) / 300) + 1;
   const currentPoints = userStats?.totalPoints || 0;
   const nextPrayer = getNextPrayerTime(prayerTimes);
   
-  // Calculate daily progress (points toward next level)
-  const pointsForCurrentLevel = (level - 1) * 100;
-  const pointsForNextLevel = level * 100;
-  const progressPercent = Math.min(100, ((currentPoints - pointsForCurrentLevel) / 100) * 100);
+  // Calculate daily progress (points toward next level) — 300 pts per level
+  const pointsForCurrentLevel = (level - 1) * 300;
+  const pointsForNextLevel = level * 300;
+  const progressPercent = Math.min(100, ((currentPoints - pointsForCurrentLevel) / 300) * 100);
 
   const formatTime = (date) => {
     if (!date) return '--:--';

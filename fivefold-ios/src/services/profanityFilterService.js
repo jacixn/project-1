@@ -320,8 +320,156 @@ const BLOCKED_PHRASES = [
   'eat a','eat my',
 ];
 
+// ── Safe words: common English words that contain blocked substrings ──
+// These are checked PER-WORD so "class" is safe but "ass" is still caught.
+const SAFE_WORDS = new Set([
+  // ass- words
+  'assist','assists','assistant','assistants','assisted','assisting','assistance',
+  'assess','assesses','assessed','assessing','assessment','assessments',
+  'assign','assigns','assigned','assigning','assignment','assignments',
+  'associate','associates','associated','associating','association','associations',
+  'assume','assumes','assumed','assuming','assumption','assumptions',
+  'assure','assures','assured','assuring','assurance','assurances',
+  'assemble','assembles','assembled','assembling','assembly',
+  'assert','asserts','asserted','asserting','assertion','assertions',
+  'asset','assets','assassin','assassins',
+  'class','classes','classy','classic','classical','classify','classified','classification',
+  'glass','glasses','glassy','stainedglass',
+  'grass','grassy','grassland',
+  'mass','masses','massive','biomass',
+  'pass','passes','passed','passing','passive','passion','passionate','passenger','passengers',
+  'bass','bassist','bassline',
+  'brass','brassy',
+  'compass','compassion','compassionate',
+  'embarrass','embarrassed','embarrassing','embarrassment',
+  'harassing',  // keep 'harass' blocked but allow 'harassing' in educational context
+  // tit- words
+  'title','titles','titled','subtitle','subtitles','entitled','entitlement',
+  'tithing','tithe','tithes',  // important for a Christian app!
+  'appetite','competitive','repetitive','repetition',
+  'constitution','constitutional','institution','institutional',
+  // beautiful / misc
+  'beautiful','beautifully','beauty','beautify',
+  'therapist','therapists','therapy','therapeutic',
+  'button','buttons','buttress','butterfly','butterflies','butter','buttery','butterscotch',
+  'peanut','walnut','chestnut','coconut','doughnut','nutmeg','nutshell','nutrition','nutritious','nutritional',
+  'minute','minutes',
+  'execute','executes','executed','executing','execution','executive','executives',
+  'prosecute','prosecutor','prosecution',
+  'document','documents','documentary','documented','documentation',
+  'circumstance','circumstances',
+  'potato','potatoes','potent','potential','potentially','potassium',
+  'cocktail','cocktails',
+  'peacock','peacocks',
+  'grape','grapes','grapefruit',
+  'escape','escaped','escaping','escapes',
+  'landscape','landscapes',
+  'shell','shells','seashell','eggshell',
+  'shuttle','shuttles',
+  'subtle','subtly','subtlety',
+  'together','altogether',
+  'another',
+  'mother','motherhood','motherly','mothers','grandmother','godmother',
+  'brother','brotherhood','brotherly','brothers',
+  'bother','bothered','bothering','bothers',
+  'smother','smothered','smothering',
+  'weather','leather','feather','heather',
+  'analysis','analyst','analysts','analytical','analyze','analyzed','analysing',
+  'analogy','analogous',
+  'anatomy','anatomical',
+  'country','countries','countryside',
+  'counter','counters','encounter','encounters','encountered',
+  'shutter','shutters',
+  'express','expression','expressive','expressed',
+  'impression','impressive','impressed',
+  'happiness','witness','witnesses',
+  'basement',
+  'drape','drapes','draped',
+  'scrape','scraped','scraping',
+  'scrapbook',
+  'therapist','therapeutic',
+  'hello',
+  'discuss','discusses','discussed','discussing','discussion',
+  'message','messages','massage',
+  'passage','passages',
+  'possible','impossible',
+  'mission','missionary','missionaries',  // important for Christian app
+  'permission','submission',
+  'session','sessions',
+  'bless','blessed','blessing','blessings',  // very important for Christian app
+  'confess','confession','confessing',
+  'possess','possessed','possession',
+  'process','processed','processing',
+  'professor',
+  'recess',
+  'success','successful','successfully',
+  'excess','excessive',
+  'access','accessible',
+  'necessary','necessarily',
+  'assassinate','assassination',
+  'cannabis',  // keep this as safe since substring match shouldn't catch it from word-level
+  'manslaughter',
+  'slaughter','slaughtered',  // may appear in Bible study context
+  'laughter',  // very important - contains 'slaughter' reversed but also 'augh'
+  'daughter','daughters',
+  'cocktail',
+  'highlight','highlighted','highlighting',
+  'twilight','moonlight','sunlight','daylight',
+  'night','knight','knights',
+  'fight','fighting','fighter',
+  'right','rights','righteous','righteousness',  // very important for Christian app
+  'light','lighting','enlighten','enlightenment',
+  'might','mighty','almighty',  // important for Christian app
+  'sight','insight',
+  'tight','tighten',
+  'slight','slightly',
+  'delight','delightful',
+  'oversight',
+  'tonight',
+  'forthright',
+  'birthright',
+  'copyright',
+  'outright',
+  'straight',
+  'exchange',
+  'grape','grapevine',  // Biblical reference
+  'therapists',
+  'homesick','thickness','sickness',
+  'classic','classmate','classroom',
+  'grasshopper',
+  'trespass','trespasses','trespassing',  // very important for Christian app (Lord's Prayer)
+  'highness',
+  'kindness','goodness','holiness','righteousness','faithfulness','forgiveness',  // Christian virtues
+  'darkness','wilderness',  // Biblical terms
+  'witness','eyewitness',
+  'goddess',  // may appear in comparative religion discussion
+  'assess',
+  'assassinated',
+]);
+
+// ── Helpers ──
+const _normalize = (str) => str.replace(/[^a-z]/g, '');
+const _deLeet = (str) => str
+  .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e')
+  .replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't')
+  .replace(/8/g, 'b').replace(/9/g, 'g').replace(/6/g, 'b')
+  .replace(/@/g, 'a').replace(/\$/g, 's').replace(/!/g, 'i')
+  .replace(/\+/g, 't').replace(/</g, 'c').replace(/\(/g, 'c')
+  .replace(/\|/g, 'l').replace(/\{/g, 'c').replace(/~/g, 'n')
+  .replace(/[^a-z]/g, '');
+const _collapse = (str) => str.replace(/(.)\1+/g, '$1');
+
 /**
  * Check if text contains profanity.
+ * 
+ * Uses WORD-LEVEL matching (not full-text substring) to avoid false positives
+ * like "beautiful" (was caught by "ar" from "ar15"), "class" ("ass"), "title" ("tit"), etc.
+ *
+ * Strategy:
+ *  1. Per-word: exact match + within-word substring (min 4 chars)
+ *  2. Space-evasion: detect "f u c k" single-char patterns
+ *  3. Phrase matching on the full spaced text
+ *
  * @param {string} text
  * @returns {boolean}
  */
@@ -330,46 +478,72 @@ const containsProfanity = (text) => {
 
   const raw = text.toLowerCase();
 
-  // ── Layer 1: Strip ALL non-alpha ──
-  const stripped = raw.replace(/[^a-z]/g, '');
+  // ── Split into words ──
+  const words = raw.split(/\s+/).filter(w => w.length > 0);
 
-  // ── Layer 2: De-leet substitution ──
-  const deLeet = raw
-    .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e')
-    .replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't')
-    .replace(/8/g, 'b').replace(/9/g, 'g').replace(/6/g, 'b')
-    .replace(/@/g, 'a').replace(/\$/g, 's').replace(/!/g, 'i')
-    .replace(/\+/g, 't').replace(/</g, 'c').replace(/\(/g, 'c')
-    .replace(/\|/g, 'l').replace(/\{/g, 'c').replace(/~/g, 'n')
-    .replace(/[^a-z]/g, '');
+  for (const word of words) {
+    const stripped = _normalize(word);
+    if (!stripped) continue;
 
-  // ── Layer 3: Collapse repeated chars (fuuuuck → fuck) ──
-  const collapsed = stripped.replace(/(.)\1+/g, '$1');
-  const deLeetCollapsed = deLeet.replace(/(.)\1+/g, '$1');
+    // Skip known safe English words
+    if (SAFE_WORDS.has(stripped)) continue;
 
-  // ── Layer 4: Spaced text for phrases ──
-  const spaced = raw.replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+    const deLeet = _deLeet(word);
+    const collapsed = _collapse(stripped);
+    const deLeetCollapsed = _collapse(deLeet);
 
-  // ── Check every substring window against the Set ──
-  const versions = [stripped, deLeet, collapsed, deLeetCollapsed];
-  for (const v of versions) {
-    const len = v.length;
-    // Slide a window of length 2..20 across the text
-    for (let size = 2; size <= Math.min(20, len); size++) {
-      for (let start = 0; start <= len - size; start++) {
-        const sub = v.substring(start, start + size);
-        if (BLOCKED_SET.has(sub)) {
-          return true;
+    // De-duplicate variants
+    const variants = new Set([stripped, deLeet, collapsed, deLeetCollapsed]);
+
+    for (const v of variants) {
+      if (!v) continue;
+
+      // ── Exact word match (catches short bad words: "ass", "ho", "fag", etc.) ──
+      if (BLOCKED_SET.has(v)) return true;
+
+      // ── Substring within word (for compound evasions like "fuckoff", "dumbass") ──
+      // Min size 4 to avoid "tit" in "title", "ass" in "class", "nip" in "turnip", etc.
+      const len = v.length;
+      for (let size = 4; size < len; size++) {
+        for (let start = 0; start <= len - size; start++) {
+          if (BLOCKED_SET.has(v.substring(start, start + size))) return true;
         }
       }
     }
   }
 
-  // ── Check phrases ──
-  for (const phrase of BLOCKED_PHRASES) {
-    if (spaced.includes(phrase)) {
-      return true;
+  // ── Space-evasion detection: "f u c k" → combine single-char runs ──
+  const singleRun = [];
+  for (let i = 0; i < words.length; i++) {
+    const clean = _normalize(words[i]);
+    if (clean.length === 1) {
+      singleRun.push(clean);
+    } else {
+      if (singleRun.length >= 3) {
+        const combined = singleRun.join('');
+        for (let size = 3; size <= Math.min(20, combined.length); size++) {
+          for (let start = 0; start <= combined.length - size; start++) {
+            if (BLOCKED_SET.has(combined.substring(start, start + size))) return true;
+          }
+        }
+      }
+      singleRun.length = 0;
     }
+  }
+  // Check final run
+  if (singleRun.length >= 3) {
+    const combined = singleRun.join('');
+    for (let size = 3; size <= Math.min(20, combined.length); size++) {
+      for (let start = 0; start <= combined.length - size; start++) {
+        if (BLOCKED_SET.has(combined.substring(start, start + size))) return true;
+      }
+    }
+  }
+
+  // ── Phrase check on full spaced text ──
+  const spaced = raw.replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+  for (const phrase of BLOCKED_PHRASES) {
+    if (spaced.includes(phrase)) return true;
   }
 
   return false;

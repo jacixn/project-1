@@ -1524,7 +1524,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       { 
         icon: '🎯', 
         title: '3-Tier Point System', 
-        desc: 'Easy tasks (500-800 pts), Medium (800-2000 pts), Hard tasks (2000-4000 pts). Earn big for big efforts!', 
+        desc: 'Easy tasks (35-69 pts), Medium (69-173 pts), Hard tasks (173-345 pts). Earn points for every effort!', 
         color: '#FF9800',
       },
       { 
@@ -1589,15 +1589,15 @@ const SimpleOnboarding = ({ onComplete }) => {
             <Text style={[styles.exampleTitle, { color: screenTheme.accent }]}>Example Tasks</Text>
             <View style={styles.exampleRow}>
               <Text style={styles.exampleTask}>"Drink water"</Text>
-              <Text style={[styles.examplePoints, { color: '#4CAF50' }]}>+500 pts</Text>
+              <Text style={[styles.examplePoints, { color: '#4CAF50' }]}>+52 pts</Text>
             </View>
             <View style={styles.exampleRow}>
               <Text style={styles.exampleTask}>"Study for 1 hour"</Text>
-              <Text style={[styles.examplePoints, { color: '#FF9800' }]}>+1,200 pts</Text>
+              <Text style={[styles.examplePoints, { color: '#FF9800' }]}>+115 pts</Text>
             </View>
             <View style={styles.exampleRow}>
               <Text style={styles.exampleTask}>"Complete project report"</Text>
-              <Text style={[styles.examplePoints, { color: '#F44336' }]}>+3,500 pts</Text>
+              <Text style={[styles.examplePoints, { color: '#F44336' }]}>+290 pts</Text>
             </View>
           </View>
         </ScrollView>

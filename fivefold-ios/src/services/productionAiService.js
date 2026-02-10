@@ -375,9 +375,9 @@ No explanations, just the two numbers.`;
       const prompt = `You are a task difficulty analyzer. Analyze tasks and classify them based on complexity, time, and effort required.
 
 TIERS:
-- LOW TIER (500-799 points): Quick, simple tasks under 15 minutes
-- MID TIER (800-1999 points): Moderate tasks 15 minutes to 2 hours  
-- HIGH TIER (2000-4000 points): Complex, time-intensive tasks 2+ hours
+- LOW TIER (35-69 points): Quick, simple tasks under 15 minutes
+- MID TIER (69-173 points): Moderate tasks 15 minutes to 2 hours  
+- HIGH TIER (173-345 points): Complex, time-intensive tasks 2+ hours
 
 Analyze this task: "${taskText}"
 
@@ -408,7 +408,7 @@ Respond with ONLY a JSON object:
         // Fallback to mid-tier
         parsed = {
           tier: 'mid',
-          points: 1200,
+          points: 92,
           reasoning: 'Unable to parse AI response',
           confidence: 50,
           timeEstimate: '30-60 min',
@@ -417,9 +417,11 @@ Respond with ONLY a JSON object:
       }
 
       // Validate and return
+      // Clamp AI points to valid tier ranges (35-345)
+      const clampedPoints = Math.max(35, Math.min(345, parsed.points || 92));
       return {
         tier: parsed.tier || 'mid',
-        points: parsed.points || 1200,
+        points: clampedPoints,
         reasoning: parsed.reasoning || 'Task analyzed',
         confidence: parsed.confidence || 80,
         timeEstimate: parsed.timeEstimate || '30-60 min',
@@ -433,7 +435,7 @@ Respond with ONLY a JSON object:
       // Return fallback scoring
       return {
         tier: 'mid',
-        points: 1200,
+        points: 92,
         reasoning: 'Fallback scoring due to error',
         confidence: 60,
         timeEstimate: '30-60 min',

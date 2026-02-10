@@ -4,24 +4,24 @@ import aiService from '../services/aiService';
 const difficultyTiers = {
   low: { 
     name: 'Low Tier', 
-    minPoints: 500, 
-    maxPoints: 799, 
+    minPoints: 35, 
+    maxPoints: 69, 
     color: '#4CAF50',
     icon: '🟢',
     description: 'Quick & simple tasks'
   },
   mid: { 
     name: 'Mid Tier', 
-    minPoints: 800, 
-    maxPoints: 1999, 
+    minPoints: 69, 
+    maxPoints: 173, 
     color: '#FF9800',
     icon: '🟡',
     description: 'Moderate effort required'
   },
   high: { 
     name: 'High Tier', 
-    minPoints: 2000, 
-    maxPoints: 4000, 
+    minPoints: 173, 
+    maxPoints: 345, 
     color: '#f44336',
     icon: '🔴',
     description: 'Complex & time-intensive'

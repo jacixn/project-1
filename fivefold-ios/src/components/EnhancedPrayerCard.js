@@ -275,14 +275,14 @@ const PrayerSection = () => {
       
       if (result.success) {
         // Award points
-        await giveUserPoints(25000);
+        await giveUserPoints(175);
         closePrayerDetails();
         await fetchPrayers();
         hapticFeedback.success();
         
         Alert.alert(
           'Prayer Completed! 🙏',
-          'Wonderful! You earned 25,000 points. Your prayer will return in 24 hours with fresh verses.',
+          'Wonderful! You earned 175 points. Your prayer will return in 24 hours with fresh verses.',
           [{ text: 'Amen! 🙏', style: 'default' }]
         );
       } else {
@@ -716,7 +716,7 @@ const PrayerSection = () => {
                     <MaterialIcons name="check-circle" size={30} color="#ffffff" />
                     <Text style={styles.completeBtnText}>Complete Prayer</Text>
                     <View style={styles.pointsTag}>
-                      <Text style={styles.pointsTagText}>+5,000 pts</Text>
+                      <Text style={styles.pointsTagText}>+175 pts</Text>
                     </View>
                   </Pressable>
                 </ScrollView>

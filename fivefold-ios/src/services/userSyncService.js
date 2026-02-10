@@ -282,6 +282,9 @@ export const downloadAndMergeCloudData = async (userId) => {
     const localTotalPointsStr = await userStorage.getRaw('total_points');
     const localTotalPoints = localTotalPointsStr ? parseInt(localTotalPointsStr, 10) : 0;
     
+    // Import AchievementService for level calculation
+    const AchievementService = (await import('./achievementService')).default;
+    
     const mergedStats = {
       ...localStats,
       // totalPoints: use local total_points as source of truth, NOT Math.max with cloud
@@ -289,7 +292,8 @@ export const downloadAndMergeCloudData = async (userId) => {
       points: localTotalPoints,
       // Activity counters: Math.max is fine since these only go up
       currentStreak: Math.max(localStats.currentStreak || 0, cloudData.currentStreak || 0),
-      level: Math.max(localStats.level || 1, cloudData.level || 1),
+      // Level: ALWAYS derive from points — never use stale cloud level
+      level: AchievementService.getLevelFromPoints(localTotalPoints),
       prayersCompleted: Math.max(localStats.prayersCompleted || 0, cloudData.prayersCompleted || 0),
       completedTasks: Math.max(localStats.completedTasks || 0, cloudData.tasksCompleted || 0),
       workoutsCompleted: Math.max(localStats.workoutsCompleted || 0, cloudData.workoutsCompleted || 0),

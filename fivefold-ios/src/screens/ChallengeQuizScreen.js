@@ -154,11 +154,11 @@ const ChallengeQuizScreen = () => {
     }, 1500);
   };
 
-  // Award points when quiz is completed (5000 points per correct answer)
+  // Award points when quiz is completed (29 points per correct answer)
   const awardQuizPoints = async (correctAnswers, totalQuestions) => {
     try {
-      // Points based on correct answers (5000 per correct)
-      const points = correctAnswers * 5000;
+      // Points based on correct answers (29 per correct)
+      const points = correctAnswers * 29;
       setPointsEarned(points);
       
       // Get current stats

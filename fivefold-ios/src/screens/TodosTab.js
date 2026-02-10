@@ -406,7 +406,7 @@ const TodosTab = () => {
           : todo
       );
       
-      const pointsEarned = taskToComplete.points || 500; // Use the task's actual scored points
+      const pointsEarned = Math.min(taskToComplete.points || 69, 345); // Clamped to valid range
       const newCompletedTasks = userStats.completedTasks + 1;
 
       // Track per-tier completions for achievements

@@ -119,6 +119,24 @@ class WorkoutService {
         const setsCount = (workout.exercises || []).reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 0), 0);
         const workoutMinutes = Math.floor((workout.duration || 0) / 60);
 
+        // ── Award direct points for completing a workout ──
+        // Base: 175 pts per workout + 35 per exercise + 12 per set
+        const workoutPoints = 175 + (exerciseCount * 35) + (setsCount * 12);
+        const stats = await AchievementService.getStats();
+        const newPoints = (stats.totalPoints || stats.points || 0) + workoutPoints;
+        const newLevel = AchievementService.getLevelFromPoints(newPoints);
+        
+        // Write updated points to both userStats keys
+        const updatedStats = {
+          ...stats,
+          points: newPoints,
+          totalPoints: newPoints,
+          level: newLevel,
+        };
+        await AchievementService._writeBothKeys(updatedStats);
+        await userStorage.setRaw('total_points', newPoints.toString());
+        console.log(`💪 Workout points awarded: +${workoutPoints} pts (base 175 + ${exerciseCount} exercises + ${setsCount} sets)`);
+
         await AchievementService.incrementStat('workoutsCompleted');
         if (exerciseCount > 0) await AchievementService.incrementStat('exercisesLogged', exerciseCount);
         if (setsCount > 0) await AchievementService.incrementStat('setsCompleted', setsCount);
@@ -129,12 +147,14 @@ class WorkoutService {
         // SYNC TO FIREBASE
         const currentUser = auth.currentUser;
         if (currentUser) {
-          const stats = await AchievementService.getStats();
+          const freshStats = await AchievementService.getStats();
           await setDoc(doc(db, 'users', currentUser.uid), {
-            workoutsCompleted: stats.workoutsCompleted || 1,
+            totalPoints: freshStats.totalPoints || newPoints,
+            level: freshStats.level || newLevel,
+            workoutsCompleted: freshStats.workoutsCompleted || 1,
             lastActive: serverTimestamp(),
           }, { merge: true });
-          console.log('✅ Synced workoutsCompleted to Firebase:', stats.workoutsCompleted);
+          console.log('✅ Synced workout points + stats to Firebase:', freshStats.totalPoints);
         }
       } catch (statsError) {
         console.warn('⚠️ Failed to update workout stats:', statsError);

@@ -90,7 +90,7 @@ const TasksOverviewScreen = () => {
         : todo
     );
 
-    const pointsEarned = taskToComplete.points || 500;
+    const pointsEarned = Math.min(taskToComplete.points || 69, 345);
     const newCompletedTasks = (userStats.completedTasks || 0) + 1;
 
     // Track per-tier completions for achievements
