@@ -26,6 +26,7 @@ import {
   PanResponder,
   KeyboardAvoidingView,
   Dimensions,
+  Easing,
 } from 'react-native';
 
 // const { width } = Dimensions.get('window');
@@ -220,14 +221,345 @@ const AnimatedModalButton = ({ children, onPress, style, ...props }) => {
   );
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCOUNT SWITCH OVERLAY — Premium animated transition between accounts
+// ═══════════════════════════════════════════════════════════════════════════
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+const AccountSwitchOverlay = React.memo(({ visible, switching, currentAccount, targetAccount, theme, isDark, onFinished }) => {
+  // visible = should the overlay be showing (switchTarget is set)
+  // switching = is the switch actively in progress (switchingAccount from AuthContext)
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleFrom = useRef(new Animated.Value(1)).current;
+  const scaleTo = useRef(new Animated.Value(0.6)).current;
+  const slideFrom = useRef(new Animated.Value(0)).current;
+  const slideTo = useRef(new Animated.Value(60)).current;
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+  const ringAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const checkAnim = useRef(new Animated.Value(0)).current;
+  const statusOpacity = useRef(new Animated.Value(1)).current;
+  const [statusText, setStatusText] = useState('Preparing...');
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [switchComplete, setSwitchComplete] = useState(false);
+  const wasShowingRef = useRef(false);
+  const timersRef = useRef([]);
+
+  const clearAllTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+
+  const animateStatusChange = (text) => {
+    Animated.timing(statusOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+      setStatusText(text);
+      Animated.timing(statusOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    });
+  };
+
+  // Handle entrance: when visible becomes true
+  useEffect(() => {
+    if (visible && !wasShowingRef.current) {
+      wasShowingRef.current = true;
+      setShowOverlay(true);
+      setSwitchComplete(false);
+      setStatusText('Saving your data...');
+      fadeAnim.setValue(0);
+      scaleFrom.setValue(1);
+      scaleTo.setValue(0.6);
+      slideFrom.setValue(0);
+      slideTo.setValue(60);
+      arrowAnim.setValue(0);
+      ringAnim.setValue(0);
+      pulseAnim.setValue(1);
+      progressAnim.setValue(0);
+      checkAnim.setValue(0);
+      statusOpacity.setValue(1);
+
+      // Entrance
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.spring(scaleFrom, { toValue: 0.85, friction: 8, tension: 60, useNativeDriver: true }),
+        Animated.spring(scaleTo, { toValue: 1, friction: 8, tension: 60, delay: 200, useNativeDriver: true }),
+        Animated.timing(slideFrom, { toValue: -30, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(slideTo, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), delay: 100, useNativeDriver: true }),
+      ]).start();
+
+      // Arrow pulse loop
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(arrowAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(arrowAnim, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Ring rotation
+      Animated.loop(
+        Animated.timing(ringAnim, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true })
+      ).start();
+
+      // Pulse glow
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Progress steps
+      Animated.timing(progressAnim, { toValue: 0.3, duration: 1200, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+
+      timersRef.current.push(setTimeout(() => {
+        animateStatusChange('Signing in...');
+        Animated.timing(progressAnim, { toValue: 0.55, duration: 1000, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+      }, 1500));
+
+      timersRef.current.push(setTimeout(() => {
+        animateStatusChange('Downloading your data...');
+        Animated.timing(progressAnim, { toValue: 0.8, duration: 1500, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+      }, 3000));
+
+      timersRef.current.push(setTimeout(() => {
+        animateStatusChange('Almost there...');
+        Animated.timing(progressAnim, { toValue: 0.95, duration: 1000, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+      }, 5000));
+    }
+
+    if (!visible) {
+      wasShowingRef.current = false;
+    }
+  }, [visible]);
+
+  // Handle completion: when switching goes from true → false while overlay is showing
+  useEffect(() => {
+    if (showOverlay && !switching && visible) {
+      // Switch completed — show success then auto-dismiss
+      clearAllTimers();
+      setSwitchComplete(true);
+      setStatusText('Welcome back!');
+      Animated.timing(progressAnim, { toValue: 1, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+      Animated.spring(checkAnim, { toValue: 1, friction: 5, tension: 50, useNativeDriver: true }).start();
+
+      const exitTimer = setTimeout(() => {
+        Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+          setShowOverlay(false);
+          onFinished?.();
+        });
+      }, 1200);
+      timersRef.current.push(exitTimer);
+    }
+  }, [switching, showOverlay, visible]);
+
+  // Cleanup on unmount
+  useEffect(() => () => clearAllTimers(), []);
+
+  // Also handle error case: if visible goes false while overlay is still showing
+  useEffect(() => {
+    if (!visible && showOverlay) {
+      clearAllTimers();
+      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+        setShowOverlay(false);
+        onFinished?.();
+      });
+    }
+  }, [visible, showOverlay]);
+
+  if (!showOverlay) return null;
+
+  const fromName = currentAccount?.username ? `@${currentAccount.username}` : (currentAccount?.email || 'You');
+  const toName = targetAccount?.username ? `@${targetAccount.username}` : (targetAccount?.email || 'Account');
+
+  const ringRotation = ringAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const arrowX = arrowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 10] });
+  const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  const renderAvatar = (account, size, style) => {
+    if (account?.profilePicture) {
+      return (
+        <Image
+          source={{ uri: account.profilePicture }}
+          style={[{ width: size, height: size, borderRadius: size / 2 }, style]}
+        />
+      );
+    }
+    return (
+      <View style={[{
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+      }, style]}>
+        <Text style={{ fontSize: size * 0.4, fontWeight: '700', color: theme?.primary || '#4CAF50' }}>
+          {(account?.username || account?.email || '?')[0]?.toUpperCase()}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent>
+      <Animated.View style={{
+        flex: 1,
+        backgroundColor: isDark ? '#0B0F1A' : '#F0F2F5',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: fadeAnim,
+      }}>
+        {/* Decorative gradient rings */}
+        <Animated.View style={{
+          position: 'absolute',
+          width: 320, height: 320, borderRadius: 160,
+          borderWidth: 1.5,
+          borderColor: (theme?.primary || '#4CAF50') + '15',
+          transform: [{ rotate: ringRotation }],
+        }} />
+        <Animated.View style={{
+          position: 'absolute',
+          width: 400, height: 400, borderRadius: 200,
+          borderWidth: 1,
+          borderColor: (theme?.primary || '#4CAF50') + '08',
+          transform: [{ rotate: ringRotation }, { scaleX: -1 }],
+        }} />
+
+        {/* Main content */}
+        <View style={{ alignItems: 'center', paddingHorizontal: 40 }}>
+
+          {/* Avatars with arrow */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 48, gap: 20 }}>
+            {/* FROM avatar */}
+            <Animated.View style={{
+              transform: [{ scale: scaleFrom }, { translateX: slideFrom }],
+              opacity: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] }),
+            }}>
+              <View style={{
+                borderRadius: 44,
+                borderWidth: 2,
+                borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                padding: 3,
+              }}>
+                {renderAvatar(currentAccount, 80)}
+              </View>
+              <Text style={{
+                fontSize: 13, fontWeight: '600',
+                color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)',
+                textAlign: 'center', marginTop: 8, maxWidth: 90,
+              }} numberOfLines={1}>{fromName}</Text>
+            </Animated.View>
+
+            {/* Animated arrow */}
+            <Animated.View style={{
+              transform: [{ translateX: arrowX }],
+              opacity: fadeAnim,
+            }}>
+              <View style={{
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: (theme?.primary || '#4CAF50') + '20',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Text style={{ fontSize: 20, color: theme?.primary || '#4CAF50' }}>→</Text>
+              </View>
+            </Animated.View>
+
+            {/* TO avatar */}
+            <Animated.View style={{
+              transform: [{ scale: scaleTo }, { translateX: slideTo }],
+            }}>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <View style={{
+                  borderRadius: 48,
+                  borderWidth: 3,
+                  borderColor: theme?.primary || '#4CAF50',
+                  padding: 3,
+                  shadowColor: theme?.primary || '#4CAF50',
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 20,
+                }}>
+                  {renderAvatar(targetAccount, 84)}
+                </View>
+              </Animated.View>
+              <Text style={{
+                fontSize: 14, fontWeight: '700',
+                color: theme?.text || '#fff',
+                textAlign: 'center', marginTop: 8, maxWidth: 100,
+              }} numberOfLines={1}>{toName}</Text>
+            </Animated.View>
+          </View>
+
+          {/* Status text */}
+          <Animated.Text style={{
+            fontSize: 22, fontWeight: '800',
+            color: theme?.text || '#fff',
+            textAlign: 'center',
+            marginBottom: 8,
+            opacity: statusOpacity,
+            letterSpacing: 0.3,
+          }}>
+            {switchComplete ? 'Switched!' : 'Switching Account'}
+          </Animated.Text>
+
+          <Animated.Text style={{
+            fontSize: 15,
+            color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)',
+            textAlign: 'center',
+            marginBottom: 32,
+            opacity: statusOpacity,
+          }}>
+            {statusText}
+          </Animated.Text>
+
+          {/* Progress bar */}
+          <View style={{
+            width: 220, height: 4, borderRadius: 2,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            overflow: 'hidden',
+          }}>
+            <Animated.View style={{
+              height: '100%',
+              borderRadius: 2,
+              backgroundColor: theme?.primary || '#4CAF50',
+              width: progressWidth,
+            }} />
+          </View>
+
+          {/* Success checkmark */}
+          <Animated.View style={{
+            marginTop: 24,
+            transform: [{ scale: checkAnim }],
+            opacity: checkAnim,
+          }}>
+            <View style={{
+              width: 52, height: 52, borderRadius: 26,
+              backgroundColor: (theme?.primary || '#4CAF50') + '20',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Text style={{ fontSize: 26, color: theme?.primary || '#4CAF50' }}>✓</Text>
+            </View>
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Modal>
+  );
+});
+
 const ProfileTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const navigation = useNavigation();
-  const { user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading, updateLocalProfile } = useAuth();
+  const { 
+    user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading, updateLocalProfile,
+    linkedAccounts, switchAccount, addLinkedAccount, unlinkAccount, switchingAccount, saveCurrentAsLinkedAccount,
+  } = useAuth();
   const [friendCount, setFriendCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [addAccountEmail, setAddAccountEmail] = useState('');
+  const [addAccountPassword, setAddAccountPassword] = useState('');
+  const [currentAccountPassword, setCurrentAccountPassword] = useState('');
+  const [addAccountError, setAddAccountError] = useState('');
+  const [addAccountLoading, setAddAccountLoading] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState(null); // Account object we're switching TO
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
   // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
@@ -4048,7 +4380,7 @@ const ProfileTab = () => {
             paddingBottom: 16,
           }}>
             <TouchableOpacity 
-              onPress={() => setShowSettingsModal(false)}
+              onPress={() => { setShowAddAccountModal(false); setShowSettingsModal(false); }}
               style={{
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -4104,7 +4436,7 @@ const ProfileTab = () => {
                 }}
                 activeOpacity={0.7}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
                     height: 36,
@@ -4162,7 +4494,7 @@ const ProfileTab = () => {
                 }}
                 activeOpacity={emailVerified ? 1 : 0.7}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
                     height: 36,
@@ -4702,7 +5034,7 @@ const ProfileTab = () => {
               </>
             )}
 
-            {/* ACCOUNT SECTION - Sign Out */}
+            {/* ACCOUNTS SECTION */}
             <Text style={{
               fontSize: 12,
               fontWeight: '700',
@@ -4712,9 +5044,177 @@ const ProfileTab = () => {
               marginBottom: 12,
               marginLeft: 4,
             }}>
-              Account
+              Accounts
             </Text>
 
+            <View style={{
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            }}>
+              {/* Linked accounts list */}
+              {linkedAccounts.map((account, idx) => {
+                const isCurrentAccount = account.uid === user?.uid;
+                return (
+                  <TouchableOpacity
+                    key={account.uid}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 16,
+                      borderBottomWidth: idx < linkedAccounts.length - 1 ? 1 : 0,
+                      borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      opacity: switchingAccount && !isCurrentAccount ? 0.5 : 1,
+                    }}
+                    onPress={async () => {
+                      if (isCurrentAccount || switchingAccount) return;
+                      setSwitchTarget(account);
+                      setShowSettingsModal(false);
+                      try {
+                        await switchAccount(account.uid);
+                      } catch (err) {
+                        setSwitchTarget(null);
+                        const errMsg = err.message || '';
+                        // If the stored password is wrong, prompt the user to re-enter it
+                        if (errMsg.includes('invalid-credential') || errMsg.includes('wrong-password')) {
+                          Alert.prompt(
+                            'Re-enter Password',
+                            `The stored password for @${account.username || account.email} is incorrect. Please enter the correct password.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Sign In',
+                                onPress: async (password) => {
+                                  if (!password || !password.trim()) return;
+                                  try {
+                                    await addLinkedAccount(account.email, password.trim(), null);
+                                    setShowSettingsModal(false);
+                                  } catch (retryErr) {
+                                    Alert.alert('Switch Failed', retryErr.message || 'Could not switch account.');
+                                  }
+                                },
+                              },
+                            ],
+                            'secure-text',
+                            '',
+                            'default'
+                          );
+                        } else {
+                          Alert.alert('Switch Failed', errMsg || 'Could not switch account.');
+                        }
+                      }
+                    }}
+                    onLongPress={() => {
+                      if (isCurrentAccount) return;
+                      Alert.alert(
+                        'Remove Account',
+                        `Remove @${account.username || account.email} from this device? You can add it back later.`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Remove',
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                await unlinkAccount(account.uid);
+                              } catch (err) {
+                                Alert.alert('Error', err.message);
+                              }
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                    activeOpacity={isCurrentAccount ? 1 : 0.7}
+                  >
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      {account.profilePicture ? (
+                        <Image
+                          source={{ uri: account.profilePicture }}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            borderWidth: isCurrentAccount ? 2 : 0,
+                            borderColor: theme.primary,
+                          }}
+                        />
+                      ) : (
+                        <View style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          backgroundColor: isCurrentAccount ? `${theme.primary}30` : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: isCurrentAccount ? 2 : 0,
+                          borderColor: theme.primary,
+                        }}>
+                          <MaterialIcons name="person" size={20} color={isCurrentAccount ? theme.primary : theme.textSecondary} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: isCurrentAccount ? '600' : '400', color: theme.text }}>
+                          {account.username ? `@${account.username}` : account.email}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 1 }}>
+                          {isCurrentAccount ? 'Active' : 'Tap to switch'}
+                        </Text>
+                      </View>
+                    </View>
+                    {isCurrentAccount ? (
+                      <MaterialIcons name="check-circle" size={22} color={theme.primary} />
+                    ) : (
+                      <MaterialIcons name="swap-horiz" size={20} color={theme.textTertiary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Add account button */}
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderTopWidth: linkedAccounts.length > 0 ? 1 : 0,
+                  borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}
+                onPress={() => {
+                  setAddAccountEmail('');
+                  setAddAccountPassword('');
+                  setCurrentAccountPassword('');
+                  setAddAccountError('');
+                  setShowAddAccountModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="person-add" size={20} color={theme.primary} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: theme.primary }}>Add Account</Text>
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 1 }}>Sign into another account</Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* SIGN OUT */}
             <View style={{
               backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
               borderRadius: 16,
@@ -4736,7 +5236,7 @@ const ProfileTab = () => {
                 }}
                 activeOpacity={0.7}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={{
                     width: 36,
                     height: 36,
@@ -4924,6 +5424,136 @@ const ProfileTab = () => {
             </TouchableOpacity>
             </View>
           </ScrollView>
+
+          {/* ADD ACCOUNT OVERLAY - absolute positioned on top of settings */}
+          {showAddAccountModal && (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: theme.background,
+                zIndex: 100,
+              }}
+            >
+              {/* Header */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              }}>
+                <TouchableOpacity
+                  onPress={() => setShowAddAccountModal(false)}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Back</Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: modalTextColor, letterSpacing: 0.3 }}>Add Account</Text>
+                <View style={{ width: 60 }} />
+              </View>
+
+              <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+                <Text style={{ fontSize: 14, color: theme.textSecondary, marginBottom: 24, lineHeight: 20 }}>
+                  Sign into another account to switch between them quickly. Your current account's data will be saved.
+                </Text>
+
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Sign in to account
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 16,
+                    color: theme.text,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                  }}
+                  placeholder="Email"
+                  placeholderTextColor={theme.textTertiary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={addAccountEmail}
+                  onChangeText={setAddAccountEmail}
+                />
+                <TextInput
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 16,
+                    color: theme.text,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                  }}
+                  placeholder="Password"
+                  placeholderTextColor={theme.textTertiary}
+                  secureTextEntry
+                  value={addAccountPassword}
+                  onChangeText={setAddAccountPassword}
+                  autoCapitalize="none"
+                />
+
+                {addAccountError ? (
+                  <Text style={{ fontSize: 14, color: theme.error || '#EF4444', marginBottom: 16 }}>
+                    {addAccountError}
+                  </Text>
+                ) : null}
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: theme.primary,
+                    borderRadius: 12,
+                    padding: 16,
+                    alignItems: 'center',
+                    opacity: addAccountLoading ? 0.6 : 1,
+                  }}
+                  disabled={addAccountLoading || !addAccountEmail.trim() || !addAccountPassword.trim()}
+                  onPress={async () => {
+                    setAddAccountError('');
+                    setAddAccountLoading(true);
+                    try {
+                      await addLinkedAccount(
+                        addAccountEmail.trim(),
+                        addAccountPassword.trim(),
+                        null
+                      );
+                      setShowAddAccountModal(false);
+                      setShowSettingsModal(false);
+                    } catch (err) {
+                      setAddAccountError(err.message || 'Failed to add account.');
+                    } finally {
+                      setAddAccountLoading(false);
+                    }
+                  }}
+                >
+                  {addAccountLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Sign In & Switch</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          )}
+
         </View>
       </Modal>
 
@@ -7615,6 +8245,22 @@ const ProfileTab = () => {
         </View>
       </View>
     </Modal>
+
+    {/* ═══════════ ACCOUNT SWITCH ANIMATION ═══════════ */}
+    <AccountSwitchOverlay
+      visible={!!switchTarget}
+      switching={switchingAccount}
+      currentAccount={{
+        username: authUserProfile?.username,
+        email: authUserProfile?.email || user?.email,
+        profilePicture: authUserProfile?.profilePicture,
+      }}
+      targetAccount={switchTarget}
+      theme={theme}
+      isDark={isDark}
+      onFinished={() => setSwitchTarget(null)}
+    />
+
 
     </>
   );

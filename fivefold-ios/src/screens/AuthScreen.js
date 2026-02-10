@@ -220,8 +220,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
         <View style={styles.overlayContent}>
           <View style={{ flex: 1 }}>
             <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
-              {/* Spacer to position text higher */}
-              <View style={{ flex: 0.08 }} />
+              {/* Spacer to push headline down */}
+              <View style={{ flex: 0.18 }} />
             
             {/* Headline - positioned higher without mascot */}
             <Text style={styles.headline}>

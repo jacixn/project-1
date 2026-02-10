@@ -702,16 +702,23 @@ const RootNavigator = () => {
   // This prevents race conditions where signIn hasn't finished setting onboardingCompleted
   useEffect(() => {
     const checkOnboarding = async () => {
-      if (isAuthenticated && !loading) {
-        const onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
-        console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
-        setNeedsOnboarding(onboardingCompleted !== 'true');
-      } else if (!isAuthenticated) {
-        setNeedsOnboarding(null);
-        setShowVerificationPrompt(false);
-      }
-      if (!loading) {
-        setCheckingOnboarding(false);
+      try {
+        if (isAuthenticated && !loading) {
+          const onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
+          console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
+          setNeedsOnboarding(onboardingCompleted !== 'true');
+        } else if (!isAuthenticated) {
+          setNeedsOnboarding(null);
+        }
+      } catch (err) {
+        console.warn('[RootNavigator] checkOnboarding error:', err);
+        // If check fails, assume onboarding is completed to avoid getting stuck
+        setNeedsOnboarding(false);
+      } finally {
+        // ALWAYS clear checkingOnboarding to prevent the loading screen from getting stuck
+        if (!loading) {
+          setCheckingOnboarding(false);
+        }
       }
     };
     
@@ -720,6 +727,18 @@ const RootNavigator = () => {
       checkOnboarding();
     }
   }, [isAuthenticated, initializing, loading]);
+  
+  // Safety net: if loading screen is still showing after 8 seconds, force-dismiss it
+  // This prevents the app from getting permanently stuck on the loading screen
+  useEffect(() => {
+    if (initializing || checkingOnboarding || loading) {
+      const safetyTimer = setTimeout(() => {
+        console.warn('[RootNavigator] Safety timeout — forcing loading screen to dismiss');
+        setCheckingOnboarding(false);
+      }, 8000);
+      return () => clearTimeout(safetyTimer);
+    }
+  }, [initializing, checkingOnboarding, loading]);
   
   // Handle onboarding completion — check if email needs verification
   const handleOnboardingComplete = async () => {

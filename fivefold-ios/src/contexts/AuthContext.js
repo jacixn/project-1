@@ -26,6 +26,14 @@ import { performFullSync } from '../services/userSyncService';
 import { savePushToken } from '../services/socialNotificationService';
 import notificationService from '../services/notificationService';
 import userStorage from '../utils/userStorage';
+import { useTheme } from './ThemeContext';
+import {
+  getLinkedAccounts,
+  saveLinkedAccount,
+  removeLinkedAccount as removeStoredAccount,
+  getStoredPassword,
+  updateLinkedAccountProfile,
+} from '../services/accountSwitcherService';
 
 // Create the context
 const AuthContext = createContext(null);
@@ -46,9 +54,26 @@ export const AuthProvider = ({ children }) => {
   const [authSteps, setAuthSteps] = useState(null);
   // { type: 'signin'|'signup', steps: [{label, done}], current: number }
   
+  // Multi-account support
+  const [linkedAccounts, setLinkedAccounts] = useState([]);
+  const [switchingAccount, setSwitchingAccount] = useState(false);
+  
+  // Reload theme after userStorage is initialized (fixes wallpaper not persisting)
+  const { reloadTheme } = useTheme();
+  
   // Flag: when true, onAuthStateChanged MUST NOT run performFullSync
   // because the signIn/signUp flow handles its own sync after clearing stale data.
   const isAuthFlowActive = React.useRef(false);
+
+  // Load linked accounts list
+  const refreshLinkedAccounts = useCallback(async () => {
+    const accounts = await getLinkedAccounts();
+    setLinkedAccounts(accounts);
+  }, []);
+
+  useEffect(() => {
+    refreshLinkedAccounts();
+  }, [refreshLinkedAccounts]);
 
   // Load cached user data on mount
   useEffect(() => {
@@ -69,6 +94,8 @@ export const AuthProvider = ({ children }) => {
             const uid = cacheKey.split(':')[1];
             if (uid) {
               await userStorage.initUser(uid);
+              // Now that userStorage has a UID, reload theme/wallpaper
+              await reloadTheme();
             }
           }
         }
@@ -84,12 +111,25 @@ export const AuthProvider = ({ children }) => {
     let hasCompletedInitialSync = false;
     
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
+      // When an auth flow (signIn, signUp, addLinkedAccount, switchAccount)
+      // is actively running, skip all listener logic. The auth flow handles
+      // setUser, setUserProfile, userStorage, and onboardingCompleted itself.
+      // Without this guard, the listener races with the auth flow and can
+      // cause OnboardingWrapper to remount before onboardingCompleted is set.
+      if (isAuthFlowActive.current) {
+        console.log('[Auth] onAuthStateChange skipped — auth flow is active');
+        return;
+      }
+      
+      console.log('[Auth] onAuthStateChange fired, user:', firebaseUser?.email || 'null');
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
           // Ensure userStorage is initialised for this UID
           await userStorage.initUser(firebaseUser.uid);
+          // Now that userStorage has a UID, reload theme/wallpaper
+          await reloadTheme();
           
           // First, try to use cached profile (fast, no Firestore read)
           const cachedData = await userStorage.get(USER_CACHE_KEY);
@@ -98,6 +138,7 @@ export const AuthProvider = ({ children }) => {
             console.log('[Auth] Using cached profile:', cachedData.username);
             
             // IMMEDIATELY unblock the app - don't wait for sync
+            console.log('[Auth] Unblocking app — setting initializing=false, loading=false');
             setInitializing(false);
             setLoading(false);
           }
@@ -200,6 +241,9 @@ export const AuthProvider = ({ children }) => {
         await userStorage.initUser(result.uid);
       }
       
+      // Set user immediately so isAuthenticated becomes true
+      setUser(result);
+      
       // Step 2: Set up profile
       if (result && result.uid) {
         const profile = await getUserProfile(result.uid);
@@ -225,6 +269,17 @@ export const AuthProvider = ({ children }) => {
       markDone(1);
       
       // Step 3: Ready for onboarding
+      // Save as linked account for multi-account switching
+      if (result?.uid) {
+        await saveLinkedAccount({
+          uid: result.uid,
+          email: result.email || email,
+          username: result.username || username,
+          displayName: result.displayName || displayName,
+          profilePicture: result.profilePicture || null,
+        }, password);
+        await refreshLinkedAccounts();
+      }
       markDone(2);
       
       // Brief pause so user sees completion
@@ -236,9 +291,10 @@ export const AuthProvider = ({ children }) => {
     } finally {
       isAuthFlowActive.current = false; // Allow background sync again
       setAuthSteps(null);
+      setInitializing(false);
       setLoading(false);
     }
-  }, []);
+  }, [refreshLinkedAccounts]);
 
   /**
    * Sign in an existing user
@@ -272,8 +328,11 @@ export const AuthProvider = ({ children }) => {
       // If another user was signed in before, their data is safely under their own UID prefix.
       if (result?.uid) {
         await userStorage.initUser(result.uid);
+        // Reload theme/wallpaper now that userStorage has a UID
+        await reloadTheme();
       }
 
+      setUser(result);
       setUserProfile(result);
       await userStorage.set(USER_CACHE_KEY, result);
       
@@ -311,6 +370,17 @@ export const AuthProvider = ({ children }) => {
         DeviceEventEmitter.emit('userDataDownloaded');
         console.log('[Auth] Emitted userDataDownloaded event');
       }
+      
+      // Save as linked account for multi-account switching
+      await saveLinkedAccount({
+        uid: result.uid,
+        email: result.email,
+        username: result.username,
+        displayName: result.displayName,
+        profilePicture: result.profilePicture,
+      }, password);
+      await refreshLinkedAccounts();
+      
       markDone(3);
       
       // Brief pause so user sees the completion checkmarks
@@ -322,9 +392,10 @@ export const AuthProvider = ({ children }) => {
     } finally {
       isAuthFlowActive.current = false; // Allow background sync again
       setAuthSteps(null);
+      setInitializing(false);
       setLoading(false);
     }
-  }, []);
+  }, [refreshLinkedAccounts]);
 
   /**
    * Sign out the current user
@@ -332,10 +403,13 @@ export const AuthProvider = ({ children }) => {
    * Data stays safely namespaced in AsyncStorage under the old UID prefix.
    */
   const signOut = useCallback(async () => {
+    setAuthSteps(null); // Clear sign-in progress UI so it doesn't reappear
     setLoading(true);
+    isAuthFlowActive.current = true;
+    const currentUid = user?.uid;
     try {
       // IMPORTANT: Upload all data to cloud BEFORE signing out (while we still have user ID)
-      if (user?.uid) {
+      if (currentUid) {
         try {
           console.log('[Auth] Uploading data to cloud before sign out...');
           const { 
@@ -348,22 +422,21 @@ export const AuthProvider = ({ children }) => {
           } = await import('../services/userSyncService');
           
           // Upload all data to cloud (DO NOT download - that would overwrite local data)
-          await syncUserStatsToCloud(user.uid);
-          await syncSavedVersesToCloud(user.uid);
-          await syncJournalNotesToCloud(user.uid);
-          await syncPrayersToCloud(user.uid);
-          await syncThemePreferencesToCloud(user.uid);
-          await syncAllHistoryToCloud(user.uid);
+          await syncUserStatsToCloud(currentUid);
+          await syncSavedVersesToCloud(currentUid);
+          await syncJournalNotesToCloud(currentUid);
+          await syncPrayersToCloud(currentUid);
+          await syncThemePreferencesToCloud(currentUid);
+          await syncAllHistoryToCloud(currentUid);
           
           console.log('[Auth] Data uploaded to cloud successfully');
         } catch (syncError) {
-          console.error('[Auth] Failed to upload before sign out:', syncError);
+          console.warn('[Auth] Failed to upload before sign out:', syncError?.message);
           // Continue with sign out even if sync fails
         }
       }
       
       // Cancel any scheduled token notifications before signing out
-      // This prevents old notifications from firing for the next user
       try {
         const Notifications = require('expo-notifications');
         const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
@@ -377,12 +450,16 @@ export const AuthProvider = ({ children }) => {
         console.log('[Auth] Error cancelling notifications:', notifError);
       }
       
-      // Now sign out
-      await authSignOut();
-      setUser(null);
-      setUserProfile(null);
+      // Check for other linked accounts BEFORE signing out
+      const otherAccounts = (await getLinkedAccounts()).filter(a => a.uid !== currentUid);
       
-      // Forget active user — data stays safely under u:{uid}: prefix
+      // Remove the current account from linked accounts (they signed out of it)
+      if (currentUid) {
+        await removeStoredAccount(currentUid);
+      }
+      
+      // Now sign out from Firebase
+      await authSignOut();
       userStorage.clearUser();
       console.log('[Auth] Signed out — UID-scoped data preserved safely');
       
@@ -398,12 +475,69 @@ export const AuthProvider = ({ children }) => {
         console.log('[Auth] Profile image cleanup note:', fileError.message);
       }
       
+      // If there are other linked accounts, auto-switch to the first one
+      if (otherAccounts.length > 0) {
+        const nextAccount = otherAccounts[0];
+        const nextPassword = await getStoredPassword(nextAccount.uid);
+        
+        if (nextPassword) {
+          console.log('[Auth] Auto-switching to linked account:', nextAccount.username || nextAccount.email);
+          setSwitchingAccount(true);
+          
+          try {
+            const result = await authSignIn(nextAccount.email, nextPassword);
+            
+            if (result?.uid) {
+              await userStorage.initUser(result.uid);
+              await userStorage.setRaw('onboardingCompleted', 'true');
+              await userStorage.set(USER_CACHE_KEY, result);
+              await reloadTheme();
+            }
+            
+            setUser(result);
+            setUserProfile(result);
+            setInitializing(false);
+            setLoading(false);
+            
+            // Download cloud data in background
+            try {
+              const { downloadAndMergeCloudData } = await import('../services/userSyncService');
+              if (result?.uid) {
+                await downloadAndMergeCloudData(result.uid);
+              }
+            } catch (dlErr) {
+              console.warn('[Auth] Download after auto-switch failed:', dlErr?.message);
+            }
+            
+            await userStorage.setRaw('onboardingCompleted', 'true');
+            await reloadTheme();
+            await refreshLinkedAccounts();
+            
+            const { DeviceEventEmitter } = require('react-native');
+            DeviceEventEmitter.emit('userDataDownloaded');
+            
+            console.log('[Auth] Auto-switched to', result?.username || result?.email);
+            setSwitchingAccount(false);
+            return; // Don't fall through to the normal sign-out cleanup
+          } catch (switchErr) {
+            console.warn('[Auth] Auto-switch failed, completing normal sign out:', switchErr?.message);
+            setSwitchingAccount(false);
+            // Fall through to normal sign-out (user goes to login screen)
+          }
+        }
+      }
+      
+      // No other accounts (or auto-switch failed) — normal sign out to login screen
+      setUser(null);
+      setUserProfile(null);
+      
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     } finally {
+      isAuthFlowActive.current = false;
       setLoading(false);
     }
-  }, [user]);
+  }, [user, reloadTheme, refreshLinkedAccounts]);
 
   /**
    * Send password reset email
@@ -448,7 +582,315 @@ export const AuthProvider = ({ children }) => {
     const updatedProfile = { ...userProfile, ...updates };
     setUserProfile(updatedProfile);
     await userStorage.set(USER_CACHE_KEY, updatedProfile);
-  }, [userProfile]);
+    
+    // Keep linked accounts list in sync with latest profile data
+    if (user?.uid) {
+      await updateLinkedAccountProfile(user.uid, {
+        username: updatedProfile.username,
+        displayName: updatedProfile.displayName,
+        profilePicture: updatedProfile.profilePicture,
+      });
+      refreshLinkedAccounts();
+    }
+  }, [userProfile, user, refreshLinkedAccounts]);
+
+  // ── Multi-account methods ───────────────────────────────────────────────
+
+  /**
+   * Save the current account as a linked account.
+   * Call this after a successful sign-in or sign-up so the user
+   * can switch back to this account later.
+   * @param {string} password - The password used to sign in
+   */
+  const saveCurrentAsLinkedAccount = useCallback(async (password) => {
+    if (!user || !userProfile) return;
+    await saveLinkedAccount({
+      uid: user.uid,
+      email: user.email || userProfile.email,
+      username: userProfile.username,
+      displayName: userProfile.displayName,
+      profilePicture: userProfile.profilePicture,
+    }, password);
+    await refreshLinkedAccounts();
+  }, [user, userProfile, refreshLinkedAccounts]);
+
+  /**
+   * Switch to a different linked account.
+   * Syncs the current account's data to the cloud, then signs in as the target.
+   * @param {string} uid - The UID of the account to switch to
+   */
+  const switchAccount = useCallback(async (uid) => {
+    if (uid === user?.uid) return; // Already on this account
+
+    setSwitchingAccount(true);
+    isAuthFlowActive.current = true;
+
+    try {
+      // 1. Get the stored password for the target account
+      const password = await getStoredPassword(uid);
+      if (!password) {
+        throw new Error('No stored credentials for this account. Please remove it and sign in again.');
+      }
+
+      // Find the target account to get the email
+      const accounts = await getLinkedAccounts();
+      const target = accounts.find((a) => a.uid === uid);
+      if (!target) {
+        throw new Error('Account not found.');
+      }
+
+      // 2. Sync current account data to cloud before switching
+      if (user?.uid) {
+        try {
+          console.log('[AccountSwitcher] Syncing current account to cloud...');
+          const {
+            syncSavedVersesToCloud,
+            syncJournalNotesToCloud,
+            syncThemePreferencesToCloud,
+            syncAllHistoryToCloud,
+            syncUserStatsToCloud,
+            syncPrayersToCloud,
+          } = await import('../services/userSyncService');
+
+          await syncUserStatsToCloud(user.uid);
+          await syncSavedVersesToCloud(user.uid);
+          await syncJournalNotesToCloud(user.uid);
+          await syncPrayersToCloud(user.uid);
+          await syncThemePreferencesToCloud(user.uid);
+          await syncAllHistoryToCloud(user.uid);
+          console.log('[AccountSwitcher] Current account synced');
+        } catch (syncErr) {
+          console.warn('[AccountSwitcher] Cloud sync failed:', syncErr);
+          // Continue with switch even if sync fails
+        }
+      }
+
+      // 3. Save current user info for recovery if switch fails
+      const previousUid = user?.uid;
+      const previousEmail = user?.email || userProfile?.email;
+      const previousPassword = previousUid ? await getStoredPassword(previousUid) : null;
+      const previousProfile = userProfile ? { ...userProfile } : null;
+
+      // 4. Sign out current user (preserves UID-scoped data in AsyncStorage)
+      await authSignOut();
+      userStorage.clearUser();
+
+      // 5. Sign in as the target account
+      console.log('[AccountSwitcher] Signing in as', target.username || target.email);
+      let result;
+      try {
+        result = await authSignIn(target.email, password);
+      } catch (signInErr) {
+        // Sign-in failed — try to recover by signing back into the previous account
+        console.warn('[AccountSwitcher] Target sign-in failed, recovering previous session...');
+        if (previousEmail && previousPassword) {
+          try {
+            const recoveredResult = await authSignIn(previousEmail, previousPassword);
+            if (recoveredResult?.uid) {
+              await userStorage.initUser(recoveredResult.uid);
+              await userStorage.setRaw('onboardingCompleted', 'true');
+              await userStorage.set(USER_CACHE_KEY, recoveredResult);
+              await reloadTheme();
+            }
+            setUser(recoveredResult);
+            setUserProfile(previousProfile || recoveredResult);
+            setInitializing(false);
+            setLoading(false);
+            console.log('[AccountSwitcher] Recovered previous session');
+          } catch (recoveryErr) {
+            console.warn('[AccountSwitcher] Recovery also failed:', recoveryErr?.message || recoveryErr);
+          }
+        }
+        throw signInErr;
+      }
+
+      if (result?.uid) {
+        await userStorage.initUser(result.uid);
+        // MUST set onboardingCompleted IMMEDIATELY after initUser to prevent
+        // OnboardingWrapper race condition
+        await userStorage.setRaw('onboardingCompleted', 'true');
+        await userStorage.set(USER_CACHE_KEY, result);
+        await reloadTheme();
+      }
+
+      setUser(result);
+      setUserProfile(result);
+
+      // 5. Download cloud data for the target account
+      try {
+        const { downloadAndMergeCloudData } = await import('../services/userSyncService');
+        if (result?.uid) {
+          await downloadAndMergeCloudData(result.uid);
+          console.log('[AccountSwitcher] Downloaded cloud data for switched account');
+        }
+      } catch (dlErr) {
+        console.warn('[AccountSwitcher] Download failed:', dlErr);
+      }
+
+      // 6. Re-set onboardingCompleted in case cloud data overwrote it
+      await userStorage.setRaw('onboardingCompleted', 'true');
+
+      // 7. Reload theme again after data download (in case cloud had different theme)
+      await reloadTheme();
+
+      // 8. Update the linked account entry with fresh profile data
+      await updateLinkedAccountProfile(result.uid, {
+        username: result.username,
+        displayName: result.displayName,
+        profilePicture: result.profilePicture,
+        lastSwitchedAt: Date.now(),
+      });
+      await refreshLinkedAccounts();
+
+      // 9. Unblock the app (onAuthStateChange listener was skipped during this flow)
+      setInitializing(false);
+      setLoading(false);
+
+      // 10. Emit event so screens can refresh
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('userDataDownloaded');
+
+      console.log('[AccountSwitcher] Switch complete to', result.username || result.email);
+    } catch (error) {
+      console.warn('[AccountSwitcher] Switch failed:', error?.message || error);
+      setInitializing(false);
+      setLoading(false);
+      throw error;
+    } finally {
+      isAuthFlowActive.current = false;
+      setSwitchingAccount(false);
+    }
+  }, [user, reloadTheme, refreshLinkedAccounts]);
+
+  /**
+   * Add a new linked account by signing into it.
+   * The current account is saved first (using already-stored password if available),
+   * then the new account becomes active.
+   * @param {string} email
+   * @param {string} password
+   * @param {string|null} currentPassword - Optional; if null, uses stored password
+   */
+  const addLinkedAccount = useCallback(async (email, password, currentPassword) => {
+    setSwitchingAccount(true);
+    isAuthFlowActive.current = true;
+
+    try {
+      // 1. Save the current account first (so user can switch back)
+      // Use the stored password if no current password is provided
+      if (user && userProfile) {
+        const storedPw = currentPassword || (user.uid ? await getStoredPassword(user.uid) : null);
+        if (storedPw) {
+          await saveLinkedAccount({
+            uid: user.uid,
+            email: user.email || userProfile.email,
+            username: userProfile.username,
+            displayName: userProfile.displayName,
+            profilePicture: userProfile.profilePicture,
+          }, storedPw);
+        }
+      }
+
+      // 2. Sync current account data to cloud
+      if (user?.uid) {
+        try {
+          const {
+            syncSavedVersesToCloud,
+            syncJournalNotesToCloud,
+            syncThemePreferencesToCloud,
+            syncAllHistoryToCloud,
+            syncUserStatsToCloud,
+            syncPrayersToCloud,
+          } = await import('../services/userSyncService');
+
+          await syncUserStatsToCloud(user.uid);
+          await syncSavedVersesToCloud(user.uid);
+          await syncJournalNotesToCloud(user.uid);
+          await syncPrayersToCloud(user.uid);
+          await syncThemePreferencesToCloud(user.uid);
+          await syncAllHistoryToCloud(user.uid);
+        } catch (syncErr) {
+          console.warn('[AccountSwitcher] Pre-switch sync failed:', syncErr);
+        }
+      }
+
+      // 3. Sign out current user
+      await authSignOut();
+      userStorage.clearUser();
+
+      // 4. Sign in as the new account
+      const result = await authSignIn(email, password);
+
+      if (result?.uid) {
+        await userStorage.initUser(result.uid);
+        // MUST set onboardingCompleted IMMEDIATELY after initUser, before any state
+        // updates (setUser/setUserProfile) that would cause OnboardingWrapper to
+        // remount and check this flag. Otherwise there's a race condition where
+        // OnboardingWrapper reads the flag before we set it.
+        await userStorage.setRaw('onboardingCompleted', 'true');
+        await userStorage.set(USER_CACHE_KEY, result);
+        await reloadTheme();
+      }
+
+      setUser(result);
+      setUserProfile(result);
+
+      // 5. Save the new account as linked too
+      await saveLinkedAccount({
+        uid: result.uid,
+        email: result.email,
+        username: result.username,
+        displayName: result.displayName,
+        profilePicture: result.profilePicture,
+      }, password);
+
+      // 6. Download cloud data
+      try {
+        const { downloadAndMergeCloudData } = await import('../services/userSyncService');
+        if (result?.uid) {
+          await downloadAndMergeCloudData(result.uid);
+        }
+      } catch (dlErr) {
+        console.warn('[AccountSwitcher] Download failed:', dlErr);
+      }
+
+      // Re-set onboardingCompleted in case downloadAndMergeCloudData overwrote it
+      await userStorage.setRaw('onboardingCompleted', 'true');
+      await reloadTheme();
+      await refreshLinkedAccounts();
+
+      // Unblock the app (onAuthStateChange listener was skipped during this flow)
+      setInitializing(false);
+      setLoading(false);
+
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('userDataDownloaded');
+
+      console.log('[AccountSwitcher] Added & switched to', result.username || result.email);
+      return result;
+    } catch (error) {
+      console.warn('[AccountSwitcher] addLinkedAccount failed:', error?.message || error);
+      // Ensure app is unblocked even on error
+      setInitializing(false);
+      setLoading(false);
+      throw error;
+    } finally {
+      isAuthFlowActive.current = false;
+      setSwitchingAccount(false);
+    }
+  }, [user, userProfile, reloadTheme, refreshLinkedAccounts]);
+
+  /**
+   * Remove a linked account from this device.
+   * Cannot remove the currently active account.
+   * @param {string} uid
+   */
+  const unlinkAccount = useCallback(async (uid) => {
+    if (uid === user?.uid) {
+      throw new Error('Cannot remove the currently active account.');
+    }
+    await removeStoredAccount(uid);
+    await refreshLinkedAccounts();
+  }, [user, refreshLinkedAccounts]);
 
   const value = {
     // State
@@ -459,6 +901,10 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     authSteps,
     
+    // Multi-account state
+    linkedAccounts,
+    switchingAccount,
+    
     // Methods
     signUp,
     signIn,
@@ -467,6 +913,13 @@ export const AuthProvider = ({ children }) => {
     refreshUserProfile,
     updateLocalProfile,
     checkUsernameAvailability,
+    
+    // Multi-account methods
+    switchAccount,
+    addLinkedAccount,
+    unlinkAccount,
+    saveCurrentAsLinkedAccount,
+    refreshLinkedAccounts,
   };
 
   return (
