@@ -590,6 +590,8 @@ const NutritionScreen = () => {
     setSaveFavorite(false);
     setAnalyzedFood(null);
     setSelectedFavoriteIds([]);
+    setAnalyzing(false);          // Reset in case previous analysis was interrupted
+    modalDragY.setValue(0);        // Reset drag offset from previous session
     // Mount the modal, then animate in
     setModalMounted(true);
     setAddFoodVisible(true);
@@ -626,6 +628,9 @@ const NutritionScreen = () => {
     ]).start(() => {
       setAddFoodVisible(false);
       setModalMounted(false);
+      // Reset animation values for clean next open
+      modalDragY.setValue(0);
+      modalSlideAnim.setValue(1);
     });
   };
 
@@ -638,7 +643,7 @@ const NutritionScreen = () => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.7,
         base64: true,
         allowsEditing: true,

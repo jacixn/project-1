@@ -49,6 +49,7 @@ import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
 import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
+import ReportBlockModal from '../components/ReportBlockModal';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
@@ -101,6 +102,7 @@ const HubTab = () => {
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
   const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
   const [expandedPost, setExpandedPost] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
   
   // Badge display state for current user
   const [myBadgeToggles, setMyBadgeToggles] = useState({});
@@ -718,9 +720,16 @@ const HubTab = () => {
             </View>
           </View>
           
-          {isOwner && (
+          {isOwner ? (
             <TouchableOpacity
               onPress={() => handleDeletePost(item.id)}
+              style={styles.moreButton}
+            >
+              <MaterialIcons name="more-horiz" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => setReportTarget(item)}
               style={styles.moreButton}
             >
               <MaterialIcons name="more-horiz" size={20} color={theme.textSecondary} />
@@ -1331,6 +1340,20 @@ const HubTab = () => {
       {/* Friends - now navigated via stack navigator for swipe-back support */}
       
       {/* Leaderboard - now navigated via stack navigator for swipe-back support */}
+
+      <ReportBlockModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        contentType="post"
+        contentId={reportTarget?.id}
+        reportedUserId={reportTarget?.userId}
+        currentUserId={user?.uid}
+        displayName={reportTarget?.authorName || 'this user'}
+        onBlock={() => {
+          setPosts(prev => prev.filter(p => p.userId !== reportTarget?.userId));
+          setReportTarget(null);
+        }}
+      />
     </View>
   );
 };

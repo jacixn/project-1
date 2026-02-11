@@ -134,10 +134,10 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState('dark'); // Default to dark mode
+  const [currentTheme, setCurrentTheme] = useState('biblely'); // Default to Biblely theme
   const [isDarkMode, setIsDarkMode] = useState(true); // Separate dark mode state
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedWallpaperIndex, setSelectedWallpaperIndex] = useState(0); // Wallpaper selection
+  const [selectedWallpaperIndex, setSelectedWallpaperIndex] = useState(1); // Default: Jesus & Lambs
 
   useEffect(() => {
     loadThemePreference();
@@ -166,6 +166,9 @@ export const ThemeProvider = ({ children }) => {
       
       if (savedWallpaper !== null) {
         setSelectedWallpaperIndex(parseInt(savedWallpaper, 10));
+      } else {
+        // No wallpaper saved — default to Jesus & Lambs (index 1)
+        setSelectedWallpaperIndex(1);
       }
     } catch (error) {
       console.log('Error loading theme preference:', error);

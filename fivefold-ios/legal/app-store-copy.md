@@ -79,4 +79,4 @@ Lifestyle
 Health & Fitness
 
 ## Age Rating Notes
-Contains Bible/religious content. No violence, gambling, mature themes, or user-generated content moderation concerns beyond community prayer wall (text-only, moderated).
+Contains Bible/religious content. User-generated content features include a community prayer wall, social feed, direct messaging between friends, and friend connections. All UGC is text-based and moderated with profanity filtering, user reporting, and user blocking mechanisms. No violence, gambling, or mature themes.

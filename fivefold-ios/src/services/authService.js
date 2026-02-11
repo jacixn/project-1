@@ -287,7 +287,39 @@ export const signOut = async () => {
 };
 
 /**
- * Send a password reset email
+ * Send a 6-digit password reset code to the user's email via Cloud Function.
+ * Uses the same Resend email service as verification codes (won't go to spam).
+ * @param {string} email - User's email
+ * @returns {Promise<{success: boolean, maskedEmail: string}>}
+ */
+export const sendPasswordResetCode = async (email) => {
+  const callable = httpsCallable(functions, 'sendPasswordResetCode');
+  const result = await callable({ email: email.trim().toLowerCase() });
+  console.log('[Auth] Password reset code sent to:', result.data.maskedEmail);
+  return result.data;
+};
+
+/**
+ * Verify the reset code and set a new password via Cloud Function.
+ * @param {string} email - User's email
+ * @param {string} code - The 6-digit code
+ * @param {string} newPassword - The new password (min 6 chars)
+ * @returns {Promise<{success: boolean}>}
+ */
+export const resetPasswordWithCode = async (email, code, newPassword) => {
+  const callable = httpsCallable(functions, 'resetPasswordWithCode');
+  const result = await callable({
+    email: email.trim().toLowerCase(),
+    code: code.trim(),
+    newPassword,
+  });
+  console.log('[Auth] Password reset successful');
+  return result.data;
+};
+
+/**
+ * Legacy: Send password reset via Firebase default email.
+ * Kept as fallback in case Cloud Function is unavailable.
  * @param {string} email - User's email
  * @returns {Promise<void>}
  */
@@ -397,6 +429,8 @@ export default {
   signIn,
   signOut,
   resetPassword,
+  sendPasswordResetCode,
+  resetPasswordWithCode,
   getCurrentUser,
   getUserProfile,
   checkUsernameAvailability,

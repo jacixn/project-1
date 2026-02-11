@@ -33,7 +33,7 @@ import { sendVerificationCode, verifyEmailCode } from '../services/authService';
 const { width } = Dimensions.get('window');
 const CODE_LENGTH = 6;
 
-const EmailVerificationScreen = ({ onDismiss }) => {
+const EmailVerificationScreen = ({ onDismiss, email: emailProp }) => {
   // Works both as a Stack.Screen (useNavigation/useRoute) and standalone (onDismiss prop)
   let navigation, route;
   try {
@@ -44,8 +44,12 @@ const EmailVerificationScreen = ({ onDismiss }) => {
     navigation = null;
     route = null;
   }
-  const maskedEmail = route?.params?.maskedEmail || 'your email';
+  const routeEmail = route?.params?.maskedEmail;
   const fromSignup = route?.params?.fromSignup ?? !!onDismiss;
+
+  // Use the best available email for display
+  const [displayEmail, setDisplayEmail] = useState(routeEmail || emailProp || '');
+  const maskedEmail = displayEmail || 'your email';
 
   // Code input state
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(''));
@@ -79,6 +83,27 @@ const EmailVerificationScreen = ({ onDismiss }) => {
     }
     return () => clearTimeout(cooldownRef.current);
   }, [cooldown]);
+
+  // Auto-send code on mount when navigating from settings (not from signup where it's already sent)
+  useEffect(() => {
+    if (!fromSignup) {
+      console.log('[EmailVerification] Auto-sending code on mount');
+      (async () => {
+        setSending(true);
+        try {
+          const result = await sendVerificationCode();
+          console.log('[EmailVerification] Code sent successfully:', result.maskedEmail);
+          if (result.maskedEmail) setDisplayEmail(result.maskedEmail);
+          setCooldown(60);
+        } catch (error) {
+          console.error('[EmailVerification] Auto-send failed:', error?.message || error);
+          // Don't show alert on auto-send failure — user can tap "Resend Code"
+        } finally {
+          setSending(false);
+        }
+      })();
+    }
+  }, []);
 
   // Auto-verify when all 6 digits are entered
   useEffect(() => {
@@ -193,10 +218,14 @@ const EmailVerificationScreen = ({ onDismiss }) => {
     setSending(true);
     try {
       hapticFeedback.light();
+      console.log('[EmailVerification] Resending code...');
       const result = await sendVerificationCode();
+      console.log('[EmailVerification] Resend successful:', result.maskedEmail);
+      if (result.maskedEmail) setDisplayEmail(result.maskedEmail);
       setCooldown(60);
       Alert.alert('Code Sent', `A new code has been sent to ${result.maskedEmail || maskedEmail}.`);
     } catch (error) {
+      console.error('[EmailVerification] Resend failed:', error?.message || error);
       const msg = error?.message || 'Failed to send code. Please try again.';
       Alert.alert('Error', msg);
     } finally {

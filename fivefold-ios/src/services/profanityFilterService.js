@@ -256,7 +256,6 @@ const ROOTS = [
   'spam','spammer',
   'troll','trolling',
   'dox','doxxing','swatting',
-  'hack','hacker','hacking',
   'leak','leaked',
   'snuff',
   'dark web','darkweb','silkroad',

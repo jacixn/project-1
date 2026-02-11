@@ -1297,13 +1297,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   const testConnectivity = async () => {
     try {
-      console.log('🧪 Testing Smart connectivity...');
-      const apiKey = await userStorage.getRaw('fivefold_groq_api_key');
-      console.log('🧪 Smart test result:', apiKey ? `Enabled (${apiKey.length} chars)` : 'NOT ENABLED');
-      Alert.alert('Smart Features Status', apiKey ? 'Smart features are active! Friend is ready to chat.' : 'Please enable smart features in Profile > Settings first.');
+      // Smart features are always available through productionAiService
+      Alert.alert('Smart Features', 'Smart features are active and ready.');
     } catch (error) {
-      console.error('🧪 Smart connectivity test error:', error);
-      Alert.alert('Smart Features Error', 'Failed to check smart features status - ' + error.message);
+      Alert.alert('Smart Features', 'Unable to check status. Please try again.');
     }
   };
 

@@ -16,6 +16,8 @@ import {
   signIn as authSignIn,
   signOut as authSignOut,
   resetPassword as authResetPassword,
+  sendPasswordResetCode as authSendResetCode,
+  resetPasswordWithCode as authResetWithCode,
   getCurrentUser,
   getUserProfile,
   onAuthStateChange,
@@ -53,6 +55,8 @@ export const AuthProvider = ({ children }) => {
   // Tracks sign-in/sign-up progress steps for loading UI
   const [authSteps, setAuthSteps] = useState(null);
   // { type: 'signin'|'signup', steps: [{label, done}], current: number }
+  const [deleteSteps, setDeleteSteps] = useState(null);
+  // { steps: [{label, done}], current: number }
   
   // Multi-account support
   const [linkedAccounts, setLinkedAccounts] = useState([]);
@@ -540,7 +544,97 @@ export const AuthProvider = ({ children }) => {
   }, [user, reloadTheme, refreshLinkedAccounts]);
 
   /**
-   * Send password reset email
+   * Delete account with animated progress screen
+   */
+  const deleteAccount = useCallback(async (password) => {
+    const STEPS = [
+      { label: 'Verifying your identity', done: false },
+      { label: 'Removing prayers & posts', done: false },
+      { label: 'Deleting conversations', done: false },
+      { label: 'Removing challenges', done: false },
+      { label: 'Deleting cloud profile', done: false },
+      { label: 'Removing profile photos', done: false },
+      { label: 'Clearing local data', done: false },
+      { label: 'Deleting account', done: false },
+    ];
+
+    const markDone = (stepIndex) => {
+      if (stepIndex >= STEPS.length) {
+        // All done
+        STEPS.forEach(s => { s.done = true; });
+        setDeleteSteps({ steps: [...STEPS], current: -1 });
+        return;
+      }
+      // Mark previous steps done
+      for (let i = 0; i <= stepIndex; i++) {
+        STEPS[i].done = true;
+      }
+      const next = stepIndex + 1 < STEPS.length ? stepIndex + 1 : -1;
+      setDeleteSteps({ steps: [...STEPS], current: next });
+    };
+
+    setDeleteSteps({ steps: [...STEPS], current: 0 });
+    setLoading(true);
+    isAuthFlowActive.current = true;
+
+    try {
+      const { deleteAccountCompletely } = await import('../utils/onboardingReset');
+      const success = await deleteAccountCompletely(password, markDone);
+
+      if (!success) {
+        throw new Error('Deletion failed');
+      }
+
+      // Small delay so user sees the final step complete
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Clear state — user is now deleted
+      setUser(null);
+      setUserProfile(null);
+      setDeleteSteps(null);
+      setAuthSteps(null);
+      userStorage.clearUser();
+
+      return true;
+    } catch (error) {
+      setDeleteSteps(null);
+      throw error;
+    } finally {
+      isAuthFlowActive.current = false;
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Send password reset code (OTP via Resend — won't go to spam)
+   */
+  const sendPasswordResetCode = useCallback(async (email) => {
+    setLoading(true);
+    try {
+      return await authSendResetCode(email);
+    } catch (error) {
+      throw new Error(getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Verify reset code and set new password
+   */
+  const resetPasswordWithCode = useCallback(async (email, code, newPassword) => {
+    setLoading(true);
+    try {
+      return await authResetWithCode(email, code, newPassword);
+    } catch (error) {
+      throw new Error(getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Legacy: Send password reset email (Firebase default — may go to spam)
    */
   const resetPassword = useCallback(async (email) => {
     setLoading(true);
@@ -900,6 +994,7 @@ export const AuthProvider = ({ children }) => {
     initializing,
     isAuthenticated: !!user,
     authSteps,
+    deleteSteps,
     
     // Multi-account state
     linkedAccounts,
@@ -909,7 +1004,10 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    deleteAccount,
     resetPassword,
+    sendPasswordResetCode,
+    resetPasswordWithCode,
     refreshUserProfile,
     updateLocalProfile,
     checkUsernameAvailability,

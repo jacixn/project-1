@@ -46,6 +46,7 @@ import { uploadImage } from '../services/storageService';
 import profanityFilter from '../services/profanityFilterService';
 import userStorage from '../utils/userStorage';
 import { BlurView } from 'expo-blur';
+import ReportBlockModal from '../components/ReportBlockModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
@@ -328,6 +329,7 @@ const ChatScreen = () => {
   const [showEncouragements, setShowEncouragements] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
@@ -763,6 +765,13 @@ const ChatScreen = () => {
             </Text>
           )}
         </View>
+
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setShowReportModal(true)}
+        >
+          <MaterialIcons name="more-vert" size={22} color={theme.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -854,6 +863,20 @@ const ChatScreen = () => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <ReportBlockModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="message"
+        contentId={conversationId}
+        reportedUserId={otherUserId}
+        currentUserId={user?.uid}
+        displayName={otherUser?.displayName || 'this user'}
+        onBlock={() => {
+          setShowReportModal(false);
+          navigation.goBack();
+        }}
+      />
     </View>
   );
 };

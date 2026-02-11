@@ -227,21 +227,6 @@ const saveScheduleToFirebase = async (userId, schedule) => {
 const TOKEN_STORAGE_KEY = 'hub_posting_token';
 const TOKEN_SCHEDULE_KEY = 'hub_token_schedule';
 
-// TEST MODE: Users with unlimited tokens for testing (checks displayName AND username)
-const TEST_USERS_WITH_UNLIMITED_TOKENS = ['lolo', 'lol'];
-
-/**
- * Check if a name matches any test user (handles emojis and extra characters)
- */
-const isTestUser = (name) => {
-  if (!name) return false;
-  const cleanName = name.toLowerCase().trim();
-  return TEST_USERS_WITH_UNLIMITED_TOKENS.some(testUser => 
-    cleanName === testUser || 
-    cleanName.startsWith(testUser + ' ') || 
-    cleanName.startsWith(testUser + '_')
-  );
-};
 
 /**
  * Generate a random time between 6 AM and 6 PM (in minutes from midnight)
@@ -286,20 +271,6 @@ const isTokenExpired = (tokenDate) => {
  */
 export const getTokenStatus = async (userId, username = null) => {
   try {
-    // TEST MODE: Give unlimited tokens to test users
-    if (isTestUser(username)) {
-      console.log('[Token] TEST MODE: Unlimited tokens for user:', username);
-      return {
-        hasToken: true,
-        tokenDelivered: true,
-        arrivalTime: 'Unlimited',
-        arrivalMinutes: 0,
-        willArriveToday: false,
-        isTestUser: true,
-        tokensRemaining: 1000000,
-      };
-    }
-    
     const tokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
     const scheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
     
@@ -392,12 +363,6 @@ export const useToken = async (userId, username = null) => {
     
     if (!status.hasToken) {
       return { success: false, error: 'No token available' };
-    }
-    
-    // TEST MODE: Don't consume tokens for test users
-    if (status.isTestUser) {
-      console.log('[Token] TEST MODE: Token not consumed for test user');
-      return { success: true, isTestUser: true };
     }
     
     // Consume the token

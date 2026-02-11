@@ -25,6 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { subscribeToConversations, cleanupAllOldMessages } from '../services/messageService';
 import { getFriendsWithStats } from '../services/friendsService';
+import ReportBlockModal from '../components/ReportBlockModal';
 import * as Haptics from 'expo-haptics';
 
 const MessagesScreen = () => {
@@ -37,6 +38,7 @@ const MessagesScreen = () => {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -130,6 +132,11 @@ const MessagesScreen = () => {
       <TouchableOpacity
         style={[styles.conversationCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF' }]}
         onPress={() => handleConversationPress(item)}
+        onLongPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setReportTarget(item);
+        }}
+        delayLongPress={500}
         activeOpacity={0.7}
       >
         <View style={styles.avatarWrap}>
@@ -262,6 +269,20 @@ const MessagesScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <ReportBlockModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        contentType="message"
+        contentId={reportTarget?.id}
+        reportedUserId={reportTarget?.otherUserId}
+        currentUserId={user?.uid}
+        displayName={reportTarget?.otherUser?.displayName || 'this user'}
+        onBlock={() => {
+          setConversations(prev => prev.filter(c => c.otherUserId !== reportTarget?.otherUserId));
+          setReportTarget(null);
+        }}
+      />
     </View>
   );
 };

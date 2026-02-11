@@ -691,9 +691,155 @@ const authProgStyles = StyleSheet.create({
   },
 });
 
+/**
+ * DeletionProgressScreen — shows real-time account deletion progress
+ * with a red/danger aesthetic.
+ */
+const DeletionProgressScreen = ({ deleteSteps }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0.6)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const stepsOpacity = useRef(new Animated.Value(0)).current;
+
+  const stepAnims = useRef(
+    (deleteSteps?.steps || []).map(() => ({
+      opacity: new Animated.Value(0),
+      slide: new Animated.Value(14),
+      progress: new Animated.Value(0),
+      check: new Animated.Value(0),
+    }))
+  ).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(iconScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.timing(iconOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      ]).start();
+    }, 100);
+    setTimeout(() => {
+      Animated.timing(stepsOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    if (!deleteSteps?.steps) return;
+    deleteSteps.steps.forEach((step, i) => {
+      if (!stepAnims[i]) return;
+      const sa = stepAnims[i];
+      if (i <= (deleteSteps.current === -1 ? deleteSteps.steps.length : deleteSteps.current)) {
+        Animated.parallel([
+          Animated.timing(sa.opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.spring(sa.slide, { toValue: 0, tension: 120, friction: 14, useNativeDriver: true }),
+        ]).start();
+      }
+      if (step.done) {
+        Animated.timing(sa.progress, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
+          Animated.spring(sa.check, { toValue: 1, tension: 300, friction: 8, useNativeDriver: true }).start();
+        });
+      } else if (i === deleteSteps.current) {
+        Animated.timing(sa.progress, { toValue: 0.6, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+      }
+    });
+  }, [deleteSteps]);
+
+  const allDone = deleteSteps?.steps?.every(s => s.done);
+
+  return (
+    <Animated.View style={[delProgStyles.root, { opacity: fadeAnim }]}>
+      <LinearGradient colors={['#1A0A0A', '#0F0D15', '#09090B']} style={StyleSheet.absoluteFill} />
+
+      {/* Icon */}
+      <Animated.View style={[delProgStyles.iconWrap, {
+        opacity: iconOpacity,
+        transform: [{ scale: iconScale }],
+      }]}>
+        <View style={delProgStyles.iconCircle}>
+          <Text style={delProgStyles.iconText}>{allDone ? '\u2713' : '\u2717'}</Text>
+        </View>
+      </Animated.View>
+
+      <Text style={delProgStyles.title}>{allDone ? 'Account Deleted' : 'Deleting Account'}</Text>
+      <Text style={delProgStyles.subtitle}>
+        {allDone ? 'All your data has been removed.' : 'Permanently removing your data...'}
+      </Text>
+
+      {/* Steps */}
+      <Animated.View style={[delProgStyles.stepsArea, { opacity: stepsOpacity }]}>
+        {(deleteSteps?.steps || []).map((step, i) => {
+          const sa = stepAnims[i];
+          if (!sa) return null;
+          return (
+            <Animated.View key={i} style={[delProgStyles.stepRow, {
+              opacity: sa.opacity,
+              transform: [{ translateY: sa.slide }],
+            }]}>
+              <View style={delProgStyles.indicator}>
+                {step.done ? (
+                  <Animated.View style={[delProgStyles.checkCircle, {
+                    transform: [{ scale: sa.check }],
+                  }]}>
+                    <Text style={delProgStyles.checkMark}>{'\u2713'}</Text>
+                  </Animated.View>
+                ) : (
+                  <View style={delProgStyles.pendingRing} />
+                )}
+              </View>
+              <View style={delProgStyles.stepBody}>
+                <Text style={[delProgStyles.stepLabel, step.done && delProgStyles.stepLabelDone]}>
+                  {step.label}
+                </Text>
+                {!step.done && (
+                  <View style={delProgStyles.progressTrack}>
+                    <Animated.View style={[delProgStyles.progressFill, {
+                      width: sa.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    }]}>
+                      <LinearGradient
+                        colors={['#DC2626', '#EF4444']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={delProgStyles.progressGradient}
+                      />
+                    </Animated.View>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          );
+        })}
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+const delProgStyles = StyleSheet.create({
+  root: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#09090B' },
+  iconWrap: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  iconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(220,38,38,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(220,38,38,0.3)' },
+  iconText: { fontSize: 28, fontWeight: '800', color: '#EF4444' },
+  title: { fontSize: 22, fontWeight: '700', color: '#FFFFFF', marginBottom: 6, letterSpacing: 0.3 },
+  subtitle: { fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.4)', marginBottom: 36 },
+  stepsArea: { width: '80%', maxWidth: 320, gap: 16 },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  indicator: { width: 22, height: 22, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+  checkCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center' },
+  checkMark: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  pendingRing: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'rgba(255,255,255,0.12)' },
+  stepBody: { flex: 1, gap: 6 },
+  stepLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+  stepLabelDone: { color: 'rgba(255,255,255,0.35)' },
+  progressTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: '100%' },
+  progressGradient: { flex: 1, borderRadius: 2 },
+});
+
 const RootNavigator = () => {
   const { theme, isDark } = useTheme();
-  const { isAuthenticated, initializing, loading, authSteps } = useAuth();
+  const { isAuthenticated, initializing, loading, authSteps, deleteSteps } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   // showVerificationPrompt removed - verification is now handled during onboarding
@@ -746,6 +892,11 @@ const RootNavigator = () => {
     setNeedsOnboarding(false);
   };
   
+  // Show account deletion progress screen
+  if (deleteSteps) {
+    return <DeletionProgressScreen deleteSteps={deleteSteps} />;
+  }
+
   // Show sign-in / sign-up loading screen with real progress steps
   if (loading && authSteps) {
     return <AuthProgressScreen authSteps={authSteps} />;

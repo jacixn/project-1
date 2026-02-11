@@ -53,13 +53,16 @@ class BodyCompositionService {
     const skeletalMuscleMassKg = this._calcSkeletalMuscle(isMale, age, heightCm, weightKg, bf);
     const skeletalMusclePercent = this._round1((skeletalMuscleMassKg / weightKg) * 100);
 
-    // Total muscle mass ≈ lean body mass × 0.75 (includes smooth/cardiac muscle)
-    const muscleMassKg = this._round1(fatFreeKg * 0.75);
-    const muscleRate = this._round1((muscleMassKg / weightKg) * 100);
+    // Total muscle mass ≈ skeletal muscle × 1.15 (adds smooth/cardiac muscle ~15% extra)
+    const muscleMassKg = this._round1(skeletalMuscleMassKg * 1.15);
+
+    // Muscle rate = skeletal muscle % (the standard metric body composition scales use)
+    const muscleRate = skeletalMusclePercent;
 
     // ── Bone mass ──
-    // Heymsfield approximation: ~6.5% of lean mass for males, ~7.2% for females
-    const boneFraction = isMale ? 0.065 : 0.072;
+    // DEXA-based estimates: ~5.0% of lean mass for males, ~5.5% for females
+    // (avg male bone mineral content ~2.5-3.2 kg, female ~2.0-2.8 kg)
+    const boneFraction = isMale ? 0.050 : 0.055;
     const boneMassKg = this._round1(fatFreeKg * boneFraction);
 
     // ── Body water ──
@@ -186,7 +189,7 @@ class BodyCompositionService {
     deviation += (bf - idealBF) * 0.3;
 
     // Muscle rate bonus (higher = younger)
-    const idealMuscle = isMale ? 44 : 36;
+    const idealMuscle = isMale ? 38 : 28;
     deviation -= (muscleRate - idealMuscle) * 0.3;
 
     // Hydration bonus
@@ -222,10 +225,18 @@ class BodyCompositionService {
   }
 
   _muscleStatus(isMale, rate) {
-    const threshold = isMale ? 40 : 33;
-    if (rate >= threshold + 5) return { label: 'High', color: '#10B981' };
-    if (rate >= threshold) return { label: 'Normal', color: '#3B82F6' };
-    return { label: 'Below Average', color: '#F59E0B' };
+    // Based on real skeletal muscle % standards
+    if (isMale) {
+      if (rate >= 44) return { label: 'Very High', color: '#10B981' };
+      if (rate >= 40) return { label: 'High', color: '#10B981' };
+      if (rate >= 33) return { label: 'Normal', color: '#3B82F6' };
+      return { label: 'Below Average', color: '#F59E0B' };
+    } else {
+      if (rate >= 36) return { label: 'Very High', color: '#10B981' };
+      if (rate >= 31) return { label: 'High', color: '#10B981' };
+      if (rate >= 24) return { label: 'Normal', color: '#3B82F6' };
+      return { label: 'Below Average', color: '#F59E0B' };
+    }
   }
 
   _bodyWaterStatus(isMale, pct) {
@@ -236,36 +247,63 @@ class BodyCompositionService {
   }
 
   // ────────────────────────────────────────
-  //  HEALTH SCORE (0-100)
+  //  HEALTH SCORE (0-100) — Strict & honest
   // ────────────────────────────────────────
 
   _calcHealthScore(isMale, bmi, bf, muscleRate, bodyWater, visceralFat, bodyAge, realAge) {
     let score = 100;
 
-    // BMI penalty (ideal 19-24.9)
-    if (bmi < 18.5) score -= (18.5 - bmi) * 4;
-    else if (bmi > 25) score -= (bmi - 25) * 3;
+    // ── BMI penalty (ideal 19–24.9) ──
+    if (bmi < 16) score -= 20;
+    else if (bmi < 18.5) score -= (18.5 - bmi) * 5;
+    else if (bmi >= 35) score -= 20 + (bmi - 35) * 3;
+    else if (bmi >= 30) score -= 12 + (bmi - 30) * 3;
+    else if (bmi >= 25) score -= (bmi - 25) * 2.5;
 
-    // Body fat penalty
-    const idealBF = isMale ? 15 : 23;
-    const bfDiff = Math.abs(bf - idealBF);
-    if (bfDiff > 5) score -= (bfDiff - 5) * 2;
+    // ── Body fat — the biggest factor, no free buffer ──
+    // Ideal ranges: Male 12–18%, Female 20–25%
+    const idealBFLow = isMale ? 12 : 20;
+    const idealBFHigh = isMale ? 18 : 25;
 
-    // Muscle bonus/penalty
-    const idealMuscle = isMale ? 44 : 36;
-    if (muscleRate < idealMuscle) score -= (idealMuscle - muscleRate) * 1.5;
-    else score += Math.min((muscleRate - idealMuscle) * 0.5, 5); // small bonus
+    if (bf > idealBFHigh) {
+      const excess = bf - idealBFHigh;
+      // Progressive penalty: steeper the further you are
+      score -= excess * 3.5;
+      if (excess > 5) score -= (excess - 5) * 2;   // extra steep 5%+ over
+      if (excess > 12) score -= (excess - 12) * 2;  // even steeper 12%+ over
+    } else if (bf < idealBFLow) {
+      // Too lean can be unhealthy
+      const deficit = idealBFLow - bf;
+      score -= deficit * 2;
+      if (deficit > 5) score -= (deficit - 5) * 3;  // dangerously low
+    }
+    // Within ideal range: no penalty (reward for being in range)
 
-    // Hydration
+    // ── Muscle rate (skeletal muscle %) — modest influence ──
+    // Ideal: Male ~38%, Female ~28% (midpoint of normal-high range)
+    const idealMuscle = isMale ? 38 : 28;
+    if (muscleRate < idealMuscle - 5) {
+      score -= (idealMuscle - 5 - muscleRate) * 2;
+    } else if (muscleRate < idealMuscle) {
+      score -= (idealMuscle - muscleRate) * 1;
+    } else {
+      // Good muscle: small bonus only (should NOT offset bad body fat)
+      score += Math.min((muscleRate - idealMuscle) * 0.25, 3);
+    }
+
+    // ── Hydration ──
     const idealWater = isMale ? 55 : 50;
-    if (bodyWater < idealWater) score -= (idealWater - bodyWater) * 0.8;
+    if (bodyWater < idealWater - 5) score -= (idealWater - 5 - bodyWater) * 1.5;
+    else if (bodyWater < idealWater) score -= (idealWater - bodyWater) * 0.5;
 
-    // Visceral fat
-    if (visceralFat > 9) score -= (visceralFat - 9) * 2;
+    // ── Visceral fat (1-30 scale) ──
+    if (visceralFat > 14) score -= 8 + (visceralFat - 14) * 2;
+    else if (visceralFat > 9) score -= (visceralFat - 9) * 1.5;
 
-    // Body age vs real age
-    if (bodyAge > realAge) score -= (bodyAge - realAge) * 1.5;
-    else if (bodyAge < realAge) score += Math.min((realAge - bodyAge) * 1, 5);
+    // ── Body age vs chronological age ──
+    if (bodyAge > realAge + 5) score -= 5 + (bodyAge - realAge - 5) * 2;
+    else if (bodyAge > realAge) score -= (bodyAge - realAge) * 1.5;
+    else if (bodyAge < realAge) score += Math.min((realAge - bodyAge) * 0.5, 3);
 
     return Math.max(10, Math.min(100, Math.round(score)));
   }

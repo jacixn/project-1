@@ -64,7 +64,7 @@ const LEGACY_KEYS = [
   'notificationPreferences', 'notificationSettings',
   'friendChatHistory',
   'userPainPoint', 'userAttribution',
-  'fivefold_settings', 'fivefold_lastResetDate', 'fivefold_groqApiKey',
+  'fivefold_settings', 'fivefold_lastResetDate',
   'app_settings', 'app_language', 'fivefold_vibration', 'fivefold_liquidGlass',
   'audio_stories_sort_order', 'audio_stories_playback_mode',
   '@biblely_user_cache',

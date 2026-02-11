@@ -585,7 +585,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     'bible',
     'weight',
     'photo',
-    'theme',
     'notifications',
     'verifyEmail',
     'howFound',
@@ -604,7 +603,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     'bible',
     'weight',
     'photo',
-    'theme',
     'notifications',
     'verifyEmail',
     'howFound',
@@ -2381,10 +2379,12 @@ const SimpleOnboarding = ({ onComplete }) => {
   const VerifyEmailOnboardingScreen = () => {
     const screenTheme = SCREEN_THEMES.verifyEmail;
     const [showVerification, setShowVerification] = useState(false);
+    const [verifyMaskedEmail, setVerifyMaskedEmail] = useState(user?.email || '');
 
     if (showVerification) {
       return (
         <EmailVerificationScreen
+          email={verifyMaskedEmail}
           onDismiss={() => {
             // After verification (success or skip), go to next onboarding step
             handleNext();
@@ -2451,9 +2451,13 @@ const SimpleOnboarding = ({ onComplete }) => {
             onPress={async () => {
               hapticFeedback.buttonPress();
               try {
-                await sendVerificationCode();
+                const result = await sendVerificationCode();
+                if (result?.maskedEmail) {
+                  setVerifyMaskedEmail(result.maskedEmail);
+                }
               } catch (e) {
                 console.error('Error sending verification code:', e);
+                Alert.alert('Error', 'Failed to send verification code. You can try again on the next screen.');
               }
               setShowVerification(true);
             }}

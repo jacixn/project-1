@@ -94,7 +94,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       features: [
         { icon: 'bulb', text: 'Intelligent task suggestions' },
         { icon: 'star', text: 'Personalized Bible verses' },
-        { icon: 'shield', text: 'Your data stays private & secure' },
+        { icon: 'shield', text: 'Your data is encrypted & synced securely' },
       ],
       isSmartPage: true,
     },

@@ -68,6 +68,9 @@ All code-side changes for App Store submission have been implemented. The follow
 - **Bible Data** -- 44 translations from private GitHub repo
 - **Task System** -- Calendar scheduling, AI point assignment, celebration animations
 
+## Critical Reminders
+- **NEVER delete `fivefold-ios/ios/BiblelyVerseWidget/`** — this is the iOS widget extension. Protect it during all cleanup, refactoring, and cache-clearing operations.
+
 ## Next Steps
 - Complete the 4 manual action items above
 - Run `eas build --platform ios --profile production` to create the production build

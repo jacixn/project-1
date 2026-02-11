@@ -178,8 +178,8 @@ const BodyCompositionScreen = () => {
       color: '#F59E0B',
     },
     'Muscle Rate': {
-      explanation: 'The percentage of your body that is muscle. Higher muscle rate means a faster metabolism and stronger body.',
-      example: 'Average muscle rate is about 33–39% for men and 24–33% for women. Athletes and people who strength train regularly will be higher.',
+      explanation: 'Your skeletal muscle as a percentage of body weight. These are the muscles you control — biceps, quads, abs, etc. Higher means a faster metabolism and stronger body.',
+      example: 'For men: 33–39% is normal, 40%+ is high/athletic. For women: 24–30% is normal, 31%+ is high. Strength training is the best way to increase it.',
       icon: 'fitness-center',
       color: '#10B981',
     },
@@ -208,13 +208,13 @@ const BodyCompositionScreen = () => {
       color: '#06B6D4',
     },
     'Subcutaneous Fat': {
-      explanation: 'The fat stored just under your skin. It\'s the fat you can see and pinch. It\'s less dangerous than visceral fat but affects your appearance.',
+      explanation: 'The fat stored just under your skin. It\'s the fat you can see and pinch. It carries fewer health concerns than visceral fat but affects your appearance.',
       example: 'When people say they want to "lose belly fat," they mostly mean subcutaneous fat. It decreases with a calorie deficit and exercise.',
       icon: 'spa',
       color: '#F59E0B',
     },
     'Visceral Fat': {
-      explanation: 'The hidden fat stored deep inside, around your organs (liver, stomach, intestines). High levels are dangerous and linked to heart disease, diabetes, and other conditions.',
+      explanation: 'The hidden fat stored deep inside, around your organs (liver, stomach, intestines). High levels may be associated with increased health risks. Consult a healthcare professional for personalised guidance.',
       example: 'A rating of 1–12 is healthy. 13–59 is too high. Even slim people can have high visceral fat if they don\'t exercise. It responds well to cardio exercise.',
       icon: 'whatshot',
       color: '#EF4444',
@@ -304,8 +304,8 @@ const BodyCompositionScreen = () => {
     );
   }
 
-  const scoreColor = bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444';
-  const scoreColorEnd = bodyComp.healthScore >= 70 ? '#6366F1' : bodyComp.healthScore >= 50 ? '#F97316' : '#DC2626';
+  const scoreColor = bodyComp.healthScore >= 80 ? '#10B981' : bodyComp.healthScore >= 60 ? '#F59E0B' : '#EF4444';
+  const scoreColorEnd = bodyComp.healthScore >= 80 ? '#6366F1' : bodyComp.healthScore >= 60 ? '#F97316' : '#DC2626';
   const ageColorFn = (ba) => ba <= 25 ? '#10B981' : ba <= 35 ? '#3B82F6' : ba <= 45 ? '#F59E0B' : '#EF4444';
 
   const quickItems = [
@@ -318,11 +318,10 @@ const BodyCompositionScreen = () => {
   const allMetrics = [
     { icon: 'monitor-weight', label: 'Weight', value: `${bodyComp.weight} kg`, color: '#6366F1', bar: bodyComp.weight / 120 },
     { icon: 'pie-chart', label: 'Body Fat', value: `${bodyComp.bodyFat}%`, color: bodyComp.bodyFatStatus.color, status: bodyComp.bodyFatStatus.label, bar: bodyComp.bodyFat / 50 },
-    { icon: 'fitness-center', label: 'Muscle Rate', value: `${bodyComp.muscleRate}%`, color: bodyComp.muscleStatus.color, status: bodyComp.muscleStatus.label, bar: bodyComp.muscleRate / 100 },
+    { icon: 'fitness-center', label: 'Muscle Rate', value: `${bodyComp.muscleRate}%`, color: bodyComp.muscleStatus.color, status: bodyComp.muscleStatus.label, bar: bodyComp.muscleRate / 60 },
     { icon: 'local-fire-department', label: 'BMR', value: `${bodyComp.bmr} kcal`, color: '#F97316', bar: bodyComp.bmr / 2500 },
     { icon: 'accessibility-new', label: 'Fat-free Weight', value: `${bodyComp.fatFreeWeight} kg`, color: '#10B981', bar: bodyComp.fatFreeWeight / 90, expanded: true },
-    { icon: 'grain', label: 'Muscle Mass', value: `${bodyComp.muscleMass} kg`, color: '#8B5CF6', bar: bodyComp.muscleMass / 70, expanded: true },
-    { icon: 'directions-run', label: 'Skeletal Muscle', value: `${bodyComp.skeletalMuscle}%`, color: '#06B6D4', bar: bodyComp.skeletalMuscle / 60, expanded: true },
+    { icon: 'grain', label: 'Muscle Mass', value: `${bodyComp.muscleMass} kg`, color: '#8B5CF6', bar: bodyComp.muscleMass / 50, expanded: true },
     { icon: 'spa', label: 'Subcutaneous Fat', value: `${bodyComp.subcutaneousFat}%`, color: '#F59E0B', bar: bodyComp.subcutaneousFat / 40, expanded: true },
     { icon: 'whatshot', label: 'Visceral Fat', value: bodyComp.visceralFat, color: bodyComp.visceralFatStatus.color, status: bodyComp.visceralFatStatus.label, bar: bodyComp.visceralFat / 30, expanded: true },
     { icon: 'straighten', label: 'Bone Mass', value: `${bodyComp.boneMass} kg`, color: '#78716C', bar: bodyComp.boneMass / 5, expanded: true },
@@ -394,9 +393,12 @@ const BodyCompositionScreen = () => {
               </View>
             </View>
             <Text style={[styles.heroDesc, { color: textSecondary }]}>
-              {bodyComp.healthScore >= 80 ? 'Excellent shape — keep it up!' :
-               bodyComp.healthScore >= 60 ? 'Good progress — room to improve.' :
-               'Let\'s work on building healthier habits.'}
+              {bodyComp.healthScore >= 90 ? 'Outstanding — you\'re in top shape!' :
+               bodyComp.healthScore >= 80 ? 'Great shape — keep pushing!' :
+               bodyComp.healthScore >= 70 ? 'Good foundation — stay consistent.' :
+               bodyComp.healthScore >= 60 ? 'Decent — room for improvement.' :
+               bodyComp.healthScore >= 45 ? 'Work in progress — keep going.' :
+               'Time to build healthier habits.'}
             </Text>
             <View style={styles.tapHint}>
               <MaterialIcons name="info-outline" size={12} color={textTertiary} />
@@ -521,9 +523,15 @@ const BodyCompositionScreen = () => {
         </Animated.View>
 
         {/* Disclaimer */}
-        <Text style={[styles.disclaimer, { color: textTertiary }]}>
-          Estimates based on research formulas. For medical accuracy, consult a professional.
-        </Text>
+        <View style={[styles.disclaimerBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+          <MaterialIcons name="info-outline" size={14} color={textTertiary} style={{ marginBottom: 6 }} />
+          <Text style={[styles.disclaimerTitle, { color: textSecondary }]}>
+            For informational purposes only
+          </Text>
+          <Text style={[styles.disclaimerText, { color: textTertiary }]}>
+            These results are estimates calculated using published research formulas (Mifflin-St Jeor, Watson, Janssen et al.) based on your profile data. They are not medical measurements and should not replace professional health assessments. For accurate body composition analysis, consult a healthcare professional or get a DEXA scan.
+          </Text>
+        </View>
       </Animated.ScrollView>
 
       {/* ── Info Popup Modal ── */}
@@ -639,7 +647,9 @@ const styles = StyleSheet.create({
   expandBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 4, marginTop: 4 },
   expandText: { fontSize: 14, fontWeight: '600' },
 
-  disclaimer: { fontSize: 11, fontWeight: '400', textAlign: 'center', lineHeight: 16, marginTop: 16, paddingHorizontal: 40 },
+  disclaimerBox: { marginTop: 20, marginHorizontal: 16, padding: 16, borderRadius: 14, borderWidth: 1, alignItems: 'center' },
+  disclaimerTitle: { fontSize: 13, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
+  disclaimerText: { fontSize: 11.5, fontWeight: '400', textAlign: 'center', lineHeight: 17, paddingHorizontal: 8 },
 
   // Tap hint
   tapHint: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10, opacity: 0.7 },

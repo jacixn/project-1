@@ -31,6 +31,7 @@ import {
 } from '../services/prayerSocialService';
 import PrayerCard from '../components/PrayerCard';
 import CreatePrayerModal from '../components/CreatePrayerModal';
+import ReportBlockModal from '../components/ReportBlockModal';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -47,6 +48,7 @@ const PrayerWallScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
 
   const fabAnim = useRef(new Animated.Value(0)).current;
 
@@ -223,6 +225,7 @@ const PrayerWallScreen = () => {
               currentUserId={user.uid}
               onTogglePraying={handleTogglePraying}
               onDelete={handleDeletePrayer}
+              onReport={(prayer) => setReportTarget(prayer)}
               index={index}
             />
           )}
@@ -286,6 +289,21 @@ const PrayerWallScreen = () => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onPrayerCreated={handlePrayerCreated}
+      />
+
+      <ReportBlockModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        contentType="prayer"
+        contentId={reportTarget?.id}
+        reportedUserId={reportTarget?.userId}
+        currentUserId={user?.uid}
+        displayName={reportTarget?.displayName || 'this user'}
+        onBlock={() => {
+          // Filter out blocked user's prayers from view
+          setPrayers(prev => prev.filter(p => p.userId !== reportTarget?.userId));
+          setReportTarget(null);
+        }}
       />
     </View>
   );

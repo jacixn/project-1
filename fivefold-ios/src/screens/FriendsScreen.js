@@ -43,6 +43,7 @@ import {
 } from '../services/friendsService';
 import { hapticFeedback } from '../utils/haptics';
 import CreateChallengeModal from '../components/CreateChallengeModal';
+import ReportBlockModal from '../components/ReportBlockModal';
 import { getConversations } from '../services/messageService';
 import { getChallenges } from '../services/challengeService';
 
@@ -69,6 +70,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
   const [unreadMessages, setUnreadMessages] = useState({}); // { friendUid: count }
   const [pendingChallenges, setPendingChallenges] = useState({}); // { friendUid: count }
   const [lastMessageTimes, setLastMessageTimes] = useState({}); // { friendUid: timestamp }
+  const [reportTarget, setReportTarget] = useState(null);
   
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -386,7 +388,15 @@ const FriendsScreen = ({ navigation, onClose }) => {
         activeOpacity={0.8}
         onLongPress={() => {
           hapticFeedback.medium();
-          handleRemoveFriend(item.uid, item.displayName);
+          Alert.alert(
+            item.displayName || 'Friend',
+            'What would you like to do?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Remove Friend', style: 'destructive', onPress: () => handleRemoveFriend(item.uid, item.displayName) },
+              { text: 'Report / Block', onPress: () => setReportTarget(item) },
+            ]
+          );
         }}
         delayLongPress={500}
       >
@@ -1091,6 +1101,19 @@ const FriendsScreen = ({ navigation, onClose }) => {
         onChallengeSent={() => {
           setChallengeModalVisible(false);
           setChallengeFriend(null);
+        }}
+      />
+
+      <ReportBlockModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        contentType="user"
+        reportedUserId={reportTarget?.uid}
+        currentUserId={user?.uid}
+        displayName={reportTarget?.displayName || 'this user'}
+        onBlock={() => {
+          setFriends(prev => prev.filter(f => f.uid !== reportTarget?.uid));
+          setReportTarget(null);
         }}
       />
     </KeyboardAvoidingView>

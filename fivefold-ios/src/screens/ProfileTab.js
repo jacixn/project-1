@@ -48,7 +48,6 @@ import userStorage from '../utils/userStorage';
 import { countries } from '../data/countries';
 import { resetOnboardingForTesting } from '../utils/onboardingReset';
 import AchievementsModal from '../components/AchievementsModal';
-import AnimationDemo from '../components/AnimationDemo';
 import ProfilePhotoPicker from '../components/ProfilePhotoPicker';
 import NotificationSettings from '../components/NotificationSettings';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
@@ -547,7 +546,7 @@ const ProfileTab = () => {
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const navigation = useNavigation();
   const { 
-    user, userProfile: authUserProfile, signOut, isAuthenticated, loading: authLoading, updateLocalProfile,
+    user, userProfile: authUserProfile, signOut, deleteAccount, isAuthenticated, loading: authLoading, updateLocalProfile,
     linkedAccounts, switchAccount, addLinkedAccount, unlinkAccount, switchingAccount, saveCurrentAsLinkedAccount,
   } = useAuth();
   const [friendCount, setFriendCount] = useState(0);
@@ -613,7 +612,6 @@ const ProfileTab = () => {
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
   const [showAchievements, setShowAchievements] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [showAnimationDemo, setShowAnimationDemo] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -1739,7 +1737,6 @@ const ProfileTab = () => {
       setShowEditModal(false);
       setShowCountryPicker(false);
       setShowAchievements(false);
-      setShowAnimationDemo(false);
       setShowNotificationSettings(false);
       setShowSettingsModal(false);
       setShowBibleVersionModal(false);
@@ -2227,7 +2224,7 @@ const ProfileTab = () => {
       const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (savedAnim) setSelectedStreakAnim(savedAnim);
       
-      console.log(`📊 Profile loaded: ${totalPoints} points, Level ${level}, ${actualCompletedCount} completed tasks`);
+      console.log(`📊 Profile loaded: ${correctTotal} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
@@ -2501,7 +2498,7 @@ const ProfileTab = () => {
       // Smart features are always enabled through secure proxy
       Alert.alert(
         '✨ Smart Features Active!',
-        'Intelligent task scoring and Friend chat are powered by our secure cloud service.\n\n✅ API keys secured in the cloud\n✅ No credentials stored on device\n✅ Professional-grade security',
+        'Intelligent task scoring and Friend chat are powered by our secure cloud service.\n\n✅ Encrypted and secure\n✅ No credentials stored on device\n✅ Professional-grade security',
         [
           { text: 'Excellent!', style: 'default' }
         ]
@@ -2526,11 +2523,6 @@ const ProfileTab = () => {
       setShowBible(true);
     }, 300);
   }, []);
-
-  // These functions are no longer needed as we use the secure proxy server
-  // Keeping empty stubs to prevent any reference errors
-  const enableDeepSeekAI = () => {};
-  const clearApiKey = () => {};
 
   // Calculate level progress — uses AchievementService (300 pts per level)
   const getThresholdForLevel = (lvl) => AchievementService.getPointsForLevel(lvl);
@@ -3592,12 +3584,6 @@ const ProfileTab = () => {
 
       {/* Achievements - now navigated via stack navigator for swipe-back support */}
 
-      {/* Animation Demo Modal */}
-      <AnimationDemo
-        visible={showAnimationDemo}
-        onClose={() => setShowAnimationDemo(false)}
-      />
-
       {/* Notification Settings Modal */}
       <NotificationSettings
         visible={showNotificationSettings}
@@ -4493,7 +4479,7 @@ const ProfileTab = () => {
                   hapticFeedback.buttonPress();
                   if (!emailVerified) {
                     setShowSettingsModal(false);
-                    setTimeout(() => navigation.navigate('EmailVerification', { fromSignup: false }), 300);
+                    setTimeout(() => navigation.navigate('EmailVerification', { fromSignup: false, maskedEmail: user?.email || '' }), 300);
                   }
                 }}
                 activeOpacity={emailVerified ? 1 : 0.7}
@@ -5381,11 +5367,7 @@ const ProfileTab = () => {
                           }
                           try {
                             hapticFeedback.buttonPress();
-                            const { deleteAccountCompletely } = await import('../utils/onboardingReset');
-                            const success = await deleteAccountCompletely(password);
-                            if (!success) {
-                              Alert.alert('Error', 'Failed to delete account. Please check your password.');
-                            }
+                            await deleteAccount(password);
                           } catch (error) {
                             console.error('Delete account error:', error);
                             if (error.message === 'WRONG_PASSWORD') {
@@ -7881,7 +7863,7 @@ const ProfileTab = () => {
                 { title: '1. Data We Collect', content: 'Account information: When you create an account, we collect your email address, display name, username, and optional profile photo.\n\nUser-generated content: Prayers, journal entries, to-do items, saved Bible verses, workout logs, nutrition data, and social feed posts you choose to create within the app.\n\nHealth and fitness data: Workout history, nutrition tracking (food logs, calorie and macro data), body profile information (height, weight, age, body fat percentage), and body composition estimates. This data is used solely to provide personalised fitness and nutrition features within the app.\n\nUsage data: App interaction data such as streaks, points, quiz scores, and feature usage \u2014 used to provide achievements and personalised experiences.\n\nPhotos: If you choose to use the camera or photo library, images are processed for profile pictures or food analysis. Photos used for food scanning are sent for nutritional analysis and are not stored on our servers.' },
                 { title: '2. How We Use Your Data', content: '\u2022 To provide and personalise app features (Bible reading, prayer tracking, workouts, nutrition, todos)\n\u2022 To sync your data across devices via Firebase and iCloud\n\u2022 To send push notifications (prayer reminders, streak alerts) that you opt into\n\u2022 To generate personalised insights\n\u2022 To enable social features (prayer wall, messaging, friend connections)' },
                 { title: '3. Data Storage', content: 'Local storage: Your data is also stored locally on your device using AsyncStorage, so the app works offline.\n\nCloud sync (Firebase): Your data is synced to Google Firebase (Firestore) servers to enable cross-device access and social features.\n\niCloud sync: On iOS, your data may also be synced via Apple iCloud (CloudKit) if you are signed into iCloud.' },
-                { title: '4. Third-Party Services', content: '\u2022 Google Firebase \u2014 authentication, cloud database, file storage\n\u2022 Apple iCloud / CloudKit \u2014 data sync\n\u2022 Google Cloud Text-to-Speech \u2014 audio Bible reading\n\u2022 Expo Push Notification Service \u2014 notification delivery' },
+                { title: '4. Third-Party Services', content: '\u2022 Google Firebase \u2014 authentication, cloud database, file storage\n\u2022 Apple iCloud / CloudKit \u2014 data sync\n\u2022 Google Cloud Text-to-Speech \u2014 audio Bible reading\n\u2022 Google Gemini \u2014 food photo nutritional analysis (photos are processed but not stored)\n\u2022 DeepSeek \u2014 personalised insights, workout suggestions, and smart features\n\u2022 OCR.space \u2014 text recognition from nutrition label photos\n\u2022 Resend \u2014 email delivery for verification codes\n\u2022 Expo Push Notification Service \u2014 notification delivery' },
                 { title: '5. Data Sharing', content: 'We do not sell, rent, or share your personal data with third parties for marketing purposes. Data is only shared with the third-party services listed above, solely to provide app functionality.' },
                 { title: '6. Analytics and Tracking', content: 'We do not use any analytics or tracking SDKs. We do not track you across apps or websites. No advertising identifiers are collected.' },
                 { title: '7. Data Retention', content: 'Your data is retained as long as your account exists. Food logs older than 90 days are automatically cleaned from local storage. You can delete all your data at any time by deleting your account (Settings > Delete Account).' },

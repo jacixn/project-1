@@ -13,7 +13,6 @@ import {
   Modal,
   Dimensions,
   Alert,
-  RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 // SafeAreaView removed - using full screen experience
@@ -217,7 +216,6 @@ const BiblePrayerTab = () => {
   const [userName, setUserName] = useState('');
   const initialVerseShown = useRef(false);
   const [suppressVerseToday, setSuppressVerseToday] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   
   // Verse of the Day modal state
   const [showVerseModal, setShowVerseModal] = useState(false);
@@ -238,10 +236,7 @@ const BiblePrayerTab = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   
-  // Logo animations
-  const logoSpin = useRef(new Animated.Value(0)).current;
-  const logoPulse = useRef(new Animated.Value(1)).current;
-  const logoFloat = useRef(new Animated.Value(0)).current;
+  // Logo animations removed — static logo only
   
   // Modal card animations
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
@@ -296,7 +291,6 @@ const BiblePrayerTab = () => {
     initializePrayerData();
     loadUserName();
     loadLiquidGlassSetting();
-    startLogoAnimations();
     startShimmerAnimation();
 
     // Listen for liquid glass setting changes
@@ -361,56 +355,7 @@ const BiblePrayerTab = () => {
     ).start();
   };
 
-  // Continuous logo animations to attract attention
-  const startLogoAnimations = () => {
-    // Gentle spinning animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoSpin, {
-          toValue: 1,
-          duration: 8000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoSpin, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Pulsing animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoPulse, {
-          toValue: 1.15,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoPulse, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Floating animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoFloat, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoFloat, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  };
+  // Logo animations removed — static logo
 
   // Force refresh all data every time the screen comes into focus
   useFocusEffect(
@@ -473,20 +418,6 @@ const BiblePrayerTab = () => {
   }, [dailyVerse.reference]);
 
   // Verse palette is now theme-based (defined above with useMemo)
-
-  // Pull-to-refresh handler
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await initializePrayerData();
-      const verse = await getDailyVerse();
-      setDailyVerse(verse);
-    } catch (error) {
-      console.error('Error refreshing BiblePrayerTab:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [initializePrayerData]);
 
   // Reset daily suppression when the verse changes (new day)
   useEffect(() => {
@@ -1244,32 +1175,9 @@ const BiblePrayerTab = () => {
             }}
             activeOpacity={0.7}
           >
-            <Animated.Image 
+            <Image 
               source={require('../../assets/logo.png')} 
-              style={[
-                styles.headerLogo,
-                {
-                  transform: [
-                    {
-                      rotate: logoSpin.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg']
-                      })
-                    },
-                    { scale: logoPulse },
-                    {
-                      translateY: logoFloat.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -6]
-                      })
-                    }
-                  ],
-                  shadowColor: theme.primary,
-                  shadowOpacity: 0.4,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 0 },
-                }
-              ]}
+              style={styles.headerLogo}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -1291,13 +1199,6 @@ const BiblePrayerTab = () => {
         style={styles.twitterContent} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-          />
-        }
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }

@@ -35,18 +35,25 @@ const { width, height } = Dimensions.get('window');
 const AuthScreen = ({ onAuthSuccess }) => {
   const navigation = useNavigation();
   const { theme, isDark } = useTheme();
-  const { signIn, signUp, resetPassword, loading } = useAuth();
+  const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, loading } = useAuth();
   
   // View mode: 'main' (social buttons) or 'email' (email form)
   const [viewMode, setViewMode] = useState('main');
   
-  // Email form mode: 'login', 'signup', 'forgot'
+  // Email form mode: 'login', 'signup', 'forgot', 'resetCode'
   const [emailMode, setEmailMode] = useState('login');
   
   // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Password reset OTP flow
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [resetMaskedEmail, setResetMaskedEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   
@@ -175,18 +182,75 @@ const AuthScreen = ({ onAuthSuccess }) => {
     
     try {
       hapticFeedback.light();
-      await resetPassword(email);
+      const result = await sendPasswordResetCode(email);
+      hapticFeedback.success();
+      setResetMaskedEmail(result.maskedEmail || email);
+      setEmailMode('resetCode');
+      setResetCode('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      // Start 60-second cooldown for resend
+      setResendCooldown(60);
+    } catch (error) {
+      hapticFeedback.error();
+      Alert.alert('Reset Failed', error.message);
+    }
+  };
+  
+  const handleResetWithCode = async () => {
+    if (!resetCode || resetCode.length !== 6) {
+      Alert.alert('Invalid Code', 'Please enter the 6-digit code from your email.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      Alert.alert('Password Too Short', 'Your new password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert('Passwords Don\'t Match', 'Please make sure both passwords match.');
+      return;
+    }
+    
+    try {
+      hapticFeedback.light();
+      await resetPasswordWithCode(email, resetCode, newPassword);
       hapticFeedback.success();
       Alert.alert(
-        'Password Reset Sent',
-        'Check your email for instructions to reset your password.',
-        [{ text: 'OK', onPress: () => setEmailMode('login') }]
+        'Password Reset',
+        'Your password has been changed successfully. You can now sign in.',
+        [{ text: 'Sign In', onPress: () => {
+          setEmailMode('login');
+          setPassword('');
+          setResetCode('');
+          setNewPassword('');
+          setConfirmNewPassword('');
+        }}]
       );
     } catch (error) {
       hapticFeedback.error();
       Alert.alert('Reset Failed', error.message);
     }
   };
+  
+  const handleResendResetCode = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      hapticFeedback.light();
+      await sendPasswordResetCode(email);
+      hapticFeedback.success();
+      setResendCooldown(60);
+    } catch (error) {
+      hapticFeedback.error();
+      Alert.alert('Resend Failed', error.message);
+    }
+  };
+  
+  // Cooldown timer for resend button
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
   
   const renderUsernameStatus = () => {
     if (!username || username.length < 3) return null;
@@ -305,18 +369,20 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 {emailMode === 'login' && 'Welcome Back'}
                 {emailMode === 'signup' && 'Join Us'}
                 {emailMode === 'forgot' && 'Reset Password'}
+                {emailMode === 'resetCode' && 'Enter Code'}
               </Text>
               <Text style={[styles.formSubtitle, { color: '#666' }]}>
                 {emailMode === 'login' && 'Sign in to continue your journey'}
                 {emailMode === 'signup' && 'Create an account to get started'}
                 {emailMode === 'forgot' && 'Enter your email to reset'}
+                {emailMode === 'resetCode' && `We sent a 6-digit code to ${resetMaskedEmail}`}
               </Text>
             </View>
             
             {/* Form card */}
             <View style={styles.formCard}>
               {/* Mode tabs */}
-              {emailMode !== 'forgot' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && (
                 <View style={styles.modeTabs}>
                   <TouchableOpacity
                     style={[styles.modeTab, emailMode === 'login' && styles.modeTabActive]}
@@ -349,23 +415,25 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </View>
               )}
               
-              {/* Email input */}
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="your@email.com"
-                    placeholderTextColor="#BBB"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
+              {/* Email input (hidden during reset code entry) */}
+              {emailMode !== 'resetCode' && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="your@email.com"
+                      placeholderTextColor="#BBB"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
                 </View>
-              </View>
+              )}
               
               {/* Signup fields */}
               {emailMode === 'signup' && (
@@ -403,8 +471,67 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </>
               )}
               
+              {/* Reset code + new password fields */}
+              {emailMode === 'resetCode' && (
+                <>
+                  <View style={styles.inputWrapper}>
+                    <Text style={styles.inputLabel}>6-Digit Code</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="keypad-outline" size={20} color="#888" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter code"
+                        value={resetCode}
+                        onChangeText={setResetCode}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor="#BBB"
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.inputWrapper}>
+                    <Text style={styles.inputLabel}>New Password</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="lock-closed-outline" size={20} color="#888" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Min 6 characters"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry
+                        placeholderTextColor="#BBB"
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.inputWrapper}>
+                    <Text style={styles.inputLabel}>Confirm New Password</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="lock-closed-outline" size={20} color="#888" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Re-enter new password"
+                        value={confirmNewPassword}
+                        onChangeText={setConfirmNewPassword}
+                        secureTextEntry
+                        placeholderTextColor="#BBB"
+                      />
+                    </View>
+                  </View>
+                  {/* Resend code */}
+                  <TouchableOpacity 
+                    onPress={handleResendResetCode} 
+                    disabled={resendCooldown > 0}
+                    style={{ alignSelf: 'center', marginBottom: 12, marginTop: -4 }}
+                  >
+                    <Text style={{ fontSize: 14, color: resendCooldown > 0 ? '#BBB' : '#E67E22', fontWeight: '600' }}>
+                      {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              
               {/* Password fields */}
-              {emailMode !== 'forgot' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && (
                 <>
                   <View style={styles.inputWrapper}>
                     <Text style={styles.inputLabel}>Password</Text>
@@ -467,6 +594,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 onPress={() => {
                   if (emailMode === 'login') handleLogin();
                   else if (emailMode === 'signup') handleSignup();
+                  else if (emailMode === 'resetCode') handleResetWithCode();
                   else handleForgotPassword();
                 }}
                 disabled={loading}
@@ -484,7 +612,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
                       <Text style={styles.actionButtonText}>
                         {emailMode === 'login' && 'Sign In'}
                         {emailMode === 'signup' && 'Create Account'}
-                        {emailMode === 'forgot' && 'Send Reset Link'}
+                        {emailMode === 'forgot' && 'Send Reset Code'}
+                        {emailMode === 'resetCode' && 'Reset Password'}
                       </Text>
                       <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
                     </View>
@@ -492,9 +621,15 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </LinearGradient>
               </TouchableOpacity>
               
-              {/* Back to login from forgot */}
-              {emailMode === 'forgot' && (
-                <TouchableOpacity onPress={() => setEmailMode('login')} style={styles.backToLogin}>
+              {/* Back to login from forgot/resetCode */}
+              {(emailMode === 'forgot' || emailMode === 'resetCode') && (
+                <TouchableOpacity onPress={() => {
+                  setEmailMode('login');
+                  setResetCode('');
+                  setNewPassword('');
+                  setConfirmNewPassword('');
+                  setResendCooldown(0);
+                }} style={styles.backToLogin}>
                   <Ionicons name="arrow-back" size={18} color="#888" />
                   <Text style={styles.backToLoginText}>Back to Login</Text>
                 </TouchableOpacity>

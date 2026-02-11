@@ -107,7 +107,7 @@ export const translations = {
       subtitle: 'Everything you need for spiritual growth',
       smartTasks: {
         title: 'Smart Tasks & Goals',
-        description: 'AI-powered task suggestions tailored to your spiritual journey',
+        description: 'Smart task suggestions tailored to your spiritual journey',
       },
       prayerTimes: {
         title: 'Prayer Time Tracking',
@@ -127,25 +127,16 @@ export const translations = {
   },
 };
 
+// Only English has full translations. Other languages will be added in future updates.
+// Listing only English prevents users from selecting a broken "Coming Soon" experience.
 export const availableLanguages = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇰🇪' },
-  { code: 'tw', name: 'Twi', nativeName: 'Twi', flag: '🇬🇭' },
-  { code: 'yo', name: 'Yoruba', nativeName: 'Yorùbá', flag: '🇳🇬' },
-  { code: 'am', name: 'Amharic', nativeName: 'አማርኛ', flag: '🇪🇹' },
-  { code: 'zu', name: 'Zulu', nativeName: 'isiZulu', flag: '🇿🇦' },
 ];
+
+// Planned languages for future release (translations not yet complete):
+// es (Spanish), fr (French), de (German), it (Italian), pt (Portuguese),
+// ru (Russian), zh (Chinese), ja (Japanese), ko (Korean), ar (Arabic),
+// hi (Hindi), sw (Swahili), tw (Twi), yo (Yoruba), am (Amharic), zu (Zulu)
 
 // Create "Coming Soon" translation for all non-English languages
 const createBasicTranslation = (langCode) => {

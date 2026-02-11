@@ -241,7 +241,7 @@ export const syncUserStatsToCloud = async (userId) => {
       if (localProfile.isPublic !== undefined) updateData.isPublic = localProfile.isPublic;
     }
     
-    console.log('[Sync] Syncing to cloud:', { totalPoints: updateData.totalPoints, actualPoints, statsPoints: localStats.totalPoints });
+    console.log('[Sync] Syncing to cloud:', { totalPoints: updateData.totalPoints, statsPoints: localStats.totalPoints });
     
     // Update Firestore
     await setDoc(doc(db, 'users', userId), updateData, { merge: true });

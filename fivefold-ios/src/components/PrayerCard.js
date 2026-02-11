@@ -25,6 +25,7 @@ const PrayerCard = ({
   currentUserId, 
   onTogglePraying, 
   onDelete,
+  onReport,
   index = 0,
 }) => {
   const { theme, isDark } = useTheme();
@@ -166,11 +167,22 @@ const PrayerCard = ({
           </View>
         </View>
         
-        {isOwner && (
+        {isOwner ? (
           <TouchableOpacity 
             style={[styles.moreButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
             onPress={handleDelete}
             disabled={isDeleting}
+          >
+            <MaterialIcons 
+              name="more-horiz" 
+              size={18} 
+              color={theme.textSecondary} 
+            />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.moreButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={() => onReport && onReport(prayer)}
           >
             <MaterialIcons 
               name="more-horiz" 

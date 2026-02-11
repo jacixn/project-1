@@ -4,6 +4,11 @@
 - Always read `memory-bank/*.md` at the start of work.
 - Prefer small, safe diffs and verify files are non-empty due to prior repo corruption incidents.
 
+## iOS Widget (CRITICAL — DO NOT DELETE)
+- The app has an iOS widget: `fivefold-ios/ios/BiblelyVerseWidget/`.
+- **NEVER delete, remove, or overwrite the BiblelyVerseWidget directory or any of its files** during cleanup, refactoring, cache clearing, or any other operation.
+- When clearing Xcode build caches or simulator data, always preserve the widget source files.
+
 ## Navigation (CRITICAL)
 - **NEVER use `LiquidGlassTabBar` or `PerfectTabBar`**. These are deprecated custom tab bar components and must NEVER be imported, referenced, or used in any way.
 - The app uses the **native iOS tab bar** via `@bottom-tabs/react-navigation` (`createNativeBottomTabNavigator`) in `TabNavigator.js`. Always keep it that way.
