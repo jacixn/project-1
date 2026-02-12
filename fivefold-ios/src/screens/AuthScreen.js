@@ -54,6 +54,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [resetMaskedEmail, setResetMaskedEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [resetLoading, setResetLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   
@@ -181,6 +182,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
     }
     
     try {
+      setResetLoading(true);
       hapticFeedback.light();
       const result = await sendPasswordResetCode(email);
       hapticFeedback.success();
@@ -194,6 +196,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
     } catch (error) {
       hapticFeedback.error();
       Alert.alert('Reset Failed', error.message);
+    } finally {
+      setResetLoading(false);
     }
   };
   
@@ -212,6 +216,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
     }
     
     try {
+      setResetLoading(true);
       hapticFeedback.light();
       await resetPasswordWithCode(email, resetCode, newPassword);
       hapticFeedback.success();
@@ -229,12 +234,15 @@ const AuthScreen = ({ onAuthSuccess }) => {
     } catch (error) {
       hapticFeedback.error();
       Alert.alert('Reset Failed', error.message);
+    } finally {
+      setResetLoading(false);
     }
   };
   
   const handleResendResetCode = async () => {
     if (resendCooldown > 0) return;
     try {
+      setResetLoading(true);
       hapticFeedback.light();
       await sendPasswordResetCode(email);
       hapticFeedback.success();
@@ -242,6 +250,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
     } catch (error) {
       hapticFeedback.error();
       Alert.alert('Resend Failed', error.message);
+    } finally {
+      setResetLoading(false);
     }
   };
   
@@ -589,37 +599,43 @@ const AuthScreen = ({ onAuthSuccess }) => {
               )}
               
               {/* Action button */}
-              <TouchableOpacity
-                style={[styles.actionButton, loading && styles.actionButtonDisabled]}
-                onPress={() => {
-                  if (emailMode === 'login') handleLogin();
-                  else if (emailMode === 'signup') handleSignup();
-                  else if (emailMode === 'resetCode') handleResetWithCode();
-                  else handleForgotPassword();
-                }}
-                disabled={loading}
-              >
-                <LinearGradient
-                  colors={['#E67E22', '#D35400']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.actionButtonGradient}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <View style={styles.actionButtonContent}>
-                      <Text style={styles.actionButtonText}>
-                        {emailMode === 'login' && 'Sign In'}
-                        {emailMode === 'signup' && 'Create Account'}
-                        {emailMode === 'forgot' && 'Send Reset Code'}
-                        {emailMode === 'resetCode' && 'Reset Password'}
-                      </Text>
-                      <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
-                    </View>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+              {(() => {
+                const isResetFlow = emailMode === 'forgot' || emailMode === 'resetCode';
+                const isButtonLoading = isResetFlow ? resetLoading : loading;
+                return (
+                  <TouchableOpacity
+                    style={[styles.actionButton, isButtonLoading && styles.actionButtonDisabled]}
+                    onPress={() => {
+                      if (emailMode === 'login') handleLogin();
+                      else if (emailMode === 'signup') handleSignup();
+                      else if (emailMode === 'resetCode') handleResetWithCode();
+                      else handleForgotPassword();
+                    }}
+                    disabled={isButtonLoading}
+                  >
+                    <LinearGradient
+                      colors={['#E67E22', '#D35400']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.actionButtonGradient}
+                    >
+                      {isButtonLoading ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <View style={styles.actionButtonContent}>
+                          <Text style={styles.actionButtonText}>
+                            {emailMode === 'login' && 'Sign In'}
+                            {emailMode === 'signup' && 'Create Account'}
+                            {emailMode === 'forgot' && 'Send Reset Code'}
+                            {emailMode === 'resetCode' && 'Reset Password'}
+                          </Text>
+                          <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
+                        </View>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })()}
               
               {/* Back to login from forgot/resetCode */}
               {(emailMode === 'forgot' || emailMode === 'resetCode') && (

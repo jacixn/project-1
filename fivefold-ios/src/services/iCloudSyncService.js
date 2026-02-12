@@ -109,9 +109,14 @@ class ICloudSyncService {
         
         console.log('iCloud sync initialized successfully');
         
-        // ALWAYS try to sync from cloud first - this handles new devices
-        const syncResult = await this.syncFromCloud();
-        console.log('Sync from cloud result:', syncResult);
+        // Only sync from cloud if there's an active user — prevents cross-account leaks
+        const activeUid = userStorage.getCurrentUid();
+        if (activeUid) {
+          const syncResult = await this.syncFromCloud();
+          console.log('Sync from cloud result:', syncResult);
+        } else {
+          console.log('[iCloud] No active user at init — deferring cloud sync');
+        }
         
         // Check if this device has local data that hasn't been uploaded yet
         const migrationComplete = await userStorage.getRaw(MIGRATION_COMPLETE_KEY);
@@ -293,20 +298,32 @@ class ICloudSyncService {
   /**
    * Sync all data from iCloud to local storage
    * Called on app launch to pull latest data
+   * 
+   * CRITICAL: Only applies iCloud data that belongs to the current user.
+   * iCloud files may contain data from a previously signed-in account
+   * on the same Apple device — applying that would leak data between accounts.
    */
   async syncFromCloud() {
     if (!this.isAvailable || this.isSyncing) {
       return { success: false, reason: 'Not available or already syncing' };
     }
 
+    // Guard: never sync if no user is active
+    const currentUid = userStorage.getCurrentUid();
+    if (!currentUid) {
+      console.log('[iCloud] No active user — skipping sync from cloud');
+      return { success: false, reason: 'No active user' };
+    }
+
     this.isSyncing = true;
     this.notifyListeners('sync_started');
 
     try {
-      console.log('Starting sync from iCloud...');
+      console.log('[iCloud] Starting sync from iCloud for user', currentUid);
       
       let syncedCount = 0;
       let conflictCount = 0;
+      let skippedWrongUser = 0;
 
       for (const key of SYNC_KEYS) {
         try {
@@ -327,6 +344,22 @@ class ICloudSyncService {
             // Read from iCloud
             const cloudData = await readFile(filePath);
             const cloudParsed = JSON.parse(cloudData);
+
+            // ── UID guard: only apply data that belongs to this user ──
+            // Data written by the updated syncToCloud includes a `uid` field.
+            // If the file has a uid and it doesn't match, SKIP it entirely.
+            // If the file has no uid (legacy data from before this fix), also skip
+            // it for safety — we don't know which account it belongs to.
+            if (cloudParsed.uid && cloudParsed.uid !== currentUid) {
+              skippedWrongUser++;
+              continue; // Belongs to a different account
+            }
+            if (!cloudParsed.uid) {
+              // Legacy data without uid tag — skip to be safe
+              // The user's real data will come from Firebase sync, not iCloud
+              skippedWrongUser++;
+              continue;
+            }
             
             // Get local data
             const localData = await userStorage.getRaw(key);
@@ -355,7 +388,10 @@ class ICloudSyncService {
       // Update last sync time
       await userStorage.setRaw(LAST_SYNC_KEY, new Date().toISOString());
 
-      console.log(`Sync from iCloud complete: ${syncedCount} synced, ${conflictCount} merged`);
+      if (skippedWrongUser > 0) {
+        console.log(`[iCloud] Skipped ${skippedWrongUser} keys belonging to a different user`);
+      }
+      console.log(`[iCloud] Sync from iCloud complete: ${syncedCount} synced, ${conflictCount} merged`);
       this.notifyListeners('sync_completed', { syncedCount, conflictCount });
       
       return { success: true, syncedCount, conflictCount };
@@ -386,13 +422,20 @@ class ICloudSyncService {
       if (!filePath) {
         return { success: false, reason: 'No container path' };
       }
+
+      // Guard: never write without an active user
+      const currentUid = userStorage.getCurrentUid();
+      if (!currentUid) {
+        return { success: false, reason: 'No active user' };
+      }
       
-      // Wrap data with metadata
+      // Wrap data with metadata — include uid so syncFromCloud can verify ownership
       const cloudData = {
+        uid: currentUid,
         data: data,
         lastModified: new Date().toISOString(),
         deviceId: await this.getDeviceId(),
-        version: 1
+        version: 2
       };
 
       await writeFile(filePath, JSON.stringify(cloudData));
@@ -706,6 +749,12 @@ class ICloudSyncService {
     // --- 2. AppState foreground listener ---
     this._appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
+        // Guard: never sync if no user is active — prevents cross-account data leaks
+        const currentUid = userStorage.getCurrentUid();
+        if (!currentUid) {
+          console.log('[iCloud] App foregrounded but no active user — skipping sync');
+          return;
+        }
         console.log('[iCloud] App came to foreground — syncing from iCloud...');
         // Small delay to let the app settle
         setTimeout(() => {

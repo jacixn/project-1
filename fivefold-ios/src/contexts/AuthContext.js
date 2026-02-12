@@ -167,6 +167,16 @@ export const AuthProvider = ({ children }) => {
               setUserProfile(profile);
               await userStorage.set(USER_CACHE_KEY, profile);
               console.log('[Auth] Profile loaded from Firestore:', profile.username);
+              
+              // Keep linked account entry up-to-date with latest Firestore data
+              // (onboarding sets profilePicture in Firestore but not in the linked accounts list)
+              await updateLinkedAccountProfile(firebaseUser.uid, {
+                username: profile.username,
+                displayName: profile.displayName,
+                profilePicture: profile.profilePicture,
+              });
+              // Refresh the React state so the accounts list UI updates
+              refreshLinkedAccounts();
             }
             
             // If we had no cache, NOW unblock the app (first-time login)
@@ -607,43 +617,38 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Send password reset code (OTP via Resend — won't go to spam)
+   * NOTE: Does NOT set global loading state — password reset uses local
+   * loading in AuthScreen to avoid triggering the full-screen loading overlay.
    */
   const sendPasswordResetCode = useCallback(async (email) => {
-    setLoading(true);
     try {
       return await authSendResetCode(email);
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   /**
    * Verify reset code and set new password
+   * NOTE: Does NOT set global loading state — same reason as above.
    */
   const resetPasswordWithCode = useCallback(async (email, code, newPassword) => {
-    setLoading(true);
     try {
       return await authResetWithCode(email, code, newPassword);
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   /**
    * Legacy: Send password reset email (Firebase default — may go to spam)
+   * NOTE: Does NOT set global loading state.
    */
   const resetPassword = useCallback(async (email) => {
-    setLoading(true);
     try {
       await authResetPassword(email);
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
   }, []);
 

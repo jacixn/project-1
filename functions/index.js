@@ -56,60 +56,18 @@ function hashCode(code) {
 
 function buildEmailHTML(code, displayName) {
   const name = displayName || 'there';
+  // Minimal transactional HTML — avoids Gmail Promotions/Spam classification.
+  // High text-to-HTML ratio, no images, no gradients, no marketing copy.
   return `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#F5EFE6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5EFE6;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-          <!-- Header bar -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#E67E22,#D35400);padding:32px 24px;text-align:center;">
-              <div style="font-size:28px;font-weight:800;color:#FFFFFF;letter-spacing:1px;">Biblely</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.85);margin-top:4px;">Email Verification</div>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px 28px;">
-              <p style="font-size:16px;color:#2C3E50;margin:0 0 16px;">Hey ${name},</p>
-              <p style="font-size:15px;color:#555;margin:0 0 28px;line-height:1.5;">
-                Use this code to verify your email address. It expires in <strong>10 minutes</strong>.
-              </p>
-              <!-- Code box -->
-              <div style="background:#F8F9FA;border:2px dashed #E67E22;border-radius:14px;padding:20px;text-align:center;margin:0 0 28px;">
-                <div style="font-size:36px;font-weight:800;letter-spacing:12px;color:#2C3E50;font-family:'Courier New',monospace;">
-                  ${code}
-                </div>
-              </div>
-              <p style="font-size:13px;color:#888;margin:0 0 8px;line-height:1.4;">
-                If you didn't create a Biblely account, you can safely ignore this email.
-              </p>
-              <p style="font-size:13px;color:#888;margin:0;line-height:1.4;">
-                Do not share this code with anyone.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 28px 24px;border-top:1px solid #F0F0F0;text-align:center;">
-              <p style="font-size:12px;color:#BBB;margin:0;">
-                Biblely &mdash; Faith. Fitness. Focus.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">
+  <p>Hey ${name},</p>
+  <p>Your Biblely verification code is:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:8px;font-family:'Courier New',monospace;margin:24px 0;">${code}</p>
+  <p>This code expires in 10 minutes. Do not share it with anyone.</p>
+  <p style="color:#999;font-size:13px;margin-top:24px;">If you didn't create a Biblely account, ignore this email.</p>
+</body></html>`;
 }
 
 function maskEmail(email) {
@@ -123,60 +81,18 @@ function maskEmail(email) {
 
 function buildPasswordResetHTML(code, displayName) {
   const name = displayName || 'there';
+  // Minimal transactional HTML — avoids Gmail Promotions/Spam classification.
+  // High text-to-HTML ratio, no images, no gradients, no marketing copy.
   return `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#F5EFE6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5EFE6;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-          <!-- Header bar -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#E67E22,#D35400);padding:32px 24px;text-align:center;">
-              <div style="font-size:28px;font-weight:800;color:#FFFFFF;letter-spacing:1px;">Biblely</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.85);margin-top:4px;">Password Reset</div>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px 28px;">
-              <p style="font-size:16px;color:#2C3E50;margin:0 0 16px;">Hey ${name},</p>
-              <p style="font-size:15px;color:#555;margin:0 0 28px;line-height:1.5;">
-                We received a request to reset your password. Use this code to set a new password. It expires in <strong>10 minutes</strong>.
-              </p>
-              <!-- Code box -->
-              <div style="background:#F8F9FA;border:2px dashed #E67E22;border-radius:14px;padding:20px;text-align:center;margin:0 0 28px;">
-                <div style="font-size:36px;font-weight:800;letter-spacing:12px;color:#2C3E50;font-family:'Courier New',monospace;">
-                  ${code}
-                </div>
-              </div>
-              <p style="font-size:13px;color:#888;margin:0 0 8px;line-height:1.4;">
-                If you didn't request a password reset, you can safely ignore this email. Your password will not change.
-              </p>
-              <p style="font-size:13px;color:#888;margin:0;line-height:1.4;">
-                Do not share this code with anyone.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 28px 24px;border-top:1px solid #F0F0F0;text-align:center;">
-              <p style="font-size:12px;color:#BBB;margin:0;">
-                Biblely &mdash; Faith. Fitness. Focus.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">
+  <p>Hey ${name},</p>
+  <p>Your Biblely password reset code is:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:8px;font-family:'Courier New',monospace;margin:24px 0;">${code}</p>
+  <p>This code expires in 10 minutes. Do not share it with anyone.</p>
+  <p style="color:#999;font-size:13px;margin-top:24px;">If you didn't request this, ignore this email. Your password will not change.</p>
+</body></html>`;
 }
 
 // ─── sendVerificationCode ────────────────────────────────────────
@@ -238,9 +154,11 @@ exports.sendVerificationCode = onCall({ maxInstances: 10 }, async (request) => {
     const r = getResend();
     await r.emails.send({
       from: 'Biblely <noreply@biblely.uk>',
+      reply_to: 'noreply@biblely.uk',
       to: [email],
       subject: `${code} is your Biblely verification code`,
       html: buildEmailHTML(code, displayName),
+      text: `Hey ${displayName || 'there'},\n\nYour Biblely verification code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you didn't create a Biblely account, ignore this email.`,
     });
   } catch (emailError) {
     console.error('[sendVerificationCode] Email send failed:', emailError);
@@ -332,8 +250,10 @@ exports.verifyEmailCode = onCall({ maxInstances: 10 }, async (request) => {
 
 exports.sendPasswordResetCode = onCall({ maxInstances: 10 }, async (request) => {
   const email = String(request.data?.email || '').trim().toLowerCase();
+  console.log('[sendPasswordResetCode] Called for email:', maskEmail(email));
 
   if (!email || !email.includes('@')) {
+    console.log('[sendPasswordResetCode] Invalid email rejected');
     throw new HttpsError('invalid-argument', 'Please provide a valid email address.');
   }
 
@@ -341,8 +261,10 @@ exports.sendPasswordResetCode = onCall({ maxInstances: 10 }, async (request) => 
   let userRecord;
   try {
     userRecord = await authAdmin.getUserByEmail(email);
+    console.log('[sendPasswordResetCode] User found, uid:', userRecord.uid);
   } catch (_) {
     // User doesn't exist — still return success so attackers can't probe emails
+    console.log('[sendPasswordResetCode] User NOT found — returning silent success');
     return { success: true, maskedEmail: maskEmail(email) };
   }
 
@@ -357,6 +279,7 @@ exports.sendPasswordResetCode = onCall({ maxInstances: 10 }, async (request) => 
     const elapsed = Date.now() - lastSent;
     if (elapsed < 60000) {
       const wait = Math.ceil((60000 - elapsed) / 1000);
+      console.log('[sendPasswordResetCode] Rate limited — wait', wait, 'seconds');
       throw new HttpsError(
         'resource-exhausted',
         `Please wait ${wait} seconds before requesting another code.`
@@ -377,23 +300,28 @@ exports.sendPasswordResetCode = onCall({ maxInstances: 10 }, async (request) => 
     attempts: 0,
     sentAt: FieldValue.serverTimestamp(),
   });
+  console.log('[sendPasswordResetCode] Code stored in Firestore');
 
   // Send email via Resend
   const displayName = userRecord.displayName || 'there';
 
   try {
     const r = getResend();
-    await r.emails.send({
+    const sendResult = await r.emails.send({
       from: 'Biblely <noreply@biblely.uk>',
+      reply_to: 'noreply@biblely.uk',
       to: [email],
       subject: `${code} is your Biblely password reset code`,
       html: buildPasswordResetHTML(code, displayName),
+      text: `Hey ${displayName || 'there'},\n\nYour Biblely password reset code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you didn't request this, ignore this email. Your password will not change.`,
     });
+    console.log('[sendPasswordResetCode] Email sent via Resend, id:', sendResult?.data?.id || sendResult?.id || 'unknown');
   } catch (emailError) {
     console.error('[sendPasswordResetCode] Email send failed:', emailError);
     throw new HttpsError('internal', 'Failed to send reset email. Please try again.');
   }
 
+  console.log('[sendPasswordResetCode] Success — code sent to', maskEmail(email));
   return { success: true, maskedEmail: maskEmail(email) };
 });
 

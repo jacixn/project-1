@@ -13,6 +13,7 @@ import {
   ScrollView,
   Dimensions,
   Modal,
+  StatusBar,
   FlatList,
   Animated,
   Switch,
@@ -23,6 +24,7 @@ import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import userStorage from '../utils/userStorage';
 import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
+import notificationService from '../services/notificationService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -32,6 +34,7 @@ import { persistProfileImage } from '../utils/profileImageStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadProfilePicture } from '../services/storageService';
+import { updateLinkedAccountProfile } from '../services/accountSwitcherService';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import { sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
 
@@ -811,10 +814,14 @@ const SimpleOnboarding = ({ onComplete }) => {
           let uploadedUrl = null;
           if (profileImage && user?.uid) {
             try {
+              // profileImage is already a permanent URI (persisted in pickImage)
+              // — no need to call persistProfileImage again (double-persist would
+              //   trigger cleanup that deletes the file profileImage points to).
               uploadedUrl = await uploadProfilePicture(user.uid, profileImage);
-              await persistProfileImage(profileImage);
+              console.log('[Setup] Photo uploaded to cloud:', uploadedUrl);
             } catch (e) {
-              console.warn('[Setup] Photo upload failed:', e);
+              console.warn('[Setup] Photo upload failed, using local file:', e.message);
+              // Upload failed but the local permanent file still exists
             }
           }
           await minDelay;
@@ -854,11 +861,13 @@ const SimpleOnboarding = ({ onComplete }) => {
           if (user?.uid) {
             try {
               const uploadedPhotoUrl = steps.find(s => s.id === 'photo')?._uploadedUrl;
+              const finalPicture = uploadedPhotoUrl || profileImage || null;
+              console.log('[Setup] Syncing profile picture to Firestore:', finalPicture ? (finalPicture.startsWith('http') ? 'cloud URL' : 'local file') : 'none');
               const userRef = doc(db, 'users', user.uid);
               await Promise.all([
                 updateDoc(userRef, {
                   displayName: userName.trim() || 'Friend',
-                  profilePicture: uploadedPhotoUrl || profileImage || null,
+                  profilePicture: finalPicture,
                   country: selectedCountry?.name || null,
                   countryCode: selectedCountry?.code || null,
                   countryFlag: selectedCountry?.flag || null,
@@ -879,14 +888,21 @@ const SimpleOnboarding = ({ onComplete }) => {
               // Update AuthContext cache
               const cacheStr = await userStorage.getRaw('@biblely_user_cache');
               const cached = cacheStr ? JSON.parse(cacheStr) : {};
+              console.log('[Setup] Updating auth cache with profile picture:', finalPicture ? 'yes' : 'none');
               await userStorage.setRaw('@biblely_user_cache', JSON.stringify({
                 ...cached,
                 displayName: userName.trim() || 'Friend',
-                profilePicture: uploadedPhotoUrl || profileImage || cached.profilePicture || null,
+                profilePicture: finalPicture || cached.profilePicture || null,
                 country: selectedCountry?.name || null,
                 countryCode: selectedCountry?.code || null,
                 countryFlag: selectedCountry?.flag || null,
               }));
+
+              // Update linked account entry so the accounts list shows the profile picture
+              await updateLinkedAccountProfile(user.uid, {
+                displayName: userName.trim() || 'Friend',
+                profilePicture: finalPicture || cached.profilePicture || null,
+              });
             } catch (syncError) {
               console.warn('[Setup] Firebase sync failed:', syncError);
               await minDelay;
@@ -938,7 +954,14 @@ const SimpleOnboarding = ({ onComplete }) => {
   const handleNotificationToggle = async (value) => {
     if (value) {
       const { status } = await Notifications.requestPermissionsAsync();
-      setNotificationsEnabled(status === 'granted');
+      const granted = status === 'granted';
+      setNotificationsEnabled(granted);
+      // If permission granted, initialize the push token now
+      if (granted) {
+        try {
+          await notificationService.initialize();
+        } catch (_) {}
+      }
     } else {
       setNotificationsEnabled(false);
     }
@@ -2104,7 +2127,10 @@ const SimpleOnboarding = ({ onComplete }) => {
         });
         
         if (!result.canceled && result.assets && result.assets[0]) {
-          setProfileImage(result.assets[0].uri);
+          const tempUri = result.assets[0].uri;
+          // Persist to a permanent location so the file survives app restarts
+          const permanentUri = await persistProfileImage(tempUri);
+          setProfileImage(permanentUri);
           hapticFeedback.success();
         }
       } catch (error) {
@@ -3052,7 +3078,11 @@ const SimpleOnboarding = ({ onComplete }) => {
 
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
-        <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 28 }}>
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28 }}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {/* Header */}
           <Animated.View style={{
             alignItems: 'center',
@@ -3162,14 +3192,14 @@ const SimpleOnboarding = ({ onComplete }) => {
               );
             })}
           </View>
-        </View>
 
-        {/* Bottom hint */}
-        <View style={{ paddingBottom: 40, alignItems: 'center' }}>
-          <Text style={{ fontSize: 13, color: '#999' }}>
-            This will only take a moment
-          </Text>
-        </View>
+          {/* Bottom hint */}
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <Text style={{ fontSize: 13, color: '#999' }}>
+              This will only take a moment
+            </Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   };

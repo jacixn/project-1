@@ -16,6 +16,7 @@ import { getStoredData } from './src/utils/localStorage';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { Asset } from 'expo-asset';
 import iCloudSyncService from './src/services/iCloudSyncService';
+import userStorage from './src/utils/userStorage';
 import {
   performFullSync,
   downloadAndMergeCloudData,
@@ -128,7 +129,8 @@ const RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 const cleanOldCompletedTasks = async () => {
   try {
-    const todosStr = await AsyncStorage.getItem('fivefold_todos');
+    // Use UID-scoped userStorage to prevent cross-account data leaks
+    const todosStr = await userStorage.getRaw('fivefold_todos');
     if (!todosStr) return;
     const todos = JSON.parse(todosStr);
     if (!Array.isArray(todos)) return;
@@ -145,7 +147,7 @@ const cleanOldCompletedTasks = async () => {
     });
 
     if (cleaned.length < todos.length) {
-      await AsyncStorage.setItem('fivefold_todos', JSON.stringify(cleaned));
+      await userStorage.setRaw('fivefold_todos', JSON.stringify(cleaned));
       console.log(`🧹 Cleaned completed tasks: ${todos.length} → ${cleaned.length} (removed ${todos.length - cleaned.length} entries older than 90 days)`);
     }
   } catch (e) {
@@ -156,7 +158,8 @@ const cleanOldCompletedTasks = async () => {
 // Also clean the separate completedTodos key used by sync
 const cleanOldCompletedTodosSync = async () => {
   try {
-    const str = await AsyncStorage.getItem('completedTodos');
+    // Use UID-scoped userStorage to prevent cross-account data leaks
+    const str = await userStorage.getRaw('completedTodos');
     if (!str) return;
     const arr = JSON.parse(str);
     if (!Array.isArray(arr)) return;
@@ -172,7 +175,7 @@ const cleanOldCompletedTodosSync = async () => {
     });
 
     if (cleaned.length < arr.length) {
-      await AsyncStorage.setItem('completedTodos', JSON.stringify(cleaned));
+      await userStorage.setRaw('completedTodos', JSON.stringify(cleaned));
       console.log(`🧹 Cleaned completedTodos sync key: ${arr.length} → ${cleaned.length}`);
     }
   } catch (e) {
@@ -282,16 +285,25 @@ const AppNavigation = () => {
       setWorkoutModalVisible(true);
     });
 
-    const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
-      console.log('🏆 Achievement unlocked listener triggered:', data);
+    // Listen for batched achievements (multiple at once)
+    const achievementBatchSubscription = DeviceEventEmitter.addListener('achievementsUnlockedBatch', (achievements) => {
+      console.log('🏆 Achievement batch unlocked:', achievements.length);
       if (achievementToastRef.current) {
-        achievementToastRef.current.show(data.title, data.points, data.id, data.icon);
+        achievementToastRef.current.showBatch(achievements);
       }
+    });
+
+    // Individual event fallback — only fires for legacy/external callers
+    // (The batch handler above covers the main checkAchievements flow)
+    const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
+      // No-op: batch handler already shows these.
+      // Kept for subscription cleanup only.
     });
 
     return () => {
       subscription.remove();
       achievementSubscription.remove();
+      achievementBatchSubscription.remove();
     };
   }, [hasActiveWorkout, maximizeWorkout]);
 
@@ -721,8 +733,9 @@ const ThemedApp = () => {
     // Preload the current theme's wallpaper into memory so it's ready before scrolling
     const preloadWallpaper = async () => {
       try {
-        const currentTheme = await AsyncStorage.getItem('fivefold_theme');
-        const wallpaperIndex = await AsyncStorage.getItem('fivefold_wallpaper_index');
+        // Use UID-scoped storage; fall back to raw AsyncStorage for pre-migration compat
+        const currentTheme = await userStorage.getRaw('fivefold_theme') || await AsyncStorage.getItem('fivefold_theme');
+        const wallpaperIndex = await userStorage.getRaw('fivefold_wallpaper_index') || await AsyncStorage.getItem('fivefold_wallpaper_index');
 
         // Map theme name to wallpaper require() 
         const wallpaperMap = {

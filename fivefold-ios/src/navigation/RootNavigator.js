@@ -877,14 +877,14 @@ const RootNavigator = () => {
   // Safety net: if loading screen is still showing after 8 seconds, force-dismiss it
   // This prevents the app from getting permanently stuck on the loading screen
   useEffect(() => {
-    if (initializing || checkingOnboarding || loading) {
+    if (initializing || checkingOnboarding || (loading && isAuthenticated)) {
       const safetyTimer = setTimeout(() => {
         console.warn('[RootNavigator] Safety timeout — forcing loading screen to dismiss');
         setCheckingOnboarding(false);
       }, 8000);
       return () => clearTimeout(safetyTimer);
     }
-  }, [initializing, checkingOnboarding, loading]);
+  }, [initializing, checkingOnboarding, loading, isAuthenticated]);
   
   // Handle onboarding completion — check if email needs verification
   const handleOnboardingComplete = async () => {
@@ -902,8 +902,11 @@ const RootNavigator = () => {
     return <AuthProgressScreen authSteps={authSteps} />;
   }
   
-  // Show cold launch loading screen while checking auth/onboarding state
-  if (initializing || checkingOnboarding || loading) {
+  // Show cold launch loading screen while checking auth/onboarding state.
+  // Only show for `loading` when the user is authenticated (e.g. sign-out transition).
+  // When NOT authenticated, `loading` may fire during password-reset — the AuthScreen
+  // handles that with its own local spinner; we must NOT replace it with a full-screen overlay.
+  if (initializing || checkingOnboarding || (loading && isAuthenticated)) {
     return <AnimatedLoadingScreen />;
   }
   

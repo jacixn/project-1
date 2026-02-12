@@ -42,7 +42,10 @@ class NotificationService {
     return next;
   }
 
-  // Initialize notification permissions and token
+  // Initialize notification listeners and check existing permissions.
+  // Does NOT request permissions — that happens during onboarding
+  // (SimpleOnboarding notification step) so the iOS prompt appears
+  // at the right moment, not on the first screen.
   async initialize() {
     try {
       // CRITICAL: Set up notification response listeners FIRST, before any async
@@ -57,14 +60,14 @@ class NotificationService {
       // already consumed. getLastNotificationResponseAsync() catches this case.
       await this._handleColdStartNotification();
 
-      // Request permissions
-      const { status } = await this.requestPermissions();
+      // Only CHECK existing permissions — don't request (that's for onboarding)
+      const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') {
-        console.warn('Notification permission not granted');
+        console.log('[Notifications] Permission not yet granted — will be requested during onboarding');
         return false;
       }
 
-      // Get push token
+      // Already have permission — get push token
       this.expoPushToken = await this.getPushToken();
       console.log('Expo Push Token:', this.expoPushToken);
 

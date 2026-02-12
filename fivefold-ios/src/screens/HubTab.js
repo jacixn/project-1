@@ -50,10 +50,12 @@ import AchievementService from '../services/achievementService';
 import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
 import ReportBlockModal from '../components/ReportBlockModal';
+import { getBlockedUsers } from '../services/reportService';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
-const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
+// Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
+const BADGE_REFERRAL_GATES = { country: null, streak: 6, verified: 3, biblely: 10 };
 
 const getStreakAnimSource = (animId) => {
   switch (animId) {
@@ -187,7 +189,20 @@ const HubTab = () => {
   const loadPosts = async () => {
     try {
       const result = await getFeedPosts();
-      setPosts(result.posts);
+      // Filter out posts from blocked users
+      let filteredPosts = result.posts;
+      if (user?.uid) {
+        try {
+          const blockedIds = await getBlockedUsers(user.uid);
+          if (blockedIds.length > 0) {
+            const blockedSet = new Set(blockedIds);
+            filteredPosts = result.posts.filter(p => !blockedSet.has(p.userId));
+          }
+        } catch (blockErr) {
+          console.warn('[Hub] Failed to load blocked users:', blockErr.message);
+        }
+      }
+      setPosts(filteredPosts);
     } catch (error) {
       console.error('[Hub] Error loading posts:', error);
     } finally {
@@ -691,8 +706,8 @@ const HubTab = () => {
                   if (!flag || hidden) return null;
                   return <Text style={styles.authorCountry}>{flag}</Text>;
                 })()}
-                {/* Streak animation badge (current user only) */}
-                {isOwner && myBadgeToggles.streak !== false && (
+                {/* Streak animation badge (current user only) — gated by 6 referrals + toggle */}
+                {isOwner && myBadgeToggles.streak !== false && myReferralCount >= 6 && (
                   <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 4 }} />
                 )}
                 {/* Profile badges — gated only by referrals + toggles, no achievements */}

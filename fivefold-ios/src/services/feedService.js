@@ -101,6 +101,9 @@ export const enrichPostsWithProfiles = async (posts) => {
     }
     
     // Batch-fetch profiles for users not in cache (or expired)
+    // Track which users no longer exist (deleted accounts)
+    const deletedUserIds = new Set();
+
     if (userIdsToFetch.length > 0) {
       const fetchPromises = userIdsToFetch.map(async (uid) => {
         try {
@@ -110,6 +113,12 @@ export const enrichPostsWithProfiles = async (posts) => {
               profile: userDoc.data(),
               fetchedAt: now,
             };
+          } else {
+            // User document doesn't exist — account was deleted
+            deletedUserIds.add(uid);
+            // Cache as deleted so we don't re-fetch every time
+            authorProfileCache[uid] = { profile: null, fetchedAt: now, deleted: true };
+            console.log('[Feed] User', uid, 'no longer exists — filtering out their posts');
           }
         } catch (err) {
           console.log('[Feed] Could not fetch profile for', uid, err.message);
@@ -117,30 +126,62 @@ export const enrichPostsWithProfiles = async (posts) => {
       });
       await Promise.all(fetchPromises);
     }
+
+    // Also check cached entries for previously detected deleted users
+    for (const uid of uniqueUserIds) {
+      const cached = authorProfileCache[uid];
+      if (cached && cached.deleted) {
+        deletedUserIds.add(uid);
+      }
+    }
+
+    // Auto-cleanup: delete orphaned posts from deleted users in background
+    if (deletedUserIds.size > 0) {
+      const orphanedPosts = posts.filter(p => deletedUserIds.has(p.userId));
+      if (orphanedPosts.length > 0) {
+        console.log(`[Feed] Cleaning up ${orphanedPosts.length} orphaned posts from deleted users`);
+        // Fire and forget — don't block the feed load
+        Promise.all(
+          orphanedPosts.map(p => 
+            deleteDoc(doc(db, POSTS_COLLECTION, p.id)).catch(err => 
+              console.log('[Feed] Could not auto-delete orphaned post', p.id, err.message)
+            )
+          )
+        ).then(() => console.log('[Feed] ✓ Orphaned posts cleanup complete'));
+      }
+    }
     
-    // Merge fresh profile data into posts.
+    // Filter out posts from deleted users, then merge fresh profile data
     // When we have a fresh profile, ALWAYS use the fresh profilePicture (even if null)
     // so that all posts by the same user show the same picture (or default avatar).
     // Only fall back to the post snapshot if we couldn't fetch the profile at all.
-    return posts.map(post => {
-      const cached = authorProfileCache[post.userId];
-      if (cached && cached.profile) {
-        const fresh = cached.profile;
-        return {
-          ...post,
-          authorName: fresh.displayName || post.authorName,
-          authorPhoto: fresh.profilePicture != null ? fresh.profilePicture : post.authorPhoto,
-          authorCountry: fresh.countryFlag || post.authorCountry,
-          authorUsername: fresh.username || post.authorUsername,
-          // Badge-relevant fields
-          savedVerses: fresh.savedVerses ?? post.savedVerses ?? 0,
-          appStreak: fresh.appStreak ?? post.appStreak ?? 0,
-          referralCount: fresh.referralCount ?? post.referralCount ?? 0,
-          badgeToggles: fresh.badgeToggles ?? post.badgeToggles ?? {},
-        };
-      }
-      return post;
-    });
+    return posts
+      .filter(post => {
+        if (deletedUserIds.has(post.userId)) {
+          console.log('[Feed] Hiding post', post.id, 'from deleted user', post.userId);
+          return false;
+        }
+        return true;
+      })
+      .map(post => {
+        const cached = authorProfileCache[post.userId];
+        if (cached && cached.profile) {
+          const fresh = cached.profile;
+          return {
+            ...post,
+            authorName: fresh.displayName || post.authorName,
+            authorPhoto: fresh.profilePicture != null ? fresh.profilePicture : post.authorPhoto,
+            authorCountry: fresh.countryFlag || post.authorCountry,
+            authorUsername: fresh.username || post.authorUsername,
+            // Badge-relevant fields
+            savedVerses: fresh.savedVerses ?? post.savedVerses ?? 0,
+            appStreak: fresh.appStreak ?? post.appStreak ?? 0,
+            referralCount: fresh.referralCount ?? post.referralCount ?? 0,
+            badgeToggles: fresh.badgeToggles ?? post.badgeToggles ?? {},
+          };
+        }
+        return post;
+      });
   } catch (error) {
     console.error('[Feed] Error enriching posts with profiles:', error);
     return posts; // Return original posts if enrichment fails

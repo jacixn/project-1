@@ -7,259 +7,369 @@ import {
   Dimensions,
   Platform,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Modal,
-  Image,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
-// Customisation items are no longer gated by achievements — everything is free.
-// This helper returns an empty array so the toast never shows unlock sections.
-function getUnlocksForAchievement() {
-  return [];
+/** Human-readable description of what was done to earn an achievement */
+function getAchievementDescription(type, target) {
+  if (!type || target == null) return '';
+  const t = Number(target) || 0;
+  const descriptions = {
+    prayersCompleted: () => `Complete ${t} prayer${t !== 1 ? 's' : ''}`,
+    savedVerses: () => `Save ${t} verse${t !== 1 ? 's' : ''}`,
+    versesShared: () => `Share ${t} verse${t !== 1 ? 's' : ''}`,
+    audiosPlayed: () => `Listen to ${t} audio chapter${t !== 1 ? 's' : ''}`,
+    charactersRead: () => `Read about ${t} Bible character${t !== 1 ? 's' : ''}`,
+    timelineErasViewed: () => `Explore ${t} timeline era${t !== 1 ? 's' : ''}`,
+    versesRead: () => `Read ${t} verse${t !== 1 ? 's' : ''}`,
+    mapsVisited: () => `Visit ${t} Bible map location${t !== 1 ? 's' : ''}`,
+    completedTasks: () => `Complete ${t} task${t !== 1 ? 's' : ''}`,
+    lowTierCompleted: () => `Complete ${t} quick task${t !== 1 ? 's' : ''}`,
+    midTierCompleted: () => `Complete ${t} medium task${t !== 1 ? 's' : ''}`,
+    highTierCompleted: () => `Complete ${t} major task${t !== 1 ? 's' : ''}`,
+    appStreak: () => `${t} day${t !== 1 ? 's' : ''} streak`,
+    totalPoints: () => `Reach ${t.toLocaleString()} total points`,
+    workoutsCompleted: () => `Complete ${t} workout${t !== 1 ? 's' : ''}`,
+    gymWeekStreak: () => `${t} week${t !== 1 ? 's' : ''} gym streak`,
+    exercisesLogged: () => `Log ${t} exercise${t !== 1 ? 's' : ''}`,
+    setsCompleted: () => `Complete ${t} set${t !== 1 ? 's' : ''}`,
+    workoutMinutes: () => `${t} minute${t !== 1 ? 's' : ''} of working out`,
+  };
+  const fn = descriptions[type];
+  return fn ? fn() : '';
 }
 
 const AchievementToast = forwardRef((props, ref) => {
   const { theme, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
-  const [current, setCurrent] = useState(null);
-  const queueRef = useRef([]);
-  const isShowingRef = useRef(false);
+  const [achievements, setAchievements] = useState([]);
 
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(0.6)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const iconPulse = useRef(new Animated.Value(1)).current;
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  const ringScale = useRef(new Animated.Value(0)).current;
-  const ringOpacity = useRef(new Animated.Value(1)).current;
-  const unlockSlide = useRef(new Animated.Value(30)).current;
-  const unlockFade = useRef(new Animated.Value(0)).current;
+  const contentScale = useRef(new Animated.Value(0.85)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
 
-  // Store references to running loop animations so we can stop them on dismiss
-  const pulseLoopRef = useRef(null);
-  const shimmerLoopRef = useRef(null);
+  // Per-item animations stored as refs
+  const itemAnimsRef = useRef([]);
+  // Track pending timeouts so we can cancel them on dismiss
+  const pendingTimeoutsRef = useRef([]);
+  // Guard against showing while dismiss animation is running
+  const isDismissingRef = useRef(false);
 
-  /** Stop all running infinite loops and reset their values */
-  const stopLoops = useCallback(() => {
-    if (pulseLoopRef.current) {
-      pulseLoopRef.current.stop();
-      pulseLoopRef.current = null;
-    }
-    if (shimmerLoopRef.current) {
-      shimmerLoopRef.current.stop();
-      shimmerLoopRef.current = null;
-    }
-    iconPulse.setValue(1);
-    shimmerAnim.setValue(0);
+  /** Clear all pending stagger timeouts */
+  const clearPendingTimeouts = useCallback(() => {
+    pendingTimeoutsRef.current.forEach(id => clearTimeout(id));
+    pendingTimeoutsRef.current = [];
   }, []);
 
-  const showNext = useCallback(() => {
-    if (queueRef.current.length === 0) {
-      isShowingRef.current = false;
-      return;
-    }
+  const animateIn = useCallback((count) => {
+    // Clear any leftover timeouts from previous show
+    clearPendingTimeouts();
 
-    isShowingRef.current = true;
-    const next = queueRef.current.shift();
-    setCurrent(next);
-    setVisible(true);
-
-    // Stop any leftover loops from previous toast before starting fresh
-    stopLoops();
-
-    // Reset animations
+    // Reset
     backdropOpacity.setValue(0);
-    cardScale.setValue(0.6);
-    cardOpacity.setValue(0);
-    iconPulse.setValue(1);
-    shimmerAnim.setValue(0);
-    ringScale.setValue(0);
-    ringOpacity.setValue(1);
-    unlockSlide.setValue(30);
-    unlockFade.setValue(0);
+    contentScale.setValue(0.85);
+    contentOpacity.setValue(0);
+    headerSlide.setValue(-20);
+    headerFade.setValue(0);
+
+    // Create per-item animated values
+    const itemAnims = [];
+    for (let i = 0; i < count; i++) {
+      itemAnims.push({
+        translateY: new Animated.Value(30),
+        opacity: new Animated.Value(0),
+        scale: new Animated.Value(0.9),
+      });
+    }
+    itemAnimsRef.current = itemAnims;
 
     hapticFeedback.achievement();
 
     // Entrance
     Animated.parallel([
-      Animated.timing(backdropOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(cardScale, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
-      Animated.timing(cardOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(backdropOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.spring(contentScale, { toValue: 1, tension: 65, friction: 9, useNativeDriver: true }),
+      Animated.timing(contentOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start(() => {
-      // Ring burst
+      // Header slides in
       Animated.parallel([
-        Animated.timing(ringScale, { toValue: 2.5, duration: 600, useNativeDriver: true }),
-        Animated.timing(ringOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+        Animated.spring(headerSlide, { toValue: 0, tension: 60, friction: 10, useNativeDriver: true }),
+        Animated.timing(headerFade, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
 
-      // Icon pulse — store reference so we can stop it later
-      const pulseLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(iconPulse, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-          Animated.timing(iconPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ])
-      );
-      pulseLoopRef.current = pulseLoop;
-      pulseLoop.start();
-
-      // Shimmer — store reference so we can stop it later
-      const shimmerLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(shimmerAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-          Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      );
-      shimmerLoopRef.current = shimmerLoop;
-      shimmerLoop.start();
-
-      // Unlock items slide in
-      if (next.unlocks && next.unlocks.length > 0) {
-        setTimeout(() => {
+      // Stagger item entrances — store timeout IDs for cleanup
+      itemAnims.forEach((anim, i) => {
+        const timeoutId = setTimeout(() => {
           Animated.parallel([
-            Animated.spring(unlockSlide, { toValue: 0, tension: 50, friction: 9, useNativeDriver: true }),
-            Animated.timing(unlockFade, { toValue: 1, duration: 350, useNativeDriver: true }),
+            Animated.spring(anim.translateY, { toValue: 0, tension: 55, friction: 9, useNativeDriver: true }),
+            Animated.timing(anim.opacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+            Animated.spring(anim.scale, { toValue: 1, tension: 55, friction: 9, useNativeDriver: true }),
           ]).start();
-        }, 400);
-      }
+          if (i === 0) hapticFeedback.light();
+        }, 150 + i * 100);
+        pendingTimeoutsRef.current.push(timeoutId);
+      });
     });
-  }, [stopLoops]);
+  }, [clearPendingTimeouts]);
 
   const dismiss = useCallback(() => {
-    // CRITICAL: Stop infinite loops BEFORE running exit animations
-    stopLoops();
+    if (isDismissingRef.current) return; // Prevent double-dismiss
+    isDismissingRef.current = true;
+
+    // Cancel any pending stagger timeouts
+    clearPendingTimeouts();
 
     Animated.parallel([
       Animated.timing(backdropOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
-      Animated.timing(cardScale, { toValue: 0.8, duration: 200, useNativeDriver: true }),
-      Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(contentScale, { toValue: 0.9, duration: 200, useNativeDriver: true }),
+      Animated.timing(contentOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => {
       setVisible(false);
-      setCurrent(null);
-      // Show next in queue after brief pause
-      setTimeout(() => showNext(), 300);
+      setAchievements([]);
+      itemAnimsRef.current = [];
+      isDismissingRef.current = false;
     });
-  }, [showNext, stopLoops]);
+  }, [clearPendingTimeouts]);
 
   useImperativeHandle(ref, () => ({
-    show: (title, points, achievementId, icon) => {
-      const unlocks = getUnlocksForAchievement(achievementId);
-      queueRef.current.push({ title, points, achievementId, icon, unlocks });
-      if (!isShowingRef.current) {
-        showNext();
+    // New batch API — show all achievements at once
+    showBatch: (achievementList) => {
+      if (!achievementList || achievementList.length === 0) return;
+      // If currently dismissing, wait for it to finish
+      if (isDismissingRef.current) {
+        setTimeout(() => {
+          setAchievements(achievementList);
+          setVisible(true);
+          setTimeout(() => animateIn(achievementList.length), 50);
+        }, 350);
+        return;
       }
-    }
-  }));
+      setAchievements(achievementList);
+      setVisible(true);
+      setTimeout(() => animateIn(achievementList.length), 50);
+    },
+    // Legacy single-item API — wraps into batch of 1
+    show: (title, points, achievementId, icon, target, type) => {
+      if (isDismissingRef.current) return; // Ignore during dismiss
+      const item = {
+        id: achievementId || `legacy_${Date.now()}`,
+        title: title || 'Achievement',
+        points: points || 0,
+        icon: icon || 'emoji-events',
+        target,
+        type,
+      };
+      setAchievements(prev => {
+        const updated = prev.length > 0 ? [...prev, item] : [item];
+        // Only one animateIn call — always with the full list length
+        setTimeout(() => animateIn(updated.length), 50);
+        return updated;
+      });
+      setVisible(true);
+      // Do NOT call animateIn here — it's called inside setAchievements above
+    },
+  }), [animateIn]);
 
-  if (!visible || !current) return null;
+  if (!visible || achievements.length === 0) return null;
 
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-SW * 1.5, SW * 1.5],
-  });
-
-  const unlocks = current.unlocks || [];
-  const hasUnlocks = unlocks.length > 0;
+  const totalPoints = achievements.reduce((sum, a) => sum + (a.points || 0), 0);
+  const isSingle = achievements.length === 1;
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
       <Animated.View style={[st.backdrop, { opacity: backdropOpacity }]}>
-        <TouchableOpacity style={st.backdropTouch} activeOpacity={1} onPress={dismiss}>
-          <Animated.View
-            style={[st.card, {
-              backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF',
-              transform: [{ scale: cardScale }],
-              opacity: cardOpacity,
-            }]}
-          >
-            {/* Gradient top accent */}
-            <LinearGradient
-              colors={['#FFD700', '#FF8C00', '#FF6B00']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={st.topAccent}
-            />
-
-            {/* Shimmer overlay */}
-            <Animated.View style={[st.shimmer, { transform: [{ translateX: shimmerTranslate }] }]} pointerEvents="none">
-              <LinearGradient
-                colors={['transparent', 'rgba(255,215,0,0.08)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-
-            {/* Trophy icon with ring burst */}
-            <View style={st.iconArea}>
-              {/* Ring burst */}
-              <Animated.View style={[st.ring, {
-                borderColor: '#FFD700',
-                transform: [{ scale: ringScale }],
-                opacity: ringOpacity,
-              }]} />
-
-              <Animated.View style={[st.iconCircle, { transform: [{ scale: iconPulse }] }]}>
-                <LinearGradient colors={['#FFD700', '#FF8C00']} style={st.iconGrad}>
-                  <MaterialIcons name="emoji-events" size={40} color="#fff" />
-                </LinearGradient>
-              </Animated.View>
-            </View>
-
-            {/* Title area */}
-            <Text style={[st.label, { color: '#FFD700' }]}>ACHIEVEMENT UNLOCKED</Text>
-            <Text style={[st.title, { color: isDark ? '#fff' : '#111' }]}>{current.title}</Text>
-
-            {/* Points pill */}
-            <View style={st.pointsRow}>
-              <LinearGradient colors={['#FFD700', '#FF8C00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.pointsPill}>
-                <MaterialIcons name="star" size={16} color="#fff" />
-                <Text style={st.pointsText}>+{(current.points || 0).toLocaleString()} PTS</Text>
-              </LinearGradient>
-            </View>
-
-            {/* Customisation unlocks */}
-            {hasUnlocks && (
-              <Animated.View style={[st.unlocksArea, {
-                transform: [{ translateY: unlockSlide }],
-                opacity: unlockFade,
-              }]}>
-                <View style={[st.unlockDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                  <MaterialIcons name="lock-open" size={14} color="#4CAF50" />
-                  <Text style={[st.unlockLabel, { color: '#4CAF50' }]}>NEW UNLOCK{unlocks.length > 1 ? 'S' : ''}</Text>
-                </View>
-
-                {unlocks.map((u, i) => (
-                  <View key={i} style={[st.unlockRow, {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        {/* Full-screen dismiss target */}
+        <TouchableWithoutFeedback onPress={dismiss}>
+          <View style={st.backdropTouch}>
+            {/* Card — stop propagation so inner scrolling doesn't dismiss */}
+            <TouchableWithoutFeedback onPress={dismiss}>
+              <Animated.View
+                style={[
+                  st.container,
+                  {
+                    transform: [{ scale: contentScale }],
+                    opacity: contentOpacity,
+                  },
+                ]}
+              >
+                {/* Glass card — high blur, low overlay opacity for true frosted glass */}
+                <BlurView
+                  intensity={Platform.OS === 'ios' ? 120 : 40}
+                  tint={isDark ? 'dark' : 'light'}
+                  style={st.glassCard}
+                >
+                  {/* Thin tint overlay — keep it very light so blur shows through */}
+                  <View style={[st.glassInner, {
+                    backgroundColor: isDark ? 'rgba(15,15,25,0.3)' : 'rgba(255,255,255,0.25)',
                   }]}>
-                    <View style={[st.unlockIcon, { backgroundColor: u.color + '20' }]}>
-                      <MaterialIcons name={u.icon} size={18} color={u.color} />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[st.unlockName, { color: isDark ? '#fff' : '#111' }]}>{u.name}</Text>
-                      <Text style={[st.unlockType, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>{u.type} unlocked</Text>
-                    </View>
-                    <View style={[st.unlockCheckBg, { backgroundColor: u.color }]}>
-                      <MaterialIcons name="check" size={12} color="#fff" />
-                    </View>
-                  </View>
-                ))}
-              </Animated.View>
-            )}
 
-            {/* Dismiss hint */}
-            <Text style={[st.dismissHint, { color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)' }]}>
-              Tap anywhere to dismiss
-            </Text>
-          </Animated.View>
-        </TouchableOpacity>
+                    {/* Top shimmer accent line */}
+                    <LinearGradient
+                      colors={['transparent', '#FFD70050', '#FF8C0040', 'transparent']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={st.topLine}
+                    />
+
+                    {/* Header */}
+                    <Animated.View style={[st.header, {
+                      transform: [{ translateY: headerSlide }],
+                      opacity: headerFade,
+                    }]}>
+                      {/* Trophy glow */}
+                      <View style={st.trophyContainer}>
+                        <View style={[st.trophyGlow, { backgroundColor: '#FFD70015' }]} />
+                        <LinearGradient
+                          colors={['#FFD700', '#FF8C00']}
+                          style={st.trophyCircle}
+                        >
+                          <MaterialIcons name="emoji-events" size={26} color="#fff" />
+                        </LinearGradient>
+                      </View>
+
+                      <View style={st.headerText}>
+                        <Text style={[st.headerLabel, { color: '#FFD700' }]}>
+                          {isSingle ? 'ACHIEVEMENT UNLOCKED' : `${achievements.length} ACHIEVEMENTS UNLOCKED`}
+                        </Text>
+                        {!isSingle && (
+                          <Text style={[st.headerSubtext, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                            +{totalPoints.toLocaleString()} points earned
+                          </Text>
+                        )}
+                      </View>
+                    </Animated.View>
+
+                    {/* Divider */}
+                    <View style={[st.divider, { backgroundColor: isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,165,0,0.15)' }]} />
+
+                    {/* Achievement list */}
+                    <ScrollView
+                      style={st.listScroll}
+                      contentContainerStyle={st.listContent}
+                      showsVerticalScrollIndicator={false}
+                      bounces={achievements.length > 3}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {achievements.map((achievement, index) => {
+                        const itemAnim = itemAnimsRef.current[index] || {
+                          translateY: new Animated.Value(0),
+                          opacity: new Animated.Value(1),
+                          scale: new Animated.Value(1),
+                        };
+                        const description = getAchievementDescription(achievement.type, achievement.target);
+
+                        return (
+                          <Animated.View
+                            key={achievement.id || `achievement_${index}`}
+                            style={[
+                              st.achievementRow,
+                              {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                                borderColor: isDark ? 'rgba(255,215,0,0.15)' : 'rgba(255,165,0,0.15)',
+                                transform: [
+                                  { translateY: itemAnim.translateY },
+                                  { scale: itemAnim.scale },
+                                ],
+                                opacity: itemAnim.opacity,
+                              },
+                            ]}
+                          >
+                            {/* Icon */}
+                            <LinearGradient
+                              colors={['#FFD70030', '#FF8C0015']}
+                              style={st.achievementIcon}
+                            >
+                              <MaterialIcons
+                                name={achievement.icon || 'emoji-events'}
+                                size={22}
+                                color="#FFD700"
+                              />
+                            </LinearGradient>
+
+                            {/* Info */}
+                            <View style={st.achievementInfo}>
+                              <Text
+                                style={[st.achievementTitle, { color: isDark ? '#fff' : '#111' }]}
+                                numberOfLines={1}
+                              >
+                                {achievement.title || 'Achievement'}
+                              </Text>
+                              {description ? (
+                                <Text
+                                  style={[st.achievementDesc, { color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)' }]}
+                                  numberOfLines={1}
+                                >
+                                  {description}
+                                </Text>
+                              ) : null}
+                            </View>
+
+                            {/* Points */}
+                            <View style={st.pointsBadge}>
+                              <MaterialIcons name="star" size={12} color="#FFD700" />
+                              <Text style={st.pointsBadgeText}>
+                                +{(achievement.points || 0).toLocaleString()}
+                              </Text>
+                            </View>
+                          </Animated.View>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {/* Total points bar (only for multiple) */}
+                    {!isSingle && (
+                      <View style={[st.totalBar, { borderTopColor: isDark ? 'rgba(255,215,0,0.1)' : 'rgba(255,165,0,0.1)' }]}>
+                        <Text style={[st.totalLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                          Total Earned
+                        </Text>
+                        <LinearGradient
+                          colors={['#FFD700', '#FF8C00']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={st.totalPill}
+                        >
+                          <MaterialIcons name="star" size={14} color="#fff" />
+                          <Text style={st.totalPillText}>+{totalPoints.toLocaleString()} PTS</Text>
+                        </LinearGradient>
+                      </View>
+                    )}
+
+                    {/* Single achievement — total points pill */}
+                    {isSingle && (
+                      <View style={st.singlePointsRow}>
+                        <LinearGradient
+                          colors={['#FFD700', '#FF8C00']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={st.singlePointsPill}
+                        >
+                          <MaterialIcons name="star" size={15} color="#fff" />
+                          <Text style={st.singlePointsText}>+{(achievements[0]?.points || 0).toLocaleString()} PTS</Text>
+                        </LinearGradient>
+                      </View>
+                    )}
+
+                    {/* Dismiss hint */}
+                    <Text style={[st.dismissHint, { color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)' }]}>
+                      Tap anywhere to dismiss
+                    </Text>
+                  </View>
+                </BlurView>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Animated.View>
     </Modal>
   );
@@ -268,7 +378,7 @@ const AchievementToast = forwardRef((props, ref) => {
 const st = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -278,140 +388,178 @@ const st = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  card: {
-    width: SW * 0.85,
-    borderRadius: 28,
-    alignItems: 'center',
-    paddingBottom: 24,
+  container: {
+    width: SW * 0.88,
+    maxHeight: SH * 0.65,
+  },
+  glassCard: {
+    borderRadius: 24,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
       },
-      android: { elevation: 24 },
+      android: { elevation: 16 },
     }),
   },
-  topAccent: {
-    width: '100%',
-    height: 4,
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: '100%',
-    zIndex: 1,
-  },
-  iconArea: {
-    marginTop: 32,
-    marginBottom: 16,
-    width: 90,
-    height: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ring: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  glassInner: {
+    borderRadius: 24,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.15)',
   },
-  iconGrad: {
-    flex: 1,
+  topLine: {
+    height: 2,
+    width: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
+  },
+  trophyContainer: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: {
+  trophyGlow: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  trophyCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerText: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  headerLabel: {
     fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 3,
-    marginBottom: 6,
+    fontWeight: '800',
+    letterSpacing: 2.5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginHorizontal: 24,
-    letterSpacing: -0.5,
+  headerSubtext: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
   },
-  pointsRow: {
-    marginTop: 14,
-    marginBottom: 4,
+  divider: {
+    height: 1,
+    marginHorizontal: 20,
   },
-  pointsPill: {
+  listScroll: {
+    maxHeight: SH * 0.32,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  achievementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  achievementIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  achievementInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  achievementTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  achievementDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,215,0,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 3,
+  },
+  pointsBadgeText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  totalBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    marginTop: 4,
+  },
+  totalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  totalPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    gap: 5,
+  },
+  totalPillText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  singlePointsRow: {
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 2,
+  },
+  singlePointsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 18,
     gap: 6,
+    marginTop: 14,
   },
-  pointsText: {
+  singlePointsText: {
     color: '#fff',
     fontWeight: '800',
     fontSize: 14,
   },
-  unlocksArea: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 8,
-  },
-  unlockDivider: {
-    height: 1,
-    marginBottom: 14,
-    marginHorizontal: 10,
-  },
-  unlockLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginLeft: 6,
-  },
-  unlockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-  },
-  unlockIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unlockName: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  unlockType: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  unlockCheckBg: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   dismissHint: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 16,
+    textAlign: 'center',
+    paddingBottom: 16,
+    paddingTop: 10,
   },
 });
 

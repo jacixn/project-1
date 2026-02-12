@@ -5,7 +5,7 @@
  * Required by Apple Guideline 1.2 (User Generated Content).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,9 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Animated,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { reportContent, blockUser, REPORT_REASONS } from '../services/reportService';
@@ -49,12 +51,98 @@ const ReportBlockModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState('choose'); // 'choose' | 'report' | 'done'
 
-  const handleClose = () => {
+  // ── Animation values ──
+  // entryAnim: 0 = off-screen (hidden), 1 = fully visible
+  const entryAnim = useRef(new Animated.Value(0)).current;
+  // gestureY: driven by PanGestureHandler's translationY (native thread)
+  const gestureY = useRef(new Animated.Value(0)).current;
+
+  // Clamp gesture: negative (upward drag) → 0, positive → follows finger
+  const clampedGestureY = gestureY.interpolate({
+    inputRange: [-300, 0, 500],
+    outputRange: [0, 0, 500],
+    extrapolate: 'clamp',
+  });
+
+  // Entry offset: slides sheet from 600 (off-screen bottom) to 0 (resting)
+  const entryOffset = entryAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [600, 0],
+  });
+
+  // Combined translateY = entry slide + gesture drag (all native thread)
+  const combinedY = Animated.add(entryOffset, clampedGestureY);
+
+  // Backdrop opacity fades with entry animation
+  const backdropOpacity = entryAnim;
+
+  // ── Entrance animation when visible becomes true ──
+  useEffect(() => {
+    if (visible) {
+      entryAnim.setValue(0);
+      gestureY.setValue(0);
+      Animated.spring(entryAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    }
+  }, [visible]);
+
+  // Internal cleanup (called AFTER exit animation completes)
+  const resetAndClose = useCallback(() => {
     setSelectedReason(null);
     setStep('choose');
     setSubmitting(false);
+    gestureY.setValue(0);
+    entryAnim.setValue(0);
     onClose();
-  };
+  }, [onClose, gestureY, entryAnim]);
+
+  // Animated close: slide sheet down + fade backdrop, THEN unmount
+  const animateClose = useCallback(() => {
+    Animated.timing(entryAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => resetAndClose());
+  }, [entryAnim, resetAndClose]);
+
+  // Native-driven gesture event — no JS bridge, no jank
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: gestureY } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = useCallback((event) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const { translationY, velocityY } = event.nativeEvent;
+      if (translationY > 80 || velocityY > 500) {
+        // Dismiss — slide sheet out + fade backdrop simultaneously
+        Animated.parallel([
+          Animated.timing(gestureY, {
+            toValue: 500,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(entryAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => resetAndClose());
+      } else {
+        // Snap back
+        Animated.spring(gestureY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 10,
+        }).start();
+      }
+    }
+  }, [resetAndClose, gestureY, entryAnim]);
 
   const handleReport = async () => {
     if (!selectedReason) {
@@ -103,7 +191,7 @@ const ReportBlockModal = ({
             if (result.success) {
               Alert.alert('User Blocked', `${displayName} has been blocked.`);
               if (onBlock) onBlock(reportedUserId);
-              handleClose();
+              animateClose();
             } else {
               Alert.alert('Error', 'Failed to block user. Please try again.');
             }
@@ -232,14 +320,14 @@ const ReportBlockModal = ({
       </View>
       <Text style={[styles.doneTitle, { color: theme.text }]}>Report Submitted</Text>
       <Text style={[styles.doneDesc, { color: theme.textSecondary }]}>
-        Thank you for helping keep our community safe. We will review this report within 24 hours.
+        Thank you for helping keep our community safe. We'll review this report within 24 hours.
       </Text>
       <TouchableOpacity
-        style={[styles.submitButton, { backgroundColor: theme.primary }]}
-        onPress={handleClose}
-        activeOpacity={0.8}
+        style={[styles.doneButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}
+        onPress={animateClose}
+        activeOpacity={0.7}
       >
-        <Text style={styles.submitText}>Done</Text>
+        <Text style={[styles.doneButtonText, { color: theme.text }]}>Done</Text>
       </TouchableOpacity>
     </View>
   );
@@ -248,22 +336,40 @@ const ReportBlockModal = ({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+      animationType="none"
+      onRequestClose={animateClose}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={handleClose} activeOpacity={1} />
-        <View style={[styles.sheet, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' }]}>
-          {/* Drag handle */}
-          <View style={styles.handleWrap}>
-            <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }]} />
-          </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={styles.overlay}>
+          {/* Animated backdrop — fades in/out with entryAnim */}
+          <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', opacity: backdropOpacity }]}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={animateClose} activeOpacity={1} />
+          </Animated.View>
 
-          {step === 'choose' && renderChooseStep()}
-          {step === 'report' && renderReportStep()}
-          {step === 'done' && renderDoneStep()}
+          {/* Sheet pinned to bottom, slides up/down */}
+          <View style={styles.sheetContainer} pointerEvents="box-none">
+            <PanGestureHandler
+              onGestureEvent={onGestureEvent}
+              onHandlerStateChange={onHandlerStateChange}
+              activeOffsetY={10}
+              failOffsetX={[-20, 20]}
+            >
+              <Animated.View 
+                style={[styles.sheet, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7', transform: [{ translateY: combinedY }] }]}
+              >
+                {/* Drag handle */}
+                <View style={styles.handleWrap}>
+                  <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }]} />
+                </View>
+
+                {step === 'choose' && renderChooseStep()}
+                {step === 'report' && renderReportStep()}
+                {step === 'done' && renderDoneStep()}
+              </Animated.View>
+            </PanGestureHandler>
+          </View>
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 };
@@ -271,11 +377,10 @@ const ReportBlockModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
-  backdrop: {
+  sheetContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
   sheet: {
     borderTopLeftRadius: 20,
@@ -394,6 +499,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 20,
+  },
+  doneButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    borderRadius: 14,
+    marginTop: 20,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

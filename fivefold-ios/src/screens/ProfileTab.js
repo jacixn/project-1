@@ -2209,7 +2209,8 @@ const ProfileTab = () => {
       setStreakBadgeToggle(badgeTogglesObj.streak !== false);
 
       // Badges are gated ONLY by referrals + toggles — no achievement conditions
-      const BADGE_REFERRAL_GATES = { country: null, streak: null, verified: 1, biblely: 70 };
+      // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
+      const BADGE_REFERRAL_GATES = { country: null, streak: 6, verified: 3, biblely: 10 };
       let refCount = 0;
       try { refCount = await getReferralCount(); } catch (_) {}
       const visibleBadges = AchievementService.PROFILE_BADGES.filter(b => {
@@ -2604,8 +2605,8 @@ const ProfileTab = () => {
         <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
           {userName}{countryFlagToggle ? ` ${selectedCountry?.flag || '🌍'}` : ''}
         </Text>
-        {/* Streak animation badge */}
-        {streakBadgeToggle && (
+        {/* Streak animation badge — gated by 6 referrals + toggle */}
+        {streakBadgeToggle && referralInfo.referralCount >= 6 && (
           <LottieView
             source={
               selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
@@ -5047,7 +5048,14 @@ const ProfileTab = () => {
             }}>
               {/* Linked accounts list */}
               {linkedAccounts.map((account, idx) => {
-                const isCurrentAccount = account.uid === user?.uid;
+                // Match current account by UID, or fall back to email/username
+                const isCurrentAccount = account.uid === user?.uid 
+                  || account.email === user?.email 
+                  || (account.username && account.username === authUserProfile?.username);
+                // For current account, use live profile picture from state (always fresh)
+                const accountPicture = isCurrentAccount 
+                  ? (profilePicture || account.profilePicture) 
+                  : account.profilePicture;
                 return (
                   <TouchableOpacity
                     key={account.uid}
@@ -5122,9 +5130,9 @@ const ProfileTab = () => {
                     activeOpacity={isCurrentAccount ? 1 : 0.7}
                   >
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                      {account.profilePicture ? (
+                      {accountPicture ? (
                         <Image
-                          source={{ uri: account.profilePicture }}
+                          source={{ uri: accountPicture }}
                           style={{
                             width: 36,
                             height: 36,

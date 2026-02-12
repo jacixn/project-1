@@ -587,7 +587,7 @@ Generate a workout JSON.`;
 
   /**
    * Generate personalised physique/balance coach feedback using AI.
-   * Returns a single encouraging paragraph (50-70 words).
+   * Returns a single brutally honest paragraph (50-80 words).
    *
    * @param {Object} params
    * @param {number} params.overallScore  – 0-100 overall physique score
@@ -595,36 +595,65 @@ Generate a workout JSON.`;
    * @param {Array}  params.weakest       – bottom muscles [{id, name, score}]
    * @param {Object} params.groupAverages – {push, pull, legs, core}
    * @param {number} params.totalWorkouts – total workouts in history
+   * @param {Object|null} params.bodyComposition – body comp metrics (bmi, bodyFat, muscleMass, etc.) or null
    * @returns {Promise<string>}
    */
-  async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts }) {
+  async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts, bodyComposition }) {
     try {
       console.log('[AI Coach] Generating physique feedback…');
 
       const strongNames = strongest.map(m => `${m.name} (${m.score})`).join(', ');
       const weakNames   = weakest.map(m => `${m.name} (${m.score})`).join(', ');
 
-      const systemPrompt = `You are a world-class personal trainer and motivational fitness coach inside a workout app called Biblely. Your job is to give the user a short, warm, personalised training insight every time they check their physique screen.
+      // Check if user has ANY actual training data
+      const allScoresZero = groupAverages.push === 0 && groupAverages.pull === 0 && groupAverages.legs === 0 && groupAverages.core === 0;
+      const hasTrainingData = totalWorkouts > 0 && !allScoresZero;
 
-Rules:
-- Write EXACTLY one paragraph, between 50 and 70 words. Never exceed 70 words.
-- Start with a genuine, specific compliment about something the user is doing well (mention a muscle name or pattern).
-- Then give ONE clear, actionable suggestion for improvement — mention the specific weak area.
-- Tone: upbeat, encouraging, conversational — like a friend who also happens to be a coach. Use "you" and "your".
+      // Build body composition section for prompt
+      let bodyCompSection = 'Body composition data: Not available (user has not set up their nutrition profile).';
+      if (bodyComposition) {
+        bodyCompSection = `Body composition data:
+BMI: ${bodyComposition.bmi} (${bodyComposition.bmiStatus?.label || 'Unknown'})
+Body fat: ${bodyComposition.bodyFat}% (${bodyComposition.bodyFatStatus?.label || 'Unknown'})
+Muscle mass: ${bodyComposition.muscleMass || 'N/A'} kg (${bodyComposition.muscleRate ? bodyComposition.muscleRate + '% of body weight' : 'N/A'})
+Skeletal muscle: ${bodyComposition.skeletalMuscle || 'N/A'}%
+Visceral fat: ${bodyComposition.visceralFat || 'N/A'} (${bodyComposition.visceralFatStatus?.label || 'Unknown'})
+Body water: ${bodyComposition.bodyWater || 'N/A'}%
+Body age: ${bodyComposition.bodyAge || 'N/A'}
+Health score: ${bodyComposition.healthScore || 'N/A'}/100
+Weight: ${bodyComposition.weight || 'N/A'} kg
+Ideal weight range: ${bodyComposition.idealWeightLow || 'N/A'} to ${bodyComposition.idealWeightHigh || 'N/A'} kg
+TDEE: ${bodyComposition.tdee || 'N/A'} cal/day`;
+      }
+
+      const systemPrompt = `You are a brutally honest, no nonsense personal trainer inside a workout app. You give the user a short, direct, personalised assessment every time they check their physique screen. You care about the user, which is WHY you are honest with them.
+
+CRITICAL RULES:
+- Write EXACTLY one paragraph, between 50 and 80 words. Never exceed 80 words.
+- Be BRUTALLY HONEST. Do NOT sugarcoat, do NOT give fake praise, do NOT make up compliments.
+- ONLY reference data that is explicitly provided below. If a muscle score is 0, it means the user has NEVER trained it. Do NOT say they have a "great foundation" or "good focus" on something they have never done.
+- If the user has 0 total workouts or all muscle scores are 0, acknowledge they are at the very beginning and tell them what they need to start doing. Do not pretend they have accomplished anything.
+- If body composition data is available, factor it into your feedback (e.g. if their body fat is high, say so directly; if BMI is overweight, mention it; if muscle mass is low, call it out).
+- Give ONE specific, actionable next step.
+- Tone: direct, real, no fluff. Like a coach who respects the user enough to tell the truth. Use "you" and "your".
 - No bullet points, no lists, no headings, no emojis, no hashtags, no dashes of any kind (no hyphens, en-dashes, or em-dashes). Use commas instead.
-- Keep language simple — a 14-year-old should understand every word.
-- Never say "I" — you are speaking directly to the user.
-- Do NOT include any greeting, sign-off, or label like "Coach says:".`;
+- Keep language simple, a 14 year old should understand every word.
+- Never say "I".
+- Do NOT include any greeting, sign-off, or label.
+- NEVER fabricate or assume training data that is not present in the numbers below.`;
 
-      const userPrompt = `Here is the user's current physique data:
+      const userPrompt = `Here is the user's ACTUAL data (only reference what you see here):
 
-Overall score: ${overallScore}/100
+Overall physique score: ${overallScore}/100
 Total workouts logged: ${totalWorkouts}
-Strongest muscles: ${strongNames || 'None yet'}
-Weakest muscles: ${weakNames || 'None yet'}
+${hasTrainingData ? `Strongest muscles: ${strongNames}` : 'Strongest muscles: None (user has not trained any muscle group yet)'}
+${hasTrainingData ? `Weakest muscles: ${weakNames}` : 'Weakest muscles: None (user has not trained any muscle group yet)'}
 Group averages — Push: ${groupAverages.push}, Pull: ${groupAverages.pull}, Legs: ${groupAverages.legs}, Core: ${groupAverages.core}
+${allScoresZero ? '⚠ ALL muscle group scores are 0. The user has NOT done any recorded training yet.' : ''}
 
-Write one paragraph of feedback (50-70 words).`;
+${bodyCompSection}
+
+Write one paragraph of feedback (50-80 words). Be honest, be real, reference only actual data above.`;
 
       const response = await deepseekFetchWithFallback(JSON.stringify({
         model: 'deepseek-chat',
@@ -632,8 +661,8 @@ Write one paragraph of feedback (50-70 words).`;
           { role: 'system', content: systemPrompt },
           { role: 'user',   content: userPrompt },
         ],
-        temperature: 0.85,
-        max_tokens: 200,
+        temperature: 0.7,
+        max_tokens: 250,
       }));
 
       if (!response.ok) {

@@ -834,6 +834,37 @@ const GymTab = () => {
             </TouchableOpacity>
           </LiquidGlassContainer>
 
+          {/* Start Workout Card */}
+          <LiquidGlassContainer style={styles.comingSoonCard}>
+            <View style={styles.startWorkoutHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8, ...textOutlineStyle }]}>
+                  Start Workout
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 20, ...textOutlineStyle }]}>
+                  Begin a new workout session
+                </Text>
+              </View>
+              {/* Active workout badge */}
+              {hasActiveWorkout && (
+                <View style={[styles.activeWorkoutBadge, { backgroundColor: theme.error || '#EF4444' }]}>
+                  <MaterialIcons name="fitness-center" size={16} color="#FFFFFF" />
+                </View>
+              )}
+            </View>
+            
+            <TouchableOpacity
+              style={[styles.startWorkoutButton, { backgroundColor: theme.primary }]}
+              onPress={() => {
+                hapticFeedback.heavy();
+                navigation.navigate('StartWorkout');
+              }}
+            >
+              <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
+              <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
+            </TouchableOpacity>
+          </LiquidGlassContainer>
+
           {/* Fuel Card */}
           <LiquidGlassContainer>
             <View style={styles.exercisesHeader}>
@@ -881,37 +912,6 @@ const GymTab = () => {
                 </Text>
               </View>
             )}
-          </LiquidGlassContainer>
-
-          {/* Start Workout Card */}
-          <LiquidGlassContainer style={styles.comingSoonCard}>
-            <View style={styles.startWorkoutHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8, ...textOutlineStyle }]}>
-                  Start Workout
-                </Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 20, ...textOutlineStyle }]}>
-                  Begin a new workout session
-                </Text>
-              </View>
-              {/* Active workout badge */}
-              {hasActiveWorkout && (
-                <View style={[styles.activeWorkoutBadge, { backgroundColor: theme.error || '#EF4444' }]}>
-                  <MaterialIcons name="fitness-center" size={16} color="#FFFFFF" />
-                </View>
-              )}
-            </View>
-            
-            <TouchableOpacity
-              style={[styles.startWorkoutButton, { backgroundColor: theme.primary }]}
-              onPress={() => {
-                hapticFeedback.heavy();
-                navigation.navigate('StartWorkout');
-              }}
-            >
-              <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
-              <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
-            </TouchableOpacity>
           </LiquidGlassContainer>
 
           {/* Physique Card */}

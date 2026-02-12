@@ -4,6 +4,10 @@
 - Always read `memory-bank/*.md` at the start of work.
 - Prefer small, safe diffs and verify files are non-empty due to prior repo corruption incidents.
 
+## Hot Reload / Code Changes
+- The user manages Metro and the simulator themselves. **NEVER kill Metro, restart the app, or run start scripts** — the user handles this in their own terminal.
+- After making code changes, just tell the user what was changed. They will reload the app themselves.
+
 ## iOS Widget (CRITICAL — DO NOT DELETE)
 - The app has an iOS widget: `fivefold-ios/ios/BiblelyVerseWidget/`.
 - **NEVER delete, remove, or overwrite the BiblelyVerseWidget directory or any of its files** during cleanup, refactoring, cache clearing, or any other operation.

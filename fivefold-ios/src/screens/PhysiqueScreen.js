@@ -27,6 +27,8 @@ import BodyMap3D from '../components/BodyMap3D';
 import physiqueService from '../services/physiqueService';
 import WorkoutService from '../services/workoutService';
 import productionAiService from '../services/productionAiService';
+import nutritionService from '../services/nutritionService';
+import bodyCompositionService from '../services/bodyCompositionService';
 import { MUSCLE_GROUPS, SCORE_COLORS, getScoreColor } from '../data/exerciseMuscleMap';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -108,6 +110,17 @@ const PhysiqueScreen = () => {
         score: m.score,
       }));
 
+      // ── Fetch body composition data ──
+      let bodyCompData = null;
+      try {
+        const profile = await nutritionService.getProfile();
+        if (profile && profile.weightKg && profile.heightCm) {
+          bodyCompData = bodyCompositionService.calculate(profile);
+        }
+      } catch (e) {
+        console.warn('[AI Coach] Could not load body comp:', e.message);
+      }
+
       const feedback = await productionAiService.generatePhysiqueCoachFeedback({
         overallScore: currentOverall,
         strongest,
@@ -119,6 +132,7 @@ const PhysiqueScreen = () => {
           core: avg(coreMuscles),
         },
         totalWorkouts: history.length,
+        bodyComposition: bodyCompData,
       });
 
       if (feedback) {

@@ -46,6 +46,9 @@ import CreateChallengeModal from '../components/CreateChallengeModal';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { getConversations } from '../services/messageService';
 import { getChallenges } from '../services/challengeService';
+import { getBlockedUsers, unblockUser } from '../services/reportService';
+import { db } from '../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -71,6 +74,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
   const [pendingChallenges, setPendingChallenges] = useState({}); // { friendUid: count }
   const [lastMessageTimes, setLastMessageTimes] = useState({}); // { friendUid: timestamp }
   const [reportTarget, setReportTarget] = useState(null);
+  const [blockedUsers, setBlockedUsers] = useState([]);
   
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -128,6 +132,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
   useEffect(() => {
     if (user) {
       loadData();
+      loadBlockedUsers();
     } else {
       setLoading(false);
     }
@@ -271,9 +276,39 @@ const FriendsScreen = ({ navigation, onClose }) => {
     }
   };
   
+  // Load blocked users with their profiles
+  const loadBlockedUsers = async () => {
+    if (!user) return;
+    try {
+      const blockedIds = await getBlockedUsers(user.uid);
+      if (blockedIds.length === 0) {
+        setBlockedUsers([]);
+        return;
+      }
+      // Fetch profiles for each blocked user
+      const profiles = await Promise.all(
+        blockedIds.map(async (uid) => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', uid));
+            if (userDoc.exists()) {
+              return { uid, ...userDoc.data() };
+            }
+            return { uid, displayName: 'Deleted User', username: 'unknown' };
+          } catch {
+            return { uid, displayName: 'Unknown User', username: 'unknown' };
+          }
+        })
+      );
+      setBlockedUsers(profiles);
+    } catch (err) {
+      console.error('Error loading blocked users:', err);
+    }
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
+    loadBlockedUsers();
   }, [user]);
   
   const handleSendRequest = async (userId) => {
@@ -705,6 +740,91 @@ const FriendsScreen = ({ navigation, onClose }) => {
     );
   };
   
+  // Handle unblocking a user
+  const handleUnblockUser = (blockedUserId, blockedUserName) => {
+    Alert.alert(
+      'Unblock User',
+      `Are you sure you want to unblock ${blockedUserName || 'this user'}? They'll be able to see your posts and interact with you again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: async () => {
+            setActionLoading(prev => ({ ...prev, [blockedUserId]: true }));
+            try {
+              const result = await unblockUser(user.uid, blockedUserId);
+              if (result.success) {
+                hapticFeedback.success();
+                setBlockedUsers(prev => prev.filter(u => u.uid !== blockedUserId));
+              } else {
+                Alert.alert('Error', 'Failed to unblock user. Please try again.');
+              }
+            } catch (error) {
+              console.error('Error unblocking user:', error);
+              hapticFeedback.error();
+              Alert.alert('Error', 'Something went wrong. Please try again.');
+            } finally {
+              setActionLoading(prev => ({ ...prev, [blockedUserId]: false }));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Render blocked user card
+  const renderBlockedCard = ({ item }) => {
+    const isLoading = actionLoading[item.uid];
+    return (
+      <View
+        style={[
+          styles.blockedCard,
+          { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.9)' }
+        ]}
+      >
+        {/* Avatar */}
+        <View style={styles.avatarContainer}>
+          {item.profilePicture ? (
+            <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
+          ) : (
+            <LinearGradient
+              colors={['#EF444440', '#EF444420']}
+              style={styles.avatarPlaceholder}
+            >
+              <MaterialIcons name="person" size={32} color="#EF4444" />
+            </LinearGradient>
+          )}
+        </View>
+
+        {/* Info */}
+        <View style={styles.friendInfo}>
+          <Text style={[styles.friendName, { color: theme.text }]} numberOfLines={1}>
+            {item.displayName || 'Deleted User'}
+          </Text>
+          <Text style={[styles.friendUsername, { color: theme.textSecondary }]}>
+            @{item.username || 'unknown'}
+          </Text>
+        </View>
+
+        {/* Unblock Button */}
+        <TouchableOpacity
+          onPress={() => handleUnblockUser(item.uid, item.displayName)}
+          disabled={isLoading}
+          style={[
+            styles.unblockButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+          ]}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={theme.textSecondary} />
+          ) : (
+            <Text style={[styles.unblockButtonText, { color: theme.text }]}>Unblock</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   // Empty states
   const renderEmptyState = (type) => {
     const configs = {
@@ -731,6 +851,12 @@ const FriendsScreen = ({ navigation, onClose }) => {
         icon: 'search-off',
         title: 'No Users Found',
         subtitle: 'Try a different username or check the spelling.',
+        buttonText: null,
+      },
+      blocked: {
+        icon: 'block',
+        title: 'No Blocked Users',
+        subtitle: 'Users you block will appear here. You can unblock them at any time.',
         buttonText: null,
       },
     };
@@ -855,6 +981,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
           {[
             { key: 'friends', label: 'Friends', icon: 'people', count: friends.length },
             { key: 'requests', label: 'Requests', icon: 'mail', count: pendingRequests.length },
+            { key: 'blocked', label: 'Blocked', icon: 'block', count: blockedUsers.length },
             { key: 'search', label: '', icon: 'search', count: 0 },
         ].map(tab => (
           <TouchableOpacity
@@ -1056,6 +1183,30 @@ const FriendsScreen = ({ navigation, onClose }) => {
             />
           )}
           
+          {/* Blocked Tab */}
+          {activeTab === 'blocked' && (
+            <FlatList
+              data={blockedUsers}
+              keyExtractor={(item) => item.uid}
+              renderItem={renderBlockedCard}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.primary}
+                />
+              }
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={renderEmptyState('blocked')}
+              ListHeaderComponent={blockedUsers.length > 0 ? (
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginBottom: 12, fontSize: 13 }]}>
+                  {blockedUsers.length} blocked {blockedUsers.length === 1 ? 'user' : 'users'}
+                </Text>
+              ) : null}
+            />
+          )}
+
           {/* Search Tab */}
           {activeTab === 'search' && (
             <FlatList
@@ -1114,6 +1265,8 @@ const FriendsScreen = ({ navigation, onClose }) => {
         onBlock={() => {
           setFriends(prev => prev.filter(f => f.uid !== reportTarget?.uid));
           setReportTarget(null);
+          // Refresh blocked users list so it shows up immediately
+          loadBlockedUsers();
         }}
       />
     </KeyboardAvoidingView>
@@ -1574,6 +1727,22 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  blockedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  unblockButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  unblockButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

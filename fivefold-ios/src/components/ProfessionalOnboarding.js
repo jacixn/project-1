@@ -92,18 +92,12 @@ const ProfessionalOnboarding = ({ onComplete }) => {
         'fivefold_prayerCompletions'
       ];
       
-      // Get all keys and clear any we find
-      const allKeys = await AsyncStorage.getAllKeys();
-      const allKeysToRemove = allKeys.filter(key => 
-        keysToRemove.some(k => key.endsWith(':' + k) || key === k) || 
-        key.includes('fivefold_') ||
-        key.includes('prayer') ||
-        key.includes('todo') ||
-        key.includes('completion')
-      );
-      
-      if (allKeysToRemove.length > 0) {
-        await AsyncStorage.multiRemove(allKeysToRemove);
+      // Clear using UID-scoped userStorage — only removes current user's data
+      // (prevents wiping other linked accounts' data)
+      for (const key of [...keysToRemove, ...fivefoldKeys]) {
+        try {
+          await userStorage.remove(key);
+        } catch (_) {}
       }
       
       console.log('✅ All user data cleared for fresh start - removed keys:', allKeysToRemove);

@@ -7,7 +7,7 @@ export const resetOnboardingForTesting = async () => {
     // Clear onboarding completion flag
     await userStorage.remove('onboardingCompleted');
     
-    // Clear all user data for completely fresh start
+    // Clear all user data for completely fresh start — UID-scoped only
     const keysToRemove = [
       'userProfile',
       'todos',
@@ -27,24 +27,24 @@ export const resetOnboardingForTesting = async () => {
       'smart_features_enabled'
     ];
     
-    // Get all keys and clear any user-related data (raw keys include UID scope)
-    const allKeys = await AsyncStorage.getAllKeys();
-    const allKeysToRemove = allKeys.filter(key => 
-      keysToRemove.some(k => key.endsWith(':' + k) || key === k) || 
-      key.includes('fivefold_') ||
-      key.includes('prayer') ||
-      key.includes('todo') ||
-      key.includes('completion') ||
-      key.includes('user') ||
-      key.includes('profile')
-    );
-    
-    if (allKeysToRemove.length > 0) {
-      // Use raw AsyncStorage since keys are already fully qualified (UID-scoped)
-      await AsyncStorage.multiRemove(allKeysToRemove);
+    // Use UID-scoped removal — only removes current user's data,
+    // never touches other linked accounts' keys
+    const uid = userStorage.getCurrentUid();
+    if (uid) {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const uidPrefix = `u:${uid}:`;
+      const userKeys = allKeys.filter(k => k.startsWith(uidPrefix));
+      if (userKeys.length > 0) {
+        await AsyncStorage.multiRemove(userKeys);
+      }
+      console.log('✅ User data cleared (UID-scoped):', userKeys.length, 'keys removed');
+    } else {
+      // Fallback: remove only the explicit keys via userStorage
+      for (const key of keysToRemove) {
+        try { await userStorage.remove(key); } catch (_) {}
+      }
+      console.log('✅ User data cleared via userStorage (no UID available)');
     }
-    
-    console.log('✅ Account deleted - all user data cleared:', allKeysToRemove);
     
     // Trigger onboarding restart if callback exists
     if (global.onboardingRestartCallback) {
@@ -54,7 +54,7 @@ export const resetOnboardingForTesting = async () => {
     
     return true;
   } catch (error) {
-    console.error('❌ Error deleting account:', error);
+    console.error('❌ Error resetting onboarding:', error);
     return false;
   }
 };
@@ -80,7 +80,7 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
 
     // Import Firebase modules
     const { auth, db } = await import('../config/firebase');
-    const { doc, getDoc, deleteDoc, collection, query, where, getDocs, writeBatch } = await import('firebase/firestore');
+    const { doc, getDoc, deleteDoc, collection, query, where, getDocs, writeBatch, updateDoc, arrayRemove, increment } = await import('firebase/firestore');
     const { deleteUser, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth');
     const { ref, listAll, deleteObject } = await import('firebase/storage');
     let storage = null;
@@ -108,30 +108,68 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
     await reauthenticateWithCredential(currentUser, credential);
     console.log('[Delete] Re-authenticated');
 
-    // ── Step 1: Delete social content (prayers, posts) ──
+    // Helper: batch-delete query results (handles >500 doc batches)
+    // Retries once on failure to handle transient network issues
+    const batchDeleteQuery = async (q, label) => {
+      const attempt = async () => {
+        const snap = await getDocs(q);
+        if (snap.empty) { console.log(`[Delete] No ${label} found to delete`); return 0; }
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += 450) {
+          const chunk = docs.slice(i, i + 450);
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+        console.log(`[Delete] ✓ Deleted ${docs.length} ${label}`);
+        return docs.length;
+      };
+      try {
+        return await attempt();
+      } catch (e) {
+        console.warn(`[Delete] ⚠ FIRST attempt failed for ${label}:`, e.message, '— retrying...');
+        try {
+          return await attempt();
+        } catch (e2) {
+          console.error(`[Delete] ✗ FAILED to delete ${label} after retry:`, e2.message);
+          return 0;
+        }
+      }
+    };
+
+    // ── Step 1: Delete social content (prayers, hub posts) ──
     progress(1);
     try {
       // Delete user's social prayers
-      const prayersQ = query(collection(db, 'prayers'), where('userId', '==', uid));
-      const prayerSnap = await getDocs(prayersQ);
-      if (!prayerSnap.empty) {
-        const batch = writeBatch(db);
-        prayerSnap.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-        console.log('[Delete] Deleted', prayerSnap.size, 'prayers');
-      }
+      await batchDeleteQuery(
+        query(collection(db, 'prayers'), where('userId', '==', uid)),
+        'prayers'
+      );
+    } catch (e) {
+      console.error('[Delete] ✗ Prayer cleanup failed:', e.message);
+    }
 
-      // Delete user's social posts
-      const postsQ = query(collection(db, 'posts'), where('userId', '==', uid));
-      const postSnap = await getDocs(postsQ);
-      if (!postSnap.empty) {
-        const batch = writeBatch(db);
-        postSnap.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-        console.log('[Delete] Deleted', postSnap.size, 'posts');
+    try {
+      // Delete user's hub posts (collection is 'hub_posts', NOT 'posts')
+      const deletedCount = await batchDeleteQuery(
+        query(collection(db, 'hub_posts'), where('userId', '==', uid)),
+        'hub posts'
+      );
+      // Verify deletion actually worked
+      if (deletedCount > 0) {
+        const verifySnap = await getDocs(query(collection(db, 'hub_posts'), where('userId', '==', uid)));
+        if (!verifySnap.empty) {
+          console.error(`[Delete] ✗ VERIFICATION FAILED: ${verifySnap.size} hub posts still exist for ${uid} — retrying...`);
+          await batchDeleteQuery(
+            query(collection(db, 'hub_posts'), where('userId', '==', uid)),
+            'hub posts (verification retry)'
+          );
+        } else {
+          console.log(`[Delete] ✓ Verified: 0 hub posts remain for ${uid}`);
+        }
       }
     } catch (e) {
-      console.log('[Delete] Social content cleanup:', e.message);
+      console.error('[Delete] ✗ Hub posts cleanup failed:', e.message);
     }
 
     // ── Step 2: Delete conversations & messages ──
@@ -144,9 +182,13 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
         try {
           const msgsSnap = await getDocs(collection(db, 'conversations', convDoc.id, 'messages'));
           if (!msgsSnap.empty) {
-            const batch = writeBatch(db);
-            msgsSnap.forEach(m => batch.delete(m.ref));
-            await batch.commit();
+            const msgDocs = msgsSnap.docs;
+            for (let i = 0; i < msgDocs.length; i += 450) {
+              const chunk = msgDocs.slice(i, i + 450);
+              const batch = writeBatch(db);
+              chunk.forEach(m => batch.delete(m.ref));
+              await batch.commit();
+            }
           }
         } catch (_) {}
         await deleteDoc(convDoc.ref);
@@ -164,16 +206,150 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
       const [snap1, snap2] = await Promise.all([getDocs(challQ1), getDocs(challQ2)]);
       const allChallDocs = [...snap1.docs, ...snap2.docs];
       if (allChallDocs.length > 0) {
-        const batch = writeBatch(db);
         const seen = new Set();
-        allChallDocs.forEach(d => {
-          if (!seen.has(d.id)) { seen.add(d.id); batch.delete(d.ref); }
+        const uniqueDocs = allChallDocs.filter(d => {
+          if (seen.has(d.id)) return false;
+          seen.add(d.id);
+          return true;
         });
-        await batch.commit();
+        for (let i = 0; i < uniqueDocs.length; i += 450) {
+          const chunk = uniqueDocs.slice(i, i + 450);
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
         console.log('[Delete] Deleted', seen.size, 'challenges');
       }
     } catch (e) {
       console.log('[Delete] Challenges cleanup:', e.message);
+    }
+
+    // ── Step 3b: Delete reports & blocked_users ──
+    try {
+      // Delete reports filed BY this user
+      await batchDeleteQuery(
+        query(collection(db, 'reports'), where('reporterId', '==', uid)),
+        'reports (filed by user)'
+      );
+
+      // Delete reports filed AGAINST this user (orphan cleanup)
+      await batchDeleteQuery(
+        query(collection(db, 'reports'), where('reportedUserId', '==', uid)),
+        'reports (filed against user)'
+      );
+
+      // Delete blocked_users entries where this user blocked someone
+      await batchDeleteQuery(
+        query(collection(db, 'blocked_users'), where('userId', '==', uid)),
+        'blocked_users (user blocked others)'
+      );
+
+      // Delete blocked_users entries where this user WAS blocked by someone
+      await batchDeleteQuery(
+        query(collection(db, 'blocked_users'), where('blockedUserId', '==', uid)),
+        'blocked_users (user was blocked)'
+      );
+
+      console.log('[Delete] ✓ Reports & blocks cleaned up');
+    } catch (e) {
+      console.error('[Delete] ✗ Reports/blocks cleanup:', e.message);
+    }
+
+    // ── Step 3c: Clean up likes/reactions on other users' hub posts ──
+    try {
+      const reactionTypes = ['pray', 'strong', 'bless', 'love'];
+      let totalReactionsRemoved = 0;
+
+      for (const rType of reactionTypes) {
+        try {
+          const reactQ = query(
+            collection(db, 'hub_posts'),
+            where(`reactions.${rType}`, 'array-contains', uid)
+          );
+          const reactSnap = await getDocs(reactQ);
+          for (const postDoc of reactSnap.docs) {
+            try {
+              const updateData = {
+                [`reactions.${rType}`]: arrayRemove(uid),
+              };
+              // For 'love' reactions, also update legacy likedBy & decrement likes count
+              if (rType === 'love') {
+                updateData.likedBy = arrayRemove(uid);
+                updateData.likes = increment(-1);
+              }
+              await updateDoc(postDoc.ref, updateData);
+              totalReactionsRemoved++;
+            } catch (_) {}
+          }
+        } catch (e) {
+          console.log(`[Delete] Could not clean ${rType} reactions:`, e.message);
+        }
+      }
+
+      // Also clean legacy likedBy for posts that might not have reactions.love
+      try {
+        const legacyLikeQ = query(
+          collection(db, 'hub_posts'),
+          where('likedBy', 'array-contains', uid)
+        );
+        const legacySnap = await getDocs(legacyLikeQ);
+        for (const postDoc of legacySnap.docs) {
+          try {
+            await updateDoc(postDoc.ref, {
+              likedBy: arrayRemove(uid),
+              likes: increment(-1),
+            });
+            totalReactionsRemoved++;
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      console.log(`[Delete] ✓ Removed ${totalReactionsRemoved} reactions from other users' posts`);
+    } catch (e) {
+      console.error('[Delete] ✗ Reactions cleanup:', e.message);
+    }
+
+    // ── Step 3d: Clean up prayer interactions ──
+    try {
+      // Remove this user from prayingUsers arrays on other users' prayers
+      let prayerInteractionsRemoved = 0;
+      try {
+        const prayingQ = query(
+          collection(db, 'prayers'),
+          where('prayingUsers', 'array-contains', uid)
+        );
+        const prayingSnap = await getDocs(prayingQ);
+        for (const prayerDoc of prayingSnap.docs) {
+          try {
+            await updateDoc(prayerDoc.ref, {
+              prayingUsers: arrayRemove(uid),
+              prayingCount: increment(-1),
+            });
+            prayerInteractionsRemoved++;
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      // Clean up prayerPartner references on other users who had this user as partner
+      try {
+        const partnerQ = query(
+          collection(db, 'users'),
+          where('prayerPartner.partnerId', '==', uid)
+        );
+        const partnerSnap = await getDocs(partnerQ);
+        for (const userDoc2 of partnerSnap.docs) {
+          try {
+            await updateDoc(userDoc2.ref, { prayerPartner: null });
+          } catch (_) {}
+        }
+        if (!partnerSnap.empty) {
+          console.log(`[Delete] ✓ Cleared prayerPartner from ${partnerSnap.size} users`);
+        }
+      } catch (_) {}
+
+      console.log(`[Delete] ✓ Removed ${prayerInteractionsRemoved} prayer interactions`);
+    } catch (e) {
+      console.error('[Delete] ✗ Prayer interactions cleanup:', e.message);
     }
 
     // ── Step 4: Delete cloud profile & data ──
@@ -192,13 +368,79 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
       await deleteDoc(doc(db, 'users', uid));
       console.log('[Delete] Deleted user document');
 
-      // Delete friends document
-      try { await deleteDoc(doc(db, 'friends', uid)); } catch (_) {}
+      // Delete friends document AND remove user from all other users' friend lists
+      try {
+        // First get this user's friends list so we can clean their docs
+        const friendsDocRef = doc(db, 'friends', uid);
+        const friendsDocSnap = await getDoc(friendsDocRef);
+        if (friendsDocSnap.exists()) {
+          const friendsData = friendsDocSnap.data();
+          const friendIds = friendsData.friendsList || [];
+
+          // Remove this user from each friend's friendsList
+          for (const friendId of friendIds) {
+            try {
+              await updateDoc(doc(db, 'friends', friendId), {
+                friendsList: arrayRemove(uid),
+              });
+            } catch (_) {}
+          }
+
+          // Remove pending/sent requests referencing this user from other users
+          const pendingRequests = friendsData.pendingRequests || [];
+          for (const req of pendingRequests) {
+            if (req.fromUserId) {
+              try {
+                const senderDoc = await getDoc(doc(db, 'friends', req.fromUserId));
+                if (senderDoc.exists()) {
+                  const sentReqs = senderDoc.data().sentRequests || [];
+                  const matching = sentReqs.find(r => r.toUserId === uid);
+                  if (matching) {
+                    await updateDoc(doc(db, 'friends', req.fromUserId), {
+                      sentRequests: arrayRemove(matching),
+                    });
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+
+          const sentRequests = friendsData.sentRequests || [];
+          for (const req of sentRequests) {
+            if (req.toUserId) {
+              try {
+                const recipientDoc = await getDoc(doc(db, 'friends', req.toUserId));
+                if (recipientDoc.exists()) {
+                  const pendingReqs = recipientDoc.data().pendingRequests || [];
+                  const matching = pendingReqs.find(r => r.fromUserId === uid);
+                  if (matching) {
+                    await updateDoc(doc(db, 'friends', req.toUserId), {
+                      pendingRequests: arrayRemove(matching),
+                    });
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+
+          console.log('[Delete] Cleaned up', friendIds.length, 'friend references');
+        }
+
+        // Now delete the user's own friends document
+        await deleteDoc(friendsDocRef);
+      } catch (e) {
+        console.log('[Delete] Friends cleanup:', e.message);
+      }
       console.log('[Delete] Deleted friends document');
 
-      // Delete verification/reset codes
+      // Delete verification/reset codes and password reset codes
       try { await deleteDoc(doc(db, 'verificationCodes', uid)); } catch (_) {}
-      console.log('[Delete] Cleaned up verification codes');
+      try { await deleteDoc(doc(db, 'passwordResetCodes', uid)); } catch (_) {}
+      // Also try email-keyed reset codes
+      if (email) {
+        try { await deleteDoc(doc(db, 'passwordResetCodes', email)); } catch (_) {}
+      }
+      console.log('[Delete] ✓ Cleaned up verification & password reset codes');
     } catch (e) {
       console.log('[Delete] Cloud profile cleanup:', e.message);
     }
@@ -221,31 +463,75 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
     // ── Step 6: Clear all local data ──
     progress(6);
     try {
-      // Clear SecureStore credentials
+      // Clear SecureStore credentials for this user
       const SecureStore = await import('expo-secure-store');
       try { await SecureStore.deleteItemAsync(`biblely_cred_${uid}`); } catch (_) {}
-      console.log('[Delete] Cleared SecureStore credentials');
+      console.log('[Delete] ✓ Cleared SecureStore credentials');
 
-      // Remove from linked accounts list
+      // Remove from linked accounts list (preserve other accounts)
       try {
         const linkedRaw = await AsyncStorage.getItem('@biblely_linked_accounts');
         if (linkedRaw) {
           const linked = JSON.parse(linkedRaw);
           const filtered = linked.filter(a => a.uid !== uid);
-          await AsyncStorage.setItem('@biblely_linked_accounts', JSON.stringify(filtered));
-          console.log('[Delete] Removed from linked accounts');
+          if (filtered.length > 0) {
+            await AsyncStorage.setItem('@biblely_linked_accounts', JSON.stringify(filtered));
+          } else {
+            await AsyncStorage.removeItem('@biblely_linked_accounts');
+          }
+          console.log('[Delete] ✓ Removed from linked accounts');
         }
       } catch (_) {}
 
-      // Clear ALL AsyncStorage
+      // Clear only THIS user's UID-scoped AsyncStorage keys (u:{uid}:*)
+      // This preserves other linked accounts' data
       const allKeys = await AsyncStorage.getAllKeys();
-      const appKeys = allKeys.filter(k => !k.startsWith('@RNC_AsyncStorage_'));
-      if (appKeys.length > 0) {
-        await AsyncStorage.multiRemove(appKeys);
-        console.log('[Delete] Removed', appKeys.length, 'local storage keys');
+      const uidPrefix = `u:${uid}:`;
+      const userKeys = allKeys.filter(k => k.startsWith(uidPrefix));
+
+      // Also remove any non-scoped legacy keys that belong to this user
+      // (these are keys from before the UID-scoping migration)
+      const legacyKeysToRemove = allKeys.filter(k => 
+        !k.startsWith('u:') && 
+        !k.startsWith('@RNC_AsyncStorage_') &&
+        !k.startsWith('@biblely_linked_accounts') &&
+        // Only remove legacy keys if this is the ONLY account (no other linked accounts)
+        // Otherwise we risk wiping another account's un-migrated data
+        true
+      );
+
+      // Check if there are other linked accounts — if so, only remove UID-scoped keys
+      const linkedRaw2 = await AsyncStorage.getItem('@biblely_linked_accounts');
+      const hasOtherAccounts = linkedRaw2 ? JSON.parse(linkedRaw2).length > 0 : false;
+
+      const keysToRemove = hasOtherAccounts
+        ? userKeys  // Only remove UID-scoped keys if other accounts exist
+        : [...userKeys, ...legacyKeysToRemove];  // Remove everything if this is the only account
+
+      if (keysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(keysToRemove);
+        console.log(`[Delete] ✓ Removed ${keysToRemove.length} local storage keys (preserved ${hasOtherAccounts ? 'other accounts data' : 'nothing — sole account'})`);
+      }
+
+      // Delete persisted profile pictures from local file system
+      try {
+        const FileSystem = await import('expo-file-system');
+        const docDir = FileSystem.documentDirectory;
+        if (docDir) {
+          const files = await FileSystem.readDirectoryAsync(docDir);
+          const profilePics = files.filter(f => f.startsWith('profile_'));
+          for (const pic of profilePics) {
+            await FileSystem.deleteAsync(`${docDir}${pic}`, { idempotent: true });
+          }
+          if (profilePics.length > 0) {
+            console.log(`[Delete] ✓ Deleted ${profilePics.length} local profile pictures`);
+          }
+        }
+      } catch (e) {
+        console.log('[Delete] Local profile pictures cleanup:', e.message);
       }
     } catch (e) {
-      console.log('[Delete] Local data cleanup:', e.message);
+      console.error('[Delete] ✗ Local data cleanup:', e.message);
     }
 
     // ── Step 7: Delete Firebase Auth account ──
