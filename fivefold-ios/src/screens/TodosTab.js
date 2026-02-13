@@ -49,6 +49,7 @@ import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
+import { getReferralCount } from '../services/referralService';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -286,17 +287,39 @@ const TodosTab = () => {
       delay: 200,
       useNativeDriver: true,
     }).start();
-    // Load selected loading animation
-    userStorage.getRaw('fivefold_loading_animation').then(id => {
-      if (id) setSelectedLoadingAnim(id);
-    });
+    // Load selected loading animation (with referral validation)
+    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+    Promise.all([
+      userStorage.getRaw('fivefold_loading_animation'),
+      getReferralCount(),
+    ]).then(([id, count]) => {
+      const animId = id || 'default';
+      const req = LOADING_ANIM_GATES[animId];
+      if (req !== null && req !== undefined && count < req) {
+        setSelectedLoadingAnim('default');
+        userStorage.setRaw('fivefold_loading_animation', 'default');
+      } else {
+        setSelectedLoadingAnim(animId);
+      }
+    }).catch(() => {});
   }, []);
 
-  // Reload loading animation preference when tab gains focus
+  // Reload loading animation preference when tab gains focus (with validation)
   useFocusEffect(
     useCallback(() => {
-      userStorage.getRaw('fivefold_loading_animation').then(v => {
-        setSelectedLoadingAnim(v || 'default');
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      Promise.all([
+        userStorage.getRaw('fivefold_loading_animation'),
+        getReferralCount(),
+      ]).then(([v, count]) => {
+        const animId = v || 'default';
+        const req = LOAD_GATES[animId];
+        if (req !== null && req !== undefined && count < req) {
+          setSelectedLoadingAnim('default');
+          userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
       }).catch(() => {});
     }, [])
   );
@@ -940,7 +963,7 @@ const TodosTab = () => {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 95),
           left: 0,
           right: 0,
           alignItems: 'center',

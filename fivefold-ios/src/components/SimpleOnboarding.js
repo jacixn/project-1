@@ -37,6 +37,7 @@ import { uploadProfilePicture } from '../services/storageService';
 import { updateLinkedAccountProfile } from '../services/accountSwitcherService';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup } from '../services/authService';
+import { submitReferral } from '../services/referralService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -332,6 +333,7 @@ const SCREEN_THEMES = {
   notifications: { bg: '#E0F2F1', accent: '#00695C' },    // Teal
   verifyEmail: { bg: '#EDE7F6', accent: '#6C63FF' },      // Soft purple - trust/verify
   setup2FA: { bg: '#E0F2F1', accent: '#00796B' },         // Teal - security
+  referral: { bg: '#FFF3E0', accent: '#E65100' },         // Warm orange - community/sharing
   howFound: { bg: '#EDE7F6', accent: '#5E35B1' },         // Purple
   gift: { bg: '#FCE4EC', accent: '#AD1457' },             // Pink
   paywall: { bg: '#E3F2FD', accent: '#1565C0' },          // Blue
@@ -595,6 +597,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'notifications',
     'verifyEmail',
     'setup2FA',
+    'referral',
     'howFound',
     'gift',
     'complete'
@@ -614,6 +617,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'notifications',
     'verifyEmail',
     'setup2FA',
+    'referral',
     'howFound',
     'gift',
     'complete'
@@ -2851,6 +2855,265 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   // ============================================
+  // SCREEN: Referral (Optional, after 2FA setup)
+  // ============================================
+  const ReferralOnboardingScreen = () => {
+    const screenTheme = SCREEN_THEMES.referral;
+    const [referralUsername, setReferralUsername] = useState('');
+    const [referralLoading, setReferralLoading] = useState(false);
+    const [referralSuccess, setReferralSuccess] = useState(false);
+    const [referralError, setReferralError] = useState('');
+
+    // If user didn't verify email, auto-skip this screen
+    useEffect(() => {
+      if (!emailVerifiedDuringOnboarding.current) {
+        handleNext();
+      }
+    }, []);
+
+    // Don't render anything if email wasn't verified (will auto-skip)
+    if (!emailVerifiedDuringOnboarding.current) {
+      return null;
+    }
+
+    // Success state
+    if (referralSuccess) {
+      return (
+        <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+          <ProgressBar screenTheme={screenTheme} />
+          
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+            <View style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: '#4CAF50' + '18',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 24,
+            }}>
+              <MaterialIcons name="check-circle" size={36} color="#4CAF50" />
+            </View>
+            
+            <Text style={{
+              fontSize: 26,
+              fontWeight: '800',
+              color: '#333',
+              textAlign: 'center',
+              marginBottom: 12,
+            }}>
+              Referral recorded!
+            </Text>
+            
+            <Text style={{
+              fontSize: 16,
+              color: '#666',
+              textAlign: 'center',
+              lineHeight: 24,
+              marginBottom: 40,
+              paddingHorizontal: 8,
+            }}>
+              @{referralUsername.toLowerCase().trim()} has been credited as the person who referred you.
+            </Text>
+            
+            <TouchableOpacity
+              onPress={handleNext}
+              style={{
+                width: '100%',
+                backgroundColor: '#333',
+                paddingVertical: 16,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF' }}>Continue</Text>
+              <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+        
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+            <View style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: screenTheme.accent + '18',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 24,
+            }}>
+              <MaterialIcons name="people" size={36} color={screenTheme.accent} />
+            </View>
+            
+            <Text style={{
+              fontSize: 26,
+              fontWeight: '800',
+              color: '#333',
+              textAlign: 'center',
+              marginBottom: 12,
+            }}>
+              Were you referred?
+            </Text>
+            
+            <Text style={{
+              fontSize: 16,
+              color: '#666',
+              textAlign: 'center',
+              lineHeight: 24,
+              marginBottom: 12,
+              paddingHorizontal: 8,
+            }}>
+              If a friend told you about Biblely, enter their username below to give them credit.
+            </Text>
+            
+            <Text style={{
+              fontSize: 14,
+              color: '#999',
+              textAlign: 'center',
+              lineHeight: 20,
+              marginBottom: 32,
+              paddingHorizontal: 16,
+            }}>
+              This is optional — you can always do this later in your profile.
+            </Text>
+            
+            {/* Username Input */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#FFF',
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: referralError ? '#E53935' : referralUsername.length > 0 ? screenTheme.accent : '#E0E0E0',
+              marginBottom: referralError ? 8 : 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 6,
+              elevation: 2,
+            }}>
+              <Text style={{ fontSize: 18, color: '#999', fontWeight: '600', marginRight: 4 }}>@</Text>
+              <TextInput
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  color: '#333',
+                  fontWeight: '500',
+                  paddingVertical: 14,
+                }}
+                placeholder="username"
+                placeholderTextColor="#CCC"
+                value={referralUsername}
+                onChangeText={(text) => {
+                  setReferralUsername(text);
+                  if (referralError) setReferralError('');
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+              />
+            </View>
+            
+            {/* Error message */}
+            {referralError ? (
+              <Text style={{
+                fontSize: 13,
+                color: '#E53935',
+                textAlign: 'center',
+                marginBottom: 16,
+                paddingHorizontal: 8,
+              }}>
+                {referralError}
+              </Text>
+            ) : null}
+            
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                backgroundColor: screenTheme.accent,
+                paddingVertical: 16,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 16,
+                opacity: referralLoading || referralUsername.trim().length < 3 ? 0.5 : 1,
+                shadowColor: screenTheme.accent,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+              disabled={referralLoading || referralUsername.trim().length < 3}
+              onPress={async () => {
+                hapticFeedback.buttonPress();
+                setReferralError('');
+                setReferralLoading(true);
+                try {
+                  const result = await submitReferral(referralUsername.trim());
+                  if (result.success) {
+                    hapticFeedback.success();
+                    setReferralSuccess(true);
+                  } else {
+                    hapticFeedback.error();
+                    setReferralError(result.message || 'Something went wrong. Please try again.');
+                  }
+                } catch (err) {
+                  hapticFeedback.error();
+                  setReferralError(err.message || 'Something went wrong. Please try again.');
+                } finally {
+                  setReferralLoading(false);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              {referralLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="person-add" size={20} color="#FFF" />
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF' }}>Submit Referral</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            
+            {/* Skip Button */}
+            <TouchableOpacity
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                handleNext();
+              }}
+              activeOpacity={0.7}
+              style={{ paddingVertical: 12 }}
+            >
+              <Text style={{ fontSize: 15, color: '#999', fontWeight: '500' }}>No one referred me</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
   // SCREEN: How Did You Find Us
   // ============================================
   const HowFoundScreen = () => {
@@ -3751,6 +4014,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'notifications': return <NotificationsScreen />;
       case 'verifyEmail': return <VerifyEmailOnboardingScreen />;
       case 'setup2FA': return <Setup2FAOnboardingScreen />;
+      case 'referral': return <ReferralOnboardingScreen />;
       case 'howFound': return <HowFoundScreen />;
       case 'gift': return <GiftScreen />;
       case 'complete': return <CompleteScreen />;

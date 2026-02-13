@@ -55,7 +55,7 @@ import { isRestricted } from '../services/restrictionService';
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
 // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-const BADGE_REFERRAL_GATES = { country: null, streak: 6, verified: 3, biblely: 10 };
+const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
 
 const getStreakAnimSource = (animId) => {
   switch (animId) {
@@ -181,21 +181,47 @@ const HubTab = () => {
     return () => clearInterval(interval);
   }, []);
   
+  // Loading animation referral gates (must match CustomisationScreen)
+  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+
   // Load badge toggles + referral count + loading animation for current user badge display
   useEffect(() => {
     userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) setMyBadgeToggles(JSON.parse(raw));
     }).catch(() => {});
-    getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
+    getReferralCount().then(c => {
+      setMyReferralCount(c);
+      // Validate loading animation against referral count
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        const animId = v || 'default';
+        const req = LOADING_ANIM_GATES[animId];
+        if (req !== null && req !== undefined && c < req) {
+          setSelectedLoadingAnim('default');
+          userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
+      }).catch(() => {});
+    }).catch(() => {});
     userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
-    userStorage.getRaw('fivefold_loading_animation').then(v => { if (v) setSelectedLoadingAnim(v); }).catch(() => {});
   }, []);
 
-  // Reload loading animation preference when tab gains focus
+  // Reload loading animation preference when tab gains focus (with validation)
   useFocusEffect(
     useCallback(() => {
-      userStorage.getRaw('fivefold_loading_animation').then(v => {
-        setSelectedLoadingAnim(v || 'default');
+      Promise.all([
+        userStorage.getRaw('fivefold_loading_animation'),
+        getReferralCount(),
+      ]).then(([v, count]) => {
+        setMyReferralCount(count);
+        const animId = v || 'default';
+        const req = LOADING_ANIM_GATES[animId];
+        if (req !== null && req !== undefined && count < req) {
+          setSelectedLoadingAnim('default');
+          userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
       }).catch(() => {});
     }, [])
   );
@@ -782,8 +808,8 @@ const HubTab = () => {
                   if (!flag || hidden) return null;
                   return <Text style={styles.authorCountry}>{flag}</Text>;
                 })()}
-                {/* Streak animation badge (current user only) — gated by 6 referrals + toggle */}
-                {isOwner && myBadgeToggles.streak !== false && myReferralCount >= 6 && (
+                {/* Streak animation badge (current user only) — gated by 5 referrals + toggle */}
+                {isOwner && myBadgeToggles.streak !== false && myReferralCount >= 5 && (
                   <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 4 }} />
                 )}
                 {/* Profile badges — gated only by referrals + toggles, no achievements */}
@@ -1049,7 +1075,7 @@ const HubTab = () => {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 95),
           left: 0,
           right: 0,
           alignItems: 'center',

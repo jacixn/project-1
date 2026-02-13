@@ -658,7 +658,7 @@ const ProfileTab = () => {
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
-  const [isPublicProfile, setIsPublicProfile] = useState(true); // Show on global leaderboard
+  const [isPublicProfile, setIsPublicProfile] = useState(false); // Show on global leaderboard (defaults OFF until email verified)
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
@@ -2263,10 +2263,14 @@ const ProfileTab = () => {
         setEditName(freshAuthProfile.displayName);
         
         // Load isPublic setting (for global leaderboard visibility)
+        // If user has explicitly set the value, honour it.
+        // If not set yet, default to OFF for unverified users, ON for verified.
         if (freshAuthProfile.isPublic !== undefined) {
           setIsPublicProfile(freshAuthProfile.isPublic);
         } else {
-          // Check the auth cache as fallback (already loaded above)
+          // No explicit setting — base it on email verification status
+          const verified = await refreshEmailVerificationStatus();
+          setIsPublicProfile(!!verified);
         }
         
         // Load profile picture - check multiple sources with fallback chain
@@ -2511,7 +2515,7 @@ const ProfileTab = () => {
 
       // Badges are gated ONLY by referrals + toggles — no achievement conditions
       // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-      const BADGE_REFERRAL_GATES = { country: null, streak: 6, verified: 3, biblely: 10 };
+      const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
       let refCount = 0;
       try { refCount = await getReferralCount(); } catch (_) {}
       const visibleBadges = AchievementService.PROFILE_BADGES.filter(b => {
@@ -2522,13 +2526,31 @@ const ProfileTab = () => {
       });
       setEarnedBadges(visibleBadges);
       
-      // Load selected streak animation
+      // Load selected streak animation (with referral validation)
+      const STREAK_ANIM_GATES = { fire1: null, bulb: 2, lightning: 4, redcar: 5, fire2: 5, amongus: 5 };
+      const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
       const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
-      if (savedAnim) setSelectedStreakAnim(savedAnim);
+      if (savedAnim) {
+        const streakReq = STREAK_ANIM_GATES[savedAnim];
+        if (streakReq !== null && streakReq !== undefined && refCount < streakReq) {
+          setSelectedStreakAnim('fire1');
+          await userStorage.setRaw('fivefold_streak_animation', 'fire1');
+        } else {
+          setSelectedStreakAnim(savedAnim);
+        }
+      }
 
-      // Load selected loading animation
+      // Load selected loading animation (with referral validation)
       const savedLoadingAnim = await userStorage.getRaw('fivefold_loading_animation');
-      if (savedLoadingAnim) setSelectedLoadingAnim(savedLoadingAnim);
+      if (savedLoadingAnim) {
+        const loadReq = LOADING_ANIM_GATES[savedLoadingAnim];
+        if (loadReq !== null && loadReq !== undefined && refCount < loadReq) {
+          setSelectedLoadingAnim('default');
+          await userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(savedLoadingAnim);
+        }
+      }
       
       console.log(`📊 Profile loaded: ${correctTotal} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
@@ -2913,8 +2935,8 @@ const ProfileTab = () => {
         <Text style={[styles.userName, { color: textColor, ...textOutlineStyle }]}>
           {userName}{countryFlagToggle ? ` ${selectedCountry?.flag || '🌍'}` : ''}
         </Text>
-        {/* Streak animation badge — gated by 6 referrals + toggle */}
-        {streakBadgeToggle && referralInfo.referralCount >= 6 && (
+        {/* Streak animation badge — gated by 5 referrals + toggle */}
+        {streakBadgeToggle && referralInfo.referralCount >= 5 && (
           <LottieView
             source={
               selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
@@ -3309,6 +3331,23 @@ const ProfileTab = () => {
       return;
     }
     
+    // Block turning ON if email isn't verified
+    if (value && !emailVerified) {
+      hapticFeedback.error();
+      Alert.alert(
+        'Email Verification Required',
+        'You need to verify your email before you can appear on the global leaderboard.',
+        [
+          { text: 'Later', style: 'cancel' },
+          { text: 'Verify Now', onPress: () => {
+            setShowSettingsModal(false);
+            setTimeout(() => navigation.navigate('EmailVerification', { fromSignup: false, maskedEmail: user?.email || '' }), 300);
+          }},
+        ]
+      );
+      return;
+    }
+    
     setIsPublicProfile(value);
     hapticFeedback.light();
     
@@ -3679,7 +3718,7 @@ const ProfileTab = () => {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          top: insets.top + (selectedLoadingAnim === 'default' ? 60 : 40),
+          top: insets.top + (selectedLoadingAnim === 'default' ? 60 : 65),
           left: 0,
           right: 0,
           alignItems: 'center',
@@ -5406,6 +5445,7 @@ const ProfileTab = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: 16,
+                opacity: !emailVerified && !isPublicProfile ? 0.6 : 1,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
                   <View style={{
@@ -5422,8 +5462,10 @@ const ProfileTab = () => {
                     <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
                       Show on Global Leaderboard
                     </Text>
-                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                      {isPublicProfile ? 'Others can see your ranking' : 'Your ranking is private'}
+                    <Text style={{ fontSize: 12, color: !emailVerified ? '#E67E22' : modalTextSecondaryColor, marginTop: 2 }}>
+                      {!emailVerified
+                        ? 'Verify your email to appear on the leaderboard'
+                        : isPublicProfile ? 'Others can see your ranking' : 'Your ranking is private'}
                     </Text>
                   </View>
                 </View>

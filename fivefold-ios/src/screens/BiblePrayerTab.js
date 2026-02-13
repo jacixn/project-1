@@ -91,6 +91,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
 import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
 import AchievementService from '../services/achievementService';
+import { getReferralCount } from '../services/referralService';
 
 // Prayer times are now user-configurable - no hardcoded defaults
 
@@ -377,10 +378,21 @@ const BiblePrayerTab = () => {
       loadUserName();
       initializePrayerData();
       loadLiquidGlassSetting();
-      // Reload loading animation preference
-      userStorage.getRaw('fivefold_loading_animation').then(id => {
-        setSelectedLoadingAnim(id || 'default');
-      });
+      // Reload loading animation preference (with referral validation)
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      Promise.all([
+        userStorage.getRaw('fivefold_loading_animation'),
+        getReferralCount(),
+      ]).then(([id, count]) => {
+        const animId = id || 'default';
+        const req = LOAD_GATES[animId];
+        if (req !== null && req !== undefined && count < req) {
+          setSelectedLoadingAnim('default');
+          userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
+      }).catch(() => {});
     }, [])
   );
 
@@ -1300,7 +1312,7 @@ const BiblePrayerTab = () => {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 95),
           left: 0,
           right: 0,
           alignItems: 'center',

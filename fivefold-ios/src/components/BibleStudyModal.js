@@ -56,7 +56,6 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
     <Animated.View
       style={{
         transform: [{ scale: scaleAnim }],
-        marginBottom: 16,
       }}
     >
       <TouchableOpacity
@@ -1810,7 +1809,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   sectionCard: {
-    marginBottom: 16,
+    marginBottom: 10,
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 2,

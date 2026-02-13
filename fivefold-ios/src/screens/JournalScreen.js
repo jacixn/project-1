@@ -97,15 +97,17 @@ const JournalScreen = ({ navigation }) => {
     return bibleRefPattern.test(ref.trim());
   };
 
-  const loadJournalNotes = async () => {
+  const loadJournalNotes = async (showLoading = true) => {
     try {
-      setJournalLoading(true);
+      if (showLoading) setJournalLoading(true);
       
+      // Read from BOTH sources
       const existingNotes = await userStorage.getRaw('journalNotes');
       const notes = existingNotes ? JSON.parse(existingNotes) : [];
       
       const verseNotes = await VerseDataManager.getAllNotes();
       
+      // Merge: manual entries first, then add verse notes that aren't already present
       const allNotes = [...notes];
       const existingIds = new Set(notes.map(n => n.id));
       verseNotes.forEach(vn => {
@@ -118,12 +120,13 @@ const JournalScreen = ({ navigation }) => {
       
       setJournalNotes(allNotes);
       
-      // Fetch verse texts only for notes with valid Bible references
-      const verseTexts = {};
-      for (const note of allNotes) {
-        if (isValidBibleReference(note.verseReference)) {
+      // Fetch verse texts for notes with valid Bible references (in parallel, not serial)
+      const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
+      const verseTexts = { ...journalVerseTexts }; // preserve already-loaded texts
+      const fetchPromises = allNotes
+        .filter(note => isValidBibleReference(note.verseReference) && !verseTexts[note.id])
+        .map(async (note) => {
           try {
-            const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
             const verseData = await verseByReferenceService.getVerseByReference(
               note.verseReference,
               preferredVersion
@@ -134,8 +137,9 @@ const JournalScreen = ({ navigation }) => {
           } catch (error) {
             console.error(`Error fetching verse for ${note.verseReference}:`, error);
           }
-        }
-      }
+        });
+      
+      await Promise.all(fetchPromises);
       setJournalVerseTexts(verseTexts);
     } catch (error) {
       console.error('Error loading journal notes:', error);
@@ -151,7 +155,7 @@ const JournalScreen = ({ navigation }) => {
         console.error('Error in fallback load:', fallbackErr);
       }
     }
-    setJournalLoading(false);
+    if (showLoading) setJournalLoading(false);
   };
 
   useEffect(() => {
@@ -186,13 +190,33 @@ const JournalScreen = ({ navigation }) => {
           <JournalCalendar
             journalNotes={journalNotes}
             journalVerseTexts={journalVerseTexts}
-            onDeleteNote={async (noteId) => {
+            onDeleteNote={async (noteId, verseId) => {
               hapticFeedback.light();
-              const raw = await userStorage.getRaw('journalNotes');
-              const allNotes = raw ? JSON.parse(raw) : [];
-              const remaining = allNotes.filter(n => n.id !== noteId);
-              await userStorage.setRaw('journalNotes', JSON.stringify(remaining));
-              setJournalNotes(remaining);
+              try {
+                // 1. Remove from manual journal entries storage ('journalNotes')
+                const raw = await userStorage.getRaw('journalNotes');
+                const manualNotes = raw ? JSON.parse(raw) : [];
+                const remaining = manualNotes.filter(n => n.id !== noteId);
+                if (remaining.length !== manualNotes.length) {
+                  await userStorage.setRaw('journalNotes', JSON.stringify(remaining));
+                }
+
+                // 2. Also remove from verse_data storage (VerseDataManager)
+                //    This handles notes created via Bible verse journaling
+                if (verseId) {
+                  try {
+                    await VerseDataManager.deleteNote(verseId, noteId);
+                  } catch (e) {
+                    console.log('[Journal] Note not in verse_data or already removed:', e.message);
+                  }
+                }
+
+                // 3. Reload the full merged list so the UI stays consistent (no loading spinner)
+                await loadJournalNotes(false);
+              } catch (error) {
+                console.error('[Journal] Error deleting note:', error);
+                Alert.alert('Error', 'Failed to delete note. Please try again.');
+              }
             }}
             onAddEntry={() => setIsAddingEntry(true)}
             theme={theme}
@@ -391,9 +415,10 @@ const JournalScreen = ({ navigation }) => {
                     notes.unshift(newEntry);
                     await userStorage.setRaw('journalNotes', JSON.stringify(notes));
                     
-                    setJournalNotes(notes);
                     setNewJournalNote({ reference: '', text: '' });
                     setIsAddingEntry(false);
+                    // Reload the full merged list (manual + verse notes) so the UI stays consistent
+                    await loadJournalNotes(false);
                   } catch (error) {
                     console.error('Error saving journal entry:', error);
                     Alert.alert('Error', 'Failed to save your journal entry. Please try again.');

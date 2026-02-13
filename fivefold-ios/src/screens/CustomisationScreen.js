@@ -161,9 +161,29 @@ const CustomisationScreen = () => {
         userStorage.getRaw(BLUETICK_ENABLED_KEY),
         getReferralCount(),
       ]);
-      if (animId) setSelectedAnim(animId);
-      if (loadingAnimId) setSelectedLoadingAnim(loadingAnimId);
       setReferralCount(count);
+
+      // Validate stored streak animation — reset to free default if locked
+      if (animId) {
+        const streakReq = ANIM_REFERRAL_GATES[animId];
+        if (streakReq !== null && streakReq !== undefined && count < streakReq) {
+          setSelectedAnim('fire1'); // Reset to free default
+          await userStorage.setRaw(STREAK_ANIM_KEY, 'fire1');
+        } else {
+          setSelectedAnim(animId);
+        }
+      }
+
+      // Validate stored loading animation — reset to free default if locked
+      if (loadingAnimId) {
+        const loadReq = LOADING_ANIM_REFERRAL_GATES[loadingAnimId];
+        if (loadReq !== null && loadReq !== undefined && count < loadReq) {
+          setSelectedLoadingAnim('default'); // Reset to free default
+          await userStorage.setRaw(LOADING_ANIM_KEY, 'default');
+        } else {
+          setSelectedLoadingAnim(loadingAnimId);
+        }
+      }
 
       let toggles = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : null;
       if (!toggles) {

@@ -31,6 +31,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import completeBibleService from '../services/completeBibleService';
 import githubBibleService from '../services/githubBibleService';
 import { hapticFeedback } from '../utils/haptics';
+import Slider from '@react-native-community/slider';
 
 import { CircleStrokeSpin, CirclePulseMultiple } from './ProgressHUDAnimations';
 import userStorage from '../utils/userStorage';
@@ -148,6 +149,89 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [shareCardShowBranding, setShareCardShowBranding] = useState(true); // Show Biblely
   const [shareCardControlsTab, setShareCardControlsTab] = useState('bg'); // Active controls tab
   const shareCardPrefsLoaded = useRef(false);
+
+  // Reader accessibility state (font size & font family for verse text)
+  const [readerFontSize, setReaderFontSize] = useState(18);
+  const [readerFontId, setReaderFontId] = useState('default'); // matches fontPresets id or 'default'
+  const [showAccessibilityPopup, setShowAccessibilityPopup] = useState(false);
+  const readerPrefsLoaded = useRef(false);
+
+  // Font presets for the reader (Serif, Sans-serif, Script, Mono, Display)
+  const readerFontPresets = [
+    { id: 'default', name: 'Default', style: {} },
+    // Serif
+    { id: 'georgia', name: 'Georgia', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' } },
+    { id: 'times', name: 'Times', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif' } },
+    { id: 'palatino', name: 'Palatino', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Palatino' : 'serif' } },
+    { id: 'baskerville', name: 'Baskerville', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Baskerville' : 'serif' } },
+    { id: 'bodoni', name: 'Bodoni 72', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Bodoni 72' : 'serif' } },
+    { id: 'cochin', name: 'Cochin', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Cochin' : 'serif' } },
+    { id: 'didot', name: 'Didot', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Didot' : 'serif' } },
+    { id: 'hoefler', name: 'Hoefler', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif' } },
+    { id: 'iowan', name: 'Iowan', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Iowan Old Style' : 'serif' } },
+    { id: 'charter', name: 'Charter', category: 'Serif', style: { fontFamily: Platform.OS === 'ios' ? 'Charter' : 'serif' } },
+    // Sans-serif
+    { id: 'helvetica', name: 'Helvetica', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif' } },
+    { id: 'avenir', name: 'Avenir', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif' } },
+    { id: 'avenirNext', name: 'Avenir Next', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif' } },
+    { id: 'futura', name: 'Futura', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Futura' : 'sans-serif' } },
+    { id: 'gillSans', name: 'Gill Sans', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Gill Sans' : 'sans-serif' } },
+    { id: 'optima', name: 'Optima', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Optima' : 'sans-serif' } },
+    { id: 'sfPro', name: 'SF Pro', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif' } },
+    { id: 'verdana', name: 'Verdana', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Verdana' : 'sans-serif' } },
+    { id: 'trebuchet', name: 'Trebuchet', category: 'Sans', style: { fontFamily: Platform.OS === 'ios' ? 'Trebuchet MS' : 'sans-serif' } },
+    // Script & Decorative
+    { id: 'snell', name: 'Snell', category: 'Script', style: { fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive' } },
+    { id: 'bradleyHand', name: 'Bradley Hand', category: 'Script', style: { fontFamily: Platform.OS === 'ios' ? 'Bradley Hand' : 'cursive' } },
+    { id: 'chalkboard', name: 'Chalkboard', category: 'Script', style: { fontFamily: Platform.OS === 'ios' ? 'Chalkboard SE' : 'cursive' } },
+    { id: 'noteworthy', name: 'Noteworthy', category: 'Script', style: { fontFamily: Platform.OS === 'ios' ? 'Noteworthy' : 'cursive' } },
+    // Mono & Display
+    { id: 'courier', name: 'Courier', category: 'Mono', style: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' } },
+    { id: 'menlo', name: 'Menlo', category: 'Mono', style: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' } },
+    { id: 'americanTypewriter', name: 'Typewriter', category: 'Mono', style: { fontFamily: Platform.OS === 'ios' ? 'American Typewriter' : 'monospace' } },
+    { id: 'copperplate', name: 'Copperplate', category: 'Display', style: { fontFamily: Platform.OS === 'ios' ? 'Copperplate' : 'serif' } },
+    { id: 'rockwell', name: 'Rockwell', category: 'Display', style: { fontFamily: Platform.OS === 'ios' ? 'Rockwell' : 'sans-serif' } },
+  ];
+
+  // Get current reader font style object
+  const getReaderFontStyle = () => {
+    if (readerFontId === 'default') return {};
+    const preset = readerFontPresets.find(f => f.id === readerFontId);
+    return preset?.style || {};
+  };
+
+  // Load saved reader preferences
+  useEffect(() => {
+    const loadReaderPrefs = async () => {
+      try {
+        const prefs = await userStorage.getRaw('bibleReaderFontPrefs');
+        if (prefs) {
+          const parsed = JSON.parse(prefs);
+          if (parsed.fontSize) setReaderFontSize(parsed.fontSize);
+          if (parsed.fontId) setReaderFontId(parsed.fontId);
+        }
+        readerPrefsLoaded.current = true;
+      } catch (err) {
+        console.log('Failed to load reader font prefs:', err);
+        readerPrefsLoaded.current = true;
+      }
+    };
+    loadReaderPrefs();
+  }, []);
+
+  // Save reader preferences
+  const saveReaderPrefs = async (updates) => {
+    try {
+      const current = {
+        fontSize: readerFontSize,
+        fontId: readerFontId,
+        ...updates,
+      };
+      await userStorage.setRaw('bibleReaderFontPrefs', JSON.stringify(current));
+    } catch (err) {
+      console.log('Failed to save reader font prefs:', err);
+    }
+  };
 
   // Load saved share card preferences
   useEffect(() => {
@@ -2185,7 +2269,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   // Navigate to previous chapter
   const goToPreviousChapter = async () => {
     if (!currentChapter || !currentBook) return;
-    
+    setShowAccessibilityPopup(false);
     hapticFeedback.light();
     const currentChapterNum = parseInt(currentChapter.number);
     
@@ -2216,7 +2300,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   // Navigate to next chapter
   const goToNextChapter = async () => {
     if (!currentChapter || !currentBook) return;
-    
+    setShowAccessibilityPopup(false);
     hapticFeedback.light();
     const currentChapterNum = parseInt(currentChapter.number);
     
@@ -2850,7 +2934,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               </View>
             </View>
             
-            {/* Navigation Arrows - Inside BlurView */}
+            {/* Navigation Arrows + Aa Button - Inside BlurView */}
             <View style={styles.blurredNavigation}>
               <TouchableOpacity 
                 style={[styles.navButton, !(view === 'verses' && (currentChapter?.number > 1 || books.findIndex(b => b.id === currentBook?.id) > 0)) && styles.navButtonDisabled]}
@@ -2863,6 +2947,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   size={32} 
                   color={(view === 'verses' && (currentChapter?.number > 1 || books.findIndex(b => b.id === currentBook?.id) > 0)) ? theme.primary : theme.textSecondary} 
                 />
+              </TouchableOpacity>
+              
+              {/* Accessibility (Aa) Button */}
+              <TouchableOpacity
+                style={[styles.aaButton, { 
+                  backgroundColor: showAccessibilityPopup 
+                    ? (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)') 
+                    : 'transparent' 
+                }]}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setShowAccessibilityPopup(!showAccessibilityPopup);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.aaButtonText, { color: theme.text }]}>Aa</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -3381,14 +3481,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
                 <Text style={[
                   styles.youversionVerseNumber, 
-                  { color: highlightColor ? (isColorBright(highlightColor) ? '#000' : '#fff') : theme.textSecondary }
+                  { 
+                    color: highlightColor ? (isColorBright(highlightColor) ? '#000' : '#fff') : theme.textSecondary,
+                    fontSize: Math.max(12, readerFontSize - 2),
+                  }
                 ]}>
                   {String(verse.displayNumber || verse.number || index + 1).replace(/^Verse\s*/i, '')}
                 </Text>
                 <View style={{ flex: 1 }}>
                   <Text style={[
                     styles.youversionVerseText, 
-                    { color: highlightColor ? (isColorBright(highlightColor) ? '#000' : '#fff') : theme.text }
+                    { 
+                      color: highlightColor ? (isColorBright(highlightColor) ? '#000' : '#fff') : theme.text,
+                      fontSize: readerFontSize,
+                      lineHeight: readerFontSize * 1.6,
+                    },
+                    getReaderFontStyle(),
                   ]}>
                     {(verse.content || verse.text || '').replace(/\s+/g, ' ').trim()}
                   </Text>
@@ -3780,6 +3888,98 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           style={[styles.container, { backgroundColor: theme.background }]}
         >
           {renderHeader()}
+          
+          {/* Accessibility Popup (font size + font style) */}
+          {showAccessibilityPopup && view === 'verses' && (
+            <>
+              {/* Backdrop to dismiss */}
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
+                onPress={() => setShowAccessibilityPopup(false)}
+              />
+              <View style={[styles.aaPopupContainer, { 
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                shadowColor: '#000',
+              }]}>
+                {/* Font Size Slider */}
+                <View style={styles.aaSection}>
+                  <View style={styles.aaSliderRow}>
+                    <Text style={[styles.aaSliderLabel, { fontSize: 13, color: theme.textSecondary }]}>A</Text>
+                    <Slider
+                      style={styles.aaSlider}
+                      minimumValue={12}
+                      maximumValue={32}
+                      step={1}
+                      value={readerFontSize}
+                      onValueChange={(val) => setReaderFontSize(val)}
+                      onSlidingComplete={(val) => {
+                        saveReaderPrefs({ fontSize: val });
+                        hapticFeedback.light();
+                      }}
+                      minimumTrackTintColor={isDark ? '#FFFFFF' : '#333333'}
+                      maximumTrackTintColor={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}
+                      thumbTintColor={isDark ? '#FFFFFF' : '#333333'}
+                    />
+                    <Text style={[styles.aaSliderLabel, { fontSize: 22, color: theme.textSecondary }]}>A</Text>
+                  </View>
+                </View>
+
+                {/* Divider */}
+                <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', marginHorizontal: 4 }} />
+
+                {/* Font Styles Grid */}
+                <View style={styles.aaSection}>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.aaFontGrid}
+                  >
+                    {readerFontPresets.map((font) => {
+                      const isSelected = readerFontId === font.id;
+                      return (
+                        <TouchableOpacity
+                          key={font.id}
+                          style={[
+                            styles.aaFontItem,
+                            { 
+                              backgroundColor: isSelected 
+                                ? (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)')
+                                : 'transparent',
+                              borderColor: isSelected
+                                ? (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)')
+                                : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                            }
+                          ]}
+                          onPress={() => {
+                            hapticFeedback.light();
+                            setReaderFontId(font.id);
+                            saveReaderPrefs({ fontId: font.id });
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[
+                            styles.aaFontItemPreview,
+                            font.style,
+                            { color: isSelected ? theme.text : theme.textSecondary }
+                          ]}>
+                            Aa
+                          </Text>
+                          <Text style={[
+                            styles.aaFontItemName,
+                            { color: isSelected ? theme.text : theme.textSecondary }
+                          ]} numberOfLines={1}>
+                            {font.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            </>
+          )}
+          
           <View style={styles.mainContent}>
             {renderContent()}
             </View>
@@ -7101,6 +7301,73 @@ const styles = StyleSheet.create({
   },
   navButtonDisabled: {
     opacity: 0.3,
+  },
+  // Aa Button
+  aaButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  aaButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  // Aa Popup
+  aaPopupContainer: {
+    position: 'absolute',
+    top: 160,
+    left: 16,
+    right: 16,
+    zIndex: 999,
+    borderRadius: 16,
+    paddingVertical: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  aaSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  aaSliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aaSliderLabel: {
+    fontWeight: '700',
+    minWidth: 20,
+    textAlign: 'center',
+  },
+  aaSlider: {
+    flex: 1,
+    height: 36,
+  },
+  aaFontGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  aaFontItem: {
+    width: 72,
+    height: 72,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  aaFontItemPreview: {
+    fontSize: 22,
+    fontWeight: '500',
+  },
+  aaFontItemName: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   youversionVersesContainer: {
     marginTop: -8,

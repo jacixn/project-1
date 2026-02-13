@@ -41,6 +41,7 @@ import WorkoutService from '../services/workoutService';
 import AchievementService from '../services/achievementService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
+import { getReferralCount } from '../services/referralService';
 
 // const { width } = Dimensions.get('window');
 
@@ -123,10 +124,21 @@ const GymTab = () => {
     // Start shimmer animation
     startShimmerAnimation();
 
-    // Load selected loading animation
-    userStorage.getRaw('fivefold_loading_animation').then(id => {
-      if (id) setSelectedLoadingAnim(id);
-    });
+    // Load selected loading animation (with referral validation)
+    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+    Promise.all([
+      userStorage.getRaw('fivefold_loading_animation'),
+      getReferralCount(),
+    ]).then(([id, count]) => {
+      const animId = id || 'default';
+      const req = LOADING_ANIM_GATES[animId];
+      if (req !== null && req !== undefined && count < req) {
+        setSelectedLoadingAnim('default');
+        userStorage.setRaw('fivefold_loading_animation', 'default');
+      } else {
+        setSelectedLoadingAnim(animId);
+      }
+    }).catch(() => {});
     
     // Listen for workout scheduled events
     const scheduledListener = DeviceEventEmitter.addListener('workoutScheduled', () => {
@@ -258,10 +270,21 @@ const GymTab = () => {
       loadWorkoutHistory();
       loadScheduledWorkouts();
       loadNutritionProgress();
-      // Reload loading animation preference
-      userStorage.getRaw('fivefold_loading_animation').then(id => {
-        setSelectedLoadingAnim(id || 'default');
-      });
+      // Reload loading animation preference (with referral validation)
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      Promise.all([
+        userStorage.getRaw('fivefold_loading_animation'),
+        getReferralCount(),
+      ]).then(([id, count]) => {
+        const animId = id || 'default';
+        const req = LOAD_GATES[animId];
+        if (req !== null && req !== undefined && count < req) {
+          setSelectedLoadingAnim('default');
+          userStorage.setRaw('fivefold_loading_animation', 'default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
+      }).catch(() => {});
     }, [])
   );
 
@@ -832,7 +855,7 @@ const GymTab = () => {
           pointerEvents="none"
           style={{
             position: 'absolute',
-            top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+            top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 95),
             left: 0,
             right: 0,
             alignItems: 'center',

@@ -91,6 +91,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   const hasInitializedForSession = useRef(false); // Prevent double init when hasActiveWorkout changes
 
   // Pan responder for pull-to-dismiss gesture
+  const dismissHapticFired = useRef(false);
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -100,10 +101,21 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       onPanResponderGrant: () => {
         console.log('👆 PanResponder: Gesture STARTED (user touched)');
         panGestureStarted.current = true;
+        dismissHapticFired.current = false;
+        hapticFeedback.light();
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
+          // Fire a satisfying haptic when crossing the dismiss threshold
+          if (gestureState.dy > 150 && !dismissHapticFired.current) {
+            dismissHapticFired.current = true;
+            hapticFeedback.medium();
+          } else if (gestureState.dy <= 150 && dismissHapticFired.current) {
+            // Reset if user pulls back above threshold
+            dismissHapticFired.current = false;
+            hapticFeedback.light();
+          }
         }
       },
       onPanResponderRelease: (_, gestureState) => {

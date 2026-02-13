@@ -324,24 +324,14 @@ export const AuthProvider = ({ children }) => {
   const signIn = useCallback(async (email, password) => {
     setLoading(true);
     isAuthFlowActive.current = true; // Prevent onAuthStateChanged from syncing
-    const steps = [
-      { label: 'Verifying credentials', done: false },
-      { label: 'Downloading your data', done: false },
-      { label: 'Setting up notifications', done: false },
-      { label: 'Preparing your experience', done: false },
-    ];
-    setAuthSteps({ type: 'signin', steps: [...steps], current: 0 });
-
-    const markDone = (index) => {
-      steps[index].done = true;
-      const next = index + 1 < steps.length ? index + 1 : -1;
-      setAuthSteps({ type: 'signin', steps: [...steps], current: next });
-    };
 
     try {
       // Step 1: Verify credentials
+      // NOTE: We intentionally do NOT set authSteps yet. Setting authSteps
+      // causes RootNavigator to show AuthProgressScreen, which UNMOUNTS
+      // AuthScreen. We need AuthScreen to stay mounted until we know whether
+      // 2FA is required — otherwise the 2FA code-entry UI never appears.
       const result = await authSignIn(email, password);
-      markDone(0);
       
       // Check if 2FA is enabled (skip if completing a 2FA flow)
       if (!skip2FACheck.current) {
@@ -369,6 +359,23 @@ export const AuthProvider = ({ children }) => {
         }
       }
       skip2FACheck.current = false;
+      
+      // 2FA passed or not required — NOW show the full-screen progress overlay.
+      // AuthScreen will be unmounted at this point, which is fine because
+      // we no longer need it (the user is past the 2FA gate).
+      const steps = [
+        { label: 'Verifying credentials', done: true }, // Already done above
+        { label: 'Downloading your data', done: false },
+        { label: 'Setting up notifications', done: false },
+        { label: 'Preparing your experience', done: false },
+      ];
+      setAuthSteps({ type: 'signin', steps: [...steps], current: 1 });
+
+      const markDone = (index) => {
+        steps[index].done = true;
+        const next = index + 1 < steps.length ? index + 1 : -1;
+        setAuthSteps({ type: 'signin', steps: [...steps], current: next });
+      };
       
       // Initialise UID-scoped storage for this user.
       // If this UID already has data on this device, initUser is a no-op.
@@ -435,6 +442,8 @@ export const AuthProvider = ({ children }) => {
       
       return result;
     } catch (error) {
+      // Preserve 2FA errors with their requires2FA flag so AuthScreen can handle them
+      if (error.requires2FA) throw error;
       throw new Error(getAuthErrorMessage(error));
     } finally {
       isAuthFlowActive.current = false; // Allow background sync again

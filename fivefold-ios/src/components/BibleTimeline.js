@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Animated,
   Dimensions,
@@ -11,11 +10,12 @@ import {
   StatusBar,
   Modal,
   Platform,
-  ActivityIndicator,
+  ScrollView,
   Alert,
   RefreshControl,
+  PanResponder,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -26,9 +26,20 @@ import SimplePercentageLoader from './SimplePercentageLoader';
 import AchievementService from '../services/achievementService';
 
 const { width, height } = Dimensions.get('window');
-const screenHeight = Dimensions.get('screen').height;
 
+// Layout
+const RAIL_LEFT = 16;
+const DOT_SIZE = 10;
+const CARD_LEFT = 36;
+const CARD_RIGHT = 20;
+const CARD_HEIGHT = 160;
+const CARD_GAP = 16;
+const STICKER_SIZE = 85;
+const VIEWED_ERAS_KEY = 'timeline_viewed_eras';
+
+// =============================================
 // Remote Bible Timeline Configuration
+// =============================================
 const TIMELINE_CONFIG = {
   GITHUB_USERNAME: 'jacixn',
   REPO_NAME: 'project-1',
@@ -38,31 +49,41 @@ const TIMELINE_CONFIG = {
     if (this.GITHUB_USERNAME === 'YOUR_USERNAME') return null;
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'bible_timeline_data_v2_with_images', // Changed to v2 to invalidate old cache
+  CACHE_KEY: 'bible_timeline_data_v2_with_images',
   CACHE_TIMESTAMP_KEY: 'bible_timeline_timestamp_v2',
-  CACHE_DURATION: 60 * 60 * 1000, // 1 hour
+  CACHE_DURATION: 60 * 60 * 1000,
 };
 
 const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }) => {
   const { theme, isDark } = useTheme();
-  const [selectedEra, setSelectedEra] = useState(null);
-  // Static animation values for compatibility (no animations running)
-  const [panX] = useState(new Animated.Value(0));
-  const [panY] = useState(new Animated.Value(0));
-  // Removed heavy bubble animations for better performance
+  const insets = useSafeAreaInsets();
 
-  // Remote data state
+  // Data state
   const [timelineDataState, setTimelineDataState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Cache management functions
+  // UI state
+  const [selectedEra, setSelectedEra] = useState(null);
+  const [viewedEras, setViewedEras] = useState(new Set());
+
+  // Animations
+  const cardAnims = useRef([]);
+  const dotAnims = useRef([]);
+  const hasAnimated = useRef(false);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const sheetY = useRef(new Animated.Value(height)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // =============================================
+  // DATA LAYER — preserved verbatim
+  // =============================================
+
   const isCacheValid = async () => {
     try {
       const timestamp = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
       if (!timestamp) return false;
-      
       const cacheAge = Date.now() - parseInt(timestamp);
       return cacheAge < TIMELINE_CONFIG.CACHE_DURATION;
     } catch (error) {
@@ -87,7 +108,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       
       const data = await response.json();
       
-      // Cache the data
       await userStorage.setRaw(TIMELINE_CONFIG.CACHE_KEY, JSON.stringify(data));
       await userStorage.setRaw(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
       
@@ -100,31 +120,30 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   };
 
   const loadLocalFallbackData = () => {
-    // Minimal fallback data
     return {
       timelineData: [
         {
           id: 'creation-sample',
-      title: 'CREATION & EARLY WORLD',
-      subtitle: 'Genesis 1 to 11',
-      emoji: '🌍',
-      bgEmoji: '✨',
-      color: '#E91E63',
-      gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
-      position: { x: width * 0.25, y: 40 },
-      size: 120,
-      imageUrl: 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/timeline-stickers/creation-sticker.png',
+          title: 'CREATION & EARLY WORLD',
+          subtitle: 'Genesis 1 to 11',
+          emoji: '🌍',
+          bgEmoji: '✨',
+          color: '#E91E63',
+          gradient: ['#FF6B9D', '#E91E63', '#C2185B'],
+          position: { x: width * 0.25, y: 40 },
+          size: 120,
+          imageUrl: 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/timeline-stickers/creation-sticker.png',
           description: 'Bible timeline is loading from remote source...',
-      stories: [
-        {
+          stories: [
+            {
               title: 'Loading Timeline...',
               when: 'Please wait',
               bibleStory: 'Loading...',
               characters: 'Loading...',
               story: 'Please check your internet connection and try refreshing.'
-        }
-      ],
-      connections: []
+            }
+          ],
+          connections: []
         }
       ]
     };
@@ -135,7 +154,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       setLoading(true);
       setError(null);
 
-      // Check cache first
       const cacheValid = await isCacheValid();
       if (cacheValid) {
         const cachedData = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_KEY);
@@ -148,21 +166,18 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
         }
       }
 
-      // Try to fetch from remote
       try {
         const data = await fetchTimelineFromRemote();
         setTimelineDataState(data);
       } catch (remoteError) {
         console.error('Remote fetch failed, using fallback:', remoteError);
         
-        // Try cached data even if expired
         const cachedData = await userStorage.getRaw(TIMELINE_CONFIG.CACHE_KEY);
         if (cachedData) {
           const data = JSON.parse(cachedData);
           setTimelineDataState(data);
           console.log('📦 Using expired cache due to remote failure');
         } else {
-          // Use fallback data
           const fallbackData = loadLocalFallbackData();
           setTimelineDataState(fallbackData);
           console.log('🔄 Using fallback data');
@@ -174,7 +189,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       console.error('Error loading Bible timeline:', error);
       setError('Failed to load timeline. Please try again.');
       
-      // Use fallback data
       const fallbackData = loadLocalFallbackData();
       setTimelineDataState(fallbackData);
     } finally {
@@ -184,7 +198,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
 
   const refreshTimeline = async () => {
     try {
-      // Clear cache and reload
       await userStorage.remove(TIMELINE_CONFIG.CACHE_KEY);
       await userStorage.remove(TIMELINE_CONFIG.CACHE_TIMESTAMP_KEY);
       await loadTimeline();
@@ -194,7 +207,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     }
   };
 
-  // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
     hapticFeedback.light();
@@ -209,918 +221,511 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     }
   };
 
-  // Initialize data loading
   useEffect(() => {
     if (visible) {
-      // Clear old v1 cache to force fresh data load with imageUrls
       userStorage.remove('bible_timeline_data_v1').catch(() => {});
       userStorage.remove('bible_timeline_timestamp_v1').catch(() => {});
-      
       loadTimeline();
+    } else {
+      // Reset entrance animation flag so it replays next time
+      hasAnimated.current = false;
+      cardAnims.current = [];
+      dotAnims.current = [];
     }
   }, [visible]);
 
-  // Dynamic timeline data from loaded data
+  // =============================================
+  // END DATA LAYER
+  // =============================================
+
   const timelineData = timelineDataState ? timelineDataState.timelineData : [];
 
+  // Load viewed eras
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const stored = await userStorage.getRaw(VIEWED_ERAS_KEY);
+        if (stored) setViewedEras(new Set(JSON.parse(stored)));
+      } catch (e) {
+        console.error('Error loading viewed eras:', e);
+      }
+    };
+    if (visible) load();
+  }, [visible]);
 
-  // Removed heavy animations for better performance
+  // Entrance animations — only run ONCE to avoid resetting card opacity
+  useEffect(() => {
+    if (timelineData.length > 0 && !loading && !hasAnimated.current) {
+      hasAnimated.current = true;
+      cardAnims.current = timelineData.map(() => new Animated.Value(0));
+      dotAnims.current = timelineData.map(() => new Animated.Value(0));
 
-  const handleBubblePress = (era) => {
+      Animated.parallel([
+        Animated.stagger(80,
+          cardAnims.current.map((anim) =>
+            Animated.spring(anim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true })
+          )
+        ),
+        Animated.stagger(80,
+          dotAnims.current.map((anim) =>
+            Animated.sequence([
+              Animated.delay(40),
+              Animated.spring(anim, { toValue: 1, tension: 65, friction: 6, useNativeDriver: true }),
+            ])
+          )
+        ),
+        Animated.timing(progressAnim, {
+          toValue: timelineData.length > 0 ? viewedEras.size / timelineData.length : 0,
+          duration: 800,
+          delay: 200,
+          useNativeDriver: false,
+        }),
+      ]).start(() => {
+        // Belt-and-suspenders: force final values so cards stay visible
+        cardAnims.current.forEach(a => a.setValue(1));
+        dotAnims.current.forEach(a => a.setValue(1));
+      });
+    }
+  }, [timelineData.length, loading]);
+
+  // Update progress when viewed eras change
+  useEffect(() => {
+    if (timelineData.length > 0 && !loading) {
+      Animated.timing(progressAnim, {
+        toValue: viewedEras.size / timelineData.length,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [viewedEras.size]);
+
+  // =============================================
+  // Bottom sheet open / close
+  // =============================================
+
+  const openSheet = useCallback(async (era) => {
     hapticFeedback.medium();
     setSelectedEra(era);
-    AchievementService.incrementStat('timelineErasViewed');
-    // Removed selection animation for better performance
-  };
 
-  // Generate static geometric shapes background with theme colors
-  const renderGeometricShapesBackground = () => {
-    const shapes = [];
-    const shapeTypes = ['circle', 'triangle', 'square', 'diamond', 'hexagon', 'star', 'pentagon'];
-    
-    // Use theme-based colors instead of hardcoded yellow colors
-    const colors = isDark ? [
-      `${theme.primary}20`, `${theme.primary}15`, `${theme.primary}10`, 
-      `${theme.accent}20`, `${theme.accent}15`, `${theme.accent}10`,
-      `${theme.surface}40`, `${theme.surface}30`, `${theme.surface}20`
-    ] : [
-      `${theme.primary}30`, `${theme.primary}20`, `${theme.primary}15`, 
-      `${theme.accent}30`, `${theme.accent}20`, `${theme.accent}15`,
-      `${theme.surface}60`, `${theme.surface}40`, `${theme.surface}30`
-    ];
-    
-    // Generate small static shapes (minimal animations for performance)
-    for (let i = 0; i < 30; i++) {
-      const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = Math.random() * 40 + 15; // Bigger: Size between 15-55
-      const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
-      const rotation = Math.random() * 360;
-      const opacity = Math.random() * 0.4 + 0.1; // Opacity between 0.1-0.5
-      
-      // All shapes are now completely static for better performance
-      const shapeComponent = View;
-      
-      let shapeElement;
-      
-      if (shapeType === 'triangle') {
-        shapeElement = React.createElement(shapeComponent, {
-          key: `shape-${i}`,
-          style: [
-            styles.geometricShape,
-            styles.triangleShape,
-            {
-              left: x,
-              top: y,
-              opacity: opacity,
-              transform: [{ rotate: `${rotation}deg` }],
-              borderBottomColor: color,
-              borderLeftWidth: size * 0.6,
-              borderRightWidth: size * 0.6,
-              borderBottomWidth: size,
-            }
-          ]
-        });
-      } else if (shapeType === 'star') {
-        shapeElement = React.createElement(shapeComponent, {
-          key: `shape-${i}`,
-          style: [
-            styles.geometricShape,
-            styles.starShape,
-            {
-              left: x,
-              top: y,
-              width: size,
-              height: size,
-              backgroundColor: color,
-              opacity: opacity,
-              transform: [{ rotate: `${rotation}deg` }],
-            }
-          ]
-        });
-      } else {
-        shapeElement = React.createElement(shapeComponent, {
-          key: `shape-${i}`,
-          style: [
-            styles.geometricShape,
-            {
-              left: x,
-              top: y,
-              width: size,
-              height: size,
-              backgroundColor: color,
-              opacity: opacity,
-              transform: [{ rotate: `${rotation}deg` }],
-              borderRadius: shapeType === 'circle' ? size / 2 : 
-                          shapeType === 'hexagon' ? size / 4 : 
-                          shapeType === 'pentagon' ? size / 3 : 0,
-            }
-          ]
-        });
+    // Mark as viewed
+    if (!viewedEras.has(era.id)) {
+      const newViewed = new Set(viewedEras);
+      newViewed.add(era.id);
+      setViewedEras(newViewed);
+      try {
+        await userStorage.setRaw(VIEWED_ERAS_KEY, JSON.stringify([...newViewed]));
+      } catch (e) {
+        console.error('Error saving viewed eras:', e);
       }
-      
-      shapes.push(shapeElement);
+      AchievementService.incrementStat('timelineErasViewed');
     }
-    
-    // Add medium static accent shapes (minimal animations)
-    for (let i = 0; i < 10; i++) {
-      const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = Math.random() * 60 + 40; // Bigger: Medium sizes 40-100
-      const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
-      const opacity = Math.random() * 0.3 + 0.05; // More visible
-      
-      // Medium shapes are completely static (no animations)
-      const rotation = Math.random() * 360;
-      
-      shapes.push(
-        <View
-          key={`medium-shape-${i}`}
-          style={[
-            styles.geometricShape,
-            {
-              left: x,
-              top: y,
-              width: size,
-              height: size,
-              backgroundColor: color,
-              opacity: opacity,
-              transform: [{ rotate: `${rotation}deg` }],
-              borderRadius: shapeType === 'circle' ? size / 2 : 
-                          shapeType === 'hexagon' ? size / 4 : 
-                          shapeType === 'pentagon' ? size / 3 : 0,
-            }
-          ]}
-        />
-      );
-    }
-    
-    // Add large static background shapes (no animations)
-    for (let i = 0; i < 8; i++) {
-      const shapeType = ['circle', 'square', 'hexagon'][Math.floor(Math.random() * 3)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = Math.random() * 100 + 100; // Much bigger: Large sizes 100-200
-      const x = Math.random() * (width * 3.1 - size); // Tighter shape distribution
-      const y = Math.random() * (1400 - size); // Extended for Apostolic Age positioning
-      const opacity = Math.random() * 0.15 + 0.03; // More visible
-      
-      // Large shapes are completely static (no animations)
-      const rotation = Math.random() * 360;
-      
-      shapes.push(
-        <View
-          key={`large-shape-${i}`}
-          style={[
-            styles.geometricShape,
-            {
-              left: x,
-              top: y,
-              width: size,
-              height: size,
-              backgroundColor: color,
-              opacity: opacity,
-              transform: [{ rotate: `${rotation}deg` }],
-              borderRadius: shapeType === 'circle' ? size / 2 : 
-                          shapeType === 'hexagon' ? size / 4 : 0,
-            }
-          ]}
-        />
-      );
-    }
-    
-    return (
-      <View style={styles.geometricShapesContainer}>
-        {shapes}
-      </View>
-    );
-  };
 
-  // Render beautiful curved flowing path like a golden river through the desert
-  const renderCurvedFlowingPath = () => {
-    if (timelineData.length < 2) return null;
+    sheetY.setValue(height);
+    overlayOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(sheetY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [viewedEras]);
+
+  const closeSheet = useCallback(() => {
+    hapticFeedback.light();
+    Animated.parallel([
+      Animated.timing(sheetY, { toValue: height, duration: 280, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start(() => setSelectedEra(null));
+  }, []);
+
+  // Pull-down-to-dismiss for bottom sheet
+  const dismissHapticFired = useRef(false);
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 5,
+      onPanResponderGrant: () => {
+        dismissHapticFired.current = false;
+        // Stop any running native-driven animations before JS takes over
+        sheetY.stopAnimation();
+        overlayOpacity.stopAnimation();
+        hapticFeedback.light();
+      },
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy < 0) return;
+        sheetY.setValue(gs.dy);
+        overlayOpacity.setValue(Math.max(0, 1 - gs.dy / (height * 0.5)));
+
+        if (gs.dy > 150 && !dismissHapticFired.current) {
+          dismissHapticFired.current = true;
+          hapticFeedback.medium();
+        } else if (gs.dy <= 150 && dismissHapticFired.current) {
+          dismissHapticFired.current = false;
+          hapticFeedback.light();
+        }
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 150 || gs.vy > 0.5) {
+          hapticFeedback.success();
+          Animated.parallel([
+            Animated.timing(sheetY, { toValue: height, duration: 250, useNativeDriver: true }),
+            Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+          ]).start(() => setSelectedEra(null));
+        } else {
+          Animated.parallel([
+            Animated.spring(sheetY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
+            Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+          ]).start();
+        }
+      },
+    })
+  ).current;
+
+  // =============================================
+  // Render helpers
+  // =============================================
+
+  const renderEraCard = (era, index) => {
+    const isViewed = viewedEras.has(era.id);
+    const cardAnim = cardAnims.current[index] || new Animated.Value(1);
+    const dotAnim = dotAnims.current[index] || new Animated.Value(1);
+
+    const cardTranslateX = cardAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
+    const cardOpacity = cardAnim;
+    const dotScale = dotAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1.4, 1] });
 
     return (
-      <View style={styles.curvedPathContainer}>
-        {timelineData.map((era, index) => {
-          if (index === timelineData.length - 1) return null; // No path after last era
-          
-          const nextEra = timelineData[index + 1];
-          
-          // Calculate edge-to-edge connection points for better visual connection
-          let startX, startY, endX, endY;
-          
-          // Determine connection points based on relative positions
-          if (Math.abs(nextEra.position.x - era.position.x) < 50) {
-            // Eras are vertically aligned - use center points for clean vertical connection
-            startX = era.position.x + era.size / 2;
-            endX = nextEra.position.x + nextEra.size / 2;
-          } else if (nextEra.position.x > era.position.x) {
-            // Next era is to the right - connect from right edge to left edge
-            startX = era.position.x + era.size;
-            endX = nextEra.position.x;
-          } else {
-            // Next era is to the left - connect from left edge to right edge  
-            startX = era.position.x;
-            endX = nextEra.position.x + nextEra.size;
-          }
-          
-          if (nextEra.position.y > era.position.y) {
-            // Next era is below - connect from bottom edge to top edge
-            startY = era.position.y + era.size;
-            endY = nextEra.position.y;
-          } else {
-            // Next era is above - connect from top edge to bottom edge
-            startY = era.position.y;
-            endY = nextEra.position.y + nextEra.size;
-          }
-          
-          // For cases where eras are at similar heights, use center points
-          if (Math.abs(nextEra.position.y - era.position.y) < 50) {
-            startY = era.position.y + era.size / 2;
-            endY = nextEra.position.y + nextEra.size / 2;
-          }
-          
-          // Calculate arrow position at 80% along the path for better visibility
-          const arrowX = startX + (endX - startX) * 0.8;
-          const arrowY = startY + (endY - startY) * 0.8;
-          
-          // Calculate arrow angle
-          const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
-          
-          // Create smooth curved path segments
-          const segments = [];
-          const numSegments = 12; // More segments = smoother curve
-          
-          for (let i = 0; i < numSegments; i++) {
-            const t = i / (numSegments - 1);
-            
-            // Create beautiful flowing curve with control points
-    const midX = (startX + endX) / 2;
-    const midY = (startY + endY) / 2;
-            const curveOffset = 40; // How much the curve flows
-            
-            // Quadratic bezier curve for smooth flow
-            const controlX = midX + (index % 2 === 0 ? curveOffset : -curveOffset);
-            const controlY = midY - curveOffset / 2;
-            
-            const x = Math.pow(1-t, 2) * startX + 2 * (1-t) * t * controlX + t * t * endX;
-            const y = Math.pow(1-t, 2) * startY + 2 * (1-t) * t * controlY + t * t * endY;
-            
-            if (i < numSegments - 1) {
-              const nextT = (i + 1) / (numSegments - 1);
-              const nextX = Math.pow(1-nextT, 2) * startX + 2 * (1-nextT) * nextT * controlX + nextT * nextT * endX;
-              const nextY = Math.pow(1-nextT, 2) * startY + 2 * (1-nextT) * nextT * controlY + nextT * nextT * endY;
-              
-              const segmentLength = Math.sqrt(Math.pow(nextX - x, 2) + Math.pow(nextY - y, 2));
-              const segmentAngle = Math.atan2(nextY - y, nextX - x) * (180 / Math.PI);
-              
-              segments.push(
-                <View key={`segment-${index}-${i}`}>
-                  {/* Outer glow - theme colored */}
-                  <View style={{
-                    position: 'absolute',
-                    left: x - 2,
-                    top: y - 2,
-                    width: segmentLength + 4,
-                    height: 12,
-                    backgroundColor: theme.primary + '20', // Theme primary with transparency
-                    borderRadius: 6,
-                    transform: [{ rotate: `${segmentAngle}deg` }],
-                    shadowColor: theme.primary, // Theme primary shadow
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 20,
-                  }} />
-                  
-                  {/* Middle glow */}
-                  <View style={{
-                    position: 'absolute',
-                    left: x - 1,
-                    top: y - 1,
-                    width: segmentLength + 2,
-                    height: 8,
-                    backgroundColor: theme.primary + '40', // Theme primary with more opacity
-                    borderRadius: 4,
-                    transform: [{ rotate: `${segmentAngle}deg` }],
-                    shadowColor: theme.primary,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.6,
-                    shadowRadius: 12,
-                  }} />
-                  
-                  {/* Main flowing path */}
-                  <View style={{
-                    position: 'absolute',
-                    left: x,
-                    top: y,
-                    width: segmentLength,
-                    height: 5,
-                    backgroundColor: theme.primary + 'DD', // Theme primary with high opacity
-                    borderRadius: 2.5,
-                    transform: [{ rotate: `${segmentAngle}deg` }],
-                    shadowColor: theme.primary, // Theme primary shadow
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.8,
-                    shadowRadius: 8,
-                  }} />
-                  
-                  {/* Inner bright core */}
-                  <View style={{
-                    position: 'absolute',
-                    left: x,
-                    top: y + 1,
-                    width: segmentLength,
-                    height: 3,
-                    backgroundColor: theme.primary, // Theme primary full color
-                    borderRadius: 1.5,
-                    transform: [{ rotate: `${segmentAngle}deg` }],
-                  }} />
-                </View>
-              );
-            }
-          }
-
-    return (
-            <View key={`curved-path-${index}`}>
-              {segments}
-              
-              {/* Flowing theme particles along the curve */}
-              <Animated.View style={{
-                position: 'absolute',
-                left: startX + (endX - startX) * 0.25,
-                top: startY + (endY - startY) * 0.2 - 15,
-                width: 12,
-                height: 12,
-                backgroundColor: theme.primary, // Theme primary color
-                borderRadius: 6,
-                opacity: 0.9,
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 1,
-                shadowRadius: 12,
-                transform: [
-                  {
-                    translateX: 0, // Static value for better performance
-                  },
-                  {
-                    translateY: new Animated.Value(0).interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -10],
-                    }) || 0,
-                  },
-                ],
-              }} />
-              
-              <Animated.View style={{
-                position: 'absolute',
-                left: startX + (endX - startX) * 0.6,
-                top: startY + (endY - startY) * 0.5 - 20,
-                width: 10,
-                height: 10,
-                backgroundColor: theme.primary + 'DD', // Theme primary with transparency
-                borderRadius: 5,
-                opacity: 0.8,
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.8,
-                shadowRadius: 10,
-                transform: [
-                  {
-                    translateX: new Animated.Value(0).interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -25],
-                    }) || 0,
-                  },
-                  {
-                    translateY: new Animated.Value(0).interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 15],
-                    }) || 0,
-                  },
-                ],
-              }} />
-              
-              <Animated.View style={{
-                position: 'absolute',
-                left: startX + (endX - startX) * 0.85,
-                top: startY + (endY - startY) * 0.8 - 10,
-                width: 8,
-                height: 8,
-                backgroundColor: theme.primary + 'AA', // Theme primary with transparency
-                borderRadius: 4,
-                opacity: 0.7,
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 8,
-                transform: [
-                  {
-                    translateX: new Animated.Value(0).interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 20],
-                    }) || 0,
-                  },
-                ],
-              }} />
-              {/* Big Glowing Arrow - Positioned along the path for visibility */}
-              <View style={{
-                position: 'absolute',
-                left: arrowX - 25,
-                top: arrowY - 20,
-                width: 50,
-                height: 40,
-                justifyContent: 'center',
-                alignItems: 'center',
-                transform: [{ rotate: `${angle}deg` }],
-                zIndex: 5, // Above everything else
-              }}>
-                {/* Outer Glow */}
-                <View style={{
-                  position: 'absolute',
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 45,
-                  borderTopWidth: 20,
-                  borderBottomWidth: 20,
-                  borderLeftColor: '#FFD700' + '40', // Bright gold glow
-                  borderTopColor: 'transparent',
-                  borderBottomColor: 'transparent',
-                  shadowColor: '#FFD700',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 1,
-                  shadowRadius: 20,
-                }} />
-                
-                {/* Middle Glow */}
-                <View style={{
-                  position: 'absolute',
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 35,
-                  borderTopWidth: 15,
-                  borderBottomWidth: 15,
-                  borderLeftColor: '#DAA520' + '80',
-                  borderTopColor: 'transparent',
-                  borderBottomColor: 'transparent',
-                  shadowColor: '#DAA520',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 1,
-                  shadowRadius: 15,
-                }} />
-                
-                {/* Main Arrow */}
-                <View style={{
-                  position: 'absolute',
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 28,
-                  borderTopWidth: 12,
-                  borderBottomWidth: 12,
-                  borderLeftColor: '#8B4513',
-                  borderTopColor: 'transparent',
-                  borderBottomColor: 'transparent',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 2, height: 2 },
-                  shadowOpacity: 0.8,
-                  shadowRadius: 5,
-                  elevation: 8,
-                }} />
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  const renderTimelineBubble = (era, index) => {
-    // Static animation values for better performance (no animations running)
-    const anim = { float: new Animated.Value(0), pulse: new Animated.Value(1) };
-    const isSelected = selectedEra?.id === era.id;
-    
-    // Debug logging
-    console.log(`Rendering bubble for ${era.id}:`, {
-      hasImageUrl: !!era.imageUrl,
-      imageUrl: era.imageUrl,
-      emoji: era.emoji
-    });
-
-    return (
-      <Animated.View
-        key={era.id}
-        style={[
-          styles.timelineBubbleContainer,
-          {
-            left: era.position.x - era.size / 2,
-            top: era.position.y,
-            transform: [
+      <View key={era.id}>
+        <View style={styles.eraRow}>
+          {/* Timeline dot */}
+          <Animated.View
+            style={[
+              styles.timelineDot,
               {
-                translateY: anim.float.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -8],
-                }),
+                backgroundColor: isViewed ? era.color : 'transparent',
+                borderColor: era.color,
+                borderWidth: isViewed ? 0 : 2,
+                transform: [{ scale: dotScale }],
               },
-              {
-                scale: anim.pulse.interpolate({
-                  inputRange: [1, 1.03],
-                  outputRange: [isSelected ? 1.1 : 1, isSelected ? 1.13 : 1.03],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.timelineSticker]}
-          onPress={() => handleBubblePress(era)}
-          activeOpacity={0.8}
-        >
-                    {/* Floating Aura Rings */}
-          <Animated.View style={[styles.auraRing1, {
-            width: era.size + 40,
-            height: era.size + 40,
-            borderRadius: (era.size + 40) / 2,
-            backgroundColor: `${theme.primary}15`,
-            transform: [{
-              scale: anim.pulse.interpolate({
-                inputRange: [1, 1.03],
-                outputRange: [1, 1.1],
-              }),
-            }],
-          }]} />
-          
-          <Animated.View style={[styles.auraRing2, {
-                width: era.size + 20, 
-                height: era.size + 20, 
-                borderRadius: (era.size + 20) / 2,
-            backgroundColor: `${theme.primary}25`,
-            transform: [{
-              scale: anim.pulse.interpolate({
-                inputRange: [1, 1.03],
-                outputRange: [1.05, 0.95],
-              }),
-            }],
-          }]} />
-          
-          {/* Rotating Sparkle Particles */}
-          {Array.from({ length: 6 }).map((_, sparkleIndex) => (
-            <Animated.View
-              key={sparkleIndex}
-              style={[
-                styles.sparkleParticle,
-                {
-                  transform: [
-                    {
-                      rotate: anim.float.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [`${sparkleIndex * 60}deg`, `${sparkleIndex * 60 + 360}deg`],
-                      }),
-                    },
-                    {
-                      translateX: era.size * 0.6,
-                    },
-                  ],
-                },
-              ]}
-            >
-              <View style={[styles.sparkle, { backgroundColor: theme.primary }]} />
-            </Animated.View>
-          ))}
-          
-          {/* Main Sticker with Enhanced Effects */}
-          <Animated.View style={{
-            transform: [{
-              scale: anim.pulse.interpolate({
-                inputRange: [1, 1.03],
-                outputRange: [1, 1.05],
-              }),
-            }],
-          }}>
-            <Image
-              source={{ uri: era.imageUrl }}
-              style={[styles.stickerImage, { 
-                width: era.size, 
-                height: era.size,
-                // Add a subtle glow filter effect
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.8,
-                shadowRadius: 15,
-              }]}
-              resizeMode="contain"
-              onError={(error) => {
-                console.log(`Failed to load image for ${era.id}:`, error.nativeEvent.error);
-                console.log(`Image URL: ${era.imageUrl}`);
-              }}
-            />
+            ]}
+          >
+            {isViewed && <MaterialIcons name="check" size={6} color="#FFF" />}
           </Animated.View>
-          
-          {/* Enhanced Selection Glow */}
-          {isSelected && (
-                        <Animated.View style={[styles.selectionGlow, { 
-              width: era.size + 60, 
-              height: era.size + 60, 
-              borderRadius: (era.size + 60) / 2,
-              borderColor: theme.primary,
-              backgroundColor: `${theme.primary}10`,
-              transform: [{
-                scale: new Animated.Value(1).interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.8, 1.2],
-                }),
-              }],
-              }]} />
-            )}
-        </TouchableOpacity>
-        
-        {/* Floating Title */}
-        <Animated.View
-          style={[
-            styles.bubbleTitle,
-            {
-              transform: [
-                {
-                  translateY: anim.float.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -5],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <BlurView intensity={35} tint="systemMaterialDark" style={[styles.titleBlur, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
-            <Text style={[styles.titleText, { color: '#FFFFFF' }]}>
-              {era.title}
-            </Text>
-                          <Text style={[styles.subtitleText, { color: '#FFFFFF', opacity: 0.9 }]}>
-              {era.subtitle}
-            </Text>
-          </BlurView>
-        </Animated.View>
-      </Animated.View>
-    );
-  };
 
-  const renderSelectedEraDetail = () => {
-    if (!selectedEra) return null;
-
-    return (
-      <Animated.View
-        style={[
-          styles.eraDetailContainer,
-          {
-            opacity: selectedEra ? 1 : 0,
-            transform: [
-              {
-                translateY: selectedEra ? 0 : 50,
-              },
-            ],
-          },
-        ]}
-      >
-        <BlurView intensity={40} tint="systemMaterialDark" style={[styles.eraDetailCard, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
-          {/* Close Button - Top Right */}
-          <TouchableOpacity
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1, position: 'absolute', top: 12, right: 12 }}
-            onPress={() => {
-              hapticFeedback.light();
-              setSelectedEra(null);
-            }}
-            activeOpacity={0.7}
+          {/* Card */}
+          <Animated.View
+            style={[
+              styles.cardOuter,
+              { opacity: cardOpacity, transform: [{ translateX: cardTranslateX }] },
+            ]}
           >
-            <MaterialIcons name="arrow-back-ios-new" size={18} color={selectedEra.color} />
-          </TouchableOpacity>
-          
-          <LinearGradient
-            colors={[`${selectedEra.color}25`, `${selectedEra.color}15`, 'transparent']}
-            style={styles.eraDetailGradient}
-          >
-            {/* Header */}
-            <View style={styles.eraDetailHeader}>
-              <View style={[styles.eraDetailIcon, { backgroundColor: `${selectedEra.color}30` }]}>
-                {selectedEra.imageUrl && (
-                  <Image
-                    source={{ uri: selectedEra.imageUrl }}
-                    style={{
-                      width: 60,
-                      height: 60,
-                    }}
-                    resizeMode="contain"
-                  />
-                )}
-              </View>
-              <View style={styles.eraDetailTitles}>
-                <Text style={[styles.eraDetailTitle, { color: '#FFFFFF' }]}>
-                  {selectedEra.title}
-                </Text>
-                <Text style={[styles.eraDetailSubtitle, { color: '#FFFFFF' }]}>
-                  {selectedEra.subtitle}
-                </Text>
-              </View>
-            </View>
-
-            {/* Description */}
-            <Text style={[styles.eraDetailDescription, { color: '#FFFFFF' }]}>
-              {selectedEra.description}
-            </Text>
-
-            {/* Stories */}
-            <View style={styles.storiesContainer}>
-              <ScrollView 
-                style={styles.storiesScrollView}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => openSheet(era)}
+              style={[styles.cardShadow, { shadowColor: era.color }]}
+            >
+              <LinearGradient
+                colors={era.gradient || [era.color, era.color + 'BB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1.1, y: 1 }}
+                style={styles.card}
               >
-                {selectedEra.stories?.map((storyItem, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.storyCard,
-                      {
-                        backgroundColor: `${selectedEra.color}15`,
-                        borderColor: `${selectedEra.color}30`,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.storyTitle, { color: '#FFFFFF' }]}>
-                      {storyItem.title}
-                    </Text>
-                    
-                    <View style={styles.storyDetails}>
-                      <View style={styles.storyDetailRow}>
-                        <Text style={[styles.storyLabel, { color: '#FFFFFF' }]}>When:</Text>
-                        <Text style={[styles.storyValue, { color: '#FFFFFF' }]}>{storyItem.when}</Text>
-              </View>
-                      
-                      <View style={styles.storyDetailRow}>
-                        <Text style={[styles.storyLabel, { color: '#FFFFFF' }]}>Bible Story:</Text>
-                        <Text style={[styles.storyValue, { color: '#FFFFFF', fontWeight: '600' }]}>{storyItem.bibleStory}</Text>
-            </View>
+                {/* Dark scrim at bottom for text readability */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.35)']}
+                  style={styles.cardScrim}
+                />
 
-                      <View style={styles.storyDetailRow}>
-                        <Text style={[styles.storyLabel, { color: '#FFFFFF' }]}>Characters:</Text>
-                        <Text style={[styles.storyValue, { color: '#FFFFFF' }]}>{storyItem.characters}</Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={[styles.storyText, { color: '#FFFFFF' }]}>
-                      {storyItem.story}
+                {/* Sticker */}
+                <Image
+                  source={{ uri: era.imageUrl }}
+                  style={styles.cardSticker}
+                  resizeMode="contain"
+                />
+
+                {/* Viewed badge */}
+                {isViewed && (
+                  <View style={styles.viewedBadge}>
+                    <MaterialIcons name="check" size={12} color="#FFF" />
+                  </View>
+                )}
+
+                {/* Text content pinned to bottom-left */}
+                <View style={styles.cardTextArea}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {era.title}
+                  </Text>
+                  <Text style={styles.cardSubtitle} numberOfLines={1}>
+                    {era.subtitle}
+                  </Text>
+                  <View style={styles.countPill}>
+                    <Text style={styles.countPillText}>
+                      {era.stories?.length || 0} stories
                     </Text>
                   </View>
-                ))}
-              </ScrollView>
-            </View>
-          </LinearGradient>
-        </BlurView>
-      </Animated.View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        {/* Connector between cards */}
+        {index < timelineData.length - 1 && (
+          <View style={styles.connectorWrap}>
+            <View style={[styles.connectorLine, { backgroundColor: theme.primary + '20' }]} />
+          </View>
+        )}
+      </View>
     );
   };
 
-  // Removed pan responder for better performance
-
-    const content = (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
-        
-        {/* Simple Loading with Percentage */}
-        <SimplePercentageLoader 
-          isVisible={loading}
-          loadingText="Loading Bible timeline..."
-        />
-
-        {/* Error State */}
-        {error && !loading && (
-          <View style={styles.errorContainer}>
-            <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
-            <Text style={[styles.errorText, { color: theme.text }]}>
-              {error}
-                </Text>
-                    <TouchableOpacity
-              style={[styles.retryButton, { backgroundColor: theme.primary }]}
-              onPress={refreshTimeline}
-            >
-              <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
-                Try Again
-              </Text>
-                    </TouchableOpacity>
-                </View>
-        )}
-
-        {/* Main Content */}
-        {!loading && !error && (
-          <>
-        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: 0, paddingBottom: 0 }}>
-        
-        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-
-      {/* Interactive Mindmap with Smooth Scrolling */}
-      <ScrollView
-        style={styles.mindmapScrollContainer}
-        contentContainerStyle={[styles.mindmapContent]}
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        bounces={true}
-        bouncesZoom={true}
-        minimumZoomScale={0.8}
-        maximumZoomScale={2.0}
-        pinchGestureEnabled={true}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
-            title="Pull to refresh..."
-            titleColor={theme.textSecondary}
-          />
-        }
-      >
-        {/* Add top spacing wrapper */}
-        <View style={{ marginTop: Platform.OS === 'ios' ? 100 : 80, width: '100%', height: '100%' }}>
-        {/* Scattered Geometric Shapes Background */}
-        {renderGeometricShapesBackground()}
-        
-        {/* Beautiful Curved Flowing Path */}
-        {renderCurvedFlowingPath()}
-
-        {/* Floating Bubbles */}
-        {timelineData.map((era, index) => renderTimelineBubble(era, index))}
-        
-        {/* Floating Particles */}
-        <View style={styles.particlesContainer}>
-          {Array.from({ length: 18 }).map((_, index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.particle,
-                {
-                  left: Math.random() * (width * 3.0),
-                  top: Math.random() * 400,
-                  backgroundColor: timelineData[index % timelineData.length]?.color + '40',
-                  transform: [
-                    {
-                      translateY: new Animated.Value(0).interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -20],
-                      }) || 0,
-                    },
-                  ],
-                },
-              ]}
-            />
-          ))}
-        </View>
-        </View>
-      </ScrollView>
-
-      {/* Era Detail Panel */}
-      {renderSelectedEraDetail()}
+  // Story card inside the bottom sheet
+  const renderStoryCard = (story, index, eraColor) => (
+    <View
+      key={index}
+      style={[
+        styles.storyCard,
+        {
+          backgroundColor: isDark ? eraColor + '15' : eraColor + '0C',
+          borderColor: isDark ? eraColor + '30' : eraColor + '22',
+        },
+      ]}
+    >
+      {/* Story number indicator */}
+      <View style={[styles.storyNumber, { backgroundColor: eraColor + '25' }]}>
+        <Text style={[styles.storyNumberText, { color: eraColor }]}>
+          {String(index + 1).padStart(2, '0')}
+        </Text>
       </View>
-    </View>
-          </>
-        )}
-        
-        {/* Transparent Blurred Header */}
-        <BlurView 
-          intensity={20} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
-            backgroundColor: 'transparent',
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: 'hidden',
-          }}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-              Bible Timeline
-            </Text>
-            <View style={{ width: 60 }} />
-          </View>
-        </BlurView>
+
+      <Text style={[styles.storyTitle, { color: theme.text }]}>{story.title}</Text>
+
+      <View style={styles.storyMeta}>
+        <View style={styles.storyMetaRow}>
+          <Text style={[styles.storyLabel, { color: theme.textSecondary }]}>When</Text>
+          <Text style={[styles.storyValue, { color: theme.text }]}>{story.when}</Text>
+        </View>
+        <View style={styles.storyMetaRow}>
+          <Text style={[styles.storyLabel, { color: theme.textSecondary }]}>Bible Story</Text>
+          <Text style={[styles.storyValue, { color: theme.text, fontWeight: '600' }]}>
+            {story.bibleStory}
+          </Text>
+        </View>
+        <View style={styles.storyMetaRow}>
+          <Text style={[styles.storyLabel, { color: theme.textSecondary }]}>Characters</Text>
+          <Text style={[styles.storyValue, { color: theme.text }]}>{story.characters}</Text>
+        </View>
+      </View>
+
+      <Text style={[styles.storyText, { color: theme.text + 'DD' }]}>{story.story}</Text>
     </View>
   );
 
-  if (asScreen) {
-    return content;
-  }
+  // Bottom sheet
+  const renderBottomSheet = () => {
+    if (!selectedEra) return null;
+
+    return (
+      <>
+        {/* Overlay */}
+        <Animated.View
+          style={[styles.overlay, { opacity: overlayOpacity }]}
+          pointerEvents={selectedEra ? 'auto' : 'none'}
+        >
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeSheet} />
+        </Animated.View>
+
+        {/* Sheet */}
+        <Animated.View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: theme.background,
+              paddingBottom: insets.bottom,
+              transform: [{ translateY: sheetY }],
+            },
+          ]}
+        >
+          {/* Drag handle area — pull down to dismiss */}
+          <View {...sheetPanResponder.panHandlers} style={styles.sheetHandleWrap}>
+            <View style={[styles.sheetHandle, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)',
+            }]} />
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            contentContainerStyle={styles.sheetScroll}
+          >
+            {/* Gradient header with sticker */}
+            <LinearGradient
+              colors={selectedEra.gradient || [selectedEra.color, selectedEra.color + 'CC']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sheetHero}
+            >
+              <Image
+                source={{ uri: selectedEra.imageUrl }}
+                style={styles.sheetSticker}
+                resizeMode="contain"
+              />
+              <Text style={styles.sheetTitle}>{selectedEra.title}</Text>
+              <Text style={styles.sheetSubtitle}>{selectedEra.subtitle}</Text>
+            </LinearGradient>
+
+            {/* Description */}
+            <View style={styles.sheetDescWrap}>
+              <Text style={[styles.sheetDesc, { color: theme.text }]}>
+                {selectedEra.description}
+              </Text>
+            </View>
+
+            {/* Divider */}
+            <View style={[styles.divider, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            }]} />
+
+            {/* Stories heading */}
+            <View style={styles.storiesHeading}>
+              <Text style={[styles.storiesHeadingText, { color: theme.text }]}>
+                Stories
+              </Text>
+              <Text style={[styles.storiesHeadingCount, { color: theme.textSecondary }]}>
+                {selectedEra.stories?.length || 0}
+              </Text>
+            </View>
+
+            {/* Story cards */}
+            {selectedEra.stories?.map((story, i) =>
+              renderStoryCard(story, i, selectedEra.color)
+            )}
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </Animated.View>
+      </>
+    );
+  };
+
+  // =============================================
+  // MAIN RENDER
+  // =============================================
+
+  const viewedCount = viewedEras.size;
+  const totalEras = timelineData.length;
+
+  const content = (
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent={true}
+      />
+
+      {/* Loading */}
+      <SimplePercentageLoader isVisible={loading} loadingText="Loading Bible timeline..." />
+
+      {/* Error */}
+      {error && !loading && (
+        <View style={styles.errorContainer}>
+          <MaterialIcons name="error_outline" size={48} color={theme.textSecondary} />
+          <Text style={[styles.errorText, { color: theme.text }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: theme.primary }]}
+            onPress={refreshTimeline}
+          >
+            <Text style={styles.retryBtnText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main list */}
+      {!loading && !error && (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingTop: insets.top + 56, paddingBottom: 40 + insets.bottom }}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
+        >
+          {/* Subtitle + progress */}
+          <View style={styles.titleSection}>
+            <Text style={[styles.pageSubtitle, { color: theme.textSecondary }]}>
+              Journey through Biblical history
+            </Text>
+
+            {/* Progress */}
+            <View style={styles.progressRow}>
+              <View style={[styles.progressTrack, {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+              }]}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: theme.primary,
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.progressLabel, { color: theme.textSecondary }]}>
+                {viewedCount} of {totalEras}
+              </Text>
+            </View>
+          </View>
+
+          {/* Timeline rail (absolute) sits inside this container */}
+          <View style={styles.timelineWrap}>
+            {/* Rail */}
+            <View style={[styles.rail, { backgroundColor: theme.primary + '18' }]} />
+
+            {/* Era cards */}
+            {timelineData.map((era, index) => renderEraCard(era, index))}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Fixed header */}
+      <BlurView
+        intensity={80}
+        tint={isDark ? 'dark' : 'light'}
+        style={[styles.header, { paddingTop: insets.top }]}
+      >
+        <TouchableOpacity
+          onPress={onClose}
+          style={[styles.headerBtn, {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+          }]}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back-ios-new" size={17} color={theme.text} />
+        </TouchableOpacity>
+
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Timeline</Text>
+
+        <View style={[styles.headerBadge, { backgroundColor: theme.primary + '18' }]}>
+          <Text style={[styles.headerBadgeText, { color: theme.primary }]}>
+            {viewedCount}/{totalEras}
+          </Text>
+        </View>
+      </BlurView>
+
+      {/* Bottom Sheet */}
+      {renderBottomSheet()}
+    </View>
+  );
+
+  if (asScreen) return content;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {}}>
@@ -1129,498 +734,354 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   );
 };
 
+// =============================================
+// STYLES
+// =============================================
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  
-  decorativeElements: {
-    position: 'absolute',
-    top: -50,
-    left: 0,
-    right: 0,
-    bottom: -100,
-    height: screenHeight + 150,
-  },
-  decorativeCircle: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  
+  root: { flex: 1 },
+  scrollView: { flex: 1 },
+
+  // ---- Header ----
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 10 : 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  closeButtonTopRight: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  backButton: {
-    width: 60, // Bigger
-    height: 60, // Bigger
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 30,
-  },
-  backButtonGlow: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    flex: 1,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    opacity: 0.9,
-    marginTop: 4,
-  },
-  helpButton: {
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  helpButtonBlur: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 25,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  
-  // Interactive Mindmap
-  mindmapScrollContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  mindmapContent: {
-    width: width * 2.9 + 150, // Much tighter - just enough for rightmost era + minimal padding
-    height: 1200, // Much tighter - lowest era at y:1000 + era size + minimal padding
-    position: 'relative',
-    backgroundColor: 'transparent', // Make content transparent too
-  },
-  
-  // Geometric Shapes Background
-  geometricShapesContainer: {
-    position: 'absolute',
-    top: -200, // Start above visible area
-    left: -200, // Start left of visible area
-    width: width * 3.1 + 300, // Tighter coverage matching reduced content width
-    height: 1400 + 300, // Much tighter - match reduced content height
-    zIndex: -1, // Behind everything else
-  },
-  geometricShape: {
-    position: 'absolute',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  triangleShape: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 12,
-    borderRightWidth: 12,
-    borderBottomWidth: 20,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  starShape: {
-    transform: [{ rotate: '45deg' }],
-  },
-  
-  // Curved Flowing Path
-  curvedPathContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    zIndex: 0, // Behind the stickers so they can be tapped
-  },
-  connectionContainer: {
-    position: 'absolute',
-  },
-  connectionGlow: {
-    position: 'absolute',
-    borderRadius: 4,
-    opacity: 0.6,
-    elevation: 2,
-  },
-  connectionLine: {
-    position: 'absolute',
-    borderRadius: 2,
-    opacity: 0.9,
-    elevation: 4,
-  },
-  arrowHead: {
-    position: 'absolute',
-    width: 0,
-    height: 0,
-    borderLeftWidth: 16,
-    borderRightWidth: 0,
-    borderTopWidth: 8,
-    borderBottomWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    elevation: 6,
-  },
-  flowParticle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.9,
-    elevation: 6,
-  },
-  
-  // Timeline Bubbles
-  timelineBubbleContainer: {
-    position: 'absolute',
+    zIndex: 100,
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 10, // Above the curved path
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    overflow: 'hidden',
   },
-  timelineSticker: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    elevation: 12,
-    shadowColor: '#000',
-    zIndex: 10, // Above the curved path
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-  },
-  stickerImage: {
-    zIndex: 10,
-    elevation: 15,
-  },
-  auraRing1: {
-    position: 'absolute',
-    opacity: 0.6,
-    zIndex: 1,
-  },
-  auraRing2: {
-    position: 'absolute',
-    opacity: 0.8,
-    zIndex: 2,
-  },
-  sparkleParticle: {
-    position: 'absolute',
-    zIndex: 3,
-    width: 8,
-    height: 8,
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sparkle: {
-    width: 4,
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  headerBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  headerBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // ---- Title section ----
+  titleSection: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  pageSubtitle: {
+    fontSize: 15,
+    fontWeight: '400',
+    marginTop: 4,
+    letterSpacing: 0.1,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  progressTrack: {
+    flex: 1,
     height: 4,
     borderRadius: 2,
-    opacity: 0.8,
-    elevation: 5,
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    overflow: 'hidden',
+    marginRight: 12,
   },
-  selectionGlow: {
-    position: 'absolute',
-    borderWidth: 3,
-    opacity: 0.8,
-    zIndex: 0,
-    elevation: 20,
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
-  glowRing: {
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // ---- Timeline ----
+  timelineWrap: {
+    position: 'relative',
+    paddingTop: 20,
+  },
+  rail: {
     position: 'absolute',
-    borderWidth: 4,
-    opacity: 1,
-    zIndex: 0,
-    elevation: 15,
-    shadowColor: '#000',
+    top: 20,
+    bottom: 0,
+    left: RAIL_LEFT,
+    width: 1.5,
+    borderRadius: 1,
+  },
+
+  // ---- Era row ----
+  eraRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: DOT_SIZE,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
+    position: 'absolute',
+    left: RAIL_LEFT - DOT_SIZE / 2 + 0.75,
+    zIndex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardOuter: {
+    flex: 1,
+    marginLeft: CARD_LEFT,
+    marginRight: CARD_RIGHT,
+  },
+  cardShadow: {
+    borderRadius: 22,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  bubbleTitle: {
-    marginTop: 12,
+  card: {
+    height: CARD_HEIGHT,
+    borderRadius: 22,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  cardScrim: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 22,
+  },
+  cardSticker: {
+    position: 'absolute',
+    right: 8,
+    top: (CARD_HEIGHT - STICKER_SIZE) / 2 - 8,
+    width: STICKER_SIZE,
+    height: STICKER_SIZE,
+    opacity: 0.95,
+  },
+  viewedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  titleBlur: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 50,
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    overflow: 'hidden', // This ensures BlurView respects borderRadius
+  cardTextArea: {
+    padding: 18,
+    paddingTop: 0,
+    maxWidth: '68%',
   },
-  titleText: {
+  cardTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  cardSubtitle: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 3,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  countPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  countPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+
+  // ---- Connector ----
+  connectorWrap: {
+    height: CARD_GAP,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: RAIL_LEFT,
+  },
+  connectorLine: {
+    width: 1.5,
+    flex: 1,
+    borderRadius: 1,
+  },
+
+  // ---- Bottom Sheet ----
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 200,
+  },
+  sheet: {
+    position: 'absolute',
+    top: height * 0.08,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    zIndex: 201,
+    overflow: 'hidden',
+  },
+  sheetHandleWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  sheetScroll: {
+    paddingBottom: 20,
+  },
+  sheetHero: {
+    paddingTop: 24,
+    paddingBottom: 28,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    borderRadius: 24,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  sheetSticker: {
+    width: 110,
+    height: 110,
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: -0.3,
+    paddingHorizontal: 20,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  sheetSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 4,
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  subtitleText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 2,
-    letterSpacing: 0.3,
+  sheetDescWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  
-  // Floating Particles
-  particlesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
+  sheetDesc: {
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: '400',
   },
-  particle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.7,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+  divider: {
+    height: 1,
+    marginHorizontal: 20,
   },
-  
-  // Era Detail Panel
-  eraDetailContainer: {
-    position: 'absolute',
-    top: 120,
-    left: 20,
-    right: 20,
-    maxHeight: '75%',
-  },
-  eraDetailCard: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    elevation: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  eraDetailGradient: {
-    padding: 20,
-  },
-  eraDetailHeader: {
+  storiesHeading: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  eraDetailIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-    position: 'relative',
+  storiesHeadingText: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  eraDetailEmoji: {
-    fontSize: 24,
-    zIndex: 2,
-  },
-  eraDetailBgEmoji: {
-    position: 'absolute',
-    fontSize: 40,
-    opacity: 0.3,
-    zIndex: 1,
-  },
-  eraDetailTitles: {
-    flex: 1,
-  },
-  eraDetailTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  eraDetailSubtitle: {
-    fontSize: 16,
+  storiesHeadingCount: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  eraDetailDescription: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  
-  // Stories Container
-  storiesContainer: {
-    marginBottom: 16,
-    flex: 1,
-  },
-  storiesTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  storiesScrollView: {
-    maxHeight: 300,
-  },
+
+  // ---- Story Card ----
   storyCard: {
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  storyNumber: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  storyNumberText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   storyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     marginBottom: 12,
-    textAlign: 'center',
+    letterSpacing: -0.2,
   },
-  storyDetails: {
+  storyMeta: {
     marginBottom: 12,
   },
-  storyDetailRow: {
+  storyMetaRow: {
     flexDirection: 'row',
     marginBottom: 6,
     alignItems: 'flex-start',
   },
   storyLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    width: 80,
+    width: 75,
     marginRight: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   storyValue: {
-    fontSize: 12,
+    fontSize: 13,
     flex: 1,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   storyText: {
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: 'left',
+    fontSize: 14,
+    lineHeight: 22,
   },
-  glassyHeader: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  glassyHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  glassyCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  solidHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  solidHeaderButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  solidHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    textAlign: 'center',
-  },
+
+  // ---- Error ----
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1635,14 +1096,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  retryButton: {
+  retryBtn: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  retryButtonText: {
+  retryBtnText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

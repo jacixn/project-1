@@ -1,5 +1,4 @@
 import React from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import KeyVerses from '../components/KeyVerses';
 
 const KeyVersesScreen = ({ navigation }) => (
@@ -7,16 +6,10 @@ const KeyVersesScreen = ({ navigation }) => (
     visible={true}
     onClose={() => navigation.goBack()}
     onNavigateToVerse={(reference) => {
-      navigation.goBack();
-      setTimeout(() => {
-        DeviceEventEmitter.emit('openBibleFromBibleStudy', { verseRef: reference });
-      }, 100);
+      navigation.navigate('BibleReader', { verseRef: reference });
     }}
     onDiscussVerse={(payload) => {
-      navigation.goBack();
-      setTimeout(() => {
-        DeviceEventEmitter.emit('openAiChatFromBibleStudy', payload);
-      }, 100);
+      navigation.navigate('FriendChat', { initialVerse: payload });
     }}
     asScreen={true}
   />

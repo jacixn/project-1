@@ -671,8 +671,7 @@ const JournalCalendar = ({
                             fontWeight: '700',
                             color: theme.text,
                           }} numberOfLines={1}>
-                            {/* Show verse reference only if it looks like a real Bible verse (contains colon like "John 3:16") */}
-                            {note.verseReference && note.verseReference.includes(':') 
+                            {note.verseReference && note.verseReference !== 'Unknown Reference'
                               ? note.verseReference 
                               : 'Personal Reflection'}
                           </Text>
@@ -698,14 +697,24 @@ const JournalCalendar = ({
                               {
                                 text: 'Delete',
                                 style: 'destructive',
-                                onPress: () => {
-                                  onDeleteNote(note.id);
-                                  // Update selected date notes
-                                  setSelectedDate(prev => ({
-                                    ...prev,
-                                    notes: prev.notes.filter(n => n.id !== note.id),
-                                    noteCount: prev.noteCount - 1,
-                                  }));
+                                onPress: async () => {
+                                  // Pass both noteId and verseId so parent can delete from both stores
+                                  await onDeleteNote(note.id, note.verseId);
+                                  // Update selected date notes locally for immediate UI feedback
+                                  setSelectedDate(prev => {
+                                    if (!prev) return prev;
+                                    const updatedNotes = prev.notes.filter(n => n.id !== note.id);
+                                    // If no notes left, close the modal
+                                    if (updatedNotes.length === 0) {
+                                      closeDayDetail();
+                                      return prev;
+                                    }
+                                    return {
+                                      ...prev,
+                                      notes: updatedNotes,
+                                      noteCount: updatedNotes.length,
+                                    };
+                                  });
                                 },
                               },
                             ]

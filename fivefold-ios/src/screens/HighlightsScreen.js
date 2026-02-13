@@ -181,21 +181,17 @@ const HighlightsScreen = ({ navigation }) => {
 
   const handleNavigateToVerse = (verseRef) => {
     hapticFeedback.medium();
-    navigation.goBack();
-    setTimeout(() => {
-      DeviceEventEmitter.emit('openBibleFromScreen', { verseRef });
-    }, 100);
+    navigation.navigate('BibleReader', { verseRef });
   };
 
   const handleDiscussVerse = (verse) => {
     hapticFeedback.medium();
-    navigation.goBack();
-    setTimeout(() => {
-      DeviceEventEmitter.emit('openAiChatFromScreen', {
+    navigation.navigate('FriendChat', {
+      initialVerse: {
         text: verse.text,
-        reference: verse.verseReference
-      });
-    }, 100);
+        reference: verse.verseReference,
+      },
+    });
   };
 
   useEffect(() => {

@@ -946,7 +946,8 @@ const RootNavigator = () => {
       {/* Main Tab Navigator */}
       <Stack.Screen 
         name="Main" 
-        component={TabNavigator} 
+        component={TabNavigator}
+        options={{ gestureEnabled: false }}
       />
       
       {/* Friends Screen */}

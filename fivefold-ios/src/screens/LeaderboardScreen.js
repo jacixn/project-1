@@ -45,7 +45,7 @@ import { getReferralCount } from '../services/referralService';
 import userStorage from '../utils/userStorage';
 
 // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-const BADGE_REFERRAL_GATES = { country: null, streak: 6, verified: 3, biblely: 10 };
+const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
 
 const getStreakAnimSource = (animId) => {
   switch (animId) {
@@ -486,8 +486,8 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
                 <MaterialIcons name="public" size={14} color={theme.textSecondary} style={{ marginLeft: 2, opacity: 0.5 }} />
               )
             )}
-            {/* Streak animation badge — gated by 6 referrals + toggle */}
-            {item.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 6 && (
+            {/* Streak animation badge — gated by 5 referrals + toggle */}
+            {item.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 5 && (
               <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 4 }} />
             )}
             {/* Profile badges — gated only by referrals + toggles, no achievements */}
@@ -604,7 +604,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {!(second.isCurrentUser && badgeToggles.country === false) && second.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{second.countryFlag}</Text>
             ) : null}
-            {second.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 6 && (
+            {second.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 5 && (
               <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 16, height: 16, marginLeft: 3 }} />
             )}
             {AchievementService.PROFILE_BADGES
@@ -667,7 +667,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {!(first.isCurrentUser && badgeToggles.country === false) && first.countryFlag ? (
               <Text style={{ fontSize: 14, marginLeft: 4 }}>{first.countryFlag}</Text>
             ) : null}
-            {first.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 6 && (
+            {first.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 5 && (
               <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 18, height: 18, marginLeft: 3 }} />
             )}
             {AchievementService.PROFILE_BADGES
@@ -727,7 +727,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
             {!(third.isCurrentUser && badgeToggles.country === false) && third.countryFlag ? (
               <Text style={{ fontSize: 12, marginLeft: 4 }}>{third.countryFlag}</Text>
             ) : null}
-            {third.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 6 && (
+            {third.isCurrentUser && badgeToggles.streak !== false && myReferralCount >= 5 && (
               <LottieView source={getStreakAnimSource(myStreakAnim)} autoPlay loop style={{ width: 16, height: 16, marginLeft: 3 }} />
             )}
             {AchievementService.PROFILE_BADGES

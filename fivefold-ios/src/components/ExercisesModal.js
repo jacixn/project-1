@@ -50,6 +50,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [isAtTop, setIsAtTop] = useState(true);
 
   // Pan responder for pull-to-dismiss gesture
+  const dismissHapticFired = useRef(false);
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -57,9 +58,22 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         // Only allow pan if scrolled to top and pulling down
         return isAtTop && gestureState.dy > 0;
       },
+      onPanResponderGrant: () => {
+        dismissHapticFired.current = false;
+        hapticFeedback.light();
+      },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           translateY.setValue(gestureState.dy);
+          // Fire a satisfying haptic when crossing the dismiss threshold
+          if (gestureState.dy > 150 && !dismissHapticFired.current) {
+            dismissHapticFired.current = true;
+            hapticFeedback.medium();
+          } else if (gestureState.dy <= 150 && dismissHapticFired.current) {
+            // Reset if user pulls back above threshold
+            dismissHapticFired.current = false;
+            hapticFeedback.light();
+          }
         }
       },
       onPanResponderRelease: (_, gestureState) => {
