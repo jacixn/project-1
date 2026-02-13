@@ -1292,17 +1292,20 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               <WorkoutCompletionModal
                 visible={true}
                 onClose={() => {
-                  console.log('Completion modal closing');
-                  // Stop all set pulse loops before clearing exercises
+                  // Stop pulse animations first
                   stopAllSetAnimations();
+                  // Hide the completion modal immediately
                   setShowCompletionModal(false);
-                  setWorkoutName('Workout 1');
-                  setExercises([]);
-                  setPreviousWorkout(null);
-                  setWorkoutNote('');
-                  setWorkoutPhoto(null);
-                  endWorkout(); // End the workout in context
-                  onClose();
+                  // Defer heavy state resets to next frame so the UI doesn't freeze
+                  requestAnimationFrame(() => {
+                    setWorkoutName('Workout 1');
+                    setExercises([]);
+                    setPreviousWorkout(null);
+                    setWorkoutNote('');
+                    setWorkoutPhoto(null);
+                    endWorkout();
+                    onClose();
+                  });
                 }}
                 workoutData={completedWorkoutData}
                 workoutCount={totalWorkoutCount}

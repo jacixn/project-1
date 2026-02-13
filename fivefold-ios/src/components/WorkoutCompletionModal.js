@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,9 +23,40 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateSaved, setTemplateSaved] = useState(false);
+  const closingRef = useRef(false);
+
+  // Safe close: animate out first, then ALWAYS call onClose via setTimeout
+  const handleDismiss = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+
+    // Stop entry animations
+    scaleAnim.stopAnimation();
+    fadeAnim.stopAnimation();
+
+    // Animate out
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // ALWAYS call onClose after animation, regardless of whether animation completes
+    setTimeout(() => {
+      onClose();
+    }, 180);
+  }, [onClose]);
 
   useEffect(() => {
     if (visible) {
+      closingRef.current = false;
       setShowSaveTemplate(false);
       setTemplateSaved(false);
       setTemplateName(workoutData?.name || '');
@@ -43,7 +74,6 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
         }),
       ]).start();
     } else {
-      // Stop any running animations before resetting values
       scaleAnim.stopAnimation();
       fadeAnim.stopAnimation();
       scaleAnim.setValue(0);
@@ -51,7 +81,6 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
     }
 
     return () => {
-      // Cleanup on unmount or visibility change
       scaleAnim.stopAnimation();
       fadeAnim.stopAnimation();
     };
@@ -169,7 +198,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={0.7}
-          onPress={onClose}
+          onPress={handleDismiss}
         />
         
         <Animated.View 
@@ -194,7 +223,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
             {/* Close Button */}
             <TouchableOpacity 
               style={[styles.closeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-              onPress={onClose}
+              onPress={handleDismiss}
             >
               <MaterialIcons name="close" size={24} color={theme.text} />
             </TouchableOpacity>

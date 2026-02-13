@@ -16,7 +16,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  RefreshControl,
   ActivityIndicator,
   Modal,
   TextInput,
@@ -33,7 +32,7 @@ import { BlurView } from 'expo-blur';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +50,7 @@ import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { getBlockedUsers } from '../services/reportService';
+import { isRestricted } from '../services/restrictionService';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
@@ -93,6 +93,11 @@ const HubTab = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const refreshLottieRef = useRef(null);
+  const refreshLottieScale = useRef(new Animated.Value(0)).current;
+  const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
   const [tokenStatus, setTokenStatus] = useState({ hasToken: false });
   const [timeUntilToken, setTimeUntilToken] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
@@ -176,14 +181,24 @@ const HubTab = () => {
     return () => clearInterval(interval);
   }, []);
   
-  // Load badge toggles + referral count for current user badge display
+  // Load badge toggles + referral count + loading animation for current user badge display
   useEffect(() => {
     userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) setMyBadgeToggles(JSON.parse(raw));
     }).catch(() => {});
     getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
     userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
+    userStorage.getRaw('fivefold_loading_animation').then(v => { if (v) setSelectedLoadingAnim(v); }).catch(() => {});
   }, []);
+
+  // Reload loading animation preference when tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        setSelectedLoadingAnim(v || 'default');
+      }).catch(() => {});
+    }, [])
+  );
 
   // Load posts (one-time fetch, no real-time listener to save Firestore costs)
   const loadPosts = async () => {
@@ -344,7 +359,9 @@ const HubTab = () => {
   };
   
   const handleRefresh = async () => {
+    if (refreshing) return;
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     // Refresh posts
     await loadPosts();
@@ -362,9 +379,59 @@ const HubTab = () => {
       const timeInfo = await getTimeUntilToken();
       setTimeUntilToken(timeInfo);
     }
-    
+
+    await new Promise(resolve => setTimeout(resolve, 600));
     setRefreshing(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
+
+  // Pull-to-refresh animation controller
+  useEffect(() => {
+    if (refreshing) {
+      setTimeout(() => refreshLottieRef.current?.play(), 50);
+      Animated.parallel([
+        Animated.spring(refreshLottieScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 12,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshSpacerHeight, {
+          toValue: selectedLoadingAnim === 'default' ? 50 : 100,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 12,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(refreshSpacerHeight, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshLottieScale, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 15,
+        }),
+      ]).start(() => {
+        refreshLottieRef.current?.reset();
+      });
+    }
+  }, [refreshing, selectedLoadingAnim]);
   
   const handleFabPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -399,6 +466,15 @@ const HubTab = () => {
   const handlePost = async () => {
     // Guard against double-tap immediately
     if (posting) return;
+    
+    // Check posting restriction
+    if (user?.uid) {
+      const check = await isRestricted(user.uid, 'posting');
+      if (check.restricted) {
+        Alert.alert('Posting Restricted', `Your ability to post has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+        return;
+      }
+    }
     
     if (!postContent.trim()) {
       Alert.alert('Empty Post', 'Please write something to share.');
@@ -812,11 +888,10 @@ const HubTab = () => {
           
           {/* Main content */}
           <View style={styles.premiumHeaderContent}>
-            {/* Left side - Title with emoji and glow */}
+            {/* Left side - Title with glow */}
             <View style={styles.titleContainer}>
               <View style={styles.titleRow}>
                 <Text style={styles.premiumTitle}>Hub</Text>
-                <Text style={styles.titleEmoji}>✨</Text>
               </View>
               <Animated.View 
                 style={[
@@ -834,7 +909,8 @@ const HubTab = () => {
                   style={styles.premiumIconButton}
                   onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    const verified = await refreshEmailVerificationStatus();
+                    // Use instant local check — no network call
+                    const verified = isEmailVerified();
                     if (!verified) {
                       Alert.alert(
                         'Verify Your Email',
@@ -845,6 +921,14 @@ const HubTab = () => {
                         ]
                       );
                       return;
+                    }
+                    // Check restriction
+                    if (user?.uid) {
+                      const check = await isRestricted(user.uid, 'social');
+                      if (check.restricted) {
+                        Alert.alert('Access Restricted', `Your access to friends and challenges has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+                        return;
+                      }
                     }
                     navigation.navigate('Friends');
                   }}
@@ -875,7 +959,8 @@ const HubTab = () => {
                   style={styles.premiumIconButton}
                   onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    const verified = await refreshEmailVerificationStatus();
+                    // Use instant local check — no network call
+                    const verified = isEmailVerified();
                     if (!verified) {
                       Alert.alert(
                         'Verify Your Email',
@@ -886,6 +971,14 @@ const HubTab = () => {
                         ]
                       );
                       return;
+                    }
+                    // Check restriction
+                    if (user?.uid) {
+                      const check = await isRestricted(user.uid, 'social');
+                      if (check.restricted) {
+                        Alert.alert('Access Restricted', `Your access to friends and challenges has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+                        return;
+                      }
                     }
                     navigation.navigate('Leaderboard');
                   }}
@@ -950,9 +1043,58 @@ const HubTab = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {renderHeader()}
+
+      {/* Custom Pull-to-Refresh Indicator */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          zIndex: 1000,
+          opacity: refreshLottieOpacity,
+          transform: [{ scale: refreshLottieScale }],
+        }}
+      >
+        {selectedLoadingAnim === 'default' ? (
+          <ActivityIndicator size="large" color={theme.primary} />
+        ) : (
+          <LottieView
+            ref={refreshLottieRef}
+            source={
+              selectedLoadingAnim === 'hamster'
+                ? require('../../assets/Run-Hamster.json')
+                : selectedLoadingAnim === 'amongus'
+                ? require('../../assets/Loading 50 _ Among Us.json')
+                : require('../../assets/Running-Cat.json')
+            }
+            autoPlay={false}
+            loop
+            style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+          />
+        )}
+      </Animated.View>
+
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          {selectedLoadingAnim === 'default' ? (
+            <ActivityIndicator size="large" color={theme.primary} />
+          ) : (
+            <LottieView
+              source={
+                selectedLoadingAnim === 'hamster'
+                  ? require('../../assets/Run-Hamster.json')
+                  : selectedLoadingAnim === 'amongus'
+                  ? require('../../assets/Loading 50 _ Among Us.json')
+                  : require('../../assets/Running-Cat.json')
+              }
+              autoPlay
+              loop
+              style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+            />
+          )}
         </View>
       ) : (
         <FlatList
@@ -963,12 +1105,16 @@ const HubTab = () => {
             styles.listContent,
             posts.length === 0 && styles.emptyListContent,
           ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.primary}
-            />
+          bounces={true}
+          alwaysBounceVertical={true}
+          onScrollEndDrag={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            if (y < -70 && !refreshing) {
+              handleRefresh();
+            }
+          }}
+          ListHeaderComponent={
+            <Animated.View style={{ height: refreshSpacerHeight }} />
           }
           ListEmptyComponent={renderEmpty}
           showsVerticalScrollIndicator={false}

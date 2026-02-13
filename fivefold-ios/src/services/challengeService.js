@@ -68,7 +68,7 @@ export const sendChallenge = async ({
   try {
     const challengeData = {
       challengerId,
-      challengerName: challengerName || 'Challenger',
+      challengerName: challengerName || 'Player',
       challengerPicture: challengerPicture || '',
       challengedId,
       challengedName: challengedName || 'Friend',

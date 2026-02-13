@@ -18,6 +18,11 @@
 - The app uses the **native iOS tab bar** via `@bottom-tabs/react-navigation` (`createNativeBottomTabNavigator`) in `TabNavigator.js`. Always keep it that way.
 - The Profile tab icon shows the user's profile picture via `{ uri: profilePicture }`, falling back to `{ sfSymbol: 'person.fill' }`.
 
+## Pull-to-Refresh (CRITICAL — no native RefreshControl)
+- **NEVER use `<RefreshControl>`** on the Profile tab's main ScrollView. The native iOS `UIRefreshControl` renders a visible spinner that **cannot be hidden** — even `tintColor="transparent"` doesn't work on many iOS versions.
+- Instead, detect the pull gesture with `onScrollEndDrag` checking `contentOffset.y < -70`, and show a **custom absolutely-positioned indicator** (Lottie or ActivityIndicator).
+- The loading animation is user-configurable in Customisation (stored in `fivefold_loading_animation` via userStorage).
+
 ## UI / UX conventions
 - **Readability first**: gradients/glass are allowed only if text contrast remains strong.
 - When text is over a gradient, prefer:

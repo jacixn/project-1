@@ -168,9 +168,10 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
     if (!user) return;
     
     try {
-      // Sync local points to Firebase before loading leaderboard
-      // This ensures the current user's points are up to date
-      await syncUserStatsToCloud(user.uid);
+      // Sync local points to Firebase in the BACKGROUND — don't block leaderboard display
+      syncUserStatsToCloud(user.uid).catch(err => 
+        console.warn('[Leaderboard] Background sync failed:', err?.message)
+      );
       
       if (activeTab === 'friends') {
         await loadFriendsLeaderboard();

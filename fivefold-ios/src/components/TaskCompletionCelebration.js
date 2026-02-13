@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import { hapticFeedback } from '../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
 
+// Reduced from 20 to 12 for performance
+const CONFETTI_COUNT = 12;
+
 const TaskCompletionCelebration = ({ visible, task, onClose }) => {
   const { theme, isDark } = useTheme();
   
@@ -23,7 +26,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
   const checkScaleAnim = useRef(new Animated.Value(0)).current;
   const pointsScaleAnim = useRef(new Animated.Value(0)).current;
   const confettiAnims = useRef(
-    Array.from({ length: 20 }, () => ({
+    Array.from({ length: CONFETTI_COUNT }, () => ({
       y: new Animated.Value(-100),
       x: new Animated.Value(Math.random() * width),
       rotation: new Animated.Value(0),
@@ -31,8 +34,61 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
     }))
   ).current;
 
+  // Track ALL timeouts so we can clear them on cleanup
+  const timersRef = useRef([]);
+  // Track if close has already been called to prevent double-fires
+  const closingRef = useRef(false);
+
+  const safeTimeout = useCallback((fn, delay) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
+
+  const clearAllTimers = useCallback(() => {
+    timersRef.current.forEach(id => clearTimeout(id));
+    timersRef.current = [];
+  }, []);
+
+  const stopAllAnimations = useCallback(() => {
+    scaleAnim.stopAnimation();
+    checkScaleAnim.stopAnimation();
+    pointsScaleAnim.stopAnimation();
+    confettiAnims.forEach(anim => {
+      anim.y.stopAnimation();
+      anim.rotation.stopAnimation();
+      anim.opacity.stopAnimation();
+    });
+  }, []);
+
+  // Stable handleClose that ALWAYS calls onClose, never depends on animation callback
+  const handleClose = useCallback(() => {
+    if (closingRef.current) return; // Prevent double-close
+    closingRef.current = true;
+
+    // Stop everything
+    clearAllTimers();
+    stopAllAnimations();
+
+    // Quick exit animation — but call onClose on a timer as a safety net
+    // so even if the animation gets interrupted, onClose still fires
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+
+    // ALWAYS call onClose after a short delay, regardless of animation state
+    setTimeout(() => {
+      onClose();
+    }, 180);
+  }, [onClose, clearAllTimers, stopAllAnimations]);
+
   useEffect(() => {
     if (visible && task) {
+      // Reset closing flag for new celebration
+      closingRef.current = false;
+
       // Success haptic
       hapticFeedback.success();
       
@@ -55,7 +111,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
       }).start();
 
       // Check mark animation
-      setTimeout(() => {
+      safeTimeout(() => {
         Animated.sequence([
           Animated.spring(checkScaleAnim, {
             toValue: 1.2,
@@ -73,7 +129,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
       }, 200);
 
       // Points animation
-      setTimeout(() => {
+      safeTimeout(() => {
         Animated.spring(pointsScaleAnim, {
           toValue: 1,
           tension: 80,
@@ -83,8 +139,8 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
       }, 400);
 
       // Confetti animation
-      setTimeout(() => {
-        confettiAnims.forEach((anim, index) => {
+      safeTimeout(() => {
+        confettiAnims.forEach((anim) => {
           Animated.parallel([
             Animated.timing(anim.y, {
               toValue: height + 100,
@@ -106,43 +162,16 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
       }, 300);
 
       // Auto dismiss after 2.5 seconds
-      const timer = setTimeout(() => {
+      safeTimeout(() => {
         handleClose();
       }, 2500);
 
       return () => {
-        clearTimeout(timer);
-        // Stop all running animations on cleanup to prevent JS thread buildup
-        scaleAnim.stopAnimation();
-        checkScaleAnim.stopAnimation();
-        pointsScaleAnim.stopAnimation();
-        confettiAnims.forEach(anim => {
-          anim.y.stopAnimation();
-          anim.rotation.stopAnimation();
-          anim.opacity.stopAnimation();
-        });
+        clearAllTimers();
+        stopAllAnimations();
       };
     }
-  }, [visible, task]);
-
-  const handleClose = () => {
-    // Stop all running animations immediately
-    checkScaleAnim.stopAnimation();
-    pointsScaleAnim.stopAnimation();
-    confettiAnims.forEach(anim => {
-      anim.y.stopAnimation();
-      anim.rotation.stopAnimation();
-      anim.opacity.stopAnimation();
-    });
-
-    Animated.timing(scaleAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
-  };
+  }, [visible, task, handleClose, safeTimeout, clearAllTimers, stopAllAnimations]);
 
   if (!task) return null;
 
@@ -164,7 +193,11 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
       animationType="none"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={handleClose}
+      >
         {/* Confetti */}
         {confettiAnims.map((anim, index) => (
           <Animated.View
@@ -259,7 +292,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
             </TouchableOpacity>
           </BlurView>
         </Animated.View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -355,7 +388,3 @@ const styles = StyleSheet.create({
 });
 
 export default TaskCompletionCelebration;
-
-
-
-

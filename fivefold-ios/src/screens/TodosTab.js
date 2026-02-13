@@ -13,6 +13,8 @@ import {
   Image,
   DeviceEventEmitter,
   Modal,
+  Easing,
+  ActivityIndicator,
 } from 'react-native';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
@@ -29,7 +31,8 @@ import { GlassCard, GlassHeader } from '../components/GlassEffect';
 import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation, createSpringAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Components
 import TodoList from '../components/TodoList';
@@ -39,6 +42,7 @@ import FullCalendarModal from '../components/FullCalendarModal';
 import TaskCompletionCelebration from '../components/TaskCompletionCelebration';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
+import LottieView from 'lottie-react-native';
 import notificationService from '../services/notificationService';
 import AchievementService from '../services/achievementService';
 import userStorage from '../utils/userStorage';
@@ -139,6 +143,7 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
 
 const TodosTab = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
@@ -191,6 +196,14 @@ const TodosTab = () => {
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
   const cardShimmer = useRef(new Animated.Value(0)).current;
+
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const refreshLottieRef = useRef(null);
+  const refreshLottieScale = useRef(new Animated.Value(0)).current;
+  const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
 
   // Continuous logo animations
   const startLogoAnimations = () => {
@@ -273,7 +286,20 @@ const TodosTab = () => {
       delay: 200,
       useNativeDriver: true,
     }).start();
+    // Load selected loading animation
+    userStorage.getRaw('fivefold_loading_animation').then(id => {
+      if (id) setSelectedLoadingAnim(id);
+    });
   }, []);
+
+  // Reload loading animation preference when tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        setSelectedLoadingAnim(v || 'default');
+      }).catch(() => {});
+    }, [])
+  );
 
   // Listen for global "close all modals" event (e.g., when widget is tapped)
   useEffect(() => {
@@ -362,6 +388,92 @@ const TodosTab = () => {
     };
   }, []);
 
+  // Pull-to-refresh handler — reloads ALL tasks & stats fresh
+  const onRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    hapticFeedback.gentle();
+    console.log('🔄 Tasks: Pull-to-refresh started — reloading all data...');
+    try {
+      const results = await Promise.allSettled([
+        (async () => {
+          const storedTodos = await getStoredData('todos') || [];
+          setTodos(storedTodos);
+        })(),
+        (async () => {
+          const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0, streak: 0 };
+          setUserStats(storedStats);
+        })(),
+      ]);
+
+      const labels = ['Todos', 'User Stats'];
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`❌ Tasks refresh failed: ${labels[i]}`, r.reason);
+        } else {
+          console.log(`✅ Tasks refresh: ${labels[i]} loaded`);
+        }
+      });
+
+      DeviceEventEmitter.emit('todosRefreshed');
+      await new Promise(resolve => setTimeout(resolve, 600));
+      console.log('🔄 Tasks: Refresh complete');
+    } catch (error) {
+      console.error('Error refreshing tasks data:', error);
+    } finally {
+      setRefreshing(false);
+      hapticFeedback.success();
+    }
+  };
+
+  // Pull-to-refresh animation controller
+  useEffect(() => {
+    if (refreshing) {
+      setTimeout(() => refreshLottieRef.current?.play(), 50);
+      Animated.parallel([
+        Animated.spring(refreshLottieScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 12,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshSpacerHeight, {
+          toValue: selectedLoadingAnim === 'default' ? 50 : 100,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 12,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(refreshSpacerHeight, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshLottieScale, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 15,
+        }),
+      ]).start(() => {
+        refreshLottieRef.current?.reset();
+      });
+    }
+  }, [refreshing, selectedLoadingAnim]);
+
   const initializeTodoData = async () => {
     try {
       // Loading animation plays while real data loads (no artificial delay)
@@ -398,8 +510,8 @@ const TodosTab = () => {
     setCompletedTask(taskToComplete);
     setShowCompletionCelebration(true);
 
-    // Update data after showing celebration
-    setTimeout(async () => {
+    // Update data immediately (no setTimeout) — the celebration modal is already showing
+    try {
       const updatedTodos = todos.map(todo => 
         todo.id === todoId 
           ? { ...todo, completed: true, completedAt: new Date().toISOString() }
@@ -425,14 +537,12 @@ const TodosTab = () => {
       setTodos(updatedTodos);
       setUserStats(updatedStats);
       
-      await saveData('todos', updatedTodos);
-      await saveData('userStats', updatedStats);
-      // Also sync to raw userStats key for consistency
-      await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
+      // Persist in background — don't await to keep UI snappy
+      saveData('todos', updatedTodos).catch(() => {});
+      saveData('userStats', updatedStats).catch(() => {});
+      userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
       
-      // total_points is now managed centrally by achievementService.checkAchievements()
-      
-      // Sync to Firebase if user is logged in
+      // Sync to Firebase in background (non-blocking)
       const currentUser = auth.currentUser;
       if (currentUser) {
         setDoc(doc(db, 'users', currentUser.uid), {
@@ -443,14 +553,17 @@ const TodosTab = () => {
         }, { merge: true }).catch(err => {
           console.warn('Firebase task points sync failed:', err.message);
         });
-        console.log(`Task points synced to Firebase: ${updatedStats.totalPoints}`);
       }
 
-      // Global Achievement Check - Handles awarding extra points and showing the alert
-      const statsAfterAchievement = await AchievementService.checkAchievements(updatedStats);
-      if (statsAfterAchievement) {
-        setUserStats(statsAfterAchievement);
-      }
+      // Achievement check in background — non-blocking with timeout protection
+      Promise.race([
+        AchievementService.checkAchievements(updatedStats),
+        new Promise(resolve => setTimeout(() => resolve(null), 5000)), // 5s timeout
+      ]).then(statsAfterAchievement => {
+        if (statsAfterAchievement) {
+          setUserStats(statsAfterAchievement);
+        }
+      }).catch(() => {});
       
       // Notify other components that a task was completed
       DeviceEventEmitter.emit('taskCompleted', {
@@ -458,7 +571,9 @@ const TodosTab = () => {
         points: pointsEarned,
         newCompletedTasks
       });
-    }, 100);
+    } catch (error) {
+      console.warn('[TodosTab] handleTodoComplete error:', error?.message);
+    }
   }, [todos, userStats]);
 
   const handleTodoDelete = useCallback(async (todoId) => {
@@ -820,18 +935,61 @@ const TodosTab = () => {
         </View>
       </GlassHeader>
 
+      {/* Custom Pull-to-Refresh Indicator */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          zIndex: 1000,
+          opacity: refreshLottieOpacity,
+          transform: [{ scale: refreshLottieScale }],
+        }}
+      >
+        {selectedLoadingAnim === 'default' ? (
+          <ActivityIndicator size="large" color={theme.primary} />
+        ) : (
+          <LottieView
+            ref={refreshLottieRef}
+            source={
+              selectedLoadingAnim === 'hamster'
+                ? require('../../assets/Run-Hamster.json')
+                : selectedLoadingAnim === 'amongus'
+                ? require('../../assets/Loading 50 _ Among Us.json')
+                : require('../../assets/Running-Cat.json')
+            }
+            autoPlay={false}
+            loop
+            style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+          />
+        )}
+      </Animated.View>
+
       {/* Main Content - flows to top like Twitter */}
       <Animated.ScrollView 
         style={styles.twitterContent} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
-
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
+        bounces={true}
+        alwaysBounceVertical={true}
+        onScrollEndDrag={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          if (y < -70 && !refreshing) {
+            onRefresh();
+          }
+        }}
       >
+        {/* Animated spacer for refresh animation */}
+        <Animated.View style={{ height: refreshSpacerHeight }} />
+
         {/* Beautiful Calendar Header */}
         <CalendarHeader />
 

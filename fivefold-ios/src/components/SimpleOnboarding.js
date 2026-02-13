@@ -36,7 +36,7 @@ import { db } from '../config/firebase';
 import { uploadProfilePicture } from '../services/storageService';
 import { updateLinkedAccountProfile } from '../services/accountSwitcherService';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
-import { sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
+import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -331,6 +331,7 @@ const SCREEN_THEMES = {
   theme: { bg: '#F3E5F5', accent: '#7B1FA2' },            // Purple - personalization
   notifications: { bg: '#E0F2F1', accent: '#00695C' },    // Teal
   verifyEmail: { bg: '#EDE7F6', accent: '#6C63FF' },      // Soft purple - trust/verify
+  setup2FA: { bg: '#E0F2F1', accent: '#00796B' },         // Teal - security
   howFound: { bg: '#EDE7F6', accent: '#5E35B1' },         // Purple
   gift: { bg: '#FCE4EC', accent: '#AD1457' },             // Pink
   paywall: { bg: '#E3F2FD', accent: '#1565C0' },          // Blue
@@ -454,6 +455,9 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [showSetupScreen, setShowSetupScreen] = useState(false);
   const [setupSteps, setSetupSteps] = useState([]);
   const [currentSetupStep, setCurrentSetupStep] = useState(-1);
+
+  // Track whether user verified email during onboarding (for showing 2FA setup)
+  const emailVerifiedDuringOnboarding = useRef(false);
 
   // Migration state
   const [hasExistingData, setHasExistingData] = useState(false);
@@ -590,6 +594,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'photo',
     'notifications',
     'verifyEmail',
+    'setup2FA',
     'howFound',
     'gift',
     'complete'
@@ -608,6 +613,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'photo',
     'notifications',
     'verifyEmail',
+    'setup2FA',
     'howFound',
     'gift',
     'complete'
@@ -2411,7 +2417,14 @@ const SimpleOnboarding = ({ onComplete }) => {
       return (
         <EmailVerificationScreen
           email={verifyMaskedEmail}
-          onDismiss={() => {
+          onDismiss={async () => {
+            // Check if user actually verified their email
+            try {
+              const verified = await refreshEmailVerificationStatus();
+              emailVerifiedDuringOnboarding.current = !!verified;
+            } catch (e) {
+              console.log('[Onboarding] Email verification check failed:', e);
+            }
             // After verification (success or skip), go to next onboarding step
             handleNext();
           }}
@@ -2510,6 +2523,327 @@ const SimpleOnboarding = ({ onComplete }) => {
               color: '#999',
               fontWeight: '500',
             }}>Skip for now</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
+  // SCREEN: Setup 2FA (Optional, after email verify)
+  // ============================================
+  const Setup2FAOnboardingScreen = () => {
+    const screenTheme = SCREEN_THEMES.setup2FA;
+    const [show2FAVerify, setShow2FAVerify] = useState(false);
+    const [twoFACode, setTwoFACode] = useState('');
+    const [twoFALoading, setTwoFALoading] = useState(false);
+    const [twoFAMaskedEmail, setTwoFAMaskedEmail] = useState('');
+    const [resendCooldown, setResendCooldown] = useState(0);
+
+    // If user didn't verify email, auto-skip this screen
+    useEffect(() => {
+      if (!emailVerifiedDuringOnboarding.current) {
+        handleNext();
+      }
+    }, []);
+
+    // Resend cooldown timer
+    useEffect(() => {
+      if (resendCooldown <= 0) return;
+      const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }, [resendCooldown]);
+
+    // Don't render anything if email wasn't verified (will auto-skip)
+    if (!emailVerifiedDuringOnboarding.current) {
+      return null;
+    }
+
+    if (show2FAVerify) {
+      return (
+        <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+          <ProgressBar screenTheme={screenTheme} />
+          
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+              <View style={{
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: screenTheme.accent + '18',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}>
+                <MaterialIcons name="lock" size={36} color={screenTheme.accent} />
+              </View>
+              
+              <Text style={{
+                fontSize: 22,
+                fontWeight: '800',
+                color: '#333',
+                textAlign: 'center',
+                marginBottom: 8,
+              }}>
+                Enter verification code
+              </Text>
+              
+              <Text style={{
+                fontSize: 15,
+                color: '#666',
+                textAlign: 'center',
+                lineHeight: 22,
+                marginBottom: 28,
+              }}>
+                We sent a 6-digit code to{'\n'}
+                <Text style={{ fontWeight: '700', color: '#333' }}>{twoFAMaskedEmail}</Text>
+              </Text>
+              
+              {/* Code Input */}
+              <View style={{
+                width: '100%',
+                backgroundColor: '#FFF',
+                borderRadius: 16,
+                paddingHorizontal: 20,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: twoFACode.length === 6 ? screenTheme.accent : '#E0E0E0',
+                marginBottom: 16,
+              }}>
+                <MaterialIcons name="lock-outline" size={20} color="#888" style={{ marginRight: 12 }} />
+                <TextInput
+                  style={{ flex: 1, fontSize: 22, color: '#333', fontWeight: '600', letterSpacing: 8 }}
+                  placeholder="000000"
+                  placeholderTextColor="#CCC"
+                  value={twoFACode}
+                  onChangeText={setTwoFACode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                />
+              </View>
+              
+              {/* Resend */}
+              <TouchableOpacity 
+                onPress={async () => {
+                  if (resendCooldown > 0) return;
+                  try {
+                    setTwoFALoading(true);
+                    await send2FASetupCode();
+                    hapticFeedback.success();
+                    setResendCooldown(60);
+                  } catch (err) {
+                    hapticFeedback.error();
+                    Alert.alert('Error', err.message || 'Failed to resend code.');
+                  } finally {
+                    setTwoFALoading(false);
+                  }
+                }}
+                disabled={resendCooldown > 0}
+                style={{ marginBottom: 24 }}
+              >
+                <Text style={{ fontSize: 14, color: resendCooldown > 0 ? '#BBB' : screenTheme.accent, fontWeight: '600' }}>
+                  {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Confirm Button */}
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  backgroundColor: screenTheme.accent,
+                  paddingVertical: 16,
+                  borderRadius: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: twoFALoading || twoFACode.length !== 6 ? 0.5 : 1,
+                  marginBottom: 16,
+                  shadowColor: screenTheme.accent,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+                disabled={twoFALoading || twoFACode.length !== 6}
+                onPress={async () => {
+                  try {
+                    setTwoFALoading(true);
+                    hapticFeedback.light();
+                    await confirm2FASetup(twoFACode);
+                    hapticFeedback.success();
+                    Alert.alert(
+                      'Two-Factor Enabled',
+                      'Your account is now more secure. A code will be sent to your email each time you sign in.',
+                      [{ text: 'Continue', onPress: () => handleNext() }]
+                    );
+                  } catch (err) {
+                    hapticFeedback.error();
+                    Alert.alert('Verification Failed', err.message || 'Incorrect code. Please try again.');
+                  } finally {
+                    setTwoFALoading(false);
+                  }
+                }}
+              >
+                {twoFALoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <MaterialIcons name="shield" size={20} color="#FFF" />
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF' }}>Enable Two-Factor</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  handleNext();
+                }}
+                activeOpacity={0.7}
+                style={{ paddingVertical: 12 }}
+              >
+                <Text style={{ fontSize: 15, color: '#999', fontWeight: '500' }}>Skip for now</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      );
+    }
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+        
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+          <View style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: screenTheme.accent + '18',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+            <MaterialIcons name="security" size={36} color={screenTheme.accent} />
+          </View>
+          
+          <Text style={{
+            fontSize: 26,
+            fontWeight: '800',
+            color: '#333',
+            textAlign: 'center',
+            marginBottom: 12,
+          }}>
+            Secure your account
+          </Text>
+          
+          <Text style={{
+            fontSize: 16,
+            color: '#666',
+            textAlign: 'center',
+            lineHeight: 24,
+            marginBottom: 12,
+            paddingHorizontal: 8,
+          }}>
+            Add two-factor authentication for extra protection. Each time you sign in, we'll send a code to your email.
+          </Text>
+          
+          <Text style={{
+            fontSize: 14,
+            color: '#999',
+            textAlign: 'center',
+            lineHeight: 20,
+            marginBottom: 36,
+            paddingHorizontal: 16,
+          }}>
+            This is optional, but recommended for keeping your account safe.
+          </Text>
+          
+          {/* Features list */}
+          <View style={{ width: '100%', marginBottom: 32, gap: 12 }}>
+            {[
+              { icon: 'mail-outline', text: 'Verification code sent to your email' },
+              { icon: 'lock-outline', text: 'Protects against unauthorised access' },
+              { icon: 'flash-on', text: 'Quick and easy — just 6 digits' },
+            ].map((item, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: screenTheme.accent + '15',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <MaterialIcons name={item.icon} size={18} color={screenTheme.accent} />
+                </View>
+                <Text style={{ fontSize: 15, color: '#444', fontWeight: '500', flex: 1 }}>{item.text}</Text>
+              </View>
+            ))}
+          </View>
+          
+          <TouchableOpacity
+            style={{
+              width: '100%',
+              backgroundColor: screenTheme.accent,
+              paddingVertical: 16,
+              borderRadius: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 16,
+              shadowColor: screenTheme.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+            onPress={async () => {
+              hapticFeedback.buttonPress();
+              try {
+                setTwoFALoading(true);
+                const result = await send2FASetupCode();
+                setTwoFAMaskedEmail(result.maskedEmail || user?.email || '');
+                setTwoFACode('');
+                setResendCooldown(60);
+                setShow2FAVerify(true);
+              } catch (err) {
+                hapticFeedback.error();
+                Alert.alert('Error', err.message || 'Failed to send code. You can set this up later in Settings.');
+              } finally {
+                setTwoFALoading(false);
+              }
+            }}
+            activeOpacity={0.8}
+            disabled={twoFALoading}
+          >
+            {twoFALoading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <MaterialIcons name="shield" size={20} color="#FFF" />
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF' }}>Set Up Two-Factor</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.buttonPress();
+              handleNext();
+            }}
+            activeOpacity={0.7}
+            style={{ paddingVertical: 12 }}
+          >
+            <Text style={{ fontSize: 15, color: '#999', fontWeight: '500' }}>Maybe later</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -3416,6 +3750,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'theme': return <ThemeScreen />;
       case 'notifications': return <NotificationsScreen />;
       case 'verifyEmail': return <VerifyEmailOnboardingScreen />;
+      case 'setup2FA': return <Setup2FAOnboardingScreen />;
       case 'howFound': return <HowFoundScreen />;
       case 'gift': return <GiftScreen />;
       case 'complete': return <CompleteScreen />;

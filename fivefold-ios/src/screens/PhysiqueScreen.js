@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import BodyMap3D from '../components/BodyMap3D';
 import physiqueService from '../services/physiqueService';
 import WorkoutService from '../services/workoutService';
@@ -37,6 +38,7 @@ const BODY_HEIGHT = Math.min(SCREEN_HEIGHT * 0.52, 520);
 const PhysiqueScreen = () => {
   const navigation = useNavigation();
   const { theme, isDark } = useTheme();
+  const { user, userProfile } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ const PhysiqueScreen = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [aiCoachText, setAiCoachText] = useState(null);
   const [aiCoachLoading, setAiCoachLoading] = useState(false);
+  const profileGenderLoaded = useRef(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(20)).current;
@@ -61,6 +64,20 @@ const PhysiqueScreen = () => {
   const loadScores = async () => {
     try {
       setLoading(true);
+
+      // Load nutrition profile for gender default + AI coach data
+      let nutritionProfile = null;
+      try {
+        nutritionProfile = await nutritionService.getProfile();
+        // Default 3D model gender to user's profile gender (only once)
+        if (nutritionProfile?.gender && !profileGenderLoaded.current) {
+          setGender(nutritionProfile.gender === 'female' ? 'female' : 'male');
+          profileGenderLoaded.current = true;
+        }
+      } catch (e) {
+        console.warn('[Physique] Could not load nutrition profile:', e.message);
+      }
+
       const history = await WorkoutService.getWorkoutHistory();
       await physiqueService.recalculate(history);
 
@@ -76,7 +93,7 @@ const PhysiqueScreen = () => {
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
 
       // Fire AI coach in the background (non-blocking)
-      generateAiCoachFeedback(currentScores, currentOverall, history);
+      generateAiCoachFeedback(currentScores, currentOverall, history, nutritionProfile);
     } catch (error) {
       console.warn('[Physique] Load failed:', error);
       setLoading(false);
@@ -84,7 +101,7 @@ const PhysiqueScreen = () => {
     }
   };
 
-  const generateAiCoachFeedback = async (currentScores, currentOverall, history) => {
+  const generateAiCoachFeedback = async (currentScores, currentOverall, history, nutritionProfile) => {
     try {
       setAiCoachLoading(true);
 
@@ -112,13 +129,42 @@ const PhysiqueScreen = () => {
 
       // ── Fetch body composition data ──
       let bodyCompData = null;
+      const profile = nutritionProfile || (await nutritionService.getProfile().catch(() => null));
       try {
-        const profile = await nutritionService.getProfile();
         if (profile && profile.weightKg && profile.heightCm) {
           bodyCompData = bodyCompositionService.calculate(profile);
         }
       } catch (e) {
         console.warn('[AI Coach] Could not load body comp:', e.message);
+      }
+
+      // ── Fetch today's nutrition / fuel data ──
+      let nutritionData = null;
+      try {
+        const todayKey = nutritionService.getDateKey();
+        const dailyProgress = await nutritionService.getDailyProgress(todayKey);
+        if (dailyProgress && dailyProgress.hasProfile) {
+          nutritionData = dailyProgress;
+        }
+      } catch (e) {
+        console.warn('[AI Coach] Could not load nutrition data:', e.message);
+      }
+
+      // ── Build user info from nutrition profile ──
+      const userName = userProfile?.displayName || user?.displayName || null;
+      let userInfo = null;
+      if (profile) {
+        userInfo = {
+          name: userName,
+          gender: profile.gender || null,
+          age: profile.age || null,
+          heightCm: profile.heightCm || null,
+          weightKg: profile.weightKg || null,
+          goal: profile.goal || null,
+          activityLevel: profile.activityLevel || null,
+        };
+      } else if (userName) {
+        userInfo = { name: userName };
       }
 
       const feedback = await productionAiService.generatePhysiqueCoachFeedback({
@@ -133,6 +179,8 @@ const PhysiqueScreen = () => {
         },
         totalWorkouts: history.length,
         bodyComposition: bodyCompData,
+        nutritionData,
+        userInfo,
       });
 
       if (feedback) {

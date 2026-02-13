@@ -35,27 +35,31 @@ const ANIM_REFERRAL_GATES = {
   bulb:      2,      // Bright Idea — 2 referrals
   lightning: 4,      // Lightning — 4 referrals
   redcar:    5,      // Red Car — 5 referrals
-  fire2:     5,      // Inferno — 5 referrals
+  fire2:    5,      // Inferno — 5 referrals
   amongus:   5,      // Among Us — 5 referrals
 };
 
 const THEME_REFERRAL_GATES = {
   'biblely-jesusnlambs': null,  // Jesus & Lambs — free
   'cresvia':             1,     // Cresvia — 1 referral
+  'eterna':              1,     // Eterna — 1 referral
   'blush-bloom':         3,     // Blush Bloom — 3 referrals
-  'eterna':              4,     // Eterna — 4 referrals
   'sailormoon':          5,     // Sailor Moon — 5 referrals
   'biblely-classic':     5,     // Classic — 5 referrals
-  'spiderman':           6,     // Spiderman — 6 referrals
-  'biblely-light':       8,     // Biblely — 8 referrals
+  'spiderman':           5,     // Spiderman — 5 referrals
+  'biblely-light':       5,     // Biblely — 5 referrals
 };
 
 const BADGE_REFERRAL_GATES = {
   country:  null,  // Country flag — free
-  verified: 3,     // Blue Tick — 3 referrals
-  streak:   6,     // Streak animation badge — 6 referrals
-  biblely:  10,    // Biblely Badge — 10 referrals
+  verified: 1,     // Blue Tick — 1 referral
+  streak:   5,     // Streak animation badge — 5 referrals
+  biblely:  5,     // Biblely Badge — 5 referrals
+  amongus:  5,     // Among Us badge — 5 referrals
 };
+
+// Voice referral gate — 1 referral unlocks all non-free voices
+const VOICE_REFERRAL_REQUIRED = 1;
 
 // ── Rarity tier helper ──────────────────────────────────────
 const getTier = (required) => {
@@ -72,6 +76,7 @@ const BADGES = [
   { id: 'verified', name: 'Blue Tick', desc: 'Verified badge next to your name', icon: 'verified', image: null, color: '#1DA1F2', gradient: ['#1DA1F2', '#0D8BD9'] },
   { id: 'streak', name: 'Streak Animation', desc: 'Show your streak animation as a badge', icon: 'local-fire-department', image: null, color: '#FF6B00', gradient: ['#FF6B00', '#FF9500'] },
   { id: 'biblely', name: 'Biblely Badge', desc: 'Exclusive founder-level badge', icon: null, image: require('../../assets/logo.png'), color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
+  { id: 'amongus', name: 'Among Us', desc: 'Among Us animation badge next to your name', icon: null, lottie: require('../../assets/Loading 50 _ Among Us.json'), color: '#4CAF50', gradient: ['#4CAF50', '#66BB6A'] },
 ];
 
 // ── Streak animation definitions (sorted by referral cost) ──
@@ -83,6 +88,22 @@ const STREAK_ANIMS = [
   { id: 'fire2',     name: 'Inferno',      source: require('../../assets/Fire2.json'),                 colors: ['#FF3D00', '#FF6E40'] },
   { id: 'amongus',   name: 'Among Us',     source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'] },
 ];
+
+// ── Loading animation definitions ────────────────────────────
+const LOADING_ANIM_KEY = 'fivefold_loading_animation';
+const LOADING_ANIMS = [
+  { id: 'default',  name: 'Default',      source: null,                                               colors: ['#6366F1', '#818CF8'], icon: 'sync' },
+  { id: 'cat',      name: 'Running Cat',  source: require('../../assets/Running-Cat.json'),           colors: ['#795548', '#A1887F'], icon: null },
+  { id: 'hamster',  name: 'Run Hamster',  source: require('../../assets/Run-Hamster.json'),           colors: ['#FF9800', '#FFB74D'], icon: null },
+  { id: 'amongus',  name: 'Among Us',     source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'], icon: null },
+];
+
+const LOADING_ANIM_REFERRAL_GATES = {
+  default:  null,   // Default spinner — free
+  cat:      1,      // Running Cat — 1 referral
+  hamster:  3,      // Run Hamster — 3 referrals
+  amongus:  5,      // Among Us — 5 referrals
+};
 
 // ═══════════════════════════════════════════════════════════════
 const CustomisationScreen = () => {
@@ -96,6 +117,7 @@ const CustomisationScreen = () => {
   } = useTheme();
 
   const [selectedAnim, setSelectedAnim] = useState('fire1');
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
   const [badgeToggles, setBadgeToggles] = useState({});
   const [referralCount, setReferralCount] = useState(0);
 
@@ -106,7 +128,7 @@ const CustomisationScreen = () => {
 
   // Entrance animations — staggered sections
   const headerFade = useRef(new Animated.Value(0)).current;
-  const sections = useRef([...Array(5)].map(() => new Animated.Value(0))).current;
+  const sections = useRef([...Array(7)].map(() => new Animated.Value(0))).current;
 
   // Shimmer for referral banner
   const shimmer = useRef(new Animated.Value(0)).current;
@@ -132,13 +154,15 @@ const CustomisationScreen = () => {
 
   const load = async () => {
     try {
-      const [animId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
+      const [animId, loadingAnimId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
         userStorage.getRaw(STREAK_ANIM_KEY),
+        userStorage.getRaw(LOADING_ANIM_KEY),
         userStorage.getRaw('fivefold_badge_toggles'),
         userStorage.getRaw(BLUETICK_ENABLED_KEY),
         getReferralCount(),
       ]);
       if (animId) setSelectedAnim(animId);
+      if (loadingAnimId) setSelectedLoadingAnim(loadingAnimId);
       setReferralCount(count);
 
       let toggles = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : null;
@@ -187,6 +211,17 @@ const CustomisationScreen = () => {
     await userStorage.setRaw(STREAK_ANIM_KEY, id);
   };
 
+  const pickLoadingAnim = async (id) => {
+    const required = LOADING_ANIM_REFERRAL_GATES[id];
+    if (!isItemUnlocked(required)) {
+      const anim = LOADING_ANIMS.find(a => a.id === id);
+      showLockedPopup(anim?.name || 'Animation', required);
+      return;
+    }
+    setSelectedLoadingAnim(id);
+    await userStorage.setRaw(LOADING_ANIM_KEY, id);
+  };
+
   const toggleBadge = async (badgeId, val) => {
     const updated = { ...badgeToggles, [badgeId]: val };
     setBadgeToggles(updated);
@@ -214,8 +249,8 @@ const CustomisationScreen = () => {
   const allThemes = [
     { id: 'biblely-jesusnlambs', name: 'Jesus & Lambs', wallpaper: biblelyWallpapers?.[1]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 1, isBiblelyVariant: true, wallpaperIndex: 1, mode: 'Dark' },
     { id: 'cresvia',            name: 'Cresvia',        wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme, mode: 'Dark' },
-    { id: 'blush-bloom',        name: 'Blush Bloom',   wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme, mode: 'Light' },
     { id: 'eterna',             name: 'Eterna',         wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme, mode: 'Light' },
+    { id: 'blush-bloom',        name: 'Blush Bloom',   wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme, mode: 'Light' },
     { id: 'sailormoon',         name: 'Sailor Moon',    wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme, mode: 'Light' },
     { id: 'biblely-classic',    name: 'Classic',         wallpaper: biblelyWallpapers?.[2]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 2, isBiblelyVariant: true, wallpaperIndex: 2, mode: 'Dark' },
     { id: 'spiderman',          name: 'Spiderman',      wallpaper: themeWallpapers?.['spiderman'], isActive: isSpidermanTheme, mode: 'Dark' },
@@ -239,18 +274,9 @@ const CustomisationScreen = () => {
   // ═══════════════════════════════════════════════════════════
   return (
     <View style={[st.root, { backgroundColor: bg }]}>
-      {/* Header */}
-      <Animated.View style={[st.header, { opacity: headerFade }]}>
-        <TouchableOpacity onPress={() => { if (navigation.canGoBack()) navigation.goBack(); }} style={[st.backBtn, { backgroundColor: cardBg, borderColor: bdr }]}>
-          <MaterialIcons name="arrow-back-ios" size={18} color={tx} style={{ marginLeft: 4 }} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={[st.headerTitle, { color: tx }]}>Customisation</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Animated.View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[st.scroll, { paddingTop: Platform.OS === 'ios' ? 108 : 78 }]} showsVerticalScrollIndicator={false}>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+
 
         {/* ── Referral count banner with shimmer ─────── */}
         <AnimSection anim={sections[0]}>
@@ -337,8 +363,98 @@ const CustomisationScreen = () => {
           </View>
         </AnimSection>
 
-        {/* ── BADGES ──────────────────────────────────── */}
+        {/* ── LOADING ANIMATION ────────────────────────── */}
         <AnimSection anim={sections[2]}>
+          <SectionHeader icon="hourglass-empty" iconBg="#6366F120" iconColor="#6366F1" title="Loading Animation" subtitle="Pull-to-refresh effect" textColor={tx} subtitleColor={tx2} />
+
+          <View style={st.animGrid}>
+            {LOADING_ANIMS.map((a) => {
+              const required = LOADING_ANIM_REFERRAL_GATES[a.id];
+              const unlocked = isItemUnlocked(required);
+              const active = selectedLoadingAnim === a.id;
+              const tier = getTier(required);
+
+              return (
+                <TouchableOpacity
+                  key={a.id}
+                  activeOpacity={0.8}
+                  onPress={() => pickLoadingAnim(a.id)}
+                  style={[st.animCard, {
+                    borderColor: active && unlocked ? a.colors[0] : bdr,
+                    borderWidth: active && unlocked ? 2.5 : 1,
+                    backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
+                  }]}
+                >
+                  {/* Top gradient strip */}
+                  <LinearGradient colors={active && unlocked ? a.colors : [bdr, bdr]} style={st.animStrip} />
+
+                  {/* Preview — Lottie or spinner icon */}
+                  <View style={st.animLottie}>
+                    {a.source ? (
+                      <LottieView source={a.source} autoPlay loop style={{ width: 90, height: 90 }} />
+                    ) : (
+                      <View style={{
+                        width: 90,
+                        height: 90,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <View style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 26,
+                          borderWidth: 3,
+                          borderColor: isDark ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.3)',
+                          borderTopColor: '#6366F1',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <MaterialIcons name="sync" size={24} color="#6366F1" />
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Name */}
+                  <Text style={[st.animName, { color: tx }]} numberOfLines={1}>{a.name}</Text>
+
+                  {/* Tier badge */}
+                  <View style={[st.tierBadge, { backgroundColor: tier.bg }]}>
+                    <Text style={[st.tierText, { color: tier.color }]}>{tier.label}</Text>
+                  </View>
+
+                  {/* Lock overlay */}
+                  {!unlocked && (
+                    <View style={st.animLockWrap}>
+                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
+                        <View style={st.lockIconCircle}>
+                          <MaterialIcons name="lock" size={20} color="#fff" />
+                        </View>
+                      </LinearGradient>
+                      <View style={st.animGateBadge}>
+                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
+                        <Text style={st.animGateText}>{required} referrals</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Active checkmark */}
+                  {active && unlocked && (
+                    <View style={st.animActiveWrap}>
+                      <LinearGradient colors={a.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.activeBadge}>
+                        <MaterialIcons name="check" size={12} color="#fff" />
+                        <Text style={st.activeText}>Active</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </AnimSection>
+
+        {/* ── BADGES ──────────────────────────────────── */}
+        <AnimSection anim={sections[3]}>
           <SectionHeader icon="workspace-premium" iconBg="#F59E0B20" iconColor="#F59E0B" title="Badges" subtitle="Show off next to your name" textColor={tx} subtitleColor={tx2} />
 
           <View style={{ gap: 12 }}>
@@ -377,7 +493,9 @@ const CustomisationScreen = () => {
                   style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: badge.color + '25' }]}
                 >
                   <LinearGradient colors={badge.gradient} style={st.badgeIconGrad}>
-                    {badge.image ? (
+                    {badge.lottie ? (
+                      <LottieView source={badge.lottie} autoPlay loop style={{ width: 32, height: 32 }} />
+                    ) : badge.image ? (
                       <Image source={badge.image} style={{ width: 28, height: 28, borderRadius: 6 }} resizeMode="contain" />
                     ) : (
                       <MaterialIcons name={badge.icon} size={24} color="#fff" />
@@ -406,8 +524,83 @@ const CustomisationScreen = () => {
           </View>
         </AnimSection>
 
+        {/* ── VOICES ──────────────────────────────────── */}
+        <AnimSection anim={sections[4]}>
+          <SectionHeader icon="record-voice-over" iconBg="#00BCD420" iconColor="#00BCD4" title="Voices" subtitle="Bible reading voice packs" textColor={tx} subtitleColor={tx2} />
+
+          {(() => {
+            const vUnlocked = isItemUnlocked(VOICE_REFERRAL_REQUIRED);
+            const vTier = getTier(VOICE_REFERRAL_REQUIRED);
+            const freeTier = getTier(null);
+
+            return (
+              <View style={{ gap: 12 }}>
+                {/* Free voices card */}
+                <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#10B98125' }]}>
+                  <LinearGradient colors={['#10B981', '#059669']} style={st.badgeIconGrad}>
+                    <MaterialIcons name="mic" size={24} color="#fff" />
+                  </LinearGradient>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={[st.badgeName, { color: tx }]}>Studio & Device</Text>
+                      <View style={[st.tierBadgeSmall, { backgroundColor: freeTier.bg }]}>
+                        <Text style={[st.tierTextSmall, { color: freeTier.color }]}>FREE</Text>
+                      </View>
+                    </View>
+                    <Text style={[st.badgeDesc, { color: tx2 }]}>
+                      2 premium studio voices + all device voices
+                    </Text>
+                  </View>
+                  <MaterialIcons name="check-circle" size={24} color="#10B981" />
+                </View>
+
+                {/* Locked voices card */}
+                {!vUnlocked ? (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => showLockedPopup('All Voices', VOICE_REFERRAL_REQUIRED)}
+                    style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
+                  >
+                    <LinearGradient colors={['rgba(80,80,80,0.4)', 'rgba(60,60,60,0.4)']} style={st.badgeIconGrad}>
+                      <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
+                    </LinearGradient>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <Text style={[st.badgeName, { color: tx, opacity: 0.5 }]}>Neural, WaveNet & More</Text>
+                      <Text style={[st.badgeDesc, { color: tx2, opacity: 0.5 }]}>
+                        35+ extra voices with accents & styles
+                      </Text>
+                    </View>
+                    <View style={[st.badgeGateChip, { backgroundColor: vTier.bg, borderColor: vTier.color + '25', borderWidth: 1 }]}>
+                      <MaterialIcons name="person-add" size={12} color={vTier.color} />
+                      <Text style={[st.badgeGateChipText, { color: vTier.color }]}>1 referral</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#60A5FA25' }]}>
+                    <LinearGradient colors={['#60A5FA', '#3B82F6']} style={st.badgeIconGrad}>
+                      <MaterialIcons name="graphic-eq" size={24} color="#fff" />
+                    </LinearGradient>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[st.badgeName, { color: tx }]}>Neural, WaveNet & More</Text>
+                        <View style={[st.tierBadgeSmall, { backgroundColor: vTier.bg }]}>
+                          <Text style={[st.tierTextSmall, { color: vTier.color }]}>{vTier.label}</Text>
+                        </View>
+                      </View>
+                      <Text style={[st.badgeDesc, { color: tx2 }]}>
+                        35+ extra voices unlocked
+                      </Text>
+                    </View>
+                    <MaterialIcons name="check-circle" size={24} color="#60A5FA" />
+                  </View>
+                )}
+              </View>
+            );
+          })()}
+        </AnimSection>
+
         {/* ── THEMES ──────────────────────────────────── */}
-        <AnimSection anim={sections[3]}>
+        <AnimSection anim={sections[5]}>
           <SectionHeader icon="palette" iconBg={`${theme.primary}20`} iconColor={theme.primary} title="Themes" subtitle="Change your app's look" textColor={tx} subtitleColor={tx2} />
 
           <View style={st.themeGrid}>
@@ -470,7 +663,7 @@ const CustomisationScreen = () => {
         </AnimSection>
 
         {/* ── APP ICON ─────────────────────────────────────── */}
-        <AnimSection anim={sections[4]}>
+        <AnimSection anim={sections[6]}>
           <SectionHeader icon="phone-iphone" iconBg="#6366F120" iconColor="#6366F1" title="App Icon" subtitle="Customise your home screen icon" textColor={tx} subtitleColor={tx2} />
 
           <View style={{
@@ -514,6 +707,61 @@ const CustomisationScreen = () => {
 
         <View style={{ height: 50 }} />
       </ScrollView>
+
+      {/* Premium Transparent Header */}
+      <BlurView
+        intensity={50}
+        tint={isDark ? 'dark' : 'light'}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+        }}
+      >
+        <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+        <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4, opacity: headerFade }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => { if (navigation.canGoBack()) navigation.goBack(); }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+            </TouchableOpacity>
+
+            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+              <Text
+                style={{
+                  color: tx,
+                  fontSize: 17,
+                  fontWeight: '700',
+                  letterSpacing: 0.3,
+                }}
+              >
+                Customisation
+              </Text>
+            </View>
+
+            <View style={{ width: 40 }} />
+          </View>
+        </Animated.View>
+      </BlurView>
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* ── LOCKED POPUP MODAL ────────────────────────────── */}
@@ -608,18 +856,7 @@ const SectionHeader = ({ icon, iconBg, iconColor, title, subtitle, textColor, su
 const st = StyleSheet.create({
   root: { flex: 1 },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingHorizontal: 16, paddingBottom: 12,
-  },
-  backBtn: {
-    width: 44, height: 44, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-
-  scroll: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
   // Referral banner
   referralBanner: {

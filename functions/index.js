@@ -13,6 +13,19 @@
  *
  * resetPasswordWithCode – verifies the OTP and resets the user's
  *   password server-side via Firebase Admin SDK.
+ *
+ * send2FASetupCode – (authenticated) sends a 6-digit code to confirm
+ *   enabling two-factor authentication.
+ *
+ * confirm2FASetup – (authenticated) verifies the setup code and sets
+ *   twoFactorEnabled: true on the user's Firestore doc.
+ *
+ * disable2FA – (authenticated) sets twoFactorEnabled: false.
+ *
+ * send2FALoginCode – (authenticated) sends a 2FA code during login
+ *   for users with 2FA enabled.
+ *
+ * verify2FALoginCode – (unauthenticated) verifies the 2FA login code.
  */
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -396,5 +409,338 @@ exports.resetPasswordWithCode = onCall({ maxInstances: 10 }, async (request) => 
     throw new HttpsError('internal', 'Failed to reset password. Please try again.');
   }
 
+  return { success: true };
+});
+
+// ─── 2FA Email Templates ─────────────────────────────────────────
+
+function build2FALoginHTML(code, displayName) {
+  const name = displayName || 'there';
+  return `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">
+  <p>Hey ${name},</p>
+  <p>Your Biblely login verification code is:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:8px;font-family:'Courier New',monospace;margin:24px 0;">${code}</p>
+  <p>This code expires in 10 minutes. Do not share it with anyone.</p>
+  <p style="color:#999;font-size:13px;margin-top:24px;">If you didn't try to sign in to Biblely, someone may be trying to access your account. Consider changing your password.</p>
+</body></html>`;
+}
+
+function build2FASetupHTML(code, displayName) {
+  const name = displayName || 'there';
+  return `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">
+  <p>Hey ${name},</p>
+  <p>Your code to enable two-factor authentication is:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:8px;font-family:'Courier New',monospace;margin:24px 0;">${code}</p>
+  <p>This code expires in 10 minutes. Do not share it with anyone.</p>
+  <p style="color:#999;font-size:13px;margin-top:24px;">If you didn't request this, ignore this email.</p>
+</body></html>`;
+}
+
+// ─── send2FASetupCode ─────────────────────────────────────────────
+// Authenticated — sends a code to confirm enabling 2FA.
+// Requires email to be verified first.
+
+exports.send2FASetupCode = onCall({ maxInstances: 10 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const uid = request.auth.uid;
+  const email = request.auth.token.email;
+
+  if (!email) {
+    throw new HttpsError('failed-precondition', 'No email address on this account.');
+  }
+
+  // Must have verified email
+  if (!request.auth.token.email_verified) {
+    throw new HttpsError('failed-precondition', 'You must verify your email before enabling two-factor authentication.');
+  }
+
+  // Check if already enabled
+  const userDoc = await db.collection('users').doc(uid).get();
+  if (userDoc.exists && userDoc.data().twoFactorEnabled) {
+    throw new HttpsError('already-exists', 'Two-factor authentication is already enabled.');
+  }
+
+  // Rate limit: one code per 60 seconds
+  const codeRef = db.collection('twoFactorSetupCodes').doc(uid);
+  const existing = await codeRef.get();
+
+  if (existing.exists) {
+    const data = existing.data();
+    const lastSent = data.sentAt?.toMillis?.() || 0;
+    const elapsed = Date.now() - lastSent;
+    if (elapsed < 60000) {
+      const wait = Math.ceil((60000 - elapsed) / 1000);
+      throw new HttpsError(
+        'resource-exhausted',
+        `Please wait ${wait} seconds before requesting another code.`
+      );
+    }
+  }
+
+  // Generate + hash
+  const code = generateCode();
+  const hash = hashCode(code);
+
+  // Store in Firestore
+  await codeRef.set({
+    codeHash: hash,
+    email: email,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    attempts: 0,
+    sentAt: FieldValue.serverTimestamp(),
+  });
+
+  // Get display name
+  let displayName = 'there';
+  try {
+    const userRecord = await authAdmin.getUser(uid);
+    displayName = userRecord.displayName || 'there';
+  } catch (_) {}
+
+  // Send email
+  try {
+    const r = getResend();
+    await r.emails.send({
+      from: 'Biblely <noreply@biblely.uk>',
+      reply_to: 'noreply@biblely.uk',
+      to: [email],
+      subject: `${code} is your Biblely two-factor setup code`,
+      html: build2FASetupHTML(code, displayName),
+      text: `Hey ${displayName},\n\nYour code to enable two-factor authentication is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you didn't request this, ignore this email.`,
+    });
+  } catch (emailError) {
+    console.error('[send2FASetupCode] Email send failed:', emailError);
+    throw new HttpsError('internal', 'Failed to send verification email. Please try again.');
+  }
+
+  return { success: true, maskedEmail: maskEmail(email) };
+});
+
+// ─── confirm2FASetup ──────────────────────────────────────────────
+// Authenticated — verifies the setup code and enables 2FA.
+
+exports.confirm2FASetup = onCall({ maxInstances: 10 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const uid = request.auth.uid;
+  const code = String(request.data?.code || '').trim();
+
+  if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid 6-digit code.');
+  }
+
+  const codeRef = db.collection('twoFactorSetupCodes').doc(uid);
+  const codeDoc = await codeRef.get();
+
+  if (!codeDoc.exists) {
+    throw new HttpsError('not-found', 'No setup code found. Please request a new one.');
+  }
+
+  const data = codeDoc.data();
+
+  // Check expiry
+  const expiresAt = data.expiresAt?.toMillis?.() || 0;
+  if (Date.now() > expiresAt) {
+    await codeRef.delete();
+    throw new HttpsError('deadline-exceeded', 'This code has expired. Please request a new one.');
+  }
+
+  // Check attempts
+  if ((data.attempts || 0) >= 5) {
+    await codeRef.delete();
+    throw new HttpsError('resource-exhausted', 'Too many incorrect attempts. Please request a new code.');
+  }
+
+  // Increment attempts
+  await codeRef.update({ attempts: FieldValue.increment(1) });
+
+  // Verify hash
+  const inputHash = hashCode(code);
+  if (inputHash !== data.codeHash) {
+    const remaining = 4 - (data.attempts || 0);
+    throw new HttpsError(
+      'permission-denied',
+      remaining > 0
+        ? `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+        : 'Incorrect code. Please request a new one.'
+    );
+  }
+
+  // Code correct — enable 2FA
+  await db.collection('users').doc(uid).set(
+    { twoFactorEnabled: true },
+    { merge: true }
+  );
+
+  // Clean up
+  await codeRef.delete();
+
+  console.log('[confirm2FASetup] 2FA enabled for user:', uid);
+  return { success: true, twoFactorEnabled: true };
+});
+
+// ─── disable2FA ───────────────────────────────────────────────────
+// Authenticated — disables two-factor authentication.
+
+exports.disable2FA = onCall({ maxInstances: 10 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const uid = request.auth.uid;
+
+  await db.collection('users').doc(uid).set(
+    { twoFactorEnabled: false },
+    { merge: true }
+  );
+
+  console.log('[disable2FA] 2FA disabled for user:', uid);
+  return { success: true, twoFactorEnabled: false };
+});
+
+// ─── send2FALoginCode ─────────────────────────────────────────────
+// Authenticated — sends a 2FA verification code during the login flow.
+// Called right after signInWithEmailAndPassword when user has 2FA enabled.
+
+exports.send2FALoginCode = onCall({ maxInstances: 10 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const uid = request.auth.uid;
+  const email = request.auth.token.email;
+
+  if (!email) {
+    throw new HttpsError('failed-precondition', 'No email address on this account.');
+  }
+
+  // Rate limit: one code per 60 seconds
+  const emailKey = hashCode(email);
+  const codeRef = db.collection('twoFactorLoginCodes').doc(emailKey);
+  const existing = await codeRef.get();
+
+  if (existing.exists) {
+    const data = existing.data();
+    const lastSent = data.sentAt?.toMillis?.() || 0;
+    const elapsed = Date.now() - lastSent;
+    if (elapsed < 60000) {
+      const wait = Math.ceil((60000 - elapsed) / 1000);
+      throw new HttpsError(
+        'resource-exhausted',
+        `Please wait ${wait} seconds before requesting another code.`
+      );
+    }
+  }
+
+  // Generate + hash
+  const code = generateCode();
+  const hash = hashCode(code);
+
+  // Store in Firestore (keyed by email hash so verify2FALoginCode can look it up)
+  await codeRef.set({
+    codeHash: hash,
+    uid: uid,
+    email: email,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    attempts: 0,
+    sentAt: FieldValue.serverTimestamp(),
+  });
+
+  // Get display name
+  let displayName = 'there';
+  try {
+    const userRecord = await authAdmin.getUser(uid);
+    displayName = userRecord.displayName || 'there';
+  } catch (_) {}
+
+  // Send email
+  try {
+    const r = getResend();
+    await r.emails.send({
+      from: 'Biblely <noreply@biblely.uk>',
+      reply_to: 'noreply@biblely.uk',
+      to: [email],
+      subject: `${code} is your Biblely login code`,
+      html: build2FALoginHTML(code, displayName),
+      text: `Hey ${displayName},\n\nYour Biblely login verification code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you didn't try to sign in to Biblely, someone may be trying to access your account. Consider changing your password.`,
+    });
+  } catch (emailError) {
+    console.error('[send2FALoginCode] Email send failed:', emailError);
+    throw new HttpsError('internal', 'Failed to send login code. Please try again.');
+  }
+
+  console.log('[send2FALoginCode] Code sent to', maskEmail(email));
+  return { success: true, maskedEmail: maskEmail(email) };
+});
+
+// ─── verify2FALoginCode ──────────────────────────────────────────
+// Unauthenticated — verifies the 2FA code during login.
+// Called after the user signed out (2FA check signs them out), so
+// this function is unauthenticated and uses email to look up the code.
+
+exports.verify2FALoginCode = onCall({ maxInstances: 10 }, async (request) => {
+  const email = String(request.data?.email || '').trim().toLowerCase();
+  const code = String(request.data?.code || '').trim();
+
+  if (!email || !email.includes('@')) {
+    throw new HttpsError('invalid-argument', 'Please provide a valid email address.');
+  }
+  if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid 6-digit code.');
+  }
+
+  const emailKey = hashCode(email);
+  const codeRef = db.collection('twoFactorLoginCodes').doc(emailKey);
+  const codeDoc = await codeRef.get();
+
+  if (!codeDoc.exists) {
+    throw new HttpsError('not-found', 'No login code found. Please try signing in again.');
+  }
+
+  const data = codeDoc.data();
+
+  // Check expiry
+  const expiresAt = data.expiresAt?.toMillis?.() || 0;
+  if (Date.now() > expiresAt) {
+    await codeRef.delete();
+    throw new HttpsError('deadline-exceeded', 'This code has expired. Please try signing in again.');
+  }
+
+  // Check attempts
+  if ((data.attempts || 0) >= 5) {
+    await codeRef.delete();
+    throw new HttpsError('resource-exhausted', 'Too many incorrect attempts. Please try signing in again.');
+  }
+
+  // Increment attempts
+  await codeRef.update({ attempts: FieldValue.increment(1) });
+
+  // Verify hash
+  const inputHash = hashCode(code);
+  if (inputHash !== data.codeHash) {
+    const remaining = 4 - (data.attempts || 0);
+    throw new HttpsError(
+      'permission-denied',
+      remaining > 0
+        ? `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+        : 'Incorrect code. Please try signing in again.'
+    );
+  }
+
+  // Code correct — clean up
+  await codeRef.delete();
+
+  console.log('[verify2FALoginCode] 2FA verified for', maskEmail(email));
   return { success: true };
 });

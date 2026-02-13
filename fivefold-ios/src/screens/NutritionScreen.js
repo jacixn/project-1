@@ -301,6 +301,13 @@ const NutritionScreen = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // Always load unit preferences (even before profile exists)
+      const storedWU = await userStorage.getRaw('weightUnit');
+      const storedHU = await userStorage.getRaw('heightUnit');
+      if (storedWU) setWeightUnit(storedWU);
+      if (storedHU) setHeightUnit(storedHU);
+
       const p = await nutritionService.getProfile();
       setProfile(p);
 
@@ -963,42 +970,42 @@ const NutritionScreen = () => {
             </View>
           )}
 
-          {/* Birthday + Height in a row */}
-          <View style={styles.formRow}>
-            <View style={styles.formRowItem}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Birthday</Text>
-              <TouchableOpacity
-                style={[styles.input, styles.birthdayInput, { backgroundColor: inputBg, borderColor: cardBorder }]}
-                onPress={() => setShowDatePicker(true)}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="cake" size={16} color={formBirthday ? theme.primary : textTertiary} />
-                <Text style={[styles.birthdayText, { color: formBirthday ? textPrimary : textTertiary }]}>
-                  {formBirthday
-                    ? formBirthday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'Select'}
-                </Text>
-                {calculatedAge != null && (
-                  <View style={[styles.ageBadge, { backgroundColor: theme.primary + '18' }]}>
-                    <Text style={[styles.ageBadgeText, { color: theme.primary }]}>{calculatedAge}y</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={formBirthday || new Date(2000, 0, 1)}
-                  mode="date"
-                  display="spinner"
-                  maximumDate={new Date()}
-                  minimumDate={new Date(1920, 0, 1)}
-                  onChange={(event, selectedDate) => {
-                    if (Platform.OS === 'android') setShowDatePicker(false);
-                    if (selectedDate) setFormBirthday(selectedDate);
-                  }}
-                  themeVariant={isDark ? 'dark' : 'light'}
-                />
-              )}
-              {Platform.OS === 'ios' && showDatePicker && (
+          {/* Birthday */}
+          <Text style={[styles.fieldLabel, { color: textSecondary }]}>Birthday</Text>
+          <TouchableOpacity
+            style={[styles.input, styles.birthdayInput, { backgroundColor: inputBg, borderColor: cardBorder }]}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="cake" size={18} color={formBirthday ? theme.primary : textTertiary} />
+            <Text style={[styles.birthdayText, { color: formBirthday ? textPrimary : textTertiary }]}>
+              {formBirthday
+                ? formBirthday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                : 'Tap to select your birthday'}
+            </Text>
+            {calculatedAge != null && (
+              <View style={[styles.ageBadge, { backgroundColor: theme.primary + '18' }]}>
+                <Text style={[styles.ageBadgeText, { color: theme.primary }]}>{calculatedAge}y</Text>
+              </View>
+            )}
+            <MaterialIcons name={showDatePicker ? 'expand-less' : 'expand-more'} size={20} color={textTertiary} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <View style={[styles.datePickerContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: cardBorder }]}>
+              <DateTimePicker
+                value={formBirthday || new Date(2000, 0, 1)}
+                mode="date"
+                display="spinner"
+                maximumDate={new Date()}
+                minimumDate={new Date(1920, 0, 1)}
+                onChange={(event, selectedDate) => {
+                  if (Platform.OS === 'android') setShowDatePicker(false);
+                  if (selectedDate) setFormBirthday(selectedDate);
+                }}
+                themeVariant={isDark ? 'dark' : 'light'}
+                style={{ height: 150 }}
+              />
+              {Platform.OS === 'ios' && (
                 <TouchableOpacity
                   style={[styles.datePickerDone, { backgroundColor: theme.primary }]}
                   onPress={() => setShowDatePicker(false)}
@@ -1007,32 +1014,40 @@ const NutritionScreen = () => {
                 </TouchableOpacity>
               )}
             </View>
+          )}
+
+          {/* Height + Body Fat in a row */}
+          <View style={styles.formRow}>
             <View style={styles.formRowItem}>
               <Text style={[styles.fieldLabel, { color: textSecondary }]}>
-                {heightUnit === 'ft' ? 'Height (ft / in)' : 'Height (cm)'}
+                {heightUnit === 'ft' ? 'Height' : 'Height (cm)'}
               </Text>
               {heightUnit === 'ft' ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder, flex: 1 }]}
-                    value={formHeight}
-                    onChangeText={setFormHeight}
-                    keyboardType="number-pad"
-                    placeholder="5"
-                    placeholderTextColor={textTertiary}
-                    maxLength={1}
-                  />
-                  <Text style={{ color: textSecondary, fontSize: 14, fontWeight: '500' }}>ft</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder, flex: 1 }]}
-                    value={formHeightInches}
-                    onChangeText={setFormHeightInches}
-                    keyboardType="number-pad"
-                    placeholder="9"
-                    placeholderTextColor={textTertiary}
-                    maxLength={2}
-                  />
-                  <Text style={{ color: textSecondary, fontSize: 14, fontWeight: '500' }}>in</Text>
+                <View style={styles.ftInRow}>
+                  <View style={styles.ftInInputWrap}>
+                    <TextInput
+                      style={[styles.input, styles.ftInInput, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
+                      value={formHeight}
+                      onChangeText={setFormHeight}
+                      keyboardType="number-pad"
+                      placeholder="5"
+                      placeholderTextColor={textTertiary}
+                      maxLength={1}
+                    />
+                    <Text style={[styles.ftInLabel, { color: textTertiary }]}>ft</Text>
+                  </View>
+                  <View style={styles.ftInInputWrap}>
+                    <TextInput
+                      style={[styles.input, styles.ftInInput, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
+                      value={formHeightInches}
+                      onChangeText={setFormHeightInches}
+                      keyboardType="number-pad"
+                      placeholder="9"
+                      placeholderTextColor={textTertiary}
+                      maxLength={2}
+                    />
+                    <Text style={[styles.ftInLabel, { color: textTertiary }]}>in</Text>
+                  </View>
                 </View>
               ) : (
                 <TextInput
@@ -1046,21 +1061,21 @@ const NutritionScreen = () => {
                 />
               )}
             </View>
+            <View style={styles.formRowItem}>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>
+                Body Fat % <Text style={{ color: textTertiary, fontSize: 10 }}>(optional)</Text>
+              </Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
+                value={formBodyFat}
+                onChangeText={setFormBodyFat}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 18"
+                placeholderTextColor={textTertiary}
+                maxLength={4}
+              />
+            </View>
           </View>
-
-          {/* Body Fat */}
-          <Text style={[styles.fieldLabel, { color: textSecondary }]}>
-            Body Fat % <Text style={{ color: textTertiary, fontSize: 11 }}>(optional, improves accuracy)</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
-            value={formBodyFat}
-            onChangeText={setFormBodyFat}
-            keyboardType="decimal-pad"
-            placeholder="e.g. 18"
-            placeholderTextColor={textTertiary}
-            maxLength={4}
-          />
         </View>
 
         {/* ── Section: Weight Goal ── */}
@@ -1437,39 +1452,7 @@ const NutritionScreen = () => {
           )}
         </Animated.View>
 
-        {/* ── Card 4: Favorites ── */}
-        {favorites.length > 0 && (
-          <Animated.View
-            style={[
-              styles.card,
-              {
-                backgroundColor: cardBg,
-                borderColor: cardBorder,
-                opacity: cardFadeAnims[4],
-                transform: [{ translateY: cardSlideAnims[4] }],
-                ...(!isDark && styles.cardShadow),
-              },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: textPrimary, marginBottom: 14 }]}>Quick Add</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {favorites.slice(0, 10).map((fav) => (
-                <TouchableOpacity
-                  key={fav.id}
-                  style={[styles.favChip, {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8F9FC',
-                    borderColor: cardBorder,
-                  }]}
-                  onPress={() => handleAddFromFavorite(fav)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.favChipName, { color: textPrimary }]}>{fav.name}</Text>
-                  <Text style={[styles.favChipCal, { color: textTertiary }]}>{fav.calories} cal</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Animated.View>
-        )}
+        {/* Quick Add card removed */}
 
         <View style={{ height: 90 }} />
       </Animated.View>
@@ -1694,6 +1677,28 @@ const NutritionScreen = () => {
                     ) : null}
                   </Animated.View>
 
+                  {/* Add to Log button — above calories */}
+                  <Animated.View style={{
+                    opacity: scanActionsOpacity,
+                    transform: [{ translateY: scanActionsSlide }],
+                  }}>
+                    <TouchableOpacity
+                      style={[styles.scanSaveBtn]}
+                      onPress={handleSaveFood}
+                      activeOpacity={0.85}
+                    >
+                      <LinearGradient
+                        colors={['#6366F1', '#8B5CF6']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.scanSaveBtnGradient}
+                      >
+                        <MaterialIcons name="add-circle-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.scanSaveBtnText}>Add to Log</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </Animated.View>
+
                   {/* Calorie hero number — ANIMATED scale pop + count-up */}
                   <Animated.View style={[styles.scanCalorieHero, {
                     backgroundColor: isDark ? '#2C2C2E' : '#F8F9FF',
@@ -1728,33 +1733,34 @@ const NutritionScreen = () => {
                     ))}
                   </View>
 
-                  {/* Calorie distribution bar — ANIMATED width grow */}
-                  <Animated.View style={[styles.scanDistBar, {
-                    backgroundColor: isDark ? '#2C2C2E' : '#F3F4F6',
-                    opacity: scanBarWidth,
-                    transform: [{ scaleX: scanBarWidth }],
-                  }]}>
-                    {(() => {
-                      const p = parseInt(foodProtein) || 0;
-                      const c = parseInt(foodCarbs) || 0;
-                      const f = parseInt(foodFat) || 0;
-                      const total = p + c + f || 1;
-                      return (
-                        <View style={styles.scanDistBarInner}>
-                          <View style={[styles.scanDistSeg, { flex: p / total, backgroundColor: '#6366F1', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
-                          <View style={[styles.scanDistSeg, { flex: c / total, backgroundColor: '#F59E0B' }]} />
-                          <View style={[styles.scanDistSeg, { flex: f / total, backgroundColor: '#EF4444', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
-                        </View>
-                      );
-                    })()}
-                  </Animated.View>
+                  {/* Calorie distribution bar — only show when macros have data */}
+                  {((parseInt(foodProtein) || 0) + (parseInt(foodCarbs) || 0) + (parseInt(foodFat) || 0)) > 0 && (
+                    <Animated.View style={[styles.scanDistBar, {
+                      backgroundColor: isDark ? '#2C2C2E' : '#F3F4F6',
+                      opacity: scanBarWidth,
+                      transform: [{ scaleX: scanBarWidth }],
+                    }]}>
+                      {(() => {
+                        const p = parseInt(foodProtein) || 0;
+                        const c = parseInt(foodCarbs) || 0;
+                        const f = parseInt(foodFat) || 0;
+                        const total = p + c + f || 1;
+                        return (
+                          <View style={styles.scanDistBarInner}>
+                            <View style={[styles.scanDistSeg, { flex: p / total, backgroundColor: '#6366F1', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
+                            <View style={[styles.scanDistSeg, { flex: c / total, backgroundColor: '#F59E0B' }]} />
+                            <View style={[styles.scanDistSeg, { flex: f / total, backgroundColor: '#EF4444', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
+                          </View>
+                        );
+                      })()}
+                    </Animated.View>
+                  )}
 
-                  {/* Action area — ANIMATED fade in + slide */}
+                  {/* Save to favorites toggle — below macros */}
                   <Animated.View style={{
                     opacity: scanActionsOpacity,
                     transform: [{ translateY: scanActionsSlide }],
                   }}>
-                    {/* Save to favorites toggle */}
                     <TouchableOpacity
                       style={[styles.scanFavToggle, { backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA', borderColor: cardBorder }]}
                       onPress={() => setSaveFavorite(!saveFavorite)}
@@ -1774,23 +1780,13 @@ const NutritionScreen = () => {
                         {saveFavorite && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
                       </View>
                     </TouchableOpacity>
+                  </Animated.View>
 
-                    {/* Save button */}
-                    <TouchableOpacity
-                      style={[styles.scanSaveBtn]}
-                      onPress={handleSaveFood}
-                      activeOpacity={0.85}
-                    >
-                      <LinearGradient
-                        colors={['#6366F1', '#8B5CF6']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.scanSaveBtnGradient}
-                      >
-                        <MaterialIcons name="add-circle-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.scanSaveBtnText}>Add to Log</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                  {/* Secondary actions */}
+                  <Animated.View style={{
+                    opacity: scanActionsOpacity,
+                    transform: [{ translateY: scanActionsSlide }],
+                  }}>
 
                     <View style={styles.scanSecondaryRow}>
                       <TouchableOpacity
@@ -2559,10 +2555,10 @@ const styles = StyleSheet.create({
   birthdayInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   birthdayText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
     flex: 1,
   },
@@ -2575,12 +2571,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  datePickerContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
   datePickerDone: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 6,
+    alignSelf: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    marginTop: 2,
+  },
+  ftInRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ftInInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ftInInput: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  ftInLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   smartGoalBadge: {
     flexDirection: 'row',

@@ -109,14 +109,12 @@ const TasksOverviewScreen = () => {
     setTodos(updatedTodos);
     setUserStats(updatedStats);
 
-    await saveData('todos', updatedTodos);
-    await saveData('userStats', updatedStats);
-    // Also sync to raw userStats key for consistency
-    await userStorage.setRaw('userStats', JSON.stringify(updatedStats));
+    // Persist in background — don't await to keep UI snappy
+    saveData('todos', updatedTodos).catch(() => {});
+    saveData('userStats', updatedStats).catch(() => {});
+    userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
 
-    // total_points is now managed centrally by achievementService.checkAchievements()
-
-    // Sync to Firebase if user is logged in
+    // Sync to Firebase in background (non-blocking)
     const currentUser = auth.currentUser;
     if (currentUser) {
       setDoc(doc(db, 'users', currentUser.uid), {
@@ -129,11 +127,15 @@ const TasksOverviewScreen = () => {
       });
     }
 
-    // Achievement check
-    const statsAfterAchievement = await AchievementService.checkAchievements(updatedStats);
-    if (statsAfterAchievement) {
-      setUserStats(statsAfterAchievement);
-    }
+    // Achievement check in background — non-blocking with timeout protection
+    Promise.race([
+      AchievementService.checkAchievements(updatedStats),
+      new Promise(resolve => setTimeout(() => resolve(null), 5000)),
+    ]).then(statsAfterAchievement => {
+      if (statsAfterAchievement) {
+        setUserStats(statsAfterAchievement);
+      }
+    }).catch(() => {});
 
     // Notify other components
     DeviceEventEmitter.emit('taskCompleted', {

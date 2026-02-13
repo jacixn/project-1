@@ -13,8 +13,11 @@ import {
   Modal,
   Dimensions,
   Alert,
+  Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -82,6 +85,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import userStorage from '../utils/userStorage';
 // Location permission removed - using fixed prayer times
 import { hapticFeedback } from '../utils/haptics';
+import LottieView from 'lottie-react-native';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
@@ -167,6 +171,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 
 const BiblePrayerTab = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
@@ -242,6 +247,14 @@ const BiblePrayerTab = () => {
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
   const cardShimmer = useRef(new Animated.Value(0)).current;
+
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const refreshLottieRef = useRef(null);
+  const refreshLottieScale = useRef(new Animated.Value(0)).current;
+  const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
 
   // Load user's name for personalization (same method as Friend chat)
   const loadUserName = async () => {
@@ -364,8 +377,96 @@ const BiblePrayerTab = () => {
       loadUserName();
       initializePrayerData();
       loadLiquidGlassSetting();
+      // Reload loading animation preference
+      userStorage.getRaw('fivefold_loading_animation').then(id => {
+        setSelectedLoadingAnim(id || 'default');
+      });
     }, [])
   );
+
+  // Pull-to-refresh handler — reloads ALL Bible & prayer data fresh
+  const onRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    hapticFeedback.gentle();
+    console.log('🔄 Bible: Pull-to-refresh started — reloading all data...');
+    try {
+      const results = await Promise.allSettled([
+        loadUserName(),
+        initializePrayerData(),
+        (async () => {
+          const verse = await getDailyVerse();
+          setDailyVerse(verse);
+        })(),
+      ]);
+
+      const labels = ['User Name', 'Prayer Data', 'Daily Verse'];
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`❌ Bible refresh failed: ${labels[i]}`, r.reason);
+        } else {
+          console.log(`✅ Bible refresh: ${labels[i]} loaded`);
+        }
+      });
+
+      DeviceEventEmitter.emit('bibleDataRefreshed');
+      await new Promise(resolve => setTimeout(resolve, 600));
+      console.log('🔄 Bible: Refresh complete');
+    } catch (error) {
+      console.error('Error refreshing Bible data:', error);
+    } finally {
+      setRefreshing(false);
+      hapticFeedback.success();
+    }
+  };
+
+  // Pull-to-refresh animation controller
+  useEffect(() => {
+    if (refreshing) {
+      setTimeout(() => refreshLottieRef.current?.play(), 50);
+      Animated.parallel([
+        Animated.spring(refreshLottieScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 12,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshSpacerHeight, {
+          toValue: selectedLoadingAnim === 'default' ? 50 : 100,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 12,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(refreshSpacerHeight, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshLottieScale, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 15,
+        }),
+      ]).start(() => {
+        refreshLottieRef.current?.reset();
+      });
+    }
+  }, [refreshing, selectedLoadingAnim]);
 
   // Load userName when verse modal opens (just like Friend chat does)
   useEffect(() => {
@@ -1194,6 +1295,39 @@ const BiblePrayerTab = () => {
         </View>
       </GlassHeader>
 
+      {/* Custom Pull-to-Refresh Indicator */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          zIndex: 1000,
+          opacity: refreshLottieOpacity,
+          transform: [{ scale: refreshLottieScale }],
+        }}
+      >
+        {selectedLoadingAnim === 'default' ? (
+          <ActivityIndicator size="large" color={theme.primary} />
+        ) : (
+          <LottieView
+            ref={refreshLottieRef}
+            source={
+              selectedLoadingAnim === 'hamster'
+                ? require('../../assets/Run-Hamster.json')
+                : selectedLoadingAnim === 'amongus'
+                ? require('../../assets/Loading 50 _ Among Us.json')
+                : require('../../assets/Running-Cat.json')
+            }
+            autoPlay={false}
+            loop
+            style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+          />
+        )}
+      </Animated.View>
+
       {/* Main Content - flows to top like Twitter */}
       <Animated.ScrollView 
         style={styles.twitterContent} 
@@ -1204,7 +1338,18 @@ const BiblePrayerTab = () => {
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
+        bounces={true}
+        alwaysBounceVertical={true}
+        onScrollEndDrag={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          if (y < -70 && !refreshing) {
+            onRefresh();
+          }
+        }}
       >
+        {/* Animated spacer for refresh animation */}
+        <Animated.View style={{ height: refreshSpacerHeight }} />
+
         {/* Simple Prayer Card */}
         <SimplePrayerCard onNavigateToBible={handleNavigateToVerse} />
 

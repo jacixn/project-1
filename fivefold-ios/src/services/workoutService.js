@@ -7,6 +7,7 @@ const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
 const FOLDERS_KEY = '@workout_folders';
 const SCHEDULED_WORKOUTS_KEY = '@scheduled_workouts';
+const SPLIT_PLAN_KEY = '@workout_split_plan';
 
 // 90 days in milliseconds
 const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -510,6 +511,58 @@ class WorkoutService {
     } catch (error) {
       console.error('Error cleaning up schedules:', error);
     }
+  }
+
+  // ─── Workout Split Plan ───
+
+  /**
+   * Get the user's weekly workout split plan.
+   * Returns null if no plan has been set up.
+   */
+  static async getSplitPlan() {
+    try {
+      const json = await userStorage.getRaw(SPLIT_PLAN_KEY);
+      return json ? JSON.parse(json) : null;
+    } catch (error) {
+      console.warn('[WorkoutService] Error loading split plan:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save the user's weekly workout split plan.
+   * @param {Object} plan – keyed by day name (monday..sunday)
+   */
+  static async saveSplitPlan(plan) {
+    try {
+      await userStorage.setRaw(SPLIT_PLAN_KEY, JSON.stringify(plan));
+      console.log('[WorkoutService] Split plan saved');
+    } catch (error) {
+      console.warn('[WorkoutService] Error saving split plan:', error);
+    }
+  }
+
+  /**
+   * Delete the user's workout split plan.
+   */
+  static async deleteSplitPlan() {
+    try {
+      await userStorage.remove(SPLIT_PLAN_KEY);
+    } catch (error) {
+      console.warn('[WorkoutService] Error deleting split plan:', error);
+    }
+  }
+
+  /**
+   * Get today's split config from the plan.
+   * Returns { active, muscles, presets, exerciseCount } or null if no plan.
+   */
+  static async getTodaySplit() {
+    const plan = await this.getSplitPlan();
+    if (!plan) return null;
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = days[new Date().getDay()];
+    return plan[today] || null;
   }
 }
 

@@ -27,6 +27,8 @@ import productionAiService from "../services/productionAiService";
 import { MUSCLE_GROUPS } from "../data/exerciseMuscleMap";
 import { LinearGradient } from "expo-linear-gradient";
 import nutritionService from "../services/nutritionService";
+import bodyCompositionService from "../services/bodyCompositionService";
+import WorkoutSplitModal from "./WorkoutSplitModal";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -68,6 +70,11 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const smartWorkoutFadeAnim = useRef(new Animated.Value(0)).current;
   const [exerciseCountPref, setExerciseCountPref] = useState(null); // null = auto, or 3/4/5/6
   const exerciseCountPrefRef = useRef(null);
+
+  // Split plan state
+  const [splitPlan, setSplitPlan] = useState(null);
+  const [todaySplit, setTodaySplit] = useState(null); // today's config from the plan
+  const [showSplitModal, setShowSplitModal] = useState(false);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(1000)).current;
@@ -111,14 +118,51 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     }
   }, [showTemplateDetail]);
 
-  // Load templates + generate smart workout when modal opens
+  // Load templates + split plan + generate smart workout when modal opens
   useEffect(() => {
     if (visible) {
       loadTemplates();
       loadFolders();
-      generateSmartWorkout();
+      loadSplitAndGenerate();
     }
   }, [visible]);
+
+  const loadSplitAndGenerate = async () => {
+    try {
+      const plan = await WorkoutService.getSplitPlan();
+      setSplitPlan(plan);
+      const today = await WorkoutService.getTodaySplit();
+      setTodaySplit(today);
+
+      // If there's a split plan and today has a configured exercise count, use it
+      if (today && today.active && today.exerciseCount) {
+        setExerciseCountPref(today.exerciseCount);
+        exerciseCountPrefRef.current = today.exerciseCount;
+      }
+
+      // Don't auto-generate — user taps to generate
+    } catch (e) {
+      console.warn('[TemplateSelection] Error loading split:', e);
+    }
+  };
+
+  const handleSplitSave = (newPlan) => {
+    setSplitPlan(newPlan);
+    // Reload today's config and regenerate
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayKey = days[new Date().getDay()];
+    const todayConfig = newPlan[todayKey] || null;
+    setTodaySplit(todayConfig);
+
+    if (todayConfig && todayConfig.active && todayConfig.exerciseCount) {
+      setExerciseCountPref(todayConfig.exerciseCount);
+      exerciseCountPrefRef.current = todayConfig.exerciseCount;
+    }
+
+    // Regenerate workout with new split
+    setSmartWorkout(null);
+    setTimeout(() => generateSmartWorkout(), 100);
+  };
 
   // Load exercises when template editor opens
   useEffect(() => {
@@ -162,11 +206,37 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     }
   };
 
+  // ─── Muscle-to-body-part mapping for exercise filtering ───
+  const muscleToBodyParts = (muscleKey) => {
+    const map = {
+      chest: ['Chest'],
+      frontDelts: ['Shoulders'], sideDelts: ['Shoulders'], rearDelts: ['Shoulders'],
+      traps: ['Back', 'Shoulders'],
+      lats: ['Back'], upperBack: ['Back'], lowerBack: ['Back', 'Core'],
+      biceps: ['Arms'], triceps: ['Arms'], forearms: ['Arms'],
+      abs: ['Core'], obliques: ['Core'],
+      quads: ['Legs'], hamstrings: ['Legs'], glutes: ['Legs'], calves: ['Legs'],
+    };
+    return map[muscleKey] || [];
+  };
+
   // ─── Smart Workout Generation ───
   const generateSmartWorkout = async () => {
     try {
       setSmartWorkoutLoading(true);
       smartWorkoutFadeAnim.setValue(0);
+
+      // Check if today is a rest day in the split plan
+      const currentTodaySplit = await WorkoutService.getTodaySplit();
+      if (currentTodaySplit && currentTodaySplit.active === false) {
+        // Rest day — set a special marker
+        setSmartWorkout({ isRestDay: true });
+        Animated.timing(smartWorkoutFadeAnim, {
+          toValue: 1, duration: 400, useNativeDriver: true,
+        }).start();
+        setSmartWorkoutLoading(false);
+        return;
+      }
 
       // 1. Load workout history and physique data
       const history = await WorkoutService.getWorkoutHistory();
@@ -194,35 +264,60 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
         score: m.score,
       }));
 
-      // 2. Load exercises and filter to those targeting weak muscles
+      // 2. Load exercises — filter based on split plan muscles or fallback to weak muscles
       const allExercises = await ExercisesService.getExercises();
       const strengthExercises = allExercises.filter(ex => ex.category === 'Strength');
 
-      // Find body parts related to weak muscles
-      const weakBodyParts = new Set();
-      weakest.forEach(m => {
-        const name = m.name.toLowerCase();
-        if (name.includes('chest') || name.includes('pec')) weakBodyParts.add('Chest');
-        if (name.includes('delt') || name.includes('shoulder')) weakBodyParts.add('Shoulders');
-        if (name.includes('lat') || name.includes('back') || name.includes('trap')) weakBodyParts.add('Back');
-        if (name.includes('bicep') || name.includes('tricep') || name.includes('forearm')) weakBodyParts.add('Arms');
-        if (name.includes('quad') || name.includes('ham') || name.includes('glute') || name.includes('calf') || name.includes('calves')) weakBodyParts.add('Legs');
-        if (name.includes('ab') || name.includes('oblique') || name.includes('core')) weakBodyParts.add('Core');
-      });
+      // Determine target muscles from split plan (if configured for today)
+      const splitMuscles = (currentTodaySplit && currentTodaySplit.active && currentTodaySplit.muscles?.length > 0)
+        ? currentTodaySplit.muscles
+        : null;
 
-      // Collect relevant exercises (weak areas + some variety)
-      const relevantExercises = strengthExercises.filter(ex => weakBodyParts.has(ex.bodyPart));
-      // Add some compound movements from other body parts for variety
-      const compoundExtras = strengthExercises
-        .filter(ex => !weakBodyParts.has(ex.bodyPart))
-        .slice(0, 15);
-      const pool = [...relevantExercises, ...compoundExtras];
+      let exerciseNames;
+      let targetMuscleNames = null;
 
-      // Cap at ~60 exercise names to avoid huge prompts
-      const exerciseNames = pool.slice(0, 60).map(ex => ex.name);
+      if (splitMuscles) {
+        // Use split plan muscles to filter exercises
+        const targetBodyParts = new Set();
+        splitMuscles.forEach(m => {
+          muscleToBodyParts(m).forEach(bp => targetBodyParts.add(bp));
+        });
 
-      // 2b. Load nutrition profile (optional)
+        const relevantExercises = strengthExercises.filter(ex => targetBodyParts.has(ex.bodyPart));
+        // Add a few compound extras for variety
+        const extras = strengthExercises
+          .filter(ex => !targetBodyParts.has(ex.bodyPart))
+          .slice(0, 10);
+        const pool = [...relevantExercises, ...extras];
+        exerciseNames = pool.slice(0, 60).map(ex => ex.name);
+
+        // Build human-readable muscle names for the AI
+        targetMuscleNames = splitMuscles.map(m => MUSCLE_GROUPS[m]?.name || m);
+      } else {
+        // Fallback: use weak muscles (original behavior)
+        const weakBodyParts = new Set();
+        weakest.forEach(m => {
+          const name = m.name.toLowerCase();
+          if (name.includes('chest') || name.includes('pec')) weakBodyParts.add('Chest');
+          if (name.includes('delt') || name.includes('shoulder')) weakBodyParts.add('Shoulders');
+          if (name.includes('lat') || name.includes('back') || name.includes('trap')) weakBodyParts.add('Back');
+          if (name.includes('bicep') || name.includes('tricep') || name.includes('forearm')) weakBodyParts.add('Arms');
+          if (name.includes('quad') || name.includes('ham') || name.includes('glute') || name.includes('calf') || name.includes('calves')) weakBodyParts.add('Legs');
+          if (name.includes('ab') || name.includes('oblique') || name.includes('core')) weakBodyParts.add('Core');
+        });
+
+        const relevantExercises = strengthExercises.filter(ex => weakBodyParts.has(ex.bodyPart));
+        const compoundExtras = strengthExercises
+          .filter(ex => !weakBodyParts.has(ex.bodyPart))
+          .slice(0, 15);
+        const pool = [...relevantExercises, ...compoundExtras];
+        exerciseNames = pool.slice(0, 60).map(ex => ex.name);
+      }
+
+      // 2b. Load nutrition profile + body composition (optional)
       let nutritionParams = {};
+      let userGender = null;
+      let bodyCompData = null;
       try {
         const nutritionProfile = await nutritionService.getProfile();
         if (nutritionProfile) {
@@ -233,6 +328,14 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             currentWeight: nutritionProfile.weightKg,
             targetWeight: nutritionProfile.targetWeightKg,
           };
+          userGender = nutritionProfile.gender || null;
+
+          // Calculate body composition
+          if (nutritionProfile.weightKg && nutritionProfile.heightCm) {
+            try {
+              bodyCompData = bodyCompositionService.calculate(nutritionProfile);
+            } catch (_) {}
+          }
         }
       } catch (e) {
         // Nutrition data is optional, continue without it
@@ -252,6 +355,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
         totalWorkouts: history.length,
         exerciseNames,
         exerciseCount: exerciseCountPrefRef.current,
+        targetMuscles: targetMuscleNames,
+        gender: userGender,
+        bodyFatPercent: bodyCompData?.bodyFat || null,
         ...nutritionParams,
       });
 
@@ -616,21 +722,50 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
           </TouchableOpacity>
 
           {/* ── Suggested For You ── */}
-          {(smartWorkoutLoading || smartWorkout) && (
-            <Animated.View style={{ opacity: smartWorkout ? smartWorkoutFadeAnim : 1, marginTop: 20, marginBottom: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Suggested For You</Text>
+          <Animated.View style={{ opacity: smartWorkout ? smartWorkoutFadeAnim : 1, marginTop: 4, marginBottom: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Suggested For You</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {/* Edit Split button */}
                 <TouchableOpacity
-                  onPress={() => { if (!smartWorkoutLoading) { setSmartWorkout(null); generateSmartWorkout(); } }}
-                  disabled={smartWorkoutLoading}
-                  style={{ padding: 4, opacity: smartWorkoutLoading ? 0.4 : 1 }}
+                  onPress={() => { hapticFeedback.light(); setShowSplitModal(true); }}
+                  style={{ padding: 4 }}
                   activeOpacity={0.6}
                 >
-                  <MaterialIcons name="refresh" size={20} color={theme.textSecondary} />
+                  <MaterialIcons name={splitPlan ? 'tune' : 'calendar-month'} size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
+                {/* Refresh button */}
+                {!(smartWorkout && smartWorkout.isRestDay) && (
+                  <TouchableOpacity
+                    onPress={() => { if (!smartWorkoutLoading) { setSmartWorkout(null); generateSmartWorkout(); } }}
+                    disabled={smartWorkoutLoading}
+                    style={{ padding: 4, opacity: smartWorkoutLoading ? 0.4 : 1 }}
+                    activeOpacity={0.6}
+                  >
+                    <MaterialIcons name="refresh" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                )}
               </View>
+            </View>
 
-              {/* Exercise count preference pills */}
+            {/* Set Up Split banner (only when no plan exists) */}
+            {!splitPlan && !smartWorkoutLoading && (
+              <TouchableOpacity
+                style={[styles.splitBanner, { backgroundColor: theme.primary + '0A', borderColor: theme.primary + '20' }]}
+                onPress={() => { hapticFeedback.light(); setShowSplitModal(true); }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="calendar-month" size={20} color={theme.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.splitBannerTitle, { color: theme.text }]}>Set Up Your Weekly Split</Text>
+                  <Text style={[styles.splitBannerSub, { color: theme.textSecondary }]}>Pick your training days and muscles for smarter suggestions</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
+
+            {/* Exercise count preference pills (only when workout exists or loading, not rest day) */}
+            {(smartWorkout || smartWorkoutLoading) && !(smartWorkout && smartWorkout.isRestDay) && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 6 }}>
                 <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 4 }}>Exercises:</Text>
                 {[null, 3, 4, 5, 6].map(count => {
@@ -668,60 +803,86 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                   );
                 })}
               </View>
+            )}
 
-              {smartWorkoutLoading && !smartWorkout ? (
-                <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '25' }]}>
-                  <View style={styles.smartCardShimmer}>
-                    <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
-                    <Text style={[styles.smartCardShimmerText, { color: theme.textSecondary }]}>
-                      Analyzing your training history...
+            {/* Rest Day card */}
+            {smartWorkout && smartWorkout.isRestDay ? (
+              <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                <View style={styles.smartCardContent}>
+                  <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+                    <MaterialIcons name="hotel" size={32} color={theme.primary} style={{ marginBottom: 10 }} />
+                    <Text style={[styles.smartCardName, { color: theme.text, fontSize: 17, textAlign: 'center' }]}>Rest Day</Text>
+                    <Text style={[styles.smartCardReason, { color: theme.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 20 }]}>
+                      Recovery is where growth happens. Take it easy today, stay hydrated, and come back stronger tomorrow.
                     </Text>
                   </View>
                 </View>
-              ) : smartWorkout ? (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleStartSmartWorkout}
-                  style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF', borderColor: theme.primary + '30' }]}
-                >
-                  {/* Accent strip */}
-                  <LinearGradient
-                    colors={[theme.primary, theme.primary + 'AA']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.smartCardAccent}
-                  />
+              </View>
+            ) : smartWorkoutLoading ? (
+              <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '25' }]}>
+                <View style={styles.smartCardShimmer}>
+                  <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                  <Text style={[styles.smartCardShimmerText, { color: theme.textSecondary }]}>
+                    {splitPlan ? 'Building your workout...' : 'Analyzing your training history...'}
+                  </Text>
+                </View>
+              </View>
+            ) : smartWorkout && !smartWorkout.isRestDay ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleStartSmartWorkout}
+                style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFF', borderColor: theme.primary + '30' }]}
+              >
+                {/* Accent strip */}
+                <LinearGradient
+                  colors={[theme.primary, theme.primary + 'AA']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.smartCardAccent}
+                />
 
-                  <View style={styles.smartCardContent}>
-                    {/* Header row */}
-                    <View style={styles.smartCardHeader}>
-                      <View style={[styles.smartCardIconCircle, { backgroundColor: theme.primary + '15' }]}>
-                        <MaterialIcons name="auto-awesome" size={18} color={theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.smartCardName, { color: theme.text }]}>{smartWorkout.name}</Text>
-                        <Text style={[styles.smartCardReason, { color: theme.textSecondary }]}>{smartWorkout.reason}</Text>
-                      </View>
-                      <View style={[styles.smartCardStartBadge, { backgroundColor: theme.primary }]}>
-                        <MaterialIcons name="play-arrow" size={18} color="#FFF" />
-                        <Text style={styles.smartCardStartText}>Start</Text>
-                      </View>
+                <View style={styles.smartCardContent}>
+                  {/* Header row */}
+                  <View style={styles.smartCardHeader}>
+                    <View style={[styles.smartCardIconCircle, { backgroundColor: theme.primary + '15' }]}>
+                      <MaterialIcons name="auto-awesome" size={18} color={theme.primary} />
                     </View>
-
-                    {/* Exercise pills */}
-                    <View style={styles.smartCardExercises}>
-                      {smartWorkout.exercises.map((ex, i) => (
-                        <View key={i} style={[styles.smartCardExPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : theme.primary + '0A', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '18' }]}>
-                          <Text style={[styles.smartCardExName, { color: theme.text }]} numberOfLines={1}>{ex.name}</Text>
-                          <Text style={[styles.smartCardExDetail, { color: theme.textSecondary }]}>{ex.sets} x {ex.reps}{ex.weight && ex.weight !== '0' ? ` @ ${ex.weight}kg` : ''}</Text>
-                        </View>
-                      ))}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.smartCardName, { color: theme.text }]}>{smartWorkout.name}</Text>
+                      <Text style={[styles.smartCardReason, { color: theme.textSecondary }]}>{smartWorkout.reason}</Text>
+                    </View>
+                    <View style={[styles.smartCardStartBadge, { backgroundColor: theme.primary }]}>
+                      <MaterialIcons name="play-arrow" size={18} color="#FFF" />
+                      <Text style={styles.smartCardStartText}>Start</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ) : null}
-            </Animated.View>
-          )}
+
+                  {/* Exercise pills */}
+                  <View style={styles.smartCardExercises}>
+                    {smartWorkout.exercises.map((ex, i) => (
+                      <View key={i} style={[styles.smartCardExPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : theme.primary + '0A', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '18' }]}>
+                        <Text style={[styles.smartCardExName, { color: theme.text }]} numberOfLines={1}>{ex.name}</Text>
+                        <Text style={[styles.smartCardExDetail, { color: theme.textSecondary }]}>{ex.sets} x {ex.reps}{ex.weight && ex.weight !== '0' ? ` @ ${ex.weight}kg` : ''}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              /* No workout generated yet — show Generate button */
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  hapticFeedback.light();
+                  generateSmartWorkout();
+                }}
+                style={[styles.generateButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '25' }]}
+              >
+                <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
+                <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>Suggest a Workout</Text>
+              </TouchableOpacity>
+            )}
+          </Animated.View>
 
           {/* Templates Section */}
           <View style={styles.templatesHeader}>
@@ -1840,6 +2001,13 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             DeviceEventEmitter.emit('workoutScheduled', schedule);
           }}
         />
+
+        {/* Workout Split Modal */}
+        <WorkoutSplitModal
+          visible={showSplitModal}
+          onClose={() => setShowSplitModal(false)}
+          onSave={handleSplitSave}
+        />
       </View>
   );
 
@@ -1899,7 +2067,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 4,
   },
   emptyWorkoutButtonText: {
     color: "#FFFFFF",
@@ -2566,6 +2734,36 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 17,
     fontWeight: "600",
+  },
+
+  // ── Generate Button ──
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+
+  // ── Split Banner ──
+  splitBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 12,
+  },
+  splitBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  splitBannerSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
 
   // ── Smart Workout Card ──

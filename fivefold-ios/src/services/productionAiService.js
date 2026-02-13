@@ -489,11 +489,13 @@ Respond with ONLY a JSON object:
    * @param {Array}   params.exerciseNames   – list of available exercise names (pre-filtered)
    * @returns {Promise<Object|null>} { name, reason, exercises: [{name, sets, reps}] }
    */
-  async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseCount, dailyCalories, goal, currentWeight, targetWeight }) {
+  async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseCount, targetMuscles, gender, bodyFatPercent, dailyCalories, goal, currentWeight, targetWeight }) {
     try {
       console.log('[AI Workout] Generating smart workout…');
 
       const hasNutrition = dailyCalories && goal;
+      const hasTargetMuscles = targetMuscles && targetMuscles.length > 0;
+
       const nutritionRule = hasNutrition
         ? `\n- The user's nutrition data is provided. Consider their calorie intake and weight goal when suggesting intensity. For users losing weight (calorie deficit), favor moderate weights with higher reps (10-15) to preserve muscle. For users gaining weight (calorie surplus), favor progressive overload with heavier weights and lower reps (6-10).`
         : '';
@@ -509,30 +511,52 @@ Respond with ONLY a JSON object:
 - For intermediate (20-50), use 5 exercises with 3-4 sets.
 - For advanced (50+), use 5-6 exercises with 3-4 sets.`;
 
-      const systemPrompt = `You are a smart workout planner inside a fitness app. Your job is to create a single, focused workout session that addresses the user's weak points while keeping things balanced.
+      // Target muscles rule (from split plan)
+      const targetMuscleRule = hasTargetMuscles
+        ? `\n- The user has configured their weekly split. Today's target muscles are: ${targetMuscles.join(', ')}. The workout MUST primarily target these muscle groups. Distribute exercises across the target muscles proportionally. Still use the physique data to prioritize weaker muscles among the targets.`
+        : '- The workout should primarily target the user\'s weakest muscle groups.';
+
+      // Gender-aware coaching
+      let genderRule = '';
+      if (gender === 'female') {
+        genderRule = `\n- This user is female. Tailor exercise selection for women's fitness. Include movements that emphasise glutes, hamstrings, and core if they are among the target muscles. Avoid overly aggressive workout names. The reason should feel empowering and supportive.`;
+      } else if (gender === 'male') {
+        genderRule = `\n- This user is male. Include compound strength movements where possible. The reason can have a confident, motivating tone.`;
+      }
+
+      // Body fat context
+      let bodyFatRule = '';
+      if (bodyFatPercent) {
+        bodyFatRule = `\n- The user's body fat is ${bodyFatPercent}%. Factor this into exercise selection: higher body fat users benefit from more metabolic/compound movements; leaner users can focus more on isolation and hypertrophy.`;
+      }
+
+      const systemPrompt = `You are a smart workout planner inside a fitness app. Your job is to create a single, focused workout session tailored to the user's goals, body, and training plan.
 
 Rules:
 - Return ONLY valid JSON, no markdown, no explanation, no backticks.
 - JSON format: {"name":"<workout name>","reason":"<1 sentence why this workout is good for them, 15-25 words, encouraging>","exercises":[{"name":"<exact exercise name from the provided list>","sets":<number 3-4>,"reps":"<reps as string, e.g. '10' or '8-12'>"${weightRule}}]}
 ${exerciseCountRule}
-- The workout should primarily target the user's weakest muscle groups.
+${targetMuscleRule}
 - Mix compound and isolation movements.
 - Order exercises logically: big compound movements first, isolation later.
 - The workout name should be short and catchy (2-4 words), like "Back & Bicep Blast" or "Leg Day Focus".
-- The reason should feel personal and motivating, no dashes, no emojis.${nutritionRule}`;
+- The reason should feel personal and motivating, no dashes, no emojis.${nutritionRule}${genderRule}${bodyFatRule}`;
 
       let nutritionBlock = '';
       if (hasNutrition) {
         nutritionBlock = `\nNutrition: ${dailyCalories} cal/day, goal: ${goal}${currentWeight ? `, current weight: ${currentWeight}kg` : ''}${targetWeight ? `, target: ${targetWeight}kg` : ''}`;
       }
 
+      let genderBlock = gender ? `\nGender: ${gender}` : '';
+      let bodyFatBlock = bodyFatPercent ? `\nBody fat: ${bodyFatPercent}%` : '';
+
       const userPrompt = `User physique data:
 Overall score: ${overallScore}/100
-Total workouts: ${totalWorkouts}
+Total workouts: ${totalWorkouts}${genderBlock}${bodyFatBlock}
 Weakest muscles: ${weakestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
 Strongest muscles: ${strongestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
 Group averages: Push ${groupAverages.push}, Pull ${groupAverages.pull}, Legs ${groupAverages.legs}, Core ${groupAverages.core}${nutritionBlock}
-
+${hasTargetMuscles ? `\nToday's target muscles (from weekly split): ${targetMuscles.join(', ')}` : ''}
 Available exercises (pick ONLY from this list):
 ${exerciseNames.join('\n')}
 
@@ -598,7 +622,7 @@ Generate a workout JSON.`;
    * @param {Object|null} params.bodyComposition – body comp metrics (bmi, bodyFat, muscleMass, etc.) or null
    * @returns {Promise<string>}
    */
-  async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts, bodyComposition }) {
+  async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts, bodyComposition, nutritionData, userInfo }) {
     try {
       console.log('[AI Coach] Generating physique feedback…');
 
@@ -626,16 +650,83 @@ Ideal weight range: ${bodyComposition.idealWeightLow || 'N/A'} to ${bodyComposit
 TDEE: ${bodyComposition.tdee || 'N/A'} cal/day`;
       }
 
-      const systemPrompt = `You are a brutally honest, no nonsense personal trainer inside a workout app. You give the user a short, direct, personalised assessment every time they check their physique screen. You care about the user, which is WHY you are honest with them.
+      // Build user info section (name, age, gender, height, weight, goal)
+      let userInfoSection = 'User profile: Not available.';
+      const userName = userInfo?.name || null;
+      if (userInfo) {
+        const parts = [];
+        if (userInfo.name) parts.push(`Name: ${userInfo.name}`);
+        if (userInfo.gender) parts.push(`Gender: ${userInfo.gender}`);
+        if (userInfo.age) parts.push(`Age: ${userInfo.age}`);
+        if (userInfo.heightCm) parts.push(`Height: ${userInfo.heightCm} cm`);
+        if (userInfo.weightKg) parts.push(`Weight: ${userInfo.weightKg} kg`);
+        if (userInfo.goal) parts.push(`Goal: ${userInfo.goal === 'lose' ? 'Lose weight' : userInfo.goal === 'gain' ? 'Build muscle / gain weight' : 'Maintain weight'}`);
+        if (userInfo.activityLevel) parts.push(`Activity level: ${userInfo.activityLevel}`);
+        if (parts.length > 0) {
+          userInfoSection = `User profile:\n${parts.join('\n')}`;
+        }
+      }
+
+      // Build nutrition/fuel section (today's intake vs targets)
+      let nutritionSection = 'Nutrition data: Not available (user has not logged any food today or has not set up their nutrition profile).';
+      if (nutritionData && nutritionData.hasProfile) {
+        const c = nutritionData.consumed;
+        const t = nutritionData.targets;
+        const r = nutritionData.remaining;
+        nutritionSection = `Today's nutrition data:
+Calories consumed: ${c.calories} / ${t.calories} target (${r.calories > 0 ? r.calories + ' remaining' : Math.abs(r.calories) + ' over target'})
+Protein: ${c.protein}g / ${t.protein}g target
+Carbs: ${c.carbs}g / ${t.carbs}g target
+Fat: ${c.fat}g / ${t.fat}g target
+Foods logged today: ${c.foodCount}`;
+        if (c.foodCount === 0) {
+          nutritionSection += '\nNote: User has NOT logged any food today.';
+        }
+      }
+
+      // Determine gender for coaching style
+      const isFemale = userInfo?.gender === 'female';
+      const isMale = userInfo?.gender === 'male';
+
+      // Build name instruction
+      const nameInstruction = userName
+        ? `- The user's name is "${userName}". Use their name ONCE naturally in your feedback (near the beginning) to make it feel personal. Just the first name, not the full name.`
+        : '- The user has not set a name. Do not use any name, just say "you".';
+
+      // Build gender-specific coaching style
+      let genderCoachingStyle = '';
+      if (isFemale) {
+        genderCoachingStyle = `
+- This user is FEMALE. Coach her like a supportive, empowering female fitness coach would.
+- Use appropriate benchmarks for women (e.g. healthy body fat for women is 20-30%, not the male range).
+- Focus on strength, toning, sculpting, flexibility, and overall wellness rather than just raw size or bulk.
+- Emphasise glutes, hamstrings, core, and overall body confidence if relevant.
+- Tone should be warm, uplifting, and empowering. Think "girl, you've got this" energy without literally saying that. Supportive like a best friend who also happens to be a trainer.
+- Avoid aggressive or intimidating language. No "beast mode", "crush it", "destroy your workout" type phrasing.
+- Frame goals around feeling strong, confident, and healthy in her own body.`;
+      } else if (isMale) {
+        genderCoachingStyle = `
+- This user is MALE. Coach him with a confident, motivating energy.
+- Use appropriate benchmarks for men (e.g. healthy body fat for men is 10-20%).
+- Focus on building strength, muscle development, and overall athleticism.
+- Emphasise chest, back, arms, shoulders, and compound lifts if relevant.
+- Tone should be like a supportive gym buddy who keeps it real and hypes you up. Encouraging but with an edge of competitive drive.
+- Frame goals around getting stronger, building a solid physique, and levelling up.`;
+      }
+
+      const systemPrompt = `You are a warm, encouraging personal coach inside a workout app. You give the user a short, personalised assessment every time they check their physique screen. You genuinely believe in them and want to help them succeed. Your job is to be honest about where they are while making them feel motivated and excited about where they are going.
 
 CRITICAL RULES:
 - Write EXACTLY one paragraph, between 50 and 80 words. Never exceed 80 words.
-- Be BRUTALLY HONEST. Do NOT sugarcoat, do NOT give fake praise, do NOT make up compliments.
-- ONLY reference data that is explicitly provided below. If a muscle score is 0, it means the user has NEVER trained it. Do NOT say they have a "great foundation" or "good focus" on something they have never done.
-- If the user has 0 total workouts or all muscle scores are 0, acknowledge they are at the very beginning and tell them what they need to start doing. Do not pretend they have accomplished anything.
-- If body composition data is available, factor it into your feedback (e.g. if their body fat is high, say so directly; if BMI is overweight, mention it; if muscle mass is low, call it out).
-- Give ONE specific, actionable next step.
-- Tone: direct, real, no fluff. Like a coach who respects the user enough to tell the truth. Use "you" and "your".
+${nameInstruction}
+- Be HONEST but POSITIVE. State the facts without scaring or shaming the user. Frame everything as an opportunity, not a failure.
+- ONLY reference data that is explicitly provided below. If a muscle score is 0, it means the user has not trained it yet. Frame this as potential and room to grow, not as a negative.
+- If the user is just starting out (0 workouts or low scores), be genuinely encouraging. Everyone starts somewhere. Celebrate that they are here and ready to begin. Give them a clear, exciting first step.
+- If body composition data is available, reference it gently. Instead of "your body fat is high", say something like "you have a great opportunity to transform your body composition". Be factual but kind.
+- If nutrition data is available, weave it in helpfully. If they have not logged food, gently remind them that tracking nutrition is a powerful tool. If protein is low, frame it as "boosting your protein will help you see results faster". Never shame them for eating habits.
+- The user's age, height, weight, and goal should inform your advice. Tailor your feedback to their specific situation.${genderCoachingStyle}
+- Give ONE specific, actionable next step that feels achievable and exciting.
+- At the end of your paragraph, naturally weave in a mention that they should check "Start Workout" to see a suggested workout tailored just for them. Make this feel like a friendly nudge, not an ad. For example: "head over to Start Workout to check out today's suggested session" or similar. Keep it natural.
 - No bullet points, no lists, no headings, no emojis, no hashtags, no dashes of any kind (no hyphens, en-dashes, or em-dashes). Use commas instead.
 - Keep language simple, a 14 year old should understand every word.
 - Never say "I".
@@ -643,6 +734,8 @@ CRITICAL RULES:
 - NEVER fabricate or assume training data that is not present in the numbers below.`;
 
       const userPrompt = `Here is the user's ACTUAL data (only reference what you see here):
+
+${userInfoSection}
 
 Overall physique score: ${overallScore}/100
 Total workouts logged: ${totalWorkouts}
@@ -653,7 +746,9 @@ ${allScoresZero ? '⚠ ALL muscle group scores are 0. The user has NOT done any 
 
 ${bodyCompSection}
 
-Write one paragraph of feedback (50-80 words). Be honest, be real, reference only actual data above.`;
+${nutritionSection}
+
+Write one paragraph of feedback (50-80 words). Be honest, positive, and motivating. Reference only actual data above.`;
 
       const response = await deepseekFetchWithFallback(JSON.stringify({
         model: 'deepseek-chat',

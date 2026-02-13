@@ -207,6 +207,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
     if (!user) return;
     
     try {
+      // Load core data first (friends list + pending requests in parallel)
       const [friendsData, requestsData] = await Promise.all([
         getFriendsWithStats(user.uid),
         getPendingRequestsWithDetails(user.uid),
@@ -215,62 +216,69 @@ const FriendsScreen = ({ navigation, onClose }) => {
       setFriends(friendsData);
       setPendingRequests(requestsData);
       
-      // Load prayer partner
-      try {
-        const { getPrayerPartner } = await import('../services/prayerSocialService');
-        const partner = await getPrayerPartner(user.uid);
-        setPrayerPartner(partner);
-      } catch (err) {
-        console.log('Could not load prayer partner:', err);
-      }
+      // Show content immediately — stop the loading spinner
+      setLoading(false);
+      setRefreshing(false);
       
-      // Load unread message counts and last message times per friend
-      try {
-        const conversations = await getConversations(user.uid);
-        const unreadMap = {};
-        const timeMap = {};
-        conversations.forEach(conv => {
-          if (conv.otherUserId) {
-            if (conv.unreadCount > 0) {
-              unreadMap[conv.otherUserId] = conv.unreadCount;
-            }
-            // Track last message time for sorting
-            const t = conv.lastMessageAt?.toDate?.() || conv.lastMessageAt;
-            if (t) timeMap[conv.otherUserId] = new Date(t).getTime();
-          }
-        });
-        setUnreadMessages(unreadMap);
-        setLastMessageTimes(timeMap);
-      } catch (err) {
-        console.log('Could not load unread messages:', err);
-      }
+      // Load secondary data in parallel in the background (non-blocking)
+      const loadPrayerPartner = async () => {
+        try {
+          const { getPrayerPartner } = await import('../services/prayerSocialService');
+          const partner = await getPrayerPartner(user.uid);
+          setPrayerPartner(partner);
+        } catch (err) {
+          console.log('Could not load prayer partner:', err);
+        }
+      };
       
-      // Load pending challenges per friend
-      try {
-        const challenges = await getChallenges(user.uid);
-        const challengeMap = {};
-        challenges.forEach(challenge => {
-          // Count challenges where this user is challenged and hasn't responded yet
-          if (challenge.status === 'pending' && challenge.challengedId === user.uid) {
-            const challengerId = challenge.challengerId;
-            challengeMap[challengerId] = (challengeMap[challengerId] || 0) + 1;
-          }
-          // Also count challenges where user needs to play (accepted but not completed their part)
-          if (challenge.status === 'accepted') {
-            const otherUserId = challenge.challengerId === user.uid ? challenge.challengedId : challenge.challengerId;
-            const userScore = challenge.challengerId === user.uid ? challenge.challengerScore : challenge.challengedScore;
-            if (userScore === null || userScore === undefined) {
-              challengeMap[otherUserId] = (challengeMap[otherUserId] || 0) + 1;
+      const loadMessages = async () => {
+        try {
+          const conversations = await getConversations(user.uid);
+          const unreadMap = {};
+          const timeMap = {};
+          conversations.forEach(conv => {
+            if (conv.otherUserId) {
+              if (conv.unreadCount > 0) {
+                unreadMap[conv.otherUserId] = conv.unreadCount;
+              }
+              const t = conv.lastMessageAt?.toDate?.() || conv.lastMessageAt;
+              if (t) timeMap[conv.otherUserId] = new Date(t).getTime();
             }
-          }
-        });
-        setPendingChallenges(challengeMap);
-      } catch (err) {
-        console.log('Could not load pending challenges:', err);
-      }
+          });
+          setUnreadMessages(unreadMap);
+          setLastMessageTimes(timeMap);
+        } catch (err) {
+          console.log('Could not load unread messages:', err);
+        }
+      };
+      
+      const loadChallenges = async () => {
+        try {
+          const challenges = await getChallenges(user.uid);
+          const challengeMap = {};
+          challenges.forEach(challenge => {
+            if (challenge.status === 'pending' && challenge.challengedId === user.uid) {
+              const challengerId = challenge.challengerId;
+              challengeMap[challengerId] = (challengeMap[challengerId] || 0) + 1;
+            }
+            if (challenge.status === 'accepted') {
+              const otherUserId = challenge.challengerId === user.uid ? challenge.challengedId : challenge.challengerId;
+              const userScore = challenge.challengerId === user.uid ? challenge.challengerScore : challenge.challengedScore;
+              if (userScore === null || userScore === undefined) {
+                challengeMap[otherUserId] = (challengeMap[otherUserId] || 0) + 1;
+              }
+            }
+          });
+          setPendingChallenges(challengeMap);
+        } catch (err) {
+          console.log('Could not load pending challenges:', err);
+        }
+      };
+      
+      // Run all secondary loads in parallel
+      await Promise.all([loadPrayerPartner(), loadMessages(), loadChallenges()]);
     } catch (error) {
       console.error('Error loading friends data:', error);
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -977,55 +985,57 @@ const FriendsScreen = ({ navigation, onClose }) => {
       <Animated.View 
         style={[styles.tabsContainer, { opacity: headerAnim }]}
       >
-        <View style={[styles.tabs, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+        <View style={[styles.tabs, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
           {[
-            { key: 'friends', label: 'Friends', icon: 'people', count: friends.length },
+            { key: 'friends', label: 'Friends', icon: 'people', count: 0 },
             { key: 'requests', label: 'Requests', icon: 'mail', count: pendingRequests.length },
-            { key: 'blocked', label: 'Blocked', icon: 'block', count: blockedUsers.length },
+            { key: 'blocked', label: 'Blocked', icon: 'block', count: 0 },
             { key: 'search', label: '', icon: 'search', count: 0 },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-              style={styles.tab}
-            onPress={() => {
-              hapticFeedback.light();
-              setActiveTab(tab.key);
-            }}
-          >
-              {activeTab === tab.key ? (
-                <LinearGradient
-                  colors={[theme.primary, theme.primary + 'CC']}
-                  style={styles.tabActive}
-                >
-                  <MaterialIcons name={tab.icon} size={18} color="#FFF" />
-                  {tab.label && <Text style={styles.tabTextActive}>{tab.label}</Text>}
-                  {tab.count > 0 && tab.key !== 'search' && (
-                    <View style={styles.tabBadge}>
-                      <Text style={styles.tabBadgeText}>{tab.count}</Text>
-                    </View>
-                  )}
-                </LinearGradient>
-              ) : (
-                <View style={styles.tabInactive}>
-                  <MaterialIcons name={tab.icon} size={18} color={theme.textSecondary} />
-                  {tab.label && (
-                    <Text style={[styles.tabText, { color: theme.textSecondary }]}>{tab.label}</Text>
-                  )}
-                  {tab.count > 0 && tab.key === 'requests' && (
-                    <Animated.View 
-                      style={[
-                        styles.tabBadgeNotification,
-                        { backgroundColor: '#EF4444', transform: [{ scale: pulseAnim }] }
-                      ]}
-                    >
-                      <Text style={styles.tabBadgeText}>{tab.count}</Text>
-                    </Animated.View>
-                  )}
-                </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
+          ].map(tab => {
+            const isActive = activeTab === tab.key;
+            const isSearchTab = tab.key === 'search';
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tab, isSearchTab && { flex: 0, width: 44 }]}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setActiveTab(tab.key);
+                }}
+                activeOpacity={0.7}
+              >
+                {isActive ? (
+                  <View style={[styles.tabActive, { backgroundColor: theme.primary }]}>
+                    <MaterialIcons name={tab.icon} size={16} color="#FFF" />
+                    {tab.label ? <Text style={styles.tabTextActive}>{tab.label}</Text> : null}
+                    {tab.count > 0 && (
+                      <View style={styles.tabBadge}>
+                        <Text style={styles.tabBadgeText}>{tab.count}</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.tabInactive}>
+                    <MaterialIcons name={tab.icon} size={16} color={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'} />
+                    {tab.label ? (
+                      <Text style={[styles.tabText, { color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)' }]}>{tab.label}</Text>
+                    ) : null}
+                    {tab.count > 0 && tab.key === 'requests' && (
+                      <Animated.View 
+                        style={[
+                          styles.tabBadgeNotification,
+                          { backgroundColor: '#EF4444', transform: [{ scale: pulseAnim }] }
+                        ]}
+                      >
+                        <Text style={styles.tabBadgeText}>{tab.count}</Text>
+                      </Animated.View>
+                    )}
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </Animated.View>
       
       {/* Search Input */}
@@ -1051,7 +1061,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
             <MaterialIcons name="search" size={22} color={theme.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search by username..."
+              placeholder=""
               placeholderTextColor={theme.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -1310,12 +1320,13 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tabs: {
     flexDirection: 'row',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 4,
+    gap: 4,
   },
   tab: {
     flex: 1,
@@ -1324,38 +1335,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 5,
   },
   tabInactive: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    gap: 5,
   },
   tabTextActive: {
     color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
   tabBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   tabBadgeNotification: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 4,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   tabBadgeText: {
     color: '#FFF',

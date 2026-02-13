@@ -134,7 +134,7 @@ const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChalleng
 
       const challenge = await sendChallenge({
         challengerId: user.uid,
-        challengerName: userProfile?.displayName || 'Challenger',
+        challengerName: userProfile?.displayName || user?.displayName || 'You',
         challengerPicture: userProfile?.profilePicture || '',
         challengedId: friend.uid,
         challengedName: friend.displayName || 'Friend',

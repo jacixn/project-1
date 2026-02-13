@@ -9,7 +9,22 @@ import BiblePrayerTab from '../screens/BiblePrayerTab';
 import TodosTab from '../screens/TodosTab';
 import GymTab from '../screens/GymTab';
 import HubTab from '../screens/HubTab';
-import ProfileTab from '../screens/ProfileTab';
+let ProfileTab;
+try {
+  ProfileTab = require('../screens/ProfileTab').default;
+} catch (e) {
+  console.error('[TabNavigator] ProfileTab failed to load:', e);
+  // Fallback component so the app doesn't crash
+  ProfileTab = () => {
+    const { View, Text } = require('react-native');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: 'red', fontSize: 16 }}>ProfileTab failed to load</Text>
+        <Text style={{ color: 'gray', fontSize: 12, marginTop: 8 }}>{String(e)}</Text>
+      </View>
+    );
+  };
+}
 
 const Tab = createNativeBottomTabNavigator();
 

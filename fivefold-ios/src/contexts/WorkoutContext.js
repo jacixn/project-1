@@ -102,14 +102,12 @@ export const WorkoutProvider = ({ children }) => {
 
   // End/finish the workout
   const endWorkout = () => {
-    console.log('❌ WorkoutContext.endWorkout() called - WORKOUT ENDING');
-    console.trace('❌ Stack trace for endWorkout call:');
+    console.log('[Workout] endWorkout called');
     notificationService.cancelWorkoutOverdueNotification();
     setActiveWorkout(null);
     setIsWorkoutMinimized(false);
     setElapsedTime(0);
     workoutStartTimeRef.current = null;
-    console.log('❌ activeWorkout set to NULL - hasActiveWorkout is now FALSE');
   };
 
   // Update workout data (exercises, sets, etc.)

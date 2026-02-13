@@ -424,6 +424,84 @@ export const getAuthErrorMessage = (error) => {
   }
 };
 
+// ─── Two-Factor Authentication ──────────────────────────────────
+
+/**
+ * Check if a user has 2FA enabled by reading their Firestore doc.
+ * @param {string} uid - The user's UID
+ * @returns {Promise<boolean>}
+ */
+export const check2FAEnabled = async (uid) => {
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (userDoc.exists()) {
+    return !!userDoc.data().twoFactorEnabled;
+  }
+  return false;
+};
+
+/**
+ * Send a 2FA login code to the current user's email.
+ * Called right after signInWithEmailAndPassword when 2FA is enabled.
+ * @returns {Promise<{success: boolean, maskedEmail: string}>}
+ */
+export const send2FALoginCode = async () => {
+  const callable = httpsCallable(functions, 'send2FALoginCode');
+  const result = await callable();
+  console.log('[Auth] 2FA login code sent to:', result.data.maskedEmail);
+  return result.data;
+};
+
+/**
+ * Verify the 2FA login code. Unauthenticated (user was signed out).
+ * @param {string} email - User's email
+ * @param {string} code - The 6-digit code
+ * @returns {Promise<{success: boolean}>}
+ */
+export const verify2FALoginCode = async (email, code) => {
+  const callable = httpsCallable(functions, 'verify2FALoginCode');
+  const result = await callable({
+    email: email.trim().toLowerCase(),
+    code: code.trim(),
+  });
+  console.log('[Auth] 2FA login code verified');
+  return result.data;
+};
+
+/**
+ * Send a 2FA setup code to confirm enabling two-factor authentication.
+ * Requires email to be verified.
+ * @returns {Promise<{success: boolean, maskedEmail: string}>}
+ */
+export const send2FASetupCode = async () => {
+  const callable = httpsCallable(functions, 'send2FASetupCode');
+  const result = await callable();
+  console.log('[Auth] 2FA setup code sent to:', result.data.maskedEmail);
+  return result.data;
+};
+
+/**
+ * Confirm 2FA setup by verifying the code. Enables 2FA on success.
+ * @param {string} code - The 6-digit code
+ * @returns {Promise<{success: boolean, twoFactorEnabled: boolean}>}
+ */
+export const confirm2FASetup = async (code) => {
+  const callable = httpsCallable(functions, 'confirm2FASetup');
+  const result = await callable({ code: code.trim() });
+  console.log('[Auth] 2FA enabled successfully');
+  return result.data;
+};
+
+/**
+ * Disable two-factor authentication.
+ * @returns {Promise<{success: boolean, twoFactorEnabled: boolean}>}
+ */
+export const disable2FA = async () => {
+  const callable = httpsCallable(functions, 'disable2FA');
+  const result = await callable();
+  console.log('[Auth] 2FA disabled');
+  return result.data;
+};
+
 export default {
   signUp,
   signIn,
@@ -441,4 +519,10 @@ export default {
   sendVerificationCode,
   verifyEmailCode,
   refreshEmailVerificationStatus,
+  check2FAEnabled,
+  send2FALoginCode,
+  verify2FALoginCode,
+  send2FASetupCode,
+  confirm2FASetup,
+  disable2FA,
 };

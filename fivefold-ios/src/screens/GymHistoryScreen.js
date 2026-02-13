@@ -169,7 +169,6 @@ const GymHistoryScreen = () => {
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={{ paddingTop: insets.top + 46, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* Stats Banner */}
         <View style={[styles.statsBanner, { backgroundColor: cardBg, borderColor: cardBorder }]}>

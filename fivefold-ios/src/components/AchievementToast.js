@@ -205,13 +205,13 @@ const AchievementToast = forwardRef((props, ref) => {
               >
                 {/* Glass card — high blur, low overlay opacity for true frosted glass */}
                 <BlurView
-                  intensity={Platform.OS === 'ios' ? 120 : 40}
+                  intensity={Platform.OS === 'ios' ? 140 : 50}
                   tint={isDark ? 'dark' : 'light'}
                   style={st.glassCard}
                 >
                   {/* Thin tint overlay — keep it very light so blur shows through */}
                   <View style={[st.glassInner, {
-                    backgroundColor: isDark ? 'rgba(15,15,25,0.3)' : 'rgba(255,255,255,0.25)',
+                    backgroundColor: isDark ? 'rgba(15,15,25,0.15)' : 'rgba(255,255,255,0.15)',
                   }]}>
 
                     {/* Top shimmer accent line */}
@@ -378,7 +378,7 @@ const AchievementToast = forwardRef((props, ref) => {
 const st = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
   },

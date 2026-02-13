@@ -23,6 +23,9 @@ import {
   onAuthStateChange,
   getAuthErrorMessage,
   checkUsernameAvailability,
+  check2FAEnabled,
+  send2FALoginCode,
+  verify2FALoginCode as authVerify2FALoginCode,
 } from '../services/authService';
 import { performFullSync } from '../services/userSyncService';
 import { savePushToken } from '../services/socialNotificationService';
@@ -68,6 +71,9 @@ export const AuthProvider = ({ children }) => {
   // Flag: when true, onAuthStateChanged MUST NOT run performFullSync
   // because the signIn/signUp flow handles its own sync after clearing stale data.
   const isAuthFlowActive = React.useRef(false);
+  
+  // When true, the next signIn call skips the 2FA check (used after 2FA verification)
+  const skip2FACheck = React.useRef(false);
 
   // Load linked accounts list
   const refreshLinkedAccounts = useCallback(async () => {
@@ -336,6 +342,33 @@ export const AuthProvider = ({ children }) => {
       // Step 1: Verify credentials
       const result = await authSignIn(email, password);
       markDone(0);
+      
+      // Check if 2FA is enabled (skip if completing a 2FA flow)
+      if (!skip2FACheck.current) {
+        try {
+          const has2FA = await check2FAEnabled(result.uid);
+          if (has2FA) {
+            // Send 2FA code to user's email (user is authenticated right now)
+            const codeResult = await send2FALoginCode();
+            
+            // Sign out — user can't enter the app without completing 2FA
+            await authSignOut();
+            userStorage.clearUser();
+            
+            // Throw special error for AuthScreen to catch
+            const err = new Error('Two-factor authentication required');
+            err.requires2FA = true;
+            err.maskedEmail = codeResult.maskedEmail;
+            throw err;
+          }
+        } catch (twoFAError) {
+          // Re-throw 2FA required errors
+          if (twoFAError.requires2FA) throw twoFAError;
+          // Log but don't block login for 2FA check failures
+          console.warn('[Auth] 2FA check failed, allowing login:', twoFAError?.message);
+        }
+      }
+      skip2FACheck.current = false;
       
       // Initialise UID-scoped storage for this user.
       // If this UID already has data on this device, initUser is a no-op.
@@ -651,6 +684,29 @@ export const AuthProvider = ({ children }) => {
       throw new Error(getAuthErrorMessage(error));
     }
   }, []);
+
+  /**
+   * Verify a 2FA login code and complete sign-in.
+   * Called after the initial signIn threw a 'requires2FA' error.
+   * @param {string} email - User's email
+   * @param {string} password - User's password (stored from first attempt)
+   * @param {string} code - The 6-digit 2FA code
+   */
+  const verify2FAAndSignIn = useCallback(async (email, password, code) => {
+    try {
+      // Verify the 2FA code (unauthenticated — user was signed out)
+      await authVerify2FALoginCode(email, code);
+      
+      // Code verified — sign in again, skipping the 2FA check this time
+      skip2FACheck.current = true;
+      return await signIn(email, password);
+    } catch (error) {
+      skip2FACheck.current = false;
+      // Format the error message nicely
+      const msg = error?.message || 'Verification failed. Please try again.';
+      throw new Error(msg);
+    }
+  }, [signIn]);
 
   /**
    * Refresh the user profile from Firestore
@@ -1013,6 +1069,7 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     sendPasswordResetCode,
     resetPasswordWithCode,
+    verify2FAAndSignIn,
     refreshUserProfile,
     updateLocalProfile,
     checkUsernameAvailability,

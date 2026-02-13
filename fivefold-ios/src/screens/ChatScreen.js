@@ -47,6 +47,7 @@ import profanityFilter from '../services/profanityFilterService';
 import userStorage from '../utils/userStorage';
 import { BlurView } from 'expo-blur';
 import ReportBlockModal from '../components/ReportBlockModal';
+import { isRestricted } from '../services/restrictionService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
@@ -415,6 +416,15 @@ const ChatScreen = () => {
   const handleSendMessage = async () => {
     if (!inputText.trim() || sending || !conversationId) return;
 
+    // Check chat restriction
+    if (user?.uid) {
+      const check = await isRestricted(user.uid, 'chat');
+      if (check.restricted) {
+        Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+        return;
+      }
+    }
+
     const text = inputText.trim();
 
     // Check for profanity before sending
@@ -455,6 +465,15 @@ const ChatScreen = () => {
 
   const handleSendEncouragement = async (type) => {
     if (sending || !conversationId) return;
+
+    // Check chat restriction
+    if (user?.uid) {
+      const check = await isRestricted(user.uid, 'chat');
+      if (check.restricted) {
+        Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+        return;
+      }
+    }
 
     setSending(true);
     setShowEncouragements(false);

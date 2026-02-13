@@ -11,11 +11,13 @@ import {
   Image,
   Modal,
   Dimensions,
-  RefreshControl,
   DeviceEventEmitter,
   Alert,
+  ActivityIndicator,
+  Easing,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +32,8 @@ import { GlassCard, GlassHeader } from '../components/GlassEffect';
 import { createEntranceAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { hapticFeedback } from '../utils/haptics';
+import LottieView from 'lottie-react-native';
+import userStorage from '../utils/userStorage';
 import ExercisesModal from '../components/ExercisesModal';
 import WorkoutModal from '../components/WorkoutModal';
 import TemplateSelectionModal from '../components/TemplateSelectionModal';
@@ -42,6 +46,7 @@ import bodyCompositionService from '../services/bodyCompositionService';
 
 const GymTab = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
@@ -70,13 +75,20 @@ const GymTab = () => {
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showFullHistoryModal, setShowFullHistoryModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [selectedCalendarMonth, setSelectedCalendarMonth] = useState(new Date());
   const [scheduledWorkouts, setScheduledWorkouts] = useState([]);
   const [nutritionProgress, setNutritionProgress] = useState(null);
   const [bodyComp, setBodyComp] = useState(null);
   const [bodyCompExpanded, setBodyCompExpanded] = useState(false);
+
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const refreshLottieRef = useRef(null);
+  const refreshLottieScale = useRef(new Animated.Value(0)).current;
+  const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -110,6 +122,11 @@ const GymTab = () => {
     
     // Start shimmer animation
     startShimmerAnimation();
+
+    // Load selected loading animation
+    userStorage.getRaw('fivefold_loading_animation').then(id => {
+      if (id) setSelectedLoadingAnim(id);
+    });
     
     // Listen for workout scheduled events
     const scheduledListener = DeviceEventEmitter.addListener('workoutScheduled', () => {
@@ -241,8 +258,98 @@ const GymTab = () => {
       loadWorkoutHistory();
       loadScheduledWorkouts();
       loadNutritionProgress();
+      // Reload loading animation preference
+      userStorage.getRaw('fivefold_loading_animation').then(id => {
+        setSelectedLoadingAnim(id || 'default');
+      });
     }, [])
   );
+
+  // Pull-to-refresh handler — reloads ALL fitness data fresh
+  const onRefresh = async () => {
+    if (refreshing) return; // Prevent double-refresh
+    setRefreshing(true);
+    hapticFeedback.gentle();
+    console.log('🔄 Fitness: Pull-to-refresh started — reloading all data...');
+    try {
+      // Reload everything in parallel
+      const results = await Promise.allSettled([
+        loadWorkoutHistory(),
+        loadScheduledWorkouts(),
+        loadNutritionProgress(),
+      ]);
+
+      // Log results
+      const labels = ['Workout History', 'Scheduled Workouts', 'Nutrition Progress'];
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`❌ Fitness refresh failed: ${labels[i]}`, r.reason);
+        } else {
+          console.log(`✅ Fitness refresh: ${labels[i]} loaded`);
+        }
+      });
+
+      // Notify other components that fitness data has been refreshed
+      DeviceEventEmitter.emit('fitnessDataRefreshed');
+
+      // Small delay so the animation feels satisfying
+      await new Promise(resolve => setTimeout(resolve, 600));
+      console.log('🔄 Fitness: Refresh complete');
+    } catch (error) {
+      console.error('Error refreshing fitness data:', error);
+    } finally {
+      setRefreshing(false);
+      hapticFeedback.success();
+    }
+  };
+
+  // Pull-to-refresh animation controller
+  useEffect(() => {
+    if (refreshing) {
+      setTimeout(() => refreshLottieRef.current?.play(), 50);
+      Animated.parallel([
+        Animated.spring(refreshLottieScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 12,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshSpacerHeight, {
+          toValue: selectedLoadingAnim === 'default' ? 50 : 100,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 12,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(refreshSpacerHeight, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshLottieScale, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 15,
+        }),
+      ]).start(() => {
+        refreshLottieRef.current?.reset();
+      });
+    }
+  }, [refreshing, selectedLoadingAnim]);
 
   const loadNutritionProgress = async () => {
     try {
@@ -305,18 +412,6 @@ const GymTab = () => {
       console.error('Error loading scheduled workouts:', error);
     }
   };
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await loadWorkoutHistory();
-      await loadScheduledWorkouts();
-    } catch (err) {
-      console.error('Error refreshing workout data:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
 
   // Format time with smart units (Minutes → Hours → Days)
   const formatTimeWithUnits = (totalMinutes) => {
@@ -732,24 +827,61 @@ const GymTab = () => {
           </View>
         </GlassHeader>
 
+        {/* Custom Pull-to-Refresh Indicator */}
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: insets.top + (selectedLoadingAnim === 'default' ? 90 : 70),
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            zIndex: 1000,
+            opacity: refreshLottieOpacity,
+            transform: [{ scale: refreshLottieScale }],
+          }}
+        >
+          {selectedLoadingAnim === 'default' ? (
+            <ActivityIndicator size="large" color={theme.primary} />
+          ) : (
+            <LottieView
+              ref={refreshLottieRef}
+              source={
+                selectedLoadingAnim === 'hamster'
+                  ? require('../../assets/Run-Hamster.json')
+                  : selectedLoadingAnim === 'amongus'
+                  ? require('../../assets/Loading 50 _ Among Us.json')
+                  : require('../../assets/Running-Cat.json')
+              }
+              autoPlay={false}
+              loop
+              style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+            />
+          )}
+        </Animated.View>
+
         {/* Main Content */}
         <Animated.ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-          />
-        }
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
+          bounces={true}
+          alwaysBounceVertical={true}
+          onScrollEndDrag={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            if (y < -70 && !refreshing) {
+              onRefresh();
+            }
+          }}
         >
+          {/* Animated spacer for refresh animation */}
+          <Animated.View style={{ height: refreshSpacerHeight }} />
+
           {/* Weekly Calendar Card */}
           <LiquidGlassContainer>
             {/* Weekly Calendar Preview */}

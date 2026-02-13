@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
-import { checkUsernameAvailability, sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
+import { checkUsernameAvailability, sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup, disable2FA, check2FAEnabled } from '../services/authService';
 import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
 import { getFriendCount } from '../services/friendsService';
 import {
@@ -58,6 +59,20 @@ import { hapticFeedback, updateHapticsSetting } from '../utils/haptics';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } from '../data/bibleVersions';
 import AiBibleChat from '../components/AiBibleChat';
+import {
+  fetchAllReports,
+  updateReportStatus,
+  fetchUserInfo,
+  fetchReportedContent,
+  applyRestriction,
+  liftRestriction,
+  getActiveRestrictions,
+  getAllRestrictionsForUser,
+  DURATION_OPTIONS,
+  RESTRICTION_TYPES,
+  ALL_RESTRICTION_IDS,
+} from '../services/restrictionService';
+import { REPORT_REASONS } from '../services/reportService';
 import bibleAudioService from '../services/bibleAudioService';
 import BibleReader from '../components/BibleReader';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
@@ -545,6 +560,7 @@ const ProfileTab = () => {
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { 
     user, userProfile: authUserProfile, signOut, deleteAccount, isAuthenticated, loading: authLoading, updateLocalProfile,
     linkedAccounts, switchAccount, addLinkedAccount, unlinkAccount, switchingAccount, saveCurrentAsLinkedAccount,
@@ -622,7 +638,15 @@ const ProfileTab = () => {
   const [referralInfo, setReferralInfo] = useState({ referredBy: null, referredByUsername: null, referredByDisplayName: null, referralCount: 0 });
   const [referralUsername, setReferralUsername] = useState('');
   const [referralLoading, setReferralLoading] = useState(false);
+  const [showUnlockPopup, setShowUnlockPopup] = useState(false);
+  const [newlyUnlockedItems, setNewlyUnlockedItems] = useState([]);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [show2FASetupModal, setShow2FASetupModal] = useState(false);
+  const [twoFASetupCode, setTwoFASetupCode] = useState('');
+  const [twoFASetupLoading, setTwoFASetupLoading] = useState(false);
+  const [twoFASetupMaskedEmail, setTwoFASetupMaskedEmail] = useState('');
+  const [twoFAResendCooldown, setTwoFAResendCooldown] = useState(0);
   const [selectedBibleVersion, setSelectedBibleVersion] = useState('kjv');
   const [showBibleVersionModal, setShowBibleVersionModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -652,6 +676,25 @@ const ProfileTab = () => {
   const [totalUsersCount, setTotalUsersCount] = useState(0);
   const [verseReference, setVerseReference] = useState(null);
 
+  // Admin Reports & Restrictions state
+  const [showAdminReports, setShowAdminReports] = useState(false);
+  const [reportsData, setReportsData] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [reportsFilter, setReportsFilter] = useState('pending'); // 'pending' | 'all' | 'resolved'
+  const [reportUserCache, setReportUserCache] = useState({}); // uid -> userInfo
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showRestrictModal, setShowRestrictModal] = useState(false);
+  const [restrictTargetUid, setRestrictTargetUid] = useState(null);
+  const [restrictTargetName, setRestrictTargetName] = useState('');
+  const [restrictTypes, setRestrictTypes] = useState([]); // array of selected type IDs
+  const [restrictDuration, setRestrictDuration] = useState(null);
+  const [restrictReason, setRestrictReason] = useState('');
+  const [applyingRestriction, setApplyingRestriction] = useState(false);
+  const [showUserRestrictions, setShowUserRestrictions] = useState(false);
+  const [userRestrictionsData, setUserRestrictionsData] = useState([]);
+  const [loadingUserRestrictions, setLoadingUserRestrictions] = useState(false);
+  const [reportContentCache, setReportContentCache] = useState({}); // reportId -> { text, type, authorName }
+
   const [purchasedVersions, setPurchasedVersions] = useState(['kjv', 'web']); // Free versions
   
   // App Streak State
@@ -663,6 +706,7 @@ const ProfileTab = () => {
   
   // Customisation State
   const [selectedStreakAnim, setSelectedStreakAnim] = useState('fire1');
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
   const [bluetickToggle, setBluetickToggle] = useState(true);
   const [countryFlagToggle, setCountryFlagToggle] = useState(true);
   const [streakBadgeToggle, setStreakBadgeToggle] = useState(true);
@@ -673,6 +717,13 @@ const ProfileTab = () => {
   const streakNumberScale = useRef(new Animated.Value(0)).current;
   const streakFadeIn = useRef(new Animated.Value(0)).current;
   // (Lottie handles flame layers internally)
+
+  // Pull-to-refresh Lottie animation values
+  const refreshLottieRef = useRef(null);
+  const refreshLottieScale = useRef(new Animated.Value(0)).current;
+  const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
+  const refreshLottieRotate = useRef(new Animated.Value(0)).current;
+  const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
   
   // Journal State
   const [journalNotes, setJournalNotes] = useState([]);
@@ -805,6 +856,137 @@ const ProfileTab = () => {
       setLoadingAttribution(false);
     }
   }, [isAdmin]);
+
+  // ── Admin Reports Fetcher ──
+  const fetchReportsData = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingReports(true);
+    try {
+      const reports = await fetchAllReports();
+      setReportsData(reports);
+
+      // Prefetch user info for unique UIDs
+      const uids = new Set();
+      reports.forEach(r => {
+        if (r.reporterId) uids.add(r.reporterId);
+        if (r.reportedUserId) uids.add(r.reportedUserId);
+      });
+
+      const cache = { ...reportUserCache };
+      const toFetch = [...uids].filter(uid => !cache[uid]);
+      const results = await Promise.all(toFetch.map(uid => fetchUserInfo(uid)));
+      toFetch.forEach((uid, i) => {
+        cache[uid] = results[i] || { displayName: 'Unknown', email: '', username: '' };
+      });
+      setReportUserCache(cache);
+
+      // Prefetch reported content for each report
+      const contentCache = { ...reportContentCache };
+      const contentToFetch = reports.filter(r => r.contentId && !contentCache[r.id]);
+      const contentResults = await Promise.all(
+        contentToFetch.map(r => fetchReportedContent(r.contentType, r.contentId))
+      );
+      contentToFetch.forEach((r, i) => {
+        contentCache[r.id] = contentResults[i] || { text: '[Could not load content]', type: r.contentType };
+      });
+      setReportContentCache(contentCache);
+    } catch (error) {
+      console.error('[Admin] Failed to fetch reports:', error);
+      Alert.alert('Error', 'Failed to load reports.');
+    } finally {
+      setLoadingReports(false);
+    }
+  }, [isAdmin]);
+
+  // ── Admin Apply Restriction ──
+  const handleApplyRestriction = async () => {
+    if (!restrictTargetUid || restrictTypes.length === 0 || !restrictDuration) {
+      Alert.alert('Missing Info', 'Please select at least one restriction type and a duration.');
+      return;
+    }
+    setApplyingRestriction(true);
+    try {
+      // Expand 'all' into individual types
+      const typesToApply = restrictTypes.includes('all') ? ALL_RESTRICTION_IDS : restrictTypes;
+
+      // Apply each restriction
+      const results = await Promise.all(
+        typesToApply.map(type =>
+          applyRestriction({
+            userId: restrictTargetUid,
+            type,
+            duration: restrictDuration,
+            reason: restrictReason || (selectedReport ? `Report: ${selectedReport.reason}` : ''),
+            adminId: user.uid,
+            reportId: selectedReport?.id || null,
+          })
+        )
+      );
+
+      const allSuccess = results.every(r => r.success);
+
+      if (allSuccess) {
+        // Mark report as resolved if from a report
+        if (selectedReport) {
+          await updateReportStatus(selectedReport.id, 'resolved');
+          fetchReportsData();
+        }
+        const typeLabels = restrictTypes.includes('all')
+          ? 'Everything'
+          : restrictTypes.map(t => RESTRICTION_TYPES.find(rt => rt.id === t)?.label || t).join(', ');
+        Alert.alert(
+          'Restriction Applied',
+          `${restrictTargetName || 'User'} has been restricted from ${typeLabels} for ${DURATION_OPTIONS.find(d => d.id === restrictDuration)?.label || restrictDuration}.`
+        );
+        setShowRestrictModal(false);
+        setRestrictTypes([]);
+        setRestrictDuration(null);
+        setRestrictReason('');
+        setSelectedReport(null);
+        // Go back to reports
+        setTimeout(() => { setShowAdminReports(true); fetchReportsData(); }, 350);
+      } else {
+        Alert.alert('Error', 'Some restrictions failed to apply. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong.');
+    } finally {
+      setApplyingRestriction(false);
+    }
+  };
+
+  // ── Admin: View a user's active restrictions ──
+  const handleViewUserRestrictions = async (uid, name) => {
+    setRestrictTargetUid(uid);
+    setRestrictTargetName(name);
+    setLoadingUserRestrictions(true);
+    setShowUserRestrictions(true);
+    try {
+      const restrictions = await getAllRestrictionsForUser(uid);
+      setUserRestrictionsData(restrictions);
+    } catch (e) {
+      setUserRestrictionsData([]);
+    } finally {
+      setLoadingUserRestrictions(false);
+    }
+  };
+
+  const handleLiftRestriction = async (restrictionId) => {
+    Alert.alert('Lift Restriction', 'Are you sure you want to remove this restriction?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Lift',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await liftRestriction(restrictionId);
+          if (result.success) {
+            setUserRestrictionsData(prev => prev.map(r => r.id === restrictionId ? { ...r, active: false } : r));
+            Alert.alert('Done', 'Restriction has been lifted.');
+          }
+        },
+      },
+    ]);
+  };
 
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
@@ -1762,6 +1944,59 @@ const ProfileTab = () => {
     };
   }, []);
 
+  // ── Referral unlock detection ──────────────────────────────
+  const checkForNewUnlocks = useCallback(async () => {
+    try {
+      const currentCount = await getReferralCount();
+      const storedCount = await userStorage.getRaw('fivefold_last_known_referral_count');
+      const lastKnown = storedCount ? parseInt(storedCount, 10) : 0;
+
+      if (currentCount > lastKnown) {
+        // Build list of everything that just got unlocked
+        const ALL_UNLOCKABLES = [
+          // Badges
+          { name: 'Blue Tick', category: 'Badge', icon: 'verified', color: '#1DA1F2', required: 1 },
+          { name: 'Streak Animation Badge', category: 'Badge', icon: 'local-fire-department', color: '#FF6B00', required: 5 },
+          { name: 'Biblely Badge', category: 'Badge', icon: 'workspace-premium', color: '#F59E0B', required: 5 },
+          { name: 'Among Us Badge', category: 'Badge', icon: 'sports-esports', color: '#4CAF50', required: 5 },
+          // Themes
+          { name: 'Cresvia', category: 'Theme', icon: 'palette', color: '#8B5CF6', required: 1 },
+          { name: 'Eterna', category: 'Theme', icon: 'palette', color: '#06B6D4', required: 1 },
+          { name: 'Blush Bloom', category: 'Theme', icon: 'palette', color: '#EC4899', required: 3 },
+          { name: 'Sailor Moon', category: 'Theme', icon: 'palette', color: '#F472B6', required: 5 },
+          { name: 'Classic', category: 'Theme', icon: 'palette', color: '#D97706', required: 5 },
+          { name: 'Spiderman', category: 'Theme', icon: 'palette', color: '#E53935', required: 5 },
+          { name: 'Biblely Light', category: 'Theme', icon: 'palette', color: '#10B981', required: 5 },
+          // Streak Animations
+          { name: 'Bright Idea', category: 'Streak Animation', icon: 'lightbulb', color: '#FFC107', required: 2 },
+          { name: 'Lightning', category: 'Streak Animation', icon: 'bolt', color: '#7C4DFF', required: 4 },
+          { name: 'Red Car', category: 'Streak Animation', icon: 'directions-car', color: '#E53935', required: 5 },
+          { name: 'Inferno', category: 'Streak Animation', icon: 'whatshot', color: '#FF3D00', required: 5 },
+          { name: 'Among Us', category: 'Streak Animation', icon: 'sports-esports', color: '#4CAF50', required: 5 },
+          // Loading Animations
+          { name: 'Running Cat', category: 'Loading Animation', icon: 'pets', color: '#795548', required: 1 },
+          { name: 'Run Hamster', category: 'Loading Animation', icon: 'pets', color: '#FF9800', required: 3 },
+          { name: 'Among Us', category: 'Loading Animation', icon: 'sports-esports', color: '#4CAF50', required: 5 },
+          // Voices
+          { name: 'Premium Voice Packs', category: 'Voices', icon: 'record-voice-over', color: '#00BCD4', required: 1 },
+        ];
+
+        const unlocked = ALL_UNLOCKABLES.filter(
+          item => item.required > lastKnown && item.required <= currentCount
+        );
+
+        if (unlocked.length > 0) {
+          setNewlyUnlockedItems(unlocked);
+          setShowUnlockPopup(true);
+        }
+
+        await userStorage.setRaw('fivefold_last_known_referral_count', String(currentCount));
+      }
+    } catch (e) {
+      console.error('[Referral] Error checking for new unlocks:', e);
+    }
+  }, []);
+
   // Force refresh all data when Profile tab comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -1804,10 +2039,76 @@ const ProfileTab = () => {
         } catch (e) {
           console.error('Error checking email verification:', e);
         }
+        try {
+          const { auth } = require('../config/firebase');
+          if (auth.currentUser) {
+            const has2FA = await check2FAEnabled(auth.currentUser.uid);
+            setTwoFactorEnabled(has2FA);
+          }
+        } catch (e) {
+          console.error('Error checking 2FA status:', e);
+        }
+        // Check for newly unlocked items from referrals
+        await checkForNewUnlocks();
       };
       safeRefresh();
     }, [])
   );
+
+  // Pull-to-refresh animation controller
+  useEffect(() => {
+    if (refreshing) {
+      setTimeout(() => refreshLottieRef.current?.play(), 50);
+      Animated.parallel([
+        Animated.spring(refreshLottieScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 12,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshSpacerHeight, {
+          toValue: selectedLoadingAnim === 'default' ? 50 : 100,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 12,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(refreshSpacerHeight, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(refreshLottieOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(refreshLottieScale, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 15,
+        }),
+      ]).start(() => {
+        refreshLottieRef.current?.reset();
+      });
+    }
+  }, [refreshing, selectedLoadingAnim]);
+
+  // 2FA resend cooldown timer
+  useEffect(() => {
+    if (twoFAResendCooldown <= 0) return;
+    const timer = setTimeout(() => setTwoFAResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [twoFAResendCooldown]);
 
   useEffect(() => {
     if (showAboutModal) {
@@ -2224,6 +2525,10 @@ const ProfileTab = () => {
       // Load selected streak animation
       const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (savedAnim) setSelectedStreakAnim(savedAnim);
+
+      // Load selected loading animation
+      const savedLoadingAnim = await userStorage.getRaw('fivefold_loading_animation');
+      if (savedLoadingAnim) setSelectedLoadingAnim(savedLoadingAnim);
       
       console.log(`📊 Profile loaded: ${correctTotal} points, Level ${level}, ${actualCompletedCount} completed tasks`);
     } catch (error) {
@@ -2237,13 +2542,16 @@ const ProfileTab = () => {
     hapticFeedback.gentle(); // Nice haptic feedback when pulling
     
     try {
-      // Reload all user data
-      await loadUserData();
-      await checkAiStatus();
-      await loadVibrationSetting();
+      // Reload all user data in parallel for speed
+      await Promise.all([
+        loadUserData().catch(e => console.error('Error refreshing user data:', e)),
+        loadAppStreak().catch(e => console.error('Error refreshing streak:', e)),
+        checkAiStatus().catch(e => console.error('Error refreshing AI status:', e)),
+        loadVibrationSetting().catch(e => console.error('Error refreshing vibration:', e)),
+      ]);
       
-      // Add a small delay to make the refresh feel more responsive
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay so the animation feels satisfying
+      await new Promise(resolve => setTimeout(resolve, 600));
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -3366,6 +3674,39 @@ const ProfileTab = () => {
         </View>
       </GlassHeader>
 
+      {/* Custom Pull-to-Refresh Indicator */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: insets.top + (selectedLoadingAnim === 'default' ? 60 : 40),
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          zIndex: 1000,
+          opacity: refreshLottieOpacity,
+          transform: [{ scale: refreshLottieScale }],
+        }}
+      >
+        {selectedLoadingAnim === 'default' ? (
+          <ActivityIndicator size="large" color={theme.primary} />
+        ) : (
+          <LottieView
+            ref={refreshLottieRef}
+            source={
+              selectedLoadingAnim === 'hamster'
+                ? require('../../assets/Run-Hamster.json')
+                : selectedLoadingAnim === 'amongus'
+                ? require('../../assets/Loading 50 _ Among Us.json')
+                : require('../../assets/Running-Cat.json')
+            }
+            autoPlay={false}
+            loop
+            style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+          />
+        )}
+      </Animated.View>
+
       {/* Main Content - flows to top like Twitter */}
       <Animated.ScrollView 
         style={styles.twitterContent} 
@@ -3376,17 +3717,18 @@ const ProfileTab = () => {
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
-            progressBackgroundColor={theme.background}
-            progressViewOffset={130}
-          />
-        }
+        bounces={true}
+        alwaysBounceVertical={true}
+        onScrollEndDrag={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          if (y < -70 && !refreshing) {
+            onRefresh();
+          }
+        }}
       >
+        {/* Animated spacer to smoothly push content below the refresh animation */}
+        <Animated.View style={{ height: refreshSpacerHeight }} />
+
         {/* Profile Header - called as function to avoid remounting on re-render */}
         {ProfileHeader()}
         
@@ -4451,6 +4793,133 @@ const ProfileTab = () => {
               </TouchableOpacity>
             </View>
 
+            {/* SECURITY SECTION - Two-Factor Authentication */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: modalTextTertiaryColor,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Security
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+                onPress={() => {
+                  hapticFeedback.buttonPress();
+                  if (!emailVerified) {
+                    Alert.alert(
+                      'Email Verification Required',
+                      'You need to verify your email before you can enable two-factor authentication.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Verify Now', onPress: () => {
+                          setShowSettingsModal(false);
+                          setTimeout(() => navigation.navigate('EmailVerification', { fromSignup: false, maskedEmail: user?.email || '' }), 300);
+                        }},
+                      ]
+                    );
+                    return;
+                  }
+                  if (twoFactorEnabled) {
+                    // Disable 2FA
+                    Alert.alert(
+                      'Disable Two-Factor Authentication',
+                      'Are you sure you want to disable two-factor authentication? Your account will be less secure.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Disable', style: 'destructive', onPress: async () => {
+                          try {
+                            await disable2FA();
+                            setTwoFactorEnabled(false);
+                            hapticFeedback.success();
+                            Alert.alert('Two-Factor Disabled', 'Two-factor authentication has been turned off.');
+                          } catch (err) {
+                            hapticFeedback.error();
+                            const errMsg = err?.message || '';
+                            if (errMsg.includes('not-found') || errMsg.includes('NOT_FOUND')) {
+                              Alert.alert('Service Unavailable', 'Two-factor authentication is being set up. Please try again shortly.');
+                            } else {
+                              Alert.alert('Error', errMsg || 'Failed to disable two-factor authentication.');
+                            }
+                          }
+                        }},
+                      ]
+                    );
+                  } else {
+                    // Enable 2FA — send setup code
+                    (async () => {
+                      try {
+                        setTwoFASetupLoading(true);
+                        const result = await send2FASetupCode();
+                        setTwoFASetupMaskedEmail(result.maskedEmail || user?.email || '');
+                        setTwoFASetupCode('');
+                        setTwoFAResendCooldown(60);
+                        setShow2FASetupModal(true);
+                        setShowSettingsModal(false);
+                      } catch (err) {
+                        hapticFeedback.error();
+                        const errMsg = err?.message || '';
+                        if (errMsg.includes('not-found') || errMsg.includes('NOT_FOUND')) {
+                          Alert.alert('Service Unavailable', 'Two-factor authentication is being set up. Please try again shortly.');
+                        } else {
+                          Alert.alert('Error', errMsg || 'Failed to send setup code. Please try again.');
+                        }
+                      } finally {
+                        setTwoFASetupLoading(false);
+                      }
+                    })();
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: twoFactorEnabled ? 'rgba(16,185,129,0.15)' : `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons
+                      name={twoFactorEnabled ? 'lock' : 'lock-outline'}
+                      size={20}
+                      color={twoFactorEnabled ? '#10B981' : theme.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
+                      Two-Factor Authentication
+                    </Text>
+                    <Text style={{ fontSize: 12, color: twoFactorEnabled ? '#10B981' : modalTextSecondaryColor, marginTop: 2 }}>
+                      {twoFactorEnabled ? 'Enabled — extra security on login' : 'Add an extra layer of security'}
+                    </Text>
+                  </View>
+                </View>
+                {twoFactorEnabled ? (
+                  <MaterialIcons name="check-circle" size={22} color="#10B981" />
+                ) : twoFASetupLoading ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+
             {/* VERIFY EMAIL SECTION */}
             <Text style={{
               fontSize: 12,
@@ -5021,6 +5490,43 @@ const ProfileTab = () => {
                     </View>
                     <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
                   </TouchableOpacity>
+
+                  {/* Separator */}
+                  <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', marginHorizontal: 16 }} />
+
+                  {/* Reports Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 16,
+                    }}
+                    onPress={() => {
+                      hapticFeedback.buttonPress();
+                      setShowSettingsModal(false);
+                      setTimeout(() => {
+                        setShowAdminReports(true);
+                        fetchReportsData();
+                      }, 300);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#FF3B3020',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <MaterialIcons name="report" size={20} color="#FF3B30" />
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Reports</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -5551,6 +6057,180 @@ const ProfileTab = () => {
         </View>
       </Modal>
 
+      {/* 2FA Setup Modal */}
+      <Modal visible={show2FASetupModal} animationType="slide" presentationStyle="pageSheet">
+        <KeyboardAvoidingView 
+          style={{ flex: 1, backgroundColor: theme.background }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={{ flex: 1 }}>
+            {/* Header */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 16,
+            }}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShow2FASetupModal(false);
+                  setTwoFASetupCode('');
+                }}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  borderRadius: 20,
+                }}
+              >
+                <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '700', 
+                color: theme.text,
+                letterSpacing: 0.3,
+              }}>Enable Two-Factor</Text>
+              <View style={{ width: 70 }} />
+            </View>
+
+            <ScrollView 
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: 20, paddingTop: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Icon */}
+              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: `${theme.primary}20`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}>
+                  <MaterialIcons name="security" size={40} color={theme.primary} />
+                </View>
+                <Text style={{ fontSize: 16, color: theme.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+                  We sent a verification code to{'\n'}
+                  <Text style={{ fontWeight: '700', color: theme.text }}>{twoFASetupMaskedEmail}</Text>
+                </Text>
+              </View>
+
+              {/* Code Input */}
+              <View style={{
+                backgroundColor: theme.card,
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 20,
+              }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  6-Digit Code
+                </Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  height: 56,
+                  borderWidth: 2,
+                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                }}>
+                  <MaterialIcons name="lock-outline" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
+                  <TextInput
+                    style={{ flex: 1, fontSize: 20, color: theme.text, fontWeight: '600', letterSpacing: 8 }}
+                    placeholder="000000"
+                    placeholderTextColor={theme.textTertiary}
+                    value={twoFASetupCode}
+                    onChangeText={setTwoFASetupCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </View>
+
+                {/* Resend */}
+                <TouchableOpacity 
+                  onPress={async () => {
+                    if (twoFAResendCooldown > 0) return;
+                    try {
+                      setTwoFASetupLoading(true);
+                      await send2FASetupCode();
+                      hapticFeedback.success();
+                      setTwoFAResendCooldown(60);
+                    } catch (err) {
+                      hapticFeedback.error();
+                      Alert.alert('Error', err.message || 'Failed to resend code.');
+                    } finally {
+                      setTwoFASetupLoading(false);
+                    }
+                  }}
+                  disabled={twoFAResendCooldown > 0}
+                  style={{ alignSelf: 'center', marginTop: 16 }}
+                >
+                  <Text style={{ fontSize: 14, color: twoFAResendCooldown > 0 ? theme.textTertiary : theme.primary, fontWeight: '600' }}>
+                    {twoFAResendCooldown > 0 ? `Resend code in ${twoFAResendCooldown}s` : 'Resend code'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: theme.primary,
+                  borderRadius: 16,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  opacity: twoFASetupLoading || twoFASetupCode.length !== 6 ? 0.5 : 1,
+                }}
+                disabled={twoFASetupLoading || twoFASetupCode.length !== 6}
+                onPress={async () => {
+                  try {
+                    setTwoFASetupLoading(true);
+                    await confirm2FASetup(twoFASetupCode);
+                    hapticFeedback.success();
+                    setTwoFactorEnabled(true);
+                    setShow2FASetupModal(false);
+                    setTwoFASetupCode('');
+                    Alert.alert(
+                      'Two-Factor Enabled',
+                      'Your account now requires a verification code when signing in. A code will be sent to your email each time you log in.'
+                    );
+                  } catch (err) {
+                    hapticFeedback.error();
+                    Alert.alert('Verification Failed', err.message || 'Incorrect code. Please try again.');
+                  } finally {
+                    setTwoFASetupLoading(false);
+                  }
+                }}
+              >
+                {twoFASetupLoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={{ color: '#FFF', fontSize: 17, fontWeight: '700' }}>Enable Two-Factor</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Info */}
+              <View style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                borderRadius: 12,
+                padding: 16,
+                marginTop: 20,
+              }}>
+                <Text style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 20 }}>
+                  Once enabled, you will need to enter a verification code sent to your email each time you sign in. This adds an extra layer of protection to your account.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Referral Modal */}
       <Modal visible={showReferralModal} animationType="slide" presentationStyle="pageSheet">
         <KeyboardAvoidingView 
@@ -6005,6 +6685,675 @@ const ProfileTab = () => {
                   </View>
                 )}
               </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════
+           ADMIN REPORTS MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      <Modal visible={showAdminReports} animationType="slide" presentationStyle="pageSheet">
+        <View style={{ flex: 1, backgroundColor: isDark ? '#111' : '#F5F5F7' }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 12,
+            backgroundColor: isDark ? '#111' : '#F5F5F7',
+          }}>
+            <TouchableOpacity onPress={() => setShowAdminReports(false)} style={{ padding: 4 }}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>User Reports</Text>
+            <TouchableOpacity onPress={fetchReportsData} style={{ padding: 4 }}>
+              <MaterialIcons name="refresh" size={24} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Filter Tabs */}
+          <View style={{
+            flexDirection: 'row',
+            paddingHorizontal: 20,
+            paddingBottom: 12,
+            gap: 8,
+          }}>
+            {[
+              { id: 'pending', label: 'Pending' },
+              { id: 'all', label: 'All' },
+              { id: 'resolved', label: 'Resolved' },
+            ].map(tab => {
+              const isActive = reportsFilter === tab.id;
+              const count = tab.id === 'all'
+                ? reportsData.length
+                : reportsData.filter(r => tab.id === 'pending' ? r.status === 'pending' : (r.status === 'resolved' || r.status === 'dismissed')).length;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  onPress={() => setReportsFilter(tab.id)}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: isActive ? theme.primary : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isActive ? '#FFF' : theme.textSecondary,
+                  }}>
+                    {tab.label} ({count})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Reports List */}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 4, paddingBottom: 40 }}>
+            {loadingReports ? (
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14 }}>Loading reports...</Text>
+              </View>
+            ) : (() => {
+              const filtered = reportsData.filter(r => {
+                if (reportsFilter === 'all') return true;
+                if (reportsFilter === 'pending') return r.status === 'pending';
+                return r.status === 'resolved' || r.status === 'dismissed';
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                    <MaterialIcons name="check-circle" size={48} color={theme.primary} />
+                    <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 15, textAlign: 'center' }}>
+                      {reportsFilter === 'pending' ? 'No pending reports' : 'No reports found'}
+                    </Text>
+                  </View>
+                );
+              }
+
+              return filtered.map((report) => {
+                const reporter = reportUserCache[report.reporterId] || {};
+                const reported = reportUserCache[report.reportedUserId] || {};
+                const reasonLabel = REPORT_REASONS.find(r => r.id === report.reason)?.label || report.reason;
+                const createdDate = report.createdAt?.toDate?.()
+                  ? report.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : 'Unknown';
+
+                const statusColors = {
+                  pending: '#FF9500',
+                  reviewed: '#007AFF',
+                  resolved: '#34C759',
+                  dismissed: '#8E8E93',
+                };
+
+                return (
+                  <View key={report.id} style={{
+                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 4,
+                    elevation: 2,
+                    borderLeftWidth: 4,
+                    borderLeftColor: statusColors[report.status] || '#999',
+                  }}>
+                    {/* Status Badge */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <View style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        backgroundColor: `${statusColors[report.status] || '#999'}20`,
+                      }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: statusColors[report.status] || '#999', textTransform: 'uppercase' }}>
+                          {report.status}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary }}>{createdDate}</Text>
+                    </View>
+
+                    {/* Reason */}
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text, marginBottom: 6 }}>
+                      {reasonLabel}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 2 }}>
+                      Type: {report.contentType || 'user'}
+                    </Text>
+
+                    {/* Reporter's extra details */}
+                    {report.details ? (
+                      <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 4, fontStyle: 'italic' }}>
+                        Reporter note: "{report.details}"
+                      </Text>
+                    ) : null}
+
+                    {/* ── REPORTED CONTENT PREVIEW ── */}
+                    {(() => {
+                      const content = reportContentCache[report.id];
+                      if (!content && !report.contentId) return null;
+                      return (
+                        <View style={{
+                          marginTop: 10,
+                          padding: 12,
+                          borderRadius: 10,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                          borderWidth: 1,
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                            Reported Content
+                          </Text>
+                          {content ? (
+                            <Text style={{ fontSize: 14, color: theme.text, lineHeight: 20 }}>
+                              {content.text}
+                            </Text>
+                          ) : (
+                            <Text style={{ fontSize: 13, color: theme.textSecondary, fontStyle: 'italic' }}>
+                              Loading content...
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })()}
+
+                    {/* Reporter & Reported */}
+                    <View style={{
+                      marginTop: 8,
+                      paddingTop: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    }}>
+                      <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12, color: theme.textSecondary, width: 80 }}>Reported by</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text, flex: 1 }}>
+                          {reporter.displayName || 'Loading...'}{reporter.username ? ` (@${reporter.username})` : ''}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row' }}>
+                        <Text style={{ fontSize: 12, color: theme.textSecondary, width: 80 }}>Accused</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#FF3B30', flex: 1 }}>
+                          {reported.displayName || 'Loading...'}{reported.username ? ` (@${reported.username})` : ''}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Action Buttons */}
+                    {report.status === 'pending' && (
+                      <View style={{ flexDirection: 'row', marginTop: 14, gap: 8 }}>
+                        {/* Restrict User Button */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            hapticFeedback.buttonPress();
+                            setSelectedReport(report);
+                            setRestrictTargetUid(report.reportedUserId);
+                            setRestrictTargetName(reported.displayName || 'User');
+                            setRestrictTypes([]);
+                            setRestrictDuration(null);
+                            setRestrictReason('');
+                            setShowAdminReports(false);
+                            setTimeout(() => setShowRestrictModal(true), 350);
+                          }}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 10,
+                            backgroundColor: '#FF3B30',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFF' }}>Restrict User</Text>
+                        </TouchableOpacity>
+
+                        {/* View Restrictions */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            hapticFeedback.buttonPress();
+                            setShowAdminReports(false);
+                            setTimeout(() => handleViewUserRestrictions(report.reportedUserId, reported.displayName || 'User'), 350);
+                          }}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 14,
+                            borderRadius: 10,
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialIcons name="history" size={18} color={theme.text} />
+                        </TouchableOpacity>
+
+                        {/* Dismiss */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            hapticFeedback.buttonPress();
+                            Alert.alert('Dismiss Report', 'Dismiss this report as not actionable?', [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Dismiss',
+                                onPress: async () => {
+                                  await updateReportStatus(report.id, 'dismissed');
+                                  fetchReportsData();
+                                },
+                              },
+                            ]);
+                          }}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 14,
+                            borderRadius: 10,
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Resolved/Dismissed - still allow viewing restrictions */}
+                    {report.status !== 'pending' && (
+                      <View style={{ flexDirection: 'row', marginTop: 14, gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            hapticFeedback.buttonPress();
+                            setShowAdminReports(false);
+                            setTimeout(() => handleViewUserRestrictions(report.reportedUserId, reported.displayName || 'User'), 350);
+                          }}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 10,
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                            alignItems: 'center',
+                            flexDirection: 'row',
+                            justifyContent: 'center',
+                            gap: 6,
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialIcons name="shield" size={16} color={theme.textSecondary} />
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary }}>View Restrictions</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            hapticFeedback.buttonPress();
+                            setSelectedReport(report);
+                            setRestrictTargetUid(report.reportedUserId);
+                            setRestrictTargetName(reported.displayName || 'User');
+                            setRestrictTypes([]);
+                            setRestrictDuration(null);
+                            setRestrictReason('');
+                            setShowAdminReports(false);
+                            setTimeout(() => setShowRestrictModal(true), 350);
+                          }}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 14,
+                            borderRadius: 10,
+                            backgroundColor: '#FF3B3015',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialIcons name="block" size={18} color="#FF3B30" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              });
+            })()}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════
+           RESTRICT USER MODAL (Admin action sheet)
+         ══════════════════════════════════════════════════════════════ */}
+      <Modal visible={showRestrictModal} animationType="slide" presentationStyle="pageSheet" transparent={false}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#111' : '#F5F5F7' }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 12,
+          }}>
+            <TouchableOpacity onPress={() => { setShowRestrictModal(false); setTimeout(() => { setShowAdminReports(true); fetchReportsData(); }, 350); }} style={{ padding: 4 }}>
+              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>Restrict User</Text>
+            <View style={{ width: 32 }} />
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            {/* Target User Card */}
+            <View style={{
+              backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <View style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: '#FF3B3020',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <MaterialIcons name="person" size={24} color="#FF3B30" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text }}>{restrictTargetName}</Text>
+                <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                  UID: {restrictTargetUid?.slice(0, 12)}...
+                </Text>
+              </View>
+            </View>
+
+            {/* Restriction Type (multi-select) */}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 }}>
+              What to restrict
+            </Text>
+            <View style={{ marginBottom: 20 }}>
+              {RESTRICTION_TYPES.map((rt) => {
+                const isAll = rt.id === 'all';
+                const isSelected = isAll ? restrictTypes.includes('all') : restrictTypes.includes(rt.id);
+                const isDisabledByAll = !isAll && restrictTypes.includes('all');
+                const accentColor = isAll ? '#FF3B30' : theme.primary;
+                return (
+                  <TouchableOpacity
+                    key={rt.id}
+                    onPress={() => {
+                      if (isAll) {
+                        // Toggle "all" — selects or deselects everything
+                        setRestrictTypes(prev => prev.includes('all') ? [] : ['all']);
+                      } else {
+                        setRestrictTypes(prev => {
+                          // Remove 'all' if individually toggling
+                          const without = prev.filter(t => t !== 'all');
+                          if (without.includes(rt.id)) {
+                            return without.filter(t => t !== rt.id);
+                          } else {
+                            return [...without, rt.id];
+                          }
+                        });
+                      }
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: 14,
+                      marginBottom: 8,
+                      borderRadius: 12,
+                      backgroundColor: isSelected
+                        ? (isDark ? `${accentColor}30` : `${accentColor}15`)
+                        : (isDark ? '#1C1C1E' : '#FFF'),
+                      borderWidth: isSelected ? 2 : 1,
+                      borderColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                      opacity: isDisabledByAll ? 0.4 : 1,
+                    }}
+                    activeOpacity={0.7}
+                    disabled={isDisabledByAll}
+                  >
+                    <View style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: isSelected ? accentColor : (isDark ? '#555' : '#CCC'),
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 12,
+                    }}>
+                      {isSelected && (
+                        <MaterialIcons name="check" size={14} color={accentColor} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: isAll ? '700' : '600', color: isAll ? '#FF3B30' : theme.text }}>{rt.label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Duration */}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 }}>
+              Duration
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+              {DURATION_OPTIONS.map((d) => {
+                const isSelected = restrictDuration === d.id;
+                const isForever = d.id === 'forever';
+                return (
+                  <TouchableOpacity
+                    key={d.id}
+                    onPress={() => setRestrictDuration(d.id)}
+                    style={{
+                      paddingHorizontal: 18,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: isSelected
+                        ? (isForever ? '#FF3B30' : theme.primary)
+                        : (isDark ? '#1C1C1E' : '#FFF'),
+                      borderWidth: isSelected ? 0 : 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: isSelected ? '#FFF' : theme.text,
+                    }}>
+                      {d.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Note / Reason */}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 }}>
+              Note (optional)
+            </Text>
+            <TextInput
+              value={restrictReason}
+              onChangeText={setRestrictReason}
+              placeholder="Why is this user being restricted?"
+              placeholderTextColor={isDark ? '#666' : '#AAA'}
+              multiline
+              style={{
+                backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                borderRadius: 12,
+                padding: 14,
+                fontSize: 14,
+                color: theme.text,
+                minHeight: 80,
+                textAlignVertical: 'top',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                marginBottom: 24,
+              }}
+            />
+
+            {/* Apply Button */}
+            <TouchableOpacity
+              onPress={handleApplyRestriction}
+              disabled={applyingRestriction || restrictTypes.length === 0 || !restrictDuration}
+              style={{
+                paddingVertical: 16,
+                borderRadius: 14,
+                backgroundColor: (restrictTypes.length === 0 || !restrictDuration) ? (isDark ? '#333' : '#DDD') : '#FF3B30',
+                alignItems: 'center',
+                opacity: applyingRestriction ? 0.6 : 1,
+              }}
+              activeOpacity={0.8}
+            >
+              {applyingRestriction ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={{ fontSize: 16, fontWeight: '700', color: (restrictTypes.length === 0 || !restrictDuration) ? (isDark ? '#666' : '#999') : '#FFF' }}>
+                  Apply Restriction{restrictTypes.length > 1 || restrictTypes.includes('all') ? 's' : ''}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Summary */}
+            {restrictTypes.length > 0 && restrictDuration && (
+              <View style={{
+                marginTop: 16,
+                padding: 14,
+                borderRadius: 12,
+                backgroundColor: '#FF3B3010',
+                borderWidth: 1,
+                borderColor: '#FF3B3030',
+              }}>
+                <Text style={{ fontSize: 13, color: '#FF3B30', fontWeight: '600', textAlign: 'center' }}>
+                  {restrictTargetName} will be blocked from {restrictTypes.includes('all') ? 'Everything (Social, Chat & Posting)' : restrictTypes.map(t => RESTRICTION_TYPES.find(rt => rt.id === t)?.label || t).join(', ')} for {DURATION_OPTIONS.find(d => d.id === restrictDuration)?.label || restrictDuration}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════
+           VIEW USER RESTRICTIONS MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      <Modal visible={showUserRestrictions} animationType="slide" presentationStyle="pageSheet" transparent={false}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#111' : '#F5F5F7' }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 12,
+          }}>
+            <TouchableOpacity onPress={() => { setShowUserRestrictions(false); setTimeout(() => { setShowAdminReports(true); fetchReportsData(); }, 350); }} style={{ padding: 4 }}>
+              <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>Restrictions: {restrictTargetName}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowUserRestrictions(false);
+                setTimeout(() => {
+                  setRestrictTypes([]);
+                  setRestrictDuration(null);
+                  setRestrictReason('');
+                  setShowRestrictModal(true);
+                }, 300);
+              }}
+              style={{ padding: 4 }}
+            >
+              <MaterialIcons name="add" size={24} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            {loadingUserRestrictions ? (
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <ActivityIndicator size="large" color={theme.primary} />
+              </View>
+            ) : userRestrictionsData.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <MaterialIcons name="verified-user" size={48} color="#34C759" />
+                <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 15, textAlign: 'center' }}>
+                  No restrictions on this user
+                </Text>
+              </View>
+            ) : (
+              userRestrictionsData.map((restriction) => {
+                const isActive = restriction.active;
+                const expires = restriction.expiresAt?.toDate?.();
+                const created = restriction.createdAt?.toDate?.();
+                const typeLabel = RESTRICTION_TYPES.find(t => t.id === restriction.type)?.label || restriction.type;
+                const durationLabel = DURATION_OPTIONS.find(d => d.id === restriction.duration)?.label || restriction.duration;
+
+                let expiresText = 'Never (permanent)';
+                if (expires) {
+                  const now = new Date();
+                  if (expires < now) {
+                    expiresText = 'Expired';
+                  } else {
+                    expiresText = expires.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  }
+                }
+
+                return (
+                  <View key={restriction.id} style={{
+                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 10,
+                    borderLeftWidth: 4,
+                    borderLeftColor: isActive ? '#FF3B30' : '#8E8E93',
+                    opacity: isActive ? 1 : 0.6,
+                  }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 6,
+                        backgroundColor: isActive ? '#FF3B3020' : '#8E8E9320',
+                      }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#FF3B30' : '#8E8E93', textTransform: 'uppercase' }}>
+                          {isActive ? 'Active' : 'Lifted / Expired'}
+                        </Text>
+                      </View>
+                      {isActive && (
+                        <TouchableOpacity
+                          onPress={() => handleLiftRestriction(restriction.id)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                            backgroundColor: '#34C75920',
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#34C759' }}>Lift</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text, marginBottom: 4 }}>{typeLabel}</Text>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary }}>Duration: {durationLabel}</Text>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary }}>Expires: {expiresText}</Text>
+                    {created && (
+                      <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 4 }}>
+                        Applied: {created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                    )}
+                    {restriction.reason ? (
+                      <Text style={{ fontSize: 12, color: theme.text, marginTop: 4, fontStyle: 'italic' }}>
+                        "{restriction.reason}"
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })
             )}
           </ScrollView>
         </View>
@@ -8255,6 +9604,187 @@ const ProfileTab = () => {
       onFinished={() => setSwitchTarget(null)}
     />
 
+    {/* ═══════════ REFERRAL UNLOCK POPUP ═══════════ */}
+    <Modal
+      visible={showUnlockPopup}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowUnlockPopup(false)}
+    >
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: 24,
+      }}>
+        <BlurView
+          intensity={40}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            borderRadius: 28,
+            overflow: 'hidden',
+            width: '100%',
+            maxWidth: 380,
+          }}
+        >
+          <View style={{
+            backgroundColor: isDark ? 'rgba(20,20,35,0.85)' : 'rgba(255,255,255,0.9)',
+            padding: 28,
+            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          }}>
+            {/* Header */}
+            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <View style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: 'rgba(124,58,237,0.15)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}>
+                <MaterialIcons name="lock-open" size={32} color="#7C3AED" />
+              </View>
+              <Text style={{
+                fontSize: 22,
+                fontWeight: '800',
+                color: theme.text,
+                textAlign: 'center',
+                letterSpacing: -0.3,
+              }}>
+                New Items Unlocked
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: theme.textSecondary,
+                textAlign: 'center',
+                marginTop: 6,
+                lineHeight: 20,
+              }}>
+                Your referrals just unlocked new customisations
+              </Text>
+            </View>
+
+            {/* Unlocked Items List */}
+            <View style={{
+              gap: 10,
+              marginBottom: 24,
+              maxHeight: 320,
+            }}>
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false} style={{ maxHeight: 320 }}>
+                {(() => {
+                  // Group by category
+                  const grouped = {};
+                  newlyUnlockedItems.forEach(item => {
+                    if (!grouped[item.category]) grouped[item.category] = [];
+                    grouped[item.category].push(item);
+                  });
+
+                  return Object.entries(grouped).map(([category, items]) => (
+                    <View key={category} style={{ marginBottom: 14 }}>
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '700',
+                        color: theme.textTertiary,
+                        textTransform: 'uppercase',
+                        letterSpacing: 1,
+                        marginBottom: 8,
+                        marginLeft: 2,
+                      }}>
+                        {category}
+                      </Text>
+                      {items.map((item, idx) => (
+                        <View key={`${item.name}-${idx}`} style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                          borderRadius: 14,
+                          padding: 12,
+                          marginBottom: 6,
+                          borderWidth: 1,
+                          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                        }}>
+                          <LinearGradient
+                            colors={[item.color, item.color + 'CC']}
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 12,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <MaterialIcons name={item.icon} size={20} color="#fff" />
+                          </LinearGradient>
+                          <Text style={{
+                            flex: 1,
+                            fontSize: 15,
+                            fontWeight: '600',
+                            color: theme.text,
+                            marginLeft: 12,
+                          }}>
+                            {item.name}
+                          </Text>
+                          <MaterialIcons name="check-circle" size={20} color="#10B981" />
+                        </View>
+                      ))}
+                    </View>
+                  ));
+                })()}
+              </ScrollView>
+            </View>
+
+            {/* Go to Customisation Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowUnlockPopup(false);
+                navigation.navigate('Customisation');
+              }}
+              style={{ marginBottom: 10 }}
+            >
+              <LinearGradient
+                colors={['#7C3AED', '#6D28D9']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  paddingVertical: 15,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: '#fff',
+                  letterSpacing: 0.2,
+                }}>
+                  Go to Customisation
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Dismiss */}
+            <TouchableOpacity
+              onPress={() => setShowUnlockPopup(false)}
+              style={{ alignItems: 'center', paddingVertical: 8 }}
+            >
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '500',
+                color: theme.textTertiary,
+              }}>
+                Maybe later
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </View>
+    </Modal>
 
     </>
   );

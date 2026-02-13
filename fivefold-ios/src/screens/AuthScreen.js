@@ -35,7 +35,7 @@ const { width, height } = Dimensions.get('window');
 const AuthScreen = ({ onAuthSuccess }) => {
   const navigation = useNavigation();
   const { theme, isDark } = useTheme();
-  const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, loading } = useAuth();
+  const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, verify2FAAndSignIn, loading } = useAuth();
   
   // View mode: 'main' (social buttons) or 'email' (email form)
   const [viewMode, setViewMode] = useState('main');
@@ -57,6 +57,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const [resetLoading, setResetLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  
+  // Two-factor authentication
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFAMaskedEmail, setTwoFAMaskedEmail] = useState('');
+  const [twoFAPassword, setTwoFAPassword] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
+  const [twoFAResendCooldown, setTwoFAResendCooldown] = useState(0);
   
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -139,8 +146,62 @@ const AuthScreen = ({ onAuthSuccess }) => {
       await signIn(email, password);
       hapticFeedback.success();
     } catch (error) {
+      // Check if 2FA is required
+      if (error.requires2FA) {
+        hapticFeedback.light();
+        setTwoFAPassword(password);
+        setTwoFAMaskedEmail(error.maskedEmail || email);
+        setTwoFACode('');
+        setEmailMode('2fa');
+        setTwoFAResendCooldown(60);
+        return;
+      }
       hapticFeedback.error();
       Alert.alert('Login Failed', error.message);
+    }
+  };
+  
+  const handle2FAVerify = async () => {
+    if (!twoFACode || twoFACode.length !== 6) {
+      Alert.alert('Invalid Code', 'Please enter the 6-digit code from your email.');
+      return;
+    }
+    
+    try {
+      setTwoFALoading(true);
+      hapticFeedback.light();
+      await verify2FAAndSignIn(email, twoFAPassword, twoFACode);
+      hapticFeedback.success();
+      // Clear sensitive data
+      setTwoFAPassword('');
+      setTwoFACode('');
+    } catch (error) {
+      hapticFeedback.error();
+      Alert.alert('Verification Failed', error.message);
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+  
+  const handleResend2FACode = async () => {
+    if (twoFAResendCooldown > 0) return;
+    try {
+      setTwoFALoading(true);
+      hapticFeedback.light();
+      // Re-sign in to trigger 2FA code send
+      await signIn(email, twoFAPassword);
+    } catch (error) {
+      if (error.requires2FA) {
+        // Expected — code was resent
+        hapticFeedback.success();
+        setTwoFAMaskedEmail(error.maskedEmail || email);
+        setTwoFAResendCooldown(60);
+      } else {
+        hapticFeedback.error();
+        Alert.alert('Resend Failed', error.message);
+      }
+    } finally {
+      setTwoFALoading(false);
     }
   };
   
@@ -262,6 +323,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
   
+  // Cooldown timer for 2FA resend button
+  useEffect(() => {
+    if (twoFAResendCooldown <= 0) return;
+    const timer = setTimeout(() => setTwoFAResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [twoFAResendCooldown]);
+  
   const renderUsernameStatus = () => {
     if (!username || username.length < 3) return null;
     
@@ -370,7 +438,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
             <View style={styles.formHeader}>
               <View style={[styles.formIconContainer, { backgroundColor: '#E67E22' }]}>
                 <Ionicons 
-                  name={emailMode === 'login' ? 'person' : emailMode === 'signup' ? 'person-add' : 'key'} 
+                  name={emailMode === 'login' ? 'person' : emailMode === 'signup' ? 'person-add' : emailMode === '2fa' ? 'shield-checkmark' : 'key'} 
                   size={40} 
                   color="#FFF" 
                 />
@@ -380,19 +448,21 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 {emailMode === 'signup' && 'Join Us'}
                 {emailMode === 'forgot' && 'Reset Password'}
                 {emailMode === 'resetCode' && 'Enter Code'}
+                {emailMode === '2fa' && 'Verify Identity'}
               </Text>
               <Text style={[styles.formSubtitle, { color: '#666' }]}>
                 {emailMode === 'login' && 'Sign in to continue your journey'}
                 {emailMode === 'signup' && 'Create an account to get started'}
                 {emailMode === 'forgot' && 'Enter your email to reset'}
                 {emailMode === 'resetCode' && `We sent a 6-digit code to ${resetMaskedEmail}`}
+                {emailMode === '2fa' && `We sent a verification code to ${twoFAMaskedEmail}`}
               </Text>
             </View>
             
             {/* Form card */}
             <View style={styles.formCard}>
               {/* Mode tabs */}
-              {emailMode !== 'forgot' && emailMode !== 'resetCode' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && (
                 <View style={styles.modeTabs}>
                   <TouchableOpacity
                     style={[styles.modeTab, emailMode === 'login' && styles.modeTabActive]}
@@ -425,8 +495,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </View>
               )}
               
-              {/* Email input (hidden during reset code entry) */}
-              {emailMode !== 'resetCode' && (
+              {/* Email input (hidden during reset code entry and 2FA) */}
+              {emailMode !== 'resetCode' && emailMode !== '2fa' && (
                 <View style={styles.inputWrapper}>
                   <Text style={styles.inputLabel}>Email</Text>
                   <View style={styles.inputContainer}>
@@ -540,8 +610,40 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </>
               )}
               
+              {/* 2FA code input */}
+              {emailMode === '2fa' && (
+                <>
+                  <View style={styles.inputWrapper}>
+                    <Text style={styles.inputLabel}>6-Digit Code</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="shield-checkmark-outline" size={20} color="#888" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter code"
+                        value={twoFACode}
+                        onChangeText={setTwoFACode}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor="#BBB"
+                        autoFocus
+                      />
+                    </View>
+                  </View>
+                  {/* Resend code */}
+                  <TouchableOpacity 
+                    onPress={handleResend2FACode} 
+                    disabled={twoFAResendCooldown > 0}
+                    style={{ alignSelf: 'center', marginBottom: 12, marginTop: -4 }}
+                  >
+                    <Text style={{ fontSize: 14, color: twoFAResendCooldown > 0 ? '#BBB' : '#E67E22', fontWeight: '600' }}>
+                      {twoFAResendCooldown > 0 ? `Resend code in ${twoFAResendCooldown}s` : 'Resend code'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              
               {/* Password fields */}
-              {emailMode !== 'forgot' && emailMode !== 'resetCode' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && (
                 <>
                   <View style={styles.inputWrapper}>
                     <Text style={styles.inputLabel}>Password</Text>
@@ -601,7 +703,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
               {/* Action button */}
               {(() => {
                 const isResetFlow = emailMode === 'forgot' || emailMode === 'resetCode';
-                const isButtonLoading = isResetFlow ? resetLoading : loading;
+                const is2FAFlow = emailMode === '2fa';
+                const isButtonLoading = is2FAFlow ? twoFALoading : isResetFlow ? resetLoading : loading;
                 return (
                   <TouchableOpacity
                     style={[styles.actionButton, isButtonLoading && styles.actionButtonDisabled]}
@@ -609,6 +712,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                       if (emailMode === 'login') handleLogin();
                       else if (emailMode === 'signup') handleSignup();
                       else if (emailMode === 'resetCode') handleResetWithCode();
+                      else if (emailMode === '2fa') handle2FAVerify();
                       else handleForgotPassword();
                     }}
                     disabled={isButtonLoading}
@@ -628,6 +732,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                             {emailMode === 'signup' && 'Create Account'}
                             {emailMode === 'forgot' && 'Send Reset Code'}
                             {emailMode === 'resetCode' && 'Reset Password'}
+                            {emailMode === '2fa' && 'Verify & Sign In'}
                           </Text>
                           <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
                         </View>
@@ -637,14 +742,17 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 );
               })()}
               
-              {/* Back to login from forgot/resetCode */}
-              {(emailMode === 'forgot' || emailMode === 'resetCode') && (
+              {/* Back to login from forgot/resetCode/2fa */}
+              {(emailMode === 'forgot' || emailMode === 'resetCode' || emailMode === '2fa') && (
                 <TouchableOpacity onPress={() => {
                   setEmailMode('login');
                   setResetCode('');
                   setNewPassword('');
                   setConfirmNewPassword('');
                   setResendCooldown(0);
+                  setTwoFACode('');
+                  setTwoFAPassword('');
+                  setTwoFAResendCooldown(0);
                 }} style={styles.backToLogin}>
                   <Ionicons name="arrow-back" size={18} color="#888" />
                   <Text style={styles.backToLoginText}>Back to Login</Text>

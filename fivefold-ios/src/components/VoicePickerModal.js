@@ -4,7 +4,7 @@
  * Shows Google Neural voices (best quality) first, device voices as fallback
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,20 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import bibleAudioService from '../services/bibleAudioService';
 import googleTtsService from '../services/googleTtsService';
 import { hapticFeedback } from '../utils/haptics';
+import { getReferralCount } from '../services/referralService';
+
+// Tiers that are free (no referral needed)
+const FREE_TIERS = ['Studio'];
+// All other Google tiers require 1 referral to unlock
+const VOICE_REFERRAL_REQUIRED = 1;
 
 const VoicePickerModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -29,6 +37,23 @@ const VoicePickerModal = ({ visible, onClose }) => {
   const [selectedDeviceVoice, setSelectedDeviceVoice] = useState(null);
   const [previewingId, setPreviewingId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [referralCount, setReferralCount] = useState(0);
+  const [lockedToast, setLockedToast] = useState(false);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const voicesUnlocked = referralCount >= VOICE_REFERRAL_REQUIRED;
+
+  const isTierFree = (tier) => FREE_TIERS.includes(tier);
+
+  const showLockedToast = () => {
+    setLockedToast(true);
+    hapticFeedback.buttonPress();
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setLockedToast(false));
+  };
 
   useEffect(() => {
     if (visible) {
@@ -49,6 +74,14 @@ const VoicePickerModal = ({ visible, onClose }) => {
     
     const currentGoogleVoice = googleTtsService.getCurrentVoiceInfo?.() || googleTtsService.getCurrentVoice();
     setSelectedGoogleVoice(currentGoogleVoice?.id || 'female-us');
+    
+    // Load referral count for voice gating
+    try {
+      const count = await getReferralCount();
+      setReferralCount(count);
+    } catch (e) {
+      console.warn('[VoicePicker] Failed to load referral count:', e);
+    }
     
     // Wait for device voices to be ready
     if (!bibleAudioService.areVoicesReady()) {
@@ -82,7 +115,12 @@ const VoicePickerModal = ({ visible, onClose }) => {
     await bibleAudioService.setTTSSource(source === 'google' ? 'google' : 'device');
   };
 
-  const handleSelectGoogleVoice = async (voiceId) => {
+  const handleSelectGoogleVoice = async (voiceId, tier) => {
+    // Check if tier is locked
+    if (tier && !isTierFree(tier) && !voicesUnlocked) {
+      showLockedToast();
+      return;
+    }
     hapticFeedback.success();
     setSelectedGoogleVoice(voiceId);
     await googleTtsService.setVoice(voiceId);
@@ -106,7 +144,12 @@ const VoicePickerModal = ({ visible, onClose }) => {
     }
   };
 
-  const handlePreviewGoogle = async (voiceId) => {
+  const handlePreviewGoogle = async (voiceId, tier) => {
+    // Check if tier is locked
+    if (tier && !isTierFree(tier) && !voicesUnlocked) {
+      showLockedToast();
+      return;
+    }
     hapticFeedback.buttonPress();
     
     if (previewingId === voiceId) {
@@ -268,82 +311,109 @@ const VoicePickerModal = ({ visible, onClose }) => {
               </TouchableOpacity>
 
               {/* Google Voice Options - Organized by Tier */}
-              {selectedSource === 'google' && Object.entries(groupedGoogleVoices).map(([tier, tierVoices]) => (
-                <View key={tier} style={styles.tierSection}>
-                  {/* Tier Header */}
-                  <View style={styles.tierHeader}>
-                    <View style={[styles.tierIconBg, { backgroundColor: `${getTierColor(tier)}20` }]}>
-                      <MaterialIcons name={getTierIcon(tier)} size={14} color={getTierColor(tier)} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.tierLabel, { color: theme.text }]}>{tier}</Text>
-                      <Text style={[styles.tierDescription, { color: theme.textSecondary }]}>
-                        {getTierDescription(tier)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.tierCount, { color: theme.textTertiary }]}>{tierVoices.length}</Text>
-                  </View>
-                  
-                  {/* Voices in this tier */}
-                  <View style={[styles.voiceGrid, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
-                    {tierVoices.map((voice, index) => (
-                      <TouchableOpacity
-                        key={voice.id}
-                        activeOpacity={0.7}
-                        onPress={() => handleSelectGoogleVoice(voice.id)}
-                        style={[
-                          styles.voiceCard,
-                          selectedGoogleVoice === voice.id && { backgroundColor: `${getTierColor(tier)}15` },
-                          index !== tierVoices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
-                        ]}
-                      >
-                        <View style={styles.voiceCardLeft}>
-                          <View style={[
-                            styles.voiceIcon,
-                            { backgroundColor: selectedGoogleVoice === voice.id ? `${getTierColor(tier)}20` : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
-                          ]}>
-                            <MaterialIcons 
-                              name={getGenderIcon(voice)} 
-                              size={18} 
-                              color={selectedGoogleVoice === voice.id ? getTierColor(tier) : theme.textSecondary} 
-                            />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.voiceName, { color: theme.text }]}>
-                              {voice.name}
-                            </Text>
-                            <Text style={[styles.voiceAccent, { color: theme.textSecondary }]} numberOfLines={1}>
-                              {voice.description || `${getAccentFlag(voice.id)} English`}
-                            </Text>
-                          </View>
-                        </View>
-                        
-                        <View style={styles.voiceCardRight}>
-                          {selectedGoogleVoice === voice.id && (
-                            <MaterialIcons name="check-circle" size={22} color={getTierColor(tier)} />
+              {selectedSource === 'google' && Object.entries(groupedGoogleVoices).map(([tier, tierVoices]) => {
+                const tierLocked = !isTierFree(tier) && !voicesUnlocked;
+
+                return (
+                  <View key={tier} style={styles.tierSection}>
+                    {/* Tier Header */}
+                    <View style={styles.tierHeader}>
+                      <View style={[styles.tierIconBg, { backgroundColor: `${getTierColor(tier)}20` }]}>
+                        <MaterialIcons name={tierLocked ? 'lock' : getTierIcon(tier)} size={14} color={tierLocked ? theme.textSecondary : getTierColor(tier)} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={[styles.tierLabel, { color: tierLocked ? theme.textSecondary : theme.text }]}>{tier}</Text>
+                          {tierLocked && (
+                            <View style={[styles.tierLockBadge, { backgroundColor: isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,165,0,0.1)' }]}>
+                              <MaterialIcons name="person-add" size={10} color="#FFB300" />
+                              <Text style={styles.tierLockText}>1 referral</Text>
+                            </View>
                           )}
-                          <TouchableOpacity
-                            style={[
-                              styles.previewBtn,
-                              { backgroundColor: previewingId === voice.id ? getTierColor(tier) : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
-                            ]}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              handlePreviewGoogle(voice.id);
-                            }}
-                          >
-                            <MaterialIcons 
-                              name={previewingId === voice.id ? "stop" : "play-arrow"} 
-                              size={18} 
-                              color={previewingId === voice.id ? '#fff' : getTierColor(tier)} 
-                            />
-                          </TouchableOpacity>
+                          {isTierFree(tier) && (
+                            <View style={[styles.tierFreeBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)' }]}>
+                              <Text style={styles.tierFreeText}>FREE</Text>
+                            </View>
+                          )}
                         </View>
-                      </TouchableOpacity>
-                    ))}
+                        <Text style={[styles.tierDescription, { color: theme.textSecondary }]}>
+                          {getTierDescription(tier)}
+                        </Text>
+                      </View>
+                      <Text style={[styles.tierCount, { color: theme.textTertiary }]}>{tierVoices.length}</Text>
+                    </View>
+                    
+                    {/* Voices in this tier */}
+                    <View style={[styles.voiceGrid, { backgroundColor: theme.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', opacity: tierLocked ? 0.5 : 1 }]}>
+                      {tierVoices.map((voice, index) => (
+                        <TouchableOpacity
+                          key={voice.id}
+                          activeOpacity={tierLocked ? 0.9 : 0.7}
+                          onPress={() => handleSelectGoogleVoice(voice.id, tier)}
+                          style={[
+                            styles.voiceCard,
+                            !tierLocked && selectedGoogleVoice === voice.id && { backgroundColor: `${getTierColor(tier)}15` },
+                            index !== tierVoices.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+                          ]}
+                        >
+                          <View style={styles.voiceCardLeft}>
+                            <View style={[
+                              styles.voiceIcon,
+                              { backgroundColor: !tierLocked && selectedGoogleVoice === voice.id ? `${getTierColor(tier)}20` : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                            ]}>
+                              {tierLocked ? (
+                                <MaterialIcons name="lock" size={16} color={theme.textSecondary} />
+                              ) : (
+                                <MaterialIcons 
+                                  name={getGenderIcon(voice)} 
+                                  size={18} 
+                                  color={selectedGoogleVoice === voice.id ? getTierColor(tier) : theme.textSecondary} 
+                                />
+                              )}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.voiceName, { color: theme.text }]}>
+                                {voice.name}
+                              </Text>
+                              <Text style={[styles.voiceAccent, { color: theme.textSecondary }]} numberOfLines={1}>
+                                {voice.description || `${getAccentFlag(voice.id)} English`}
+                              </Text>
+                            </View>
+                          </View>
+                          
+                          <View style={styles.voiceCardRight}>
+                            {!tierLocked && selectedGoogleVoice === voice.id && (
+                              <MaterialIcons name="check-circle" size={22} color={getTierColor(tier)} />
+                            )}
+                            {tierLocked ? (
+                              <View style={[styles.previewBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                                <MaterialIcons name="lock" size={16} color={theme.textSecondary} />
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                style={[
+                                  styles.previewBtn,
+                                  { backgroundColor: previewingId === voice.id ? getTierColor(tier) : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                                ]}
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  handlePreviewGoogle(voice.id, tier);
+                                }}
+                              >
+                                <MaterialIcons 
+                                  name={previewingId === voice.id ? "stop" : "play-arrow"} 
+                                  size={18} 
+                                  color={previewingId === voice.id ? '#fff' : getTierColor(tier)} 
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
             {/* DEVICE VOICES SECTION */}
@@ -371,9 +441,14 @@ const VoicePickerModal = ({ visible, onClose }) => {
                     )}
                   </View>
                   <View>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                      Device Voice
-                    </Text>
+                    <View style={styles.sectionTitleRow}>
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                        Device Voice
+                      </Text>
+                      <View style={[styles.badge, { backgroundColor: '#10B981' }]}>
+                        <Text style={styles.badgeText}>FREE</Text>
+                      </View>
+                    </View>
                     <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
                       Works offline, built into iOS
                     </Text>
@@ -466,12 +541,38 @@ const VoicePickerModal = ({ visible, onClose }) => {
             <View style={[styles.tipCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <MaterialIcons name="lightbulb-outline" size={18} color={theme.primary} />
               <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-                Google Neural voices sound most natural but require internet. Device voices work offline.
+                Studio and Device voices are free. Refer 1 friend to unlock all other voices.
               </Text>
             </View>
 
             <View style={styles.bottomPadding} />
           </ScrollView>
+        )}
+
+        {/* Locked voice toast */}
+        {lockedToast && (
+          <Animated.View style={[styles.lockedToast, {
+            opacity: toastOpacity,
+            backgroundColor: isDark ? '#2A2A3E' : '#fff',
+            shadowColor: '#000',
+          }]}>
+            <LinearGradient
+              colors={[theme.primary, theme.primary + 'CC']}
+              style={styles.lockedToastIcon}
+            >
+              <MaterialIcons name="lock" size={18} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.lockedToastTitle, { color: theme.text }]}>Voice Locked</Text>
+              <Text style={[styles.lockedToastDesc, { color: theme.textSecondary }]}>
+                Refer 1 friend to unlock all voices
+              </Text>
+            </View>
+            <View style={[styles.lockedToastBadge, { backgroundColor: isDark ? 'rgba(255,215,0,0.15)' : 'rgba(255,165,0,0.1)' }]}>
+              <MaterialIcons name="person-add" size={12} color="#FFB300" />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFB300' }}>1</Text>
+            </View>
+          </Animated.View>
         )}
       </View>
     </Modal>
@@ -687,6 +788,70 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  // Tier lock badges
+  tierLockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  tierLockText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFB300',
+  },
+  tierFreeBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tierFreeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.5,
+  },
+  // Locked toast
+  lockedToast: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  lockedToastIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedToastTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  lockedToastDesc: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  lockedToastBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
 });
 

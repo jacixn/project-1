@@ -19,6 +19,20 @@
 - Glass/blur effects via `expo-blur` and a Liquid Glass abstraction with fallback.
 - Gradients via `expo-linear-gradient`.
 
+## Pull-to-Refresh (CRITICAL — no native RefreshControl)
+- **NEVER use `<RefreshControl>`** on the main Profile tab ScrollView. The native iOS `UIRefreshControl` renders a spinner that **cannot be fully hidden** — even with `tintColor="transparent"`, it still shows a visible spinner on many iOS versions.
+- Instead, detect the pull gesture manually using `onScrollEndDrag`:
+  ```jsx
+  onScrollEndDrag={(e) => {
+    if (e.nativeEvent.contentOffset.y < -70 && !refreshing) {
+      onRefresh();
+    }
+  }}
+  ```
+- Use `bounces={true}` and `alwaysBounceVertical={true}` for the native rubber-band feel.
+- Show a **custom absolutely-positioned indicator** (Lottie or ActivityIndicator in a frosted glass bubble) controlled by the `refreshing` state, animated with spring scale + opacity.
+- The loading animation is configurable in Customisation (default spinner, Run Hamster, Running Cat). Stored in `fivefold_loading_animation` via userStorage.
+
 ## Readability pattern (preferred)
 When text sits on gradients/glass:
 - Add a **dark scrim/backdrop** behind the text block.

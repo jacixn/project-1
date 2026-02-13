@@ -23,6 +23,9 @@ import { hapticFeedback } from '../utils/haptics';
 import { bibleVersions } from '../data/bibleVersions';
 import { countries } from '../data/countries';
 import { persistProfileImage } from '../utils/profileImageStorage';
+import { checkUsernameAvailability } from '../services/authService';
+import { auth, db } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const onboardingImage = require('../../assets/logo.png');
 
@@ -58,6 +61,9 @@ const OnboardingFlow = ({ onComplete }) => {
   const { theme, isDark, changeTheme, toggleDarkMode, availableThemes } = useTheme();
   const [step, setStep] = useState(0);
   const [userName, setUserName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [countrySearch, setCountrySearch] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -135,6 +141,39 @@ const OnboardingFlow = ({ onComplete }) => {
         Alert.alert('Your name', 'Add your name to personalize your journey.');
         return;
       }
+      const trimmedUsername = username.toLowerCase().trim();
+      if (!trimmedUsername) {
+        Alert.alert('Username required', 'Pick a username so friends can find you.');
+        return;
+      }
+      if (trimmedUsername.length < 3) {
+        setUsernameError('Username must be at least 3 characters');
+        return;
+      }
+      if (trimmedUsername.length > 20) {
+        setUsernameError('Username must be less than 20 characters');
+        return;
+      }
+      if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+        setUsernameError('Only letters, numbers, and underscores allowed');
+        return;
+      }
+      // Check availability before proceeding
+      setCheckingUsername(true);
+      setUsernameError('');
+      try {
+        const isAvailable = await checkUsernameAvailability(trimmedUsername);
+        if (!isAvailable) {
+          setUsernameError('Username is already taken');
+          setCheckingUsername(false);
+          return;
+        }
+      } catch (e) {
+        setUsernameError('Could not check username. Please try again.');
+        setCheckingUsername(false);
+        return;
+      }
+      setCheckingUsername(false);
     }
     if (current.type === 'bible' && !selectedBibleVersion) {
       Alert.alert('Bible version', 'Choose your go-to translation.');
@@ -173,8 +212,10 @@ const OnboardingFlow = ({ onComplete }) => {
 
   const finishOnboarding = async () => {
     try {
+      const trimmedUsername = username.toLowerCase().trim();
       const profile = {
           name: userName.trim() || 'Friend',
+        username: trimmedUsername || null,
         country: selectedCountry?.name || null,
         countryCode: selectedCountry?.code || null,
         countryFlag: selectedCountry?.flag || null,
@@ -193,6 +234,19 @@ const OnboardingFlow = ({ onComplete }) => {
         await userStorage.setRaw('selectedLanguage', selectedLanguage);
       await userStorage.setRaw('weightUnit', weightUnit);
       await userStorage.setRaw('onboardingCompleted', 'true');
+
+      // Reserve the username in Firestore so no one else can take it
+      if (trimmedUsername && auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'usernames', trimmedUsername), {
+            userId: auth.currentUser.uid,
+            createdAt: serverTimestamp(),
+          });
+          console.log('[Onboarding] Reserved username:', trimmedUsername);
+        } catch (e) {
+          console.error('[Onboarding] Failed to reserve username:', e.message);
+        }
+      }
         
         await changeTheme(selectedTheme);
       if (selectedMode === 'dark' && !isDark) await toggleDarkMode();
@@ -254,6 +308,33 @@ const OnboardingFlow = ({ onComplete }) => {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        <View style={styles.inputRow}> 
+          <MaterialIcons name="alternate-email" size={20} color={palette.accent} />
+          <TextInput
+            style={styles.input}
+            placeholder="Username"
+            placeholderTextColor="#8A90A8"
+            value={username}
+            onChangeText={(text) => {
+              setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+              setUsernameError('');
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={20}
+          />
+          {username ? (
+            <TouchableOpacity onPress={() => { setUsername(''); setUsernameError(''); }}>
+              <MaterialIcons name="close" size={18} color="#8A90A8" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        {usernameError ? (
+          <Text style={{ color: '#FF6B6B', fontSize: 12, marginTop: -4, marginBottom: 8, marginLeft: 8 }}>{usernameError}</Text>
+        ) : username.trim().length >= 3 ? (
+          <Text style={{ color: '#8A90A8', fontSize: 12, marginTop: -4, marginBottom: 8, marginLeft: 8 }}>Friends will find you as @{username.toLowerCase().trim()}</Text>
+        ) : null}
 
         <View style={styles.inputRow}> 
           <MaterialIcons name="travel-explore" size={20} color={palette.accent} />
@@ -517,6 +598,7 @@ const OnboardingFlow = ({ onComplete }) => {
       <Text style={styles.panelTitle}>Ready to go</Text>
       <Text style={styles.panelSubtitle}>Heres your setup. You can change anything later.</Text>
       <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Name</Text><Text style={styles.summaryValue}>{userName || 'Friend'}</Text></View>
+      <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Username</Text><Text style={styles.summaryValue}>@{username.toLowerCase().trim() || '—'}</Text></View>
       <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Country</Text><Text style={styles.summaryValue}>{selectedCountry?.name || 'Not set'}</Text></View>
       <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Language</Text><Text style={styles.summaryValue}>{selectedLanguage.toUpperCase()}</Text></View>
       <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Bible</Text><Text style={styles.summaryValue}>{selectedBibleVersion.toUpperCase()}</Text></View>
@@ -561,6 +643,7 @@ const OnboardingFlow = ({ onComplete }) => {
   const showNav = currentSlide.type !== 'hero';
 
   const primaryLabel = (() => {
+    if (checkingUsername) return 'Checking...';
     if (currentSlide.type === 'notifications') return 'Allow & continue';
     if (currentSlide.type === 'summary') return 'Finish';
     return 'Next';
@@ -590,7 +673,7 @@ const OnboardingFlow = ({ onComplete }) => {
           <TouchableOpacity onPress={handleBack} disabled={step === 0}>
             <Text style={[styles.navText, { color: step === 0 ? '#576083' : '#D7DEFF' }]}>Back</Text>
                   </TouchableOpacity>
-          <TouchableOpacity onPress={handleNext} style={styles.primaryNavButton}>
+          <TouchableOpacity onPress={handleNext} style={[styles.primaryNavButton, checkingUsername && { opacity: 0.6 }]} disabled={checkingUsername}>
             <Text style={styles.primaryNavText}>{primaryLabel}</Text>
             <MaterialIcons name="arrow-forward" size={18} color={palette.bg} />
         </TouchableOpacity>

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Biblely",
     "slug": "fivefold-ios",
-    "version": "1.0.51",
+    "version": "1.0.52",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jesusxoi.biblely",
-      "buildNumber": "51",
+      "buildNumber": "52",
       "infoPlist": {
         "NSCameraUsageDescription": "Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.",
         "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.",
