@@ -134,40 +134,7 @@ const HubTab = () => {
   const postingIconSpin = useRef(new Animated.Value(0)).current;
   const postingScale = useRef(new Animated.Value(0.3)).current;
   
-  // Header glow animation
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(headerGlow, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(headerGlow, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-    
-    // Staggered icon bounce
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(0),
-        Animated.spring(iconBounce1, { toValue: 1, tension: 300, friction: 10, useNativeDriver: true }),
-        Animated.spring(iconBounce1, { toValue: 0, tension: 300, friction: 10, useNativeDriver: true }),
-      ])
-    ).start();
-    
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(200),
-        Animated.spring(iconBounce2, { toValue: 1, tension: 300, friction: 10, useNativeDriver: true }),
-        Animated.spring(iconBounce2, { toValue: 0, tension: 300, friction: 10, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
+  // Header animations removed — kept static for cleaner UX
 
   // Track audio player visibility so FAB can dodge it
   useEffect(() => {
@@ -874,15 +841,9 @@ const HubTab = () => {
   
   const renderHeader = () => {
     // Animated gradient colors
-    const glowOpacity = headerGlow.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.4, 0.8],
-    });
-    
-    const shimmerTranslate = headerGlow.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-100, SCREEN_WIDTH + 100],
-    });
+    // Static values — animations removed for cleaner header
+    const glowOpacity = 0.5;
+    const shimmerTranslate = -100; // hidden off-screen
     
     return (
       <View style={{ overflow: 'hidden' }}>
@@ -895,18 +856,10 @@ const HubTab = () => {
           end={{ x: 1, y: 1 }}
           style={[styles.premiumHeader, { paddingTop: insets.top }]}
         >
-          {/* Shimmer effect */}
-          <Animated.View 
-            style={[
-              styles.shimmerEffect, 
-              { transform: [{ translateX: shimmerTranslate }] }
-            ]} 
-          />
-          
-          {/* Floating orbs for depth - more vibrant */}
-          <Animated.View style={[styles.floatingOrb, styles.orb1, { opacity: glowOpacity }]} />
-          <Animated.View style={[styles.floatingOrb, styles.orb2, { opacity: glowOpacity }]} />
-          <Animated.View style={[styles.floatingOrb, styles.orb3, { opacity: glowOpacity }]} />
+          {/* Static floating orbs for depth */}
+          <View style={[styles.floatingOrb, styles.orb1, { opacity: 0.5 }]} />
+          <View style={[styles.floatingOrb, styles.orb2, { opacity: 0.5 }]} />
+          <View style={[styles.floatingOrb, styles.orb3, { opacity: 0.5 }]} />
           
           {/* Decorative circles */}
           <View style={styles.decorCircle1} />
@@ -919,18 +872,13 @@ const HubTab = () => {
               <View style={styles.titleRow}>
                 <Text style={styles.premiumTitle}>Hub</Text>
               </View>
-              <Animated.View 
-                style={[
-                  styles.titleGlow,
-                  { opacity: glowOpacity }
-                ]} 
-              />
+              <View style={[styles.titleGlow, { opacity: 0.5 }]} />
             </View>
             
             {/* Right side - Premium action buttons */}
             <View style={styles.premiumHeaderButtons}>
               {/* Friends Button */}
-              <Animated.View style={{ transform: [{ translateY: iconBounce1.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+              <View>
                 <TouchableOpacity
                   style={styles.premiumIconButton}
                   onPress={async () => {
@@ -977,10 +925,10 @@ const HubTab = () => {
                     </View>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
               
               {/* Leaderboard Button */}
-              <Animated.View style={{ transform: [{ translateY: iconBounce2.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+              <View>
                 <TouchableOpacity
                   style={styles.premiumIconButton}
                   onPress={async () => {
@@ -1027,7 +975,7 @@ const HubTab = () => {
                     </View>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
             </View>
           </View>
         </LinearGradient>
@@ -1303,19 +1251,6 @@ const HubTab = () => {
                 </Text>
               </View>
               
-              {/* Inspiration Quote */}
-              <View style={[styles.composerInspirationCard, { backgroundColor: theme.primary + '10' }]}>
-                <Ionicons name="bulb" size={18} color={theme.primary} />
-                <Text style={[styles.composerInspirationText, { color: theme.text }]}>
-                  {postContent.length === 0 
-                    ? "Share a thought that matters to you"
-                    : postContent.length < 50 
-                      ? "Keep going, you're doing great!"
-                      : postContent.length < 150
-                        ? "Nice! Your message is taking shape"
-                        : "Almost there, wrap it up beautifully!"}
-                </Text>
-              </View>
               
               {/* 7 Day Notice */}
               <View style={styles.expiryNotice}>

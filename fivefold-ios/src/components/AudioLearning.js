@@ -9,7 +9,8 @@ import {
   StatusBar,
   Animated,
   Dimensions,
-  RefreshControl,
+  Platform,
+  TextInput,
   Alert,
   PanResponder,
   Image,
@@ -67,6 +68,37 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   const [currentStoryData, setCurrentStoryData] = useState(null);
   const [extractedColors, setExtractedColors] = useState(null);
   
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Collapsible search bar animation (matches Achievements pattern)
+  const searchBarAnim = useRef(new Animated.Value(1)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('up');
+  const storyListRef = useRef(null);
+
+  const handleListScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
+
+    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
+      scrollDirection.current = direction;
+      Animated.timing(searchBarAnim, {
+        toValue: direction === 'down' ? 0 : 1,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
+
+  // Header spacer height adapts to search bar visibility
+  const headerSpacerHeight = searchBarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Platform.OS === 'ios' ? 115 : 90, Platform.OS === 'ios' ? 175 : 150],
+  });
+
   // Refs for callback access (to avoid stale closure issues)
   const playbackModeRef = useRef(playbackMode);
   const selectedStoryRef = useRef(selectedStory);
@@ -242,12 +274,20 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     }
   };
 
-  // Get sorted stories
+  // Get sorted & filtered stories
   const getSortedStories = () => {
-    if (sortOrder === 'oldest') {
-      return [...stories].reverse();
+    let result = sortOrder === 'oldest' ? [...stories].reverse() : [...stories];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.title?.toLowerCase().includes(q) ||
+        s.subtitle?.toLowerCase().includes(q) ||
+        s.reference?.toLowerCase().includes(q)
+      );
     }
-    return stories;
+
+    return result;
   };
 
   // Load stories on mount and cleanup when modal closes
@@ -551,22 +591,27 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
       );
     }
 
+    const filteredStories = getSortedStories();
+
     return (
       <View style={{ flex: 1 }}>
-        {/* Stories Grid */}
-        <ScrollView 
-          style={{ flex: 1 }} 
+        <LinearGradient
+          colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Scrollable content */}
+        <ScrollView
+          ref={storyListRef}
+          onScroll={handleListScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.storiesGridContainer, { paddingTop: 130 }]}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.primary}
-            />
-          }
+          contentContainerStyle={[styles.storiesGridContainer, { paddingTop: 0 }]}
         >
-          {getSortedStories().map((story) => (
+          {/* Dynamic spacer that responds to search bar collapse */}
+          <Animated.View style={{ height: headerSpacerHeight }} />
+
+          {filteredStories.map((story) => (
             <TouchableOpacity
               key={story.id}
               style={styles.storyGridCard}
@@ -627,10 +672,17 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           ))}
 
           {/* Empty state */}
-          {stories.length === 0 && (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="library-music" size={64} color={theme.textSecondary} />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>No Stories Yet</Text>
+          {filteredStories.length === 0 && (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}>
+              <MaterialIcons name="auto-stories" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
+              <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
+                {searchQuery.trim() ? 'No Matches' : 'No Stories Yet'}
+              </Text>
+              {searchQuery.trim() && (
+                <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
+                  Try a different search term.
+                </Text>
+              )}
             </View>
           )}
 
@@ -638,45 +690,134 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Floating Blur Header */}
-        <BlurView 
-          intensity={90} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={styles.floatingBlurHeader}
+        {/* Premium Transparent Header — matches Achievements */}
+        <BlurView
+          intensity={50}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+          }}
         >
-          <View style={styles.equalHeader}>
-            <TouchableOpacity
-              style={[styles.equalCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}
-              onPress={() => {
-                hapticFeedback.selection();
-                if (sound) {
-                  sound.stopAsync();
-                  sound.unloadAsync();
-                  setSound(null);
-                }
-                onClose();
+          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+            {/* Title row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.selection();
+                  if (sound) {
+                    sound.stopAsync();
+                    sound.unloadAsync();
+                    setSound(null);
+                  }
+                  onClose();
+                }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              </TouchableOpacity>
+
+              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                <Text style={{ color: theme.text, fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
+                  Stories
+                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {filteredStories.length} stor{filteredStories.length !== 1 ? 'ies' : 'y'}
+                </Text>
+              </View>
+
+              {/* Sort Toggle */}
+              <TouchableOpacity
+                onPress={toggleSortOrder}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  name={sortOrder === 'newest' ? 'arrow-downward' : 'arrow-upward'}
+                  size={20}
+                  color={theme.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Collapsible Search bar */}
+            <Animated.View
+              style={{
+                height: searchBarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 58],
+                }),
+                opacity: searchBarAnim,
+                overflow: 'hidden',
               }}
             >
-              <MaterialIcons name="close" size={22} color={theme.text} />
-            </TouchableOpacity>
-            
-            <Text style={[styles.equalHeaderTitle, { color: theme.text }]}>Stories</Text>
-            
-            {/* Sort Toggle */}
-            <TouchableOpacity
-              style={[styles.sortToggleBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}
-              onPress={toggleSortOrder}
-            >
-              <MaterialIcons 
-                name={sortOrder === 'newest' ? 'arrow-downward' : 'arrow-upward'} 
-                size={16} 
-                color={theme.primary} 
-              />
-              <Text style={[styles.sortToggleText, { color: theme.text }]}>
-                {sortOrder === 'newest' ? 'New' : 'Old'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <View
+                style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  marginTop: 16,
+                }}
+              >
+                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginLeft: 10,
+                    paddingVertical: 2,
+                  }}
+                  placeholder="Search stories..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MaterialIcons name="close" size={14} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animated.View>
+          </Animated.View>
         </BlurView>
       </View>
     );
@@ -882,49 +1023,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // ========== FLOATING BLUR HEADER ==========
-  floatingBlurHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  equalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  equalCloseBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  equalHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  sortToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  sortToggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  // Legacy header styles removed — now using Achievements-style inline header
 
   // ========== STORIES GRID ==========
   storiesGridContainer: {

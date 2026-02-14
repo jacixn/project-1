@@ -15,9 +15,7 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
-  RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -65,6 +63,37 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   const [fetchedVerses, setFetchedVerses] = useState({}); // { 'reference': { text: '...', version: 'NIV' } }
   const [loadingDynamicVerses, setLoadingDynamicVerses] = useState(false);
   const [bibleVersion, setBibleVersion] = useState('KJV');
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Collapsible search bar animation (matches Achievements pattern)
+  const searchBarAnim = useRef(new Animated.Value(1)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('up');
+
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
+
+    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
+      scrollDirection.current = direction;
+      Animated.timing(searchBarAnim, {
+        toValue: direction === 'down' ? 0 : 1,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
+
+  // Header spacer height adapts to search bar visibility
+  // Status bar (54) + title row (44) + search (58 when open) + chips (44) + padding
+  const headerSpacerHeight = searchBarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Platform.OS === 'ios' ? 155 : 130, Platform.OS === 'ios' ? 215 : 190],
+  });
 
   // Modal animation refs for guide detail view
   const guideSlideAnim = useRef(new Animated.Value(0)).current;
@@ -364,6 +393,17 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
     let filtered = selectedTheme === 'all' 
       ? [...thematicGuides]
       : thematicGuides.filter(guide => guide.theme === selectedTheme);
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(g =>
+        g.title?.toLowerCase().includes(q) ||
+        g.hook?.toLowerCase().includes(q) ||
+        g.passage?.toLowerCase().includes(q) ||
+        g.theme?.toLowerCase().includes(q)
+      );
+    }
 
     // Sort guides (using slice to avoid mutating original array)
     switch (sortBy) {
@@ -1284,82 +1324,15 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
     );
   };
 
+  const filteredGuides = getFilteredGuides();
+
   const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
-        
-        {/* Transparent Blurred Header - Very Light Blur with Rounded Bottom */}
-        <BlurView 
-          intensity={20} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: 'hidden',
-          }}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 0 }]}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                paddingHorizontal: 16, 
-                paddingVertical: 8,
-                borderRadius: 20,
-              }}
-            >
-              <Text style={{ color: theme.primary, fontSize: 17, fontWeight: '400' }}>
-                <Text style={{ fontSize: 20 }}>‹</Text> Back
-              </Text>
-            </TouchableOpacity>
-            <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-              Thematic Guides
-            </Text>
-            <View style={{ width: 60 }} />
-          </View>
-          
-          {/* Category Chips in Header */}
-          <View style={{ paddingTop: 5, paddingBottom: 12, backgroundColor: 'transparent' }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chipsContainer, { paddingHorizontal: 20 }]}>
-              {themeCategories.map(category => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.themeChip,
-                    {
-                      backgroundColor: selectedTheme === category.id ? category.color : theme.surface,
-                      borderColor: category.color,
-                    }
-                  ]}
-                  onPress={() => {
-                    hapticFeedback.light();
-                    setSelectedTheme(category.id);
-                  }}
-                >
-                  {category.icon && (
-                    <MaterialIcons 
-                      name={category.icon} 
-                      size={16} 
-                      color={selectedTheme === category.id ? 'white' : category.color} 
-                    />
-                  )}
-                  <Text style={[
-                    styles.themeChipText,
-                    { color: selectedTheme === category.id ? 'white' : category.color }
-                  ]}>
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </BlurView>
+        <LinearGradient
+          colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
+          style={StyleSheet.absoluteFill}
+        />
 
         {/* Simple Loading with Percentage */}
         <SimplePercentageLoader 
@@ -1385,36 +1358,181 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
           </View>
         )}
 
-        {/* Main Content */}
+        {/* Scrollable content */}
         {!loading && !error && (
-          <ScrollView 
-            style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 160 : 120 }]} 
+          <ScrollView
+            ref={scrollViewRef}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.primary}
-                colors={[theme.primary]}
-                title="Pull to refresh..."
-                titleColor={theme.textSecondary}
-              />
-            }
+            contentContainerStyle={{ paddingBottom: 40 }}
           >
+            {/* Dynamic spacer that responds to search bar collapse */}
+            <Animated.View style={{ height: headerSpacerHeight }} />
 
-          {/* Guides List */}
-          <View style={styles.guidesSection}>
-            <Text style={[styles.sectionHeaderText, { color: theme.text }]}>
-              {selectedTheme === 'all' ? 'All Guides' : 
-               themeCategories.find(cat => cat.id === selectedTheme)?.name + ' Guides'}
-            </Text>
-            
-            {getFilteredGuides().map((guide, index) => renderGuideCard(guide, index))}
-          </View>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
+            <View style={styles.guidesSection}>
+              {filteredGuides.length > 0 ? (
+                filteredGuides.map((guide, index) => renderGuideCard(guide, index))
+              ) : (
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}>
+                  <MaterialIcons name="menu-book" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
+                  <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
+                    No Matches
+                  </Text>
+                  <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
+                    Try a different search or category.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
         )}
+
+        {/* Premium Transparent Header — matches Achievements */}
+        <BlurView
+          intensity={50}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+            {/* Title row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              </TouchableOpacity>
+
+              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                <Text style={{ color: theme.text, fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
+                  Thematic Guides
+                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''}
+                  {selectedTheme !== 'all' && themeCategories.find(cat => cat.id === selectedTheme)
+                    ? ` in ${themeCategories.find(cat => cat.id === selectedTheme)?.name || ''}`
+                    : ''}
+                </Text>
+              </View>
+
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* Collapsible Search bar */}
+            <Animated.View
+              style={{
+                height: searchBarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 58],
+                }),
+                opacity: searchBarAnim,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  marginTop: 16,
+                }}
+              >
+                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginLeft: 10,
+                    paddingVertical: 2,
+                  }}
+                  placeholder="Search guides..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MaterialIcons name="close" size={14} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animated.View>
+          </Animated.View>
+
+          {/* Category filter chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingHorizontal: 16 }}
+          >
+            {themeCategories.map(category => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.themeChip,
+                  {
+                    backgroundColor: selectedTheme === category.id ? category.color : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
+                    borderColor: selectedTheme === category.id ? category.color : 'transparent',
+                  }
+                ]}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setSelectedTheme(category.id);
+                }}
+              >
+                {category.icon && (
+                  <MaterialIcons 
+                    name={category.icon} 
+                    size={14} 
+                    color={selectedTheme === category.id ? '#fff' : category.color} 
+                  />
+                )}
+                <Text style={{
+                  color: selectedTheme === category.id ? '#fff' : theme.text,
+                  fontWeight: '600',
+                  fontSize: 13,
+                  marginLeft: category.icon ? 6 : 0,
+                }}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </BlurView>
 
         {renderGuideDetail()}
       </View>
@@ -1513,28 +1631,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  solidHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  solidHeaderButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  solidHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
+  // Legacy header styles removed — now using Achievements-style inline header
   heroSection: {
     marginTop: 20,
     marginHorizontal: 20,

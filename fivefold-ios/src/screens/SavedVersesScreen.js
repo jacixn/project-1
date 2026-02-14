@@ -14,7 +14,6 @@ import {
   TextInput,
   Platform,
   Alert,
-  RefreshControl,
   Animated,
   StyleSheet,
 } from 'react-native';
@@ -152,10 +151,19 @@ const SavedVersesScreen = ({ navigation }) => {
     loadSavedVersesQuick();
   }, []);
 
+  // Compute filtered count for header subtitle
+  const filteredCount = savedVersesList.filter(v => {
+    if (!savedVersesSearch.trim()) return true;
+    const searchLower = savedVersesSearch.toLowerCase();
+    const text = (v.text || v.content || '').toLowerCase();
+    const ref = (v.reference || '').toLowerCase();
+    return text.includes(searchLower) || ref.includes(searchLower);
+  }).length;
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Content - ScrollView starts from top */}
-      <Animated.ScrollView 
+      <ScrollView 
         style={{ flex: 1 }} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ 
@@ -164,14 +172,6 @@ const SavedVersesScreen = ({ navigation }) => {
         }}
         onScroll={handleSavedVersesScroll}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshingSavedVerses}
-            onRefresh={refreshSavedVerses}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
-          />
-        }
       >
         {/* Animated spacer that shrinks with search bar */}
         <Animated.View style={{
@@ -180,34 +180,6 @@ const SavedVersesScreen = ({ navigation }) => {
             outputRange: [Platform.OS === 'ios' ? 115 : 95, Platform.OS === 'ios' ? 173 : 143],
           }),
         }} />
-        {/* Stats Row */}
-        {savedVersesList.length > 0 && (
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16
-          }}>
-            <Text style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: modalTextSecondaryColor,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5
-            }}>
-              {(() => {
-                const filtered = savedVersesList.filter(v => {
-                  if (!savedVersesSearch.trim()) return true;
-                  const searchLower = savedVersesSearch.toLowerCase();
-                  const text = (v.text || v.content || '').toLowerCase();
-                  const ref = (v.reference || '').toLowerCase();
-                  return text.includes(searchLower) || ref.includes(searchLower);
-                });
-                return `${filtered.length} ${filtered.length === 1 ? 'verse' : 'verses'}${savedVersesSearch ? ' found' : ''}`;
-              })()}
-            </Text>
-          </View>
-        )}
 
         {savedVersesList.length === 0 ? (
           <View style={{
@@ -452,9 +424,9 @@ const SavedVersesScreen = ({ navigation }) => {
             ));
           })()
         )}
-      </Animated.ScrollView>
+      </ScrollView>
 
-      {/* Premium Transparent Header */}
+      {/* Premium Transparent Header — matches Achievements */}
       <BlurView 
         intensity={50} 
         tint={isDark ? 'dark' : 'light'} 
@@ -468,10 +440,8 @@ const SavedVersesScreen = ({ navigation }) => {
       >
         <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
         
-        <View style={{ 
-          paddingHorizontal: 16, 
-          paddingBottom: 16,
-        }}>
+        <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+          {/* Title row */}
           <View style={{ 
             flexDirection: 'row',
             alignItems: 'center',
@@ -486,6 +456,7 @@ const SavedVersesScreen = ({ navigation }) => {
                 backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                 alignItems: 'center',
                 justifyContent: 'center',
+                zIndex: 1,
               }}
               activeOpacity={0.7}
             >
@@ -499,48 +470,39 @@ const SavedVersesScreen = ({ navigation }) => {
               alignItems: 'center',
             }}>
               <Text style={{ 
-                color: modalTextColor, 
+                color: theme.text, 
                 fontSize: 17, 
                 fontWeight: '700',
                 letterSpacing: 0.3,
               }}>
                 Saved Verses
               </Text>
-              <View style={{ 
-                width: 60, 
-                height: 3, 
-                backgroundColor: theme.primary, 
-                borderRadius: 2,
-                marginTop: 6,
-              }} />
+              <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                {filteredCount} verse{filteredCount !== 1 ? 's' : ''}{savedVersesSearch.trim() ? ' found' : ''}
+              </Text>
             </View>
               
             <TouchableOpacity
               onPress={() => {
-                hapticFeedback.light();
+                hapticFeedback.selection();
                 setSavedVersesSort(prev => prev === 'desc' ? 'asc' : 'desc');
               }}
               style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                paddingHorizontal: 14, 
-                paddingVertical: 10,
-                borderRadius: 22,
-                flexDirection: 'row',
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
                 alignItems: 'center',
-                gap: 6,
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                justifyContent: 'center',
+                zIndex: 1,
               }}
               activeOpacity={0.7}
             >
               <MaterialIcons 
                 name={savedVersesSort === 'desc' ? 'arrow-downward' : 'arrow-upward'} 
-                size={14} 
+                size={20} 
                 color={theme.primary} 
               />
-              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>
-                {savedVersesSort === 'desc' ? 'New' : 'Old'}
-              </Text>
             </TouchableOpacity>
           </View>
           
@@ -569,11 +531,11 @@ const SavedVersesScreen = ({ navigation }) => {
                 value={savedVersesSearch}
                 onChangeText={setSavedVersesSearch}
                 placeholder="Search verses or references..."
-                placeholderTextColor={modalTextTertiaryColor}
+                placeholderTextColor={theme.textTertiary}
                 style={{
                   flex: 1,
                   fontSize: 15,
-                  color: modalTextColor,
+                  color: theme.text,
                   marginLeft: 10,
                   paddingVertical: 2,
                 }}
@@ -596,7 +558,7 @@ const SavedVersesScreen = ({ navigation }) => {
               )}
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </BlurView>
     </View>
   );

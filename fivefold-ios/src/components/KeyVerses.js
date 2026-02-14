@@ -16,9 +16,8 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
-  RefreshControl,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -28,8 +27,6 @@ import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
-const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
-const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 260 : 230;
 
 // Configuration for remote verses
 const VERSES_CONFIG = {
@@ -193,44 +190,26 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
     hapticFeedback.success();
   };
 
-  // Collapsible header animation
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Collapsible search bar animation (matches Achievements pattern)
+  const searchBarAnim = useRef(new Animated.Value(1)).current;
   const lastScrollY = useRef(0);
-  const headerVisible = useRef(new Animated.Value(1)).current;
-  const isScrollingDown = useRef(false);
+  const scrollDirection = useRef('up');
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: false,
-      listener: (event) => {
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        const diff = currentScrollY - lastScrollY.current;
-        if (Math.abs(diff) > 5) {
-          if (diff > 0 && currentScrollY > 50) {
-            if (!isScrollingDown.current) {
-              isScrollingDown.current = true;
-              Animated.timing(headerVisible, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: false,
-              }).start();
-            }
-          } else if (diff < 0) {
-            if (isScrollingDown.current) {
-              isScrollingDown.current = false;
-              Animated.timing(headerVisible, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: false,
-              }).start();
-            }
-          }
-        }
-        lastScrollY.current = currentScrollY;
-      },
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
+
+    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
+      scrollDirection.current = direction;
+      Animated.timing(searchBarAnim, {
+        toValue: direction === 'down' ? 0 : 1,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
     }
-  );
+
+    lastScrollY.current = currentScrollY;
+  };
 
   const [fetchedVerses, setFetchedVerses] = useState({});
   const [loadingDynamicVerses, setLoadingDynamicVerses] = useState(false);
@@ -570,15 +549,12 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
     );
   };
 
-  const headerHeight = headerVisible.interpolate({
+  // Header spacer height adapts to search bar visibility
+  // Status bar (54) + title row (44) + chips (40) + padding = ~150 collapsed
+  // + search bar (58) when expanded = ~210
+  const headerSpacerHeight = searchBarAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [COLLAPSED_HEADER_HEIGHT, EXPANDED_HEADER_HEIGHT],
-    extrapolate: 'clamp',
-  });
-  const expandedOpacity = headerVisible.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-    extrapolate: 'clamp',
+    outputRange: [Platform.OS === 'ios' ? 155 : 130, Platform.OS === 'ios' ? 215 : 190],
   });
 
   if (loading) {
@@ -602,117 +578,203 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
   const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
-        
-        <Animated.ScrollView
+        <LinearGradient
+          colors={isDark ? ['#1a1a1a', '#000'] : ['#FDFBFB', '#EBEDEE']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Scrollable content */}
+        <ScrollView
           ref={scrollViewRef}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: EXPANDED_HEADER_HEIGHT + 20, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
-          <View style={styles.container}>
-            {filtered.map(renderVerseCard)}
-          </View>
-        </Animated.ScrollView>
+          {/* Dynamic spacer that responds to search bar collapse */}
+          <Animated.View style={{ height: headerSpacerHeight }} />
 
-        <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
-          <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill}>
-            <LinearGradient colors={isDark ? ['#1e1e28', '#1e1e28'] : ['#ffffff', '#f8fafc']} style={styles.headerGradient}>
-              <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
-              <View style={styles.headerRow}>
-                <View style={{ width: 70 }}>
-                  <TouchableOpacity 
-                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }} 
-                    onPress={onClose}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-                  </TouchableOpacity>
-                </View>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={[styles.headerTitle, { color: theme.text }]}>Key Verses</Text>
-                  <View style={{ 
-                    width: 50, 
-                    height: 3, 
-                    backgroundColor: theme.primary, 
-                    borderRadius: 2,
-                    marginTop: 6,
-                  }} />
-                </View>
-                <View style={{ width: 70, alignItems: 'flex-end' }}>
-                  <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-                    <MaterialIcons name={viewMode === 'grid' ? 'view-list' : 'grid-view'} size={24} color={theme.text} />
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.container}>
+            {filtered.length > 0 ? (
+              filtered.map(renderVerseCard)
+            ) : (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, width: '100%' }}>
+                <MaterialIcons name="auto-stories" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
+                <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
+                  No Matches
+                </Text>
+                <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
+                  Try a different search or category.
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Premium Transparent Header — matches Achievements */}
+        <BlurView
+          intensity={50}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+            {/* Title row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              </TouchableOpacity>
+
+              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+                <Text style={{ color: theme.text, fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
+                  Key Verses
+                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {filtered.length} verse{filtered.length !== 1 ? 's' : ''}
+                  {selectedCategory !== 'all' && selectedCategory !== 'favorites' && versesData?.categories
+                    ? ` in ${versesData.categories.find(c => c.id === selectedCategory)?.name || ''}`
+                    : ''}
+                  {selectedCategory === 'favorites' ? ' saved' : ''}
+                </Text>
               </View>
 
-              <Animated.View style={{ opacity: expandedOpacity }}>
-                <View style={styles.searchBar}>
-                  <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-                  <TextInput
-                    style={[styles.searchInput, { color: theme.text }]}
-                    placeholder="Search verses..."
-                    placeholderTextColor={theme.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                </View>
-                
-                {/* Category Pills */}
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
-                  style={{ marginHorizontal: -20, paddingHorizontal: 20 }}
-                >
-                  <TouchableOpacity
-                    onPress={() => { setSelectedCategory('all'); hapticFeedback.light(); }}
-                    style={[
-                      styles.categoryChip,
-                      { backgroundColor: selectedCategory === 'all' ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
-                    ]}
-                  >
-                    <Text style={{ color: selectedCategory === 'all' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>All</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => { setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites'); hapticFeedback.light(); }}
-                    style={[
-                      styles.categoryChip,
-                      { backgroundColor: selectedCategory === 'favorites' ? '#E91E63' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
-                    ]}
-                  >
-                    <MaterialIcons name="favorite" size={14} color={selectedCategory === 'favorites' ? '#fff' : '#E91E63'} />
-                    <Text style={{ color: selectedCategory === 'favorites' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13, marginLeft: 4 }}>{favoriteVerses.length}</Text>
-                  </TouchableOpacity>
-                  {versesData?.categories?.map(cat => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      onPress={() => { setSelectedCategory(cat.id); hapticFeedback.light(); }}
-                      style={[
-                        styles.categoryChip,
-                        { backgroundColor: selectedCategory === cat.id ? cat.color : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
-                      ]}
-                    >
-                      <Text style={{ color: selectedCategory === cat.id ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>{cat.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+              <TouchableOpacity
+                onPress={() => { setViewMode(viewMode === 'grid' ? 'list' : 'grid'); hapticFeedback.selection(); }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
 
-                <View style={styles.resultsRow}>
-                  <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{filtered.length}</Text>
-                  <Text style={{ color: theme.textSecondary }}> verses</Text>
-                  {selectedCategory !== 'all' && selectedCategory !== 'favorites' && versesData?.categories && (
-                    <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>
-                      in {versesData.categories.find(c => c.id === selectedCategory)?.name}
-                    </Text>
-                  )}
-                  {selectedCategory === 'favorites' && (
-                    <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>saved</Text>
-                  )}
-                </View>
-              </Animated.View>
-            </LinearGradient>
-          </BlurView>
-        </Animated.View>
+            {/* Collapsible Search bar */}
+            <Animated.View
+              style={{
+                height: searchBarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 58],
+                }),
+                opacity: searchBarAnim,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  marginTop: 16,
+                }}
+              >
+                <MaterialIcons name="search" size={20} color={theme.textTertiary} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginLeft: 10,
+                    paddingVertical: 2,
+                  }}
+                  placeholder="Search verses..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MaterialIcons name="close" size={14} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animated.View>
+          </Animated.View>
+
+          {/* Category filter chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingHorizontal: 16 }}
+          >
+            <TouchableOpacity
+              onPress={() => { setSelectedCategory('all'); hapticFeedback.light(); }}
+              style={[
+                styles.categoryChip,
+                { backgroundColor: selectedCategory === 'all' ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+              ]}
+            >
+              <Text style={{ color: selectedCategory === 'all' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setSelectedCategory(selectedCategory === 'favorites' ? 'all' : 'favorites'); hapticFeedback.light(); }}
+              style={[
+                styles.categoryChip,
+                { backgroundColor: selectedCategory === 'favorites' ? '#E91E63' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+              ]}
+            >
+              <MaterialIcons name="favorite" size={14} color={selectedCategory === 'favorites' ? '#fff' : '#E91E63'} />
+              <Text style={{ color: selectedCategory === 'favorites' ? '#fff' : theme.text, fontWeight: '600', fontSize: 13, marginLeft: 4 }}>{favoriteVerses.length}</Text>
+            </TouchableOpacity>
+            {versesData?.categories?.map(cat => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => { setSelectedCategory(cat.id); hapticFeedback.light(); }}
+                style={[
+                  styles.categoryChip,
+                  { backgroundColor: selectedCategory === cat.id ? cat.color : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') }
+                ]}
+              >
+                <Text style={{ color: selectedCategory === cat.id ? '#fff' : theme.text, fontWeight: '600', fontSize: 13 }}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </BlurView>
+
         {renderVerseDetail()}
       </View>
   );
@@ -737,13 +799,7 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardRef: { color: '#fff', fontWeight: '700', fontSize: 12 },
   backBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  headerContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, overflow: 'hidden' },
-  headerGradient: { flex: 1, paddingHorizontal: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)', padding: 10, borderRadius: 12, marginVertical: 10 },
-  searchInput: { flex: 1, marginLeft: 10 },
-  resultsRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10, flexWrap: 'wrap' },
+  // Legacy header styles removed — now using inline Achievements-style header
   categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   // Legacy styles (kept for compatibility)
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },

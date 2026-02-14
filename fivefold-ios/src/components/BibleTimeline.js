@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+// BlurView removed — header now scrolls with content
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
@@ -539,7 +539,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
             styles.sheet,
             {
               backgroundColor: theme.background,
-              paddingBottom: insets.bottom,
+              paddingBottom: 0,
               transform: [{ translateY: sheetY }],
             },
           ]}
@@ -642,7 +642,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       {!loading && !error && (
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ paddingTop: insets.top + 56, paddingBottom: 40 + insets.bottom }}
+          contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
           showsVerticalScrollIndicator={false}
           bounces={true}
           refreshControl={
@@ -654,6 +654,23 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
             />
           }
         >
+          {/* Header — scrolls with content */}
+          <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.headerBtn, {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              }]}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.text} />
+            </TouchableOpacity>
+
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Timeline</Text>
+
+            <View style={{ width: 44 }} />
+          </View>
+
           {/* Subtitle + progress */}
           <View style={styles.titleSection}>
             <Text style={[styles.pageSubtitle, { color: theme.textSecondary }]}>
@@ -695,31 +712,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
         </ScrollView>
       )}
 
-      {/* Fixed header */}
-      <BlurView
-        intensity={80}
-        tint={isDark ? 'dark' : 'light'}
-        style={[styles.header, { paddingTop: insets.top }]}
-      >
-        <TouchableOpacity
-          onPress={onClose}
-          style={[styles.headerBtn, {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-          }]}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="arrow-back-ios-new" size={17} color={theme.text} />
-        </TouchableOpacity>
-
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Bible Timeline</Text>
-
-        <View style={[styles.headerBadge, { backgroundColor: theme.primary + '18' }]}>
-          <Text style={[styles.headerBadgeText, { color: theme.primary }]}>
-            {viewedCount}/{totalEras}
-          </Text>
-        </View>
-      </BlurView>
-
       {/* Bottom Sheet */}
       {renderBottomSheet()}
     </View>
@@ -744,41 +736,25 @@ const styles = StyleSheet.create({
 
   // ---- Header ----
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 10,
-    overflow: 'hidden',
+    paddingBottom: 8,
   },
   headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    letterSpacing: 0.3,
   },
-  headerBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  headerBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
   // ---- Title section ----
   titleSection: {
     paddingHorizontal: 24,
