@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFriendsWithStats } from '../services/friendsService';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 import { 
   createOrGetConversation, 
   sendVerseMessage,
@@ -278,7 +279,7 @@ const ShareVerseModal = ({
           
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.primary} />
+              <CustomLoadingIndicator color={theme.primary} />
             </View>
           ) : friends.length === 0 ? (
             <View style={styles.emptyContainer}>

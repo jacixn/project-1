@@ -51,6 +51,7 @@ import { getReferralCount } from '../services/referralService';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { getBlockedUsers } from '../services/reportService';
 import { isRestricted } from '../services/restrictionService';
+import { subscribeToPendingRequests } from '../services/friendsService';
 // FriendsScreen is now accessed via stack navigator in RootNavigator
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
@@ -108,6 +109,7 @@ const HubTab = () => {
   
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
   const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
+  const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
   const [expandedPost, setExpandedPost] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   
@@ -271,10 +273,16 @@ const HubTab = () => {
       setPendingChallengesCount(pendingCount);
     });
     
+    // Subscribe to pending friend requests count
+    const unsubFriendRequests = subscribeToPendingRequests(user.uid, (count) => {
+      setPendingFriendRequests(count);
+    });
+    
     // Cleanup listeners on unmount
     return () => {
       unsubConversations();
       unsubChallenges();
+      unsubFriendRequests();
     };
   }, [user]);
   
@@ -916,13 +924,9 @@ const HubTab = () => {
                   >
                     <Ionicons name="people" size={20} color="#FFFFFF" />
                   </LinearGradient>
-                  {/* Unread messages badge */}
-                  {totalUnreadMessages > 0 && (
-                    <View style={styles.headerNotificationBadge}>
-                      <Text style={styles.headerNotificationBadgeText}>
-                        {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
-                      </Text>
-                    </View>
+                  {/* Red dot for unread messages / pending friend requests */}
+                  {(totalUnreadMessages + pendingFriendRequests) > 0 && (
+                    <View style={styles.headerRedDot} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -966,13 +970,9 @@ const HubTab = () => {
                   >
                     <Ionicons name="trophy" size={20} color="#FFFFFF" />
                   </LinearGradient>
-                  {/* Pending challenges badge */}
+                  {/* Red dot for pending challenges */}
                   {pendingChallengesCount > 0 && (
-                    <View style={[styles.headerNotificationBadge, { backgroundColor: '#F59E0B' }]}>
-                      <Text style={styles.headerNotificationBadgeText}>
-                        {pendingChallengesCount > 9 ? '9+' : pendingChallengesCount}
-                      </Text>
-                    </View>
+                    <View style={styles.headerRedDot} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -1548,24 +1548,16 @@ const styles = StyleSheet.create({
     elevation: 10,
     position: 'relative',
   },
-  headerNotificationBadge: {
+  headerRedDot: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 5,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-  },
-  headerNotificationBadgeText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
   iconGradient: {
     width: 48,

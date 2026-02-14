@@ -21,6 +21,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getFriendsData } from './friendsService';
+import * as Notifications from 'expo-notifications';
+import { getAuth } from 'firebase/auth';
 
 // Expo Push Notification API endpoint
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -60,6 +62,28 @@ export const savePushToken = async (userId, pushToken) => {
 };
 
 /**
+ * Clear push token from a user's Firestore doc (call on sign-out).
+ * Prevents the device from receiving notifications for this user after logout.
+ * @param {string} userId - User's Firebase UID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const clearPushToken = async (userId) => {
+  if (!userId) return false;
+
+  try {
+    await updateDoc(doc(db, 'users', userId), {
+      pushToken: '',
+      pushTokenUpdatedAt: new Date(),
+    });
+    console.log('[SocialNotif] Cleared push token for user:', userId);
+    return true;
+  } catch (error) {
+    console.error('Error clearing push token:', error);
+    return false;
+  }
+};
+
+/**
  * Get user's push token from Firebase
  * @param {string} userId - User's Firebase UID
  * @returns {Promise<string|null>} - Push token or null
@@ -92,9 +116,26 @@ export const sendPushToUser = async (userId, { title, body, data = {} }) => {
   if (!userId) return false;
 
   try {
+    const enrichedData = { ...data, timestamp: Date.now(), recipientId: userId };
+
+    // ── If the recipient is the CURRENT user on this device, fire a local
+    //    notification so the foreground handler can show an in-app banner.
+    //    This is the only reliable path on the iOS Simulator (where remote
+    //    push tokens are fake) and also serves as an instant fallback on
+    //    real devices. ──
+    const currentUid = getAuth().currentUser?.uid;
+    if (currentUid && currentUid === userId) {
+      await Notifications.scheduleNotificationAsync({
+        content: { title, body, data: enrichedData, sound: 'default' },
+        trigger: null, // fire immediately
+      });
+      console.log('[SocialNotif] Local notification fired for current user');
+      return true;
+    }
+
     const pushToken = await getPushToken(userId);
-    if (!pushToken) {
-      console.log('[SocialNotif] No push token for user:', userId);
+    if (!pushToken || pushToken === 'simulator-token') {
+      console.log('[SocialNotif] No valid push token for user:', userId);
       return false;
     }
 
@@ -103,10 +144,7 @@ export const sendPushToUser = async (userId, { title, body, data = {} }) => {
       sound: 'default',
       title,
       body,
-      data: {
-        ...data,
-        timestamp: Date.now(),
-      },
+      data: enrichedData,
     };
 
     const response = await fetch(EXPO_PUSH_URL, {
@@ -360,6 +398,7 @@ export const notifyStreakMilestone = async (userId, displayName, days) => {
 
 export default {
   savePushToken,
+  clearPushToken,
   getPushToken,
   sendPushToUser,
   sendPushToFriends,

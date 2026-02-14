@@ -22,6 +22,7 @@ import {
   setDoc, 
   getDoc, 
   deleteDoc,
+  updateDoc,
   serverTimestamp,
   collection,
   query,
@@ -32,6 +33,7 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { getStoredData } from '../utils/localStorage';
 import userStorage from '../utils/userStorage';
+import { invalidateLoadingAnimCache } from '../components/CustomLoadingIndicator';
 
 /**
  * Check if a username is available
@@ -101,15 +103,9 @@ export const signUp = async ({ email, password, username, displayName }) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
-  // Send OTP verification code via Cloud Function
+  // NOTE: Do NOT send verification code here — the user hasn't started onboarding yet.
+  // The code will be sent when they tap "Verify Email" during onboarding.
   let maskedEmail = email;
-  try {
-    const result = await sendVerificationCode();
-    maskedEmail = result.maskedEmail || email;
-    console.log('[Auth] Verification code sent to:', maskedEmail);
-  } catch (verifyError) {
-    console.warn('[Auth] Failed to send verification code:', verifyError);
-  }
   
   // Update the user's display name
   await updateProfile(user, {
@@ -276,11 +272,27 @@ export const refreshEmailVerificationStatus = async () => {
  * @returns {Promise<void>}
  */
 export const signOut = async () => {
+  // Clear push token from Firestore BEFORE signing out so this device
+  // stops receiving notifications for the outgoing user.
+  try {
+    const currentUser = auth.currentUser;
+    if (currentUser?.uid) {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        pushToken: '',
+        pushTokenUpdatedAt: new Date(),
+      });
+      console.log('[Auth] Cleared push token for user:', currentUser.uid);
+    }
+  } catch (tokenErr) {
+    console.warn('[Auth] Failed to clear push token on sign out:', tokenErr);
+  }
+
   // Clear cached user data so next sign in loads correct account data
   await userStorage.remove('@biblely_user_cache');
   await userStorage.remove('userProfile');
   await userStorage.remove('fivefold_userStats');
   await userStorage.remove('fivefold_userName');
+  invalidateLoadingAnimCache(); // Reset so next user gets their own animation
   console.log('[Auth] Signed out and cleared local cache');
   
   await firebaseSignOut(auth);

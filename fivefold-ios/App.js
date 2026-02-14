@@ -10,6 +10,10 @@ import { WorkoutProvider, useWorkout } from './src/contexts/WorkoutContext';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import notificationService from './src/services/notificationService';
+import { setCurrentNotificationUser, clearCurrentNotificationUser } from './src/services/notificationService';
+import { subscribeToConversations } from './src/services/messageService';
+import { subscribeToPendingRequests } from './src/services/friendsService';
+import { subscribeToChallenges } from './src/services/challengeService';
 // OnboardingWrapper is now handled inside RootNavigator
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import { getStoredData } from './src/utils/localStorage';
@@ -30,6 +34,7 @@ import {
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
+import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorkoutService from './src/services/workoutService';
@@ -381,6 +386,10 @@ const ThemedApp = () => {
   const pendingNavigationRef = useRef(null); // Store pending navigation if nav isn't ready
   const prevUserIdRef = useRef(undefined); // Start as undefined, not null
   const [currentRoute, setCurrentRoute] = useState(null);
+  const inAppNotifRef = useRef(null);
+  const prevUnreadMapRef = useRef({});
+  const prevFriendReqCountRef = useRef(-1);
+  const prevChallengeIdsRef = useRef(null);
 
   // Run 90-day history cleanup once on app startup
   useEffect(() => {
@@ -540,7 +549,9 @@ const ThemedApp = () => {
           tab = 'Chat';
           additionalData = {
             otherUserId: data.senderId,
-            otherUser: { uid: data.senderId, displayName: data.senderName || 'Friend' },
+            otherUser: data.otherUser?.displayName
+              ? { uid: data.senderId, ...data.otherUser }
+              : { uid: data.senderId, displayName: data.senderName || '' },
           };
         } else {
           tab = 'Hub';
@@ -622,6 +633,123 @@ const ThemedApp = () => {
       subscription.remove();
     };
   }, []);
+
+  // In-app notification banner for foreground push notifications
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('inAppNotification', (payload) => {
+      if (inAppNotifRef.current) {
+        inAppNotifRef.current.show(payload);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  // ── Track current user for notification filtering + reset tracking refs ──
+  useEffect(() => {
+    if (user?.uid) {
+      setCurrentNotificationUser(user.uid);
+    } else {
+      clearCurrentNotificationUser();
+    }
+    // Reset notification tracking refs so a new user doesn't get false notifications
+    prevUnreadMapRef.current = {};
+    prevFriendReqCountRef.current = -1;
+    prevChallengeIdsRef.current = null;
+  }, [user?.uid]);
+
+  // ── Real-time conversation watcher ──
+  // Fires an in-app notification when unread count increases for any
+  // conversation, without relying on push notifications at all.
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsub = subscribeToConversations(user.uid, (conversations) => {
+      const prev = prevUnreadMapRef.current;
+      const next = {};
+
+      conversations.forEach((conv) => {
+        next[conv.id] = {
+          unread: conv.unreadCount || 0,
+          name: conv.otherUser?.displayName || 'Someone',
+          senderId: conv.otherUserId,
+          otherUser: conv.otherUser || {},
+        };
+      });
+
+      // Compare — show in-app banner for any conversation whose unread count went UP
+      Object.keys(next).forEach((convId) => {
+        const prevCount = prev[convId]?.unread || 0;
+        const nowCount = next[convId].unread;
+        if (nowCount > prevCount && prevCount >= 0 && Object.keys(prev).length > 0) {
+          // New message(s) arrived
+          DeviceEventEmitter.emit('inAppNotification', {
+            title: 'New Message',
+            body: `${next[convId].name} sent you a message`,
+            data: {
+              type: 'message',
+              senderId: next[convId].senderId,
+              senderName: next[convId].name,
+              otherUser: next[convId].otherUser,
+            },
+          });
+        }
+      });
+
+      prevUnreadMapRef.current = next;
+    });
+
+    return () => unsub();
+  }, [user?.uid]);
+
+  // ── Real-time friend request watcher ──
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsub = subscribeToPendingRequests(user.uid, (count) => {
+      const prev = prevFriendReqCountRef.current;
+      if (prev >= 0 && count > prev) {
+        DeviceEventEmitter.emit('inAppNotification', {
+          title: 'Friend Request',
+          body: 'Someone wants to be your friend',
+          data: { type: 'friend_request' },
+        });
+      }
+      prevFriendReqCountRef.current = count;
+    });
+
+    return () => unsub();
+  }, [user?.uid]);
+
+  // ── Real-time challenge watcher ──
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsub = subscribeToChallenges(user.uid, (result) => {
+      // result may be { pending, active, completed } or a flat array
+      const pending = Array.isArray(result)
+        ? result.filter(c => c.status === 'pending' && c.challengedId === user.uid)
+        : (result?.pending || []);
+      const currentIds = new Set(pending.map(c => c.id));
+      const prev = prevChallengeIdsRef.current;
+
+      if (prev !== null) {
+        // Find new challenges that weren't in the previous set
+        currentIds.forEach((id) => {
+          if (!prev.has(id)) {
+            const challenge = pending.find(c => c.id === id);
+            DeviceEventEmitter.emit('inAppNotification', {
+              title: 'New Challenge',
+              body: `${challenge?.challengerName || 'Someone'} challenged you!`,
+              data: { type: 'challenge_received' },
+            });
+          }
+        });
+      }
+      prevChallengeIdsRef.current = currentIds;
+    });
+
+    return () => unsub();
+  }, [user?.uid]);
 
   // CRITICAL: Direct Expo notification response listener as a safety net.
   // This catches notification taps even when the DeviceEventEmitter flow fails
@@ -1026,6 +1154,15 @@ const ThemedApp = () => {
           </NavigationContainer>
         </WorkoutProvider>
       </ErrorBoundary>
+
+      {/* In-App Notification Banner (foreground push notifications) */}
+      <InAppNotification
+        ref={inAppNotifRef}
+        onPress={(data) => {
+          const payload = mapNotificationToNavPayload(data);
+          if (payload) handleNotificationNavigation(payload);
+        }}
+      />
     </>
   );
 };

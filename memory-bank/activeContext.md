@@ -51,6 +51,14 @@ All code-side changes for App Store submission have been implemented. The follow
 
 ## What Was Done (Code Changes)
 
+### Loading Animation Unification (February 2026)
+- **Created `CustomLoadingIndicator` component** (`src/components/CustomLoadingIndicator.js`) — a drop-in replacement for `ActivityIndicator` that reads the user's selected loading animation from `userStorage('fivefold_loading_animation')` and validates against referral count gates.
+- **Updated 20+ screens/components** to use `CustomLoadingIndicator` for all full-screen and section loading states:
+  - Screens: LeaderboardScreen, NutritionScreen, PhysiqueScreen, FriendsScreen, MessagesScreen, PrayerWallScreen, BibleCharactersScreen, ChallengesScreen, ChatScreen, ProfileTab (language change, analytics, reports, restrictions, sign-out)
+  - Components: BibleReader, ExercisesModal, EnhancedPrayerCard, VoicePickerModal, CreateChallengeModal, ShareVerseModal, WorkoutExercisePicker
+- Bible components (BibleFastFacts, ThematicGuides, KeyVerses, InteractiveBibleMaps, BibleTimeline) already used `SimplePercentageLoader` which reads the user's animation preference internally.
+- Inline button spinners (send, accept, verify, etc.) intentionally left as small `ActivityIndicator` for appropriate sizing.
+
 ### App Store Prep Changes (February 8, 2026)
 1. **Privacy Policy, ToS, Support pages** -- Created in `fivefold-ios/legal/`
 2. **Legal section in Settings** -- Added Privacy Policy, Terms of Service, and Support & FAQ links to ProfileTab.js under a "Legal" card

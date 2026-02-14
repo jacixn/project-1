@@ -11,7 +11,10 @@
 - **Legal links in Settings** — Privacy Policy, Terms of Service, Support & FAQ accessible from ProfileTab
 - **Marketing copy** — App Store description, subtitle, keywords ready in `fivefold-ios/legal/app-store-copy.md`
 
-## Recently improved (Feb 8, 2026)
+## Recently improved (Feb 2026)
+- **Loading animation unification** — All full-screen/section loading states across the app now use the user's selected loading animation (from Customisation). Created `CustomLoadingIndicator` component as a centralized, reusable replacement for raw `ActivityIndicator`. Updated 20+ files.
+
+## Previously improved (Feb 8, 2026)
 - **App Store readiness audit** — all code-side issues fixed (permissions, version mismatch, privacy manifest, API key security, legal links)
 - **PrivacyInfo.xcprivacy** — now declares 8 collected data types (was empty before)
 - **Permission strings** — camera and photo library descriptions now accurately mention food scanning

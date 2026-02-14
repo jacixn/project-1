@@ -18,6 +18,13 @@
 - The app uses the **native iOS tab bar** via `@bottom-tabs/react-navigation` (`createNativeBottomTabNavigator`) in `TabNavigator.js`. Always keep it that way.
 - The Profile tab icon shows the user's profile picture via `{ uri: profilePicture }`, falling back to `{ sfSymbol: 'person.fill' }`.
 
+## Loading Animations (CRITICAL — respect user's selected animation)
+- The user selects a loading animation in Customisation: Default, Running Cat, Run Hamster, or Among Us. Stored in `fivefold_loading_animation` via `userStorage`.
+- **NEVER use raw `<ActivityIndicator size="large" />` for full-screen or section loading states.** Always use `<CustomLoadingIndicator />` from `src/components/CustomLoadingIndicator.js`.
+- `CustomLoadingIndicator` auto-reads the user's preference and validates referral gates. Pass `selectedAnim={selectedLoadingAnim}` if the parent already tracks it, otherwise the component fetches it internally.
+- **Exceptions**: Small inline button spinners (send, accept, decline, verify) should remain as `<ActivityIndicator size="small" />`.
+- Bible components use `SimplePercentageLoader` which already reads the user's animation internally.
+
 ## Pull-to-Refresh (CRITICAL — no native RefreshControl)
 - **NEVER use `<RefreshControl>`** on the Profile tab's main ScrollView. The native iOS `UIRefreshControl` renders a visible spinner that **cannot be hidden** — even `tintColor="transparent"` doesn't work on many iOS versions.
 - Instead, detect the pull gesture with `onScrollEndDrag` checking `contentOffset.y < -70`, and show a **custom absolutely-positioned indicator** (Lottie or ActivityIndicator).

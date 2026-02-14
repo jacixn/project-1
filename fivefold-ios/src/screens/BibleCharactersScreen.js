@@ -30,6 +30,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleCharactersService from '../services/bibleCharactersService';
 import AchievementService from '../services/achievementService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 
 const { width } = Dimensions.get('window');
 
@@ -419,7 +420,7 @@ const BibleCharactersScreen = ({ navigation }) => {
     if (charactersLoading) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
           <Text style={{ color: theme.textSecondary, marginTop: 12 }}>Loading characters...</Text>
         </View>
       );

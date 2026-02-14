@@ -47,6 +47,7 @@ import ReportBlockModal from '../components/ReportBlockModal';
 import { getConversations } from '../services/messageService';
 import { getChallenges } from '../services/challengeService';
 import { getBlockedUsers, unblockUser } from '../services/reportService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import { db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -1084,7 +1085,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
           <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
             Loading friends...
           </Text>
@@ -1228,7 +1229,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
               ListEmptyComponent={
                 searching ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={theme.primary} />
+                    <CustomLoadingIndicator color={theme.primary} />
                     <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
                       Searching...
                     </Text>

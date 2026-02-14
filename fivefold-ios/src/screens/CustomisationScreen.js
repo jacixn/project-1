@@ -21,6 +21,7 @@ import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { getReferralCount } from '../services/referralService';
+import { updateLoadingAnimCache } from '../components/CustomLoadingIndicator';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -239,6 +240,7 @@ const CustomisationScreen = () => {
       return;
     }
     setSelectedLoadingAnim(id);
+    updateLoadingAnimCache(id); // Update global cache instantly
     await userStorage.setRaw(LOADING_ANIM_KEY, id);
   };
 

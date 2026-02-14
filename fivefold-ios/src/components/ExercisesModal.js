@@ -20,6 +20,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import ExercisesService from '../services/exercisesService';
 import { hapticFeedback } from '../utils/haptics';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 import AddExerciseModal from './AddExerciseModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -562,7 +563,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         {/* Content - starts from top so it goes UNDER the blurred header */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <CustomLoadingIndicator color={theme.primary} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
               Loading exercises...
             </Text>

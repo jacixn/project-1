@@ -41,6 +41,7 @@ import nutritionService, { ACTIVITY_LABELS } from '../services/nutritionService'
 import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
 import notificationService from '../services/notificationService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 
 // ─── Unit conversion helpers ───
 const kgToLbs = (kg) => +(kg * 2.20462).toFixed(1);
@@ -2037,7 +2038,7 @@ const NutritionScreen = () => {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: screenBg }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <ActivityIndicator size="large" color={theme.primary} />
+        <CustomLoadingIndicator color={theme.primary} />
       </View>
     );
   }

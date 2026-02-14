@@ -24,6 +24,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { sendChallenge } from '../services/challengeService';
 import quizService from '../services/quizService';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -247,7 +248,7 @@ const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChalleng
           
           {loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#F59E0B" />
+              <CustomLoadingIndicator color="#F59E0B" />
               <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading categories...</Text>
             </View>
           ) : (

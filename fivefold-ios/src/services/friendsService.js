@@ -20,8 +20,10 @@ import {
   arrayUnion,
   arrayRemove,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { sendPushToUser, NotificationTemplates } from './socialNotificationService';
 
 /**
  * Get a user's friends data
@@ -175,6 +177,16 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
       pendingRequests: arrayUnion({ fromUserId, timestamp }),
     }, { merge: true });
     
+    // Send push notification to the recipient
+    try {
+      const senderDoc = await getDoc(doc(db, 'users', fromUserId));
+      const senderName = senderDoc.exists() ? (senderDoc.data().displayName || 'Someone') : 'Someone';
+      const notif = NotificationTemplates.friendRequest(senderName);
+      await sendPushToUser(toUserId, notif);
+    } catch (notifErr) {
+      console.warn('Failed to send friend request notification:', notifErr);
+    }
+    
     return { success: true, message: 'Friend request sent' };
   } catch (error) {
     console.error('Error sending friend request:', error);
@@ -212,6 +224,16 @@ export const acceptFriendRequest = async (currentUserId, fromUserId) => {
       friendsList: arrayUnion(currentUserId),
       sentRequests: sentRequest ? arrayRemove(sentRequest) : senderFriendsData.sentRequests,
     }, { merge: true });
+    
+    // Notify the original sender that their request was accepted
+    try {
+      const accepterDoc = await getDoc(doc(db, 'users', currentUserId));
+      const accepterName = accepterDoc.exists() ? (accepterDoc.data().displayName || 'Someone') : 'Someone';
+      const notif = NotificationTemplates.friendAccepted(accepterName);
+      await sendPushToUser(fromUserId, notif);
+    } catch (notifErr) {
+      console.warn('Failed to send friend accepted notification:', notifErr);
+    }
     
     return { success: true, message: 'Friend request accepted' };
   } catch (error) {
@@ -458,6 +480,38 @@ export const getFriendCount = async (userId) => {
   }
 };
 
+/**
+ * Subscribe to pending friend request count in real-time
+ * @param {string} userId - Current user's Firebase UID
+ * @param {Function} callback - Called with the pending request count (number)
+ * @returns {Function} - Unsubscribe function
+ */
+export const subscribeToPendingRequests = (userId, callback) => {
+  if (!userId) {
+    callback(0);
+    return () => {};
+  }
+
+  const friendsDocRef = doc(db, 'friends', userId);
+  const unsubscribe = onSnapshot(friendsDocRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const count = Array.isArray(data.pendingRequests) ? data.pendingRequests.length : 0;
+        callback(count);
+      } else {
+        callback(0);
+      }
+    },
+    (error) => {
+      console.error('Error subscribing to pending requests:', error);
+      callback(0);
+    }
+  );
+
+  return unsubscribe;
+};
+
 export default {
   getFriendsData,
   getFriendsWithStats,
@@ -470,4 +524,5 @@ export default {
   getPendingRequestsWithDetails,
   getFriendshipStatus,
   getFriendCount,
+  subscribeToPendingRequests,
 };

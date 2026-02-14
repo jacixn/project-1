@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { subscribeToConversations, cleanupAllOldMessages } from '../services/messageService';
 import { getFriendsWithStats } from '../services/friendsService';
 import ReportBlockModal from '../components/ReportBlockModal';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
 
 const MessagesScreen = () => {
@@ -237,7 +238,7 @@ const MessagesScreen = () => {
       {/* Conversations */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
         </View>
       ) : (
         <FlatList

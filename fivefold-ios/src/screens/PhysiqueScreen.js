@@ -30,6 +30,7 @@ import WorkoutService from '../services/workoutService';
 import productionAiService from '../services/productionAiService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import { MUSCLE_GROUPS, SCORE_COLORS, getScoreColor } from '../data/exerciseMuscleMap';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -226,7 +227,7 @@ const PhysiqueScreen = () => {
       <View style={[styles.safeArea, { backgroundColor: bg }]}>
         <StatusBar barStyle="light-content" />
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
           <Text style={[styles.loadingText, { color: textSecondary }]}>Analyzing your workouts...</Text>
         </View>
       </View>

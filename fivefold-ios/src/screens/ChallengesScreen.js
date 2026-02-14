@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import { 
   subscribeToChallenges,
   acceptChallenge,
@@ -324,7 +325,7 @@ const ChallengesScreen = () => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F59E0B" />
+          <CustomLoadingIndicator color="#F59E0B" />
         </View>
       ) : (
         <FlatList

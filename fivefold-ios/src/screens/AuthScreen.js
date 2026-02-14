@@ -22,6 +22,7 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -35,6 +36,7 @@ const { width, height } = Dimensions.get('window');
 const AuthScreen = ({ onAuthSuccess }) => {
   const navigation = useNavigation();
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, verify2FAAndSignIn, loading } = useAuth();
   
   // View mode: 'main' (social buttons) or 'email' (email form)
@@ -354,7 +356,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
       <View style={styles.container}>
         {/* Background Image */}
         <Image 
-          source={require('../../assets/auth-background.png')} 
+          source={require('../../assets/auth-background.jpg')} 
           style={styles.backgroundImage}
           resizeMode="cover"
         />
@@ -363,13 +365,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
           <View style={{ flex: 1 }}>
             <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
               {/* Spacer to push headline down */}
-              <View style={{ flex: 0.18 }} />
+              <View style={{ flex: 0.12 }} />
             
             {/* Headline - positioned higher without mascot */}
-            <Text style={styles.headline}>
+            <Text style={[styles.headline, { marginTop: 9 }]}>
               FAITH. FITNESS. <Text style={styles.headlineAccent}>FOCUS.</Text>
             </Text>
-            <Text style={styles.subtitle}>Bible, prayer, workouts, tasks & community. All in one place.</Text>
+            <Text style={styles.subtitle}>All in one.</Text>
             
             {/* Flexible spacer to push buttons down */}
             <View style={{ flex: 1 }} />
@@ -416,7 +418,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
       />
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -764,7 +766,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
             <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };

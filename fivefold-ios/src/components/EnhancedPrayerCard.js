@@ -25,6 +25,7 @@ import AiBibleChat from './AiBibleChat';
 import VerseSimplificationService from '../services/verseSimplificationService';
 import PrayerManagementService from '../services/prayerManagementService';
 import AchievementService from '../services/achievementService';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 const PrayerSection = () => {
   const { theme, isBiblelyTheme } = useTheme();
@@ -502,7 +503,7 @@ const PrayerSection = () => {
     return (
       <View style={[styles.mainContainer, { backgroundColor: theme.card + 'E5' }]}>
         <View style={styles.loadingArea}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
           <Text style={[styles.loadingMessage, { color: textColor, ...textOutlineStyle }]}>
             Loading your prayers...
           </Text>

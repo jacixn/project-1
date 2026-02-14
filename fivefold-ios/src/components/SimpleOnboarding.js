@@ -139,7 +139,7 @@ const NameInputScreen = React.memo(({
           justifyContent: 'center',
           backgroundColor: userName.trim() ? '#333' : '#CCC',
           marginHorizontal: 20,
-          marginBottom: 30,
+          marginBottom: 2,
           paddingVertical: 18,
           borderRadius: 16,
           gap: 8,
@@ -1375,6 +1375,8 @@ const SimpleOnboarding = ({ onComplete }) => {
                 onPress={() => {
                   hapticFeedback.selection();
                   setSelectedPainPoint(point.id);
+                  // Auto-advance after a brief moment so the user sees the selection
+                  setTimeout(() => handleNext(), 400);
                 }}
               >
                 <View style={[styles.painPointIcon, { backgroundColor: point.iconBg }]}>
@@ -1399,21 +1401,6 @@ const SimpleOnboarding = ({ onComplete }) => {
           </View>
         </ScrollView>
         
-        {/* Scroll indicator - hidden once user scrolls */}
-        {!hasScrolled && (
-          <View style={styles.scrollIndicator}>
-            <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
-          </View>
-        )}
-        
-        <TouchableOpacity 
-          onPress={handleNext}
-          style={[styles.mainButton, { backgroundColor: '#333' }]}
-        >
-          <Text style={styles.mainButtonText}>{selectedPainPoint ? 'Next' : 'Skip'}</Text>
-          <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
-        </TouchableOpacity>
       </SafeAreaView>
     );
   };
@@ -4071,7 +4058,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 24,
-    marginBottom: 40,
+    marginBottom: 2,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 30,
@@ -4543,7 +4530,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
     gap: 4,
   },
   scrollIndicatorText: {

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
 import { checkUsernameAvailability, sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup, disable2FA, check2FAEnabled } from '../services/authService';
 import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import { getFriendCount } from '../services/friendsService';
 import {
   View,
@@ -4257,7 +4258,7 @@ const ProfileTab = () => {
       {isChangingLanguage && (
         <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
           <View style={[styles.loadingContainer, { backgroundColor: theme.card }]}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />
             <Text style={[styles.loadingText, { color: textColor, marginTop: 15 }]}>
               {t.changingLanguage}
             </Text>
@@ -5825,77 +5826,6 @@ const ProfileTab = () => {
               borderWidth: 1,
               borderColor: 'rgba(255, 59, 48, 0.2)',
             }}>
-            {/* Fix Score */}
-            <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'rgba(255, 59, 48, 0.15)',
-                }}
-              onPress={async () => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                try {
-                  const correctedPoints = await AchievementService.recalculateScore();
-                  const correctedLevel = AchievementService.getLevelFromPoints(correctedPoints);
-                  setUserStats(prev => ({ ...prev, totalPoints: correctedPoints, points: correctedPoints, level: correctedLevel }));
-                  Alert.alert('Score Fixed', `Your score has been recalculated to ${correctedPoints.toLocaleString()} points.`);
-                } catch (err) {
-                  Alert.alert('Error', 'Failed to fix score. Please try again.');
-                }
-              }}
-                activeOpacity={0.7}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: 'rgba(52, 199, 89, 0.2)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="auto-fix-high" size={20} color="#34C759" />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#34C759' }}>Fix Score</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#34C759" />
-            </TouchableOpacity>
-            {/* Reset Points */}
-            <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'rgba(255, 59, 48, 0.15)',
-                }}
-              onPress={() => {
-                hapticFeedback.buttonPress();
-                setShowSettingsModal(false);
-                setTimeout(() => handleResetPoints(), 300);
-              }}
-                activeOpacity={0.7}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: 'rgba(255, 149, 0, 0.2)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="restart-alt" size={20} color="#FF9500" />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF9500' }}>Reset Points</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#FF9500" />
-            </TouchableOpacity>
             {/* Delete Account */}
             <TouchableOpacity 
                 style={{
@@ -6589,7 +6519,7 @@ const ProfileTab = () => {
 
               {loadingAttribution ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                  <ActivityIndicator size="large" color={theme.primary} />
+                  <CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />
                   <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14 }}>Loading analytics...</Text>
                 </View>
               ) : attributionData && attributionData.length > 0 ? (
@@ -6799,7 +6729,7 @@ const ProfileTab = () => {
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 4, paddingBottom: 40 }}>
             {loadingReports ? (
               <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-                <ActivityIndicator size="large" color={theme.primary} />
+                <CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />
                 <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14 }}>Loading reports...</Text>
               </View>
             ) : (() => {
@@ -7317,7 +7247,7 @@ const ProfileTab = () => {
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
             {loadingUserRestrictions ? (
               <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-                <ActivityIndicator size="large" color={theme.primary} />
+                <CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />
               </View>
             ) : userRestrictionsData.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 60 }}>
@@ -9624,7 +9554,7 @@ const ProfileTab = () => {
     >
       <View style={styles.signOutOverlay}>
         <View style={styles.signOutCard}>
-          <ActivityIndicator size="large" color={theme.primary || '#7C3AED'} />
+          <CustomLoadingIndicator color={theme.primary || '#7C3AED'} selectedAnim={selectedLoadingAnim} />
           <Text style={styles.signOutText}>Signing out...</Text>
           <Text style={styles.signOutSubtext}>Saving your data to the cloud</Text>
         </View>

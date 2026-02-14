@@ -569,6 +569,17 @@ export const AuthProvider = ({ children }) => {
             await reloadTheme();
             await refreshLinkedAccounts();
             
+            // Save push token for the newly switched-to user
+            try {
+              const pushToken = await notificationService.getPushToken();
+              if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token' && result?.uid) {
+                await savePushToken(result.uid, pushToken);
+                console.log('[Auth] Push token saved for auto-switched user');
+              }
+            } catch (tokenError) {
+              console.warn('[Auth] Failed to save push token after auto-switch:', tokenError);
+            }
+
             const { DeviceEventEmitter } = require('react-native');
             DeviceEventEmitter.emit('userDataDownloaded');
             
@@ -910,7 +921,18 @@ export const AuthProvider = ({ children }) => {
       setInitializing(false);
       setLoading(false);
 
-      // 10. Emit event so screens can refresh
+      // 10. Save push token for the switched-to user
+      try {
+        const pushToken = await notificationService.getPushToken();
+        if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token' && result?.uid) {
+          await savePushToken(result.uid, pushToken);
+          console.log('[AccountSwitcher] Push token saved for switched account');
+        }
+      } catch (tokenError) {
+        console.warn('[AccountSwitcher] Failed to save push token:', tokenError);
+      }
+
+      // 11. Emit event so screens can refresh
       const { DeviceEventEmitter } = require('react-native');
       DeviceEventEmitter.emit('userDataDownloaded');
 
@@ -1021,6 +1043,17 @@ export const AuthProvider = ({ children }) => {
       await userStorage.setRaw('onboardingCompleted', 'true');
       await reloadTheme();
       await refreshLinkedAccounts();
+
+      // Save push token for the newly linked account
+      try {
+        const pushToken = await notificationService.getPushToken();
+        if (pushToken && pushToken !== 'simulator-token' && pushToken !== 'development-token' && result?.uid) {
+          await savePushToken(result.uid, pushToken);
+          console.log('[AccountSwitcher] Push token saved for linked account');
+        }
+      } catch (tokenError) {
+        console.warn('[AccountSwitcher] Failed to save push token:', tokenError);
+      }
 
       // Unblock the app (onAuthStateChange listener was skipped during this flow)
       setInitializing(false);

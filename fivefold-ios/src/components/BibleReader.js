@@ -32,6 +32,7 @@ import completeBibleService from '../services/completeBibleService';
 import githubBibleService from '../services/githubBibleService';
 import { hapticFeedback } from '../utils/haptics';
 import Slider from '@react-native-community/slider';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 import { CircleStrokeSpin, CirclePulseMultiple } from './ProgressHUDAnimations';
 import userStorage from '../utils/userStorage';
@@ -4379,7 +4380,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         justifyContent: 'center',
                         paddingTop: 100
                       }}>
-                        <ActivityIndicator size="large" color={theme.primary} />
+                        <CustomLoadingIndicator color={theme.primary} />
                         <Text style={{
                           fontSize: 16,
                           color: theme.textSecondary,

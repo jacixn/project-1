@@ -32,6 +32,7 @@ import {
 import PrayerCard from '../components/PrayerCard';
 import CreatePrayerModal from '../components/CreatePrayerModal';
 import ReportBlockModal from '../components/ReportBlockModal';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -213,7 +214,7 @@ const PrayerWallScreen = () => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoadingIndicator color={theme.primary} />
         </View>
       ) : (
         <FlatList

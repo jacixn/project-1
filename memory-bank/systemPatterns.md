@@ -19,6 +19,15 @@
 - Glass/blur effects via `expo-blur` and a Liquid Glass abstraction with fallback.
 - Gradients via `expo-linear-gradient`.
 
+## Loading Animations (CRITICAL — use user's selected animation everywhere)
+- The user can select a loading animation in Customisation: **Default** (spinner), **Running Cat**, **Run Hamster**, or **Among Us**. Stored in `fivefold_loading_animation` via `userStorage`. Gated by referral count (`LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 }`).
+- **EVERY full-screen or section loading state MUST use `<CustomLoadingIndicator />`** (from `src/components/CustomLoadingIndicator.js`) instead of a raw `<ActivityIndicator />`. This component auto-reads the user's selected animation and validates referral gates.
+  - For screens that already track `selectedLoadingAnim` state, pass it: `<CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />`
+  - For screens that don't, just use: `<CustomLoadingIndicator color={theme.primary} />` — it will fetch the preference itself.
+- **Exceptions** (keep as `<ActivityIndicator size="small" />`): inline button spinners (send, accept, decline, verify), username availability checks, sync status indicators, and other small contextual spinners.
+- Bible-related components (BibleFastFacts, ThematicGuides, KeyVerses, InteractiveBibleMaps, BibleTimeline) use `<SimplePercentageLoader />` which already reads the user's animation preference internally.
+- **NEVER add a new loading state with a raw `<ActivityIndicator size="large" />`** — always use `CustomLoadingIndicator` or `SimplePercentageLoader`.
+
 ## Pull-to-Refresh (CRITICAL — no native RefreshControl)
 - **NEVER use `<RefreshControl>`** on the main Profile tab ScrollView. The native iOS `UIRefreshControl` renders a spinner that **cannot be fully hidden** — even with `tintColor="transparent"`, it still shows a visible spinner on many iOS versions.
 - Instead, detect the pull gesture manually using `onScrollEndDrag`:
@@ -31,7 +40,7 @@
   ```
 - Use `bounces={true}` and `alwaysBounceVertical={true}` for the native rubber-band feel.
 - Show a **custom absolutely-positioned indicator** (Lottie or ActivityIndicator in a frosted glass bubble) controlled by the `refreshing` state, animated with spring scale + opacity.
-- The loading animation is configurable in Customisation (default spinner, Run Hamster, Running Cat). Stored in `fivefold_loading_animation` via userStorage.
+- The loading animation is configurable in Customisation (default spinner, Run Hamster, Running Cat, Among Us). Stored in `fivefold_loading_animation` via userStorage.
 
 ## Readability pattern (preferred)
 When text sits on gradients/glass:

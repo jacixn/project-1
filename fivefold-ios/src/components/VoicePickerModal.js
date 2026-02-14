@@ -22,6 +22,7 @@ import bibleAudioService from '../services/bibleAudioService';
 import googleTtsService from '../services/googleTtsService';
 import { hapticFeedback } from '../utils/haptics';
 import { getReferralCount } from '../services/referralService';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 // Tiers that are free (no referral needed)
 const FREE_TIERS = ['Studio'];
@@ -258,7 +259,7 @@ const VoicePickerModal = ({ visible, onClose }) => {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <CustomLoadingIndicator color={theme.primary} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
               Loading voices...
             </Text>

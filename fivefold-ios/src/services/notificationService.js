@@ -5,18 +5,73 @@ import Constants from 'expo-constants';
 import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
 
-// Configure how notifications are handled when the app is in the foreground
+// ─── Active chat tracking ───
+// When the user is inside a specific chat, we store the other user's ID
+// so we can completely suppress notifications from that person.
+let _activeChatUserId = null;
+// Track the currently logged-in user so we can ignore stale push notifications
+// that arrive for a previously logged-in user on this device.
+let _currentLoggedInUserId = null;
+
+/** Call from ChatScreen when it mounts / focuses */
+export const setActiveChatUser = (userId) => { _activeChatUserId = userId; };
+/** Call from ChatScreen when it unmounts / blurs */
+export const clearActiveChatUser = () => { _activeChatUserId = null; };
+
+/** Call from AuthContext or App.js when the logged-in user changes */
+export const setCurrentNotificationUser = (userId) => { _currentLoggedInUserId = userId; };
+/** Call on sign-out */
+export const clearCurrentNotificationUser = () => { _currentLoggedInUserId = null; };
+
+/**
+ * Show an in-app notification banner directly (no push round-trip needed).
+ * Respects active-chat suppression so the user doesn't get a banner
+ * for the chat they're already viewing.
+ */
+export const showLocalInAppNotification = ({ title, body, data = {} }) => {
+  // Suppress if user is viewing this exact chat
+  if (data.type === 'message' && data.senderId && data.senderId === _activeChatUserId) {
+    return;
+  }
+  DeviceEventEmitter.emit('inAppNotification', { title, body, data });
+};
+
+// Configure how notifications are handled when the app is in the foreground.
+// We suppress the native alert and instead fire an in-app banner via DeviceEventEmitter.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    // Keep compatibility across expo-notifications versions:
-    // - `shouldShowAlert` is the legacy key (still used by many builds)
-    // - `shouldShowBanner/shouldShowList` are newer iOS presentation options
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data || {};
+
+    const suppress = {
+      shouldShowAlert: false,
+      shouldShowBanner: false,
+      shouldShowList: false,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    };
+
+    // ── If the push is targeted at a specific user who is NOT the current user, drop it ──
+    // This prevents stale pushes (for a previously logged-in user) from showing.
+    if (data.recipientId && _currentLoggedInUserId && data.recipientId !== _currentLoggedInUserId) {
+      console.log('[Notif] Dropped push for wrong user:', data.recipientId, '(current:', _currentLoggedInUserId, ')');
+      return suppress;
+    }
+
+    // ── If user is viewing the exact chat this message is from, fully suppress ──
+    if (data.type === 'message' && data.senderId && data.senderId === _activeChatUserId) {
+      return suppress;
+    }
+
+    // ── For every other foreground notification, suppress native UI and
+    //    show our own in-app banner instead ──
+    DeviceEventEmitter.emit('inAppNotification', {
+      title: notification.request.content.title || '',
+      body: notification.request.content.body || '',
+      data,
+    });
+
+    return suppress;
+  },
 });
 
 class NotificationService {
@@ -618,16 +673,9 @@ class NotificationService {
     try {
       await saveData('notificationSettings', settings);
       
-      // Update notification handler with current settings
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldShowBanner: true,
-          shouldShowList: true,
-          shouldPlaySound: settings.sound || false,
-          shouldSetBadge: false,
-        }),
-      });
+      // NOTE: Do NOT call Notifications.setNotificationHandler here —
+      // the top-level handler in this file already suppresses native alerts
+      // and emits in-app notifications via DeviceEventEmitter.
       
       // If push notifications are disabled, cancel all
       if (!settings.pushNotifications) {

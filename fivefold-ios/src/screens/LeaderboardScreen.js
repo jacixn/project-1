@@ -69,6 +69,8 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const [badgeToggles, setBadgeToggles] = useState({});
   const [myReferralCount, setMyReferralCount] = useState(0);
   const [myStreakAnim, setMyStreakAnim] = useState('fire1');
+  const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
   useEffect(() => {
     userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) {
@@ -80,7 +82,19 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         });
       }
     });
-    getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
+    getReferralCount().then(c => {
+      setMyReferralCount(c);
+      // Load and validate loading animation
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        const animId = v || 'default';
+        const req = LOADING_ANIM_GATES[animId];
+        if (req !== null && req !== undefined && c < req) {
+          setSelectedLoadingAnim('default');
+        } else {
+          setSelectedLoadingAnim(animId);
+        }
+      }).catch(() => {});
+    }).catch(() => {});
     userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
   }, []);
   
@@ -992,7 +1006,22 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          {selectedLoadingAnim === 'default' ? (
+            <ActivityIndicator size="large" color={theme.primary} />
+          ) : (
+            <LottieView
+              source={
+                selectedLoadingAnim === 'hamster'
+                  ? require('../../assets/Run-Hamster.json')
+                  : selectedLoadingAnim === 'amongus'
+                  ? require('../../assets/Loading 50 _ Among Us.json')
+                  : require('../../assets/Running-Cat.json')
+              }
+              autoPlay
+              loop
+              style={{ width: selectedLoadingAnim === 'hamster' ? 80 : 120, height: selectedLoadingAnim === 'hamster' ? 80 : 120 }}
+            />
+          )}
           <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
             Loading rankings...
           </Text>

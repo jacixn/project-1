@@ -26,7 +26,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -45,9 +45,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../services/storageService';
 import profanityFilter from '../services/profanityFilterService';
 import userStorage from '../utils/userStorage';
+import { setActiveChatUser, clearActiveChatUser } from '../services/notificationService';
 import { BlurView } from 'expo-blur';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { isRestricted } from '../services/restrictionService';
+import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
@@ -221,7 +223,7 @@ const MessagingDisclaimer = ({ visible, onAccept, theme, isDark }) => {
 
         {/* Footer */}
         <Text style={[disclaimerStyles.footer, { color: theme.textTertiary }]}>
-          This message is shown once for your safety.
+          This is shown once per conversation for your safety.
         </Text>
       </Animated.View>
     </Animated.View>
@@ -320,7 +322,8 @@ const ChatScreen = () => {
   const { theme, isDark } = useTheme();
   const { user, userProfile } = useAuth();
 
-  const { otherUser, otherUserId, conversationId: passedConversationId } = route.params || {};
+  const { otherUser: rawOtherUser, otherUserId, conversationId: passedConversationId } = route.params || {};
+  const [otherUser, setOtherUser] = useState(rawOtherUser);
 
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(passedConversationId);
@@ -335,15 +338,42 @@ const ChatScreen = () => {
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
 
+  // If otherUser is missing displayName, fetch it from Firestore
+  useEffect(() => {
+    if (otherUser?.displayName || !otherUserId) return;
+    const fetchOtherUser = async () => {
+      try {
+        const { doc, getDoc } = require('firebase/firestore');
+        const { db } = require('../config/firebase');
+        const userDoc = await getDoc(doc(db, 'users', otherUserId));
+        if (userDoc.exists()) {
+          setOtherUser(prev => ({ ...prev, ...userDoc.data(), uid: otherUserId }));
+        }
+      } catch (err) {
+        console.warn('Error fetching other user profile:', err);
+      }
+    };
+    fetchOtherUser();
+  }, [otherUserId]);
+
   useEffect(() => {
     checkFirstTimeMessaging();
     initializeChat();
   }, []);
 
-  // Check if user has seen the messaging guidelines
+  // Suppress notifications from this person while we're actively viewing the chat
+  useFocusEffect(
+    useCallback(() => {
+      if (otherUserId) setActiveChatUser(otherUserId);
+      return () => clearActiveChatUser();
+    }, [otherUserId])
+  );
+
+  // Check if user has seen the messaging guidelines for THIS specific conversation partner
   const checkFirstTimeMessaging = async () => {
     try {
-      const seen = await userStorage.getRaw('chat_guidelines_accepted');
+      if (!otherUserId) return;
+      const seen = await userStorage.getRaw(`chat_guidelines_accepted_${otherUserId}`);
       if (!seen) {
         setShowDisclaimer(true);
       }
@@ -355,7 +385,8 @@ const ChatScreen = () => {
   const handleAcceptDisclaimer = async () => {
     setShowDisclaimer(false);
     try {
-      await userStorage.setRaw('chat_guidelines_accepted', 'true');
+      if (!otherUserId) return;
+      await userStorage.setRaw(`chat_guidelines_accepted_${otherUserId}`, 'true');
     } catch (err) {
       console.log('Error saving chat guidelines acceptance:', err);
     }
@@ -414,35 +445,37 @@ const ChatScreen = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || sending || !conversationId) return;
-
-    // Check chat restriction
-    if (user?.uid) {
-      const check = await isRestricted(user.uid, 'chat');
-      if (check.restricted) {
-        Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
-        return;
-      }
-    }
-
     const text = inputText.trim();
+    if (!text || sending || !conversationId) return;
 
-    // Check for profanity before sending
-    if (profanityFilter.containsProfanity(text)) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        'Message Blocked',
-        'Inappropriate language was detected in your message. Please keep conversations respectful and kind. Your message was not sent.',
-        [{ text: 'OK', style: 'default' }]
-      );
-      return;
-    }
-
+    // Instant feedback — haptic + clear input immediately
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInputText('');
     setSending(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
+      // Check for profanity (synchronous — fast)
+      if (profanityFilter.containsProfanity(text)) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Message Blocked',
+          'Inappropriate language was detected in your message. Please keep conversations respectful and kind. Your message was not sent.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        setInputText(text); // Restore text
+        return;
+      }
+
+      // Check chat restriction (async — runs after haptic already fired)
+      if (user?.uid) {
+        const check = await isRestricted(user.uid, 'chat');
+        if (check.restricted) {
+          Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+          setInputText(text); // Restore text
+          return;
+        }
+      }
+
       await sendTextMessage(
         conversationId,
         user.uid,
@@ -466,18 +499,20 @@ const ChatScreen = () => {
   const handleSendEncouragement = async (type) => {
     if (sending || !conversationId) return;
 
+    // Instant feedback
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSending(true);
+    setShowEncouragements(false);
+
     // Check chat restriction
     if (user?.uid) {
       const check = await isRestricted(user.uid, 'chat');
       if (check.restricted) {
         Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+        setSending(false);
         return;
       }
     }
-
-    setSending(true);
-    setShowEncouragements(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     try {
       await sendEncouragementMessage(
@@ -801,7 +836,7 @@ const ChatScreen = () => {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <CustomLoadingIndicator color={theme.primary} />
           </View>
         ) : (
           <FlatList

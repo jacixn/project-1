@@ -17,6 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import ExercisesService from '../services/exercisesService';
+import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -237,7 +238,7 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
           {/* Exercise List */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.primary} />
+              <CustomLoadingIndicator color={theme.primary} />
               <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading exercises...</Text>
             </View>
           ) : (
