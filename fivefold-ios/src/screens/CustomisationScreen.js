@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   Easing,
+  Share,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,7 +55,6 @@ const THEME_REFERRAL_GATES = {
 const BADGE_REFERRAL_GATES = {
   country:  null,  // Country flag — free
   verified: 1,     // Blue Tick — 1 referral
-  streak:   5,     // Streak animation badge — 5 referrals
   biblely:  5,     // Biblely Badge — 5 referrals
   amongus:  5,     // Among Us badge — 5 referrals
 };
@@ -75,7 +75,6 @@ const getTier = (required) => {
 const BADGES = [
   { id: 'country', name: 'Country', desc: 'Show your country flag next to your name', icon: 'public', image: null, color: '#10B981', gradient: ['#10B981', '#059669'] },
   { id: 'verified', name: 'Blue Tick', desc: 'Verified badge next to your name', icon: 'verified', image: null, color: '#1DA1F2', gradient: ['#1DA1F2', '#0D8BD9'] },
-  { id: 'streak', name: 'Streak Animation', desc: 'Show your streak animation as a badge', icon: 'local-fire-department', image: null, color: '#FF6B00', gradient: ['#FF6B00', '#FF9500'] },
   { id: 'biblely', name: 'Biblely Badge', desc: 'Exclusive founder-level badge', icon: null, image: require('../../assets/logo.png'), color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
   { id: 'amongus', name: 'Among Us', desc: 'Among Us animation badge next to your name', icon: null, lottie: require('../../assets/Loading 50 _ Among Us.json'), color: '#4CAF50', gradient: ['#4CAF50', '#66BB6A'] },
 ];
@@ -121,11 +120,17 @@ const CustomisationScreen = () => {
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
   const [badgeToggles, setBadgeToggles] = useState({});
   const [referralCount, setReferralCount] = useState(0);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Locked popup state
   const [lockedPopup, setLockedPopup] = useState(null);
   const popupScale = useRef(new Animated.Value(0)).current;
   const popupOpacity = useRef(new Animated.Value(0)).current;
+
+  // Welcome / share-the-word popup (shown once when user has 0 referrals)
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const sharePopupScale = useRef(new Animated.Value(0)).current;
+  const sharePopupOpacity = useRef(new Animated.Value(0)).current;
 
   // Entrance animations — staggered sections
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -193,9 +198,38 @@ const CustomisationScreen = () => {
         await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(toggles));
       }
       setBadgeToggles(toggles);
+
+      setIsDataLoaded(true);
+
+      // Show the share-the-word popup every time if user has 0 referrals
+      if (count === 0) {
+        setTimeout(() => {
+          setShowSharePopup(true);
+          Animated.parallel([
+            Animated.spring(sharePopupScale, { toValue: 1, tension: 55, friction: 8, useNativeDriver: true }),
+            Animated.timing(sharePopupOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+          ]).start();
+        }, 600); // slight delay so the screen loads first
+      }
     } catch (e) {
       console.warn('[Customisation] load error:', e);
+      setIsDataLoaded(true); // still mark loaded so UI isn't stuck
     }
+  };
+
+  const hideSharePopup = () => {
+    Animated.parallel([
+      Animated.timing(sharePopupScale, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(sharePopupOpacity, { toValue: 0, duration: 150, useNativeDriver: true }),
+    ]).start(() => setShowSharePopup(false));
+  };
+
+  const handleShareApp = async () => {
+    try {
+      await Share.share({
+        message: 'I\'ve been using Biblely — a beautiful app for reading the Bible, prayer, journaling, and more. Check it out and let\'s grow in faith together!',
+      });
+    } catch (_) {}
   };
 
   // ── Referral gate helpers ──────────────────────────────────
@@ -312,7 +346,7 @@ const CustomisationScreen = () => {
               <Text style={{ fontSize: 12, color: tx2, marginTop: 2 }}>Refer friends to unlock customisations</Text>
             </View>
             <View style={[st.referralCountBadge, { backgroundColor: theme.primary }]}>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{referralCount}</Text>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{isDataLoaded ? referralCount : '–'}</Text>
             </View>
           </View>
         </AnimSection>
@@ -784,6 +818,96 @@ const CustomisationScreen = () => {
           </View>
         </Animated.View>
       </BlurView>
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* ── SHARE THE WORD POPUP (0 referrals) ────────────── */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      <Modal visible={showSharePopup} transparent animationType="none" onRequestClose={hideSharePopup}>
+        <TouchableOpacity activeOpacity={1} onPress={hideSharePopup} style={st.popupBackdrop}>
+          <Animated.View style={[st.popupCard, {
+            backgroundColor: isDark ? '#1A1A2E' : '#fff',
+            transform: [{ scale: sharePopupScale }],
+            opacity: sharePopupOpacity,
+          }]}>
+            <LinearGradient colors={['#FF9500', '#FF6B00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.popupAccent} />
+
+            {/* Icon */}
+            <View style={[st.popupIconWrap, { backgroundColor: 'rgba(255,150,0,0.12)' }]}>
+              <LinearGradient colors={['#FF9500', '#FF6B00']} style={st.popupIconGrad}>
+                <MaterialIcons name="menu-book" size={28} color="#fff" />
+              </LinearGradient>
+            </View>
+
+            {/* Title */}
+            <Text style={[st.popupItemName, { color: tx }]}>Share the Word</Text>
+
+            {/* Scripture quote */}
+            <Text style={{
+              fontSize: 14, fontStyle: 'italic', color: tx2,
+              textAlign: 'center', lineHeight: 21, marginTop: 10, marginBottom: 4,
+              paddingHorizontal: 8,
+            }}>
+              "Therefore go and make disciples of all nations..."
+            </Text>
+            <Text style={{
+              fontSize: 12, fontWeight: '600', color: theme.primary,
+              textAlign: 'center', marginBottom: 16,
+            }}>
+              — Matthew 28:19
+            </Text>
+
+            {/* Message */}
+            <Text style={{
+              fontSize: 14, color: tx2, textAlign: 'center',
+              lineHeight: 21, marginBottom: 20, paddingHorizontal: 4,
+            }}>
+              Biblely is filled with themes, animations, and badges you can unlock by inviting friends to grow in faith alongside you. Share the app with someone today and start unlocking!
+            </Text>
+
+            <View style={[st.popupDivider, { backgroundColor: bdr }]} />
+
+            {/* Pre-requisite note */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center',
+              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              borderRadius: 12, padding: 12, marginBottom: 20, width: '100%',
+              borderWidth: 1, borderColor: bdr,
+            }}>
+              <View style={{
+                width: 36, height: 36, borderRadius: 10,
+                backgroundColor: theme.primary + '18',
+                alignItems: 'center', justifyContent: 'center', marginRight: 12,
+              }}>
+                <MaterialIcons name="verified-user" size={18} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: tx }}>
+                  How referrals work
+                </Text>
+                <Text style={{ fontSize: 11, color: tx2, marginTop: 2, lineHeight: 16 }}>
+                  Both you and your friend must have verified email addresses for the referral to count.
+                </Text>
+              </View>
+            </View>
+
+            {/* Share button */}
+            <TouchableOpacity
+              onPress={() => { handleShareApp(); }}
+              style={[st.popupBtn, { backgroundColor: '#FF8C00', marginBottom: 10 }]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name="share" size={18} color="#fff" />
+                <Text style={st.popupBtnText}>Share Biblely</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Dismiss */}
+            <TouchableOpacity onPress={hideSharePopup} style={{ paddingVertical: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: tx2 }}>Maybe Later</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* ── LOCKED POPUP MODAL ────────────────────────────── */}

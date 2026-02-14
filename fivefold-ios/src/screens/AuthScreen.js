@@ -28,7 +28,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { checkUsernameAvailability } from '../services/authService';
+import { checkUsernameAvailability, resolveIdentifierToEmail } from '../services/authService';
 import { hapticFeedback } from '../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -66,6 +66,9 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const [twoFAPassword, setTwoFAPassword] = useState('');
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAResendCooldown, setTwoFAResendCooldown] = useState(0);
+  
+  // Resolved email (actual email after username lookup, used for 2FA & password reset)
+  const [resolvedEmail, setResolvedEmail] = useState('');
   
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -139,7 +142,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
   
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Missing Fields', 'Please enter your email and password.');
+      Alert.alert('Missing Fields', 'Please enter your email or username and password.');
       return;
     }
     
@@ -153,6 +156,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
         hapticFeedback.light();
         setTwoFAPassword(password);
         setTwoFAMaskedEmail(error.maskedEmail || email);
+        // Store the actual resolved email for 2FA verification (not the username)
+        setResolvedEmail(error.resolvedEmail || email);
         setTwoFACode('');
         setEmailMode('2fa');
         setTwoFAResendCooldown(60);
@@ -172,11 +177,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
     try {
       setTwoFALoading(true);
       hapticFeedback.light();
-      await verify2FAAndSignIn(email, twoFAPassword, twoFACode);
+      // Use resolvedEmail (actual email) for 2FA verification, not the username input
+      await verify2FAAndSignIn(resolvedEmail || email, twoFAPassword, twoFACode);
       hapticFeedback.success();
       // Clear sensitive data
       setTwoFAPassword('');
       setTwoFACode('');
+      setResolvedEmail('');
     } catch (error) {
       hapticFeedback.error();
       Alert.alert('Verification Failed', error.message);
@@ -190,13 +197,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
     try {
       setTwoFALoading(true);
       hapticFeedback.light();
-      // Re-sign in to trigger 2FA code send
-      await signIn(email, twoFAPassword);
+      // Re-sign in to trigger 2FA code send (use resolved email to avoid extra lookup)
+      await signIn(resolvedEmail || email, twoFAPassword);
     } catch (error) {
       if (error.requires2FA) {
         // Expected — code was resent
         hapticFeedback.success();
-        setTwoFAMaskedEmail(error.maskedEmail || email);
+        setTwoFAMaskedEmail(error.maskedEmail || resolvedEmail || email);
         setTwoFAResendCooldown(60);
       } else {
         hapticFeedback.error();
@@ -240,16 +247,31 @@ const AuthScreen = ({ onAuthSuccess }) => {
   
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert('Email Required', 'Please enter your email address.');
+      Alert.alert('Missing Field', 'Please enter your email or username.');
       return;
     }
     
     try {
       setResetLoading(true);
       hapticFeedback.light();
-      const result = await sendPasswordResetCode(email);
+      
+      // Resolve username to email if needed
+      let emailForReset = email;
+      try {
+        emailForReset = await resolveIdentifierToEmail(email);
+      } catch (resolveError) {
+        hapticFeedback.error();
+        Alert.alert('Reset Failed', resolveError.message);
+        setResetLoading(false);
+        return;
+      }
+      
+      // Store the resolved email for subsequent reset operations
+      setResolvedEmail(emailForReset);
+      
+      const result = await sendPasswordResetCode(emailForReset);
       hapticFeedback.success();
-      setResetMaskedEmail(result.maskedEmail || email);
+      setResetMaskedEmail(result.maskedEmail || emailForReset);
       setEmailMode('resetCode');
       setResetCode('');
       setNewPassword('');
@@ -281,7 +303,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
     try {
       setResetLoading(true);
       hapticFeedback.light();
-      await resetPasswordWithCode(email, resetCode, newPassword);
+      // Use resolved email (from handleForgotPassword resolution) for the reset
+      await resetPasswordWithCode(resolvedEmail || email, resetCode, newPassword);
       hapticFeedback.success();
       Alert.alert(
         'Password Reset',
@@ -292,6 +315,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
           setResetCode('');
           setNewPassword('');
           setConfirmNewPassword('');
+          setResolvedEmail('');
         }}]
       );
     } catch (error) {
@@ -307,7 +331,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
     try {
       setResetLoading(true);
       hapticFeedback.light();
-      await sendPasswordResetCode(email);
+      // Use resolved email for resend (username was already resolved in handleForgotPassword)
+      await sendPasswordResetCode(resolvedEmail || email);
       hapticFeedback.success();
       setResendCooldown(60);
     } catch (error) {
@@ -453,9 +478,9 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 {emailMode === '2fa' && 'Verify Identity'}
               </Text>
               <Text style={[styles.formSubtitle, { color: '#666' }]}>
-                {emailMode === 'login' && 'Sign in to continue your journey'}
+                {emailMode === 'login' && 'Sign in with your email or username'}
                 {emailMode === 'signup' && 'Create an account to get started'}
-                {emailMode === 'forgot' && 'Enter your email to reset'}
+                {emailMode === 'forgot' && 'Enter your email or username to reset'}
                 {emailMode === 'resetCode' && `We sent a 6-digit code to ${resetMaskedEmail}`}
                 {emailMode === '2fa' && `We sent a verification code to ${twoFAMaskedEmail}`}
               </Text>
@@ -497,19 +522,26 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 </View>
               )}
               
-              {/* Email input (hidden during reset code entry and 2FA) */}
+              {/* Email/Username input (hidden during reset code entry and 2FA) */}
               {emailMode !== 'resetCode' && emailMode !== '2fa' && (
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  <Text style={styles.inputLabel}>
+                    {emailMode === 'signup' ? 'Email' : 'Email or Username'}
+                  </Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
+                    <Ionicons 
+                      name={emailMode === 'signup' ? 'mail-outline' : 'person-outline'} 
+                      size={20} 
+                      color="#888" 
+                      style={styles.inputIcon} 
+                    />
                     <TextInput
                       style={styles.input}
-                      placeholder="your@email.com"
+                      placeholder={emailMode === 'signup' ? 'your@email.com' : 'Email or username'}
                       placeholderTextColor="#BBB"
                       value={email}
                       onChangeText={setEmail}
-                      keyboardType="email-address"
+                      keyboardType={emailMode === 'signup' ? 'email-address' : 'default'}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
@@ -755,6 +787,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                   setTwoFACode('');
                   setTwoFAPassword('');
                   setTwoFAResendCooldown(0);
+                  setResolvedEmail('');
                 }} style={styles.backToLogin}>
                   <Ionicons name="arrow-back" size={18} color="#888" />
                   <Text style={styles.backToLoginText}>Back to Login</Text>

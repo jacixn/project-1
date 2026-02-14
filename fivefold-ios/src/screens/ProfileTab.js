@@ -3,7 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
-import { checkUsernameAvailability, sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup, disable2FA, check2FAEnabled } from '../services/authService';
+import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup, disable2FA, check2FAEnabled } from '../services/authService';
 import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import { getFriendCount } from '../services/friendsService';
@@ -58,6 +58,7 @@ import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation } from '../utils/animations';
 import { hapticFeedback, updateHapticsSetting } from '../utils/haptics';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
+import { getPreloadedProfileData, clearProfilePreloadCache } from '../utils/profilePreloadCache';
 import { bibleVersions, getVersionById, getFreeVersions, getPremiumVersions } from '../data/bibleVersions';
 import AiBibleChat from '../components/AiBibleChat';
 import {
@@ -656,11 +657,7 @@ const ProfileTab = () => {
   const [audioVoiceGender, setAudioVoiceGender] = useState('female'); // 'male' or 'female'
   const [showVoicePickerModal, setShowVoicePickerModal] = useState(false);
   const [currentVoiceName, setCurrentVoiceName] = useState('Default');
-  const [showUsernameModal, setShowUsernameModal] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
-  const [usernameError, setUsernameError] = useState('');
   const [isPublicProfile, setIsPublicProfile] = useState(false); // Show on global leaderboard (defaults OFF until email verified)
-  const [checkingUsername, setCheckingUsername] = useState(false);
   const [showSavedVerses, setShowSavedVerses] = useState(false);
   const [savedVersesList, setSavedVersesList] = useState([]);
   const [simplifiedSavedVerses, setSimplifiedSavedVerses] = useState(new Map());
@@ -1819,6 +1816,101 @@ const ProfileTab = () => {
   }, [showAddJournalNote]);
 
   useEffect(() => {
+    // Check for pre-loaded data from cold launch loading screen.
+    // If available, apply it immediately so the user sees real data
+    // (not zeros/empties) on the very first render after mount.
+    const preloaded = getPreloadedProfileData();
+    if (preloaded) {
+      console.log('[Profile] Applying pre-loaded data from cold launch');
+      
+      // Profile info
+      const authProf = preloaded.authProfile;
+      const localProf = preloaded.userProfile;
+      if (authProf?.displayName) {
+        setUserName(authProf.displayName);
+        setEditName(authProf.displayName);
+      } else if (localProf?.name || localProf?.displayName) {
+        setUserName(localProf.displayName || localProf.name);
+        setEditName(localProf.displayName || localProf.name);
+      }
+      if (authProf?.profilePicture || localProf?.profilePicture) {
+        setProfilePicture(authProf?.profilePicture || localProf?.profilePicture);
+      }
+      if (localProf) setUserProfile(localProf);
+      
+      // Country
+      const countrySource = authProf || localProf;
+      if (countrySource?.countryCode || countrySource?.country) {
+        let flag = countrySource.countryFlag || '';
+        if (!flag && countrySource.countryCode) {
+          const match = countries.find(c => c.code === countrySource.countryCode);
+          if (match) flag = match.flag;
+        }
+        setSelectedCountry({
+          code: countrySource.countryCode || '',
+          name: countrySource.country || '',
+          flag,
+        });
+      }
+      
+      // Saved verses (array + count)
+      if (preloaded.savedVerses.length > 0) {
+        setSavedVersesList(preloaded.savedVerses);
+        setUserStats(prev => ({ ...prev, savedVerses: preloaded.savedVerses.length }));
+      }
+      
+      // Journal notes (array)
+      if (preloaded.journalNotes.length > 0) {
+        setJournalNotes(preloaded.journalNotes);
+      }
+      
+      // Completed tasks
+      if (preloaded.todos.length > 0) {
+        const completed = preloaded.todos
+          .filter(t => t.completed)
+          .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+        setCompletedTodosList(completed);
+        setUserStats(prev => ({ ...prev, completedTasks: completed.length }));
+      }
+      
+      // Stats (points, level)
+      if (preloaded.userStats) {
+        setUserStats(prev => ({ ...prev, ...preloaded.userStats }));
+      }
+      
+      // Settings & preferences
+      if (preloaded.bibleVersion) setSelectedBibleVersion(preloaded.bibleVersion);
+      setWeightUnit(preloaded.weightUnit);
+      setHeightUnit(preloaded.heightUnit);
+      setVibrationEnabled(preloaded.vibrationEnabled);
+      setLiquidGlassEnabled(preloaded.liquidGlassEnabled);
+      setHighlightViewMode(preloaded.highlightViewMode);
+      if (preloaded.purchasedVersions.length > 0) setPurchasedVersions(preloaded.purchasedVersions);
+      
+      // Badge toggles
+      const bt = preloaded.badgeToggles || {};
+      if (!preloaded.badgeToggles) {
+        // Legacy fallback
+        setBluetickToggle(preloaded.bluetickEnabled !== 'false');
+      } else {
+        setBluetickToggle(bt.verified !== false);
+      }
+      setCountryFlagToggle(bt.country !== false);
+      setStreakBadgeToggle(bt.streak !== false);
+      
+      // Animations
+      if (preloaded.streakAnim) setSelectedStreakAnim(preloaded.streakAnim);
+      if (preloaded.loadingAnim) setSelectedLoadingAnim(preloaded.loadingAnim);
+      
+      // Leaderboard visibility
+      if (authProf?.isPublic !== undefined) setIsPublicProfile(authProf.isPublic);
+      
+      // Done with preloaded data
+      clearProfilePreloadCache();
+    }
+    
+    // Always run full loaders in background for fresh/complete data
+    // (Firestore reads, API calls, score recalculation, streak tracking, etc.)
     loadUserData();
     checkAiStatus();
     loadVibrationSetting();
@@ -1957,7 +2049,6 @@ const ProfileTab = () => {
         const ALL_UNLOCKABLES = [
           // Badges
           { name: 'Blue Tick', category: 'Badge', icon: 'verified', color: '#1DA1F2', required: 1 },
-          { name: 'Streak Animation Badge', category: 'Badge', icon: 'local-fire-department', color: '#FF6B00', required: 5 },
           { name: 'Biblely Badge', category: 'Badge', icon: 'workspace-premium', color: '#F59E0B', required: 5 },
           { name: 'Among Us Badge', category: 'Badge', icon: 'sports-esports', color: '#4CAF50', required: 5 },
           // Themes
@@ -2516,7 +2607,7 @@ const ProfileTab = () => {
 
       // Badges are gated ONLY by referrals + toggles — no achievement conditions
       // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-      const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
+      const BADGE_REFERRAL_GATES = { country: null, verified: 1, biblely: 5, amongus: 5 };
       let refCount = 0;
       try { refCount = await getReferralCount(); } catch (_) {}
       const visibleBadges = AchievementService.PROFILE_BADGES.filter(b => {
@@ -2559,18 +2650,56 @@ const ProfileTab = () => {
     }
   };
 
-  // Pull to refresh handler
+  // Pull to refresh handler — reloads ALL profile data
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     hapticFeedback.gentle(); // Nice haptic feedback when pulling
     
     try {
-      // Reload all user data in parallel for speed
+      // Reload ALL user data in parallel for speed
       await Promise.all([
+        // Core profile, stats, badges, points, customisations
         loadUserData().catch(e => console.error('Error refreshing user data:', e)),
+        // Saved Bible verses (full load with verse text)
+        loadSavedVerses().catch(e => console.error('Error refreshing saved verses:', e)),
+        // App open streak
         loadAppStreak().catch(e => console.error('Error refreshing streak:', e)),
+        // Journal notes (full load with verse text)
+        loadJournalNotes().catch(e => console.error('Error refreshing journal:', e)),
+        // Highlighted verses + custom names
+        loadHighlights().catch(e => console.error('Error refreshing highlights:', e)),
+        // Completed tasks
+        loadCompletedTasks().catch(e => console.error('Error refreshing tasks:', e)),
+        // Smart features status
         checkAiStatus().catch(e => console.error('Error refreshing AI status:', e)),
+        // Haptic feedback setting
         loadVibrationSetting().catch(e => console.error('Error refreshing vibration:', e)),
+        // Liquid Glass UI setting
+        loadLiquidGlassSetting().catch(e => console.error('Error refreshing liquid glass:', e)),
+        // Bible version selection
+        loadCurrentBibleVersion().catch(e => console.error('Error refreshing bible version:', e)),
+        // Friend count from Firestore
+        (async () => {
+          if (user) {
+            const count = await getFriendCount(user.uid);
+            setFriendCount(count);
+          }
+        })().catch(e => console.error('Error refreshing friend count:', e)),
+        // Email verification status
+        (async () => {
+          const verified = await refreshEmailVerificationStatus();
+          setEmailVerified(verified);
+        })().catch(e => console.error('Error refreshing email verification:', e)),
+        // 2FA status
+        (async () => {
+          const { auth } = require('../config/firebase');
+          if (auth.currentUser) {
+            const has2FA = await check2FAEnabled(auth.currentUser.uid);
+            setTwoFactorEnabled(has2FA);
+          }
+        })().catch(e => console.error('Error refreshing 2FA status:', e)),
+        // Referral unlocks
+        checkForNewUnlocks().catch(e => console.error('Error refreshing referral unlocks:', e)),
       ]);
       
       // Small delay so the animation feels satisfying
@@ -2581,7 +2710,7 @@ const ProfileTab = () => {
       setRefreshing(false);
       hapticFeedback.success(); // Success haptic when done
     }
-  }, []);
+  }, [user]);
 
   const saveProfileChanges = async () => {
     // Prevent multiple saves
@@ -2974,7 +3103,7 @@ const ProfileTab = () => {
       </View>
         
         {/* Username with tap to copy */}
-        {authUserProfile?.username ? (
+        {authUserProfile?.username && (
           <TouchableOpacity
             onPress={async () => {
               await Clipboard.setStringAsync(`@${authUserProfile.username}`);
@@ -2995,31 +3124,6 @@ const ProfileTab = () => {
               @{authUserProfile.username}
             </Text>
             <MaterialIcons name="content-copy" size={14} color={theme.primary} style={{ marginLeft: 6 }} />
-          </TouchableOpacity>
-        ) : isAuthenticated && (
-          <TouchableOpacity
-            onPress={() => {
-              setNewUsername('');
-              setUsernameError('');
-              setShowUsernameModal(true);
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginTop: 4,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              backgroundColor: `${theme.primary}20`,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: theme.primary,
-              borderStyle: 'dashed',
-            }}
-          >
-            <MaterialIcons name="add" size={16} color={theme.primary} />
-            <Text style={{ fontSize: 13, color: theme.primary, fontWeight: '600', marginLeft: 4 }}>
-              Set Username
-            </Text>
           </TouchableOpacity>
         )}
         
@@ -3257,71 +3361,6 @@ const ProfileTab = () => {
       Alert.alert('Sync Failed', 'Unable to sync data. Please try again.');
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  // Handle save username
-  const handleSaveUsername = async () => {
-    if (!user) return;
-    
-    const trimmedUsername = newUsername.toLowerCase().trim();
-    
-    // Validate
-    if (trimmedUsername.length < 3) {
-      setUsernameError('Username must be at least 3 characters');
-      return;
-    }
-    if (trimmedUsername.length > 20) {
-      setUsernameError('Username must be less than 20 characters');
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      setUsernameError('Only letters, numbers, and underscores allowed');
-      return;
-    }
-    
-    setCheckingUsername(true);
-    setUsernameError('');
-    
-    try {
-      // Check availability
-      const isAvailable = await checkUsernameAvailability(trimmedUsername);
-      if (!isAvailable) {
-        setUsernameError('Username is already taken');
-        setCheckingUsername(false);
-        return;
-      }
-      
-      // Save to Firebase
-      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-      const { db } = await import('../config/firebase');
-      
-      // Reserve the username
-      await setDoc(doc(db, 'usernames', trimmedUsername), {
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      });
-      
-      // Update user profile
-      await updateAndSyncProfile(user.uid, {
-        username: trimmedUsername,
-      });
-      
-      hapticFeedback.success();
-      setShowUsernameModal(false);
-      setNewUsername('');
-      Alert.alert('Success!', `Your username is now @${trimmedUsername}. Friends can find you with this!`);
-      
-      // Refresh the auth profile
-      if (authUserProfile) {
-        // Force a re-fetch by triggering sync
-        await performFullSync(user.uid);
-      }
-    } catch (error) {
-      console.error('Error saving username:', error);
-      setUsernameError('Failed to save username. Please try again.');
-    } finally {
-      setCheckingUsername(false);
     }
   };
 
@@ -4157,103 +4196,6 @@ const ProfileTab = () => {
         </View>
       </Modal>
 
-      {/* Set Username Modal */}
-      <Modal
-        visible={showUsernameModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowUsernameModal(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1, backgroundColor: theme.background }}
-        >
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => setShowUsernameModal(false)}>
-              <Text style={[styles.modalCancel, { color: theme.primary }]}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: modalTextColor }]}>Set Username</Text>
-            <TouchableOpacity 
-              onPress={handleSaveUsername}
-              disabled={checkingUsername || !newUsername.trim()}
-            >
-              {checkingUsername ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : (
-                <Text style={[styles.modalSave, { 
-                  color: newUsername.trim() ? theme.primary : theme.textTertiary 
-                }]}>Save</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ padding: 20 }}>
-            <Text style={{ fontSize: 15, color: modalTextSecondaryColor, marginBottom: 20, lineHeight: 22 }}>
-              Choose a unique username so friends can find and add you. This cannot be changed later.
-            </Text>
-
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: theme.card,
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              borderWidth: usernameError ? 2 : 1,
-              borderColor: usernameError ? theme.error : theme.border,
-            }}>
-              <Text style={{ fontSize: 18, color: theme.primary, fontWeight: '600' }}>@</Text>
-              <TextInput
-                value={newUsername}
-                onChangeText={(text) => {
-                  setNewUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                  setUsernameError('');
-                }}
-                placeholder="username"
-                placeholderTextColor={theme.textTertiary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoFocus={true}
-                maxLength={20}
-                style={{
-                  flex: 1,
-                  fontSize: 18,
-                  color: modalTextColor,
-                  paddingVertical: 16,
-                  marginLeft: 4,
-                }}
-              />
-            </View>
-
-            {usernameError ? (
-              <Text style={{ color: theme.error, fontSize: 13, marginTop: 8 }}>
-                {usernameError}
-              </Text>
-            ) : (
-              <Text style={{ color: modalTextSecondaryColor, fontSize: 13, marginTop: 8 }}>
-                3-20 characters. Letters, numbers, and underscores only.
-              </Text>
-            )}
-
-            <View style={{
-              marginTop: 24,
-              padding: 16,
-              backgroundColor: `${theme.primary}10`,
-              borderRadius: 12,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <MaterialIcons name="people" size={20} color={theme.primary} />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: modalTextColor, marginLeft: 8 }}>
-                  How it works
-                </Text>
-              </View>
-              <Text style={{ fontSize: 14, color: modalTextSecondaryColor, lineHeight: 20 }}>
-                Friends can search for your username to send you a friend request. You'll appear on leaderboards with this name.
-              </Text>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
       {/* Loading Overlay for Language Change */}
       {isChangingLanguage && (
         <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>

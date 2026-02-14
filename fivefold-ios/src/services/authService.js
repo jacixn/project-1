@@ -166,12 +166,63 @@ export const signUp = async ({ email, password, username, displayName }) => {
 };
 
 /**
- * Sign in an existing user
- * @param {string} email - User's email
+ * Resolve an email-or-username identifier to an actual email address.
+ * If the identifier contains '@', it's treated as an email and returned as-is.
+ * Otherwise it's treated as a username and looked up in Firestore.
+ * @param {string} identifier - Email or username
+ * @returns {Promise<string>} - The resolved email address
+ */
+export const resolveIdentifierToEmail = async (identifier) => {
+  if (!identifier || identifier.trim().length === 0) {
+    throw new Error('Please enter your email or username.');
+  }
+
+  const trimmed = identifier.trim();
+
+  // If it looks like an email (contains @), return as-is
+  if (trimmed.includes('@')) {
+    return trimmed.toLowerCase();
+  }
+
+  // Treat as username — look up in the usernames collection
+  const normalizedUsername = trimmed.toLowerCase();
+  const usernameRef = doc(db, 'usernames', normalizedUsername);
+  const usernameDoc = await getDoc(usernameRef);
+
+  if (!usernameDoc.exists()) {
+    throw new Error('No account found with this username.');
+  }
+
+  const usernameData = usernameDoc.data();
+  if (!usernameData?.userId) {
+    throw new Error('No account found with this username.');
+  }
+
+  // Get the user's email from the users collection
+  const userDocRef = doc(db, 'users', usernameData.userId);
+  const userDocSnap = await getDoc(userDocRef);
+
+  if (!userDocSnap.exists()) {
+    throw new Error('No account found with this username.');
+  }
+
+  const email = userDocSnap.data()?.email;
+  if (!email) {
+    throw new Error('No email associated with this account.');
+  }
+
+  return email.toLowerCase();
+};
+
+/**
+ * Sign in an existing user with email or username
+ * @param {string} emailOrUsername - User's email or username
  * @param {string} password - User's password
  * @returns {Promise<Object>} - The signed in user object
  */
-export const signIn = async (email, password) => {
+export const signIn = async (emailOrUsername, password) => {
+  // Resolve username to email if needed
+  const email = await resolveIdentifierToEmail(emailOrUsername);
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
@@ -422,11 +473,11 @@ export const getAuthErrorMessage = (error) => {
     case 'auth/user-disabled':
       return 'This account has been disabled. Please contact support.';
     case 'auth/user-not-found':
-      return 'No account found with this email. Try signing up instead.';
+      return 'No account found. Please check your email or username.';
     case 'auth/wrong-password':
       return 'Incorrect password. Please try again.';
     case 'auth/invalid-credential':
-      return 'Invalid email or password. Please try again.';
+      return 'Invalid credentials. Please check your email or username and password.';
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.';
     case 'auth/network-request-failed':
@@ -525,6 +576,7 @@ export default {
   getUserProfile,
   checkUsernameAvailability,
   searchUsersByUsername,
+  resolveIdentifierToEmail,
   onAuthStateChange,
   getAuthErrorMessage,
   isEmailVerified,

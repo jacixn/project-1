@@ -1304,20 +1304,36 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               <WorkoutCompletionModal
                 visible={true}
                 onClose={() => {
-                  // Stop pulse animations first
+                  // CRITICAL FIX: Stop animations and close everything in ONE
+                  // synchronous batch.  Previously, setShowCompletionModal(false)
+                  // was called first, which removed the overlay and forced an
+                  // expensive re-render of the full workout exercise list
+                  // underneath — THEN a second render cleared state.  Two heavy
+                  // back-to-back renders caused a visible freeze.
+                  //
+                  // By calling endWorkout() + onClose() in the same batch as the
+                  // state cleanup, React batches ALL updates into a single render
+                  // where visible=false (Modal hides natively) and all state is
+                  // already cleared.  No expensive intermediate render.
+
+                  // 1. Stop infinite pulse loops on completed sets
                   stopAllSetAnimations();
-                  // Hide the completion modal immediately
+
+                  // 2. Close the modal + end workout context in one go
+                  //    The native <Modal visible={false}> hides everything instantly
+                  endWorkout();
+                  onClose();
+
+                  // 3. Clean up internal state (Modal is already hidden,
+                  //    so these won't cause a visible re-render)
                   setShowCompletionModal(false);
-                  // Defer heavy state resets to next frame so the UI doesn't freeze
-                  requestAnimationFrame(() => {
-                    setWorkoutName('Workout 1');
-                    setExercises([]);
-                    setPreviousWorkout(null);
-                    setWorkoutNote('');
-                    setWorkoutPhoto(null);
-                    endWorkout();
-                    onClose();
-                  });
+                  setCompletedWorkoutData(null);
+                  setWorkoutName('Workout 1');
+                  setExercises([]);
+                  setPreviousWorkout(null);
+                  setWorkoutNote('');
+                  setWorkoutPhoto(null);
+                  setIsWorkoutFinished(false);
                 }}
                 workoutData={completedWorkoutData}
                 workoutCount={totalWorkoutCount}

@@ -147,7 +147,18 @@ export const AuthProvider = ({ children }) => {
             setUserProfile(cachedData);
             console.log('[Auth] Using cached profile:', cachedData.username);
             
-            // IMMEDIATELY unblock the app - don't wait for sync
+            // Pre-load Profile tab data while loading screen is still visible.
+            // All reads are from local storage (~50-100ms), so the loading
+            // screen stays up only marginally longer, but the Profile tab
+            // will have all data ready instantly when the user navigates to it.
+            try {
+              const { preloadProfileData } = require('../utils/profilePreloadCache');
+              await preloadProfileData();
+            } catch (preloadErr) {
+              console.warn('[Auth] Profile preload failed (non-blocking):', preloadErr?.message);
+            }
+            
+            // NOW unblock the app — Profile data is ready in cache
             console.log('[Auth] Unblocking app — setting initializing=false, loading=false');
             setInitializing(false);
             setLoading(false);
@@ -349,6 +360,7 @@ export const AuthProvider = ({ children }) => {
             const err = new Error('Two-factor authentication required');
             err.requires2FA = true;
             err.maskedEmail = codeResult.maskedEmail;
+            err.resolvedEmail = result.email; // Actual email (not username) for 2FA verify
             throw err;
           }
         } catch (twoFAError) {

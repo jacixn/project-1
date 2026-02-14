@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   DeviceEventEmitter,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
@@ -45,7 +46,110 @@ import { GITHUB_CONFIG } from '../../github.config';
 import bibleAudioService from '../services/bibleAudioService';
 import AudioPlayerBar from './AudioPlayerBar';
 import AchievementService from '../services/achievementService';
+import PREMIUM_BACKGROUNDS, { PREMIUM_BG_REFERRAL_REQUIRED, TEXT_COLOR_PRESETS } from '../data/premiumBackgrounds';
+import { getReferralCount } from '../services/referralService';
+import { getCachedImageUri, preloadImages } from '../utils/premiumBgCache';
 // Removed InteractiveSwipeBack import
+
+// ─── Smart Auto Text Color Helpers ───
+const hexToRgb = (hex) => {
+  const h = hex.replace('#', '');
+  const full = h.length === 3
+    ? h[0]+h[0]+h[1]+h[1]+h[2]+h[2]
+    : h;
+  return {
+    r: parseInt(full.substring(0, 2), 16),
+    g: parseInt(full.substring(2, 4), 16),
+    b: parseInt(full.substring(4, 6), 16),
+  };
+};
+
+const getRelativeLuminance = (r, g, b) => {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+};
+
+const getHueFamily = (r, g, b) => {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max - min < 25) return 'neutral';
+  let hue;
+  if (max === r) hue = ((g - b) / (max - min)) * 60;
+  else if (max === g) hue = (2 + (b - r) / (max - min)) * 60;
+  else hue = (4 + (r - g) / (max - min)) * 60;
+  if (hue < 0) hue += 360;
+  if (hue < 45 || hue >= 330) return 'warm';   // red, orange, warm yellow
+  if (hue < 75) return 'warm';                  // gold, amber
+  if (hue < 170) return 'cool';                 // green, teal
+  if (hue < 270) return 'cool';                 // blue, cyan
+  return 'purple';                               // purple, magenta, pink-purple
+};
+
+/**
+ * Returns a text color that complements the background gradient.
+ * Instead of boring black/white, it picks tinted colors that
+ * harmonise with the gradient while staying highly readable.
+ *
+ * @param {string[]} bgColors - array of hex gradient stop colors
+ * @param {boolean|null} isLightOverride - for premium images where we only have a flag
+ */
+const getSmartAutoTextColor = (bgColors, isLightOverride = null) => {
+  // Premium background — use strong high-contrast colors (can't analyse image pixels)
+  if (!bgColors || bgColors.length === 0) {
+    return isLightOverride ? '#1A1A2E' : '#FFFFFF';
+  }
+
+  // Average the RGB of all gradient stops
+  let totalR = 0, totalG = 0, totalB = 0;
+  bgColors.forEach(hex => {
+    const { r, g, b } = hexToRgb(hex);
+    totalR += r; totalG += g; totalB += b;
+  });
+  const n = bgColors.length;
+  const avgR = totalR / n;
+  const avgG = totalG / n;
+  const avgB = totalB / n;
+
+  const luminance = getRelativeLuminance(avgR, avgG, avgB);
+  const hueFamily = getHueFamily(avgR, avgG, avgB);
+
+  if (luminance > 0.55) {
+    // ── Light background → rich dark text ──
+    switch (hueFamily) {
+      case 'warm':   return '#4A2C17'; // warm espresso
+      case 'cool':   return '#1A3044'; // deep navy
+      case 'purple': return '#30184A'; // deep plum
+      default:       return '#2A2A30'; // rich dark
+    }
+  } else if (luminance > 0.25) {
+    // ── Medium background → bright tinted text ──
+    switch (hueFamily) {
+      case 'warm':   return '#FFF8F0'; // warm cream white
+      case 'cool':   return '#F0F8FF'; // alice blue
+      case 'purple': return '#F8F0FF'; // ghost lavender
+      default:       return '#F8F6F0'; // warm pearl
+    }
+  } else {
+    // ── Dark background → tinted off-white ──
+    switch (hueFamily) {
+      case 'warm':   return '#FFF0E0'; // peach cream
+      case 'cool':   return '#E0EFFF'; // sky ice
+      case 'purple': return '#EDE0FF'; // soft lavender
+      default:       return '#EEEAE5'; // warm stone
+    }
+  }
+};
+
+/**
+ * Determines whether a text color is "light" (for computing subtle/secondary colors)
+ */
+const isTextColorLight = (hexColor) => {
+  const { r, g, b } = hexToRgb(hexColor);
+  return getRelativeLuminance(r, g, b) > 0.5;
+};
 
 const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, asScreen = false }) => {
   
@@ -148,8 +252,51 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [shareCardBold, setShareCardBold] = useState(false); // Bold toggle
   const [shareCardItalic, setShareCardItalic] = useState(false); // Italic toggle
   const [shareCardShowBranding, setShareCardShowBranding] = useState(true); // Show Biblely
-  const [shareCardControlsTab, setShareCardControlsTab] = useState('bg'); // Active controls tab
+  const [shareCardControlsTab, setShareCardControlsTab] = useState('premium'); // Active controls tab — default to Premium
   const shareCardPrefsLoaded = useRef(false);
+
+  // Premium background state
+  const [shareCardPremiumBgId, setShareCardPremiumBgId] = useState(null); // null = using gradient, string = premium bg id
+  const [shareCardTextColor, setShareCardTextColor] = useState(null); // null = auto, string = hex color
+  const [shareCardOverlayOpacity, setShareCardOverlayOpacity] = useState(0.35); // 0-1 overlay darkness
+  const [shareCardBlurRadius, setShareCardBlurRadius] = useState(0); // 0-25 background blur
+  const [shareCardImageOffset, setShareCardImageOffset] = useState({ x: 0, y: 0 }); // drag-to-reposition offset
+  const [premiumBgUnlocked, setPremiumBgUnlocked] = useState(false);
+  const [premiumBgCachedUris, setPremiumBgCachedUris] = useState({}); // { filename: localUri }
+  const premiumBgPreloaded = useRef(false);
+  const premiumBgFadeAnim = useRef(new Animated.Value(1)).current; // crossfade
+  const imageOffsetRef = useRef({ x: 0, y: 0 }); // mutable ref for PanResponder
+  const savePrefsRef = useRef(null); // ref to avoid stale closure in PanResponder
+
+  // PanResponder for dragging the premium background image
+  const imageDragResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3,
+      onPanResponderGrant: () => {
+        // Snapshot current offset at drag start
+        imageOffsetRef.current = { ...imageOffsetRef.current };
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const newOffset = {
+          x: imageOffsetRef.current.x + gestureState.dx,
+          y: imageOffsetRef.current.y + gestureState.dy,
+        };
+        setShareCardImageOffset(newOffset);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const finalOffset = {
+          x: imageOffsetRef.current.x + gestureState.dx,
+          y: imageOffsetRef.current.y + gestureState.dy,
+        };
+        imageOffsetRef.current = finalOffset;
+        setShareCardImageOffset(finalOffset);
+        // Use ref to avoid stale closure
+        if (savePrefsRef.current) savePrefsRef.current({ imageOffset: finalOffset });
+      },
+    })
+  ).current;
 
   // Reader accessibility state (font size & font family for verse text)
   const [readerFontSize, setReaderFontSize] = useState(18);
@@ -234,7 +381,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     }
   };
 
-  // Load saved share card preferences
+  // Load saved share card preferences + check referral unlock
   useEffect(() => {
     const loadShareCardPrefs = async () => {
       try {
@@ -250,6 +397,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           if (parsed.showBranding !== undefined) setShareCardShowBranding(parsed.showBranding);
           if (parsed.bold !== undefined) setShareCardBold(parsed.bold);
           if (parsed.italic !== undefined) setShareCardItalic(parsed.italic);
+          // Premium background prefs
+          if (parsed.premiumBgId !== undefined) setShareCardPremiumBgId(parsed.premiumBgId);
+          if (parsed.textColor !== undefined) setShareCardTextColor(parsed.textColor);
+          if (parsed.overlayOpacity !== undefined) setShareCardOverlayOpacity(parsed.overlayOpacity);
+          if (parsed.blurRadius !== undefined) setShareCardBlurRadius(parsed.blurRadius);
+          if (parsed.imageOffset) {
+            setShareCardImageOffset(parsed.imageOffset);
+            imageOffsetRef.current = parsed.imageOffset;
+          }
         }
         shareCardPrefsLoaded.current = true;
       } catch (err) {
@@ -257,8 +413,44 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         shareCardPrefsLoaded.current = true;
       }
     };
+    const checkPremiumUnlock = async () => {
+      try {
+        const count = await getReferralCount();
+        setPremiumBgUnlocked(count >= PREMIUM_BG_REFERRAL_REQUIRED);
+      } catch (e) {
+        console.log('Failed to check referral count for premium bg:', e);
+      }
+    };
     loadShareCardPrefs();
+    checkPremiumUnlock();
   }, []);
+
+  // Preload premium background images in the background when share card opens
+  useEffect(() => {
+    if (showShareCard && !premiumBgPreloaded.current) {
+      premiumBgPreloaded.current = true;
+      const filenames = PREMIUM_BACKGROUNDS.map(bg => bg.filename);
+      // Download all images and update state progressively
+      const loadAll = async () => {
+        // Load in batches of 6 for progressive display
+        for (let i = 0; i < filenames.length; i += 6) {
+          const batch = filenames.slice(i, i + 6);
+          const results = await Promise.all(
+            batch.map(async (fn) => {
+              const uri = await getCachedImageUri(fn);
+              return uri ? [fn, uri] : null;
+            })
+          );
+          const batchMap = {};
+          results.forEach(r => { if (r) batchMap[r[0]] = r[1]; });
+          if (Object.keys(batchMap).length > 0) {
+            setPremiumBgCachedUris(prev => ({ ...prev, ...batchMap }));
+          }
+        }
+      };
+      loadAll().catch(err => console.log('Premium bg preload error:', err));
+    }
+  }, [showShareCard]);
 
   // Save share card preferences when they change
   const saveShareCardPrefs = async (updates) => {
@@ -272,6 +464,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       console.log('Failed to save share card prefs:', err);
     }
   };
+  // Keep ref in sync for PanResponder closure
+  savePrefsRef.current = saveShareCardPrefs;
 
   // Premium Background Presets - 200+ Options
   const bgPresets = [
@@ -5285,9 +5479,21 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             const cardWidth = Math.min(windowWidth * 0.85, 360);
             const cardHeight = cardWidth / currentAspect.ratio;
             const currentBg = bgPresets[shareCardActiveBg] || bgPresets[0];
-            const isLightBg = currentBg.isLight;
-            const textColor = isLightBg ? '#1F2937' : '#FFFFFF';
-            const subtleColor = isLightBg ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)';
+
+            // Premium background
+            const activePremiumBg = shareCardPremiumBgId
+              ? PREMIUM_BACKGROUNDS.find(b => b.id === shareCardPremiumBgId)
+              : null;
+            const usingPremiumBg = !!activePremiumBg;
+
+            // Text color: user-chosen > smart auto based on bg colors & hue
+            const autoTextColor = usingPremiumBg
+              ? getSmartAutoTextColor(null, activePremiumBg?.isLight || false)
+              : getSmartAutoTextColor(currentBg.colors);
+            const textColor = shareCardTextColor || autoTextColor;
+            const subtleColor = isTextColorLight(textColor)
+              ? 'rgba(255,255,255,0.55)'
+              : 'rgba(0,0,0,0.45)';
             const currentFont = fontPresets.find(f => f.id === shareCardFont) || fontPresets[0];
             
             // Get verse reference text
@@ -5305,6 +5511,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               const adjustedFontSize = Math.max(10, Math.min(50, baseFontSize + shareCardFontSizeAdjust));
               const adjustedLineHeight = Math.max(14, sizing.lineHeight + shareCardFontSizeAdjust);
               
+              // Adaptive text shadow: dark shadow for light text, light shadow for dark text
+              const premiumTextShadow = usingPremiumBg ? (
+                isTextColorLight(textColor)
+                  ? { textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }
+                  : { textShadowColor: 'rgba(255,255,255,0.7)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }
+              ) : {};
+
               const verseTextStyle = {
                 fontSize: adjustedFontSize,
                 fontWeight: shareCardBold || shareCardActiveLayout === 'bold' ? '700' : '400',
@@ -5313,6 +5526,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 textAlign: shareCardTextAlign,
                 fontStyle: shareCardItalic ? 'italic' : 'normal',
                 ...currentFont.style,
+                ...premiumTextShadow,
               };
 
               const refStyle = {
@@ -5321,6 +5535,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 color: textColor,
                 textAlign: shareCardTextAlign,
                 ...currentFont.style,
+                ...premiumTextShadow,
               };
 
               const versionStyle = {
@@ -5329,13 +5544,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 color: subtleColor,
                 letterSpacing: 0.5,
                 textTransform: 'uppercase',
+                ...premiumTextShadow,
               };
 
               const brandStyle = {
-                fontSize: 13,
-                fontWeight: '700',
+                fontSize: 12,
+                fontWeight: '600',
                 color: subtleColor,
-                letterSpacing: 1.5,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                ...premiumTextShadow,
+              };
+
+              // Branding renderer
+              const renderBrand = () => {
+                if (!shareCardShowBranding) return null;
+                return <Text style={brandStyle}>Biblely</Text>;
               };
 
               switch (shareCardActiveLayout) {
@@ -5352,7 +5576,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                           <Text style={refStyle}>{verseRef}</Text>
                           <Text style={[versionStyle, { marginTop: 4 }]}>{versionName}</Text>
                         </View>
-                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                        {renderBrand()}
                       </View>
                     </View>
                   );
@@ -5369,11 +5593,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                           {shareText}
                         </Text>
                       </View>
-                      {shareCardShowBranding && (
-                        <View style={{ alignItems: shareCardTextAlign === 'left' ? 'flex-start' : shareCardTextAlign === 'right' ? 'flex-end' : 'center' }}>
-                          <Text style={brandStyle}>Biblely</Text>
-                        </View>
-                      )}
+                      <View style={{ alignItems: shareCardTextAlign === 'left' ? 'flex-start' : shareCardTextAlign === 'right' ? 'flex-end' : 'center' }}>
+                        {renderBrand()}
+                      </View>
                     </View>
                   );
 
@@ -5382,7 +5604,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                     <View style={{ flex: 1, padding: 32, justifyContent: 'space-between' }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <Text style={[versionStyle]}>{versionName}</Text>
-                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                        {renderBrand()}
                       </View>
                       <View style={{ flex: 1, justifyContent: 'center', marginVertical: 20 }}>
                         <Text style={verseTextStyle} numberOfLines={10} adjustsFontSizeToFit minimumFontScale={0.7}>
@@ -5415,7 +5637,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                       </View>
                       <View style={{ alignItems: 'center' }}>
                         <Text style={[refStyle, { textAlign: 'center', marginBottom: 8 }]}>{verseRef}</Text>
-                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                        {renderBrand()}
                       </View>
                     </View>
                   );
@@ -5430,7 +5652,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                       </Text>
                       <View style={{ marginTop: 24, alignItems: 'center' }}>
                         <Text style={[versionStyle, { marginBottom: 8 }]}>{versionName}</Text>
-                        {shareCardShowBranding && <Text style={brandStyle}>Biblely</Text>}
+                        {renderBrand()}
                       </View>
                     </View>
                   );
@@ -5470,22 +5692,61 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                     {/* Card Preview */}
                     <View style={{ alignItems: 'center', marginBottom: 24 }}>
                       <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
-                        <LinearGradient
-                          colors={currentBg.colors}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={{ width: cardWidth, height: cardHeight, borderRadius: 24, overflow: 'hidden' }}
-                        >
-                          {renderCardContent()}
-                        </LinearGradient>
+                        <Animated.View style={{ opacity: premiumBgFadeAnim }}>
+                          {usingPremiumBg ? (
+                            /* ── Premium Image Background ── */
+                            <View
+                              style={{ width: cardWidth, height: cardHeight, borderRadius: 24, overflow: 'hidden' }}
+                              {...imageDragResponder.panHandlers}
+                            >
+                              {/* Background image — positioned with drag offset, optional blur */}
+                              {premiumBgCachedUris[activePremiumBg.filename] ? (
+                                <Image
+                                  source={{ uri: premiumBgCachedUris[activePremiumBg.filename] }}
+                                  style={{
+                                    position: 'absolute',
+                                    width: cardWidth + 120,
+                                    height: cardHeight + 120,
+                                    left: shareCardImageOffset.x - 60,
+                                    top: shareCardImageOffset.y - 60,
+                                  }}
+                                  resizeMode="cover"
+                                  blurRadius={shareCardBlurRadius}
+                                />
+                              ) : (
+                                <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' }}>
+                                  <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
+                                </View>
+                              )}
+                              {/* Dark overlay — user-adjustable via slider */}
+                              <View style={{
+                                ...StyleSheet.absoluteFillObject,
+                                backgroundColor: `rgba(0,0,0,${shareCardOverlayOpacity})`,
+                              }} />
+                              {/* Card content (text shadow + overlay handle readability) */}
+                              {renderCardContent()}
+                            </View>
+                          ) : (
+                            /* ── Gradient Background (original) ── */
+                            <LinearGradient
+                              colors={currentBg.colors}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={{ width: cardWidth, height: cardHeight, borderRadius: 24, overflow: 'hidden' }}
+                            >
+                              {renderCardContent()}
+                            </LinearGradient>
+                          )}
+                        </Animated.View>
                       </ViewShot>
                     </View>
 
                     {/* Control Panel */}
                     <View style={{ paddingHorizontal: 16 }}>
                       {/* Control Tabs */}
-                      <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ paddingHorizontal: 4 }}>
                         {[
+                          { id: 'premium', label: 'Premium', icon: 'auto-awesome' },
                           { id: 'bg', label: 'Color', icon: 'palette' },
                           { id: 'layout', label: 'Layout', icon: 'dashboard' },
                           { id: 'text', label: 'Text', icon: 'text-fields' },
@@ -5496,10 +5757,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                             onPress={() => setShareCardControlsTab(tab.id)}
                             style={{
                               paddingVertical: 10,
-                              paddingHorizontal: 16,
+                              paddingHorizontal: 14,
                               borderRadius: 12,
                               backgroundColor: shareCardControlsTab === tab.id ? 'rgba(255,255,255,0.2)' : 'transparent',
-                              marginHorizontal: 4,
+                              marginHorizontal: 3,
                               flexDirection: 'row',
                               alignItems: 'center',
                             }}
@@ -5510,11 +5771,171 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                             </Text>
                           </TouchableOpacity>
                         ))}
-                      </View>
+                      </ScrollView>
 
                       {/* Tab Content */}
                       <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 16, marginBottom: 16 }}>
-                        {/* Background Tab */}
+                        {/* ── Premium Backgrounds Tab ── */}
+                        {shareCardControlsTab === 'premium' && (
+                          <View>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Premium Backgrounds
+                            </Text>
+
+                            {/* Image thumbnails — horizontal scroll */}
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -8, marginBottom: 16 }}>
+                              <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
+                                {/* "None" option to deselect premium bg */}
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    hapticFeedback.light();
+                                    // Crossfade out
+                                    Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+                                      setShareCardPremiumBgId(null);
+                                      setShareCardImageOffset({ x: 0, y: 0 });
+                                      saveShareCardPrefs({ premiumBgId: null, imageOffset: { x: 0, y: 0 } });
+                                      Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+                                    });
+                                  }}
+                                  style={{ marginRight: 10, alignItems: 'center' }}
+                                >
+                                  <View style={{
+                                    width: 56, height: 56, borderRadius: 12, borderWidth: !shareCardPremiumBgId ? 3 : 1,
+                                    borderColor: !shareCardPremiumBgId ? '#fff' : 'rgba(255,255,255,0.2)',
+                                    backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center',
+                                  }}>
+                                    <MaterialIcons name="block" size={22} color={!shareCardPremiumBgId ? '#fff' : 'rgba(255,255,255,0.4)'} />
+                                  </View>
+                                </TouchableOpacity>
+
+                                {PREMIUM_BACKGROUNDS.map((bg) => {
+                                  const isSelected = shareCardPremiumBgId === bg.id;
+                                  const isLocked = !premiumBgUnlocked;
+
+                                  return (
+                                    <TouchableOpacity
+                                      key={bg.id}
+                                      onPress={() => {
+                                        hapticFeedback.light();
+                                        if (isLocked) {
+                                          Alert.alert(
+                                            'Premium Backgrounds',
+                                            `Refer ${PREMIUM_BG_REFERRAL_REQUIRED} friend to unlock all premium backgrounds. Both users must have verified emails for the referral to count.`,
+                                            [{ text: 'OK' }]
+                                          );
+                                          return;
+                                        }
+                                        // Crossfade
+                                        Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+                                          setShareCardPremiumBgId(bg.id);
+                                          setShareCardImageOffset({ x: 0, y: 0 });
+                                          saveShareCardPrefs({ premiumBgId: bg.id, imageOffset: { x: 0, y: 0 } });
+                                          Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+                                        });
+                                      }}
+                                      style={{ marginRight: 10, alignItems: 'center' }}
+                                    >
+                                      <View style={{
+                                        width: 56, height: 56, borderRadius: 12, overflow: 'hidden',
+                                        borderWidth: isSelected ? 3 : 0, borderColor: '#fff',
+                                      }}>
+                                        {premiumBgCachedUris[bg.filename] ? (
+                                          <Image
+                                            source={{ uri: premiumBgCachedUris[bg.filename] }}
+                                            style={{ width: 56, height: 56, borderRadius: isSelected ? 9 : 12 }}
+                                            resizeMode="cover"
+                                            blurRadius={isLocked ? 8 : 0}
+                                          />
+                                        ) : (
+                                          <View style={{
+                                            width: 56, height: 56, borderRadius: isSelected ? 9 : 12,
+                                            backgroundColor: 'rgba(255,255,255,0.08)',
+                                            justifyContent: 'center', alignItems: 'center',
+                                          }}>
+                                            <ActivityIndicator size="small" color="rgba(255,255,255,0.4)" />
+                                          </View>
+                                        )}
+                                        {isLocked && (
+                                          <View style={{
+                                            ...StyleSheet.absoluteFillObject,
+                                            backgroundColor: 'rgba(0,0,0,0.4)',
+                                            justifyContent: 'center', alignItems: 'center',
+                                          }}>
+                                            <MaterialIcons name="lock" size={18} color="rgba(255,255,255,0.8)" />
+                                          </View>
+                                        )}
+                                      </View>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </View>
+                            </ScrollView>
+
+                            {/* Blur & Overlay sliders — only shown when a premium bg is selected */}
+                            {shareCardPremiumBgId && (
+                              <View>
+                                {/* Blur slider */}
+                                <View style={{ marginBottom: 12 }}>
+                                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                      Background Blur
+                                    </Text>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+                                      {Math.round(shareCardBlurRadius)}
+                                    </Text>
+                                  </View>
+                                  <Slider
+                                    style={{ width: '100%', height: 36 }}
+                                    minimumValue={0}
+                                    maximumValue={25}
+                                    step={1}
+                                    value={shareCardBlurRadius}
+                                    onValueChange={(val) => setShareCardBlurRadius(val)}
+                                    onSlidingComplete={(val) => saveShareCardPrefs({ blurRadius: val })}
+                                    minimumTrackTintColor="rgba(255,255,255,0.6)"
+                                    maximumTrackTintColor="rgba(255,255,255,0.15)"
+                                    thumbTintColor="#fff"
+                                  />
+                                </View>
+
+                                {/* Overlay darkness slider */}
+                                <View style={{ marginBottom: 8 }}>
+                                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                      Overlay Darkness
+                                    </Text>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+                                      {Math.round(shareCardOverlayOpacity * 100)}%
+                                    </Text>
+                                  </View>
+                                  <Slider
+                                    style={{ width: '100%', height: 36 }}
+                                    minimumValue={0}
+                                    maximumValue={0.8}
+                                    value={shareCardOverlayOpacity}
+                                    onValueChange={(val) => setShareCardOverlayOpacity(val)}
+                                    onSlidingComplete={(val) => saveShareCardPrefs({ overlayOpacity: val })}
+                                    minimumTrackTintColor="rgba(255,255,255,0.6)"
+                                    maximumTrackTintColor="rgba(255,255,255,0.15)"
+                                    thumbTintColor="#fff"
+                                  />
+                                </View>
+                              </View>
+                            )}
+
+                            {/* Drag hint */}
+                            {shareCardPremiumBgId && (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 4 }}>
+                                <MaterialIcons name="pan-tool" size={14} color="rgba(255,255,255,0.4)" />
+                                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 6 }}>
+                                  Drag on the card to reposition the background
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
+
+                        {/* ── Background Color Tab ── */}
                         {shareCardControlsTab === 'bg' && (
                           <View>
                             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -5526,8 +5947,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                                   <TouchableOpacity
                                     key={idx}
                                     onPress={() => {
+                                      // Selecting a color clears the premium image bg
+                                      setShareCardPremiumBgId(null);
+                                      setShareCardImageOffset({ x: 0, y: 0 });
                                       setShareCardActiveBg(idx);
-                                      saveShareCardPrefs({ activeBg: idx });
+                                      saveShareCardPrefs({ activeBg: idx, premiumBgId: null, imageOffset: { x: 0, y: 0 } });
                                     }}
                                     style={{ marginRight: 10, alignItems: 'center' }}
                                   >
@@ -5537,7 +5961,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                                         width: 48,
                                         height: 48,
                                         borderRadius: 24,
-                                        borderWidth: shareCardActiveBg === idx ? 3 : 0,
+                                        borderWidth: !shareCardPremiumBgId && shareCardActiveBg === idx ? 3 : 0,
                                         borderColor: '#fff',
                                       }}
                                     />
@@ -5604,6 +6028,52 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         {/* Text Tab */}
                         {shareCardControlsTab === 'text' && (
                           <View>
+                            {/* Text Color Picker */}
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              Text Color
+                            </Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: -8 }}>
+                              <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
+                                {/* Auto option */}
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    hapticFeedback.light();
+                                    setShareCardTextColor(null);
+                                    saveShareCardPrefs({ textColor: null });
+                                  }}
+                                  style={{ marginRight: 10, alignItems: 'center' }}
+                                >
+                                  <View style={{
+                                    width: 36, height: 36, borderRadius: 18,
+                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: !shareCardTextColor ? 3 : 1,
+                                    borderColor: !shareCardTextColor ? '#fff' : 'rgba(255,255,255,0.2)',
+                                    justifyContent: 'center', alignItems: 'center',
+                                  }}>
+                                    <Text style={{ color: '#fff', fontSize: 8, fontWeight: '700' }}>AUTO</Text>
+                                  </View>
+                                </TouchableOpacity>
+                                {TEXT_COLOR_PRESETS.map(preset => (
+                                  <TouchableOpacity
+                                    key={preset.id}
+                                    onPress={() => {
+                                      hapticFeedback.light();
+                                      setShareCardTextColor(preset.color);
+                                      saveShareCardPrefs({ textColor: preset.color });
+                                    }}
+                                    style={{ marginRight: 10, alignItems: 'center' }}
+                                  >
+                                    <View style={{
+                                      width: 36, height: 36, borderRadius: 18,
+                                      backgroundColor: preset.color,
+                                      borderWidth: shareCardTextColor === preset.color ? 3 : 1,
+                                      borderColor: shareCardTextColor === preset.color ? '#fff' : 'rgba(255,255,255,0.2)',
+                                    }} />
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </ScrollView>
+
                             {/* Text Alignment */}
                             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
                               Text Alignment

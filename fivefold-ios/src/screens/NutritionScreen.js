@@ -72,12 +72,13 @@ const NutritionScreen = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [fullSetupMode, setFullSetupMode] = useState(false); // true = show all fields (gender, birthday, height etc.)
 
   // Setup form fields
   const [formGender, setFormGender] = useState('male');
   const [formBirthday, setFormBirthday] = useState(null); // Date object
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [genderLocked, setGenderLocked] = useState(false); // true after first setup
+  const [genderLocked, setGenderLocked] = useState(false); // no longer locked — users can always change
   const [formHeight, setFormHeight] = useState('');       // display value in user's unit
   const [formHeightInches, setFormHeightInches] = useState(''); // only used when heightUnit='ft'
   const [formWeight, setFormWeight] = useState('');        // display value in user's unit
@@ -379,10 +380,7 @@ const NutritionScreen = () => {
       const birthYear = new Date().getFullYear() - p.age;
       setFormBirthday(new Date(birthYear, 0, 1));
     }
-    // Lock gender if profile already exists (was set during first setup)
-    if (p.gender) {
-      setGenderLocked(true);
-    }
+    // Gender is no longer locked — users can update it anytime
 
     // Load unit preferences
     const storedWU = await userStorage.getRaw('weightUnit');
@@ -911,6 +909,7 @@ const NutritionScreen = () => {
           onPress={() => {
             if (editingProfile) {
               setEditingProfile(false);
+              setFullSetupMode(false);
             } else {
               navigation.goBack();
             }
@@ -919,32 +918,38 @@ const NutritionScreen = () => {
           <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.setupTitle, { color: textPrimary }]}>
-          {editingProfile ? 'Edit Profile' : 'Set Up Your Plan'}
+          {editingProfile
+            ? (fullSetupMode ? 'Reconfigure Profile' : 'Edit Profile')
+            : 'Set Up Your Plan'}
         </Text>
-        <View style={{ width: 44 }} />
+        {/* Top-right: show Reconfigure button in quick-edit mode */}
+        {editingProfile && !fullSetupMode ? (
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={() => { hapticFeedback.light(); setFullSetupMode(true); }}
+          >
+            <MaterialIcons name="settings" size={20} color={textPrimary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
       <View style={styles.setupContent}>
         <Text style={[styles.setupSubtitle, { color: textSecondary }]}>
           {editingProfile
-            ? 'Update your details to recalculate your personalised targets'
+            ? (fullSetupMode
+                ? 'Reconfigure your base profile details'
+                : 'Update your details to recalculate your personalised targets')
             : 'Enter your details and we\'ll create a personalised nutrition plan for you'}
         </Text>
 
-        {/* ── Section: About You ── */}
-        <View style={[styles.formSection, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow) }]}>
-          <Text style={[styles.formSectionTitle, { color: textPrimary }]}>About You</Text>
+        {/* ── Section: About You (hidden in quick-edit — gender/birthday/height don't change) ── */}
+        {(!editingProfile || fullSetupMode) && (
+          <View style={[styles.formSection, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow) }]}>
+            <Text style={[styles.formSectionTitle, { color: textPrimary }]}>About You</Text>
 
-          {/* Gender */}
-          {genderLocked ? (
-            <View style={styles.lockedRow}>
-              <MaterialIcons name={formGender === 'male' ? 'male' : 'female'} size={20} color={theme.primary} />
-              <Text style={[styles.lockedText, { color: textPrimary }]}>
-                {formGender.charAt(0).toUpperCase() + formGender.slice(1)}
-              </Text>
-              <MaterialIcons name="lock" size={14} color={textTertiary} />
-            </View>
-          ) : (
+            {/* Gender */}
             <View style={styles.toggleRow}>
               {['male', 'female'].map((g) => (
                 <TouchableOpacity
@@ -969,56 +974,54 @@ const NutritionScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
-          )}
 
-          {/* Birthday */}
-          <Text style={[styles.fieldLabel, { color: textSecondary }]}>Birthday</Text>
-          <TouchableOpacity
-            style={[styles.input, styles.birthdayInput, { backgroundColor: inputBg, borderColor: cardBorder }]}
-            onPress={() => setShowDatePicker(!showDatePicker)}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="cake" size={18} color={formBirthday ? theme.primary : textTertiary} />
-            <Text style={[styles.birthdayText, { color: formBirthday ? textPrimary : textTertiary }]}>
-              {formBirthday
-                ? formBirthday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                : 'Tap to select your birthday'}
-            </Text>
-            {calculatedAge != null && (
-              <View style={[styles.ageBadge, { backgroundColor: theme.primary + '18' }]}>
-                <Text style={[styles.ageBadgeText, { color: theme.primary }]}>{calculatedAge}y</Text>
+            {/* Birthday */}
+            <Text style={[styles.fieldLabel, { color: textSecondary }]}>Birthday</Text>
+            <TouchableOpacity
+              style={[styles.input, styles.birthdayInput, { backgroundColor: inputBg, borderColor: cardBorder }]}
+              onPress={() => setShowDatePicker(!showDatePicker)}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="cake" size={18} color={formBirthday ? theme.primary : textTertiary} />
+              <Text style={[styles.birthdayText, { color: formBirthday ? textPrimary : textTertiary }]}>
+                {formBirthday
+                  ? formBirthday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                  : 'Tap to select your birthday'}
+              </Text>
+              {calculatedAge != null && (
+                <View style={[styles.ageBadge, { backgroundColor: theme.primary + '18' }]}>
+                  <Text style={[styles.ageBadgeText, { color: theme.primary }]}>{calculatedAge}y</Text>
+                </View>
+              )}
+              <MaterialIcons name={showDatePicker ? 'expand-less' : 'expand-more'} size={20} color={textTertiary} />
+            </TouchableOpacity>
+            {showDatePicker && (
+              <View style={[styles.datePickerContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: cardBorder }]}>
+                <DateTimePicker
+                  value={formBirthday || new Date(2000, 0, 1)}
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
+                  minimumDate={new Date(1920, 0, 1)}
+                  onChange={(event, selectedDate) => {
+                    if (Platform.OS === 'android') setShowDatePicker(false);
+                    if (selectedDate) setFormBirthday(selectedDate);
+                  }}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  style={{ height: 150 }}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={[styles.datePickerDone, { backgroundColor: theme.primary }]}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>Done</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
-            <MaterialIcons name={showDatePicker ? 'expand-less' : 'expand-more'} size={20} color={textTertiary} />
-          </TouchableOpacity>
-          {showDatePicker && (
-            <View style={[styles.datePickerContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: cardBorder }]}>
-              <DateTimePicker
-                value={formBirthday || new Date(2000, 0, 1)}
-                mode="date"
-                display="spinner"
-                maximumDate={new Date()}
-                minimumDate={new Date(1920, 0, 1)}
-                onChange={(event, selectedDate) => {
-                  if (Platform.OS === 'android') setShowDatePicker(false);
-                  if (selectedDate) setFormBirthday(selectedDate);
-                }}
-                themeVariant={isDark ? 'dark' : 'light'}
-                style={{ height: 150 }}
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={[styles.datePickerDone, { backgroundColor: theme.primary }]}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
 
-          {/* Height + Body Fat in a row */}
-          <View style={styles.formRow}>
+            {/* Height */}
             <View style={styles.formRowItem}>
               <Text style={[styles.fieldLabel, { color: textSecondary }]}>
                 {heightUnit === 'ft' ? 'Height' : 'Height (cm)'}
@@ -1062,20 +1065,25 @@ const NutritionScreen = () => {
                 />
               )}
             </View>
-            <View style={styles.formRowItem}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>
-                Body Fat % <Text style={{ color: textTertiary, fontSize: 10 }}>(optional)</Text>
-              </Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
-                value={formBodyFat}
-                onChangeText={setFormBodyFat}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 18"
-                placeholderTextColor={textTertiary}
-                maxLength={4}
-              />
-            </View>
+          </View>
+        )}
+
+        {/* ── Section: Body Composition (always shown — body fat changes) ── */}
+        <View style={[styles.formSection, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow) }]}>
+          <Text style={[styles.formSectionTitle, { color: textPrimary }]}>Body Composition</Text>
+          <View style={styles.formRowItem}>
+            <Text style={[styles.fieldLabel, { color: textSecondary }]}>
+              Body Fat % <Text style={{ color: textTertiary, fontSize: 10 }}>(optional)</Text>
+            </Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: cardBorder }]}
+              value={formBodyFat}
+              onChangeText={setFormBodyFat}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 18"
+              placeholderTextColor={textTertiary}
+              maxLength={4}
+            />
           </View>
         </View>
 
@@ -1183,7 +1191,7 @@ const NutritionScreen = () => {
             <>
               <MaterialIcons name="auto-awesome" size={22} color="#FFFFFF" />
               <Text style={styles.calculateButtonText}>
-                {editingProfile ? 'Update My Plan' : 'Create My Plan'}
+                {editingProfile ? (fullSetupMode ? 'Reconfigure My Plan' : 'Update My Plan') : 'Create My Plan'}
               </Text>
             </>
           )}
@@ -2107,6 +2115,7 @@ const NutritionScreen = () => {
             hapticFeedback.medium();
             setPlanResult(null);
             setEditingProfile(false);
+            setFullSetupMode(false);
             loadData();
           }}
           activeOpacity={0.85}

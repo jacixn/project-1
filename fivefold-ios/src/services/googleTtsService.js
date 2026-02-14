@@ -22,7 +22,7 @@ class GoogleTtsService {
     this.isPlaying = false;
     this.isLoading = false;
     this.onStateChange = null;
-    this.currentVoiceKey = 'wavenet-female-us'; // Default voice - reliable and high quality
+    this.currentVoiceKey = 'studio-female'; // Default voice - premium Studio quality
     this.settings = {
       speakingRate: 0.95,
       pitch: 0,
@@ -248,7 +248,7 @@ class GoogleTtsService {
   async resetToDefaults() {
     try {
       console.log('[GoogleTTS] Resetting to defaults...');
-      this.currentVoiceKey = 'wavenet-female-us';
+      this.currentVoiceKey = 'studio-female';
       this.settings = {
         speakingRate: 0.95,
         pitch: 0,
@@ -281,7 +281,7 @@ class GoogleTtsService {
         } else {
           // Reset to default if saved voice is invalid
           console.log('[GoogleTTS] Saved voice key invalid, resetting to default:', savedVoiceKey);
-          this.currentVoiceKey = 'wavenet-female-us'; // Reliable default
+          this.currentVoiceKey = 'studio-female'; // Premium default
           // Save the corrected settings immediately
           await userStorage.setRaw(VOICE_SETTINGS_KEY, JSON.stringify({
             voiceKey: this.currentVoiceKey,
@@ -295,7 +295,7 @@ class GoogleTtsService {
     } catch (error) {
       console.log('[GoogleTTS] Failed to load settings:', error);
       // On error, ensure we have a valid voice
-      this.currentVoiceKey = 'wavenet-female-us';
+      this.currentVoiceKey = 'studio-female';
     }
   }
 
