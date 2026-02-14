@@ -441,7 +441,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
               <View style={[styles.formIconContainer, { backgroundColor: '#E67E22' }]}>
                 <Ionicons 
                   name={emailMode === 'login' ? 'person' : emailMode === 'signup' ? 'person-add' : emailMode === '2fa' ? 'shield-checkmark' : 'key'} 
-                  size={40} 
+                  size={26} 
                   color="#FFF" 
                 />
               </View>
@@ -874,17 +874,18 @@ const styles = StyleSheet.create({
   emailScrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 0,
     paddingBottom: 40,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: -30,
+    zIndex: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -893,33 +894,33 @@ const styles = StyleSheet.create({
   },
   formHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 12,
   },
   formIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 6,
   },
   formTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     color: '#FFF',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   formSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
   },
   formCard: {
     backgroundColor: '#FFF',
     borderRadius: 24,
-    padding: 24,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
