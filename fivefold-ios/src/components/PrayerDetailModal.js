@@ -571,7 +571,7 @@ const PrayerDetailModal = ({
                           backgroundColor: 'rgba(255, 255, 255, 0.25)' 
                         }]}>
                           <Text style={[styles.pointsText, { color: '#ffffff' }]}>
-                            +5,000 pts
+                            +175 pts
                     </Text>
                       </View>
                     )}

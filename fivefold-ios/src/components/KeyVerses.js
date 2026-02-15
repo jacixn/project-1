@@ -23,6 +23,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
+import { pushToCloud } from '../services/userSyncService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
 
@@ -186,6 +187,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
     
     setFavoriteVerses(newFavorites);
     await saveData('favoriteVerses', newFavorites);
+    pushToCloud('favoriteVerses', newFavorites);
     await saveData('savedBibleVerses', saved);
     hapticFeedback.success();
   };

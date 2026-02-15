@@ -46,9 +46,9 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Generate years from current year to 2030
+  // Generate years from current year + 20 years into the future
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 2030 - currentYear + 1 }, (_, i) => currentYear + i);
+  const years = Array.from({ length: 21 }, (_, i) => currentYear + i);
 
   // Get days in month
   const getDaysInMonth = (year, month) => {
@@ -138,7 +138,7 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
               data: { type: 'task_reminder', taskId: task.id },
               sound: notificationSettings.sound !== false ? 'default' : null,
             },
-            trigger: { date: notifyTime },
+            trigger: { type: 'date', date: notifyTime },
           });
           console.log('✅ Task notification scheduled for:', notifyTime);
         } catch (scheduleError) {

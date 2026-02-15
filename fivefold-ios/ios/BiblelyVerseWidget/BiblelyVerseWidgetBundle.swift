@@ -10,5 +10,7 @@ import SwiftUI
 struct BiblelyVerseWidgetBundle: WidgetBundle {
     var body: some Widget {
         BiblelyVerseWidget()
+        FuelWidget()
+        TodoWidget()
     }
 }

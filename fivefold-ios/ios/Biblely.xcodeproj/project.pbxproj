@@ -13,6 +13,8 @@
 		2A4C32F12F00883E006372D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F02F00883E006372D4 /* WidgetKit.framework */; };
 		2A4C32F32F00883E006372D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A4C32F22F00883E006372D4 /* SwiftUI.framework */; };
 		2A4C33022F00884D006372D4 /* BiblelyVerseWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2A4C32EF2F00883D006372D4 /* BiblelyVerseWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2ABD719A2F412BC300F65ECD /* WidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 2ABD71982F412BC300F65ECD /* WidgetBridge.m */; };
+		2ABD719B2F412BC300F65ECD /* WidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ABD71992F412BC300F65ECD /* WidgetBridge.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		956082C41DB9C325BBBA1D9C /* Pods_Biblely.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FAF27D5A6369B8C45DE2444 /* Pods_Biblely.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
@@ -51,6 +53,8 @@
 		2A4C32EF2F00883D006372D4 /* BiblelyVerseWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BiblelyVerseWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A4C32F02F00883E006372D4 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		2A4C32F22F00883E006372D4 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		2ABD71982F412BC300F65ECD /* WidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WidgetBridge.m; sourceTree = "<group>"; };
+		2ABD71992F412BC300F65ECD /* WidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridge.swift; sourceTree = "<group>"; };
 		3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Biblely/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4955B5E6A8E96CED8EE9EE4C /* Pods-Biblely.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Biblely.release.xcconfig"; path = "Target Support Files/Pods-Biblely/Pods-Biblely.release.xcconfig"; sourceTree = "<group>"; };
 		4FAF27D5A6369B8C45DE2444 /* Pods_Biblely.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Biblely.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,7 +67,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		2A4C33062F00884D006372D4 /* Exceptions for "BiblelyVerseWidget" folder in "BiblelyVerseWidgetExtension" target */ = {
+		2A4C33062F00884D006372D4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -73,18 +77,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2A4C32F42F00883E006372D4 /* BiblelyVerseWidget */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				2A4C33062F00884D006372D4 /* Exceptions for "BiblelyVerseWidget" folder in "BiblelyVerseWidgetExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = BiblelyVerseWidget;
-			sourceTree = "<group>";
-		};
+		2A4C32F42F00883E006372D4 /* BiblelyVerseWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A4C33062F00884D006372D4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BiblelyVerseWidget; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +113,8 @@
 		13B07FAE1A68108700A75B9A /* Biblely */ = {
 			isa = PBXGroup;
 			children = (
+				2ABD71982F412BC300F65ECD /* WidgetBridge.m */,
+				2ABD71992F412BC300F65ECD /* WidgetBridge.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* Biblely-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
@@ -488,6 +483,8 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				0703F7959EADAB182BB8D414 /* ExpoModulesProvider.swift in Sources */,
+				2ABD719A2F412BC300F65ECD /* WidgetBridge.m in Sources */,
+				2ABD719B2F412BC300F65ECD /* WidgetBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -516,7 +513,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -531,7 +528,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.53;
+				MARKETING_VERSION = 1.0.54;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -555,7 +552,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Biblely/Biblely.entitlements;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				INFOPLIST_FILE = Biblely/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Biblely;
@@ -565,7 +562,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.53;
+				MARKETING_VERSION = 1.0.54;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -595,7 +592,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -611,7 +608,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.53;
+				MARKETING_VERSION = 1.0.54;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -644,7 +641,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = HM3DN88VTX;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -660,7 +657,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.53;
+				MARKETING_VERSION = 1.0.54;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesusxoi.biblely.BiblelyVerseWidget;

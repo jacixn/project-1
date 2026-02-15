@@ -430,6 +430,198 @@ const PREMIUM_FEATURES = [
   { icon: 'emoji-events', text: 'Achievements, rewards & milestones' },
 ];
 
+// ============================================
+// EXTRACTED COMPONENT: Setup/Loading Screen
+// Must be OUTSIDE main component to prevent re-creation on parent re-render.
+// When parent state changes (setupSteps, currentSetupStep), this component
+// receives new props but keeps its hooks/animation state intact.
+// ============================================
+const OnboardingSetupScreen = React.memo(({
+  setupSteps,
+  currentSetupStep,
+  userName,
+}) => {
+  const stepAnims = useRef(setupSteps.map(() => ({
+    opacity: new Animated.Value(0),
+    translateY: new Animated.Value(20),
+    scale: new Animated.Value(0.8),
+  }))).current;
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerScale = useRef(new Animated.Value(0.9)).current;
+
+  useEffect(() => {
+    // Animate header in
+    Animated.parallel([
+      Animated.timing(headerOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(headerScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+    ]).start();
+
+    // Pulse animation for active step
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
+
+  useEffect(() => {
+    if (currentSetupStep >= 0 && currentSetupStep < stepAnims.length) {
+      const anim = stepAnims[currentSetupStep];
+      Animated.parallel([
+        Animated.timing(anim.opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(anim.translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+        Animated.spring(anim.scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
+      ]).start();
+
+      // Update progress bar
+      Animated.timing(progressAnim, {
+        toValue: (currentSetupStep + 1) / setupSteps.length,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [currentSetupStep]);
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28 }}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Header */}
+        <Animated.View style={{
+          alignItems: 'center',
+          marginBottom: 40,
+          opacity: headerOpacity,
+          transform: [{ scale: headerScale }],
+        }}>
+          <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: '#4CAF50',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+            shadowColor: '#4CAF50',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+          }}>
+            <MaterialIcons name="settings" size={36} color="#FFF" />
+          </View>
+          <Text style={{ fontSize: 26, fontWeight: '800', color: '#1A1A2E', textAlign: 'center', marginBottom: 6 }}>
+            Setting Up Your App
+          </Text>
+          <Text style={{ fontSize: 15, color: '#666', textAlign: 'center' }}>
+            Just a moment, {userName || 'friend'}...
+          </Text>
+        </Animated.View>
+
+        {/* Progress Bar */}
+        <View style={{
+          height: 6,
+          backgroundColor: '#E0E0E0',
+          borderRadius: 3,
+          marginBottom: 32,
+          overflow: 'hidden',
+        }}>
+          <Animated.View style={{
+            height: '100%',
+            backgroundColor: '#4CAF50',
+            borderRadius: 3,
+            width: progressWidth,
+          }} />
+        </View>
+
+        {/* Steps List */}
+        <View style={{ gap: 0 }}>
+          {setupSteps.map((step, index) => {
+            const anim = stepAnims[index];
+            const isActive = index === currentSetupStep;
+            const isDone = step.done;
+            const isUpcoming = index > currentSetupStep;
+
+            return (
+              <Animated.View
+                key={step.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  marginBottom: 4,
+                  borderRadius: 14,
+                  backgroundColor: isActive ? 'rgba(76, 175, 80, 0.08)' : 'transparent',
+                  opacity: isUpcoming ? 0.2 : (isDone ? 1 : anim?.opacity),
+                  transform: [
+                    { translateY: isUpcoming ? 0 : (anim?.translateY || 0) },
+                    { scale: isActive ? pulseAnim : 1 },
+                  ],
+                }}
+              >
+                {/* Icon */}
+                <View style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: isDone ? '#4CAF50' : isActive ? '#4CAF50' : '#E0E0E0',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
+                  {isDone ? (
+                    <MaterialIcons name="check" size={18} color="#FFF" />
+                  ) : isActive ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <MaterialIcons name={step.icon} size={16} color="#999" />
+                  )}
+                </View>
+
+                {/* Label */}
+                <Text style={{
+                  flex: 1,
+                  fontSize: 15,
+                  fontWeight: isActive ? '600' : isDone ? '500' : '400',
+                  color: isDone ? '#4CAF50' : isActive ? '#1A1A2E' : '#999',
+                }}>
+                  {isDone ? step.label.replace('...', '') : step.label}
+                </Text>
+
+                {/* Done Checkmark */}
+                {isDone && (
+                  <MaterialIcons name="done" size={18} color="#4CAF50" />
+                )}
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* Bottom hint */}
+        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: '#999' }}>
+            This will only take a moment
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+});
+
 const SimpleOnboarding = ({ onComplete }) => {
   const { theme, isDark, changeTheme, toggleDarkMode, availableThemes } = useTheme();
   const { user, userProfile } = useAuth();
@@ -467,9 +659,19 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [isMigrating, setIsMigrating] = useState(false);
   const [checkingData, setCheckingData] = useState(true);
   
-  // Animation refs - start at 1 so content is visible immediately
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  // Hoisted scroll-tracking state for inner screens
+  // (prevents remount flicker when parent re-renders)
+  const [hasScrolledPainPoint, setHasScrolledPainPoint] = useState(false);
+  const [hasScrolledFeatures, setHasScrolledFeatures] = useState(false);
+  const [hasScrolledTasks, setHasScrolledTasks] = useState(false);
+  const [hasScrolledGym, setHasScrolledGym] = useState(false);
+  const [hasScrolledHub, setHasScrolledHub] = useState(false);
+  const [hasScrolledBible, setHasScrolledBible] = useState(false);
+  const [hasScrolledHow, setHasScrolledHow] = useState(false);
+  
+  // Hoisted VerifyEmail screen state
+  const [showVerificationScreen, setShowVerificationScreen] = useState(false);
+  const [verifyMaskedEmailState, setVerifyMaskedEmailState] = useState(user?.email || '');
   const giftScaleAnim = useRef(new Animated.Value(1)).current;
   const priceStrikeAnim = useRef(new Animated.Value(0)).current;
   const freeRevealAnim = useRef(new Animated.Value(0)).current;
@@ -625,26 +827,6 @@ const SimpleOnboarding = ({ onComplete }) => {
 
   const totalScreens = screens.length;
   const progress = (currentScreen + 1) / totalScreens;
-
-  useEffect(() => {
-    // Only animate on screen changes (not initial render)
-    if (currentScreen > 0) {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.95);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [currentScreen]);
 
   const handleNext = async () => {
     hapticFeedback.selection();
@@ -1336,12 +1518,11 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const PainPointScreen = () => {
     const screenTheme = SCREEN_THEMES.painPoint;
-    const [hasScrolled, setHasScrolled] = useState(false);
     
     const handleScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
-      if (offsetY > 20 && !hasScrolled) {
-        setHasScrolled(true);
+      if (offsetY > 20 && !hasScrolledPainPoint) {
+        setHasScrolledPainPoint(true);
       }
     };
     
@@ -1410,7 +1591,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const FeaturesScreen = () => {
     const screenTheme = SCREEN_THEMES.features;
-    const [hasScrolledFeatures, setHasScrolledFeatures] = useState(false);
     
     const handleFeaturesScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -1523,7 +1703,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const FeaturesTasksScreen = () => {
     const screenTheme = SCREEN_THEMES.featuresTasks;
-    const [hasScrolledTasks, setHasScrolledTasks] = useState(false);
     
     const handleTasksScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -1644,7 +1823,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const FeaturesGymScreen = () => {
     const screenTheme = SCREEN_THEMES.featuresGym;
-    const [hasScrolledGym, setHasScrolledGym] = useState(false);
     
     const handleGymScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -1763,7 +1941,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const FeaturesHubScreen = () => {
     const screenTheme = SCREEN_THEMES.featuresHub;
-    const [hasScrolledHub, setHasScrolledHub] = useState(false);
     
     const handleHubScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -1882,7 +2059,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const BibleScreen = () => {
     const screenTheme = SCREEN_THEMES.bible;
-    const [hasScrolledBible, setHasScrolledBible] = useState(false);
     
     const handleBibleScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -2401,13 +2577,11 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const VerifyEmailOnboardingScreen = () => {
     const screenTheme = SCREEN_THEMES.verifyEmail;
-    const [showVerification, setShowVerification] = useState(false);
-    const [verifyMaskedEmail, setVerifyMaskedEmail] = useState(user?.email || '');
 
-    if (showVerification) {
+    if (showVerificationScreen) {
       return (
         <EmailVerificationScreen
-          email={verifyMaskedEmail}
+          email={verifyMaskedEmailState}
           onDismiss={async () => {
             // Check if user actually verified their email
             try {
@@ -2483,13 +2657,13 @@ const SimpleOnboarding = ({ onComplete }) => {
               try {
                 const result = await sendVerificationCode();
                 if (result?.maskedEmail) {
-                  setVerifyMaskedEmail(result.maskedEmail);
+                  setVerifyMaskedEmailState(result.maskedEmail);
                 }
               } catch (e) {
                 console.error('Error sending verification code:', e);
                 Alert.alert('Error', 'Failed to send verification code. You can try again on the next screen.');
               }
-              setShowVerification(true);
+              setShowVerificationScreen(true);
             }}
             activeOpacity={0.8}
           >
@@ -3105,7 +3279,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   const HowFoundScreen = () => {
     const screenTheme = SCREEN_THEMES.howFound;
-    const [hasScrolledHow, setHasScrolledHow] = useState(false);
     
     const handleHowScroll = (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
@@ -3606,187 +3779,8 @@ const SimpleOnboarding = ({ onComplete }) => {
   // ============================================
   // SCREEN: Setup Loading
   // ============================================
-  const SetupScreen = () => {
-    const stepAnims = useRef(setupSteps.map(() => ({
-      opacity: new Animated.Value(0),
-      translateY: new Animated.Value(20),
-      scale: new Animated.Value(0.8),
-    }))).current;
-
-    const progressAnim = useRef(new Animated.Value(0)).current;
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const headerOpacity = useRef(new Animated.Value(0)).current;
-    const headerScale = useRef(new Animated.Value(0.9)).current;
-
-    useEffect(() => {
-      // Animate header in
-      Animated.parallel([
-        Animated.timing(headerOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(headerScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      ]).start();
-
-      // Pulse animation for active step
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
-    }, []);
-
-    useEffect(() => {
-      if (currentSetupStep >= 0 && currentSetupStep < stepAnims.length) {
-        const anim = stepAnims[currentSetupStep];
-        Animated.parallel([
-          Animated.timing(anim.opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.spring(anim.translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
-          Animated.spring(anim.scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
-        ]).start();
-
-        // Update progress bar
-        Animated.timing(progressAnim, {
-          toValue: (currentSetupStep + 1) / setupSteps.length,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }).start();
-      }
-    }, [currentSetupStep]);
-
-    const progressWidth = progressAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['0%', '100%'],
-    });
-
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
-        <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28 }}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* Header */}
-          <Animated.View style={{
-            alignItems: 'center',
-            marginBottom: 40,
-            opacity: headerOpacity,
-            transform: [{ scale: headerScale }],
-          }}>
-            <View style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: '#4CAF50',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 20,
-              shadowColor: '#4CAF50',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-            }}>
-              <MaterialIcons name="settings" size={36} color="#FFF" />
-            </View>
-            <Text style={{ fontSize: 26, fontWeight: '800', color: '#1A1A2E', textAlign: 'center', marginBottom: 6 }}>
-              Setting Up Your App
-            </Text>
-            <Text style={{ fontSize: 15, color: '#666', textAlign: 'center' }}>
-              Just a moment, {userName || 'friend'}...
-            </Text>
-          </Animated.View>
-
-          {/* Progress Bar */}
-          <View style={{
-            height: 6,
-            backgroundColor: '#E0E0E0',
-            borderRadius: 3,
-            marginBottom: 32,
-            overflow: 'hidden',
-          }}>
-            <Animated.View style={{
-              height: '100%',
-              backgroundColor: '#4CAF50',
-              borderRadius: 3,
-              width: progressWidth,
-            }} />
-          </View>
-
-          {/* Steps List */}
-          <View style={{ gap: 0 }}>
-            {setupSteps.map((step, index) => {
-              const anim = stepAnims[index];
-              const isActive = index === currentSetupStep;
-              const isDone = step.done;
-              const isUpcoming = index > currentSetupStep;
-
-              return (
-                <Animated.View
-                  key={step.id}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                    marginBottom: 4,
-                    borderRadius: 14,
-                    backgroundColor: isActive ? 'rgba(76, 175, 80, 0.08)' : 'transparent',
-                    opacity: isUpcoming ? 0.2 : (isDone ? 1 : anim?.opacity),
-                    transform: [
-                      { translateY: isUpcoming ? 0 : (anim?.translateY || 0) },
-                      { scale: isActive ? pulseAnim : 1 },
-                    ],
-                  }}
-                >
-                  {/* Icon */}
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: isDone ? '#4CAF50' : isActive ? '#4CAF50' : '#E0E0E0',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 14,
-                  }}>
-                    {isDone ? (
-                      <MaterialIcons name="check" size={18} color="#FFF" />
-                    ) : isActive ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <MaterialIcons name={step.icon} size={16} color="#999" />
-                    )}
-                  </View>
-
-                  {/* Label */}
-                  <Text style={{
-                    flex: 1,
-                    fontSize: 15,
-                    fontWeight: isActive ? '600' : isDone ? '500' : '400',
-                    color: isDone ? '#4CAF50' : isActive ? '#1A1A2E' : '#999',
-                  }}>
-                    {isDone ? step.label.replace('...', '') : step.label}
-                  </Text>
-
-                  {/* Done Checkmark */}
-                  {isDone && (
-                    <MaterialIcons name="done" size={18} color="#4CAF50" />
-                  )}
-                </Animated.View>
-              );
-            })}
-          </View>
-
-          {/* Bottom hint */}
-          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: '#999' }}>
-              This will only take a moment
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  };
+  // SetupScreen is now extracted as OnboardingSetupScreen (top-level)
+  // to prevent remounting when setupSteps/currentSetupStep change.
 
   // Migration Screen Component
   const MigrationScreen = () => (
@@ -3959,10 +3953,23 @@ const SimpleOnboarding = ({ onComplete }) => {
   );
 
   // Render current screen
+  // IMPORTANT: Inner screen functions are called as X() NOT <X /> to prevent
+  // React from treating them as separate component types. Since these functions
+  // are recreated on every parent render, using <X /> would cause React to
+  // unmount/remount the entire screen tree on any state change, causing a
+  // visible flicker/shake. Calling them as regular functions merges their JSX
+  // into the parent render tree, so React can diff normally.
+  // (Screens with useEffect/useRef hooks must remain as <X /> components.)
   const renderScreen = () => {
-    // Show setup loading screen
+    // Show setup loading screen (extracted as stable top-level component)
     if (showSetupScreen) {
-      return <SetupScreen />;
+      return (
+        <OnboardingSetupScreen
+          setupSteps={setupSteps}
+          currentSetupStep={currentSetupStep}
+          userName={userName}
+        />
+      );
     }
 
     // Show loading while checking for data
@@ -3975,9 +3982,9 @@ const SimpleOnboarding = ({ onComplete }) => {
     }
     
     switch (screens[currentScreen]) {
-      case 'migrate': return <MigrationScreen />;
-      case 'splash': return <SplashScreen />;
-      case 'welcome': return <WelcomeScreen />;
+      case 'migrate': return MigrationScreen();
+      case 'splash': return SplashScreen();
+      case 'welcome': return WelcomeScreen();
       case 'country': return (
         <CountrySearchScreen 
           selectedCountry={selectedCountry}
@@ -3988,24 +3995,24 @@ const SimpleOnboarding = ({ onComplete }) => {
           userName={userName}
         />
       );
-      case 'language': return <LanguageScreen />;
-      case 'painPoint': return <PainPointScreen />;
-      case 'features': return <FeaturesScreen />;
-      case 'featuresTasks': return <FeaturesTasksScreen />;
-      case 'featuresGym': return <FeaturesGymScreen />;
-      case 'featuresHub': return <FeaturesHubScreen />;
-      case 'bible': return <BibleScreen />;
-      case 'weight': return <WeightScreen />;
-      case 'photo': return <PhotoScreen />;
-      case 'theme': return <ThemeScreen />;
-      case 'notifications': return <NotificationsScreen />;
-      case 'verifyEmail': return <VerifyEmailOnboardingScreen />;
+      case 'language': return LanguageScreen();
+      case 'painPoint': return PainPointScreen();
+      case 'features': return FeaturesScreen();
+      case 'featuresTasks': return FeaturesTasksScreen();
+      case 'featuresGym': return FeaturesGymScreen();
+      case 'featuresHub': return FeaturesHubScreen();
+      case 'bible': return BibleScreen();
+      case 'weight': return WeightScreen();
+      case 'photo': return PhotoScreen();
+      case 'theme': return ThemeScreen();
+      case 'notifications': return NotificationsScreen();
+      case 'verifyEmail': return VerifyEmailOnboardingScreen();
       case 'setup2FA': return <Setup2FAOnboardingScreen />;
       case 'referral': return <ReferralOnboardingScreen />;
-      case 'howFound': return <HowFoundScreen />;
-      case 'gift': return <GiftScreen />;
-      case 'complete': return <CompleteScreen />;
-      default: return <SplashScreen />;
+      case 'howFound': return HowFoundScreen();
+      case 'gift': return GiftScreen();
+      case 'complete': return CompleteScreen();
+      default: return SplashScreen();
     }
   };
 

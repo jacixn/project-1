@@ -1753,7 +1753,11 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
           presentationStyle="fullScreen"
           onRequestClose={handleCancelEditor}
         >
-          <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <KeyboardAvoidingView 
+            style={[styles.container, { backgroundColor: theme.background }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
             {/* Header */}
             <View style={[styles.editorHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
               <TouchableOpacity onPress={handleCancelEditor}>
@@ -1771,6 +1775,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               style={styles.editorContent} 
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
               contentContainerStyle={styles.editorContentContainer}
             >
               {/* Template Name */}
@@ -1981,7 +1986,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
 
               <View style={{ height: 100 }} />
             </ScrollView>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Mini Workout Player removed — it overlapped template cards and duplicated

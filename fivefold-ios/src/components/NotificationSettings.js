@@ -26,6 +26,8 @@ const NotificationSettings = ({ visible, onClose }) => {
     prayerReminders: true, // Single toggle for 30 min before prayer reminders
     taskReminders: true, // Toggle for task/todo notifications
     workoutReminders: true, // Toggle for workout/gym notifications
+    weeklyBodyCheckIn: true, // Toggle for weekly Saturday weigh-in reminder
+    tokenArrival: true, // Toggle for daily Hub token arrival notification
     achievementNotifications: true,
     streakReminders: true,
     pushNotifications: true,
@@ -142,7 +144,7 @@ const NotificationSettings = ({ visible, onClose }) => {
               data: { type: 'task_reminder', taskId: task.id },
               sound: soundEnabled ? 'default' : null,
             },
-            trigger: { date: notifyTime },
+            trigger: { type: 'date', date: notifyTime },
           });
           scheduledCount++;
         } catch (err) {
@@ -210,6 +212,7 @@ const NotificationSettings = ({ visible, onClose }) => {
                   weekday: day + 1,
                   hour: notifyHours,
                   minute: notifyMins,
+                  repeats: true,
                 },
               });
               scheduledCount++;
@@ -332,8 +335,8 @@ const NotificationSettings = ({ visible, onClose }) => {
       <Switch
         value={settings[settingKey]}
         onValueChange={() => toggleSetting(settingKey)}
-        trackColor={{ false: theme.border, true: iconColor + '40' }}
-        thumbColor={settings[settingKey] ? iconColor : theme.surface}
+        trackColor={{ false: theme.border, true: '#34C75940' }}
+        thumbColor={settings[settingKey] ? '#34C759' : theme.surface}
         ios_backgroundColor={theme.border}
       />
     </View>
@@ -414,11 +417,27 @@ const NotificationSettings = ({ visible, onClose }) => {
               settingKey="workoutReminders"
               iconColor="#FF5722"
             />
+            
+            <NotificationToggle
+              title="Weekly Check-In"
+              subtitle="Saturday reminder to update your weight"
+              icon="monitor-weight"
+              settingKey="weeklyBodyCheckIn"
+              iconColor="#9C27B0"
+            />
           </View>
 
           {/* App Features */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>App Features</Text>
+            
+            <NotificationToggle
+              title="Token Arrival"
+              subtitle="Get notified when your daily Hub token arrives"
+              icon="stars"
+              settingKey="tokenArrival"
+              iconColor="#eab308"
+            />
             
             <NotificationToggle
               title="Achievement Unlocked"

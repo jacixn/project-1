@@ -1,5 +1,6 @@
 import userStorage from './userStorage';
 import iCloudSyncService from '../services/iCloudSyncService';
+import { pushToCloud } from '../services/userSyncService';
 
 class VerseDataManager {
   static VERSE_DATA_KEY = 'verse_data';
@@ -67,6 +68,8 @@ class VerseDataManager {
       iCloudSyncService.syncToCloud(this.VERSE_DATA_KEY, allData).catch(err => {
         console.warn('☁️ Background sync failed:', err.message);
       });
+      // Sync to Firebase
+      pushToCloud('verseData', allData);
       
       return allData[verseId];
     } catch (error) {
@@ -264,6 +267,8 @@ class VerseDataManager {
         iCloudSyncService.syncToCloud(this.READING_STREAKS_KEY, streaks).catch(err => {
           console.warn('☁️ Background sync failed:', err.message);
         });
+        // Sync to Firebase
+        pushToCloud('readingStreaks', streaks);
         
         // Check for achievements
         await this.checkReadingAchievements(streaks);
@@ -429,6 +434,8 @@ class VerseDataManager {
       iCloudSyncService.syncToCloud(this.JOURNAL_NOTES_KEY, notes || []).catch(err => {
         console.warn('☁️ Background sync failed:', err.message);
       });
+      // Sync to Firebase
+      pushToCloud('journalNotes', notes || []);
     } catch (error) {
       console.error('Error saving journal notes:', error);
     }
@@ -664,6 +671,8 @@ class VerseDataManager {
       iCloudSyncService.syncToCloud(this.HIGHLIGHT_NAMES_KEY, names).catch(err => {
         console.warn('☁️ Background sync failed:', err.message);
       });
+      // Sync to Firebase
+      pushToCloud('highlightNames', names);
       
       console.log(`🏷️ Custom highlight name set: ${hexColor} -> ${customName}`);
       return names;
@@ -679,6 +688,7 @@ class VerseDataManager {
       const names = await this.getHighlightNames();
       delete names[hexColor];
       await userStorage.setRaw(this.HIGHLIGHT_NAMES_KEY, JSON.stringify(names));
+      pushToCloud('highlightNames', names);
       console.log(`🏷️ Custom highlight name removed for: ${hexColor}`);
       return names;
     } catch (error) {

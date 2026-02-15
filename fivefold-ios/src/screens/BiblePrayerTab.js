@@ -91,6 +91,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
 import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
 import AchievementService from '../services/achievementService';
+import { pushToCloud } from '../services/userSyncService';
 import { getReferralCount } from '../services/referralService';
 
 // Prayer times are now user-configurable - no hardcoded defaults
@@ -1031,15 +1032,17 @@ const BiblePrayerTab = () => {
     const updatedHistory = [...prayerHistory, newEntry];
     setPrayerHistory(updatedHistory);
     await saveData('prayerHistory', updatedHistory);
+    pushToCloud('prayerHistory', updatedHistory);
 
     // Add 175 points for prayer completion
     try {
       const currentStats = await getStoredData('userStats');
-      const pointsEarned = 175;
+      const basePrayerPoints = 175;
+      const oldTotal = currentStats?.totalPoints || currentStats?.points || 0;
       const updatedStats = {
         ...currentStats,
-        totalPoints: (currentStats?.totalPoints || 0) + pointsEarned,
-        points: (currentStats?.points || 0) + pointsEarned,
+        totalPoints: oldTotal + basePrayerPoints,
+        points: oldTotal + basePrayerPoints,
         prayersCompleted: (currentStats?.prayersCompleted || 0) + 1,
       };
       await saveData('userStats', updatedStats);
@@ -1059,11 +1062,10 @@ const BiblePrayerTab = () => {
         });
         console.log(`🔥 Prayer points synced to Firebase: ${updatedStats.totalPoints}`);
       }
-      
-      console.log('Prayer completed! +175 points earned!');
 
-      // Check achievements and sync total_points centrally
-      await AchievementService.checkAchievements(updatedStats);
+      // Check achievements in background — bonus shown via AchievementToast
+      AchievementService.checkAchievements(updatedStats).catch(() => {});
+      console.log(`Prayer completed! +${basePrayerPoints} points earned!`);
     } catch (error) {
       console.error('Failed to update points for prayer completion:', error);
     }

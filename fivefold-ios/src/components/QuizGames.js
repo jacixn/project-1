@@ -225,8 +225,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
   // Award points when quiz is completed (29 points per question)
   const awardQuizPoints = async (numQuestions) => {
     try {
-      const pointsEarned = numQuestions * 29; // 5 questions = 145, 10 = 290, etc.
-      setBonusPointsEarned(pointsEarned);
+      const basePoints = numQuestions * 29; // 5 questions = 145, 10 = 290, etc.
       
       // Get current stats using the correct storage wrapper (fivefold_ prefix)
       const currentStats = await getStoredData('userStats') || {
@@ -237,11 +236,13 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
         quizzesCompleted: 0
       };
       
+      const oldTotal = currentStats.totalPoints || currentStats.points || 0;
+      
       // Update stats
       const updatedStats = {
         ...currentStats,
-        points: (currentStats.points || 0) + pointsEarned,
-        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + pointsEarned,
+        points: oldTotal + basePoints,
+        totalPoints: oldTotal + basePoints,
         quizzesCompleted: (currentStats.quizzesCompleted || 0) + 1,
       };
       
@@ -268,13 +269,15 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
         console.log(`🔥 Quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
-      // Check achievements
-      await AchievementService.checkAchievements(updatedStats);
+      // Check achievements in background — bonus shown via AchievementToast
+      AchievementService.checkAchievements(updatedStats).catch(() => {});
       
-      console.log(`🎯 Quiz completed! Awarded ${pointsEarned} points for ${numQuestions} questions. Total: ${updatedStats.totalPoints}`);
+      setBonusPointsEarned(basePoints);
+      
+      console.log(`🎯 Quiz completed! Awarded ${basePoints} points for ${numQuestions} questions. Total: ${updatedStats.totalPoints}`);
       hapticFeedback.success(); // Haptic for earning points!
       
-      return pointsEarned;
+      return basePoints;
     } catch (error) {
       console.error('Error awarding quiz points:', error);
       return 0;

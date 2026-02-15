@@ -22,7 +22,9 @@ import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { getReferralCount } from '../services/referralService';
+import { pushToCloud } from '../services/userSyncService';
 import { updateLoadingAnimCache } from '../components/CustomLoadingIndicator';
+import { PREMIUM_BG_REFERRAL_REQUIRED } from '../data/premiumBackgrounds';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -43,8 +45,8 @@ const ANIM_REFERRAL_GATES = {
 
 const THEME_REFERRAL_GATES = {
   'biblely-jesusnlambs': null,  // Jesus & Lambs — free
+  'eterna':              null,  // Eterna — free
   'cresvia':             1,     // Cresvia — 1 referral
-  'eterna':              1,     // Eterna — 1 referral
   'blush-bloom':         3,     // Blush Bloom — 3 referrals
   'sailormoon':          5,     // Sailor Moon — 5 referrals
   'biblely-classic':     5,     // Classic — 5 referrals
@@ -134,7 +136,7 @@ const CustomisationScreen = () => {
 
   // Entrance animations — staggered sections
   const headerFade = useRef(new Animated.Value(0)).current;
-  const sections = useRef([...Array(7)].map(() => new Animated.Value(0))).current;
+  const sections = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
 
   // Shimmer for referral banner
   const shimmer = useRef(new Animated.Value(0)).current;
@@ -264,6 +266,7 @@ const CustomisationScreen = () => {
     }
     setSelectedAnim(id);
     await userStorage.setRaw(STREAK_ANIM_KEY, id);
+    pushToCloud('selectedStreakAnimation', id);
   };
 
   const pickLoadingAnim = async (id) => {
@@ -276,12 +279,14 @@ const CustomisationScreen = () => {
     setSelectedLoadingAnim(id);
     updateLoadingAnimCache(id); // Update global cache instantly
     await userStorage.setRaw(LOADING_ANIM_KEY, id);
+    pushToCloud('selectedLoadingAnimation', id);
   };
 
   const toggleBadge = async (badgeId, val) => {
     const updated = { ...badgeToggles, [badgeId]: val };
     setBadgeToggles(updated);
     await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(updated));
+    pushToCloud('badgeToggles', updated);
     if (badgeId === 'verified') {
       await userStorage.setRaw(BLUETICK_ENABLED_KEY, val.toString());
     }
@@ -304,8 +309,8 @@ const CustomisationScreen = () => {
   // ── Theme data (sorted by referral cost low → high) ─────────
   const allThemes = [
     { id: 'biblely-jesusnlambs', name: 'Jesus & Lambs', wallpaper: biblelyWallpapers?.[1]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 1, isBiblelyVariant: true, wallpaperIndex: 1, mode: 'Dark' },
-    { id: 'cresvia',            name: 'Cresvia',        wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme, mode: 'Dark' },
     { id: 'eterna',             name: 'Eterna',         wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme, mode: 'Light' },
+    { id: 'cresvia',            name: 'Cresvia',        wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme, mode: 'Dark' },
     { id: 'blush-bloom',        name: 'Blush Bloom',   wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme, mode: 'Light' },
     { id: 'sailormoon',         name: 'Sailor Moon',    wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme, mode: 'Light' },
     { id: 'biblely-classic',    name: 'Classic',         wallpaper: biblelyWallpapers?.[2]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 2, isBiblelyVariant: true, wallpaperIndex: 2, mode: 'Dark' },
@@ -655,8 +660,62 @@ const CustomisationScreen = () => {
           })()}
         </AnimSection>
 
-        {/* ── THEMES ──────────────────────────────────── */}
+        {/* ── SHARE CARD BACKGROUNDS ────────────────── */}
         <AnimSection anim={sections[5]}>
+          <SectionHeader icon="photo-library" iconBg="#E91E6320" iconColor="#E91E63" title="Share Card Backgrounds" subtitle="Premium images for verse share cards" textColor={tx} subtitleColor={tx2} />
+
+          {(() => {
+            const bgUnlocked = isItemUnlocked(PREMIUM_BG_REFERRAL_REQUIRED);
+            const bgTier = getTier(PREMIUM_BG_REFERRAL_REQUIRED);
+
+            return (
+              <View style={{ gap: 12 }}>
+                {!bgUnlocked ? (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => showLockedPopup('Premium Backgrounds', PREMIUM_BG_REFERRAL_REQUIRED)}
+                    style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
+                  >
+                    <LinearGradient colors={['rgba(80,80,80,0.4)', 'rgba(60,60,60,0.4)']} style={st.badgeIconGrad}>
+                      <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
+                    </LinearGradient>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <Text style={[st.badgeName, { color: tx, opacity: 0.5 }]}>68 Premium Backgrounds</Text>
+                      <Text style={[st.badgeDesc, { color: tx2, opacity: 0.5 }]}>
+                        Curated images for your verse share cards
+                      </Text>
+                    </View>
+                    <View style={[st.badgeGateChip, { backgroundColor: bgTier.bg, borderColor: bgTier.color + '25', borderWidth: 1 }]}>
+                      <MaterialIcons name="person-add" size={12} color={bgTier.color} />
+                      <Text style={[st.badgeGateChipText, { color: bgTier.color }]}>1 referral</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#E91E6325' }]}>
+                    <LinearGradient colors={['#E91E63', '#C2185B']} style={st.badgeIconGrad}>
+                      <MaterialIcons name="photo-library" size={24} color="#fff" />
+                    </LinearGradient>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[st.badgeName, { color: tx }]}>68 Premium Backgrounds</Text>
+                        <View style={[st.tierBadgeSmall, { backgroundColor: bgTier.bg }]}>
+                          <Text style={[st.tierTextSmall, { color: bgTier.color }]}>{bgTier.label}</Text>
+                        </View>
+                      </View>
+                      <Text style={[st.badgeDesc, { color: tx2 }]}>
+                        Curated images unlocked — select in share card
+                      </Text>
+                    </View>
+                    <MaterialIcons name="check-circle" size={24} color="#E91E63" />
+                  </View>
+                )}
+              </View>
+            );
+          })()}
+        </AnimSection>
+
+        {/* ── THEMES ──────────────────────────────────── */}
+        <AnimSection anim={sections[6]}>
           <SectionHeader icon="palette" iconBg={`${theme.primary}20`} iconColor={theme.primary} title="Themes" subtitle="Change your app's look" textColor={tx} subtitleColor={tx2} />
 
           <View style={st.themeGrid}>
@@ -719,7 +778,7 @@ const CustomisationScreen = () => {
         </AnimSection>
 
         {/* ── APP ICON ─────────────────────────────────────── */}
-        <AnimSection anim={sections[6]}>
+        <AnimSection anim={sections[7]}>
           <SectionHeader icon="phone-iphone" iconBg="#6366F120" iconColor="#6366F1" title="App Icon" subtitle="Customise your home screen icon" textColor={tx} subtitleColor={tx2} />
 
           <View style={{
@@ -974,14 +1033,18 @@ const CustomisationScreen = () => {
 // ── HELPER COMPONENTS ────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════
 
-const AnimSection = ({ anim, children }) => (
-  <Animated.View style={{
-    opacity: anim,
-    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-  }}>
-    {children}
-  </Animated.View>
-);
+const AnimSection = ({ anim, children }) => {
+  // Guard against undefined anim (e.g. hot-reload with stale useRef array)
+  if (!anim) return <View>{children}</View>;
+  return (
+    <Animated.View style={{
+      opacity: anim,
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+    }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 const SectionHeader = ({ icon, iconBg, iconColor, title, subtitle, textColor, subtitleColor }) => (
   <View style={st.secHead}>

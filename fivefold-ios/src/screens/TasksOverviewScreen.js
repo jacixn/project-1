@@ -27,6 +27,8 @@ import AchievementService from '../services/achievementService';
 import userStorage from '../utils/userStorage';
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { updateTodoWidget } from '../utils/widgetBridge';
+import { pushToCloud } from '../services/userSyncService';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -91,6 +93,7 @@ const TasksOverviewScreen = () => {
     );
 
     const pointsEarned = Math.min(taskToComplete.points || 69, 345);
+    const oldTotal = userStats.totalPoints || userStats.points || 0;
     const newCompletedTasks = (userStats.completedTasks || 0) + 1;
 
     // Track per-tier completions for achievements
@@ -99,11 +102,11 @@ const TasksOverviewScreen = () => {
 
     const updatedStats = {
       ...userStats,
-      totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
-      points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+      totalPoints: oldTotal + pointsEarned,
+      points: oldTotal + pointsEarned,
       completedTasks: newCompletedTasks,
       [tierKey]: (userStats[tierKey] || 0) + 1,
-      level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
+      level: AchievementService.getLevelFromPoints(oldTotal + pointsEarned),
     };
 
     setTodos(updatedTodos);
@@ -111,8 +114,10 @@ const TasksOverviewScreen = () => {
 
     // Persist in background — don't await to keep UI snappy
     saveData('todos', updatedTodos).catch(() => {});
+    pushToCloud('todos', updatedTodos);
     saveData('userStats', updatedStats).catch(() => {});
     userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
+    updateTodoWidget().catch(() => {});
 
     // Sync to Firebase in background (non-blocking)
     const currentUser = auth.currentUser;
@@ -137,7 +142,7 @@ const TasksOverviewScreen = () => {
       }
     }).catch(() => {});
 
-    // Notify other components
+    // Notify other components that a task was completed
     DeviceEventEmitter.emit('taskCompleted', {
       taskId: todoId,
       points: pointsEarned,
@@ -152,6 +157,8 @@ const TasksOverviewScreen = () => {
     const updatedTodos = todos.filter(todo => todo.id !== todoId);
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
+    pushToCloud('todos', updatedTodos);
+    updateTodoWidget().catch(() => {});
     DeviceEventEmitter.emit('todosChanged');
   }, [todos]);
 

@@ -2,6 +2,7 @@ import userStorage from '../utils/userStorage';
 import { DeviceEventEmitter } from 'react-native';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { pushToCloud } from './userSyncService';
 
 /**
  * All Bible-focused achievement definitions.
@@ -12,92 +13,92 @@ import { db, auth } from '../config/firebase';
  */
 const ACHIEVEMENTS = [
   // ── Prayers ──────────────────────────────────────────────
-  { id: 'prayers_1',   target: 1,   type: 'prayersCompleted', title: 'First Prayer',       points: 132,   icon: 'self-improvement', category: 'prayer' },
-  { id: 'prayers_3',   target: 3,   type: 'prayersCompleted', title: 'Prayer Beginner',     points: 265,   icon: 'self-improvement', category: 'prayer' },
-  { id: 'prayers_5',   target: 5,   type: 'prayersCompleted', title: 'Faithful Five',       points: 529,   icon: 'self-improvement', category: 'prayer' },
-  { id: 'prayers_10',  target: 10,  type: 'prayersCompleted', title: 'Prayer Warrior',      points: 995,   icon: 'self-improvement', category: 'prayer' },
-  { id: 'prayers_25',  target: 25,  type: 'prayersCompleted', title: 'Devoted Heart',       points: 1984,  icon: 'self-improvement', category: 'prayer' },
-  { id: 'prayers_50',  target: 50,  type: 'prayersCompleted', title: 'Prayer Champion',     points: 3968,  icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_1',   target: 3,   type: 'prayersCompleted', title: 'First Steps',         points: 132,   icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_3',   target: 7,   type: 'prayersCompleted', title: 'Prayer Beginner',     points: 265,   icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_5',   target: 15,  type: 'prayersCompleted', title: 'Faithful',            points: 529,   icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_10',  target: 30,  type: 'prayersCompleted', title: 'Prayer Warrior',      points: 995,   icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_25',  target: 75,  type: 'prayersCompleted', title: 'Devoted Heart',       points: 1984,  icon: 'self-improvement', category: 'prayer' },
+  { id: 'prayers_50',  target: 150, type: 'prayersCompleted', title: 'Prayer Champion',     points: 3968,  icon: 'self-improvement', category: 'prayer' },
 
   // ── Saved Verses ─────────────────────────────────────────
-  { id: 'saved_1',     target: 1,   type: 'savedVerses',      title: 'First Bookmark',      points: 132,   icon: 'bookmark',          category: 'saved' },
-  { id: 'saved_3',     target: 3,   type: 'savedVerses',      title: 'Verse Collector',     points: 199,   icon: 'bookmark',          category: 'saved' },
-  { id: 'saved_5',     target: 5,   type: 'savedVerses',      title: 'Treasure Hunter',     points: 397,   icon: 'bookmark',          category: 'saved' },
-  { id: 'saved_10',    target: 10,  type: 'savedVerses',      title: 'Scripture Keeper',    points: 794,   icon: 'bookmark',          category: 'saved' },
-  { id: 'saved_25',    target: 25,  type: 'savedVerses',      title: 'Verse Vault',         points: 1587,  icon: 'bookmark',          category: 'saved' },
-  { id: 'saved_50',    target: 50,  type: 'savedVerses',      title: 'Living Library',      points: 3306,  icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_1',     target: 3,   type: 'savedVerses',      title: 'Bookmarker',          points: 132,   icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_3',     target: 7,   type: 'savedVerses',      title: 'Verse Collector',     points: 199,   icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_5',     target: 15,  type: 'savedVerses',      title: 'Treasure Hunter',     points: 397,   icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_10',    target: 30,  type: 'savedVerses',      title: 'Scripture Keeper',    points: 794,   icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_25',    target: 60,  type: 'savedVerses',      title: 'Verse Vault',         points: 1587,  icon: 'bookmark',          category: 'saved' },
+  { id: 'saved_50',    target: 100, type: 'savedVerses',      title: 'Living Library',      points: 3306,  icon: 'bookmark',          category: 'saved' },
 
   // ── Shared Verses ────────────────────────────────────────
-  { id: 'shared_1',    target: 1,   type: 'versesShared',     title: 'First Share',         points: 132,   icon: 'share',             category: 'shared' },
-  { id: 'shared_3',    target: 3,   type: 'versesShared',     title: 'Spreading the Word',  points: 265,   icon: 'share',             category: 'shared' },
-  { id: 'shared_5',    target: 5,   type: 'versesShared',     title: 'Gospel Messenger',    points: 529,   icon: 'share',             category: 'shared' },
-  { id: 'shared_10',   target: 10,  type: 'versesShared',     title: 'Light of the World',  points: 1058,  icon: 'share',             category: 'shared' },
-  { id: 'shared_25',   target: 25,  type: 'versesShared',     title: 'Word Ambassador',     points: 2645,  icon: 'share',             category: 'shared' },
+  { id: 'shared_1',    target: 3,   type: 'versesShared',     title: 'Spreading the Word',  points: 132,   icon: 'share',             category: 'shared' },
+  { id: 'shared_3',    target: 7,   type: 'versesShared',     title: 'Gospel Messenger',    points: 265,   icon: 'share',             category: 'shared' },
+  { id: 'shared_5',    target: 15,  type: 'versesShared',     title: 'Light of the World',  points: 529,   icon: 'share',             category: 'shared' },
+  { id: 'shared_10',   target: 25,  type: 'versesShared',     title: 'Word Ambassador',     points: 1058,  icon: 'share',             category: 'shared' },
+  { id: 'shared_25',   target: 50,  type: 'versesShared',     title: 'Share Champion',      points: 2645,  icon: 'share',             category: 'shared' },
 
   // ── Audio Playback ───────────────────────────────────────
-  { id: 'audio_1',     target: 1,   type: 'audiosPlayed',     title: 'First Listen',        points: 132,   icon: 'headphones',        category: 'audio' },
-  { id: 'audio_3',     target: 3,   type: 'audiosPlayed',     title: 'Tuned In',            points: 265,   icon: 'headphones',        category: 'audio' },
-  { id: 'audio_5',     target: 5,   type: 'audiosPlayed',     title: 'Audio Explorer',      points: 529,   icon: 'headphones',        category: 'audio' },
-  { id: 'audio_10',    target: 10,  type: 'audiosPlayed',     title: 'Faithful Listener',   points: 995,   icon: 'headphones',        category: 'audio' },
-  { id: 'audio_25',    target: 25,  type: 'audiosPlayed',     title: 'Word on Repeat',      points: 2645,  icon: 'headphones',        category: 'audio' },
+  { id: 'audio_1',     target: 3,   type: 'audiosPlayed',     title: 'Tuned In',            points: 132,   icon: 'headphones',        category: 'audio' },
+  { id: 'audio_3',     target: 7,   type: 'audiosPlayed',     title: 'Audio Explorer',      points: 265,   icon: 'headphones',        category: 'audio' },
+  { id: 'audio_5',     target: 15,  type: 'audiosPlayed',     title: 'Faithful Listener',   points: 529,   icon: 'headphones',        category: 'audio' },
+  { id: 'audio_10',    target: 25,  type: 'audiosPlayed',     title: 'Word on Repeat',      points: 995,   icon: 'headphones',        category: 'audio' },
+  { id: 'audio_25',    target: 50,  type: 'audiosPlayed',     title: 'Audio Devotee',       points: 2645,  icon: 'headphones',        category: 'audio' },
 
   // ── Bible Characters ─────────────────────────────────────
-  { id: 'chars_1',     target: 1,   type: 'charactersRead',   title: 'First Character',     points: 132,   icon: 'person',            category: 'characters' },
-  { id: 'chars_3',     target: 3,   type: 'charactersRead',   title: 'Character Curious',   points: 331,   icon: 'person',            category: 'characters' },
-  { id: 'chars_5',     target: 5,   type: 'charactersRead',   title: 'History Buff',        points: 661,   icon: 'person',            category: 'characters' },
-  { id: 'chars_10',    target: 10,  type: 'charactersRead',   title: 'Bible Scholar',       points: 1323,  icon: 'person',            category: 'characters' },
-  { id: 'chars_20',    target: 20,  type: 'charactersRead',   title: 'Character Master',    points: 3306,  icon: 'person',            category: 'characters' },
+  { id: 'chars_1',     target: 3,   type: 'charactersRead',   title: 'Character Curious',   points: 132,   icon: 'person',            category: 'characters' },
+  { id: 'chars_3',     target: 7,   type: 'charactersRead',   title: 'History Buff',        points: 331,   icon: 'person',            category: 'characters' },
+  { id: 'chars_5',     target: 12,  type: 'charactersRead',   title: 'Bible Scholar',       points: 661,   icon: 'person',            category: 'characters' },
+  { id: 'chars_10',    target: 20,  type: 'charactersRead',   title: 'Walking Encyclopedia', points: 1323, icon: 'person',            category: 'characters' },
+  { id: 'chars_20',    target: 35,  type: 'charactersRead',   title: 'Character Master',    points: 3306,  icon: 'person',            category: 'characters' },
 
   // ── Bible Timeline ───────────────────────────────────────
-  { id: 'timeline_1',  target: 1,   type: 'timelineErasViewed', title: 'Time Traveller',    points: 132,   icon: 'timeline',          category: 'timeline' },
-  { id: 'timeline_3',  target: 3,   type: 'timelineErasViewed', title: 'Era Explorer',      points: 331,   icon: 'timeline',          category: 'timeline' },
-  { id: 'timeline_5',  target: 5,   type: 'timelineErasViewed', title: 'History Seeker',    points: 661,   icon: 'timeline',          category: 'timeline' },
+  { id: 'timeline_1',  target: 2,   type: 'timelineErasViewed', title: 'Time Traveller',    points: 132,   icon: 'timeline',          category: 'timeline' },
+  { id: 'timeline_3',  target: 4,   type: 'timelineErasViewed', title: 'Era Explorer',      points: 331,   icon: 'timeline',          category: 'timeline' },
+  { id: 'timeline_5',  target: 6,   type: 'timelineErasViewed', title: 'History Seeker',    points: 661,   icon: 'timeline',          category: 'timeline' },
   { id: 'timeline_8',  target: 8,   type: 'timelineErasViewed', title: 'Timeline Master',   points: 1587,  icon: 'timeline',          category: 'timeline' },
 
   // ── Verses Read ──────────────────────────────────────────
-  { id: 'read_1',      target: 1,   type: 'versesRead',       title: 'First Verse',         points: 132,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_10',     target: 10,  type: 'versesRead',       title: 'Page Turner',         points: 265,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_25',     target: 25,  type: 'versesRead',       title: 'Daily Reader',        points: 529,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_50',     target: 50,  type: 'versesRead',       title: 'Scripture Seeker',    points: 1058,  icon: 'menu-book',         category: 'reading' },
-  { id: 'read_100',    target: 100, type: 'versesRead',       title: 'Bible Student',       points: 1984,  icon: 'menu-book',         category: 'reading' },
-  { id: 'read_250',    target: 250, type: 'versesRead',       title: 'Word Warrior',        points: 3968,  icon: 'menu-book',         category: 'reading' },
+  { id: 'read_1',      target: 10,  type: 'versesRead',       title: 'Page Turner',         points: 132,   icon: 'menu-book',         category: 'reading' },
+  { id: 'read_10',     target: 30,  type: 'versesRead',       title: 'Daily Reader',        points: 265,   icon: 'menu-book',         category: 'reading' },
+  { id: 'read_25',     target: 75,  type: 'versesRead',       title: 'Scripture Seeker',    points: 529,   icon: 'menu-book',         category: 'reading' },
+  { id: 'read_50',     target: 150, type: 'versesRead',       title: 'Bible Student',       points: 1058,  icon: 'menu-book',         category: 'reading' },
+  { id: 'read_100',    target: 300, type: 'versesRead',       title: 'Word Warrior',        points: 1984,  icon: 'menu-book',         category: 'reading' },
+  { id: 'read_250',    target: 500, type: 'versesRead',       title: 'Scripture Master',    points: 3968,  icon: 'menu-book',         category: 'reading' },
 
   // ── Bible Maps ───────────────────────────────────────────
-  { id: 'maps_1',      target: 1,   type: 'mapsVisited',      title: 'First Footstep',      points: 132,   icon: 'map',               category: 'maps' },
-  { id: 'maps_3',      target: 3,   type: 'mapsVisited',      title: 'Pilgrim',             points: 265,   icon: 'map',               category: 'maps' },
-  { id: 'maps_5',      target: 5,   type: 'mapsVisited',      title: 'Holy Land Explorer',  points: 529,   icon: 'map',               category: 'maps' },
-  { id: 'maps_10',     target: 10,  type: 'mapsVisited',      title: 'Map Master',          points: 1323,  icon: 'map',               category: 'maps' },
+  { id: 'maps_1',      target: 2,   type: 'mapsVisited',      title: 'Pilgrim',             points: 132,   icon: 'map',               category: 'maps' },
+  { id: 'maps_3',      target: 5,   type: 'mapsVisited',      title: 'Holy Land Explorer',  points: 265,   icon: 'map',               category: 'maps' },
+  { id: 'maps_5',      target: 8,   type: 'mapsVisited',      title: 'Cartographer',        points: 529,   icon: 'map',               category: 'maps' },
+  { id: 'maps_10',     target: 12,  type: 'mapsVisited',      title: 'Map Master',          points: 1323,  icon: 'map',               category: 'maps' },
 
   // ── Tasks (All) ─────────────────────────────────────────
-  { id: 'tasks_1',     target: 1,   type: 'completedTasks',   title: 'Getting Started',     points: 132,   icon: 'check-circle',      category: 'tasks' },
-  { id: 'tasks_5',     target: 5,   type: 'completedTasks',   title: 'On a Roll',           points: 397,   icon: 'check-circle',      category: 'tasks' },
-  { id: 'tasks_10',    target: 10,  type: 'completedTasks',   title: 'Task Machine',        points: 794,   icon: 'check-circle',      category: 'tasks' },
-  { id: 'tasks_25',    target: 25,  type: 'completedTasks',   title: 'Productivity Pro',    points: 1587,  icon: 'check-circle',      category: 'tasks' },
-  { id: 'tasks_50',    target: 50,  type: 'completedTasks',   title: 'Unstoppable',         points: 2645,  icon: 'check-circle',      category: 'tasks' },
-  { id: 'tasks_100',   target: 100, type: 'completedTasks',   title: 'Century Club',        points: 3968,  icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_1',     target: 5,   type: 'completedTasks',   title: 'Getting Started',     points: 132,   icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_5',     target: 15,  type: 'completedTasks',   title: 'On a Roll',           points: 397,   icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_10',    target: 30,  type: 'completedTasks',   title: 'Task Machine',        points: 794,   icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_25',    target: 60,  type: 'completedTasks',   title: 'Productivity Pro',    points: 1587,  icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_50',    target: 100, type: 'completedTasks',   title: 'Unstoppable',         points: 2645,  icon: 'check-circle',      category: 'tasks' },
+  { id: 'tasks_100',   target: 200, type: 'completedTasks',   title: 'Century Club',        points: 3968,  icon: 'check-circle',      category: 'tasks' },
 
   // ── Low Tier Tasks ──────────────────────────────────────
-  { id: 'low_1',       target: 1,   type: 'lowTierCompleted',  title: 'Quick Win',           points: 67,    icon: 'flash-on',          category: 'tasks_low' },
-  { id: 'low_5',       target: 5,   type: 'lowTierCompleted',  title: 'Easy Does It',        points: 265,   icon: 'flash-on',          category: 'tasks_low' },
-  { id: 'low_10',      target: 10,  type: 'lowTierCompleted',  title: 'Low-Key Legend',      points: 661,   icon: 'flash-on',          category: 'tasks_low' },
-  { id: 'low_25',      target: 25,  type: 'lowTierCompleted',  title: 'Small Steps Giant Leaps', points: 1323, icon: 'flash-on',       category: 'tasks_low' },
+  { id: 'low_1',       target: 3,   type: 'lowTierCompleted',  title: 'Quick Win',           points: 67,    icon: 'flash-on',          category: 'tasks_low' },
+  { id: 'low_5',       target: 10,  type: 'lowTierCompleted',  title: 'Easy Does It',        points: 265,   icon: 'flash-on',          category: 'tasks_low' },
+  { id: 'low_10',      target: 25,  type: 'lowTierCompleted',  title: 'Low-Key Legend',      points: 661,   icon: 'flash-on',          category: 'tasks_low' },
+  { id: 'low_25',      target: 50,  type: 'lowTierCompleted',  title: 'Small Steps Giant Leaps', points: 1323, icon: 'flash-on',       category: 'tasks_low' },
 
   // ── Mid Tier Tasks ──────────────────────────────────────
-  { id: 'mid_1',       target: 1,   type: 'midTierCompleted',  title: 'Stepping Up',         points: 132,   icon: 'trending-up',       category: 'tasks_mid' },
-  { id: 'mid_5',       target: 5,   type: 'midTierCompleted',  title: 'Balanced Grinder',    points: 397,   icon: 'trending-up',       category: 'tasks_mid' },
-  { id: 'mid_10',      target: 10,  type: 'midTierCompleted',  title: 'Mid-Range Master',    points: 995,   icon: 'trending-up',       category: 'tasks_mid' },
-  { id: 'mid_25',      target: 25,  type: 'midTierCompleted',  title: 'Consistency King',    points: 1984,  icon: 'trending-up',       category: 'tasks_mid' },
+  { id: 'mid_1',       target: 3,   type: 'midTierCompleted',  title: 'Stepping Up',         points: 132,   icon: 'trending-up',       category: 'tasks_mid' },
+  { id: 'mid_5',       target: 10,  type: 'midTierCompleted',  title: 'Balanced Grinder',    points: 397,   icon: 'trending-up',       category: 'tasks_mid' },
+  { id: 'mid_10',      target: 25,  type: 'midTierCompleted',  title: 'Mid-Range Master',    points: 995,   icon: 'trending-up',       category: 'tasks_mid' },
+  { id: 'mid_25',      target: 50,  type: 'midTierCompleted',  title: 'Consistency King',    points: 1984,  icon: 'trending-up',       category: 'tasks_mid' },
 
   // ── High Tier Tasks ─────────────────────────────────────
-  { id: 'high_1',      target: 1,   type: 'highTierCompleted', title: 'Heavy Hitter',        points: 199,   icon: 'whatshot',           category: 'tasks_high' },
-  { id: 'high_5',      target: 5,   type: 'highTierCompleted', title: 'Built Different',     points: 661,   icon: 'whatshot',           category: 'tasks_high' },
-  { id: 'high_10',     target: 10,  type: 'highTierCompleted', title: 'Boss Mode',           points: 1323,  icon: 'whatshot',           category: 'tasks_high' },
-  { id: 'high_25',     target: 25,  type: 'highTierCompleted', title: 'Elite Achiever',      points: 3306,  icon: 'whatshot',           category: 'tasks_high' },
+  { id: 'high_1',      target: 3,   type: 'highTierCompleted', title: 'Heavy Hitter',        points: 199,   icon: 'whatshot',           category: 'tasks_high' },
+  { id: 'high_5',      target: 10,  type: 'highTierCompleted', title: 'Built Different',     points: 661,   icon: 'whatshot',           category: 'tasks_high' },
+  { id: 'high_10',     target: 20,  type: 'highTierCompleted', title: 'Boss Mode',           points: 1323,  icon: 'whatshot',           category: 'tasks_high' },
+  { id: 'high_25',     target: 40,  type: 'highTierCompleted', title: 'Elite Achiever',      points: 3306,  icon: 'whatshot',           category: 'tasks_high' },
 
   // ── App Streak (consecutive daily opens) ────────────────
-  { id: 'app_streak_1',  target: 1,  type: 'appStreak', title: 'Day One',             points: 132,   icon: 'local-fire-department', category: 'streak' },
-  { id: 'app_streak_5',  target: 5,  type: 'appStreak', title: 'Five Day Flow',       points: 397,   icon: 'local-fire-department', category: 'streak' },
-  { id: 'app_streak_15', target: 15, type: 'appStreak', title: 'Fifteen Day Fire',    points: 1058,  icon: 'local-fire-department', category: 'streak' },
+  { id: 'app_streak_1',  target: 3,  type: 'appStreak', title: 'Three Day Streak',    points: 132,   icon: 'local-fire-department', category: 'streak' },
+  { id: 'app_streak_5',  target: 7,  type: 'appStreak', title: 'One Week Flow',       points: 397,   icon: 'local-fire-department', category: 'streak' },
+  { id: 'app_streak_15', target: 14, type: 'appStreak', title: 'Two Week Fire',       points: 1058,  icon: 'local-fire-department', category: 'streak' },
   { id: 'app_streak_30', target: 30, type: 'appStreak', title: 'Monthly Devotion',    points: 2645,  icon: 'local-fire-department', category: 'streak' },
 
   // ── Points Goals ──────────────────────────────────────
@@ -108,38 +109,38 @@ const ACHIEVEMENTS = [
   { id: 'points_50k',  target: 50000,  type: 'totalPoints',   title: '50K Champion',        points: 2645,  icon: 'star',              category: 'goals' },
 
   // ── Workouts ────────────────────────────────────────────
-  { id: 'workout_1',   target: 1,   type: 'workoutsCompleted', title: 'First Sweat',         points: 132,   icon: 'fitness-center',    category: 'workouts' },
-  { id: 'workout_3',   target: 3,   type: 'workoutsCompleted', title: 'Getting Consistent',  points: 265,   icon: 'fitness-center',    category: 'workouts' },
-  { id: 'workout_5',   target: 5,   type: 'workoutsCompleted', title: 'Gym Regular',         points: 529,   icon: 'fitness-center',    category: 'workouts' },
-  { id: 'workout_10',  target: 10,  type: 'workoutsCompleted', title: 'Iron Addict',         points: 1058,  icon: 'fitness-center',    category: 'workouts' },
-  { id: 'workout_25',  target: 25,  type: 'workoutsCompleted', title: 'Beast Mode',          points: 1984,  icon: 'fitness-center',    category: 'workouts' },
-  { id: 'workout_50',  target: 50,  type: 'workoutsCompleted', title: 'Gym Rat',             points: 3306,  icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_1',   target: 3,   type: 'workoutsCompleted', title: 'Getting Consistent',  points: 132,   icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_3',   target: 7,   type: 'workoutsCompleted', title: 'Gym Regular',         points: 265,   icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_5',   target: 15,  type: 'workoutsCompleted', title: 'Iron Addict',         points: 529,   icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_10',  target: 25,  type: 'workoutsCompleted', title: 'Beast Mode',          points: 1058,  icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_25',  target: 50,  type: 'workoutsCompleted', title: 'Gym Rat',             points: 1984,  icon: 'fitness-center',    category: 'workouts' },
+  { id: 'workout_50',  target: 100, type: 'workoutsCompleted', title: 'Iron Legend',          points: 3306,  icon: 'fitness-center',    category: 'workouts' },
 
   // ── Workout Streak (weeks) ──────────────────────────────
-  { id: 'gym_streak_2',  target: 2,  type: 'gymWeekStreak',   title: 'Two-Week Grind',       points: 265,   icon: 'local-fire-department', category: 'gym_streak' },
-  { id: 'gym_streak_4',  target: 4,  type: 'gymWeekStreak',   title: 'Monthly Muscle',       points: 661,   icon: 'local-fire-department', category: 'gym_streak' },
-  { id: 'gym_streak_8',  target: 8,  type: 'gymWeekStreak',   title: 'Two-Month Terror',     points: 1587,  icon: 'local-fire-department', category: 'gym_streak' },
+  { id: 'gym_streak_2',  target: 3,  type: 'gymWeekStreak',   title: 'Three-Week Grind',     points: 265,   icon: 'local-fire-department', category: 'gym_streak' },
+  { id: 'gym_streak_4',  target: 6,  type: 'gymWeekStreak',   title: 'Six-Week Soldier',     points: 661,   icon: 'local-fire-department', category: 'gym_streak' },
+  { id: 'gym_streak_8',  target: 10, type: 'gymWeekStreak',   title: 'Ten-Week Terror',      points: 1587,  icon: 'local-fire-department', category: 'gym_streak' },
 
   // ── Exercises ───────────────────────────────────────────
-  { id: 'exercises_5',   target: 5,   type: 'exercisesLogged', title: 'Warming Up',          points: 132,   icon: 'sports-gymnastics',  category: 'exercises' },
-  { id: 'exercises_25',  target: 25,  type: 'exercisesLogged', title: 'All-Rounder',         points: 397,   icon: 'sports-gymnastics',  category: 'exercises' },
-  { id: 'exercises_50',  target: 50,  type: 'exercisesLogged', title: 'Exercise Collector',  points: 794,   icon: 'sports-gymnastics',  category: 'exercises' },
-  { id: 'exercises_100', target: 100, type: 'exercisesLogged', title: 'Movement Master',     points: 1587,  icon: 'sports-gymnastics',  category: 'exercises' },
-  { id: 'exercises_200', target: 200, type: 'exercisesLogged', title: 'Gym Encyclopedia',    points: 2645,  icon: 'sports-gymnastics',  category: 'exercises' },
+  { id: 'exercises_5',   target: 10,  type: 'exercisesLogged', title: 'Warming Up',          points: 132,   icon: 'sports-gymnastics',  category: 'exercises' },
+  { id: 'exercises_25',  target: 30,  type: 'exercisesLogged', title: 'All-Rounder',         points: 397,   icon: 'sports-gymnastics',  category: 'exercises' },
+  { id: 'exercises_50',  target: 75,  type: 'exercisesLogged', title: 'Exercise Collector',  points: 794,   icon: 'sports-gymnastics',  category: 'exercises' },
+  { id: 'exercises_100', target: 150, type: 'exercisesLogged', title: 'Movement Master',     points: 1587,  icon: 'sports-gymnastics',  category: 'exercises' },
+  { id: 'exercises_200', target: 250, type: 'exercisesLogged', title: 'Gym Encyclopedia',    points: 2645,  icon: 'sports-gymnastics',  category: 'exercises' },
 
   // ── Sets Completed ──────────────────────────────────────
-  { id: 'sets_10',    target: 10,   type: 'setsCompleted',    title: 'First Reps',           points: 132,   icon: 'replay',            category: 'sets' },
-  { id: 'sets_50',    target: 50,   type: 'setsCompleted',    title: 'Set Stacker',          points: 397,   icon: 'replay',            category: 'sets' },
-  { id: 'sets_100',   target: 100,  type: 'setsCompleted',    title: 'Volume Dealer',        points: 794,   icon: 'replay',            category: 'sets' },
-  { id: 'sets_250',   target: 250,  type: 'setsCompleted',    title: 'Rep Machine',          points: 1587,  icon: 'replay',            category: 'sets' },
-  { id: 'sets_500',   target: 500,  type: 'setsCompleted',    title: 'Thousand Club',        points: 2645,  icon: 'replay',            category: 'sets' },
+  { id: 'sets_10',    target: 25,   type: 'setsCompleted',    title: 'First Reps',           points: 132,   icon: 'replay',            category: 'sets' },
+  { id: 'sets_50',    target: 75,   type: 'setsCompleted',    title: 'Set Stacker',          points: 397,   icon: 'replay',            category: 'sets' },
+  { id: 'sets_100',   target: 150,  type: 'setsCompleted',    title: 'Volume Dealer',        points: 794,   icon: 'replay',            category: 'sets' },
+  { id: 'sets_250',   target: 350,  type: 'setsCompleted',    title: 'Rep Machine',          points: 1587,  icon: 'replay',            category: 'sets' },
+  { id: 'sets_500',   target: 750,  type: 'setsCompleted',    title: 'Thousand Club',        points: 2645,  icon: 'replay',            category: 'sets' },
 
   // ── Workout Minutes ─────────────────────────────────────
-  { id: 'minutes_30',   target: 30,   type: 'workoutMinutes',  title: 'Half-Hour Hero',      points: 132,   icon: 'timer',             category: 'gym_time' },
-  { id: 'minutes_60',   target: 60,   type: 'workoutMinutes',  title: 'One-Hour Warrior',    points: 331,   icon: 'timer',             category: 'gym_time' },
-  { id: 'minutes_150',  target: 150,  type: 'workoutMinutes',  title: 'Grind Time',          points: 661,   icon: 'timer',             category: 'gym_time' },
-  { id: 'minutes_300',  target: 300,  type: 'workoutMinutes',  title: 'Five-Hour Titan',     points: 1323,  icon: 'timer',             category: 'gym_time' },
-  { id: 'minutes_600',  target: 600,  type: 'workoutMinutes',  title: 'Ten-Hour Legend',     points: 2645,  icon: 'timer',             category: 'gym_time' },
+  { id: 'minutes_30',   target: 60,   type: 'workoutMinutes',  title: 'One-Hour Warrior',    points: 132,   icon: 'timer',             category: 'gym_time' },
+  { id: 'minutes_60',   target: 120,  type: 'workoutMinutes',  title: 'Two-Hour Grind',      points: 331,   icon: 'timer',             category: 'gym_time' },
+  { id: 'minutes_150',  target: 300,  type: 'workoutMinutes',  title: 'Five-Hour Titan',     points: 661,   icon: 'timer',             category: 'gym_time' },
+  { id: 'minutes_300',  target: 500,  type: 'workoutMinutes',  title: 'Grind Machine',       points: 1323,  icon: 'timer',             category: 'gym_time' },
+  { id: 'minutes_600',  target: 1000, type: 'workoutMinutes',  title: 'Iron Legend',          points: 2645,  icon: 'timer',             category: 'gym_time' },
 ];
 
 // ─── Storage key constants ──────────────────────────────────
@@ -299,6 +300,7 @@ class AchievementService {
 
       // Persist unlocked list
       await userStorage.setRaw(this.ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
+      pushToCloud('achievementsUnlocked', unlocked);
 
       // ── Award achievement bonus points ──────────────────────
       const totalPointsToAward = newlyUnlocked.reduce((sum, m) => sum + m.points, 0);
@@ -361,9 +363,11 @@ class AchievementService {
         const prestige = await this.getPrestigeCount();
         const newPrestige = prestige + 1;
         await userStorage.setRaw(this.PRESTIGE_KEY, newPrestige.toString());
+        pushToCloud('achievementsPrestige', newPrestige);
 
         // Reset the unlocked list so they can be earned again
         await userStorage.setRaw(this.ACHIEVEMENTS_KEY, JSON.stringify([]));
+        pushToCloud('achievementsUnlocked', []);
 
         console.log(`[Achievement] ALL COMPLETE! Prestige round ${newPrestige} — achievements reset.`);
 

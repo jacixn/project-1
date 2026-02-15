@@ -484,6 +484,28 @@ const ThemedApp = () => {
             pendingWidgetVerseRef.current = decodedRef;
           }
         }
+      } else if (url.startsWith('biblely://fuel')) {
+        // Fuel widget tapped — navigate to Nutrition screen
+        console.log('🔥 Fuel widget tap — navigating to Nutrition');
+        const navigate = () => {
+          if (navigationRef.current?.isReady()) {
+            navigationRef.current.navigate('Nutrition');
+          } else {
+            pendingNavigationRef.current = { tab: 'Nutrition' };
+          }
+        };
+        navigate();
+      } else if (url.startsWith('biblely://todos')) {
+        // Todo widget tapped — navigate to Todos tab
+        console.log('📋 Todo widget tap — navigating to Todos');
+        const navigate = () => {
+          if (navigationRef.current?.isReady()) {
+            navigationRef.current.navigate('Todos');
+          } else {
+            pendingNavigationRef.current = { tab: 'Todos' };
+          }
+        };
+        navigate();
       }
     } catch (error) {
       console.error('❌ Error parsing deep link:', error);

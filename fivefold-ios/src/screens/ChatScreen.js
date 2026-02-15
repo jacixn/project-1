@@ -395,9 +395,18 @@ const ChatScreen = () => {
   useEffect(() => {
     if (!conversationId) return;
 
-    // Subscribe to messages
+    // Subscribe to messages — filter out expired ones client-side
     const unsubscribe = subscribeToMessages(conversationId, (msgs) => {
-      setMessages(msgs);
+      const now = Date.now();
+      const filtered = msgs.filter(msg => {
+        // If message has a deleteAfter timestamp, check if it's expired
+        if (msg.deleteAfter) {
+          const expiry = msg.deleteAfter?.toDate ? msg.deleteAfter.toDate().getTime() : msg.deleteAfter;
+          return expiry > now;
+        }
+        return true; // Keep messages without deleteAfter (legacy)
+      });
+      setMessages(filtered);
       setLoading(false);
       
       // Mark as read
@@ -406,7 +415,15 @@ const ChatScreen = () => {
       }
     });
 
-    return () => unsubscribe();
+    // Periodic cleanup: delete expired messages from Firestore every 60 seconds
+    const cleanupInterval = setInterval(() => {
+      cleanupOldMessages(conversationId).catch(() => {});
+    }, 60000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(cleanupInterval);
+    };
   }, [conversationId, user]);
 
   const initializeChat = async () => {
@@ -586,12 +603,45 @@ const ChatScreen = () => {
     }
   };
 
-  const getTimeString = (timestamp) => {
+  // Helper: get just the time string
+  const getTimeOnly = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   };
 
+  // Helper: get the day label for a date
+  const getDayLabel = (date) => {
+    const now = new Date();
+    const isToday = date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+    if (isToday) return 'Today';
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+    if (isYesterday) return 'Yesterday';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+  };
+
+  // Check if this message starts a new day compared to the previous one
+  const isDifferentDay = (index) => {
+    if (index === 0) return true;
+    const currentDate = messages[index].createdAt?.toDate?.() || new Date(messages[index].createdAt);
+    const prevDate = messages[index - 1].createdAt?.toDate?.() || new Date(messages[index - 1].createdAt);
+    return currentDate.getDate() !== prevDate.getDate() ||
+      currentDate.getMonth() !== prevDate.getMonth() ||
+      currentDate.getFullYear() !== prevDate.getFullYear();
+  };
+
+  // Show a time separator if messages are 5+ minutes apart (but same day)
   const shouldShowTimestamp = (index) => {
     if (index === 0) return true;
     const currentMsg = messages[index];
@@ -627,11 +677,15 @@ const ChatScreen = () => {
       return { width, height: Math.min(height, 300) };
     };
 
+    const showDayHeader = isDifferentDay(index);
+    const msgDate = item.createdAt?.toDate?.() || new Date(item.createdAt);
+
     return (
       <View>
-        {showTimestamp && (
-          <Text style={[styles.timestamp, { color: theme.textTertiary }]}>
-            {getTimeString(item.createdAt)}
+        {/* Day header — shown once per day */}
+        {showDayHeader && (
+          <Text style={[styles.timestamp, { color: theme.textTertiary, fontWeight: '700', marginTop: 16, marginBottom: 4 }]}>
+            {getDayLabel(msgDate)}
           </Text>
         )}
         
@@ -716,10 +770,7 @@ const ChatScreen = () => {
             {isMe && (
               <View style={styles.readReceiptContainer}>
                 <Text style={styles.messageTime}>
-                  {item.createdAt?.toDate ? 
-                    item.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
-                    new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  }
+                  {item.createdAt ? (item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}
                 </Text>
                 {item.read ? (
                   // Double checkmark for read messages (blue)

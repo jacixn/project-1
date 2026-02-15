@@ -50,6 +50,8 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 import { getReferralCount } from '../services/referralService';
+import { updateTodoWidget } from '../utils/widgetBridge';
+import { pushToCloud } from '../services/userSyncService';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -522,6 +524,8 @@ const TodosTab = () => {
     const updatedTodos = [...todos, newTodo];
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
+    pushToCloud('todos', updatedTodos);
+    updateTodoWidget().catch(() => {});
   }, [todos]);
 
   const handleTodoComplete = useCallback(async (todoId) => {
@@ -529,11 +533,6 @@ const TodosTab = () => {
     const taskToComplete = todos.find(t => t.id === todoId);
     if (!taskToComplete) return;
 
-    // Show celebration first
-    setCompletedTask(taskToComplete);
-    setShowCompletionCelebration(true);
-
-    // Update data immediately (no setTimeout) — the celebration modal is already showing
     try {
       const updatedTodos = todos.map(todo => 
         todo.id === todoId 
@@ -542,6 +541,7 @@ const TodosTab = () => {
       );
       
       const pointsEarned = Math.min(taskToComplete.points || 69, 345); // Clamped to valid range
+      const oldTotal = userStats.totalPoints || userStats.points || 0;
       const newCompletedTasks = userStats.completedTasks + 1;
 
       // Track per-tier completions for achievements
@@ -550,11 +550,11 @@ const TodosTab = () => {
       
       const updatedStats = {
         ...userStats,
-        totalPoints: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
-        points: (userStats.totalPoints || userStats.points || 0) + pointsEarned,
+        totalPoints: oldTotal + pointsEarned,
+        points: oldTotal + pointsEarned,
         completedTasks: newCompletedTasks,
         [tierKey]: (userStats[tierKey] || 0) + 1,
-        level: AchievementService.getLevelFromPoints((userStats.totalPoints || userStats.points || 0) + pointsEarned),
+        level: AchievementService.getLevelFromPoints(oldTotal + pointsEarned),
       };
       
       setTodos(updatedTodos);
@@ -562,8 +562,10 @@ const TodosTab = () => {
       
       // Persist in background — don't await to keep UI snappy
       saveData('todos', updatedTodos).catch(() => {});
+      pushToCloud('todos', updatedTodos);
       saveData('userStats', updatedStats).catch(() => {});
       userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
+      updateTodoWidget().catch(() => {});
       
       // Sync to Firebase in background (non-blocking)
       const currentUser = auth.currentUser;
@@ -578,7 +580,16 @@ const TodosTab = () => {
         });
       }
 
-      // Achievement check in background — non-blocking with timeout protection
+      // Show the celebration FIRST with just the task points (what the user expects).
+      // This must happen before checkAchievements, which may present its own Modal
+      // (AchievementToast). Two Modals presenting simultaneously causes an iOS
+      // UIKit deadlock, so the celebration must be fully up before any toast.
+      setCompletedTask(taskToComplete);
+      setShowCompletionCelebration(true);
+
+      // Check achievements in background AFTER the celebration is showing.
+      // If achievements unlock, the AchievementToast will appear on top of the
+      // celebration (which auto-dismisses after 2.5s), clearly showing the bonus.
       Promise.race([
         AchievementService.checkAchievements(updatedStats),
         new Promise(resolve => setTimeout(() => resolve(null), 5000)), // 5s timeout
@@ -603,6 +614,8 @@ const TodosTab = () => {
     const updatedTodos = todos.filter(todo => todo.id !== todoId);
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
+    pushToCloud('todos', updatedTodos);
+    updateTodoWidget().catch(() => {});
   }, [todos]);
 
   // Beautiful Calendar Component

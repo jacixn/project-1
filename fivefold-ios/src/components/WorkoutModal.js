@@ -16,6 +16,7 @@ import {
   Alert,
   AppState,
   InteractionManager,
+  DeviceEventEmitter,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import userStorage from '../utils/userStorage';
@@ -72,6 +73,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completedWorkoutData, setCompletedWorkoutData] = useState(null);
   const [totalWorkoutCount, setTotalWorkoutCount] = useState(0);
+  const [workoutPointsEarned, setWorkoutPointsEarned] = useState(0);
   const [showEmptyWorkoutAlert, setShowEmptyWorkoutAlert] = useState(false);
   const [showNoSetsAlert, setShowNoSetsAlert] = useState(false);
   const [isWorkoutFinished, setIsWorkoutFinished] = useState(false);
@@ -868,9 +870,10 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       
       console.log('📦 Workout data prepared:', JSON.stringify(workoutData, null, 2));
       
-      // Save workout to history
-      await WorkoutService.saveWorkout(workoutData);
-      console.log('✅ Workout saved to history');
+      // Save workout to history — returns { ...workout, workoutPoints }
+      const savedResult = await WorkoutService.saveWorkout(workoutData);
+      const earnedPoints = savedResult?.workoutPoints || 0;
+      console.log(`✅ Workout saved to history (+${earnedPoints} pts)`);
       
       // Get total workout count (don't fail if this fails)
       let workoutCount = 1;
@@ -888,6 +891,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       // Set the data and show completion modal (DON'T close main modal yet)
       setCompletedWorkoutData(workoutData);
       setTotalWorkoutCount(workoutCount);
+      setWorkoutPointsEarned(earnedPoints);
       setShowCompletionModal(true);
     } catch (error) {
       console.error('❌ Error saving workout:', error);
@@ -1304,39 +1308,40 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               <WorkoutCompletionModal
                 visible={true}
                 onClose={() => {
-                  // CRITICAL FIX: Stop animations and close everything in ONE
-                  // synchronous batch.  Previously, setShowCompletionModal(false)
-                  // was called first, which removed the overlay and forced an
-                  // expensive re-render of the full workout exercise list
-                  // underneath — THEN a second render cleared state.  Two heavy
-                  // back-to-back renders caused a visible freeze.
-                  //
-                  // By calling endWorkout() + onClose() in the same batch as the
-                  // state cleanup, React batches ALL updates into a single render
-                  // where visible=false (Modal hides natively) and all state is
-                  // already cleared.  No expensive intermediate render.
-
                   // 1. Stop infinite pulse loops on completed sets
                   stopAllSetAnimations();
 
-                  // 2. Close the modal + end workout context in one go
-                  //    The native <Modal visible={false}> hides everything instantly
-                  endWorkout();
-                  onClose();
+                  // 2. CRITICAL: Dismiss AchievementToast Modal BEFORE closing
+                  //    the WorkoutModal.  Workout completion triggers achievement
+                  //    checks which may present the AchievementToast <Modal>.
+                  //    On iOS, dismissing a parent Modal while a sibling Modal
+                  //    is visible causes a UIKit deadlock (app freeze).
+                  //    Emit this event so the toast hides instantly, then delay
+                  //    the WorkoutModal close to let the React render cycle flush.
+                  DeviceEventEmitter.emit('dismissAchievementToast');
 
-                  // 3. Clean up internal state (Modal is already hidden,
-                  //    so these won't cause a visible re-render)
-                  setShowCompletionModal(false);
-                  setCompletedWorkoutData(null);
-                  setWorkoutName('Workout 1');
-                  setExercises([]);
-                  setPreviousWorkout(null);
-                  setWorkoutNote('');
-                  setWorkoutPhoto(null);
-                  setIsWorkoutFinished(false);
+                  // 3. Close the modal + end workout context after a short delay
+                  //    so the toast's visible=false render completes first.
+                  setTimeout(() => {
+                    endWorkout();
+                    onClose();
+
+                    // 4. Clean up internal state (Modal is already hidden,
+                    //    so these won't cause a visible re-render)
+                    setShowCompletionModal(false);
+                    setCompletedWorkoutData(null);
+                    setWorkoutPointsEarned(0);
+                    setWorkoutName('Workout 1');
+                    setExercises([]);
+                    setPreviousWorkout(null);
+                    setWorkoutNote('');
+                    setWorkoutPhoto(null);
+                    setIsWorkoutFinished(false);
+                  }, 100);
                 }}
                 workoutData={completedWorkoutData}
                 workoutCount={totalWorkoutCount}
+                pointsEarned={workoutPointsEarned}
               />
             </View>
           )}

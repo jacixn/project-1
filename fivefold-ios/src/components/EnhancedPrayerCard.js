@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Pressable,
+  DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -265,8 +266,13 @@ const PrayerSection = () => {
 
   const closePrayerDetails = () => {
     console.log('❌ CLOSING PRAYER DETAILS');
-    setPrayerDetailsVisible(false);
-    setCurrentPrayer(null);
+    // Dismiss AchievementToast first to prevent iOS UIKit deadlock
+    // when two Modals transition simultaneously.
+    DeviceEventEmitter.emit('dismissAchievementToast');
+    setTimeout(() => {
+      setPrayerDetailsVisible(false);
+      setCurrentPrayer(null);
+    }, 100);
   };
 
   const completePrayerAction = async (prayer) => {

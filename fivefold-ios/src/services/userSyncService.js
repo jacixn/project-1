@@ -15,7 +15,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 // AsyncStorage import removed — all storage now goes through userStorage
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import userStorage from '../utils/userStorage';
 import { getStoredData, saveData } from '../utils/localStorage';
 
@@ -50,6 +50,40 @@ const USER_PROFILE_FIELDS = [
 
 // History retention period (90 days in milliseconds)
 const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+// ── Debounced immediate sync ──────────────────────────────────────
+// Pushes a specific field to Firebase with a short debounce so rapid
+// writes (e.g. highlight changes, food entries) coalesce into one push.
+// Fire-and-forget: never blocks the caller, never throws.
+const _debounceTimers = {};
+
+/**
+ * Push a single field to the current user's Firestore doc (debounced).
+ * Safe to call from anywhere — silently no-ops if not logged in.
+ * @param {string} firestoreField - The Firestore document field name
+ * @param {any} data - The data to store
+ * @param {number} delay - Debounce delay in ms (default 1500)
+ */
+export const pushToCloud = (firestoreField, data, delay = 1500) => {
+  if (_debounceTimers[firestoreField]) {
+    clearTimeout(_debounceTimers[firestoreField]);
+  }
+
+  _debounceTimers[firestoreField] = setTimeout(async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) return;
+
+      await setDoc(doc(db, 'users', userId), {
+        [firestoreField]: data,
+        lastActive: serverTimestamp(),
+      }, { merge: true });
+      console.log(`[Sync] Pushed ${firestoreField} to cloud`);
+    } catch (error) {
+      console.warn(`[Sync] Failed to push ${firestoreField}:`, error.message);
+    }
+  }, delay);
+};
 
 /**
  * Filter history array to only keep entries from the last 90 days
@@ -177,10 +211,19 @@ export const syncUserStatsToCloud = async (userId) => {
     
     console.log('[Sync] localStats from getStoredData:', localStats);
     
-    // Read points from single source of truth: total_points key
-    // (managed centrally by achievementService.checkAchievements())
+    // Read points from ALL local sources and take the max.
+    // total_points key is the primary, but userStats may be ahead if
+    // checkAchievements hasn't run yet (e.g. timed out).
     const totalPointsStr = await userStorage.getRaw('total_points');
-    const pointsToSync = totalPointsStr ? parseInt(totalPointsStr, 10) : 0;
+    const totalPointsKey = totalPointsStr ? parseInt(totalPointsStr, 10) : 0;
+    const statsPoints = Math.max(localStats.totalPoints || 0, localStats.points || 0);
+    const pointsToSync = Math.max(totalPointsKey, statsPoints);
+    
+    // Keep total_points key in sync if userStats was ahead
+    if (pointsToSync > totalPointsKey) {
+      await userStorage.setRaw('total_points', pointsToSync.toString());
+      console.log('[Sync] Fixed total_points key:', totalPointsKey, '->', pointsToSync);
+    }
     
     // Prepare update data
     const updateData = {
@@ -194,7 +237,7 @@ export const syncUserStatsToCloud = async (userId) => {
       updateData.level = AchievementService.getLevelFromPoints(pointsToSync);
     }
     
-    console.log('[Sync] Points to sync:', pointsToSync);
+    console.log('[Sync] Points to sync:', pointsToSync, '(total_points key:', totalPointsKey, ', userStats:', statsPoints, ')');
     
     // Add other stats fields
     // IMPORTANT: Get streak from app_open_streak (AppStreakManager's key) - this is the actual streak
@@ -276,24 +319,34 @@ export const downloadAndMergeCloudData = async (userId) => {
     const localStats = await getStoredData('userStats') || {};
     const localProfile = await getStoredData('userProfile') || {};
     
-    // Merge strategy: Cloud wins for numeric/tracked values, local for recent edits
-    // For totalPoints: local total_points key is the single source of truth
-    // (managed centrally by achievementService.checkAchievements())
+    // Merge strategy: use Math.max for all numeric values so the highest
+    // value wins regardless of which device wrote it. Points can only go UP
+    // (no spending/deduction), so max is always correct.
     const localTotalPointsStr = await userStorage.getRaw('total_points');
     const localTotalPoints = localTotalPointsStr ? parseInt(localTotalPointsStr, 10) : 0;
+    const localStatsPoints = Math.max(localStats.totalPoints || 0, localStats.points || 0);
+    const cloudPoints = cloudData.totalPoints || cloudData.points || 0;
+    
+    // The correct total is the HIGHEST of all sources — local total_points key,
+    // local userStats, and cloud. Points only ever increase, so max is safe.
+    const correctTotalPoints = Math.max(localTotalPoints, localStatsPoints, cloudPoints);
+    
+    console.log('[Sync] Points merge: local_total_points=', localTotalPoints,
+      'localStats=', localStatsPoints, 'cloud=', cloudPoints,
+      '=> winner=', correctTotalPoints);
     
     // Import AchievementService for level calculation
     const AchievementService = (await import('./achievementService')).default;
     
     const mergedStats = {
       ...localStats,
-      // totalPoints: use local total_points as source of truth, NOT Math.max with cloud
-      totalPoints: localTotalPoints,
-      points: localTotalPoints,
+      // Use the highest points value from all sources
+      totalPoints: correctTotalPoints,
+      points: correctTotalPoints,
       // Activity counters: Math.max is fine since these only go up
       currentStreak: Math.max(localStats.currentStreak || 0, cloudData.currentStreak || 0),
-      // Level: ALWAYS derive from points — never use stale cloud level
-      level: AchievementService.getLevelFromPoints(localTotalPoints),
+      // Level: ALWAYS derive from the correct merged points
+      level: AchievementService.getLevelFromPoints(correctTotalPoints),
       prayersCompleted: Math.max(localStats.prayersCompleted || 0, cloudData.prayersCompleted || 0),
       completedTasks: Math.max(localStats.completedTasks || 0, cloudData.tasksCompleted || 0),
       workoutsCompleted: Math.max(localStats.workoutsCompleted || 0, cloudData.workoutsCompleted || 0),
@@ -324,12 +377,18 @@ export const downloadAndMergeCloudData = async (userId) => {
       isPublic: cloudData.isPublic !== undefined ? cloudData.isPublic : (localProfile.isPublic ?? true),
     };
     
-    // Save merged data locally
+    // Save merged data locally — write to BOTH storage keys
+    // (saveData writes to 'fivefold_userStats', but many components also read
+    // the raw 'userStats' key, so we must keep both in sync)
     await saveData('userStats', mergedStats);
+    await userStorage.setRaw('userStats', JSON.stringify(mergedStats));
     await saveData('userProfile', mergedProfile);
     
-    // total_points is managed centrally by achievementService.checkAchievements()
-    // Do NOT overwrite it from cloud data during sync
+    // Also update the central total_points key so it reflects the merged value.
+    // This is critical: if cloud has higher points than local, the total_points
+    // key must be updated, otherwise syncUserStatsToCloud will push stale data.
+    await userStorage.setRaw('total_points', correctTotalPoints.toString());
+    console.log('[Sync] Updated total_points key to', correctTotalPoints);
     
     // Also save profile picture URL to local storage for ProfileTab
     if (cloudData.profilePicture) {
@@ -829,6 +888,24 @@ export const downloadAndMergeCloudData = async (userId) => {
       if (!localToggles) {
         await userStorage.setRaw('fivefold_badge_toggles', JSON.stringify(cloudData.badgeToggles));
         console.log('[Sync] Restored badge toggles from cloud');
+      }
+    }
+
+    // Selected loading animation — only apply if no local selection yet
+    if (cloudData.selectedLoadingAnimation) {
+      const localAnim = await userStorage.getRaw('fivefold_loading_animation');
+      if (!localAnim) {
+        await userStorage.setRaw('fivefold_loading_animation', cloudData.selectedLoadingAnimation);
+        console.log(`[Sync] Restored loading animation from cloud: ${cloudData.selectedLoadingAnimation}`);
+      }
+    }
+
+    // Workout split plan — cloud wins (stable config data)
+    if (cloudData.splitPlan) {
+      const localStr = await userStorage.getRaw('@workout_split_plan');
+      if (!localStr) {
+        await userStorage.setRaw('@workout_split_plan', JSON.stringify(cloudData.splitPlan));
+        console.log('[Sync] Downloaded workout split plan from cloud');
       }
     }
 
@@ -1397,6 +1474,20 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including badge toggles in upload');
     }
 
+    // Selected loading animation
+    const loadingAnimStr = await userStorage.getRaw('fivefold_loading_animation');
+    if (loadingAnimStr) {
+      updateData.selectedLoadingAnimation = loadingAnimStr;
+      console.log(`[Sync] Including loading animation (${loadingAnimStr}) in upload`);
+    }
+
+    // Workout split plan
+    const splitPlanStr = await userStorage.getRaw('@workout_split_plan');
+    if (splitPlanStr) {
+      updateData.splitPlan = JSON.parse(splitPlanStr);
+      console.log('[Sync] Including workout split plan in upload');
+    }
+
     // Daily verse data (verse of the day - per user)
     const dailyVerseDataStr = await userStorage.getRaw('daily_verse_data_v6');
     const dailyVerseIndexStr = await userStorage.getRaw('daily_verse_index_v6');
@@ -1473,4 +1564,5 @@ export default {
   syncJournalNotesToCloud,
   syncThemePreferencesToCloud,
   syncAllHistoryToCloud,
+  pushToCloud,
 };

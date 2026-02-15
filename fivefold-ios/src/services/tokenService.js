@@ -12,6 +12,7 @@ import userStorage from '../utils/userStorage';
 import * as Notifications from 'expo-notifications';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getStoredData } from '../utils/localStorage';
 
 /**
  * Fetch token schedule from Firebase (for admin testing)
@@ -81,7 +82,7 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
       let token = null;
       console.log(`[Token] Time check - current: ${currentMinutes} min (${now.toLocaleTimeString()}), arrival: ${schedule.arrivalMinutes} min (${schedule.arrivalTime})`);
       
-      if (isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
+      if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
         console.log('[Token] Time has passed! Delivering token now...');
         token = {
           date: today,
@@ -94,6 +95,9 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
         
         // Update Firebase to show delivered
         await saveScheduleToFirebase(userId, schedule);
+        
+        // Send immediate notification that token has arrived
+        await sendTokenArrivedNotification();
         
         console.log('[Token] Token delivered from Firebase sync at:', new Date().toLocaleTimeString());
       } else if (schedule.tokenDelivered) {
@@ -157,11 +161,7 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
       // Schedule notification if token hasn't arrived yet
       if (!schedule.tokenDelivered && currentMinutes < schedule.arrivalMinutes) {
         console.log('[Token] Time is in the future, scheduling notification...');
-        if (!schedule.useServerNotifications) {
-          await scheduleTokenNotification(schedule.arrivalMinutes, userId);
-        } else {
-          console.log('[Token] Server notifications enabled - skipping local schedule');
-        }
+        await scheduleTokenNotification(schedule.arrivalMinutes, userId);
       } else {
         console.log(`[Token] NOT scheduling - tokenDelivered: ${schedule.tokenDelivered}, currentMinutes: ${currentMinutes}, arrivalMinutes: ${schedule.arrivalMinutes}`);
       }
@@ -301,7 +301,7 @@ export const getTokenStatus = async (userId, username = null) => {
         notificationScheduled: false,
         tokenDelivered: false,
         timezoneOffsetMinutes: new Date().getTimezoneOffset(),
-        useServerNotifications: true,
+        useServerNotifications: false,
       };
       await userStorage.setRaw(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
       console.log('[Token] Created new schedule for user:', userId, 'arrival:', schedule.arrivalTime);
@@ -309,16 +309,13 @@ export const getTokenStatus = async (userId, username = null) => {
       // Save to Firebase so admin can see the schedule
       await saveScheduleToFirebase(userId, schedule);
       
-      // Schedule notification for token arrival (skip if server notifications are enabled)
-      if (!schedule.useServerNotifications) {
-        await scheduleTokenNotification(arrivalMinutes, userId);
-      } else {
-        console.log('[Token] Server notifications enabled - skipping local schedule');
-      }
+      // Schedule local notification for token arrival
+      await scheduleTokenNotification(arrivalMinutes, userId);
     }
     
-    // Check if token should be delivered now
-    if (isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
+    // Check if token should be delivered now.
+    // Guard: schedule must be for TODAY *and* arrival time must have passed.
+    if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
       // Deliver the token!
       token = {
         date: today,
@@ -332,6 +329,9 @@ export const getTokenStatus = async (userId, username = null) => {
       
       // Update Firebase to show token was delivered
       await saveScheduleToFirebase(userId, schedule);
+      
+      // Send immediate notification that token has arrived
+      await sendTokenArrivedNotification();
     }
     
     // Check if token is expired (from a previous day)
@@ -405,9 +405,17 @@ const getArrivalDateForToday = (arrivalMinutes) => {
 };
 
 /**
- * Check if arrival time has been reached (seconds-accurate)
+ * Check if arrival time has been reached (seconds-accurate).
+ * Returns FALSE if arrivalMinutes is outside the valid 6 AM–6 PM window (360–1080).
  */
 const isArrivalTimeReached = (arrivalMinutes) => {
+  // Sanity-check: tokens only arrive between 6 AM (360) and 6 PM (1080).
+  // If the value is outside that range (e.g. 0, undefined, NaN) → treat as NOT reached.
+  if (typeof arrivalMinutes !== 'number' || arrivalMinutes < 360 || arrivalMinutes > 1080) {
+    console.warn(`[Token] Invalid arrivalMinutes: ${arrivalMinutes} — rejecting`);
+    return false;
+  }
+
   const now = new Date();
   const arrivalDate = getArrivalDateForToday(arrivalMinutes);
   return now.getTime() >= arrivalDate.getTime();
@@ -455,21 +463,38 @@ const scheduleTokenNotification = async (arrivalMinutes, userId) => {
     
     console.log(`[Token] Scheduling check - now: ${now.toLocaleTimeString()}, arrival: ${arrivalDate.toLocaleTimeString()}, delay: ${delaySeconds}s`);
     
+    // ALWAYS cancel stale token notifications first — even if we won't schedule a
+    // new one (arrival already passed).  This prevents leftover notifications from
+    // a previous day/schedule from firing unexpectedly.
+    try {
+      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      for (const notification of scheduledNotifications) {
+        if (notification.content.data?.type === 'token_arrived') {
+          await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+          console.log('[Token] Cancelled existing notification');
+        }
+      }
+    } catch (cancelErr) {
+      console.warn('[Token] Could not cancel old notifications:', cancelErr);
+    }
+    
     // Only schedule if arrival is in the future
     if (delaySeconds <= 0) {
       console.log('[Token] Arrival time passed, skipping schedule');
       return;
     }
-    
-    // Cancel any existing token notifications first to avoid duplicates
-    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-    for (const notification of scheduledNotifications) {
-      if (notification.content.data?.type === 'token_arrived') {
-        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-        console.log('[Token] Cancelled existing notification');
-      }
+
+    // Respect the user's notification settings toggle
+    const notifSettings = await getStoredData('notificationSettings') || { tokenArrival: true, pushNotifications: true };
+    if (notifSettings.pushNotifications === false || notifSettings.tokenArrival === false) {
+      console.log('[Token] Token arrival notifications disabled in settings, skipping schedule');
+      return;
     }
     
+    // Use a Date trigger (not { seconds }) because expo-notifications SDK 54+
+    // requires a `type` field on object triggers.  A plain Date is auto-converted
+    // to a DateTriggerInput and is the proven pattern in this codebase (prayer
+    // reminders, streak reminders, etc.).
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Your Token Has Arrived',
@@ -477,22 +502,37 @@ const scheduleTokenNotification = async (arrivalMinutes, userId) => {
         data: { type: 'token_arrived' },
         sound: true,
       },
-      trigger: {
-        seconds: delaySeconds,
-      },
+      trigger: arrivalDate,
     });
     
-    console.log(`[Token] Scheduled notification for ${minutesToTimeString(arrivalMinutes)} (in ${delaySeconds} seconds)`);
+    console.log(`[Token] Scheduled notification for ${minutesToTimeString(arrivalMinutes)} (in ${delaySeconds}s) — trigger: ${arrivalDate.toISOString()}`);
   } catch (error) {
     console.error('Error scheduling token notification:', error);
   }
 };
 
 /**
- * Send immediate notification that token has arrived (only if not already sent today)
+ * Send immediate notification that token has arrived (only if not already sent today).
+ * Includes a time-of-day guard: tokens never arrive before 6 AM so a notification
+ * firing between midnight and 5:59 AM is always erroneous → suppress it.
  */
 const sendTokenArrivedNotification = async () => {
   try {
+    // Hard guard: tokens arrive 6 AM–6 PM.  If the current hour is before 6 AM
+    // this call is erroneous (stale schedule, timezone drift, etc.) → bail out.
+    const currentHour = new Date().getHours();
+    if (currentHour < 6) {
+      console.log(`[Token] Suppressed token notification at ${currentHour}:xx — too early (before 6 AM)`);
+      return;
+    }
+
+    // Respect the user's notification settings toggle
+    const notifSettings = await getStoredData('notificationSettings') || { tokenArrival: true, pushNotifications: true };
+    if (notifSettings.pushNotifications === false || notifSettings.tokenArrival === false) {
+      console.log('[Token] Token arrival notifications disabled in settings, skipping');
+      return;
+    }
+
     const alreadySent = await hasNotificationBeenSentToday();
     if (alreadySent) {
       console.log('[Token] Notification already sent today, skipping immediate send');

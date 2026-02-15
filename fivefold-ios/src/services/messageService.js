@@ -303,6 +303,9 @@ export const sendMessage = async (conversationId, message, recipientId) => {
   try {
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     
+    // All messages auto-delete 24 hours after being sent
+    const deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    
     const messageData = {
       senderId: message.senderId,
       senderName: message.senderName || 'User',
@@ -311,6 +314,7 @@ export const sendMessage = async (conversationId, message, recipientId) => {
       metadata: message.metadata || {},
       createdAt: serverTimestamp(),
       read: false,
+      deleteAfter,
     };
 
     const messageDoc = await addDoc(messagesRef, messageData);
@@ -467,8 +471,9 @@ export const markAsRead = async (conversationId, userId) => {
       [`unreadCount.${userId}`]: 0,
     });
 
-    // Find unread messages sent by other users (not by the current user)
-    // and mark them with a deleteAfter timestamp (24 hours from now)
+    // Find unread messages sent by other users and mark them as read.
+    // Also backfill deleteAfter on any messages that don't have it yet
+    // (for messages sent before the auto-delete-on-send feature).
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const q = query(
       messagesRef,
@@ -479,25 +484,28 @@ export const markAsRead = async (conversationId, userId) => {
     
     if (!snapshot.empty) {
       const batch = writeBatch(db);
-      const deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // 24 hours
       let markedCount = 0;
       
       snapshot.forEach((messageDoc) => {
         const data = messageDoc.data();
         // Only mark messages that were NOT sent by this user (i.e., messages they received)
         if (data.senderId !== userId) {
-          batch.update(messageDoc.ref, {
+          const updates = {
             read: true,
             readAt: serverTimestamp(),
-            deleteAfter: deleteAfter,
-          });
+          };
+          // Backfill deleteAfter if it's missing (legacy messages)
+          if (!data.deleteAfter) {
+            updates.deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
+          }
+          batch.update(messageDoc.ref, updates);
           markedCount++;
         }
       });
       
       if (markedCount > 0) {
         await batch.commit();
-        console.log(`[MessageService] Marked ${markedCount} messages as read, will delete in 24h`);
+        console.log(`[MessageService] Marked ${markedCount} messages as read`);
       }
     }
 
@@ -565,30 +573,64 @@ export const cleanupOldMessages = async (conversationId) => {
   try {
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const now = Timestamp.now();
+    let deleteCount = 0;
     
-    // Query messages where deleteAfter exists and is in the past
-    const q = query(
+    // 1. Delete messages where deleteAfter is in the past
+    const expiredQuery = query(
       messagesRef,
       where('deleteAfter', '<=', now)
     );
     
-    const snapshot = await getDocs(q);
+    const expiredSnapshot = await getDocs(expiredQuery);
     
-    if (snapshot.empty) {
-      return 0;
+    if (!expiredSnapshot.empty) {
+      const batch = writeBatch(db);
+      expiredSnapshot.forEach((messageDoc) => {
+        batch.delete(messageDoc.ref);
+        deleteCount++;
+      });
+      await batch.commit();
+    }
+
+    // 2. Backfill: find ALL messages and set deleteAfter on any that don't have it
+    //    (legacy messages sent before auto-delete was added to sendMessage)
+    const allMessagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
+    const allSnapshot = await getDocs(allMessagesQuery);
+    
+    if (!allSnapshot.empty) {
+      const backfillBatch = writeBatch(db);
+      let backfillCount = 0;
+      const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      allSnapshot.forEach((messageDoc) => {
+        const data = messageDoc.data();
+        if (!data.deleteAfter) {
+          // If message has createdAt and it's older than 24h, delete it immediately
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : null;
+          if (createdAt && createdAt < cutoff24h) {
+            backfillBatch.delete(messageDoc.ref);
+            deleteCount++;
+          } else {
+            // Set deleteAfter to 24h from creation (or 24h from now if no createdAt)
+            const expiryBase = createdAt || new Date();
+            const deleteAfter = Timestamp.fromDate(new Date(expiryBase.getTime() + 24 * 60 * 60 * 1000));
+            backfillBatch.update(messageDoc.ref, { deleteAfter });
+            backfillCount++;
+          }
+        }
+      });
+      
+      if (deleteCount > 0 || backfillCount > 0) {
+        await backfillBatch.commit();
+        if (backfillCount > 0) {
+          console.log(`[MessageService] Backfilled deleteAfter on ${backfillCount} legacy messages`);
+        }
+      }
     }
     
-    const batch = writeBatch(db);
-    let deleteCount = 0;
-    
-    snapshot.forEach((messageDoc) => {
-      batch.delete(messageDoc.ref);
-      deleteCount++;
-    });
-    
-    await batch.commit();
-    
-    console.log(`[MessageService] Auto-deleted ${deleteCount} old messages from conversation ${conversationId}`);
+    if (deleteCount > 0) {
+      console.log(`[MessageService] Auto-deleted ${deleteCount} old messages from conversation ${conversationId}`);
+    }
     return deleteCount;
   } catch (error) {
     console.error('Error cleaning up old messages:', error);

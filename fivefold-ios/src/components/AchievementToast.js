@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   Modal,
   ScrollView,
+  DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -140,6 +141,23 @@ const AchievementToast = forwardRef((props, ref) => {
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
     });
+  }, [clearPendingTimeouts]);
+
+  // Listen for force-dismiss events from other modals.
+  // When a parent Modal (e.g. WorkoutModal) needs to dismiss, it emits this
+  // event so the AchievementToast hides FIRST — preventing the iOS UIKit
+  // deadlock that occurs when two Modals dismiss simultaneously.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('dismissAchievementToast', () => {
+      clearPendingTimeouts();
+      // Instant hide — no animation — to avoid any overlap with the
+      // parent Modal's dismiss transition.
+      setVisible(false);
+      setAchievements([]);
+      itemAnimsRef.current = [];
+      isDismissingRef.current = false;
+    });
+    return () => sub.remove();
   }, [clearPendingTimeouts]);
 
   useImperativeHandle(ref, () => ({

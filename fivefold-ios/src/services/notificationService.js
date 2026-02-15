@@ -62,6 +62,23 @@ Notifications.setNotificationHandler({
       return suppress;
     }
 
+    // ── Suppress notifications that fire at the wrong time ──
+    // Some iOS builds fire calendar/repeating triggers immediately when
+    // scheduled, causing phantom banners (e.g. "Keep Your Streak" at 1 AM).
+    // Block known types that should never appear outside their valid window.
+    const currentHour = new Date().getHours();
+    const earlyMorning = currentHour < 6; // midnight – 5:59 AM
+
+    if (data.type === 'token_arrived' && earlyMorning) {
+      console.log(`[Notif] Suppressed stale token_arrived at ${currentHour}:xx`);
+      return suppress;
+    }
+
+    if (data.type === 'daily_streak' && earlyMorning) {
+      console.log(`[Notif] Suppressed stale daily_streak at ${currentHour}:xx`);
+      return suppress;
+    }
+
     // ── For every other foreground notification, suppress native UI and
     //    show our own in-app banner instead ──
     DeviceEventEmitter.emit('inAppNotification', {
@@ -326,6 +343,11 @@ class NotificationService {
         targetTab = 'Hub';
         console.log('📱 Navigating to Hub tab for challenge');
         break;
+
+      case 'token_arrived':
+        targetTab = 'Hub';
+        console.log('📱 Navigating to Hub tab for token arrival');
+        break;
         
       default:
         console.log('📱 Unknown notification type, no navigation');
@@ -342,7 +364,13 @@ class NotificationService {
     }
   }
 
-  // Schedule daily prayer time notifications (30 minutes before each prayer)
+  // Schedule daily prayer time notifications (30 minutes before each prayer).
+  //
+  // Uses next-occurrence Date triggers (NOT repeating calendar triggers) because
+  // some iOS builds fire repeating triggers immediately when scheduled, causing
+  // phantom notifications at the wrong time (e.g. 1 AM).  The app reschedules
+  // on every open (App.js) and whenever prayers are saved (SimplePrayerCard),
+  // so the next day's reminders are always set up.
   async schedulePrayerNotifications(prayerTimes, settings = null) {
     try {
       // Cancel existing prayer notifications
@@ -390,29 +418,13 @@ class NotificationService {
           continue;
         }
 
-        const now = new Date();
+        // Calculate reminder time: 30 minutes before the prayer
+        const { reminderHours, reminderMinutes } = this.subtractThirtyMinutes(hours, minutes);
 
-        // Build the next occurrence of this prayer time.
-        // CRITICAL: If the prayer time is earlier than "now", it's for tomorrow (cross-midnight support).
-        const nextPrayerDate = new Date(now);
-        nextPrayerDate.setHours(hours, minutes, 0, 0);
-        if (nextPrayerDate <= now) {
-          nextPrayerDate.setDate(nextPrayerDate.getDate() + 1);
-          nextPrayerDate.setHours(hours, minutes, 0, 0);
-        }
+        // Schedule for the NEXT occurrence of this reminder time.
+        // If the reminder time has already passed today → schedule for tomorrow.
+        const triggerDate = this.getNextOccurrenceDate(reminderHours, reminderMinutes);
 
-        // Reminder is always 30 minutes before the next prayer occurrence (Date math handles midnight).
-        let reminderDate = new Date(nextPrayerDate.getTime() - 30 * 60 * 1000);
-
-        const reminderHours = reminderDate.getHours();
-        const reminderMinutes = reminderDate.getMinutes();
-
-        // If the reminder time has already passed for today, push it to the next day
-        while (reminderDate <= now) {
-          reminderDate = new Date(reminderDate.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        // Schedule a single notification for the next occurrence (one per prayer)
         await Notifications.scheduleNotificationAsync({
           content: {
             title: 'Prayer Reminder',
@@ -420,14 +432,13 @@ class NotificationService {
             data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
           },
-          trigger: reminderDate,
+          trigger: triggerDate,
         });
 
         console.log(
-          `Scheduled reminder for ${slot} at ${reminderDate.getHours().toString().padStart(2, '0')}:${reminderDate
-            .getMinutes()
+          `Scheduled reminder for ${slot} at ${reminderHours.toString().padStart(2, '0')}:${reminderMinutes
             .toString()
-            .padStart(2, '0')} (30 min before ${hours.toString().padStart(2, '0')}:${minutes
+            .padStart(2, '0')} → fires ${triggerDate.toLocaleString()} (30 min before ${hours.toString().padStart(2, '0')}:${minutes
             .toString()
             .padStart(2, '0')}, source: ${originalTime})`
         );
@@ -439,15 +450,26 @@ class NotificationService {
     }
   }
 
-  // Schedule custom prayer reminder
+  // Schedule custom prayer reminder (respects settings)
   async scheduleCustomReminder(title, body, triggerDate) {
     try {
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        prayerReminders: true,
+        pushNotifications: true,
+      };
+
+      if (settings.pushNotifications === false || settings.prayerReminders === false) {
+        console.log('[Notif] Prayer/push notifications disabled, skipping custom reminder');
+        return null;
+      }
+
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: title || 'Prayer Reminder',
           body: body || 'Time for your custom prayer',
           data: { type: 'custom_prayer' },
-          sound: true,
+          sound: settings.sound ? 'default' : false,
         },
         trigger: triggerDate,
       });
@@ -460,9 +482,20 @@ class NotificationService {
     }
   }
 
-  // Schedule missed prayer alert (30 minutes after prayer time)
+  // Schedule missed prayer alert (30 minutes after prayer time) — respects settings
   async scheduleMissedPrayerAlert(prayerSlot, prayerTime) {
     try {
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        prayerReminders: true,
+        pushNotifications: true,
+      };
+
+      if (settings.pushNotifications === false || settings.prayerReminders === false) {
+        console.log('[Notif] Prayer/push notifications disabled, skipping missed prayer alert');
+        return;
+      }
+
       const [hours, minutes] = prayerTime.split(':').map(Number);
       const alertTime = new Date();
       alertTime.setHours(hours, minutes + 30, 0, 0);
@@ -477,7 +510,7 @@ class NotificationService {
           title: 'Missed Prayer',
           body: `You may have missed ${this.getPrayerDisplayName(prayerSlot)} prayer. There's still time!`,
           data: { type: 'missed_prayer', prayerSlot },
-          sound: true,
+          sound: settings.sound ? 'default' : false,
         },
         trigger: alertTime,
       });
@@ -488,11 +521,20 @@ class NotificationService {
     }
   }
 
-  // Send achievement unlocked notification
+  // Send achievement unlocked notification (respects settings toggle)
   async sendAchievementNotification(achievementTitle, points) {
     try {
-      // Get current settings for sound
-      const settings = await getStoredData('notificationSettings') || { sound: true };
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        achievementNotifications: true,
+        pushNotifications: true,
+      };
+
+      // Respect the user's toggle
+      if (settings.pushNotifications === false || settings.achievementNotifications === false) {
+        console.log('[Notif] Achievement notifications disabled, skipping');
+        return;
+      }
       
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -510,9 +552,21 @@ class NotificationService {
     }
   }
 
-  // Send streak maintenance reminder
+  // Send streak maintenance reminder (respects settings toggle)
   async sendStreakReminder(streakCount, type = 'general') {
     try {
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        streakReminders: true,
+        pushNotifications: true,
+      };
+
+      // Respect the user's toggle
+      if (settings.pushNotifications === false || settings.streakReminders === false) {
+        console.log('[Notif] Streak reminders disabled, skipping');
+        return;
+      }
+
       let title, body;
       
       switch (type) {
@@ -534,7 +588,7 @@ class NotificationService {
           title,
           body,
           data: { type: 'streak_reminder', streakType: type },
-          sound: true,
+          sound: settings.sound ? 'default' : false,
         },
         trigger: null, // Send immediately
       });
@@ -545,26 +599,23 @@ class NotificationService {
     }
   }
 
-  // Schedule daily streak maintenance reminder
+  // Schedule daily streak maintenance reminder.
+  //
+  // Uses a next-occurrence Date trigger (NOT a repeating calendar trigger) because
+  // some iOS builds fire repeating triggers immediately when scheduled, causing
+  // a phantom "Keep Your Streak" banner at midnight/1 AM.  The app reschedules
+  // on every open (App.js), so tomorrow's reminder is always set up.
   async scheduleDailyStreakReminder(hour = 8, minute = 0) {
     try {
       await this.cancelNotificationsByType('daily_streak');
 
-      // Important: Some iOS builds can fire repeating calendar triggers immediately
-      // when scheduled after the target time for "today". To avoid "instant" Daily Check-In
-      // when users re-enable notifications at night, schedule only the *next occurrence*
-      // as a Date trigger. We reschedule on app start / settings changes.
       const nextTriggerDate = this.getNextOccurrenceDate(hour, minute);
-
-      const userStats = await getStoredData('userStats') || {};
-      const streakCount = userStats.streak || userStats.prayerStreak || 0;
-      const streakText = streakCount > 0 ? `${streakCount}-day streak` : 'your streak';
 
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Keep Your Streak',
-          body: `You're on ${streakText}. Open Biblely to stay consistent today.`,
-          data: { type: 'daily_streak', streakCount },
+          body: 'Open Biblely to stay consistent today.',
+          data: { type: 'daily_streak' },
           sound: true,
         },
         trigger: nextTriggerDate,
@@ -707,6 +758,21 @@ class NotificationService {
         await this.cancelNotificationsByType('workout_reminder');
         await this.cancelNotificationsByType('workout_overdue');
         console.log('Workout reminders disabled - cancelled all workout notifications');
+      }
+
+      // Cancel token arrival notifications if disabled
+      if (settings.tokenArrival === false) {
+        await this.cancelNotificationsByType('token_arrived');
+        console.log('Token arrival notifications disabled - cancelled');
+      }
+
+      // Handle weekly body check-in toggle
+      if (settings.weeklyBodyCheckIn === false) {
+        await this.cancelNotificationsByType('weekly_body_checkin');
+        console.log('Weekly body check-in disabled - cancelled notification');
+      } else if (settings.weeklyBodyCheckIn !== false) {
+        // Reschedule if toggled on
+        await this.scheduleWeeklyBodyCheckIn();
       }
       
       console.log('Notification settings updated');
@@ -934,10 +1000,10 @@ class NotificationService {
 
   async scheduleWorkoutOverdueNotification(startTime = new Date()) {
     try {
-      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true, workoutReminders: true };
 
-      if (settings.pushNotifications === false) {
-        console.log('Push notifications are disabled, skipping workout reminder');
+      if (settings.pushNotifications === false || settings.workoutReminders === false) {
+        console.log('Push/workout notifications are disabled, skipping workout overdue reminder');
         return;
       }
 
@@ -984,13 +1050,24 @@ class NotificationService {
    * Schedule a weekly Saturday body check-in notification.
    * Fires every Saturday at 10:00 AM local time, reminding
    * the user to update their weight and body fat %.
+   *
+   * Uses a WEEKLY repeating trigger (same pattern as workout reminders).
+   * Weekly triggers are safe from the iOS instant-fire bug because they
+   * target a specific weekday — iOS can always calculate the correct
+   * next occurrence.  The daily-trigger instant-fire issue does NOT
+   * affect weekly triggers.
    */
   async scheduleWeeklyBodyCheckIn() {
     try {
       // Cancel any existing body check-in notifications first
       await this.cancelNotificationsByType('weekly_body_checkin');
 
-      const settings = await getStoredData('notificationSettings') || { sound: true };
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true, weeklyBodyCheckIn: true };
+
+      if (settings.pushNotifications === false || settings.weeklyBodyCheckIn === false) {
+        console.log('Push/weekly check-in notifications disabled, skipping');
+        return;
+      }
 
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -1000,6 +1077,7 @@ class NotificationService {
           sound: settings.sound ? 'default' : false,
         },
         trigger: {
+          type: 'weekly',
           weekday: 7, // Saturday (1=Sunday, 7=Saturday)
           hour: 10,
           minute: 0,
@@ -1007,7 +1085,7 @@ class NotificationService {
         },
       });
 
-      console.log('Weekly body check-in notification scheduled for every Saturday at 10:00 AM');
+      console.log('Weekly body check-in scheduled — every Saturday at 10:00 AM');
     } catch (error) {
       console.error('Failed to schedule weekly body check-in:', error);
     }

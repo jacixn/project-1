@@ -8,7 +8,10 @@
  * - Food favorites with usage tracking
  */
 
+import { updateFuelWidget } from '../utils/widgetBridge';
+
 import userStorage from '../utils/userStorage';
+import { pushToCloud } from './userSyncService';
 
 const PROFILE_KEY = '@nutrition_profile';
 const FOOD_LOG_KEY = '@food_log';
@@ -55,7 +58,10 @@ class NutritionService {
         updatedAt: new Date().toISOString(),
       };
       await userStorage.setRaw(PROFILE_KEY, JSON.stringify(data));
+      pushToCloud('nutritionProfile', data);
       console.log('[Nutrition] Profile saved');
+      // Push updated targets to widget
+      updateFuelWidget().catch(() => {});
       return data;
     } catch (e) {
       console.warn('[Nutrition] Failed to save profile:', e.message);
@@ -82,6 +88,7 @@ class NutritionService {
   async deleteProfile() {
     try {
       await userStorage.remove(PROFILE_KEY);
+      pushToCloud('nutritionProfile', null);
     } catch (e) {
       console.warn('[Nutrition] Failed to delete profile:', e.message);
     }
@@ -169,6 +176,7 @@ class NutritionService {
   async _saveFullLog(log) {
     try {
       await userStorage.setRaw(FOOD_LOG_KEY, JSON.stringify(log));
+      pushToCloud('foodLog', log);
     } catch (e) {
       console.warn('[Nutrition] Failed to save food log:', e.message);
     }
@@ -208,6 +216,8 @@ class NutritionService {
     this._recalcTotals(log[dateKey]);
     await this._saveFullLog(log);
     console.log('[Nutrition] Added food:', entry.name, entry.calories, 'cal');
+    // Push updated progress to widget
+    updateFuelWidget().catch(() => {});
     return entry;
   }
 
@@ -222,6 +232,8 @@ class NutritionService {
     this._recalcTotals(log[dateKey]);
     await this._saveFullLog(log);
     console.log('[Nutrition] Removed food entry:', foodId);
+    // Push updated progress to widget
+    updateFuelWidget().catch(() => {});
   }
 
   /**
@@ -308,6 +320,7 @@ class NutritionService {
         existing.carbs = food.carbs;
         existing.fat = food.fat;
         await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
+        pushToCloud('foodFavorites', favorites);
         return existing;
       }
 
@@ -325,6 +338,7 @@ class NutritionService {
 
       favorites.push(entry);
       await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
+      pushToCloud('foodFavorites', favorites);
       console.log('[Nutrition] Added favorite:', entry.name);
       return entry;
     } catch (e) {
@@ -338,6 +352,7 @@ class NutritionService {
       let favorites = await this.getFavorites();
       favorites = favorites.filter(f => f.id !== id);
       await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
+      pushToCloud('foodFavorites', favorites);
     } catch (e) {
       console.warn('[Nutrition] Failed to remove favorite:', e.message);
     }
@@ -350,6 +365,7 @@ class NutritionService {
       if (fav) {
         fav.useCount = (fav.useCount || 0) + 1;
         await userStorage.setRaw(FAVORITES_KEY, JSON.stringify(favorites));
+        pushToCloud('foodFavorites', favorites);
       }
     } catch (e) {
       // silent

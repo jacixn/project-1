@@ -33,6 +33,7 @@ import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
 import AchievementService from '../services/achievementService';
+import { pushToCloud } from '../services/userSyncService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Animated Prayer Components (follows Rules of Hooks)
@@ -301,6 +302,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const savePrayers = async (prayerList) => {
     try {
       await saveData('simplePrayers', prayerList);
+      pushToCloud('simplePrayers', prayerList);
       // Keep notifications in sync with the latest prayer times
       await notificationService.scheduleStoredPrayerReminders();
     } catch (error) {
@@ -799,11 +801,12 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayersCompleted: 0
       };
       
-      const pointsEarned = 175; // 175 points per prayer
+      const basePrayerPoints = 175; // 175 points per prayer
+      const oldTotal = currentStats.totalPoints || currentStats.points || 0;
       const updatedStats = {
         ...currentStats,
-        points: (currentStats.points || 0) + pointsEarned,
-        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + pointsEarned,
+        points: oldTotal + basePrayerPoints,
+        totalPoints: oldTotal + basePrayerPoints,
         prayersCompleted: (currentStats.prayersCompleted || 0) + 1
       };
       
@@ -827,8 +830,11 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         console.log(`🔥 Prayer points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
-      // Global Achievement Check
-      await AchievementService.checkAchievements(updatedStats);
+      // Global Achievement Check — runs in background.
+      // The alert message shows basePrayerPoints (175) which is the prayer reward.
+      // Any achievement bonuses are shown separately via the AchievementToast.
+      AchievementService.checkAchievements(updatedStats).catch(() => {});
+      const pointsEarned = basePrayerPoints;
 
       // Mark prayer as completed with timestamp
       // For one-time prayers, remove them; for persistent prayers, mark as completed AND fetch new verses
@@ -856,7 +862,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       setPrayers(updatedPrayers);
       await savePrayers(updatedPrayers);
       
-      setShowPrayerModal(false);
+      // Dismiss any AchievementToast before closing PrayerDetailModal to prevent
+      // iOS UIKit deadlock (two Modals transitioning simultaneously = freeze).
+      DeviceEventEmitter.emit('dismissAchievementToast');
+      setTimeout(() => setShowPrayerModal(false), 100);
       hapticFeedback.success();
       
       // For persistent prayers, fetch 2 NEW random verses in background for next time
@@ -883,11 +892,16 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         ? `Wonderful! You earned ${pointsEarned.toLocaleString()} points. This one-time prayer has been completed and removed.`
         : `Wonderful! You earned ${pointsEarned.toLocaleString()} points. You can complete this prayer again in 24 hours.`;
       
+      // Delay the alert to avoid iOS UI deadlock — the PrayerDetailModal is
+      // unmounting and any achievement toast may be presenting simultaneously.
+      // iOS UIKit freezes when multiple modal transitions overlap.
+      setTimeout(() => {
         Alert.alert(
-          'Prayer Completed! 🙏',
-        message,
-          [{ text: 'Amen! 🙏', style: 'default' }]
+          'Prayer Completed!',
+          message,
+          [{ text: 'Amen!', style: 'default' }]
         );
+      }, 800);
     } catch (error) {
       console.log('Error completing prayer:', error);
       Alert.alert('Error', 'Could not complete prayer');

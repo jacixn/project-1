@@ -1,5 +1,6 @@
 import userStorage from './userStorage';
 import { hapticFeedback } from './haptics';
+import { pushToCloud } from '../services/userSyncService';
 
 // Prayer management system - handles dynamic prayer creation/deletion
 export class PrayerManager {
@@ -24,6 +25,7 @@ export class PrayerManager {
   static async saveUserPrayers(prayers) {
     try {
       await userStorage.setRaw(this.STORAGE_KEY, JSON.stringify(prayers));
+      pushToCloud('userPrayers', prayers);
       return true;
     } catch (error) {
       console.error('Error saving user prayers:', error);

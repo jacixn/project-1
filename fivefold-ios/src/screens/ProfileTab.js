@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
-import { performFullSync, updateAndSyncProfile } from '../services/userSyncService';
+import { performFullSync, updateAndSyncProfile, pushToCloud } from '../services/userSyncService';
 import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup, disable2FA, check2FAEnabled } from '../services/authService';
 import { getReferralInfo, submitReferral, getReferralCount } from '../services/referralService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
@@ -2556,17 +2556,26 @@ const ProfileTab = () => {
         setPurchasedVersions(JSON.parse(storedPurchasedVersions));
       }
       
-      // ── Recalculate score from scratch to fix any inflation ──
-      // This runs the proper recalculation on every profile load so stale
-      // inflated values get corrected automatically.
-      let correctTotal;
-      try {
-        correctTotal = await AchievementService.recalculateScore();
-      } catch (e) {
-        console.warn('[Profile] recalculateScore failed, falling back:', e.message);
-        correctTotal = 0;
-      }
+      // ── Read the accurate incremental total from ALL sources ──
+      // We no longer recalculate from scratch because recalculateScore() used a
+      // fixed average (92 pts/task) which was inaccurate. Instead, take the max
+      // of every place points are stored — they only go up, so max is always right.
+      const freshStats = await AchievementService.getStats();
+      const totalPointsStr = await userStorage.getRaw('total_points');
+      const totalPointsKey = totalPointsStr ? parseInt(totalPointsStr, 10) : 0;
+      const correctTotal = Math.max(
+        freshStats.totalPoints || 0,
+        freshStats.points || 0,
+        storedStats.totalPoints || 0,
+        storedStats.points || 0,
+        totalPointsKey,
+      );
       const level = AchievementService.getLevelFromPoints(correctTotal);
+      
+      // Keep total_points key in sync if another source was higher
+      if (correctTotal > totalPointsKey) {
+        userStorage.setRaw('total_points', correctTotal.toString()).catch(() => {});
+      }
       
       // Get actual completed tasks count from todos
       const storedTodos = await userStorage.getRaw('fivefold_todos');
@@ -2933,6 +2942,7 @@ const ProfileTab = () => {
       // Set as selected version
       setSelectedBibleVersion(versionId);
       await userStorage.setRaw('selectedBibleVersion', versionId);
+      pushToCloud('selectedBibleVersion', versionId);
       
       // Close modal
       setShowBibleVersionModal(false);
@@ -4437,10 +4447,15 @@ const ProfileTab = () => {
                           setSavedVersesList(newList);
                           await userStorage.setRaw('savedBibleVerses', JSON.stringify(newList));
                           const stats = await userStorage.getRaw('userStats');
-                          const userStats = stats ? JSON.parse(stats) : {};
-                          userStats.savedVerses = newList.length;
-                          await userStorage.setRaw('userStats', JSON.stringify(userStats));
-                          setUserStats(userStats);
+                          const parsedStats = stats ? JSON.parse(stats) : {};
+                          parsedStats.savedVerses = newList.length;
+                          await userStorage.setRaw('userStats', JSON.stringify(parsedStats));
+                          setUserStats(parsedStats);
+                          // Sync to cloud in background
+                          import('../services/userSyncService').then(({ syncSavedVersesToCloud }) => {
+                            const uid = user?.uid;
+                            if (uid) syncSavedVersesToCloud(uid).catch(() => {});
+                          }).catch(() => {});
                                   }
                                 }
                               ]
@@ -5184,6 +5199,7 @@ const ProfileTab = () => {
                 const newUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
                 setWeightUnit(newUnit);
                 await userStorage.setRaw('weightUnit', newUnit);
+                pushToCloud('weightUnit', newUnit);
                 const storedProfile = await userStorage.getRaw('userProfile');
                 if (storedProfile) {
                   const profile = JSON.parse(storedProfile);
@@ -5229,6 +5245,7 @@ const ProfileTab = () => {
                   const newUnit = heightUnit === 'cm' ? 'ft' : 'cm';
                   setHeightUnit(newUnit);
                   await userStorage.setRaw('heightUnit', newUnit);
+                  pushToCloud('heightUnit', newUnit);
                   const storedProfile = await userStorage.getRaw('userProfile');
                   if (storedProfile) {
                     const profile = JSON.parse(storedProfile);
@@ -5898,9 +5915,9 @@ const ProfileTab = () => {
                     borderWidth: 1,
                     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                   }}
-                  placeholder="Email"
+                  placeholder="Email or username"
                   placeholderTextColor={theme.textTertiary}
-                  keyboardType="email-address"
+                  keyboardType="default"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={addAccountEmail}

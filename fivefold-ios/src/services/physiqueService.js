@@ -12,6 +12,7 @@
  */
 
 import userStorage from '../utils/userStorage';
+import { pushToCloud } from './userSyncService';
 import { MUSCLE_GROUP_IDS, getMusclesForExercise, getScoreColor, getScoreLabel } from '../data/exerciseMuscleMap';
 
 const STORAGE_KEY = '@physique_scores';
@@ -65,10 +66,12 @@ class PhysiqueService {
    */
   async _save() {
     try {
-      await userStorage.setRaw(STORAGE_KEY, JSON.stringify({
+      const data = {
         muscles: this._scores,
         lastCalculated: new Date().toISOString(),
-      }));
+      };
+      await userStorage.setRaw(STORAGE_KEY, JSON.stringify(data));
+      pushToCloud('physiqueScores', data);
     } catch (error) {
       console.warn('[Physique] Failed to save scores:', error.message);
     }

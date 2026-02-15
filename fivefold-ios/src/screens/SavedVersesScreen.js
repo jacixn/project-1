@@ -21,6 +21,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import userStorage from '../utils/userStorage';
+import { pushToCloud } from '../services/userSyncService';
 import { hapticFeedback } from '../utils/haptics';
 import verseByReferenceService from '../services/verseByReferenceService';
 
@@ -345,6 +346,7 @@ const SavedVersesScreen = ({ navigation }) => {
                               const newList = savedVersesList.filter(v => v.id !== verse.id);
                               setSavedVersesList(newList);
                               await userStorage.setRaw('savedBibleVerses', JSON.stringify(newList));
+                              pushToCloud('savedBibleVerses', newList);
                               const stats = await userStorage.getRaw('userStats');
                               const userStatsObj = stats ? JSON.parse(stats) : {};
                               userStatsObj.savedVerses = newList.length;

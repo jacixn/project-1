@@ -2,6 +2,7 @@ import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import AchievementService from './achievementService';
+import { pushToCloud } from './userSyncService';
 
 const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
@@ -34,6 +35,7 @@ class WorkoutService {
   static async saveTemplates(templates) {
     try {
       await userStorage.setRaw(TEMPLATES_KEY, JSON.stringify(templates));
+      pushToCloud('workoutTemplates', templates);
       console.log('✅ Templates saved successfully');
     } catch (error) {
       console.error('Error saving templates:', error);
@@ -111,18 +113,44 @@ class WorkoutService {
       history.unshift(completedWorkout);
       
       await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(history));
+      pushToCloud('workoutHistory', history);
       console.log('✅ Workout saved to history');
       
+      // ── Dynamic workout scoring (20–200 pts) ──
+      // Points scale with effort: exercises, completed sets, total reps,
+      // total volume (weight × reps), and duration.
+      const exercisesArr = workout.exercises || [];
+      const exerciseCount = exercisesArr.length;
+      const completedSets = exercisesArr.reduce(
+        (sum, ex) => sum + (ex.sets || []).filter(s => s.completed).length, 0
+      );
+      const totalReps = exercisesArr.reduce(
+        (sum, ex) => sum + (ex.sets || []).reduce(
+          (setSum, s) => setSum + (s.completed ? (parseInt(s.reps) || 0) : 0), 0
+        ), 0
+      );
+      const totalVolume = exercisesArr.reduce(
+        (sum, ex) => sum + (ex.sets || []).reduce(
+          (setSum, s) => setSum + (s.completed ? ((parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0)) : 0), 0
+        ), 0
+      );
+      const workoutMinutes = Math.floor((workout.duration || 0) / 60);
+
+      const rawPoints =
+        5 +                                             // base (always awarded)
+        Math.min(exerciseCount, 5) * 7 +                // exercises   (max 35)
+        Math.min(completedSets, 18) * 3 +               // sets        (max 54)
+        Math.min(totalReps, 100) * 0.35 +               // reps        (max 35)
+        Math.min(totalVolume / 400, 1) * 40 +           // volume      (max 40)
+        Math.min(workoutMinutes, 60) * 0.6;             // duration    (max 36)
+
+      // Clamp between 20 (minimal effort) and 200 (beast mode)
+      const workoutPoints = Math.min(Math.max(Math.round(rawPoints), 20), 200);
+
+      console.log(`💪 Workout points: +${workoutPoints} pts (${exerciseCount} exercises, ${completedSets} sets, ${totalReps} reps, ${totalVolume} kg vol, ${workoutMinutes} min)`);
+
       // UPDATE userStats via AchievementService (syncs both keys + triggers achievements)
       try {
-        // Count exercises and completed sets from this workout
-        const exerciseCount = (workout.exercises || []).length;
-        const setsCount = (workout.exercises || []).reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 0), 0);
-        const workoutMinutes = Math.floor((workout.duration || 0) / 60);
-
-        // ── Award direct points for completing a workout ──
-        // Base: 175 pts per workout + 35 per exercise + 12 per set
-        const workoutPoints = 175 + (exerciseCount * 35) + (setsCount * 12);
         const stats = await AchievementService.getStats();
         const newPoints = (stats.totalPoints || stats.points || 0) + workoutPoints;
         const newLevel = AchievementService.getLevelFromPoints(newPoints);
@@ -136,14 +164,13 @@ class WorkoutService {
         };
         await AchievementService._writeBothKeys(updatedStats);
         await userStorage.setRaw('total_points', newPoints.toString());
-        console.log(`💪 Workout points awarded: +${workoutPoints} pts (base 175 + ${exerciseCount} exercises + ${setsCount} sets)`);
 
         await AchievementService.incrementStat('workoutsCompleted');
         if (exerciseCount > 0) await AchievementService.incrementStat('exercisesLogged', exerciseCount);
-        if (setsCount > 0) await AchievementService.incrementStat('setsCompleted', setsCount);
+        if (completedSets > 0) await AchievementService.incrementStat('setsCompleted', completedSets);
         if (workoutMinutes > 0) await AchievementService.incrementStat('workoutMinutes', workoutMinutes);
 
-        console.log(`✅ Updated workout stats: +1 workout, +${exerciseCount} exercises, +${setsCount} sets, +${workoutMinutes} min`);
+        console.log(`✅ Updated workout stats: +1 workout, +${exerciseCount} exercises, +${completedSets} sets, +${workoutMinutes} min`);
 
         // SYNC TO FIREBASE
         const currentUser = auth.currentUser;
@@ -166,7 +193,7 @@ class WorkoutService {
         await this.updateTemplateFromWorkout(workout.templateId, workout);
       }
       
-      return completedWorkout;
+      return { ...completedWorkout, workoutPoints };
     } catch (error) {
       console.error('Error saving workout:', error);
       throw error;
@@ -238,6 +265,7 @@ class WorkoutService {
       const history = await this.getWorkoutHistory();
       const filtered = history.filter(w => w.id !== workoutId);
       await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
+      pushToCloud('workoutHistory', filtered);
       console.log('✅ Workout deleted:', workoutId);
     } catch (error) {
       console.error('Error deleting workout:', error);
@@ -249,6 +277,7 @@ class WorkoutService {
   static async clearHistory() {
     try {
       await userStorage.remove(WORKOUT_HISTORY_KEY);
+      pushToCloud('workoutHistory', []);
       console.log('✅ Workout history cleared');
     } catch (error) {
       console.error('Error clearing history:', error);
@@ -260,6 +289,7 @@ class WorkoutService {
   static async clearTemplates() {
     try {
       await userStorage.remove(TEMPLATES_KEY);
+      pushToCloud('workoutTemplates', []);
       console.log('✅ Templates cleared');
     } catch (error) {
       console.error('Error clearing templates:', error);
@@ -287,6 +317,7 @@ class WorkoutService {
   static async saveFolders(folders) {
     try {
       await userStorage.setRaw(FOLDERS_KEY, JSON.stringify(folders));
+      pushToCloud('workoutFolders', folders);
       console.log('✅ Folders saved successfully');
     } catch (error) {
       console.error('Error saving folders:', error);
@@ -357,6 +388,7 @@ class WorkoutService {
   static async saveScheduledWorkouts(scheduled) {
     try {
       await userStorage.setRaw(SCHEDULED_WORKOUTS_KEY, JSON.stringify(scheduled));
+      pushToCloud('scheduledWorkouts', scheduled);
       console.log('✅ Scheduled workouts saved');
     } catch (error) {
       console.error('Error saving scheduled workouts:', error);
@@ -482,6 +514,7 @@ class WorkoutService {
 
       if (filtered.length < history.length) {
         await userStorage.setRaw(WORKOUT_HISTORY_KEY, JSON.stringify(filtered));
+        pushToCloud('workoutHistory', filtered);
         console.log(`🧹 Cleaned workout history: ${history.length} → ${filtered.length} (removed ${history.length - filtered.length} entries older than 90 days)`);
       }
     } catch (error) {
@@ -536,6 +569,7 @@ class WorkoutService {
   static async saveSplitPlan(plan) {
     try {
       await userStorage.setRaw(SPLIT_PLAN_KEY, JSON.stringify(plan));
+      pushToCloud('splitPlan', plan);
       console.log('[WorkoutService] Split plan saved');
     } catch (error) {
       console.warn('[WorkoutService] Error saving split plan:', error);
@@ -548,6 +582,7 @@ class WorkoutService {
   static async deleteSplitPlan() {
     try {
       await userStorage.remove(SPLIT_PLAN_KEY);
+      pushToCloud('splitPlan', null);
     } catch (error) {
       console.warn('[WorkoutService] Error deleting split plan:', error);
     }

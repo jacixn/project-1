@@ -1,8 +1,8 @@
 import userStorage from './userStorage';
 import iCloudSyncService from '../services/iCloudSyncService';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { auth } from '../config/firebase';
+import { db, auth } from '../config/firebase';
+import { pushToCloud } from '../services/userSyncService';
 
 class PrayerCompletionManager {
   static COMPLETION_KEY = 'prayer_completions';
@@ -57,6 +57,8 @@ class PrayerCompletionManager {
       iCloudSyncService.syncToCloud(this.COMPLETION_KEY, completions).catch(err => {
         console.warn('☁️ Background sync failed:', err.message);
       });
+      // Sync to Firebase
+      pushToCloud('prayerCompletions', completions);
 
       // Add points to total
       await this.addPoints(points);

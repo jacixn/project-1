@@ -22,6 +22,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
+import { pushToCloud } from '../services/userSyncService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 
 const { width, height } = Dimensions.get('window');
@@ -355,6 +356,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   const saveFavorites = async (newFavorites) => {
     try {
       await userStorage.setRaw('bible_fast_facts_favorites', JSON.stringify(newFavorites));
+      pushToCloud('bibleFastFactsFavorites', newFavorites);
       setFavorites(newFavorites);
     } catch (error) {
       console.error('Error saving favorites:', error);

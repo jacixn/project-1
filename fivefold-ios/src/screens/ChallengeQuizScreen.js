@@ -158,8 +158,7 @@ const ChallengeQuizScreen = () => {
   const awardQuizPoints = async (correctAnswers, totalQuestions) => {
     try {
       // Points based on correct answers (29 per correct)
-      const points = correctAnswers * 29;
-      setPointsEarned(points);
+      const basePoints = correctAnswers * 29;
       
       // Get current stats
       const currentStats = await getStoredData('userStats') || {
@@ -170,11 +169,13 @@ const ChallengeQuizScreen = () => {
         quizzesCompleted: 0
       };
       
+      const oldTotal = currentStats.totalPoints || currentStats.points || 0;
+      
       // Update stats
       const updatedStats = {
         ...currentStats,
-        points: (currentStats.points || 0) + points,
-        totalPoints: (currentStats.totalPoints || currentStats.points || 0) + points,
+        points: oldTotal + basePoints,
+        totalPoints: oldTotal + basePoints,
         quizzesCompleted: (currentStats.quizzesCompleted || 0) + 1,
       };
       
@@ -201,12 +202,14 @@ const ChallengeQuizScreen = () => {
         console.log(`🔥 Challenge quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
-      // Check achievements
-      await AchievementService.checkAchievements(updatedStats);
+      // Check achievements in background — bonus shown via AchievementToast
+      AchievementService.checkAchievements(updatedStats).catch(() => {});
       
-      console.log(`🏆 Challenge quiz completed! Awarded ${points} points for ${correctAnswers}/${totalQuestions} correct. Total: ${updatedStats.totalPoints}`);
+      setPointsEarned(basePoints);
       
-      return points;
+      console.log(`🏆 Challenge quiz completed! Awarded ${basePoints} points for ${correctAnswers}/${totalQuestions} correct. Total: ${updatedStats.totalPoints}`);
+      
+      return basePoints;
     } catch (error) {
       console.error('Error awarding challenge quiz points:', error);
       return 0;

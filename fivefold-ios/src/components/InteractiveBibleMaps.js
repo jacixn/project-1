@@ -18,6 +18,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
+import { pushToCloud } from '../services/userSyncService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // LiquidGlassView/BlurView removed from map overlays — causes native crashes with MapView
@@ -218,6 +219,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       try {
         await userStorage.setRaw('bible_maps_visited', JSON.stringify(visitedLocations));
         await userStorage.setRaw('bible_maps_bookmarks', JSON.stringify(bookmarkedLocations));
+        pushToCloud('bibleMapsVisited', visitedLocations);
+        pushToCloud('bibleMapsBookmarks', bookmarkedLocations);
       } catch (err) {
         console.log('Error saving user data:', err);
       }

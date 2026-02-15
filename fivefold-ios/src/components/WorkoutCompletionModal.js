@@ -16,7 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import WorkoutService from '../services/workoutService';
 
-const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 0 }) => {
+const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 0, pointsEarned = 0 }) => {
   const { theme, isDark } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -255,6 +255,14 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
               That's your {workoutCount}{getOrdinalSuffix(workoutCount)} workout!
             </Text>
 
+            {/* Points Earned Badge */}
+            {pointsEarned > 0 && (
+              <View style={[styles.pointsBadge, { backgroundColor: '#FFD700' + '20', borderColor: '#FFD700' + '40' }]}>
+                <MaterialIcons name="bolt" size={20} color="#FFD700" />
+                <Text style={styles.pointsText}>+{pointsEarned} pts</Text>
+              </View>
+            )}
+
             {/* Workout Summary Card */}
             <View style={[styles.summaryCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }]}>
               {/* Workout Name */}
@@ -441,8 +449,24 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    marginBottom: 32,
+    marginBottom: 12,
     textAlign: 'center',
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  pointsText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFD700',
   },
   summaryCard: {
     width: '100%',

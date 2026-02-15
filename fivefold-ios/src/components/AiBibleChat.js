@@ -23,6 +23,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
+import { pushToCloud } from '../services/userSyncService';
 import aiService from '../services/aiService';
 import chatterboxService from '../services/chatterboxService';
 import googleTtsService from '../services/googleTtsService';
@@ -569,6 +570,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         currentHistory.unshift(updatedConversation); // Add to top
         
         await userStorage.setRaw('friendChatHistory', JSON.stringify(currentHistory));
+        pushToCloud('friendChatHistory', currentHistory);
         setChatHistory(currentHistory);
         console.log('📝 Updated existing chat in history and moved to top');
       } else {
@@ -583,6 +585,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         
         const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
         await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
+        pushToCloud('friendChatHistory', updatedHistory);
         setChatHistory(updatedHistory);
         console.log('📝 Created new chat in history');
       }
@@ -609,6 +612,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     try {
       const updatedHistory = chatHistory.filter(conv => conv.id !== conversationId);
       await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
+      pushToCloud('friendChatHistory', updatedHistory);
       setChatHistory(updatedHistory);
       hapticFeedback.success();
       console.log('🗑️ Deleted conversation:', conversationId);

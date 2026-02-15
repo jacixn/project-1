@@ -46,6 +46,7 @@ import { GITHUB_CONFIG } from '../../github.config';
 import bibleAudioService from '../services/bibleAudioService';
 import AudioPlayerBar from './AudioPlayerBar';
 import AchievementService from '../services/achievementService';
+import { pushToCloud } from '../services/userSyncService';
 import PREMIUM_BACKGROUNDS, { PREMIUM_BG_REFERRAL_REQUIRED, TEXT_COLOR_PRESETS } from '../data/premiumBackgrounds';
 import { getReferralCount } from '../services/referralService';
 import { getCachedImageUri, preloadImages } from '../utils/premiumBgCache';
@@ -196,6 +197,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   // Note modal animation
   const noteModalSlideAnim = useRef(new Animated.Value(600)).current;
   const noteModalFadeAnim = useRef(new Animated.Value(0)).current;
+  const noteScrollRef = useRef(null);
 
   // Testament dropdown state
   const [expandedTestament, setExpandedTestament] = useState(null); // 'old', 'new', or null
@@ -813,6 +815,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     setRecentSearches(prev => {
       const next = [reference, ...prev.filter(r => r !== reference)].slice(0, 8);
       userStorage.setRaw('recentBibleSearches', JSON.stringify(next)).catch(() => {});
+      pushToCloud('recentBibleSearches', next);
       return next;
     });
   };
@@ -1165,6 +1168,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     };
     syncLanguage();
   }, [language]);
+
+  // Background sync saved verses to Firebase after any local change.
+  // Uses lazy import so BibleReader doesn't need auth context at top level.
+  const syncSavedVersesInBackground = () => {
+    Promise.all([
+      import('../services/userSyncService'),
+      import('../config/firebase'),
+    ]).then(([{ syncSavedVersesToCloud }, { auth }]) => {
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        syncSavedVersesToCloud(uid).catch(err =>
+          console.warn('[BibleReader] Background verse sync failed:', err?.message)
+        );
+      }
+    }).catch(() => {});
+  };
 
   const loadSavedVerses = async () => {
     try {
@@ -2084,6 +2103,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
+      syncSavedVersesInBackground();
       
       const newSavedVerses = new Set([...savedVerses, verseId]);
       setSavedVerses(newSavedVerses);
@@ -2193,6 +2213,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
+      syncSavedVersesInBackground();
       
       // Mark all verses in the range as saved
       const newSavedVersesSet = new Set([...savedVerses]);
@@ -2284,6 +2305,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       
       // Update stats and check achievements
       AchievementService.setStat('savedVerses', currentSavedVerses.length);
+      syncSavedVersesInBackground();
       
       // Mark all verses in the range as saved (for heart icon display)
       const newSavedVersesSet = new Set([...savedVerses]);
@@ -2323,6 +2345,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       const oldVersion = selectedBibleVersion;
       setSelectedBibleVersion(versionId);
       await userStorage.setRaw('selectedBibleVersion', versionId);
+      pushToCloud('selectedBibleVersion', versionId);
       setShowVersionPicker(false);
       hapticFeedback.success();
       
@@ -3049,6 +3072,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       
       // Update user stats and check achievements
       AchievementService.setStat('savedVerses', savedVersesList.length);
+      syncSavedVersesInBackground();
       
     } catch (error) {
       console.error('Error saving/unsaving verse:', error);
@@ -5264,10 +5288,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
             {/* Scrollable Content */}
             <ScrollView 
+              ref={noteScrollRef}
               style={{ flex: 1 }}
               contentContainerStyle={{ paddingBottom: 20 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
             >
               {/* Header */}
               <View style={{
@@ -5387,7 +5413,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                     padding: 20,
                     fontSize: 17,
                     color: theme.text,
-                    minHeight: 220,
+                    minHeight: 180,
                     textAlignVertical: 'top',
                     borderWidth: 2,
                     borderColor: noteText.trim() ? theme.primary : theme.border,
@@ -5398,6 +5424,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   value={noteText}
                   onChangeText={setNoteText}
                   multiline
+                  onFocus={() => {
+                    // Scroll to the TextInput so it's visible above the keyboard
+                    setTimeout(() => {
+                      noteScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
                 />
               </View>
             </ScrollView>
@@ -5405,16 +5437,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             {/* Fixed Bottom Action Buttons */}
             <View style={{
               paddingHorizontal: 28,
-              paddingTop: 20,
-              paddingBottom: 32,
+              paddingTop: 14,
+              paddingBottom: 16,
               backgroundColor: theme.background,
               borderTopWidth: 1,
               borderTopColor: theme.border,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 8,
             }}>
               <View style={{
                 flexDirection: 'row',
