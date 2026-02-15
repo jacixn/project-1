@@ -368,36 +368,46 @@ const LANGUAGES = [
 const PAIN_POINTS = [
   {
     id: 'grow',
-    icon: '🌱',
+    iconName: 'hand-holding-heart',
+    iconLib: 'fa5',
     iconBg: '#E8F5E9',
+    iconColor: '#4CAF50',
     title: 'I want to grow in faith',
     subtitle: 'Deepen my relationship with God',
   },
   {
     id: 'consistency',
-    icon: '📅',
+    iconName: 'calendar-today',
+    iconLib: 'material',
     iconBg: '#FFF3E0',
+    iconColor: '#F57F17',
     title: 'I struggle with consistency',
     subtitle: 'Need help building daily habits',
   },
   {
     id: 'bible',
-    icon: '📖',
+    iconName: 'book-open',
+    iconLib: 'fa5',
     iconBg: '#E3F2FD',
+    iconColor: '#1976D2',
     title: 'I want to read the Bible more',
     subtitle: 'Make scripture part of my routine',
   },
   {
     id: 'prayer',
-    icon: '🙏',
+    iconName: 'praying-hands',
+    iconLib: 'fa5',
     iconBg: '#FCE4EC',
+    iconColor: '#E91E63',
     title: 'I need prayer support',
     subtitle: 'Want to develop a prayer life',
   },
   {
     id: 'fitness',
-    icon: '💪',
+    iconName: 'directions-run',
+    iconLib: 'material',
     iconBg: '#FFEBEE',
+    iconColor: '#E53935',
     title: 'I want to get fit',
     subtitle: 'Strengthen body and spirit together',
   },
@@ -1160,17 +1170,29 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      const tempUri = result.assets[0].uri;
-      const permanentUri = await persistProfileImage(tempUri);
-      setProfileImage(permanentUri);
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Photo Access Required',
+          'Please allow access to your photo library so you can set a profile picture.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled) {
+        const tempUri = result.assets[0].uri;
+        const permanentUri = await persistProfileImage(tempUri);
+        setProfileImage(permanentUri);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
     }
   };
 
@@ -1405,7 +1427,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.featureHeaderIcon}>
-            <Text style={{ fontSize: 50 }}>🌐</Text>
+            <MaterialIcons name="translate" size={44} color="#1976D2" />
           </View>
           
           <Text style={[styles.screenTitle, { color: '#333' }]}>
@@ -1561,7 +1583,13 @@ const SimpleOnboarding = ({ onComplete }) => {
                 }}
               >
                 <View style={[styles.painPointIcon, { backgroundColor: point.iconBg }]}>
-                  <Text style={styles.painPointEmoji}>{point.icon}</Text>
+                  {point.iconLib === 'fa5' ? (
+                    <FontAwesome5 name={point.iconName} size={22} color={point.iconColor} />
+                  ) : point.iconLib === 'ionicon' ? (
+                    <Ionicons name={point.iconName} size={22} color={point.iconColor} />
+                  ) : (
+                    <MaterialIcons name={point.iconName} size={22} color={point.iconColor} />
+                  )}
                 </View>
                 <View style={styles.painPointText}>
                   <Text style={[
@@ -1601,35 +1629,35 @@ const SimpleOnboarding = ({ onComplete }) => {
     
     const features = [
       { 
-        icon: '🤖', 
+        iconName: 'lightbulb', iconLib: 'material',
         title: 'Smart Bible Companion', 
         desc: 'Got questions at 2am? Ask anything and get answers rooted in Scripture', 
         color: '#26A69A',
         badge: 'Unique'
       },
       { 
-        icon: '📖', 
+        iconName: 'menu-book', iconLib: 'material',
         title: '44 Bible Translations', 
         desc: 'Compare NIV, ESV, KJV and 41 more - see the original meaning from every angle', 
         color: '#42A5F5',
         badge: null
       },
       { 
-        icon: '🎧', 
+        iconName: 'headphones', iconLib: 'material',
         title: 'Audio Bible Stories', 
         desc: 'Listen to David & Goliath, Samson, and more - perfect for commutes', 
         color: '#9C27B0',
         badge: null
       },
       { 
-        icon: '🧠', 
+        iconName: 'puzzle-piece', iconLib: 'fa5',
         title: 'Bible Quizzes', 
         desc: 'Actually remember what you read - fun quizzes that make Scripture stick', 
         color: '#FF9800',
         badge: null
       },
       { 
-        icon: '📚', 
+        iconName: 'library-books', iconLib: 'material',
         title: 'Thematic Guides', 
         desc: 'Struggling with anxiety, grief, or doubt? Curated verses for 50+ life moments', 
         color: '#E91E63',
@@ -1660,7 +1688,13 @@ const SimpleOnboarding = ({ onComplete }) => {
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>
                 <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  <Text style={styles.featureEmoji}>{feature.icon}</Text>
+                  {feature.iconLib === 'fa5' ? (
+                    <FontAwesome5 name={feature.iconName} size={22} color={feature.color} />
+                  ) : feature.iconLib === 'ionicon' ? (
+                    <Ionicons name={feature.iconName} size={22} color={feature.color} />
+                  ) : (
+                    <MaterialIcons name={feature.iconName} size={22} color={feature.color} />
+                  )}
                 </View>
                 <View style={styles.featureTextContainer}>
                   <View style={styles.featureTitleRow}>
@@ -1713,31 +1747,31 @@ const SimpleOnboarding = ({ onComplete }) => {
     
     const features = [
       { 
-        icon: '🤖', 
+        iconName: 'analytics', iconLib: 'material',
         title: 'Smart Scoring', 
         desc: 'Each task is analyzed and assigned points based on difficulty - harder tasks = more points!', 
         color: '#2E7D32',
       },
       { 
-        icon: '🎯', 
+        iconName: 'bullseye', iconLib: 'fa5',
         title: '3-Tier Point System', 
         desc: 'Easy tasks (35-69 pts), Medium (69-173 pts), Hard tasks (173-345 pts). Earn points for every effort!', 
         color: '#FF9800',
       },
       { 
-        icon: '🔥', 
+        iconName: 'local-fire-department', iconLib: 'material',
         title: 'Daily Streaks', 
         desc: 'Complete tasks daily to build your streak. Watch the fire grow - don\'t break the chain!', 
         color: '#F44336',
       },
       { 
-        icon: '📊', 
+        iconName: 'bar-chart', iconLib: 'material',
         title: 'Progress Dashboard', 
         desc: 'See your daily points, weekly totals, and track your productivity over time', 
         color: '#1976D2',
       },
       { 
-        icon: '🏆', 
+        iconName: 'emoji-events', iconLib: 'material',
         title: 'Achievements', 
         desc: 'Unlock milestones as you grow - first 100 tasks, 30-day streak, and more!', 
         color: '#FFC107',
@@ -1756,7 +1790,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           scrollEventThrottle={16}
         >
           <View style={styles.featureHeaderIcon}>
-            <Text style={{ fontSize: 50 }}>✅</Text>
+            <MaterialIcons name="task-alt" size={44} color="#2E7D32" />
           </View>
           
           <Text style={[styles.screenTitle, { color: '#333' }]}>
@@ -1771,7 +1805,13 @@ const SimpleOnboarding = ({ onComplete }) => {
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>
                 <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  <Text style={styles.featureEmoji}>{feature.icon}</Text>
+                  {feature.iconLib === 'fa5' ? (
+                    <FontAwesome5 name={feature.iconName} size={22} color={feature.color} />
+                  ) : feature.iconLib === 'ionicon' ? (
+                    <Ionicons name={feature.iconName} size={22} color={feature.color} />
+                  ) : (
+                    <MaterialIcons name={feature.iconName} size={22} color={feature.color} />
+                  )}
                 </View>
                 <View style={styles.featureTextContainer}>
                   <Text style={[styles.featureTitle, { color: feature.color }]}>{feature.title}</Text>
@@ -1833,37 +1873,37 @@ const SimpleOnboarding = ({ onComplete }) => {
     
     const features = [
       { 
-        icon: '📋', 
+        iconName: 'clipboard-outline', iconLib: 'ionicon',
         title: 'Workout Templates', 
         desc: 'Pre-built workout plans or create your own. Start training in seconds!', 
         color: '#C62828',
       },
       { 
-        icon: '💪', 
+        iconName: 'fitness-center', iconLib: 'material',
         title: 'Exercise Library', 
         desc: 'Hundreds of exercises with proper form guidance - never guess again', 
         color: '#E65100',
       },
       { 
-        icon: '⏱️', 
+        iconName: 'timer', iconLib: 'material',
         title: 'Smart Rest Timer', 
         desc: 'Built-in rest timer between sets - stay focused and maximize gains', 
         color: '#1565C0',
       },
       { 
-        icon: '📈', 
+        iconName: 'trending-up', iconLib: 'material',
         title: 'Progress Tracking', 
         desc: 'See your weights, reps, and personal records over time. Watch yourself grow!', 
         color: '#2E7D32',
       },
       { 
-        icon: '📸', 
+        iconName: 'camera-alt', iconLib: 'material',
         title: 'Workout Photos', 
         desc: 'Snap progress photos and attach them to workouts - see your transformation', 
         color: '#7B1FA2',
       },
       { 
-        icon: '📅', 
+        iconName: 'event', iconLib: 'material',
         title: 'Workout Calendar', 
         desc: 'Schedule workouts and see your training history at a glance', 
         color: '#00838F',
@@ -1882,7 +1922,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           scrollEventThrottle={16}
         >
           <View style={styles.featureHeaderIcon}>
-            <Text style={{ fontSize: 50 }}>💪</Text>
+            <MaterialIcons name="fitness-center" size={44} color="#C62828" />
           </View>
           
           <Text style={[styles.screenTitle, { color: '#333' }]}>
@@ -1897,7 +1937,13 @@ const SimpleOnboarding = ({ onComplete }) => {
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>
                 <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  <Text style={styles.featureEmoji}>{feature.icon}</Text>
+                  {feature.iconLib === 'fa5' ? (
+                    <FontAwesome5 name={feature.iconName} size={22} color={feature.color} />
+                  ) : feature.iconLib === 'ionicon' ? (
+                    <Ionicons name={feature.iconName} size={22} color={feature.color} />
+                  ) : (
+                    <MaterialIcons name={feature.iconName} size={22} color={feature.color} />
+                  )}
                 </View>
                 <View style={styles.featureTextContainer}>
                   <Text style={[styles.featureTitle, { color: feature.color }]}>{feature.title}</Text>
@@ -1951,37 +1997,37 @@ const SimpleOnboarding = ({ onComplete }) => {
     
     const features = [
       { 
-        icon: '🌍', 
+        iconName: 'public', iconLib: 'material',
         title: 'Global Community', 
         desc: 'Share thoughts, encouragements, and prayers with believers worldwide', 
         color: '#5C6BC0',
       },
       { 
-        icon: '💬', 
+        iconName: 'chat-bubble-outline', iconLib: 'material',
         title: 'Daily Sharing', 
         desc: 'Post what\'s on your heart - get one token daily to share something meaningful', 
         color: '#26A69A',
       },
       { 
-        icon: '👀', 
+        iconName: 'visibility', iconLib: 'material',
         title: 'See What Others Share', 
         desc: 'Scroll through uplifting posts from the community - get inspired every day', 
         color: '#42A5F5',
       },
       { 
-        icon: '🤝', 
+        iconName: 'people', iconLib: 'material',
         title: 'Connect with Friends', 
         desc: 'Add friends, send messages, and support each other on your faith journey', 
         color: '#FF7043',
       },
       { 
-        icon: '🏆', 
+        iconName: 'emoji-events', iconLib: 'material',
         title: 'Friendly Challenges', 
         desc: 'Challenge friends to Bible quizzes - compete and grow together!', 
         color: '#FFB300',
       },
       { 
-        icon: '📊', 
+        iconName: 'leaderboard', iconLib: 'material',
         title: 'Leaderboards', 
         desc: 'See how you rank among friends and globally - stay motivated!', 
         color: '#AB47BC',
@@ -2000,7 +2046,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           scrollEventThrottle={16}
         >
           <View style={styles.featureHeaderIcon}>
-            <Text style={{ fontSize: 50 }}>🌍</Text>
+            <MaterialIcons name="public" size={44} color="#5C6BC0" />
           </View>
           
           <Text style={[styles.screenTitle, { color: '#333' }]}>
@@ -2015,7 +2061,13 @@ const SimpleOnboarding = ({ onComplete }) => {
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>
                 <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  <Text style={styles.featureEmoji}>{feature.icon}</Text>
+                  {feature.iconLib === 'fa5' ? (
+                    <FontAwesome5 name={feature.iconName} size={22} color={feature.color} />
+                  ) : feature.iconLib === 'ionicon' ? (
+                    <Ionicons name={feature.iconName} size={22} color={feature.color} />
+                  ) : (
+                    <MaterialIcons name={feature.iconName} size={22} color={feature.color} />
+                  )}
                 </View>
                 <View style={styles.featureTextContainer}>
                   <Text style={[styles.featureTitle, { color: feature.color }]}>{feature.title}</Text>
@@ -2292,6 +2344,17 @@ const SimpleOnboarding = ({ onComplete }) => {
     
     const pickImage = async () => {
       try {
+        // Request permission first — Apple requires this prompt
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Photo Access Required',
+            'Please allow access to your photo library so you can set a profile picture. You can enable this in Settings.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
@@ -3363,6 +3426,161 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   // ============================================
+  // Glitter / Confetti Overlay for Gift Reveal
+  // ============================================
+  const GlitterOverlay = React.memo(() => {
+    const PARTICLE_COUNT = 30;
+    const { width: screenW, height: screenH } = Dimensions.get('window');
+    
+    // Generate particles once with useMemo
+    const particles = React.useMemo(() => {
+      const colors = [
+        '#FFD700', '#FF6B9D', '#C084FC', '#60A5FA', '#34D399',
+        '#FB923C', '#F472B6', '#A78BFA', '#38BDF8', '#FCD34D',
+        '#E879F9', '#4ADE80', '#F9A8D4', '#93C5FD', '#FDE68A',
+      ];
+      const shapes = ['circle', 'star', 'diamond', 'circle', 'star'];
+      
+      return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+        id: i,
+        fallAnim: new Animated.Value(0),
+        swayAnim: new Animated.Value(0),
+        spinAnim: new Animated.Value(0),
+        opacityAnim: new Animated.Value(0),
+        startX: Math.random() * screenW,
+        size: 4 + Math.random() * 8,
+        color: colors[i % colors.length],
+        shape: shapes[i % shapes.length],
+        delay: Math.random() * 2000,
+        duration: 3000 + Math.random() * 3000,
+        swayAmount: 20 + Math.random() * 40,
+      }));
+    }, []);
+    
+    React.useEffect(() => {
+      particles.forEach((p) => {
+        const startAnimation = () => {
+          // Reset
+          p.fallAnim.setValue(0);
+          p.swayAnim.setValue(0);
+          p.spinAnim.setValue(0);
+          p.opacityAnim.setValue(0);
+          
+          Animated.parallel([
+            // Fall from top to bottom
+            Animated.timing(p.fallAnim, {
+              toValue: 1,
+              duration: p.duration,
+              delay: p.delay,
+              easing: Easing.in(Easing.quad),
+              useNativeDriver: true,
+            }),
+            // Sway left and right
+            Animated.loop(
+              Animated.sequence([
+                Animated.timing(p.swayAnim, {
+                  toValue: 1,
+                  duration: 800 + Math.random() * 600,
+                  easing: Easing.inOut(Easing.sin),
+                  useNativeDriver: true,
+                }),
+                Animated.timing(p.swayAnim, {
+                  toValue: -1,
+                  duration: 800 + Math.random() * 600,
+                  easing: Easing.inOut(Easing.sin),
+                  useNativeDriver: true,
+                }),
+              ])
+            ),
+            // Spin
+            Animated.loop(
+              Animated.timing(p.spinAnim, {
+                toValue: 1,
+                duration: 1500 + Math.random() * 1500,
+                easing: Easing.linear,
+                useNativeDriver: true,
+              })
+            ),
+            // Fade in then out
+            Animated.sequence([
+              Animated.timing(p.opacityAnim, {
+                toValue: 0.9,
+                duration: 300,
+                delay: p.delay,
+                useNativeDriver: true,
+              }),
+              Animated.timing(p.opacityAnim, {
+                toValue: 0.9,
+                duration: p.duration - 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(p.opacityAnim, {
+                toValue: 0,
+                duration: 700,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]).start(() => {
+            // Loop: restart with new random delay
+            p.delay = Math.random() * 1500;
+            p.startX = Math.random() * screenW;
+            startAnimation();
+          });
+        };
+        startAnimation();
+      });
+    }, []);
+    
+    return (
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {particles.map((p) => {
+          const translateY = p.fallAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [-20, screenH + 20],
+          });
+          const translateX = p.swayAnim.interpolate({
+            inputRange: [-1, 1],
+            outputRange: [-p.swayAmount, p.swayAmount],
+          });
+          const rotate = p.spinAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '360deg'],
+          });
+          
+          const isCircle = p.shape === 'circle';
+          const isDiamond = p.shape === 'diamond';
+          
+          return (
+            <Animated.View
+              key={p.id}
+              style={{
+                position: 'absolute',
+                left: p.startX,
+                top: 0,
+                width: p.size,
+                height: p.size,
+                backgroundColor: p.color,
+                borderRadius: isCircle ? p.size / 2 : isDiamond ? 2 : 0,
+                opacity: p.opacityAnim,
+                transform: [
+                  { translateY },
+                  { translateX },
+                  { rotate: isDiamond ? '45deg' : rotate },
+                  { scale: isDiamond ? 0.7 : 1 },
+                ],
+                shadowColor: p.color,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.6,
+                shadowRadius: 3,
+              }}
+            />
+          );
+        })}
+      </View>
+    );
+  });
+
+  // ============================================
   // SCREEN: Gift Reveal
   // ============================================
   const GiftScreen = () => {
@@ -3517,20 +3735,21 @@ const SimpleOnboarding = ({ onComplete }) => {
           </View>
         ) : (
           // Revealed state - show the app is FREE
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.giftRevealScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.giftRevealEmoji}>🎉</Text>
-            
-            <Text style={[styles.screenTitle, { color: '#333', marginBottom: 8 }]}>
-              It's all FREE!
-            </Text>
-            
-            <Text style={[styles.screenSubtitle, { color: '#666', marginBottom: 24 }]}>
-              Everything. Forever. No catch.
-            </Text>
+          <View style={{ flex: 1 }}>
+            <ScrollView 
+              style={styles.scrollView}
+              contentContainerStyle={styles.giftRevealScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <MaterialIcons name="celebration" size={56} color="#AD1457" style={styles.giftRevealEmoji} />
+              
+              <Text style={[styles.screenTitle, { color: '#333', marginBottom: 8 }]}>
+                It's all FREE!
+              </Text>
+              
+              <Text style={[styles.screenSubtitle, { color: '#666', marginBottom: 24 }]}>
+                Everything. Forever. No catch.
+              </Text>
             
             {/* Value breakdown */}
             <View style={styles.priceBreakdownCard}>
@@ -3573,6 +3792,9 @@ const SimpleOnboarding = ({ onComplete }) => {
               </Text>
             </View>
           </ScrollView>
+            {/* Falling glitter / confetti — on TOP of everything */}
+            <GlitterOverlay />
+          </View>
         )}
         
         <TouchableOpacity 
@@ -3661,7 +3883,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               ) : (
                 <Animated.View style={[styles.freeReveal, { opacity: freeRevealAnim }]}>
                   <View style={styles.celebrationBanner}>
-                    <Text style={styles.celebrationEmoji}>🎉</Text>
+                    <MaterialIcons name="celebration" size={28} color="#1565C0" />
                     <Text style={styles.celebrationTitle}>SURPRISE!</Text>
                   </View>
                   
@@ -3733,7 +3955,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           contentContainerStyle={[styles.scrollContent, { justifyContent: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.completeEmoji}>🎉</Text>
+          <MaterialIcons name="stars" size={56} color="#2E7D32" style={styles.completeEmoji} />
           
           <Text style={[styles.completeTitle, { color: '#333' }]}>
             You're All Set, {userName || 'Friend'}!
@@ -4501,13 +4723,10 @@ const styles = StyleSheet.create({
   painPointIcon: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
-  },
-  painPointEmoji: {
-    fontSize: 26,
   },
   painPointText: {
     flex: 1,
@@ -4568,14 +4787,11 @@ const styles = StyleSheet.create({
   featureIconContainer: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 25,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
-  },
-  featureEmoji: {
-    fontSize: 26,
   },
   featureTextContainer: {
     flex: 1,

@@ -26,6 +26,7 @@ import {
   increment,
   writeBatch,
   Timestamp,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { notifyNewMessage } from './socialNotificationService';
@@ -303,9 +304,8 @@ export const sendMessage = async (conversationId, message, recipientId) => {
   try {
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     
-    // All messages auto-delete 24 hours after being sent
-    const deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
-    
+    // deleteAfter is NOT set at send time — the 24-hour countdown only
+    // begins once the recipient reads the message (see markAsRead).
     const messageData = {
       senderId: message.senderId,
       senderName: message.senderName || 'User',
@@ -314,7 +314,6 @@ export const sendMessage = async (conversationId, message, recipientId) => {
       metadata: message.metadata || {},
       createdAt: serverTimestamp(),
       read: false,
-      deleteAfter,
     };
 
     const messageDoc = await addDoc(messagesRef, messageData);
@@ -472,8 +471,7 @@ export const markAsRead = async (conversationId, userId) => {
     });
 
     // Find unread messages sent by other users and mark them as read.
-    // Also backfill deleteAfter on any messages that don't have it yet
-    // (for messages sent before the auto-delete-on-send feature).
+    // The 24-hour auto-delete countdown starts NOW (when the recipient reads).
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const q = query(
       messagesRef,
@@ -485,27 +483,24 @@ export const markAsRead = async (conversationId, userId) => {
     if (!snapshot.empty) {
       const batch = writeBatch(db);
       let markedCount = 0;
+      const deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
       
       snapshot.forEach((messageDoc) => {
         const data = messageDoc.data();
         // Only mark messages that were NOT sent by this user (i.e., messages they received)
         if (data.senderId !== userId) {
-          const updates = {
+          batch.update(messageDoc.ref, {
             read: true,
             readAt: serverTimestamp(),
-          };
-          // Backfill deleteAfter if it's missing (legacy messages)
-          if (!data.deleteAfter) {
-            updates.deleteAfter = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
-          }
-          batch.update(messageDoc.ref, updates);
+            deleteAfter,
+          });
           markedCount++;
         }
       });
       
       if (markedCount > 0) {
         await batch.commit();
-        console.log(`[MessageService] Marked ${markedCount} messages as read`);
+        console.log(`[MessageService] Marked ${markedCount} messages as read & set 24h delete timer`);
       }
     }
 
@@ -592,39 +587,36 @@ export const cleanupOldMessages = async (conversationId) => {
       await batch.commit();
     }
 
-    // 2. Backfill: find ALL messages and set deleteAfter on any that don't have it
-    //    (legacy messages sent before auto-delete was added to sendMessage)
+    // 2. Backfill: find READ messages that are missing deleteAfter (legacy messages
+    //    that were read before the new timer logic). Unread messages are left alone —
+    //    their 24h countdown only starts when the recipient reads them.
     const allMessagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
     const allSnapshot = await getDocs(allMessagesQuery);
     
     if (!allSnapshot.empty) {
       const backfillBatch = writeBatch(db);
       let backfillCount = 0;
-      const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       
       allSnapshot.forEach((messageDoc) => {
         const data = messageDoc.data();
-        if (!data.deleteAfter) {
-          // If message has createdAt and it's older than 24h, delete it immediately
-          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : null;
-          if (createdAt && createdAt < cutoff24h) {
-            backfillBatch.delete(messageDoc.ref);
-            deleteCount++;
-          } else {
-            // Set deleteAfter to 24h from creation (or 24h from now if no createdAt)
-            const expiryBase = createdAt || new Date();
-            const deleteAfter = Timestamp.fromDate(new Date(expiryBase.getTime() + 24 * 60 * 60 * 1000));
-            backfillBatch.update(messageDoc.ref, { deleteAfter });
-            backfillCount++;
-          }
+        // Fix: strip deleteAfter from UNREAD messages (legacy bug where it was set at send time)
+        if (data.deleteAfter && data.read === false) {
+          backfillBatch.update(messageDoc.ref, { deleteAfter: deleteField() });
+          backfillCount++;
+        }
+        // Backfill: set deleteAfter on READ messages that are missing it
+        if (!data.deleteAfter && data.read === true) {
+          const readAt = data.readAt?.toDate ? data.readAt.toDate() : null;
+          const expiryBase = readAt || new Date();
+          const da = Timestamp.fromDate(new Date(expiryBase.getTime() + 24 * 60 * 60 * 1000));
+          backfillBatch.update(messageDoc.ref, { deleteAfter: da });
+          backfillCount++;
         }
       });
       
-      if (deleteCount > 0 || backfillCount > 0) {
+      if (backfillCount > 0) {
         await backfillBatch.commit();
-        if (backfillCount > 0) {
-          console.log(`[MessageService] Backfilled deleteAfter on ${backfillCount} legacy messages`);
-        }
+        console.log(`[MessageService] Backfilled deleteAfter on ${backfillCount} legacy read messages`);
       }
     }
     

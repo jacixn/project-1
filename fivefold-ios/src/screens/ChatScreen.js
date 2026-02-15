@@ -337,6 +337,8 @@ const ChatScreen = () => {
 
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
+  const rawMessagesRef = useRef([]);
+  const [tick, setTick] = useState(0);
 
   // If otherUser is missing displayName, fetch it from Firestore
   useEffect(() => {
@@ -369,6 +371,26 @@ const ChatScreen = () => {
     }, [otherUserId])
   );
 
+  // Tick every 30 seconds to refresh countdown timers and re-filter expired messages
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Re-filter expired messages on each tick (removes them from UI without waiting for Firestore)
+  useEffect(() => {
+    if (rawMessagesRef.current.length === 0) return;
+    const now = Date.now();
+    const filtered = rawMessagesRef.current.filter(msg => {
+      if (msg.deleteAfter) {
+        const expiry = msg.deleteAfter?.toDate ? msg.deleteAfter.toDate().getTime() : msg.deleteAfter;
+        return expiry > now;
+      }
+      return true;
+    });
+    setMessages(filtered);
+  }, [tick]);
+
   // Check if user has seen the messaging guidelines for THIS specific conversation partner
   const checkFirstTimeMessaging = async () => {
     try {
@@ -395,8 +417,9 @@ const ChatScreen = () => {
   useEffect(() => {
     if (!conversationId) return;
 
-    // Subscribe to messages — filter out expired ones client-side
+    // Subscribe to messages — store raw + filter out expired ones client-side
     const unsubscribe = subscribeToMessages(conversationId, (msgs) => {
+      rawMessagesRef.current = msgs;
       const now = Date.now();
       const filtered = msgs.filter(msg => {
         // If message has a deleteAfter timestamp, check if it's expired
@@ -654,6 +677,27 @@ const ChatScreen = () => {
     return (currentTime - prevTime) > 5 * 60 * 1000;
   };
 
+  // Get remaining time until message auto-deletes
+  const getTimeRemaining = (deleteAfter) => {
+    if (!deleteAfter) return null;
+    let expiry;
+    if (deleteAfter?.toDate) {
+      expiry = deleteAfter.toDate().getTime();
+    } else if (typeof deleteAfter === 'number') {
+      expiry = deleteAfter;
+    } else {
+      expiry = new Date(deleteAfter).getTime();
+    }
+    if (isNaN(expiry)) return null;
+    const remaining = expiry - Date.now();
+    if (remaining <= 0) return null;
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.floor((remaining % 3600000) / 60000);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m`;
+    return '< 1m';
+  };
+
   const renderMessage = ({ item, index }) => {
     const isMe = item.senderId === user?.uid;
     const showTimestamp = shouldShowTimestamp(index);
@@ -679,6 +723,7 @@ const ChatScreen = () => {
 
     const showDayHeader = isDifferentDay(index);
     const msgDate = item.createdAt?.toDate?.() || new Date(item.createdAt);
+    const timeRemaining = getTimeRemaining(item.deleteAfter);
 
     return (
       <View>
@@ -766,25 +811,27 @@ const ChatScreen = () => {
               </Text>
             )}
             
-            {/* Read receipt indicator for sent messages */}
-            {isMe && (
-              <View style={styles.readReceiptContainer}>
-                <Text style={styles.messageTime}>
-                  {item.createdAt ? (item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}
-                </Text>
-                {item.read ? (
-                  // Double checkmark for read messages (blue)
-                  <View style={styles.readIndicator}>
-                    <Ionicons name="checkmark-done" size={14} color="#34B7F1" />
-                  </View>
+            {/* Message footer: time + auto-delete countdown + read receipt */}
+            <View style={[styles.messageFooter, !isMe && { justifyContent: 'flex-start' }]}>
+              <Text style={[styles.messageTime, !isMe && { color: theme.textTertiary }]}>
+                {getTimeOnly(item.createdAt)}
+              </Text>
+              {timeRemaining && item.read && (
+                <View style={styles.countdownBadge}>
+                  <Ionicons name="time-outline" size={9} color={isMe ? 'rgba(255,255,255,0.5)' : theme.textTertiary} />
+                  <Text style={[styles.countdownText, { color: isMe ? 'rgba(255,255,255,0.5)' : theme.textTertiary }]}>
+                    {timeRemaining}
+                  </Text>
+                </View>
+              )}
+              {isMe && (
+                item.read ? (
+                  <Ionicons name="checkmark-done" size={14} color="#34B7F1" style={{ marginLeft: 2 }} />
                 ) : (
-                  // Single checkmark for sent/delivered (gray)
-                  <View style={styles.readIndicator}>
-                    <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.6)" />
-                  </View>
-                )}
-              </View>
-            )}
+                  <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.6)" style={{ marginLeft: 2 }} />
+                )
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -895,6 +942,7 @@ const ChatScreen = () => {
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
+            extraData={tick}
             ListEmptyComponent={renderEmptyChat}
             contentContainerStyle={[
               styles.messagesList,
@@ -1156,8 +1204,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 8,
   },
-  // Read receipts
-  readReceiptContainer: {
+  // Message footer (time + countdown + read receipt)
+  messageFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -1168,8 +1216,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(255,255,255,0.6)',
   },
-  readIndicator: {
-    marginLeft: 2,
+  countdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  countdownText: {
+    fontSize: 9,
+    fontWeight: '500',
   },
   // Image messages
   imageBubble: {

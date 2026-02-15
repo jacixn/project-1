@@ -1416,9 +1416,9 @@ const BiblePrayerTab = () => {
               opacity: verseModalOpacity,
               ...StyleSheet.absoluteFillObject,
             }}>
-              <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill}>
+              <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill}>
                 <View style={[styles.verseModalDimOverlay, { 
-                  backgroundColor: 'rgba(0, 0, 0, 0.75)'
+                  backgroundColor: 'rgba(0, 0, 0, 0.55)'
                 }]} />
               </BlurView>
             </Animated.View>
@@ -1468,25 +1468,37 @@ const BiblePrayerTab = () => {
               />
             </Animated.View>
 
-            {/* Main gradient background */}
-            <LinearGradient
-              colors={versePalette.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            {/* Frosted glass background */}
+            <BlurView 
+              intensity={isDark ? 60 : 80} 
+              tint="dark"
               style={styles.verseModalGradient}
             >
-              <BlurView 
-                intensity={isDark ? 20 : 30} 
-                tint={isDark ? "dark" : "light"}
-                style={styles.verseModalBlur}
-              >
+              {/* Subtle tinted gradient overlay */}
+              <LinearGradient
+                colors={[
+                  withOpacity(versePalette.gradient[0], 0.35),
+                  withOpacity(versePalette.gradient[1], 0.25),
+                  withOpacity(versePalette.gradient[versePalette.gradient.length - 1], 0.18),
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {/* Glass highlight at top */}
+              <LinearGradient
+                colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.05)', 'transparent']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+              />
                 <View style={styles.verseModalContent}>
                   {/* Close button */}
                   <TouchableOpacity 
                     style={[styles.verseModalClose, {
-                      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
                       borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.15)',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
                     }]}
                     onPress={closeVerseModal}
                   >
@@ -1548,14 +1560,15 @@ const BiblePrayerTab = () => {
                     </Text>
                   </View>
 
-                  {/* Verse Card - with dark scrim for readability */}
+                  {/* Verse Card - frosted inner card */}
                   <View style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: 20,
                     padding: 24,
                     marginBottom: 24,
                     borderWidth: 1,
                     borderColor: 'rgba(255, 255, 255, 0.2)',
+                    overflow: 'hidden',
                   }}>
                     {/* Opening quote mark */}
                     <Text style={{
@@ -1630,7 +1643,7 @@ const BiblePrayerTab = () => {
                     {/* Go to Verse Button - Primary */}
                     <TouchableOpacity
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.22)',
                         borderRadius: 14,
                         paddingVertical: 14,
                         paddingHorizontal: 20,
@@ -1638,15 +1651,20 @@ const BiblePrayerTab = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 10,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.35)',
                       }}
                       onPress={handleGoToVerse}
                       activeOpacity={0.8}
                     >
-                      <MaterialIcons name="menu-book" size={20} color={versePalette.gradient[0]} />
+                      <MaterialIcons name="menu-book" size={20} color="#FFFFFF" />
                       <Text style={{
                         fontSize: 16,
                         fontWeight: '700',
-                        color: versePalette.gradient[0],
+                        color: '#FFFFFF',
+                        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 2,
                       }}>
                         Read in Bible
                       </Text>
@@ -1658,7 +1676,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1666,7 +1684,7 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.25)',
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
                         }}
                         onPress={handleDiscussVerse}
                         activeOpacity={0.8}
@@ -1688,7 +1706,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1696,7 +1714,7 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.25)',
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
                         }}
                         onPress={handleShareVerse}
                         activeOpacity={0.8}
@@ -1731,10 +1749,12 @@ const BiblePrayerTab = () => {
                       </TouchableOpacity>
                     ) : (
                       <View style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
                         borderRadius: 16,
                         padding: 12,
                         marginTop: 8,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.12)',
                       }}>
                         <Text style={{
                           fontSize: 13,
@@ -1821,8 +1841,7 @@ const BiblePrayerTab = () => {
                   </View>
                   </ScrollView>
                 </View>
-              </BlurView>
-            </LinearGradient>
+            </BlurView>
           </Animated.View>
         </View>
       </Modal>
@@ -2471,6 +2490,8 @@ const styles = StyleSheet.create({
     maxHeight: Dimensions.get('window').height * 0.85,
     borderRadius: 32,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 25 },
     shadowOpacity: 0.5,
@@ -2487,10 +2508,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   verseModalGradient: {
-    borderRadius: 32,
-    overflow: 'hidden',
-  },
-  verseModalBlur: {
     borderRadius: 32,
     overflow: 'hidden',
   },
