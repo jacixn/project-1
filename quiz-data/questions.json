@@ -2737,14 +2737,1020 @@
   },
   "life-of-jesus": {
     "multiple-choice": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {
+          "id": "loj-mc-b-1",
+          "question": "According to the Gospels, Jesus was born in a specific town that had been prophesied as the birthplace of the Messiah hundreds of years earlier by the prophet Micah. In which town was Jesus born?",
+          "options": ["Nazareth", "Jerusalem", "Bethlehem", "Capernaum"],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born in Bethlehem, fulfilling Micah 5:2: 'But you, Bethlehem Ephrathah, though you are small among the clans of Judah, out of you will come for me one who will be ruler over Israel.' Mary and Joseph travelled to Bethlehem for a Roman census because Joseph was a descendant of King David, whose hometown was Bethlehem.",
+          "reference": "Matthew 2:1, Luke 2:1-7, Micah 5:2",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-2",
+          "question": "When Jesus was born, his mother Mary placed him in a manger (a feeding trough for animals) because there was no room for them at the inn. An angel appeared to a group of workers in the nearby fields and announced the birth. Who were these workers?",
+          "options": ["Farmers harvesting grain", "Shepherds watching their flocks at night", "Fishermen mending their nets", "Carpenters building houses"],
+          "correctAnswer": 1,
+          "explanation": "An angel appeared to shepherds keeping watch over their flocks at night. The angel said 'Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Saviour has been born to you; he is the Messiah, the Lord.' Then a great company of angels appeared, praising God.",
+          "reference": "Luke 2:8-20",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-3",
+          "question": "Shortly after Jesus was born, a group of visitors from the East followed a star to find the newborn 'King of the Jews.' They brought him expensive gifts. According to Matthew's Gospel, what three gifts did they bring?",
+          "options": ["Silver, silk, and spices", "Gold, frankincense, and myrrh", "Jewels, perfume, and fine linen", "Gold, silver, and bronze"],
+          "correctAnswer": 1,
+          "explanation": "The Magi (wise men) brought gold (symbolising kingship), frankincense (a costly incense symbolising deity/priesthood), and myrrh (a burial spice, possibly foreshadowing Jesus' death). They were warned in a dream not to return to King Herod, who wanted to kill the child, so they went home by a different route.",
+          "reference": "Matthew 2:1-12",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-4",
+          "question": "Before Jesus began his public ministry, he went to the Jordan River where his relative John (known as 'the Baptist') was calling people to repent and be baptised. When Jesus asked to be baptised, something remarkable happened as he came up out of the water. What occurred?",
+          "options": ["The river split in two like the Red Sea", "The heavens opened, the Spirit descended like a dove, and a voice from heaven said 'This is my Son'", "An earthquake shook the ground around the river", "A pillar of fire appeared above Jesus"],
+          "correctAnswer": 1,
+          "explanation": "When Jesus was baptised, 'heaven was opened, and the Holy Spirit descended on him in bodily form like a dove. And a voice came from heaven: You are my Son, whom I love; with you I am well pleased.' This event reveals the Trinity — Father (voice), Son (Jesus), and Holy Spirit (dove) — all present at once.",
+          "reference": "Matthew 3:13-17, Luke 3:21-22",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-5",
+          "question": "Right after his baptism, Jesus was led by the Spirit into the wilderness where he fasted for 40 days and nights. During this time, the devil came and tempted him three times. How did Jesus respond to each temptation?",
+          "options": ["He called down angels to fight the devil", "He ignored the devil completely and said nothing", "He quoted Scripture each time, saying 'It is written...'", "He performed miracles to prove his power"],
+          "correctAnswer": 2,
+          "explanation": "Each time the devil tempted Jesus — to turn stones into bread, to throw himself from the Temple, and to worship the devil in exchange for all the world's kingdoms — Jesus responded by quoting passages from Deuteronomy. He said 'Man shall not live on bread alone,' 'Do not put the Lord your God to the test,' and 'Worship the Lord your God, and serve him only.'",
+          "reference": "Matthew 4:1-11, Luke 4:1-13",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-6",
+          "question": "Jesus chose 12 men to be his closest followers, training them to carry on his work after he was gone. These 12 are known by a specific title. What are they called?",
+          "options": ["The Prophets", "The Apostles (or Disciples)", "The Elders", "The Pharisees"],
+          "correctAnswer": 1,
+          "explanation": "Jesus chose twelve apostles (from the Greek 'apostolos' meaning 'one who is sent'). They are also called disciples ('learners'). The twelve were: Simon Peter, Andrew, James, John, Philip, Bartholomew (Nathanael), Matthew, Thomas, James son of Alphaeus, Thaddaeus, Simon the Zealot, and Judas Iscariot (who later betrayed Jesus).",
+          "reference": "Matthew 10:1-4, Luke 6:12-16",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-7",
+          "question": "Jesus performed his very first recorded miracle at a wedding celebration in a village called Cana. When the hosts ran out of wine — a serious embarrassment in that culture — Jesus' mother told him about the problem. What did Jesus do?",
+          "options": ["He multiplied the remaining wine", "He turned water into wine", "He made wine appear out of thin air", "He asked the guests to share what they had"],
+          "correctAnswer": 1,
+          "explanation": "Jesus instructed the servants to fill six large stone water jars with water, then draw some out and take it to the master of the banquet. The master tasted it and was amazed, telling the bridegroom 'You have saved the best wine till now!' This first miracle revealed Jesus' glory, and his disciples put their faith in him.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-8",
+          "question": "One of Jesus' most famous teachings is a long sermon he delivered on a hillside, covering topics like humility, mercy, peacemaking, loving your enemies, and not judging others. It begins with a series of blessings called the Beatitudes. What is this sermon commonly known as?",
+          "options": ["The Last Supper Discourse", "The Sermon on the Mount", "The Olivet Discourse", "The Farewell Address"],
+          "correctAnswer": 1,
+          "explanation": "The Sermon on the Mount (Matthew 5-7) is Jesus' longest recorded teaching. It opens with the Beatitudes ('Blessed are the poor in spirit... the meek... the merciful...'), includes the Lord's Prayer, and contains radical teachings like 'love your enemies,' 'turn the other cheek,' and 'do not worry about tomorrow.' It has been called the greatest ethical teaching ever delivered.",
+          "reference": "Matthew 5-7",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-9",
+          "question": "Jesus taught his followers a specific prayer when they asked him how to pray. This prayer, which begins by addressing God as Father and includes requests for daily bread, forgiveness, and deliverance from evil, is still prayed by billions of people today. What is it called?",
+          "options": ["The Apostles' Prayer", "The Great Prayer", "The Lord's Prayer", "The Daily Prayer"],
+          "correctAnswer": 2,
+          "explanation": "The Lord's Prayer begins 'Our Father in heaven, hallowed be your name, your kingdom come, your will be done, on earth as it is in heaven. Give us today our daily bread. And forgive us our debts, as we also have forgiven our debtors. And lead us not into temptation, but deliver us from the evil one.' It is the most widely recited prayer in Christianity.",
+          "reference": "Matthew 6:9-13, Luke 11:1-4",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-10",
+          "question": "A huge crowd of over 5,000 people had been listening to Jesus teach all day and were hungry, but there was no food available in the remote area. A boy offered his small lunch to Jesus. What did Jesus do with it to feed the entire crowd?",
+          "options": ["He told everyone to go home and eat", "He blessed five loaves of bread and two fish, which miraculously multiplied to feed everyone with leftovers", "He turned stones into bread like the devil had suggested", "He made food rain down from heaven like manna"],
+          "correctAnswer": 1,
+          "explanation": "A boy had five small barley loaves and two small fish. Jesus took them, gave thanks, and distributed them to the crowd. Everyone ate until they were full, and the disciples collected twelve baskets of leftovers. This is the only miracle (besides the resurrection) recorded in all four Gospels, highlighting its significance.",
+          "reference": "Matthew 14:13-21, John 6:1-14",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-11",
+          "question": "One night, the disciples were in a boat on the Sea of Galilee when a violent storm arose. They were terrified — but then they saw Jesus coming toward them in an impossible way. How was Jesus approaching the boat?",
+          "options": ["Swimming through the waves", "Riding in another boat", "Walking on the water", "Flying through the air"],
+          "correctAnswer": 2,
+          "explanation": "Jesus came to the disciples by walking on the surface of the stormy sea. The disciples were terrified, thinking he was a ghost. Jesus said 'Take courage! It is I. Don't be afraid.' Peter asked to come to Jesus on the water, and he actually walked on it too — until he looked at the waves and began to sink. Jesus caught him and said 'You of little faith, why did you doubt?'",
+          "reference": "Matthew 14:22-33",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-12",
+          "question": "Jesus told a famous story about a young man who demanded his share of his father's inheritance early, left home, and wasted all the money on wild living. When he hit rock bottom and returned home expecting to be treated like a servant, how did his father respond?",
+          "options": ["He refused to let his son come back", "He made his son work as a servant to earn his way back", "He ran to his son, embraced him, and threw a celebration", "He scolded his son and gave him strict conditions"],
+          "correctAnswer": 2,
+          "explanation": "In the Parable of the Prodigal Son, the father saw his son 'while he was still a long way off' and was 'filled with compassion.' He ran to his son, threw his arms around him, and kissed him. He ordered the best robe, a ring, sandals, and a feast with a fattened calf. The father represents God's unconditional, pursuing love for sinners who repent.",
+          "reference": "Luke 15:11-32",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-13",
+          "question": "Jesus had a close friend named Lazarus who became seriously ill and died. By the time Jesus arrived, Lazarus had been dead and buried in a tomb for four days. Lazarus' sisters Martha and Mary were grieving. What did Jesus do?",
+          "options": ["He comforted the sisters and told them Lazarus was in heaven", "He wept, then called Lazarus out of the tomb, and Lazarus came back to life", "He held a prayer service at the tomb", "He told the sisters to have faith and move on"],
+          "correctAnswer": 1,
+          "explanation": "Jesus first wept at the tomb — 'Jesus wept' is the shortest verse in the Bible (John 11:35). Then he told them to remove the stone from the tomb. Martha warned that there would be a terrible smell after four days. But Jesus prayed and then shouted 'Lazarus, come out!' and Lazarus walked out, still wrapped in burial cloths, alive.",
+          "reference": "John 11:1-44",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-14",
+          "question": "On the night before his crucifixion, Jesus shared a final meal with his twelve apostles. During this meal, he broke bread and shared wine, giving them new symbolic meaning. What is this final meal commonly called?",
+          "options": ["The Passover Feast", "The Last Supper", "The Wedding Feast", "The Farewell Banquet"],
+          "correctAnswer": 1,
+          "explanation": "At the Last Supper, Jesus took bread, broke it, and said 'This is my body given for you; do this in remembrance of me.' He then took the cup of wine and said 'This cup is the new covenant in my blood, which is poured out for you.' Christians have continued this practice (called Communion, Eucharist, or the Lord's Supper) ever since.",
+          "reference": "Matthew 26:17-30, Luke 22:14-20",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-15",
+          "question": "After the Last Supper, Jesus went to a garden to pray. He was in such deep anguish about what was about to happen that he sweat drops of blood. One of his twelve apostles arrived with armed guards and identified Jesus to them with a kiss. Who was this betrayer?",
+          "options": ["Peter", "Thomas", "Judas Iscariot", "James"],
+          "correctAnswer": 2,
+          "explanation": "Judas Iscariot had agreed to betray Jesus to the Jewish religious leaders for 30 pieces of silver. He led a crowd armed with swords and clubs to the Garden of Gethsemane and identified Jesus by kissing him on the cheek — a common greeting that served as the prearranged signal. Jesus said to him 'Judas, are you betraying the Son of Man with a kiss?'",
+          "reference": "Matthew 26:47-50, Luke 22:47-48",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-16",
+          "question": "During Jesus' trial before the Jewish high priest, the apostle Peter was waiting in the courtyard. A servant girl recognised him as one of Jesus' followers, but Peter denied knowing Jesus — not just once, but multiple times, just as Jesus had predicted. How many times did Peter deny Jesus?",
+          "options": ["Once", "Twice", "Three times", "Four times"],
+          "correctAnswer": 2,
+          "explanation": "Peter denied Jesus three times, exactly as Jesus had predicted at the Last Supper: 'Before the rooster crows, you will disown me three times.' After the third denial, the rooster crowed and Jesus looked directly at Peter. Peter went outside and 'wept bitterly.' After the resurrection, Jesus restored Peter by asking him three times 'Do you love me?' — once for each denial.",
+          "reference": "Matthew 26:69-75, John 21:15-17",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-17",
+          "question": "The Roman governor Pontius Pilate could not find Jesus guilty of any crime, so he offered the crowd a choice: release Jesus or release a known criminal. The crowd chose to release the criminal. Who was this criminal?",
+          "options": ["Judas Iscariot", "Simon of Cyrene", "Barabbas", "Herod"],
+          "correctAnswer": 2,
+          "explanation": "Barabbas was a notorious prisoner, described as a robber, insurrectionist, and murderer. Pilate expected the crowd to choose Jesus, but the chief priests stirred the crowd to demand Barabbas' release instead. The crowd shouted 'Crucify him!' about Jesus. The name Barabbas means 'son of the father' — an ironic contrast with Jesus, the true Son of the Father.",
+          "reference": "Matthew 27:15-26, Mark 15:6-15",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-18",
+          "question": "As Jesus was being crucified, the Roman soldiers placed a sign above his head on the cross stating the charge against him. According to the Gospels, what did this sign say?",
+          "options": ["'King of the Jews'", "'Blasphemer'", "'Criminal'", "'False Prophet'"],
+          "correctAnswer": 0,
+          "explanation": "Pilate had the inscription written in three languages — Hebrew, Latin, and Greek — so everyone could read it: 'Jesus of Nazareth, the King of the Jews.' The Jewish leaders protested, asking Pilate to change it to 'He claimed to be King of the Jews,' but Pilate refused, saying 'What I have written, I have written.'",
+          "reference": "John 19:19-22",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-19",
+          "question": "According to the Gospels, on the third day after Jesus was crucified and buried in a sealed tomb, something extraordinary happened. When women went to the tomb early on Sunday morning to anoint his body with spices, what did they find?",
+          "options": ["Roman guards still blocking the entrance", "Jesus' body still in the tomb", "The stone rolled away and the tomb empty, with angels saying Jesus had risen", "The tomb had collapsed"],
+          "correctAnswer": 2,
+          "explanation": "The women found the heavy stone rolled away, the tomb empty, and angels who told them 'He is not here; he has risen, just as he said!' Jesus' body was gone — not stolen, but resurrected. He appeared alive to the women first, then to the disciples, and to over 500 people over the next 40 days before ascending to heaven.",
+          "reference": "Matthew 28:1-10, Luke 24:1-12",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-20",
+          "question": "After his resurrection, Jesus appeared to his disciples multiple times over a period of 40 days. At the end of this time, he gave them final instructions and was taken up to heaven as they watched. This event is known by a specific name. What is it called?",
+          "options": ["The Transfiguration", "The Rapture", "The Ascension", "The Second Coming"],
+          "correctAnswer": 2,
+          "explanation": "The Ascension took place on the Mount of Olives, 40 days after the resurrection. Jesus told his disciples 'You will receive power when the Holy Spirit comes on you; and you will be my witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.' Then he was taken up before their eyes, and a cloud hid him from their sight.",
+          "reference": "Acts 1:6-11",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-21",
+          "question": "Jesus grew up in a working-class family and learned a trade from his earthly father Joseph. According to the Gospels, what was Joseph's occupation, which Jesus likely practised as well before beginning his ministry?",
+          "options": ["Fisherman", "Farmer", "Carpenter (or craftsman)", "Tax collector"],
+          "correctAnswer": 2,
+          "explanation": "Joseph was a 'tekton' in Greek — often translated as 'carpenter' but more accurately a general craftsman or builder who worked with wood, stone, and other materials. When Jesus taught in the synagogue in Nazareth, the people said 'Isn't this the carpenter's son?' and Mark 6:3 calls Jesus himself 'the carpenter.' He worked this trade for roughly 18 years before starting his public ministry at about age 30.",
+          "reference": "Matthew 13:55, Mark 6:3",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-22",
+          "question": "Jesus often used short stories from everyday life to teach spiritual truths. These stories about farmers, seeds, lost coins, wedding feasts, and other familiar situations are known by a specific term. What are these teaching stories called?",
+          "options": ["Prophecies", "Psalms", "Parables", "Proverbs"],
+          "correctAnswer": 2,
+          "explanation": "Jesus taught in parables — simple stories drawn from everyday life that illustrate deeper spiritual truths. The word comes from the Greek 'parabole' meaning 'to place alongside' (comparing one thing with another). Jesus said he spoke in parables so 'seeing they may not see, and hearing they may not understand' — the stories rewarded those who truly sought their meaning.",
+          "reference": "Matthew 13:10-17, Mark 4:33-34",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-23",
+          "question": "Jesus told a parable about a man who was beaten by robbers and left for dead on the road from Jerusalem to Jericho. A priest and a Levite both passed by without helping, but a man from a despised neighbouring group stopped and cared for him. What is this story called?",
+          "options": ["The Parable of the Lost Sheep", "The Parable of the Good Samaritan", "The Parable of the Rich Man", "The Parable of the Faithful Servant"],
+          "correctAnswer": 1,
+          "explanation": "The Good Samaritan stopped, bandaged the man's wounds, put him on his own donkey, and paid for his care at an inn. The point was shocking because Samaritans and Jews despised each other. Jesus told this story in response to the question 'Who is my neighbour?' — teaching that true neighbourly love crosses all ethnic, religious, and social boundaries.",
+          "reference": "Luke 10:25-37",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-24",
+          "question": "A wealthy tax collector in the city of Jericho desperately wanted to see Jesus but was too short to see over the crowd. He came up with a creative solution that surprised everyone. What did he do?",
+          "options": ["He stood on a wall", "He climbed a sycamore-fig tree to get a better view", "He pushed his way to the front of the crowd", "He sent a servant to bring Jesus to his house"],
+          "correctAnswer": 1,
+          "explanation": "Zacchaeus, the chief tax collector, ran ahead of the crowd and climbed a sycamore-fig tree. When Jesus reached the spot, he looked up and said 'Zacchaeus, come down immediately. I must stay at your house today.' The crowd grumbled that Jesus was visiting a 'sinner,' but Zacchaeus pledged to give half his possessions to the poor and repay anyone he had cheated four times over.",
+          "reference": "Luke 19:1-10",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-25",
+          "question": "On one occasion, people were bringing little children to Jesus for him to bless them, but the disciples tried to send the children away, thinking Jesus was too important to be bothered. How did Jesus respond?",
+          "options": ["He agreed with the disciples and sent the children away", "He was indignant and said 'Let the little children come to me... the kingdom of God belongs to such as these'", "He told the children to come back when they were older", "He ignored the situation entirely"],
+          "correctAnswer": 1,
+          "explanation": "Jesus was indignant (angry) with his disciples for turning the children away. He said 'Let the little children come to me, and do not hinder them, for the kingdom of God belongs to such as these. Truly I tell you, anyone who will not receive the kingdom of God like a little child will never enter it.' He then took the children in his arms and blessed them.",
+          "reference": "Mark 10:13-16",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-26",
+          "question": "When Jesus entered Jerusalem for the final time before his crucifixion, he rode into the city while crowds laid palm branches and cloaks on the road and shouted praises. This event is celebrated by Christians annually. What is it called?",
+          "options": ["Good Friday", "Easter Sunday", "Palm Sunday", "Ascension Day"],
+          "correctAnswer": 2,
+          "explanation": "On Palm Sunday, Jesus rode into Jerusalem on a donkey, fulfilling Zechariah 9:9 about a king coming 'humble and riding on a donkey.' The crowds spread palm branches and cloaks on the road and shouted 'Hosanna! Blessed is he who comes in the name of the Lord!' — quoting Psalm 118. Within days, the same city would cry 'Crucify him!'",
+          "reference": "Matthew 21:1-11, John 12:12-19",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-27",
+          "question": "At the Last Supper, Jesus did something shocking that stunned his disciples — he performed a task that was normally reserved for the lowest household servant. What did Jesus do?",
+          "options": ["He cooked the meal himself", "He washed his disciples' feet", "He cleaned the room", "He served the wine personally"],
+          "correctAnswer": 1,
+          "explanation": "Jesus wrapped a towel around his waist, poured water into a basin, and washed his disciples' feet — the job of the lowest servant. Peter protested 'You shall never wash my feet!' but Jesus insisted. He told them 'I have set you an example that you should do as I have done for you. No servant is greater than his master.' It was a powerful lesson in humility and servant leadership.",
+          "reference": "John 13:1-17",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-28",
+          "question": "Jesus was crucified alongside two other men, both criminals. One of them mocked Jesus, but the other defended him and asked Jesus to remember him. What did Jesus promise this repentant criminal?",
+          "options": ["'Your sins will be forgiven when you die'", "'Truly I tell you, today you will be with me in paradise'", "'You must first be baptised to enter heaven'", "'I will pray for your family'"],
+          "correctAnswer": 1,
+          "explanation": "The repentant criminal rebuked the other, saying 'We are punished justly, for we are getting what our deeds deserve. But this man has done nothing wrong.' Then he said 'Jesus, remember me when you come into your kingdom.' Jesus' immediate response — 'Today you will be with me in paradise' — shows that salvation comes through faith, not works, even at the last moment.",
+          "reference": "Luke 23:39-43",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-29",
+          "question": "After Jesus' resurrection, one of the twelve apostles refused to believe Jesus was alive unless he could physically see and touch the nail marks in Jesus' hands and the wound in his side. When Jesus appeared and invited him to touch his wounds, this apostle believed. Who was he?",
+          "options": ["Peter", "James", "Thomas", "Andrew"],
+          "correctAnswer": 2,
+          "explanation": "Thomas (often called 'Doubting Thomas') was not with the other disciples when Jesus first appeared to them. He said 'Unless I see the nail marks in his hands and put my finger where the nails were, and put my hand into his side, I will not believe.' A week later, Jesus appeared and invited Thomas to touch his wounds. Thomas exclaimed 'My Lord and my God!' — one of the strongest declarations of Jesus' divinity in the Bible.",
+          "reference": "John 20:24-29",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-30",
+          "question": "Jesus spoke one of the most famous and beloved verses in the entire Bible during a nighttime conversation with a Pharisee named Nicodemus. This verse, often seen on signs at sporting events, summarises the gospel message. Which verse is it?",
+          "options": ["Psalm 23:1 — 'The LORD is my shepherd'", "John 3:16 — 'For God so loved the world that he gave his one and only Son'", "Romans 8:28 — 'All things work together for good'", "Jeremiah 29:11 — 'I know the plans I have for you'"],
+          "correctAnswer": 1,
+          "explanation": "John 3:16 reads: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.' Jesus spoke these words to Nicodemus, a Jewish religious leader who came to him secretly at night. Martin Luther called it 'the gospel in miniature' — the entire Christian message in a single sentence.",
+          "reference": "John 3:16",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-31",
+          "question": "When Jesus began his ministry at about age 30, the first thing he did was call his first disciples. He found two pairs of brothers who were fishermen working by the Sea of Galilee and called them to follow him. Who were the first two disciples Jesus called?",
+          "options": ["James and John", "Peter (Simon) and Andrew", "Philip and Nathanael", "Matthew and Thomas"],
+          "correctAnswer": 1,
+          "explanation": "Jesus saw Simon (Peter) and his brother Andrew casting a net into the Sea of Galilee. He said 'Come, follow me, and I will send you out to fish for people.' They immediately left their nets and followed him. Shortly after, Jesus called James and John, the sons of Zebedee, who also immediately left their boat and their father to follow Jesus.",
+          "reference": "Matthew 4:18-22, Mark 1:16-20",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-32",
+          "question": "Jesus healed many people during his ministry, including a man who had been unable to walk for 38 years. This man lay by a pool in Jerusalem where sick people gathered, hoping the waters would heal them. What was this pool called?",
+          "options": ["The Pool of Siloam", "The Pool of Bethesda", "The Pool of Gihon", "The Pool of Solomon"],
+          "correctAnswer": 1,
+          "explanation": "The Pool of Bethesda had five covered colonnades where many disabled people lay waiting. Jesus asked the man 'Do you want to get well?' The man explained he had no one to help him into the pool when the water was stirred. Jesus simply said 'Get up! Pick up your mat and walk.' The man was instantly healed. This miracle happened on the Sabbath, which angered the religious leaders.",
+          "reference": "John 5:1-15",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-33",
+          "question": "When Jesus was twelve years old, his parents took him to Jerusalem for the Passover festival. On the way home, they discovered he was missing. After three anxious days of searching, where did they find him?",
+          "options": ["Playing with other children in the marketplace", "Working in a carpenter's shop", "In the Temple, sitting among the teachers, asking questions and amazing everyone with his understanding", "At a relative's house"],
+          "correctAnswer": 2,
+          "explanation": "Mary and Joseph searched for three days before finding the 12-year-old Jesus in the Temple courts, sitting among the religious teachers, listening and asking questions. Everyone was amazed at his understanding and answers. When his worried mother asked why he had done this, Jesus replied 'Didn't you know I had to be in my Father's house?' — his earliest recorded awareness of his unique relationship with God.",
+          "reference": "Luke 2:41-52",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-34",
+          "question": "At the moment Jesus died on the cross, several dramatic events happened simultaneously, signalling the cosmic significance of his death. One of the most symbolically important events happened inside the Temple in Jerusalem. What occurred?",
+          "options": ["The Temple caught fire", "The curtain of the Temple was torn in two from top to bottom", "The altar was destroyed", "The Temple collapsed"],
+          "correctAnswer": 1,
+          "explanation": "The thick curtain that separated the Holy Place from the Most Holy Place — the curtain that blocked access to God's presence — was torn in two from top to bottom. The tearing happened from top to bottom (not bottom to top), indicating it was God's action, not human. This symbolised that through Jesus' death, direct access to God was now open to everyone, not just the high priest once a year.",
+          "reference": "Matthew 27:51, Mark 15:38",
+          "points": 10
+        },
+        {
+          "id": "loj-mc-b-35",
+          "question": "After Jesus was crucified, a wealthy member of the Jewish ruling council asked Pontius Pilate for permission to take Jesus' body and give it a proper burial. He placed Jesus' body in his own new tomb carved out of rock. Who was this man?",
+          "options": ["Nicodemus", "Joseph of Arimathea", "Simon of Cyrene", "Gamaliel"],
+          "correctAnswer": 1,
+          "explanation": "Joseph of Arimathea was a respected member of the Sanhedrin (Jewish ruling council) who had not consented to their decision to condemn Jesus. He was described as 'a good and upright man' who was 'waiting for the kingdom of God.' He boldly went to Pilate, received the body, wrapped it in clean linen cloth, and placed it in his own new tomb, rolling a large stone across the entrance.",
+          "reference": "Matthew 27:57-60, Mark 15:42-46",
+          "points": 10
+        }
+      ],
+      "intermediate": [
+        {
+          "id": "loj-mc-i-1",
+          "question": "Jesus had a remarkable encounter with a Samaritan woman at Jacob's well, which broke multiple social taboos of the time — a Jewish man speaking to a Samaritan, and a rabbi speaking to an unaccompanied woman. Jesus offered her 'living water' that would quench her thirst forever. What did he reveal about her personal life that shocked her?",
+          "options": ["That she was secretly wealthy", "That she had been married five times and was now living with a man who was not her husband", "That she was planning to leave Samaria", "That she had stolen water from the well"],
+          "correctAnswer": 1,
+          "explanation": "Jesus told her 'You have had five husbands, and the man you now have is not your husband.' The woman was amazed that a stranger knew her history and said 'Sir, I can see that you are a prophet.' She became one of the first evangelists — running back to her town and telling everyone 'Come, see a man who told me everything I ever did. Could this be the Messiah?'",
+          "reference": "John 4:1-42",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-2",
+          "question": "On a mountain, Jesus was transfigured before three of his closest disciples — his face shone like the sun and his clothes became dazzling white. Two Old Testament figures appeared and talked with him. Who were these two figures?",
+          "options": ["Abraham and David", "Moses and Elijah", "Isaiah and Jeremiah", "Adam and Noah"],
+          "correctAnswer": 1,
+          "explanation": "Moses (representing the Law) and Elijah (representing the Prophets) appeared with Jesus, confirming that Jesus fulfilled both the Law and the Prophets. Peter, James, and John witnessed this event. A cloud enveloped them and God's voice said 'This is my Son, whom I love. Listen to him!' — echoing the baptism but adding the command to listen to Jesus rather than Moses or Elijah.",
+          "reference": "Matthew 17:1-8, Mark 9:2-8",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-3",
+          "question": "Jesus made seven dramatic 'I AM' statements in the Gospel of John, each revealing something about his identity and mission. One of the most famous is 'I am the way, the truth, and the life. No one comes to the Father except through me.' In what context did Jesus make this statement?",
+          "options": ["While preaching to a large crowd", "During a debate with the Pharisees in the Temple", "At the Last Supper, comforting his worried disciples before his death", "During his trial before Pontius Pilate"],
+          "correctAnswer": 2,
+          "explanation": "Jesus said this during the Last Supper discourse (John 14-16), when his disciples were troubled because he told them he was leaving. Thomas asked 'Lord, we don't know where you are going, so how can we know the way?' Jesus replied 'I am the way and the truth and the life. No one comes to the Father except through me.' It was spoken to comfort and reassure them.",
+          "reference": "John 14:6",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-4",
+          "question": "When Jesus healed a man who had been born blind, the Pharisees interrogated the healed man and his parents repeatedly, refusing to believe the miracle. The healed man's response to their questioning became one of the most memorable lines in John's Gospel. What did he say?",
+          "options": ["'I was healed by the power of God'", "'One thing I do know: I was blind but now I see!'", "'You should believe because I am proof'", "'Leave me alone; I have nothing to say'"],
+          "correctAnswer": 1,
+          "explanation": "The Pharisees kept pressuring the man, saying Jesus was a sinner. The formerly blind man replied 'Whether he is a sinner or not, I don't know. One thing I do know. I was blind but now I see!' When they threw him out of the synagogue, Jesus found him and revealed himself as the Son of Man. The man worshipped him. This line later inspired the hymn 'Amazing Grace.'",
+          "reference": "John 9:1-38",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-5",
+          "question": "The Pharisees once brought a woman caught in adultery to Jesus, hoping to trap him. If he said to stone her (as the Law demanded), he would contradict his message of mercy. If he said to release her, he would contradict the Law. How did Jesus respond to their trap?",
+          "options": ["He told them the Law was outdated", "He bent down and wrote in the dust, then said 'Let any one of you who is without sin be the first to throw a stone at her'", "He refused to answer and walked away", "He condemned both the woman and the Pharisees"],
+          "correctAnswer": 1,
+          "explanation": "Jesus first bent down and wrote something on the ground (what he wrote is one of the Bible's great mysteries). Then he said 'Let any one of you who is without sin be the first to throw a stone.' One by one, starting with the oldest, they all left. Jesus told the woman 'Neither do I condemn you. Go now and leave your life of sin' — showing both mercy and moral expectation.",
+          "reference": "John 8:1-11",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-6",
+          "question": "Jesus told a parable about a rich man who lived in luxury and a beggar named Lazarus (not the same as Jesus' friend) who lay at the rich man's gate covered in sores. Both men died. According to Jesus' story, what happened to each of them after death?",
+          "options": ["Both went to the same place", "The rich man went to a place of torment while Lazarus was carried to Abraham's side in comfort", "The rich man went to heaven because of his wealth", "Both were annihilated and ceased to exist"],
+          "correctAnswer": 1,
+          "explanation": "Lazarus was carried by angels to Abraham's side (paradise), while the rich man went to Hades (a place of torment). The rich man begged Abraham to send Lazarus with even a drop of water, but Abraham said a great chasm separated them. The rich man then begged to have Lazarus warn his five brothers, but Abraham said 'If they do not listen to Moses and the Prophets, they will not be convinced even if someone rises from the dead.'",
+          "reference": "Luke 16:19-31",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-7",
+          "question": "In the Garden of Gethsemane, just before his arrest, Jesus prayed with such intensity that Luke's Gospel records he sweat drops like blood. He prayed the same prayer three times. What did Jesus ask his Father?",
+          "options": ["To destroy his enemies", "To take this cup from him, yet 'not my will, but yours be done'", "To send twelve legions of angels to rescue him", "To make his suffering painless"],
+          "correctAnswer": 1,
+          "explanation": "Jesus prayed 'Father, if you are willing, take this cup from me; yet not my will, but yours be done.' The 'cup' represented the suffering and judgment he was about to endure. Despite his anguish, Jesus submitted to his Father's will. An angel from heaven appeared and strengthened him. This prayer demonstrates both Jesus' genuine humanity (dreading the suffering) and his perfect obedience.",
+          "reference": "Luke 22:39-44, Matthew 26:36-46",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-8",
+          "question": "Jesus taught his disciples about the end times in a long discourse delivered on the Mount of Olives, overlooking the Temple. He warned about false messiahs, wars, famines, and persecution, but also spoke of his future return. What is this teaching commonly called?",
+          "options": ["The Sermon on the Mount", "The Olivet Discourse", "The Great Commission", "The Farewell Prayer"],
+          "correctAnswer": 1,
+          "explanation": "The Olivet Discourse (Matthew 24-25, Mark 13, Luke 21) was triggered when the disciples pointed out the Temple buildings and Jesus said 'Not one stone here will be left on another.' The disciples asked when this would happen and what would be the sign of his coming. Jesus described both the destruction of Jerusalem (fulfilled in AD 70) and the events surrounding his second coming.",
+          "reference": "Matthew 24-25, Mark 13",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-9",
+          "question": "Jesus made a controversial claim that caused many of his followers to leave. He declared 'I am the bread of life... unless you eat the flesh of the Son of Man and drink his blood, you have no life in you.' This teaching was so offensive that many disciples stopped following him. What did Peter say when Jesus asked the twelve if they also wanted to leave?",
+          "options": ["'We will stay for now, but this is hard to accept'", "'Lord, to whom shall we go? You have the words of eternal life'", "'We don't understand, but we trust you'", "'We will stay because we have nowhere else to go'"],
+          "correctAnswer": 1,
+          "explanation": "After many disciples left because they found the 'eat my flesh, drink my blood' teaching too difficult, Jesus turned to the twelve apostles and asked 'You do not want to leave too, do you?' Peter's response was both profound and practical: 'Lord, to whom shall we go? You have the words of eternal life. We have come to believe and to know that you are the Holy One of God.'",
+          "reference": "John 6:53-69",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-10",
+          "question": "When Jesus was on the cross, he spoke seven recorded statements, often called the 'Seven Last Words from the Cross.' His very first words from the cross were a prayer for those who were crucifying him. What did he say?",
+          "options": ["'My God, my God, why have you forsaken me?'", "'It is finished'", "'Father, forgive them, for they do not know what they are doing'", "'Into your hands I commit my spirit'"],
+          "correctAnswer": 2,
+          "explanation": "Even as the soldiers nailed him to the cross, Jesus prayed 'Father, forgive them, for they do not know what they are doing.' This prayer of forgiveness for his executioners is one of the most radical acts of grace in the Bible. Stephen later echoed these words when he was being stoned to death: 'Lord, do not hold this sin against them.'",
+          "reference": "Luke 23:34",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-11",
+          "question": "Jesus encountered a group of ten men suffering from leprosy who stood at a distance and cried out for mercy. Jesus healed all ten of them, but only one returned to thank him. What was notable about the one who returned?",
+          "options": ["He was the youngest of the group", "He was a Samaritan — a foreigner and social outcast", "He was a priest", "He was a Roman soldier"],
+          "correctAnswer": 1,
+          "explanation": "The one who returned to thank Jesus was a Samaritan — a member of the ethnic group despised by the Jews. Jesus asked 'Were not all ten cleansed? Where are the other nine? Has no one returned to give praise to God except this foreigner?' The story highlights that gratitude transcends ethnic boundaries and that the 'outsider' showed more faith than the religious insiders.",
+          "reference": "Luke 17:11-19",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-12",
+          "question": "The Pharisees tried to trap Jesus with a politically dangerous question about paying taxes to the Roman emperor. If Jesus said 'yes,' he would alienate the Jewish nationalists. If he said 'no,' he could be arrested for sedition. How did Jesus escape this trap?",
+          "options": ["He refused to answer the question", "He asked for a coin, pointed out Caesar's image on it, and said 'Give back to Caesar what is Caesar's, and to God what is God's'", "He told them taxes were irrelevant", "He said the Temple tax was the only legitimate tax"],
+          "correctAnswer": 1,
+          "explanation": "Jesus asked to see a denarius coin and asked 'Whose image and inscription is this?' They answered 'Caesar's.' Jesus replied 'So give back to Caesar what is Caesar's, and to God what is God's.' This brilliant answer acknowledged the legitimacy of civil government while asserting God's ultimate authority. The deeper implication: if Caesar's image on a coin means it belongs to Caesar, then God's image on humans means they belong to God.",
+          "reference": "Matthew 22:15-22, Mark 12:13-17",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-13",
+          "question": "During the Last Supper, Jesus predicted that one of the twelve would betray him. The disciples were shocked and each asked 'Surely you don't mean me, Lord?' Jesus identified the betrayer by a specific action. What did he do?",
+          "options": ["He pointed directly at Judas", "He dipped a piece of bread and gave it to Judas Iscariot", "He whispered the name to Peter", "He said the betrayer's name out loud"],
+          "correctAnswer": 1,
+          "explanation": "According to John's Gospel, when the disciple John (leaning close to Jesus) asked who the betrayer was, Jesus answered 'It is the one to whom I will give this piece of bread when I have dipped it in the dish.' He then dipped the bread and gave it to Judas Iscariot. After Judas took the bread, Satan entered into him. Jesus told him 'What you are about to do, do quickly.' Judas went out into the night.",
+          "reference": "John 13:21-30",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-14",
+          "question": "After his resurrection, Jesus appeared to two disciples walking from Jerusalem to a village called Emmaus. They did not recognise him at first. When did they finally recognise who he was?",
+          "options": ["When he showed them his nail-scarred hands", "When he broke bread at the table — then he vanished from their sight", "When he called them by name", "When he quoted Scripture to them"],
+          "correctAnswer": 1,
+          "explanation": "The two disciples walked with Jesus for several miles without recognising him, even as he explained from all the Scriptures how the Messiah had to suffer. When they sat down to eat, 'he took bread, gave thanks, broke it and began to give it to them. Then their eyes were opened and they recognised him, and he disappeared from their sight.' They said 'Were not our hearts burning within us while he talked with us on the road?'",
+          "reference": "Luke 24:13-35",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-15",
+          "question": "When Jesus visited the home of Mary and Martha in Bethany, the two sisters responded very differently. Martha was busy with preparations while Mary sat at Jesus' feet listening to his teaching. When Martha complained, what did Jesus say?",
+          "options": ["'Martha is right; Mary should help with the work'", "'Both of you should be working'", "'Martha, Martha, you are worried about many things, but only one thing is needed. Mary has chosen what is better'", "'You should take turns working and listening'"],
+          "correctAnswer": 2,
+          "explanation": "Jesus gently corrected Martha: 'Martha, Martha, you are worried and upset about many things, but few things are needed — or indeed only one. Mary has chosen what is better, and it will not be taken away from her.' Jesus wasn't criticising hospitality, but prioritising — relationship with him (hearing his word) matters more than busy activity, even well-intentioned service.",
+          "reference": "Luke 10:38-42",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-16",
+          "question": "Jesus healed a man with a withered (paralysed) hand on the Sabbath day, which infuriated the Pharisees who believed all healing constituted 'work' forbidden on the Sabbath. What rhetorical question did Jesus ask them before performing the healing?",
+          "options": ["'Is it lawful to do good or to do evil on the Sabbath, to save life or to destroy it?'", "'Who among you has never worked on the Sabbath?'", "'Is the Sabbath more important than human suffering?'", "'Do you value your rules more than people?'"],
+          "correctAnswer": 0,
+          "explanation": "Jesus asked 'Which is lawful on the Sabbath: to do good or to do evil, to save life or to kill?' His question reframed the debate — doing nothing when you could heal is itself a form of evil. He also pointed out that they would rescue a sheep that fell into a pit on the Sabbath, asking 'How much more valuable is a person than a sheep?' Jesus consistently prioritised people over rigid rule-keeping.",
+          "reference": "Mark 3:1-6, Matthew 12:9-14",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-17",
+          "question": "A rich young ruler came to Jesus asking what he must do to inherit eternal life. Jesus told him to follow the commandments, and the man said he had kept them all since boyhood. Jesus then told him to do one more thing that made the man leave sadly. What did Jesus ask him to do?",
+          "options": ["Fast for 40 days", "Sell everything he had, give to the poor, and follow Jesus", "Leave his family and become a wandering preacher", "Build a synagogue in his town"],
+          "correctAnswer": 1,
+          "explanation": "Jesus looked at the man and loved him, then said 'One thing you lack. Go, sell everything you have and give to the poor, and you will have treasure in heaven. Then come, follow me.' The man's face fell and he went away sad, because he had great wealth. Jesus then said 'It is easier for a camel to go through the eye of a needle than for someone who is rich to enter the kingdom of God.'",
+          "reference": "Mark 10:17-27",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-18",
+          "question": "In one of his most challenging teachings, Jesus told his followers to love not just their neighbours but also their enemies. He gave specific examples of what this looks like in practice. Which of the following did Jesus NOT instruct his followers to do?",
+          "options": ["Pray for those who persecute you", "Turn the other cheek when struck", "Give to those who hate you and expect repayment", "Bless those who curse you"],
+          "correctAnswer": 2,
+          "explanation": "Jesus said to love your enemies, bless those who curse you, pray for those who persecute you, turn the other cheek, and 'lend to them without expecting to get anything back' (Luke 6:35). He did NOT say to expect repayment — quite the opposite. He said 'If you love those who love you, what credit is that to you? Even sinners do that.' The standard was radical, unconditional love.",
+          "reference": "Matthew 5:38-48, Luke 6:27-36",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-19",
+          "question": "Jesus sent out 72 disciples (in addition to the twelve apostles) to go ahead of him to every town he planned to visit. When they returned, they were excited that even demons submitted to them in Jesus' name. How did Jesus respond to their excitement?",
+          "options": ["He warned them not to cast out demons", "He told them not to rejoice that spirits submit to them, but to rejoice that their names are written in heaven", "He said they should keep their power secret", "He told them to focus only on healing, not exorcism"],
+          "correctAnswer": 1,
+          "explanation": "While Jesus acknowledged their power ('I saw Satan fall like lightning from heaven'), he redirected their joy: 'Do not rejoice that the spirits submit to you, but rejoice that your names are written in heaven.' He pointed them away from the thrill of spiritual power toward the deeper reality of their relationship with God and their eternal security.",
+          "reference": "Luke 10:1-20",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-20",
+          "question": "When Jesus cleared the Temple in Jerusalem, driving out merchants and money-changers, he overturned tables and chairs and drove out those selling animals for sacrifices. What reason did Jesus give for his dramatic action?",
+          "options": ["'The Temple should be free from all commerce'", "'My house will be called a house of prayer, but you are making it a den of robbers'", "'These animals are not fit for sacrifice'", "'Only priests may sell in the Temple courts'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus quoted Isaiah 56:7 ('My house will be called a house of prayer for all nations') and Jeremiah 7:11 ('a den of robbers'). The merchants were exploiting worshippers by charging inflated prices for sacrificial animals and unfair exchange rates for Temple currency. The 'Court of the Gentiles' — the only area where non-Jews could pray — had been turned into a marketplace.",
+          "reference": "Matthew 21:12-13, Mark 11:15-17",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-21",
+          "question": "Jesus said seven 'I AM' statements in John's Gospel. One of them — 'Before Abraham was born, I am' — caused the Jewish leaders to pick up stones to kill him. Why was this particular statement so provocative?",
+          "options": ["Because it claimed Jesus was older than Abraham", "Because 'I AM' is the sacred name God revealed to Moses at the burning bush, and Jesus was claiming to be God", "Because it insulted Abraham's memory", "Because it suggested Abraham was unimportant"],
+          "correctAnswer": 1,
+          "explanation": "When God spoke to Moses from the burning bush, He revealed His name as 'I AM WHO I AM' (Exodus 3:14). By saying 'Before Abraham was, I AM,' Jesus used the present tense ('I am,' not 'I was'), claiming eternal existence and identifying himself with the divine name YHWH. The Jewish leaders understood exactly what he was claiming — deity — which is why they attempted to stone him for blasphemy.",
+          "reference": "John 8:58-59, Exodus 3:14",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-22",
+          "question": "After his resurrection, Jesus appeared to his disciples on the shore of the Sea of Galilee and prepared breakfast for them. He then had a significant conversation with Peter, asking him the same question three times. What question did Jesus ask Peter three times?",
+          "options": ["'Do you believe in me?'", "'Will you follow me?'", "'Do you love me?'", "'Do you understand my teaching?'"],
+          "correctAnswer": 2,
+          "explanation": "Jesus asked Peter 'Do you love me?' three times — matching Peter's three denials during the trial. Each time Peter affirmed his love, Jesus gave him a commission: 'Feed my lambs,' 'Take care of my sheep,' 'Feed my sheep.' This threefold restoration publicly reinstated Peter as a leader of the disciples. Peter was grieved by the third question because it reminded him of his failure.",
+          "reference": "John 21:15-19",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-23",
+          "question": "Jesus told a parable about ten virgins (bridesmaids) waiting for a bridegroom. Five were wise and five were foolish. When the bridegroom finally arrived at midnight, the foolish virgins discovered they couldn't join the wedding feast. Why were they shut out?",
+          "options": ["They had fallen asleep", "They had not brought enough oil for their lamps, and when they went to buy more, the door was shut", "They were wearing the wrong clothes", "They arrived at the wrong location"],
+          "correctAnswer": 1,
+          "explanation": "All ten virgins fell asleep while waiting, but the five wise ones had brought extra oil. When the cry came 'Here's the bridegroom!', the foolish virgins' lamps were going out and they had no extra oil. While they went to buy more, the bridegroom arrived and the door was shut. When they returned and knocked, the bridegroom said 'I don't know you.' The parable warns about being spiritually prepared for Jesus' return.",
+          "reference": "Matthew 25:1-13",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-24",
+          "question": "When a Syrophoenician (Canaanite) woman begged Jesus to heal her demon-possessed daughter, Jesus initially seemed to refuse, saying 'It is not right to take the children's bread and toss it to the dogs.' How did the woman respond, and what was the result?",
+          "options": ["She was offended and left", "She replied 'Yes, Lord, but even the dogs eat the crumbs that fall from their master's table' — and Jesus praised her great faith and healed her daughter", "She argued that Canaanites deserved the same treatment as Jews", "She brought gifts and offerings to convince Jesus"],
+          "correctAnswer": 1,
+          "explanation": "The woman's witty, humble response impressed Jesus. She didn't argue against the framework; she worked within it — even the 'crumbs' of Jesus' power would be more than enough for her daughter. Jesus exclaimed 'Woman, you have great faith! Your request is granted.' Her daughter was healed that very hour. This story demonstrates that faith, not ethnicity, is what matters to Jesus.",
+          "reference": "Matthew 15:21-28, Mark 7:24-30",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-25",
+          "question": "Jesus performed a dramatic miracle when he calmed a fierce storm on the Sea of Galilee with just his words. While the disciples panicked, Jesus was asleep in the boat. After he rebuked the wind and waves and everything became calm, what did Jesus say to his disciples?",
+          "options": ["'See the power of God'", "'Why are you so afraid? Do you still have no faith?'", "'Now do you believe I am the Son of God?'", "'Remember this moment when you doubt'"],
+          "correctAnswer": 1,
+          "explanation": "After calming the storm with the words 'Quiet! Be still!', Jesus asked his terrified disciples 'Why are you so afraid? Do you still have no faith?' The disciples were even more terrified by the calm than by the storm, asking each other 'Who is this? Even the wind and the waves obey him!' They were realising they were in the presence of someone who had power over nature itself.",
+          "reference": "Mark 4:35-41",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-26",
+          "question": "When Jesus heard that his friend Lazarus was sick, he deliberately waited two more days before going to him — by which time Lazarus had died and been buried for four days. Why did Jesus wait, according to John's Gospel?",
+          "options": ["He was afraid of the Jewish leaders in Judea", "He was too busy with other ministry", "He said Lazarus' sickness was 'for God's glory, so that God's Son may be glorified through it'", "He didn't receive the message in time"],
+          "correctAnswer": 2,
+          "explanation": "When Jesus heard about Lazarus' illness, he said 'This sickness will not end in death. No, it is for God's glory, so that God's Son may be glorified through it.' He intentionally waited so that Lazarus would be dead four days — beyond any possibility of resuscitation — making the miracle of raising him undeniable. Martha said 'by this time there is a bad odour,' confirming Lazarus was truly dead.",
+          "reference": "John 11:4-6, 14-15",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-27",
+          "question": "A woman anointed Jesus with an extremely expensive perfume (worth about a year's wages) at a dinner in Bethany, just days before his crucifixion. Some disciples complained about the waste, but Jesus defended her. What reason did he give?",
+          "options": ["'She has done this to honour me as king'", "'She did what she could. She poured perfume on my body beforehand to prepare for my burial'", "'This perfume has no other use'", "'Her generosity will inspire others to give'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said the woman had 'done a beautiful thing' and had anointed his body ahead of time for burial. He rebuked those who criticised her: 'The poor you will always have with you, and you can help them any time you want. But you will not always have me.' He also prophesied 'Wherever the gospel is preached throughout the world, what she has done will also be told, in memory of her.'",
+          "reference": "Mark 14:3-9, Matthew 26:6-13",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-28",
+          "question": "When Jesus was arrested in Gethsemane, one of his disciples drew a sword and cut off the ear of the high priest's servant. Jesus rebuked the disciple and performed his final healing miracle before the cross. What did Jesus do?",
+          "options": ["He destroyed the sword", "He healed the servant's ear by touching it", "He struck the disciple", "He stopped time to prevent further violence"],
+          "correctAnswer": 1,
+          "explanation": "Peter drew his sword and cut off the right ear of Malchus, the high priest's servant. Jesus said 'Put your sword back in its place, for all who draw the sword will die by the sword' and 'Do you think I cannot call on my Father, and he will at once put at my disposal more than twelve legions of angels?' Then he touched the man's ear and healed it — showing mercy to the very people arresting him.",
+          "reference": "Luke 22:49-51, John 18:10-11, Matthew 26:52-53",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-29",
+          "question": "Jesus gave his final commission to his disciples before ascending to heaven. This command, which has driven Christian mission for 2,000 years, is known as the Great Commission. What did Jesus instruct them to do?",
+          "options": ["'Stay in Jerusalem and build a church'", "'Go and make disciples of all nations, baptising them in the name of the Father, Son, and Holy Spirit'", "'Write down everything I taught you'", "'Wait for the Roman Empire to collapse and then take over'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'All authority in heaven and on earth has been given to me. Therefore go and make disciples of all nations, baptising them in the name of the Father and of the Son and of the Holy Spirit, and teaching them to obey everything I have commanded you. And surely I am with you always, to the very end of the age.' This command has been the driving force of Christian global mission ever since.",
+          "reference": "Matthew 28:18-20",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-30",
+          "question": "When Simon of Cyrene was passing by on his way in from the countryside, the Roman soldiers forced him to do something for Jesus on the way to crucifixion. What was Simon compelled to do?",
+          "options": ["Walk ahead of the procession", "Carry Jesus' cross", "Guard Jesus from the crowd", "Provide water for Jesus"],
+          "correctAnswer": 1,
+          "explanation": "Jesus had been so weakened by the scourging and beating that he could no longer carry his own cross beam. The Roman soldiers seized Simon of Cyrene — described as the father of Alexander and Rufus, suggesting his sons later became known in the early church — and forced him to carry Jesus' cross the rest of the way to Golgotha. This chance encounter likely changed Simon's life forever.",
+          "reference": "Matthew 27:32, Mark 15:21",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-31",
+          "question": "Matthew's Gospel records that Judas Iscariot felt deep remorse after betraying Jesus and tried to return the 30 pieces of silver to the chief priests. When they refused to take the money back, what did Judas do?",
+          "options": ["He gave it to the poor", "He threw the money into the Temple and then went away and hanged himself", "He kept the money and fled", "He donated it to the Temple treasury"],
+          "correctAnswer": 1,
+          "explanation": "Judas, 'seized with remorse,' told the chief priests 'I have sinned, for I have betrayed innocent blood.' They replied 'What is that to us? That's your responsibility.' Judas threw the money into the Temple and went away and hanged himself. The priests used the money to buy a potter's field for burying foreigners, which they called the 'Field of Blood.' Tragically, Judas felt remorse but not repentance that leads to restoration.",
+          "reference": "Matthew 27:3-10",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-32",
+          "question": "When Jesus described the final judgment in Matthew 25 (the 'Sheep and Goats' parable), he said the righteous (sheep) would inherit the kingdom because they had served him when he was hungry, thirsty, a stranger, naked, sick, and in prison. The righteous were confused and asked when they had done these things. What was Jesus' answer?",
+          "options": ["'When you served in the Temple'", "'Truly I tell you, whatever you did for one of the least of these brothers and sisters of mine, you did for me'", "'When you gave your tithes and offerings'", "'When you prayed and fasted'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus identified himself with the most vulnerable members of society. Serving the hungry, thirsty, stranger, naked, sick, and imprisoned is the same as serving Jesus himself. Conversely, those who ignored these needs were told 'Depart from me' because 'whatever you did not do for one of the least of these, you did not do for me.' This teaching makes compassion for the vulnerable a defining mark of authentic faith.",
+          "reference": "Matthew 25:31-46",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-33",
+          "question": "When the scribes and Pharisees asked Jesus which commandment in the Law was the greatest, Jesus gave a two-part answer that summarised all of Scripture. What was his answer?",
+          "options": ["'Keep the Sabbath and honour your parents'", "'Love the Lord your God with all your heart, soul, and mind — and love your neighbour as yourself'", "'Do not murder and do not steal'", "'Fear God and keep his commandments'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus quoted Deuteronomy 6:5 ('Love the Lord your God with all your heart and with all your soul and with all your mind') and added Leviticus 19:18 ('Love your neighbour as yourself'), saying 'All the Law and the Prophets hang on these two commandments.' He reduced 613 laws to two principles: vertical love (toward God) and horizontal love (toward people).",
+          "reference": "Matthew 22:34-40",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-34",
+          "question": "Jesus healed a woman who had been suffering from bleeding for 12 years. She had spent all her money on doctors but only got worse. She believed that if she could just touch Jesus' clothing she would be healed. What happened when she touched the edge of his cloak?",
+          "options": ["Nothing happened at first", "She was immediately healed, and Jesus felt power go out from him and asked 'Who touched me?'", "Jesus turned and laid hands on her", "She fainted and Jesus carried her to safety"],
+          "correctAnswer": 1,
+          "explanation": "The moment she touched his cloak, her bleeding stopped. Jesus immediately sensed that power had gone out from him and asked 'Who touched me?' in a crowd pressing against him. The disciples thought the question was absurd, but the woman fell at his feet and told the truth. Jesus said 'Daughter, your faith has healed you. Go in peace and be freed from your suffering.'",
+          "reference": "Mark 5:25-34, Luke 8:43-48",
+          "points": 15
+        },
+        {
+          "id": "loj-mc-i-35",
+          "question": "On the day of Pentecost, 50 days after Jesus' resurrection and 10 days after his ascension, the Holy Spirit descended on the disciples in Jerusalem. How did the Holy Spirit manifest his arrival?",
+          "options": ["A gentle breeze filled the room", "The sound of a violent rushing wind filled the house, and tongues of fire appeared and rested on each of them, and they spoke in other languages", "A bright light filled the Temple", "Thunder and lightning struck the building"],
+          "correctAnswer": 1,
+          "explanation": "Suddenly a sound like a violent rushing wind came from heaven and filled the whole house. They saw tongues of fire that separated and came to rest on each of them. They were all filled with the Holy Spirit and began to speak in other languages, understood by the diverse crowd of Jews from many nations gathered in Jerusalem. Peter preached and about 3,000 people were baptised that day — the birth of the church.",
+          "reference": "Acts 2:1-41",
+          "points": 15
+        }
+      ],
+      "advanced": [
+        {
+          "id": "loj-mc-a-1",
+          "question": "The Gospel of John opens with a theological prologue that begins 'In the beginning was the Word (Logos), and the Word was with God, and the Word was God.' The Greek term 'Logos' carried deep meaning in both Jewish and Greek thought. What did 'Logos' primarily mean in Greek philosophy before John adopted it?",
+          "options": ["A simple spoken word or command", "The rational principle governing the universe — divine reason, logic, and cosmic order", "A religious prayer or liturgical formula", "A reference to written scripture"],
+          "correctAnswer": 1,
+          "explanation": "In Greek philosophy (particularly Stoicism and Heraclitus), 'Logos' referred to the rational, ordering principle behind all reality — the divine reason that gave coherence to the cosmos. In Jewish thought, the 'Word of God' was the creative and revelatory power of God (Genesis 1 — God spoke creation into being). John brilliantly bridges both worlds by declaring that this cosmic Logos 'became flesh and made his dwelling among us' in Jesus.",
+          "reference": "John 1:1-18",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-2",
+          "question": "The phrase 'the kingdom of God' (or 'kingdom of heaven' in Matthew) was central to Jesus' teaching — he mentioned it over 100 times. Scholars debate its exact nature. Which of the following best captures the tension in Jesus' teaching about the kingdom?",
+          "options": ["The kingdom is purely a future heavenly reality with no present dimension", "The kingdom is both 'already here' (inaugurated through Jesus' ministry) and 'not yet' (awaiting full consummation at his return)", "The kingdom is a political nation that Jesus intended to establish on earth immediately", "The kingdom is an entirely internal, spiritual state with no outward social expression"],
+          "correctAnswer": 1,
+          "explanation": "New Testament scholars widely recognise the 'already/not yet' tension in Jesus' kingdom teaching. Jesus said 'The kingdom of God has come upon you' (present — Matthew 12:28) and taught people to pray 'Your kingdom come' (future — Matthew 6:10). The kingdom was inaugurated in Jesus' life, death, and resurrection, but awaits full consummation at his second coming. This framework, popularised by George Eldon Ladd, shapes much of modern evangelical theology.",
+          "reference": "Mark 1:15, Matthew 12:28, 6:10",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-3",
+          "question": "Jesus' title 'Son of Man' is his most frequently used self-designation in the Gospels (over 80 times), yet it is almost never used by anyone else to refer to him. The title draws primarily from a vision in the book of Daniel. What does Daniel's vision reveal about the 'Son of Man'?",
+          "options": ["He is a humble teacher who lives among the poor", "He is a divine figure who comes on the clouds of heaven, approaches the Ancient of Days, and is given authority, glory, and an everlasting kingdom", "He is a military leader who conquers Israel's enemies", "He is an angel who delivers messages from God"],
+          "correctAnswer": 1,
+          "explanation": "In Daniel 7:13-14, 'one like a son of man' approaches the Ancient of Days (God) riding on the clouds of heaven and is given 'authority, glory and sovereign power; all nations and peoples of every language worshipped him. His dominion is an everlasting dominion that will not pass away.' By using this title, Jesus was making an extraordinary claim to divine authority while initially veiling it in a title that also means simply 'human being.'",
+          "reference": "Daniel 7:13-14, Mark 14:62",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-4",
+          "question": "The Synoptic Problem is a major area of New Testament scholarship dealing with the literary relationship between Matthew, Mark, and Luke. The dominant theory holds that one Gospel was written first and the other two used it as a source. According to the most widely accepted scholarly view, which Gospel was written first?",
+          "options": ["Matthew", "Mark", "Luke", "John"],
+          "correctAnswer": 1,
+          "explanation": "Markan Priority — the view that Mark was the first Gospel written (around AD 65-70) — is the most widely held position in modern scholarship. Nearly all of Mark's content appears in Matthew and/or Luke, often with the same wording and order. The Two-Source Hypothesis posits that Matthew and Luke independently used Mark plus a hypothetical sayings source called 'Q' (from the German 'Quelle' meaning 'source').",
+          "reference": "Synoptic Gospel studies",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-5",
+          "question": "When Jesus was crucified, the Gospels record that he cried out 'Eli, Eli, lema sabachthani?' ('My God, my God, why have you forsaken me?'). While this is often interpreted as a cry of despair, many scholars point out that Jesus was quoting the opening line of a specific psalm. Why is the full context of this psalm significant?",
+          "options": ["The psalm describes God's permanent rejection of the righteous", "Psalm 22 begins with abandonment but ends in triumph, praise, and the proclamation 'He has done it' — suggesting Jesus was pointing to the whole psalm, not just the opening despair", "The psalm is a battle cry for military victory", "The psalm calls for vengeance against enemies"],
+          "correctAnswer": 1,
+          "explanation": "Psalm 22 begins with 'My God, my God, why have you forsaken me?' but progresses through suffering (pierced hands and feet, lots cast for garments) to triumphant vindication: 'All the ends of the earth will remember and turn to the LORD' and concludes 'He has done it!' By quoting the opening line, Jesus may have been directing attention to the entire psalm — from the reality of his suffering to the certainty of God's ultimate victory.",
+          "reference": "Psalm 22, Matthew 27:46",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-6",
+          "question": "The concept of kenosis (from the Greek 'kenoo,' meaning 'to empty') is derived from Philippians 2:5-11, which describes Christ 'emptying himself' to take the form of a servant. What does the kenosis passage teach about Jesus' incarnation?",
+          "options": ["Jesus temporarily ceased to be God when he became human", "Jesus voluntarily set aside the independent exercise of certain divine attributes (not his divine nature) to take on full humanity", "Jesus was merely a human being whom God later elevated to divine status", "Jesus pretended to be human while remaining fully divine without any real limitation"],
+          "correctAnswer": 1,
+          "explanation": "The Philippians 2 hymn states that Jesus, 'being in very nature God, did not consider equality with God something to be used to his own advantage; rather, he made himself nothing (emptied himself) by taking the very nature of a servant.' Orthodox theology teaches that Jesus didn't cease being God but voluntarily chose not to exercise certain divine prerogatives independently, fully experiencing human limitations while retaining his divine nature.",
+          "reference": "Philippians 2:5-11",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-7",
+          "question": "The Gospel of John contains seven 'sign miracles' carefully selected by the author to reveal Jesus' identity. Unlike the Synoptic Gospels (which record dozens of miracles), John chose exactly seven and often followed each with extended theological discourse. Why did John limit himself to seven signs?",
+          "options": ["He simply didn't know about more miracles", "Seven is the biblical number of completeness/perfection, and John chose these signs to present a theologically complete portrait of Jesus' divine identity", "John was writing for a small community that wouldn't have believed more miracles", "Roman censorship prevented him from including more supernatural content"],
+          "correctAnswer": 1,
+          "explanation": "John 20:30-31 explicitly states 'Jesus performed many other signs in the presence of his disciples, which are not recorded in this book. But these are written that you may believe that Jesus is the Messiah, the Son of God.' Seven was the number of divine completeness in Jewish thought. Each sign reveals a facet of Jesus' identity: from water to wine (Creator), healing the official's son (Life-giver), to raising Lazarus (Lord of Death).",
+          "reference": "John 20:30-31",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-8",
+          "question": "The 'Messianic Secret' is a term coined by William Wrede in 1901 to describe a puzzling pattern in Mark's Gospel where Jesus repeatedly tells people he heals and even demons who recognise him not to tell anyone who he is. What is the most widely accepted theological explanation for this pattern?",
+          "options": ["Jesus didn't want to become famous", "Jesus needed to control the narrative of his identity because popular messianic expectations were political/military, and premature revelation could trigger the wrong kind of following before his mission was complete", "Jesus was unsure of his own identity and wanted time to figure it out", "Jesus was testing people's obedience"],
+          "correctAnswer": 1,
+          "explanation": "First-century Jewish messianic expectations centred on a military deliverer who would overthrow Rome. Jesus' mission was to be a suffering servant, not a political king. Premature disclosure of his messiahship would have sparked political uprising and prevented him from fulfilling his true mission — the cross. After Peter's confession, Jesus 'began to teach them that the Son of Man must suffer' (Mark 8:31) — redefining messiahship through suffering.",
+          "reference": "Mark 1:34, 8:29-31",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-9",
+          "question": "Jesus' parables often subverted the expectations of his audience. In the Parable of the Workers in the Vineyard (Matthew 20), workers hired at different times of the day all received the same full day's wage. This parable was a direct challenge to what common religious assumption?",
+          "options": ["That prayer is unnecessary for salvation", "That God's grace operates on a merit-based system where greater effort earns greater reward, rather than being a gift of equal generosity to all", "That only Jewish people could enter the kingdom", "That wealth is a sign of God's blessing"],
+          "correctAnswer": 1,
+          "explanation": "The parable scandalized its hearers because the workers who laboured all day expected more than those who worked only one hour. The landowner's response — 'Don't I have the right to do what I want with my own money? Are you envious because I am generous?' — illustrates that God's grace is not earned by effort. The 'first shall be last, and last shall be first.' This challenged both Pharisaic merit-theology and human notions of fairness.",
+          "reference": "Matthew 20:1-16",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-10",
+          "question": "The crucifixion narrative contains several details that scholars believe were intended to present Jesus as the ultimate Passover lamb. Which of the following details most directly connects Jesus' death to the Passover sacrifice?",
+          "options": ["Jesus was crucified outside the city walls", "In John's chronology, Jesus dies at the exact time the Passover lambs were being slaughtered in the Temple, and not one of his bones was broken (fulfilling the Passover requirement that no bone of the lamb be broken)", "Jesus wore a purple robe", "Darkness covered the land for three hours"],
+          "correctAnswer": 1,
+          "explanation": "John's Gospel places Jesus' death on the Day of Preparation for Passover — at the very hour when priests were slaughtering Passover lambs in the Temple. When soldiers came to break the legs of those crucified, Jesus was already dead, so they did not break his bones (John 19:33-36) — fulfilling Exodus 12:46: 'Do not break any of the bones.' Paul explicitly declares 'Christ, our Passover lamb, has been sacrificed' (1 Corinthians 5:7).",
+          "reference": "John 19:14, 33-36, Exodus 12:46, 1 Corinthians 5:7",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-11",
+          "question": "The historical Jesus debate has produced various scholarly positions. The 'Third Quest for the Historical Jesus' (from the 1980s onward) emphasises understanding Jesus within his first-century Jewish context. Which approach distinguishes the Third Quest from earlier scholarship?",
+          "options": ["Rejecting all supernatural elements and treating Jesus as purely a moral teacher", "Placing Jesus firmly within Second Temple Judaism and using Jewish sources to illuminate his words and deeds, rather than abstracting him from his Jewish context", "Treating the Gospels as entirely unreliable historical documents", "Focusing exclusively on archaeological evidence while ignoring literary sources"],
+          "correctAnswer": 1,
+          "explanation": "The Third Quest (led by scholars like E.P. Sanders, N.T. Wright, and James D.G. Dunn) emphasised that Jesus must be understood as a first-century Jew within Second Temple Judaism. Unlike earlier quests that imposed modern Western categories, the Third Quest uses Jewish literature (Dead Sea Scrolls, Mishnah, Josephus) to illuminate Jesus' teachings about the kingdom, his conflicts with religious leaders, and his self-understanding.",
+          "reference": "Historical Jesus scholarship",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-12",
+          "question": "The term 'hypostatic union' is the technical theological term describing the relationship between Jesus' divine and human natures, formally defined at the Council of Chalcedon in AD 451. What does the Chalcedonian definition affirm about Jesus?",
+          "options": ["Jesus had a divine nature that gradually replaced his human nature", "Jesus is one person with two complete natures — fully God and fully human — united without confusion, change, division, or separation", "Jesus alternated between being divine and being human at different times", "Jesus had a mixed nature that was partly divine and partly human"],
+          "correctAnswer": 1,
+          "explanation": "Chalcedon affirmed that Jesus Christ is 'truly God and truly man... in two natures, without confusion, without change, without division, without separation; the distinction of natures being by no means taken away by the union, but rather the property of each nature being preserved, and concurring in one person.' This definition navigated between errors: Jesus is not half-God/half-human, nor two persons, nor divine only pretending to be human.",
+          "reference": "Council of Chalcedon (AD 451)",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-13",
+          "question": "Jesus' practice of eating with 'sinners and tax collectors' was not merely casual socialising — it was a deliberately provocative prophetic action. In the culture of first-century Palestine, what did sharing a meal symbolise?",
+          "options": ["Simply satisfying hunger with available company", "Table fellowship represented acceptance, covenant relationship, and the anticipated messianic banquet — eating with outcasts declared God's welcome to those the religious establishment excluded", "It was merely a teaching opportunity with no deeper meaning", "It showed Jesus' lack of concern for dietary laws"],
+          "correctAnswer": 1,
+          "explanation": "In ancient Mediterranean culture, table fellowship was laden with social and religious meaning. Who you ate with defined your social boundaries. The messianic age was pictured as a great banquet (Isaiah 25:6-8). By eating with tax collectors and sinners, Jesus was performing a prophetic sign-act — declaring that God's kingdom was open to those the religious establishment had excluded. The Pharisees understood exactly what he was claiming, which is why they objected so strongly.",
+          "reference": "Mark 2:15-17, Luke 15:1-2",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-14",
+          "question": "The Gospel of Mark has a famously abrupt ending in the earliest manuscripts — it ends at Mark 16:8 with the women fleeing the empty tomb 'trembling and bewildered' and telling 'no one anything, because they were afraid.' Later manuscripts add a longer ending (verses 9-20). Why do most scholars believe the original ending was at verse 8?",
+          "options": ["Mark died before finishing his Gospel", "The earliest and most reliable manuscripts (Sinaiticus and Vaticanus) end at 16:8, and the vocabulary and style of the longer ending differ significantly from the rest of Mark", "Ancient editors deliberately removed the ending to create mystery", "The original ending was lost in a fire"],
+          "correctAnswer": 1,
+          "explanation": "The two oldest and most important Greek manuscripts — Codex Sinaiticus and Codex Vaticanus (both 4th century) — end at Mark 16:8. Early church fathers Clement and Origen show no knowledge of the longer ending. The vocabulary, style, and theology of verses 9-20 differ noticeably from the rest of Mark. Some scholars believe Mark intentionally ended with the women's fear and silence, inviting readers to complete the story with their own response to the resurrection.",
+          "reference": "Mark 16:8, textual criticism",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-15",
+          "question": "The concept of 'atonement' — how Jesus' death deals with human sin — has been understood through multiple theological models throughout church history. Which model focuses specifically on Jesus' death as a victory over the powers of evil, sin, and death?",
+          "options": ["Moral Influence Theory (Abelard)", "Penal Substitutionary Atonement (Calvin/Reformation)", "Christus Victor (Irenaeus/Aulén)", "Satisfaction Theory (Anselm)"],
+          "correctAnswer": 2,
+          "explanation": "Christus Victor ('Christ the Victor'), the earliest atonement model prominent in the early church fathers, presents Jesus' death and resurrection as a cosmic victory over the powers of sin, death, and the devil. Swedish theologian Gustaf Aulén reintroduced this model in his 1931 book 'Christus Victor.' In this view, the cross is primarily a battlefield where Christ defeats the enslaving powers. It complements rather than replaces other atonement models.",
+          "reference": "Colossians 2:15, 1 John 3:8",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-16",
+          "question": "The feeding of the 5,000 is the only miracle (besides the resurrection) recorded in all four Gospels, and John's Gospel follows it with Jesus' 'Bread of Life' discourse. Scholars note that the miracle contains deliberate echoes of an Old Testament event. Which event does it most closely parallel?",
+          "options": ["The manna God provided to the Israelites in the wilderness", "Elijah being fed by ravens", "The meal Abraham prepared for the three angelic visitors", "The wedding feast at Cana"],
+          "correctAnswer": 0,
+          "explanation": "The feeding of the 5,000 deliberately echoes the manna miracle. Jesus feeds a multitude in a deserted place (wilderness), bread comes from an unexpected source, there is more than enough for everyone, and John 6 explicitly connects the events when the crowd says 'Our ancestors ate manna in the wilderness.' Jesus responds 'I am the bread of life. Your ancestors ate manna and died, but whoever eats this bread will live forever.' He is the true manna.",
+          "reference": "John 6:30-58, Exodus 16",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-17",
+          "question": "Jesus' cry from the cross 'It is finished' (John 19:30) uses the Greek word 'tetelestai.' This word carried specific significance in the commercial world of first-century Greco-Roman society. What did 'tetelestai' mean in everyday usage?",
+          "options": ["'It is destroyed'", "'Paid in full' — it was stamped on receipts and debt certificates when a debt had been completely satisfied", "'The end has come'", "'I give up'"],
+          "correctAnswer": 1,
+          "explanation": "'Tetelestai' was a commercial and legal term meaning 'paid in full' — it was written across receipts when a debt was completely settled. Archaeological discoveries of papyrus tax receipts in Egypt have confirmed this usage. When Jesus cried 'Tetelestai,' he was declaring that the debt of human sin had been completely paid — nothing more was owed, nothing more could be added. It was a shout of triumph, not defeat.",
+          "reference": "John 19:30",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-18",
+          "question": "The 'criteria of authenticity' are tools scholars use to evaluate which sayings and deeds attributed to Jesus in the Gospels are historically reliable. One important criterion is the 'criterion of embarrassment.' What does this criterion suggest?",
+          "options": ["Sayings that embarrass the reader are likely fictional", "Material that would have been embarrassing or difficult for the early church to invent (like Jesus' baptism by John, his ignorance of the day of his return, or Peter's denials) is likely historically authentic because no one would fabricate material that created theological problems", "Embarrassing stories were added later to make Jesus seem more human", "Only flattering accounts of Jesus can be considered reliable"],
+          "correctAnswer": 1,
+          "explanation": "The criterion of embarrassment argues that the early church would not have invented stories that created theological difficulties for themselves. Jesus being baptised by John (suggesting Jesus needed repentance), Jesus saying he didn't know the day of his return (suggesting limited knowledge), and Jesus crying out 'Why have you forsaken me?' are examples — the church would have no reason to create these traditions, so they are likely historically authentic.",
+          "reference": "Historical Jesus methodology",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-19",
+          "question": "In Matthew's Gospel, Jesus delivers five major discourses (chapters 5-7, 10, 13, 18, 23-25), each ending with a similar formula ('When Jesus had finished saying these things...'). Many scholars believe Matthew structured his Gospel this way to intentionally parallel a specific section of the Old Testament. Which section?",
+          "options": ["The five books of Moses (Pentateuch/Torah)", "The five wisdom books", "The five scrolls (Megilloth)", "The five major prophets"],
+          "correctAnswer": 0,
+          "explanation": "Matthew's five-discourse structure appears to deliberately parallel the five books of Moses, presenting Jesus as the 'new Moses' — the definitive lawgiver and teacher. Just as Moses delivered God's law from Mount Sinai, Jesus delivers his teaching from a mountain (Sermon on the Mount). Matthew's Gospel consistently emphasises Jesus' fulfilment of Old Testament patterns, and this structural parallel underscores Jesus as the one greater than Moses.",
+          "reference": "Matthew 5-7, 10, 13, 18, 23-25",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-20",
+          "question": "The term 'Son of God' as applied to Jesus carried layered meaning. In the Old Testament, 'son of God' could refer to angels, the king of Israel, or the nation of Israel itself. When the Roman centurion at the cross said 'Truly this man was the Son of God!' (Mark 15:39), what would this title have meant in a Roman context?",
+          "options": ["A Jewish religious leader", "A divine being in the Jewish sense", "'Son of God' (divi filius) was a title used for the Roman Emperor — the centurion was acknowledging Jesus' authority as rivalling Caesar's", "A prophet sent from heaven"],
+          "correctAnswer": 2,
+          "explanation": "In the Roman world, 'Son of God' (divi filius) was an official title of the Emperor — Augustus was called 'son of the divine Julius.' When a Roman centurion declares the crucified Jesus 'Son of God,' Mark presents a profound irony: the representative of Roman power, standing at the foot of Rome's instrument of execution, confesses that the true 'Son of God' is not Caesar but this crucified Jewish man. It's a political and theological bombshell.",
+          "reference": "Mark 15:39",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-21",
+          "question": "Paul's earliest letter (1 Thessalonians, written around AD 50-51) and the early creed embedded in 1 Corinthians 15:3-7 (which scholars date to within 3-5 years of the crucifixion) are significant for historical Jesus studies. Why are these texts so important?",
+          "options": ["They contain the most detailed accounts of Jesus' miracles", "They demonstrate that core Christian beliefs — Jesus' death for sins, burial, resurrection, and appearances to eyewitnesses — were established within a few years of the events, far too early for legendary development", "They are the only reliable texts about Jesus", "They were written by eyewitnesses to the crucifixion"],
+          "correctAnswer": 1,
+          "explanation": "The creedal formula in 1 Corinthians 15:3-7 ('Christ died for our sins... was buried... was raised on the third day... appeared to Cephas, then to the twelve') is dated by most scholars to within 3-5 years of the crucifixion (approximately AD 33-38). Paul received it as already-established tradition. This extremely early dating makes legendary invention essentially impossible — the core resurrection claim existed while eyewitnesses were still alive and could be consulted.",
+          "reference": "1 Corinthians 15:3-7, 1 Thessalonians",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-22",
+          "question": "The Gospel of John uses the concept of 'signs' (semeion) differently from the Synoptic Gospels' use of 'miracles' (dunamis/power). In John's theological framework, what is the essential purpose of a 'sign'?",
+          "options": ["To prove Jesus' power to unbelievers", "A sign points beyond itself to a deeper spiritual reality about Jesus' identity — it is not just an act of power but a revelation of who Jesus is", "To fulfill Old Testament prophecy", "To establish Jesus' authority over nature"],
+          "correctAnswer": 1,
+          "explanation": "In John's Gospel, 'signs' are not just displays of power — they are symbolic revelations of Jesus' identity. Turning water to wine reveals Jesus as the source of messianic joy. Healing the blind man reveals Jesus as 'the light of the world.' Raising Lazarus reveals Jesus as 'the resurrection and the life.' Each sign functions as a theological window into Jesus' nature. John also notes that seeing signs without grasping their meaning is insufficient — true faith goes beyond signs to the person they reveal.",
+          "reference": "John 2:11, 20:30-31",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-23",
+          "question": "The 'Johannine Comma' (1 John 5:7-8) is a famous textual variant that explicitly states 'there are three that bear record in heaven, the Father, the Word, and the Holy Ghost: and these three are one.' Why do most modern scholars and Bible translations exclude or bracket this passage?",
+          "options": ["It contradicts other New Testament teachings", "It is absent from virtually all Greek manuscripts before the 16th century, absent from all early church father citations, and appears to have originated as a marginal gloss in later Latin manuscripts", "It was deliberately removed by heretical scribes", "It duplicates content found elsewhere in John's writings"],
+          "correctAnswer": 1,
+          "explanation": "The Comma Johanneum is found in NO Greek manuscript before the 16th century. It is absent from all early church father discussions of the Trinity (who would certainly have cited it if it existed). It appears to have originated as a marginal gloss in Old Latin manuscripts that was later incorporated into the text. Erasmus famously excluded it from his Greek New Testament but was pressured to include it in his 1522 edition. Modern critical editions and translations either omit it or relegate it to a footnote.",
+          "reference": "1 John 5:7-8, textual criticism",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-24",
+          "question": "Jesus' cleansing of the Temple is placed at different points in the Gospel narratives — John places it at the beginning of Jesus' ministry (chapter 2), while the Synoptic Gospels place it during the final week in Jerusalem. How do most scholars resolve this discrepancy?",
+          "options": ["One account is historically accurate and the other is wrong", "Most scholars believe there was one cleansing that John relocated to the beginning of his Gospel for theological purposes — to frame Jesus' entire ministry as a replacement of the Temple system", "Jesus cleansed the Temple twice — once at the beginning and once at the end of his ministry", "The accounts describe two different parts of the Temple"],
+          "correctAnswer": 1,
+          "explanation": "While some scholars argue for two separate cleansings, the majority view is that John relocated the event to the beginning of his Gospel for theological reasons. By placing the Temple cleansing at the start, John frames Jesus' entire ministry as the replacement of the old Temple system. John's Gospel is structured more thematically than chronologically, and the placement serves his theological purpose of presenting Jesus as the true Temple (John 2:21 — 'the temple he had spoken of was his body').",
+          "reference": "John 2:13-22, Mark 11:15-17",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-25",
+          "question": "The concept of 'inaugurated eschatology' (associated with scholars like C.H. Dodd and George Ladd) fundamentally shapes how Christians understand Jesus' mission. Which statement best captures this concept?",
+          "options": ["All prophecy was fulfilled in Jesus' first coming", "Jesus' first coming inaugurated the last days and the kingdom of God, but the full consummation awaits his second coming — creating an 'overlap of the ages' where the present evil age and the age to come coexist", "The end times have not yet begun and await a future trigger", "Eschatology is purely symbolic and has no temporal dimension"],
+          "correctAnswer": 1,
+          "explanation": "Inaugurated eschatology holds that Jesus' life, death, and resurrection launched the 'age to come' within the present age — creating an overlap. Believers already experience kingdom realities (forgiveness, the Spirit, new creation) but still await the full consummation (bodily resurrection, new heavens and earth, elimination of evil). This framework explains why Christians experience both the 'already' (salvation, Spirit) and the 'not yet' (suffering, death, sin's persistence).",
+          "reference": "Mark 1:15, Romans 8:18-25, 1 Corinthians 10:11",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-26",
+          "question": "The resurrection narratives across the four Gospels contain notable differences in details (number of angels, which women visited, what they were told). Sceptics argue these differences undermine the accounts' reliability, while many historians argue the opposite. Why might these differences actually strengthen the historicity of the resurrection?",
+          "options": ["The differences show the authors were creative fiction writers", "Independent, unharmonised eyewitness accounts naturally contain variant details about peripheral circumstances while agreeing on the core event — this pattern is characteristic of authentic testimony, not fabrication (which would show artificial agreement)", "The differences don't matter because the accounts are purely symbolic", "Later editors deliberately introduced differences to make the accounts seem authentic"],
+          "correctAnswer": 1,
+          "explanation": "Legal and historical scholars note that when multiple witnesses describe the same event, verbatim agreement suggests collusion or copying, while agreement on core facts with variation in peripheral details (how many angels, exact time, who arrived first) is the hallmark of genuine independent testimony. All accounts agree on the essentials: Jesus died, was buried, the tomb was empty on Sunday morning, and women were the first witnesses — this last detail is particularly significant since women's testimony was not considered reliable in first-century Jewish courts, making it an unlikely invention.",
+          "reference": "Matthew 28, Mark 16, Luke 24, John 20",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-27",
+          "question": "The 'New Perspective on Paul' (associated with E.P. Sanders, James Dunn, and N.T. Wright) has significantly reframed how scholars understand Jesus' conflicts with the Pharisees. According to this perspective, what was the primary issue between Jesus and the Pharisees?",
+          "options": ["The Pharisees were trying to earn salvation through good works while Jesus taught grace alone", "The conflict centred on 'boundary markers' (Sabbath, food laws, circumcision, purity) that defined who was 'in' or 'out' of God's people — Jesus was redefining the boundaries of God's covenant community around himself rather than Torah observance", "Jesus rejected the Old Testament while the Pharisees upheld it", "The Pharisees were corrupt politicians, not genuinely religious men"],
+          "correctAnswer": 1,
+          "explanation": "The New Perspective argues that first-century Judaism was not about 'earning salvation by works' (a caricature largely shaped by Reformation polemic). The Pharisees were genuinely devoted to Torah. The real conflict was about 'who belongs to God's people?' — the Pharisees defined belonging by Torah observance (especially Sabbath, food laws, circumcision), while Jesus was radically redefining God's covenant community around faith in himself, welcoming sinners, tax collectors, and Gentiles.",
+          "reference": "Mark 2:15-17, Luke 15:1-2",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-28",
+          "question": "The non-biblical historian Josephus (AD 37-100) mentions Jesus in a passage known as the 'Testimonium Flavianum' (Antiquities 18.3.3). Why is this passage both celebrated and controversial among scholars?",
+          "options": ["Because Josephus was a Christian who naturally praised Jesus", "While the core reference to Jesus is considered authentic by most scholars, the passage contains phrases ('he was the Messiah,' 'he appeared to them alive on the third day') that appear to be later Christian interpolations inserted into Josephus' original text", "Because the passage is a medieval forgery with no ancient manuscript support", "Because Josephus contradicts everything the Gospels say about Jesus"],
+          "correctAnswer": 1,
+          "explanation": "The majority scholarly view is that Josephus did write about Jesus (he was a Jewish historian recording significant events), but that Christian scribes later embellished the passage with faith claims Josephus, as a non-Christian Jew, would not have written. Reconstructed, the original likely said something like: 'About this time there lived Jesus, a wise man... He won over many Jews and many of the Greeks. When Pilate condemned him to the cross, those who had loved him did not give up their affection for him. And the tribe of Christians, so called after him, has still to this day not disappeared.'",
+          "reference": "Josephus, Antiquities 18.3.3",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-29",
+          "question": "The 'ransom saying' of Jesus — 'The Son of Man did not come to be served, but to serve, and to give his life as a ransom for many' (Mark 10:45) — is considered by most scholars to be one of the most important christological statements in the Synoptic Gospels. The Greek word 'lytron' (ransom) carries a specific connotation. What does it mean?",
+          "options": ["A gift freely given with no strings attached", "The price paid to release a slave, prisoner, or hostage from bondage — liberation through substitutionary payment", "A fine paid to avoid punishment", "A voluntary donation to charity"],
+          "correctAnswer": 1,
+          "explanation": "'Lytron' (ransom) was the price paid to free slaves, prisoners of war, or those under sentence of death. The preposition 'anti' (for/instead of) indicates substitution — Jesus gives his life 'instead of' the many. Combined with 'the many' (echoing Isaiah 53's Suffering Servant), this saying presents Jesus' death as a voluntary, substitutionary act of liberation — paying the price to set captive humanity free. It is one of the clearest self-interpretations of Jesus' death in the Gospels.",
+          "reference": "Mark 10:45, Isaiah 53:12",
+          "points": 20
+        },
+        {
+          "id": "loj-mc-a-30",
+          "question": "Luke's Gospel has been called the 'Gospel of the outcasts' because of its distinctive emphasis on groups that were marginalised in first-century Jewish society. Which of the following is NOT a distinctive Lukan emphasis?",
+          "options": ["Women (Mary's Magnificat, Anna, the widow of Nain, the sinful woman, Mary and Martha, the bent-over woman)", "The poor and the oppressed (Blessed are the poor, the Rich Man and Lazarus, Zacchaeus)", "Detailed genealogies tracing Jesus' lineage through the royal line of Solomon", "Samaritans, Gentiles, and other social outsiders (the Good Samaritan, the grateful Samaritan leper, Simeon's 'light for revelation to the Gentiles')"],
+          "correctAnswer": 2,
+          "explanation": "Luke does include a genealogy, but it traces Jesus' line through Nathan (not Solomon) back to Adam (emphasising Jesus' connection to all humanity), whereas Matthew traces the royal Solomonic line. Luke's distinctive emphasis is on the marginalised: women appear in nearly every chapter, the poor receive special blessings, Samaritans are heroes, and the gospel is explicitly 'for all people.' Luke also uniquely records Jesus' first sermon in Nazareth about 'good news to the poor... freedom for the oppressed.'",
+          "reference": "Luke 1-2, 4:18-19, 10:25-37, 15-16",
+          "points": 20
+        }
+      ]
     },
     "true-false": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {"id": "loj-tf-b-1", "question": "According to the Gospels, Jesus was born to a virgin named Mary in the town of Bethlehem, as the angel Gabriel had announced to her beforehand.", "correctAnswer": true, "explanation": "The angel Gabriel appeared to Mary and told her she would conceive by the Holy Spirit and bear a son named Jesus. 'How will this be,' Mary asked, 'since I am a virgin?' Gabriel replied 'The Holy Spirit will come on you, and the power of the Most High will overshadow you.' Mary responded with faith: 'I am the Lord's servant. May your word to me be fulfilled.'", "reference": "Luke 1:26-38, Matthew 1:18-25", "points": 10},
+        {"id": "loj-tf-b-2", "question": "Jesus grew up in the city of Jerusalem, where Joseph worked as a carpenter near the Temple.", "correctAnswer": false, "explanation": "Jesus grew up in Nazareth, a small village in the region of Galilee — not in Jerusalem. Nazareth was such an insignificant place that Nathanael famously asked 'Can anything good come from Nazareth?' (John 1:46). Jesus later moved his base of ministry to Capernaum, a town on the Sea of Galilee.", "reference": "Luke 2:39-40, Matthew 2:23, John 1:46", "points": 10},
+        {"id": "loj-tf-b-3", "question": "John the Baptist baptised Jesus in the Jordan River, and when Jesus came up out of the water, the Holy Spirit descended on him like a dove and God's voice said 'This is my Son, whom I love; with him I am well pleased.'", "correctAnswer": true, "explanation": "John the Baptist initially hesitated, saying 'I need to be baptised by you, and do you come to me?' But Jesus insisted 'Let it be so now; it is proper for us to do this to fulfil all righteousness.' After the baptism, the heavens opened, the Spirit descended like a dove, and the Father's voice affirmed Jesus' identity and mission.", "reference": "Matthew 3:13-17", "points": 10},
+        {"id": "loj-tf-b-4", "question": "Jesus began his public ministry at approximately 30 years of age, meaning he spent roughly 30 years in relative obscurity before his three years of public ministry.", "correctAnswer": true, "explanation": "Luke 3:23 states 'Now Jesus himself was about thirty years old when he began his ministry.' This means Jesus spent about 30 years living as a carpenter in Nazareth before beginning his public work, which lasted approximately three years. The Gospels record almost nothing about these 'hidden years' except the Temple visit at age 12.", "reference": "Luke 3:23", "points": 10},
+        {"id": "loj-tf-b-5", "question": "Jesus chose 10 apostles to be his closest followers, who would carry on his work after his death and resurrection.", "correctAnswer": false, "explanation": "Jesus chose 12 apostles, not 10. The number twelve was deliberate — it corresponded to the twelve tribes of Israel, symbolising that Jesus was reconstituting God's people. The twelve were: Peter, Andrew, James, John, Philip, Bartholomew, Matthew, Thomas, James son of Alphaeus, Thaddaeus, Simon the Zealot, and Judas Iscariot.", "reference": "Mark 3:13-19, Luke 6:12-16", "points": 10},
+        {"id": "loj-tf-b-6", "question": "Jesus' first miracle, according to John's Gospel, was turning water into wine at a wedding in Cana of Galilee, after his mother Mary told him the hosts had run out of wine.", "correctAnswer": true, "explanation": "Mary told Jesus 'They have no more wine.' Though Jesus initially said 'My hour has not yet come,' he instructed the servants to fill six stone water jars with water. When they drew some out, it had become wine. The master of the banquet was amazed at its quality, not knowing where it came from. John calls this 'the first of the signs through which he revealed his glory.'", "reference": "John 2:1-11", "points": 10},
+        {"id": "loj-tf-b-7", "question": "Jesus taught that to enter the kingdom of God, people needed to be wealthy, powerful, and follow all 613 Jewish laws perfectly.", "correctAnswer": false, "explanation": "Jesus taught the opposite. He said 'Blessed are the poor in spirit, for theirs is the kingdom of heaven' and 'It is easier for a camel to go through the eye of a needle than for someone who is rich to enter the kingdom of God.' He welcomed children, sinners, and outcasts. He taught that entering the kingdom requires faith and humility, not wealth, power, or perfect law-keeping.", "reference": "Matthew 5:3, 19:23-24, Mark 10:15", "points": 10},
+        {"id": "loj-tf-b-8", "question": "The shortest verse in the Bible — 'Jesus wept' — appears in the story of Lazarus' death, showing that Jesus experienced genuine human grief and emotion.", "correctAnswer": true, "explanation": "John 11:35 ('Jesus wept') is the shortest verse in the English Bible. Even though Jesus knew he was about to raise Lazarus from the dead, he was deeply moved by the grief of Mary and Martha and by the reality of death itself. The original Greek uses a word for silent, deep tears (edakrysen) — different from the loud wailing of the mourners. It reveals Jesus' fully human compassion.", "reference": "John 11:35", "points": 10},
+        {"id": "loj-tf-b-9", "question": "During the Last Supper, Jesus washed his disciples' feet as an act of humble service, including the feet of Judas Iscariot, who was about to betray him.", "correctAnswer": true, "explanation": "John 13:1 says 'Having loved his own who were in the world, he loved them to the end.' Jesus washed all the disciples' feet — including Judas'. He knew Judas would betray him (John 13:11) yet still served him with the same love and humility. Jesus told them 'I have set you an example that you should do as I have done for you.'", "reference": "John 13:1-17", "points": 10},
+        {"id": "loj-tf-b-10", "question": "Pontius Pilate, the Roman governor, found Jesus guilty of a serious crime and eagerly sentenced him to death by crucifixion.", "correctAnswer": false, "explanation": "Pilate actually said three times 'I find no basis for a charge against him' (John 18:38, 19:4, 19:6). He tried to release Jesus by offering the crowd a choice between Jesus and Barabbas, and he even washed his hands symbolically saying 'I am innocent of this man's blood.' But under pressure from the Jewish leaders and the crowd, he handed Jesus over to be crucified despite believing him innocent.", "reference": "John 18:38-19:16, Matthew 27:24", "points": 10},
+        {"id": "loj-tf-b-11", "question": "Jesus was crucified at a place called Golgotha, which means 'the place of the skull,' and he died on a Friday, which Christians now commemorate as Good Friday.", "correctAnswer": true, "explanation": "Golgotha (Aramaic) or Calvary (Latin) means 'Place of the Skull,' likely named for the skull-shaped rock formation there. Jesus was crucified on a Friday (the day before the Sabbath) and Christians worldwide commemorate this day as Good Friday — 'good' because of the salvation accomplished through Jesus' sacrificial death, despite the horrific suffering involved.", "reference": "Matthew 27:33, Mark 15:42", "points": 10},
+        {"id": "loj-tf-b-12", "question": "According to the Gospels, Jesus rose from the dead on the third day after his crucifixion — that is, on a Sunday morning — and the first people to discover the empty tomb were women.", "correctAnswer": true, "explanation": "Jesus was crucified on Friday, rested in the tomb on Saturday (the Sabbath), and rose on Sunday morning — the third day by Jewish reckoning. Women (including Mary Magdalene, Mary the mother of James, and others) were the first to discover the empty tomb and the first to see the risen Jesus. This detail is considered historically significant because women's testimony was not considered reliable in first-century Jewish courts.", "reference": "Matthew 28:1-10, Mark 16:1-8, Luke 24:1-12, John 20:1-18", "points": 10},
+        {"id": "loj-tf-b-13", "question": "After his resurrection, Jesus appeared to his disciples over a period of 40 days, teaching them about the kingdom of God, before ascending to heaven from the Mount of Olives.", "correctAnswer": true, "explanation": "Acts 1:3 states 'After his suffering, he presented himself to them and gave many convincing proofs that he was alive. He appeared to them over a period of forty days and spoke about the kingdom of God.' He ate with them, taught them, and commissioned them. Then, on the Mount of Olives, he was taken up before their eyes and a cloud hid him from their sight.", "reference": "Acts 1:1-11", "points": 10},
+        {"id": "loj-tf-b-14", "question": "Jesus only performed healing miracles for Jewish people and refused to help Gentiles (non-Jews) or Samaritans during his ministry.", "correctAnswer": false, "explanation": "While Jesus' primary mission was to 'the lost sheep of Israel,' he also healed non-Jews. He healed the Roman centurion's servant (Matthew 8:5-13), praising the centurion's faith as greater than any he had found in Israel. He healed the Syrophoenician woman's daughter (Mark 7:24-30) and the Samaritan leper (Luke 17:11-19). These healings foreshadowed the gospel going to all nations.", "reference": "Matthew 8:5-13, Mark 7:24-30", "points": 10},
+        {"id": "loj-tf-b-15", "question": "The disciple who betrayed Jesus — Judas Iscariot — was paid 30 pieces of silver by the chief priests for identifying Jesus to the soldiers who arrested him.", "correctAnswer": true, "explanation": "Matthew 26:14-16 records that Judas went to the chief priests and asked 'What are you willing to give me if I deliver him over to you?' They counted out 30 pieces of silver. This amount fulfilled the prophecy of Zechariah 11:12 — the price of a slave. After the betrayal, Judas was filled with remorse, tried to return the money, and then took his own life.", "reference": "Matthew 26:14-16, Zechariah 11:12", "points": 10},
+        {"id": "loj-tf-b-16", "question": "During his crucifixion, Jesus forgave the criminals who were crucified beside him, and one of them asked Jesus to remember him when he came into his kingdom.", "correctAnswer": true, "explanation": "Two criminals were crucified alongside Jesus. One mocked him, but the other rebuked the first criminal and said 'Jesus, remember me when you come into your kingdom.' Jesus replied 'Truly I tell you, today you will be with me in paradise.' Earlier, Jesus had also prayed 'Father, forgive them, for they do not know what they are doing' — forgiving even his executioners.", "reference": "Luke 23:32-43", "points": 10},
+        {"id": "loj-tf-b-17", "question": "Jesus said 'I am the good shepherd' and compared himself to a shepherd who lays down his life for his sheep, in contrast to a hired hand who abandons the sheep when danger comes.", "correctAnswer": true, "explanation": "In John 10:11-15, Jesus said 'I am the good shepherd. The good shepherd lays down his life for the sheep. The hired hand is not the shepherd and does not own the sheep. So when he sees the wolf coming, he abandons the sheep and runs away.' He added 'I know my sheep and my sheep know me... and I lay down my life for the sheep.' This imagery connected to Psalm 23 and Ezekiel 34.", "reference": "John 10:11-15", "points": 10},
+        {"id": "loj-tf-b-18", "question": "After healing a paralysed man who was lowered through a roof by his friends, Jesus first said 'Your sins are forgiven' before telling him to 'Get up, take your mat, and go home' — which angered the religious leaders who believed only God could forgive sins.", "correctAnswer": true, "explanation": "Four friends couldn't get through the crowd, so they made a hole in the roof and lowered the paralysed man to Jesus on a mat. Jesus said 'Son, your sins are forgiven.' The religious leaders thought this was blasphemy — only God can forgive sins. Jesus asked 'Which is easier: to say \"Your sins are forgiven\" or \"Get up and walk\"?' Then he healed the man to prove he had authority to forgive sins.", "reference": "Mark 2:1-12", "points": 10},
+        {"id": "loj-tf-b-19", "question": "Jesus taught his followers to pray in public as loudly as possible so that everyone could hear and be impressed by their devotion to God.", "correctAnswer": false, "explanation": "Jesus taught exactly the opposite: 'When you pray, do not be like the hypocrites, for they love to pray standing in the synagogues and on the street corners to be seen by others... But when you pray, go into your room, close the door and pray to your Father, who is unseen. Then your Father, who sees what is done in secret, will reward you.' He condemned prayer that was performed for human applause rather than genuine conversation with God.", "reference": "Matthew 6:5-6", "points": 10},
+        {"id": "loj-tf-b-20", "question": "The Gospels record that at the moment of Jesus' death on the cross, darkness covered the whole land for three hours, and the curtain of the Temple was torn in two from top to bottom.", "correctAnswer": true, "explanation": "From noon until 3 PM, darkness covered the land. At the moment Jesus died, the curtain of the Temple was torn in two from top to bottom. There was also an earthquake and rocks split. The centurion guarding Jesus was so terrified by these events that he exclaimed 'Surely he was the Son of God!' The tearing of the curtain symbolised direct access to God being opened through Jesus' sacrifice.", "reference": "Matthew 27:45-54, Mark 15:33-39", "points": 10},
+        {"id": "loj-tf-b-21", "question": "Jesus refused to associate with tax collectors and sinners, considering them unworthy of his time and attention.", "correctAnswer": false, "explanation": "Jesus was famously criticised for doing the exact opposite. The Pharisees complained 'This man welcomes sinners and eats with them!' (Luke 15:2). Jesus called the tax collector Matthew to be one of his twelve apostles. He dined at the home of Zacchaeus. He said 'It is not the healthy who need a doctor, but the sick. I have not come to call the righteous, but sinners' (Mark 2:17).", "reference": "Mark 2:15-17, Luke 15:1-2, 19:1-10", "points": 10},
+        {"id": "loj-tf-b-22", "question": "When Jesus calmed a storm on the Sea of Galilee by simply speaking to the wind and waves, the disciples were amazed and asked 'Who is this? Even the wind and the waves obey him!'", "correctAnswer": true, "explanation": "A furious squall came up while Jesus was asleep in the stern of the boat. The disciples woke him, terrified, saying 'Don't you care if we drown?' Jesus got up, rebuked the wind and said to the waves 'Quiet! Be still!' The wind died down completely and the sea became calm. The disciples' question 'Who is this?' shows they were beginning to understand that Jesus had divine authority over nature itself.", "reference": "Mark 4:35-41", "points": 10},
+        {"id": "loj-tf-b-23", "question": "According to Luke's Gospel, Mary (Jesus' mother) was visited by the angel Gabriel, who told her she would conceive by the Holy Spirit and bear a son named Jesus, who would be called 'the Son of the Most High.'", "correctAnswer": true, "explanation": "Gabriel told Mary 'Do not be afraid, Mary; you have found favour with God. You will conceive and give birth to a son, and you are to call him Jesus. He will be great and will be called the Son of the Most High. The Lord God will give him the throne of his father David, and he will reign over Jacob's descendants forever; his kingdom will never end.'", "reference": "Luke 1:26-38", "points": 10},
+        {"id": "loj-tf-b-24", "question": "Jesus said 'Blessed are the peacemakers, for they will be called children of God' as part of the Beatitudes in the Sermon on the Mount — a series of blessings that described the character of those who belong to God's kingdom.", "correctAnswer": true, "explanation": "The Beatitudes (Matthew 5:3-12) begin 'Blessed are the poor in spirit' and include blessings for those who mourn, the meek, those who hunger for righteousness, the merciful, the pure in heart, peacemakers, and those who are persecuted for righteousness' sake. These blessings describe not merely passive traits but active virtues — peacemakers don't just avoid conflict but actively work to create peace.", "reference": "Matthew 5:1-12", "points": 10},
+        {"id": "loj-tf-b-25", "question": "The Gospel of Matthew records that after Jesus was born, King Herod ordered the massacre of all baby boys in Bethlehem aged two and under, in an attempt to kill the newborn 'King of the Jews.' Joseph was warned in a dream and fled with Mary and Jesus to Egypt.", "correctAnswer": true, "explanation": "When the Magi didn't return to tell Herod where the child was, Herod was furious and ordered the killing of all boys in Bethlehem aged two and under. An angel had warned Joseph in a dream to flee to Egypt with Mary and Jesus, where they stayed until Herod died. Matthew sees this as fulfilling Hosea 11:1: 'Out of Egypt I called my son.'", "reference": "Matthew 2:13-18", "points": 10},
+        {"id": "loj-tf-b-26", "question": "When a woman caught in adultery was brought before Jesus and the crowd wanted to stone her, Jesus wrote something in the dust and said 'Let any one of you who is without sin be the first to throw a stone at her.' One by one, the accusers left.", "correctAnswer": true, "explanation": "The scribes and Pharisees brought the woman, citing Moses' law about stoning adulterers. Jesus bent down and wrote on the ground with his finger. When they kept questioning him, he stood up and said 'Let any one of you who is without sin be the first to throw a stone at her.' One by one they left, starting with the oldest. Jesus then told the woman 'Neither do I condemn you. Go now and leave your life of sin.'", "reference": "John 8:1-11", "points": 10},
+        {"id": "loj-tf-b-27", "question": "Mary Magdalene was one of Jesus' most devoted followers and was the first person to see the risen Jesus on Easter Sunday morning, making her the first witness of the resurrection.", "correctAnswer": true, "explanation": "According to John 20:11-18, Mary Magdalene was weeping outside the empty tomb when Jesus appeared to her. She initially mistook him for the gardener until he called her name — 'Mary.' She recognised his voice and exclaimed 'Rabboni!' (Teacher). Jesus told her 'Go and tell my brothers.' She became the first person to announce 'I have seen the Lord!' — earning her the title 'Apostle to the Apostles' in early church tradition.", "reference": "John 20:11-18, Mark 16:9", "points": 10},
+        {"id": "loj-tf-b-28", "question": "The parable of the sower (or the parable of the soils) describes a farmer scattering seed on four types of ground — the path, rocky ground, thorns, and good soil — representing four different responses people have to God's message.", "correctAnswer": true, "explanation": "Jesus explained: seed on the path represents those who hear but the devil snatches the message away. Rocky ground represents those who receive with joy but have no root and fall away in trouble. Thorns represent those choked by life's worries, riches, and pleasures. Good soil represents those who hear, retain, and produce a crop — 30, 60, or 100 times what was sown. The parable teaches that the same message gets different responses based on the condition of the heart.", "reference": "Matthew 13:1-23, Mark 4:1-20", "points": 10},
+        {"id": "loj-tf-b-29", "question": "According to the Gospel of John, the last words Jesus spoke before dying on the cross were 'It is finished' — a declaration that his mission to save humanity was complete.", "correctAnswer": true, "explanation": "John 19:30 records 'When he had received the drink, Jesus said, \"It is finished.\" With that, he bowed his head and gave up his spirit.' The Greek word 'tetelestai' means 'completed,' 'accomplished,' or 'paid in full.' It was not a cry of defeat but of victory — Jesus had accomplished everything the Father sent him to do. The work of salvation was complete.", "reference": "John 19:30", "points": 10},
+        {"id": "loj-tf-b-30", "question": "During Jesus' ministry, he primarily taught in synagogues and the Temple, and he never taught outdoors or in people's homes.", "correctAnswer": false, "explanation": "Jesus taught everywhere — in synagogues, the Temple, homes, fields, hillsides, lakeshores, boats, and roads. The Sermon on the Mount was delivered outdoors on a hillside. He taught from a boat on the Sea of Galilee. He taught at dinner parties in people's homes. He taught while walking between villages. His ministry was characterised by accessibility — he met people wherever they were.", "reference": "Matthew 5:1, Mark 4:1, Luke 5:29, 10:38-42", "points": 10},
+        {"id": "loj-tf-b-31", "question": "Jesus raised three people from the dead during his earthly ministry: Jairus' daughter, the widow of Nain's son, and his friend Lazarus.", "correctAnswer": true, "explanation": "Jesus raised Jairus' 12-year-old daughter, saying 'Talitha koum!' ('Little girl, get up!') — Mark 5:41. He raised the widow of Nain's only son by touching the funeral bier and saying 'Young man, I say to you, get up!' — Luke 7:14. He raised Lazarus, who had been dead four days, by calling 'Lazarus, come out!' — John 11:43. Each resurrection demonstrated increasing power over death.", "reference": "Mark 5:35-43, Luke 7:11-17, John 11:38-44", "points": 10},
+        {"id": "loj-tf-b-32", "question": "Jesus' earthly ministry lasted approximately three years, from his baptism by John at about age 30 until his crucifixion at about age 33.", "correctAnswer": true, "explanation": "While the exact length is debated, most scholars estimate Jesus' public ministry lasted approximately three years, based on the number of Passover feasts mentioned in John's Gospel (John 2:13, 6:4, 11:55, and possibly 5:1). Luke 3:23 says Jesus was 'about thirty' when he began his ministry, placing his crucifixion at approximately age 33.", "reference": "Luke 3:23, John 2:13, 6:4, 11:55", "points": 10},
+        {"id": "loj-tf-b-33", "question": "When Jesus ascended to heaven, two angels appeared and told the watching disciples that Jesus would return in the same way they had seen him go — coming back on the clouds.", "correctAnswer": true, "explanation": "As the disciples were staring up at the sky after Jesus was taken up, two men dressed in white (angels) stood beside them and said 'Men of Galilee, why do you stand here looking into the sky? This same Jesus, who has been taken from you into heaven, will come back in the same way you have seen him go into heaven.' This promise of Jesus' visible, physical return has been a cornerstone of Christian hope ever since.", "reference": "Acts 1:10-11", "points": 10},
+        {"id": "loj-tf-b-34", "question": "The apostle Matthew, one of Jesus' twelve disciples, had previously worked as a tax collector — a profession despised by the Jewish people because tax collectors worked for the occupying Roman government and were considered traitors.", "correctAnswer": true, "explanation": "Matthew (also called Levi) was sitting at his tax collector's booth when Jesus walked by and simply said 'Follow me.' Matthew got up, left everything, and followed Jesus. He then threw a large banquet at his house for Jesus, inviting many tax collectors and sinners. The Pharisees complained, but Jesus said 'I have not come to call the righteous, but sinners.'", "reference": "Matthew 9:9-13, Luke 5:27-32", "points": 10},
+        {"id": "loj-tf-b-35", "question": "When Jesus fed the 5,000 people with five loaves and two fish, the disciples collected twelve baskets of leftover food after everyone had eaten their fill.", "correctAnswer": true, "explanation": "After Jesus blessed and broke the five barley loaves and two small fish, all 5,000 men (plus women and children, so the total was likely 15,000-20,000) ate until they were satisfied. The disciples then collected twelve full baskets of broken pieces left over — one for each disciple. The abundance of leftovers demonstrated that God's provision through Jesus was more than sufficient for everyone's needs.", "reference": "Matthew 14:20-21, John 6:12-13", "points": 10}
+      ],
+      "intermediate": [
+        {"id": "loj-tf-i-1", "question": "The Transfiguration of Jesus — when his face shone like the sun and his clothes became dazzling white — was witnessed by all twelve apostles on a high mountain.", "correctAnswer": false, "explanation": "Only three apostles witnessed the Transfiguration: Peter, James, and John — the same inner circle who were present at the raising of Jairus' daughter and who accompanied Jesus deeper into Gethsemane. Jesus commanded them 'Don't tell anyone what you have seen, until the Son of Man has been raised from the dead.' These three were repeatedly given privileged access to Jesus' most significant moments.", "reference": "Matthew 17:1-9", "points": 15},
+        {"id": "loj-tf-i-2", "question": "When Jesus entered the Temple and found merchants selling animals and money-changers taking unfair advantage of worshippers, he made a whip of cords and drove them out, overturning their tables and chairs.", "correctAnswer": true, "explanation": "According to John 2:15, Jesus 'made a whip out of cords, and drove all from the temple courts, both sheep and cattle; he scattered the coins of the money changers and overturned their tables.' He said 'Get these out of here! Stop turning my Father's house into a market!' This dramatic action was a prophetic sign-act declaring judgment on the corrupt Temple system.", "reference": "John 2:13-17, Matthew 21:12-13", "points": 15},
+        {"id": "loj-tf-i-3", "question": "Jesus never criticized the Pharisees publicly — he always addressed them privately and politely, treating them with great deference as the religious leaders of his people.", "correctAnswer": false, "explanation": "Jesus' most scathing public criticisms were directed at the Pharisees and religious leaders. In Matthew 23, he delivered seven 'woes' against them: 'Woe to you, teachers of the law and Pharisees, you hypocrites!' He called them 'blind guides,' 'whitewashed tombs,' 'snakes,' and 'brood of vipers.' While Jesus showed compassion to sinners, he was fiercely confrontational with religious leaders who burdened people with rules while missing God's heart.", "reference": "Matthew 23:1-39", "points": 15},
+        {"id": "loj-tf-i-4", "question": "The Garden of Gethsemane, where Jesus prayed before his arrest, was located on the Mount of Olives, just outside Jerusalem. The name 'Gethsemane' means 'olive press,' referring to the olive oil production that took place there.", "correctAnswer": true, "explanation": "'Gethsemane' comes from the Aramaic 'gat shmanim' meaning 'oil press.' It was an olive grove on the western slope of the Mount of Olives, across the Kidron Valley from Jerusalem. The name is deeply symbolic — just as olives were crushed to produce oil, Jesus was 'pressed' under the weight of the world's sin in this garden, sweating drops like blood.", "reference": "Matthew 26:36, Luke 22:39-44", "points": 15},
+        {"id": "loj-tf-i-5", "question": "According to the Gospel of John, Jesus described the Holy Spirit as the 'Paraclete' (Helper/Advocate/Comforter) who would come after Jesus departed and would guide the disciples into all truth.", "correctAnswer": true, "explanation": "In the Farewell Discourse (John 14-16), Jesus promised 'I will ask the Father, and he will give you another advocate (parakletos) to help you and be with you forever — the Spirit of truth.' The word 'parakletos' means 'one called alongside' — a helper, advocate, counsellor, or comforter. Jesus called the Spirit 'another' advocate, implying that Jesus himself had been their first advocate.", "reference": "John 14:16-17, 26, 16:7-15", "points": 15},
+        {"id": "loj-tf-i-6", "question": "During his trial before the Sanhedrin (Jewish council), Jesus refused to answer any questions and remained completely silent from arrest to crucifixion.", "correctAnswer": false, "explanation": "While Jesus was largely silent during parts of his trial (fulfilling Isaiah 53:7 — 'like a sheep before its shearers is silent'), he did make several crucial statements. When the high priest asked 'Are you the Messiah, the Son of the Blessed One?', Jesus replied 'I am... and you will see the Son of Man sitting at the right hand of the Mighty One and coming on the clouds of heaven.' He also spoke to Pilate, Herod, and from the cross.", "reference": "Mark 14:61-62, John 18:33-38", "points": 15},
+        {"id": "loj-tf-i-7", "question": "The Gospel of Luke records that Jesus sent out 72 disciples (in addition to the twelve apostles) in pairs to go ahead of him to every town and place he was about to visit.", "correctAnswer": true, "explanation": "In Luke 10:1, Jesus appointed 72 others and sent them two by two ahead of him to every town he was about to visit. He told them 'The harvest is plentiful, but the workers are few.' They were to heal the sick and proclaim 'The kingdom of God has come near to you.' When they returned, they reported joyfully that even demons submitted to them in Jesus' name.", "reference": "Luke 10:1-20", "points": 15},
+        {"id": "loj-tf-i-8", "question": "When the resurrected Jesus appeared to his disciples, he proved he was not a ghost by eating a piece of broiled fish in front of them.", "correctAnswer": true, "explanation": "Luke 24:36-43 records that when the risen Jesus appeared to the disciples, they were 'startled and frightened, thinking they saw a ghost.' Jesus said 'Touch me and see; a ghost does not have flesh and bones.' He showed them his hands and feet, but they still couldn't believe it 'because of joy and amazement.' So he asked 'Do you have anything here to eat?' and they gave him a piece of broiled fish, and he ate it in their presence.", "reference": "Luke 24:36-43", "points": 15},
+        {"id": "loj-tf-i-9", "question": "The parable of the talents (Matthew 25) teaches that God gives every person the same amount of resources and expects the same results from everyone.", "correctAnswer": false, "explanation": "In the parable, the master gave different amounts to different servants — five talents to one, two to another, and one to the last — 'each according to his ability.' The master praised both the five-talent and two-talent servants equally ('Well done, good and faithful servant') because both doubled what they were given. The one-talent servant was condemned not for having less but for doing nothing. The parable teaches faithful stewardship of whatever you are given, not equal outcomes.", "reference": "Matthew 25:14-30", "points": 15},
+        {"id": "loj-tf-i-10", "question": "Jesus used the phrase 'Truly, truly, I say to you' (or 'Verily, verily' in older translations) — the doubled 'Amen' — exclusively in the Gospel of John, and it appears 25 times, always introducing a statement of profound theological significance.", "correctAnswer": true, "explanation": "The double 'Amen' (amen, amen) is unique to John's Gospel — the Synoptic Gospels use only a single 'Amen.' In Jewish usage, 'Amen' was spoken after someone else's statement to confirm it. Jesus' unprecedented use of 'Amen' before his own statements was a claim to supreme authority — he was, in effect, confirming the truth of his own words before speaking them, asserting divine authority.", "reference": "John 1:51, 3:3, 5:24, etc.", "points": 15},
+        {"id": "loj-tf-i-11", "question": "When Jesus healed ten lepers, all ten returned to thank him and worship at his feet, demonstrating the natural human response to miraculous healing.", "correctAnswer": false, "explanation": "Only one of the ten returned to thank Jesus — and he was a Samaritan (a social and religious outsider). Jesus asked pointedly 'Were not all ten cleansed? Where are the other nine? Has no one returned to give praise to God except this foreigner?' The story shows that gratitude is not a natural human response and that outsiders sometimes show more faith and gratitude than religious insiders.", "reference": "Luke 17:11-19", "points": 15},
+        {"id": "loj-tf-i-12", "question": "Jesus predicted the destruction of the Temple in Jerusalem, saying 'Not one stone here will be left on another; every one will be thrown down.' This prophecy was fulfilled in AD 70 when the Romans destroyed Jerusalem.", "correctAnswer": true, "explanation": "Jesus' prediction (Matthew 24:2) was fulfilled in AD 70 when the Roman general Titus besieged Jerusalem and destroyed the Temple. According to Josephus, the Romans set fire to the Temple and then literally pried apart the stones to recover the gold that had melted between them — fulfilling Jesus' words that not one stone would be left on another. The Temple has never been rebuilt.", "reference": "Matthew 24:1-2, Luke 21:5-6", "points": 15},
+        {"id": "loj-tf-i-13", "question": "The raising of Lazarus from the dead (John 11) was such a powerful sign that it became one of the primary reasons the Jewish authorities decided Jesus had to be killed — a miracle so undeniable that it was drawing too many people to believe in him.", "correctAnswer": true, "explanation": "John 11:45-53 records that after Lazarus' resurrection, many Jews put their faith in Jesus. The chief priests and Pharisees called an emergency council meeting. Caiaphas the high priest said 'It is better for you that one man die for the people than that the whole nation perish.' From that day on, they plotted to kill Jesus — and Lazarus too (John 12:10), because his living testimony was causing many to believe.", "reference": "John 11:45-53, 12:10-11", "points": 15},
+        {"id": "loj-tf-i-14", "question": "When Jesus appeared to the disciples after his resurrection and Thomas was present, Thomas immediately believed without needing any physical proof, saying 'My Lord and my God!'", "correctAnswer": false, "explanation": "Thomas was NOT present during Jesus' first appearance to the disciples and said 'Unless I see the nail marks in his hands and put my finger where the nails were, and put my hand into his side, I will not believe.' A week later, Jesus appeared again when Thomas was present and invited him to touch his wounds. Then Thomas exclaimed 'My Lord and my God!' Jesus responded 'Because you have seen me, you have believed; blessed are those who have not seen and yet have believed.'", "reference": "John 20:24-29", "points": 15},
+        {"id": "loj-tf-i-15", "question": "The Gospel accounts of Jesus' birth in Matthew and Luke provide complementary but distinct perspectives — Matthew tells the story primarily from Joseph's viewpoint (including the Magi, flight to Egypt, and return to Nazareth), while Luke tells it primarily from Mary's perspective (including the annunciation, the manger, and the shepherds).", "correctAnswer": true, "explanation": "Matthew's account focuses on Joseph (who receives angelic dreams), the visit of the Magi, Herod's massacre, and the family's flight to Egypt. Luke's account focuses on Mary (Gabriel's annunciation, the Magnificat, Elizabeth's visit), the census, the manger, and the shepherds. Together they provide a fuller picture than either alone, with each evangelist selecting material that serves his theological purposes.", "reference": "Matthew 1-2, Luke 1-2", "points": 15},
+        {"id": "loj-tf-i-16", "question": "Jesus cursed a fig tree for not bearing fruit, and it withered overnight. This was a purely botanical frustration — Jesus was simply hungry and annoyed — with no deeper symbolic meaning.", "correctAnswer": false, "explanation": "The cursing of the fig tree (Mark 11:12-25) was a prophetic sign-act, not an outburst of frustration. In the Old Testament, the fig tree frequently symbolised Israel (Jeremiah 8:13, Hosea 9:10). Mark sandwiches the fig tree incident around the Temple cleansing (fig tree cursed → Temple cleansed → fig tree withered), creating an 'intercalation' that connects them: Israel (the fig tree) had produced impressive leaves (religious activity) but no fruit (genuine faithfulness), and judgment was coming.", "reference": "Mark 11:12-25", "points": 15},
+        {"id": "loj-tf-i-17", "question": "When Jesus walked on water, the disciple Peter also walked on water toward Jesus but began to sink when he looked at the wind and waves instead of keeping his eyes on Jesus.", "correctAnswer": true, "explanation": "Peter said 'Lord, if it's you, tell me to come to you on the water.' Jesus said 'Come.' Peter got out of the boat and actually walked on the water toward Jesus. But when he saw the wind, he was afraid and began to sink, crying out 'Lord, save me!' Jesus immediately reached out his hand, caught him, and said 'You of little faith, why did you doubt?' It's a powerful picture of faith — and what happens when fear displaces it.", "reference": "Matthew 14:28-31", "points": 15},
+        {"id": "loj-tf-i-18", "question": "Jesus spoke about money and possessions more than he spoke about heaven and hell combined, making finances one of the most frequent topics in his teaching.", "correctAnswer": true, "explanation": "By most counts, Jesus spoke about money, wealth, and possessions in roughly 11 of his 39 parables and in numerous other teachings. About 1 in every 7 verses in the Synoptic Gospels relates to money. He spoke about money more than prayer, faith, or heaven and hell. Topics included the rich young ruler, the widow's mite, the talents, the rich fool, paying taxes, treasure in heaven, and the love of money as a rival to God.", "reference": "Luke 12:13-21, 16:1-15, Matthew 6:19-24", "points": 15},
+        {"id": "loj-tf-i-19", "question": "The high priest Caiaphas unknowingly prophesied when he said 'It is better for you that one man die for the people than that the whole nation perish.' John's Gospel notes that Caiaphas said this not on his own but as high priest that year, speaking a deeper truth than he realised.", "correctAnswer": true, "explanation": "John 11:49-52 records Caiaphas' statement and adds: 'He did not say this on his own, but as high priest that year he prophesied that Jesus would die for the Jewish nation, and not only for that nation but also for the scattered children of God, to bring them together and make them one.' Caiaphas intended a cynical political calculation, but John reveals that God used even the words of Jesus' enemy to express the meaning of the cross.", "reference": "John 11:49-52", "points": 15},
+        {"id": "loj-tf-i-20", "question": "Paul's conversion on the road to Damascus, where the risen Jesus appeared to him in a blinding light, is considered by scholars to be one of the best-attested events in early Christianity because Paul describes it himself and it is recorded three times in Acts.", "correctAnswer": true, "explanation": "Paul describes his encounter with the risen Jesus in his own letters (Galatians 1:12-16, 1 Corinthians 9:1, 15:8), and Luke records it three times in Acts (chapters 9, 22, 26). The transformation of Paul from Christianity's most violent persecutor to its most effective missionary is one of the strongest historical arguments for the reality of the resurrection. No adequate naturalistic explanation has been widely accepted for Paul's radical conversion.", "reference": "Acts 9, 22, 26; Galatians 1:11-24", "points": 15},
+        {"id": "loj-tf-i-21", "question": "When Jesus washed his disciples' feet at the Last Supper, Peter initially refused, saying 'You shall never wash my feet!' Jesus responded that if he didn't wash Peter, Peter would have no part with him. Peter then asked Jesus to wash his hands and head too.", "correctAnswer": true, "explanation": "Peter's refusal was based on his understanding of social hierarchy — a master should never wash a servant's feet. But when Jesus said 'Unless I wash you, you have no part with me,' Peter swung to the opposite extreme: 'Then, Lord, not just my feet but my hands and my head as well!' Jesus replied that someone who has bathed needs only to wash their feet. Peter's impulsive responses reveal his passionate but often misguided devotion.", "reference": "John 13:6-10", "points": 15},
+        {"id": "loj-tf-i-22", "question": "Jesus healed a man born blind by making mud with his saliva, putting it on the man's eyes, and telling him to wash in the Pool of Siloam. The man had never seen anything in his entire life until that moment.", "correctAnswer": true, "explanation": "John 9 records this miracle in detail. Jesus spat on the ground, made mud, spread it on the blind man's eyes, and told him 'Go, wash in the Pool of Siloam.' The man went, washed, and came home seeing. The detail that he was born blind (not just temporarily blinded) made this miracle even more remarkable — it was the creation of sight, not merely restoration. The Pharisees interrogated the man and his parents but could not deny the miracle.", "reference": "John 9:1-41", "points": 15},
+        {"id": "loj-tf-i-23", "question": "After his resurrection, Jesus appeared to more than 500 people at one time, according to Paul's account in 1 Corinthians 15, most of whom were still alive when Paul wrote and could have been consulted.", "correctAnswer": true, "explanation": "Paul writes in 1 Corinthians 15:6 that Jesus 'appeared to more than five hundred of the brothers and sisters at the same time, most of whom are still living, though some have fallen asleep.' Paul's mention that most were 'still living' is effectively an invitation to verify the claim — he was pointing to living eyewitnesses who could confirm or deny the appearance. This was written approximately AD 55, only about 25 years after the events.", "reference": "1 Corinthians 15:6", "points": 15},
+        {"id": "loj-tf-i-24", "question": "The parable of the Pharisee and the tax collector (Luke 18) teaches that the Pharisee's prayer was accepted by God because of his righteousness, while the tax collector was rejected because of his sinfulness.", "correctAnswer": false, "explanation": "Jesus taught the exact opposite. The Pharisee prayed 'God, I thank you that I am not like other people — robbers, evildoers, adulterers — or even like this tax collector.' The tax collector wouldn't even look up to heaven but beat his chest saying 'God, have mercy on me, a sinner.' Jesus said the tax collector went home justified before God, not the Pharisee: 'For all those who exalt themselves will be humbled, and those who humble themselves will be exalted.'", "reference": "Luke 18:9-14", "points": 15},
+        {"id": "loj-tf-i-25", "question": "Jesus taught that the two greatest commandments are to love God with all your heart, soul, and mind, and to love your neighbour as yourself — and he said 'All the Law and the Prophets hang on these two commandments.'", "correctAnswer": true, "explanation": "When asked which commandment was greatest, Jesus quoted Deuteronomy 6:5 ('Love the Lord your God with all your heart and with all your soul and with all your mind') and added Leviticus 19:18 ('Love your neighbour as yourself'). He declared that all of the Law and the Prophets — the entire Old Testament — hang on these two commands. Every other commandment is an expression of loving God and loving people.", "reference": "Matthew 22:37-40", "points": 15},
+        {"id": "loj-tf-i-26", "question": "When Herod Antipas (the ruler of Galilee) heard about Jesus' miracles and teaching, he initially thought Jesus might be John the Baptist risen from the dead — because Herod had earlier executed John the Baptist by beheading.", "correctAnswer": true, "explanation": "Mark 6:14-16 records that when Herod heard about Jesus, he said 'John, whom I beheaded, has been raised from the dead!' Herod had arrested John the Baptist for criticising Herod's marriage to his brother's wife Herodias. At Herod's birthday party, Herodias' daughter danced and Herod rashly promised her anything. Prompted by her mother, she asked for John's head on a platter, and Herod reluctantly complied.", "reference": "Mark 6:14-29", "points": 15},
+        {"id": "loj-tf-i-27", "question": "According to the Gospel of John, Jesus' crucifixion took place on the same day that the Passover lambs were being slaughtered in the Temple, making Jesus the ultimate Passover sacrifice.", "correctAnswer": true, "explanation": "John's chronology places Jesus' crucifixion on the Day of Preparation for Passover (John 19:14), meaning Jesus died at the same time the Passover lambs were being sacrificed in the Temple. Paul later explicitly states 'Christ, our Passover lamb, has been sacrificed' (1 Corinthians 5:7). John the Baptist had introduced Jesus as 'the Lamb of God, who takes away the sin of the world' (John 1:29). The timing was theologically intentional.", "reference": "John 19:14, 1:29, 1 Corinthians 5:7", "points": 15},
+        {"id": "loj-tf-i-28", "question": "Jesus' hometown of Nazareth enthusiastically received him when he returned to teach in the synagogue. The people were proud that one of their own had become a famous teacher and prophet.", "correctAnswer": false, "explanation": "Nazareth rejected Jesus dramatically. Initially amazed at his teaching, the people quickly turned hostile: 'Isn't this Joseph's son?' Jesus remarked 'Truly I tell you, no prophet is accepted in his hometown.' When he compared their unbelief to Israel's rejection of Elijah and Elisha, they were furious and drove him out of town, attempting to throw him off a cliff. 'He could not do any miracles there' because of their unbelief.", "reference": "Luke 4:16-30, Mark 6:1-6", "points": 15},
+        {"id": "loj-tf-i-29", "question": "The title 'Christ' is not a surname but a title meaning 'the Anointed One' — the Greek equivalent of the Hebrew word 'Messiah' — referring to the long-awaited deliverer prophesied throughout the Old Testament.", "correctAnswer": true, "explanation": "'Christ' (Greek: Christos) and 'Messiah' (Hebrew: Mashiach) both mean 'Anointed One.' In the Old Testament, prophets, priests, and kings were anointed with oil to signify God's appointment to their role. The Messiah was the ultimate anointed figure who would combine all three roles. 'Jesus Christ' is therefore not a first and last name but a name and title: 'Jesus the Anointed One' or 'Jesus the Messiah.'", "reference": "Matthew 16:16, John 1:41", "points": 15},
+        {"id": "loj-tf-i-30", "question": "On the road to Emmaus, when Jesus opened the Scriptures and explained how the entire Old Testament pointed to the Messiah's suffering and glory, the two disciples said their hearts were 'burning within them' as he spoke — yet they only recognised him when he broke bread.", "correctAnswer": true, "explanation": "Luke 24:32 records the disciples saying 'Were not our hearts burning within us while he talked with us on the road and opened the Scriptures to us?' Despite this inner stirring, their eyes were not opened until the breaking of bread — a eucharistic moment that echoed the Last Supper. The instant they recognised him, he vanished. They immediately returned to Jerusalem to tell the other disciples.", "reference": "Luke 24:13-35", "points": 15},
+        {"id": "loj-tf-i-31", "question": "When Jesus healed a paralysed man lowered through the roof by his friends, the Pharisees accused Jesus of blasphemy because he said 'Your sins are forgiven' — and in Jewish theology, only God had the authority to forgive sins.", "correctAnswer": true, "explanation": "The scribes and Pharisees said 'Who is this fellow who speaks blasphemy? Who can forgive sins but God alone?' Jesus' response was brilliant: 'Which is easier: to say \"Your sins are forgiven\" or to say \"Get up and walk\"?' Then he healed the paralytic to demonstrate that he had authority on earth to forgive sins. The implication was clear: if he could do the visible miracle, he could do the invisible one too — he had divine authority.", "reference": "Mark 2:1-12, Luke 5:17-26", "points": 15},
+        {"id": "loj-tf-i-32", "question": "Jesus performed more miracles in and around the town of Capernaum, located on the shore of the Sea of Galilee, than in any other single location — making it his effective 'home base' during his Galilean ministry.", "correctAnswer": true, "explanation": "After leaving Nazareth, Jesus made Capernaum his base of operations (Matthew 4:13 — he 'went to live in Capernaum'). It was called 'his own town' (Matthew 9:1). Here he healed Peter's mother-in-law, the centurion's servant, the paralytic lowered through the roof, Jairus' daughter, the woman with the bleeding, and many others. Despite these miracles, Jesus later pronounced judgment on Capernaum for its unbelief (Matthew 11:23).", "reference": "Matthew 4:13, 9:1, 11:23", "points": 15},
+        {"id": "loj-tf-i-33", "question": "The Magnificat — Mary's song of praise after learning she would be the mother of Jesus — contains themes of social reversal: God scattering the proud, bringing down rulers, lifting up the humble, and filling the hungry while sending the rich away empty.", "correctAnswer": true, "explanation": "Mary's song (Luke 1:46-55) echoes Hannah's prayer in 1 Samuel 2 and is revolutionary in its social vision: 'He has brought down rulers from their thrones but has lifted up the humble. He has filled the hungry with good things but has sent the rich away empty.' The Magnificat presents the incarnation as God's dramatic intervention on behalf of the poor, the oppressed, and the marginalised — a central theme in Luke's Gospel.", "reference": "Luke 1:46-55", "points": 15},
+        {"id": "loj-tf-i-34", "question": "Jesus wept over the city of Jerusalem because he foresaw its coming destruction and lamented that the people had rejected the peace God offered them.", "correctAnswer": true, "explanation": "Luke 19:41-44 records that as Jesus approached Jerusalem on Palm Sunday, 'he saw the city and wept over it,' saying 'If you, even you, had only known on this day what would bring you peace — but now it is hidden from your eyes. The days will come upon you when your enemies will build an embankment against you and encircle you... They will not leave one stone on another, because you did not recognise the time of God's coming to you.'", "reference": "Luke 19:41-44", "points": 15},
+        {"id": "loj-tf-i-35", "question": "The resurrection of Jesus is unique in ancient history because, unlike mythological 'dying and rising gods' of the ancient world, it was proclaimed by eyewitnesses within their own lifetime and within walking distance of the events — where it could have been easily disproven.", "correctAnswer": true, "explanation": "Unlike mythological resurrection stories (which were set in primordial time or distant locations), the early Christians proclaimed Jesus' resurrection in Jerusalem — where it happened — beginning just weeks after the event. The empty tomb could have been examined, and living eyewitnesses could have been questioned. Paul's early creed (1 Corinthians 15:3-7) lists specific, named witnesses, most of whom were still alive when he wrote. This proximity to the events in time and place is historically unique.", "reference": "1 Corinthians 15:3-8, Acts 2:22-32", "points": 15}
+      ],
+      "advanced": [
+        {"id": "loj-tf-a-1", "question": "The Gospel of Mark's Christology presents Jesus as gradually coming to understand his own divine identity during his ministry — starting as a simple teacher and only later realising he was the Messiah.", "correctAnswer": false, "explanation": "Mark presents Jesus as fully aware of his identity from the very beginning. The Gospel opens with 'The beginning of the gospel about Jesus the Messiah, the Son of God' (1:1). At his baptism, the divine voice affirms his identity. He commands demons who recognise him to be silent (the 'Messianic Secret'). What develops in Mark is not Jesus' self-understanding but the disciples' understanding of who Jesus is. The secrecy is strategic, not existential.", "reference": "Mark 1:1, 1:11, 1:34, 8:29-30", "points": 20},
+        {"id": "loj-tf-a-2", "question": "The concept of 'substitutionary atonement' — the idea that Jesus died 'in our place,' bearing the penalty for human sin — is found exclusively in later theological reflection by Paul and the church fathers, with no basis in Jesus' own words as recorded in the Gospels.", "correctAnswer": false, "explanation": "Jesus himself used substitutionary language. Mark 10:45 records Jesus saying 'The Son of Man did not come to be served, but to serve, and to give his life as a ransom (lytron) for (anti — meaning 'in place of') many.' At the Last Supper, he said 'This is my blood of the covenant, which is poured out for many for the forgiveness of sins' (Matthew 26:28). The 'ransom' metaphor and 'for many' language (echoing Isaiah 53) indicate Jesus understood his death as substitutionary.", "reference": "Mark 10:45, Matthew 26:28, Isaiah 53:12", "points": 20},
+        {"id": "loj-tf-a-3", "question": "The earliest Christians worshipped Jesus as divine from the very beginning of the church, not as a result of gradual theological evolution over centuries of Greek philosophical influence.", "correctAnswer": true, "explanation": "Larry Hurtado's research demonstrates that 'devotion to Christ as divine' emerged explosively early — within the first two decades of Christianity. The pre-Pauline creed of 1 Corinthians 15:3-7 (dated to within 3-5 years of the crucifixion), the Aramaic prayer 'Maranatha' ('Come, Lord!' — 1 Corinthians 16:22), and the Christ-hymn of Philippians 2:6-11 all testify to divine worship of Jesus in the earliest, Jewish, pre-Hellenistic stage of Christianity.", "reference": "1 Corinthians 15:3-7, Philippians 2:6-11", "points": 20},
+        {"id": "loj-tf-a-4", "question": "The four canonical Gospels (Matthew, Mark, Luke, and John) were the only accounts of Jesus' life ever written in the early centuries of Christianity — no other 'gospels' existed.", "correctAnswer": false, "explanation": "Numerous non-canonical gospels were written, including the Gospel of Thomas, Gospel of Peter, Gospel of Philip, Gospel of Judas, Gospel of Mary, Infancy Gospel of Thomas, and Protevangelium of James, among others. Most date from the 2nd-4th centuries and reflect later theological developments (particularly Gnostic theology). The four canonical Gospels were recognised as authoritative because of their early date, apostolic connection, and wide acceptance across diverse Christian communities.", "reference": "Non-canonical gospel literature", "points": 20},
+        {"id": "loj-tf-a-5", "question": "The 'criterion of multiple attestation' — a tool used in historical Jesus studies — holds that a tradition about Jesus is more likely historical if it appears in multiple independent sources (e.g., Mark, Q, Paul, John, or special Matthean/Lukan material) rather than in only one source.", "correctAnswer": true, "explanation": "Multiple attestation is considered one of the strongest indicators of historicity. When a tradition about Jesus appears independently in Mark, the Q source (material common to Matthew and Luke but absent from Mark), Paul's letters, John's Gospel, or unique Matthean/Lukan material, it demonstrates widespread early tradition rather than the invention of a single author. The Last Supper, the crucifixion, and the empty tomb are all multiply attested.", "reference": "Historical Jesus methodology", "points": 20},
+        {"id": "loj-tf-a-6", "question": "John's Gospel presents a significantly different chronological framework for Jesus' ministry compared to the Synoptic Gospels — notably placing the Temple cleansing at the beginning rather than the end, and recording three Passover feasts (suggesting a three-year ministry) versus the Synoptics' apparent one Passover (suggesting a one-year ministry).", "correctAnswer": true, "explanation": "The Synoptic Gospels mention only one Passover (the final one) and their narrative could compress Jesus' ministry into approximately one year. John records three Passovers (2:13, 6:4, 11:55) and possibly a fourth (5:1), establishing a ministry of at least three years. John also places the Temple cleansing at the beginning (chapter 2) while the Synoptics place it in the final week. These differences reflect John's more thematic/theological arrangement versus the Synoptics' more chronological approach.", "reference": "John 2:13, 6:4, 11:55, vs. Synoptic chronology", "points": 20},
+        {"id": "loj-tf-a-7", "question": "The Roman historian Tacitus, writing around AD 116, mentions 'Christus' who 'suffered the extreme penalty during the reign of Tiberius at the hands of one of our procurators, Pontius Pilatus' — providing independent non-Christian confirmation of Jesus' execution under Pilate.", "correctAnswer": true, "explanation": "Tacitus' Annals 15.44 is one of the most important non-Christian references to Jesus. Writing about Nero's persecution of Christians after the Great Fire of Rome (AD 64), Tacitus notes that the movement originated from 'Christus' who was executed by Pontius Pilate during Tiberius' reign. As a Roman senator with access to imperial archives, Tacitus is considered a highly reliable historian. His hostile tone toward Christianity makes Christian interpolation extremely unlikely.", "reference": "Tacitus, Annals 15.44", "points": 20},
+        {"id": "loj-tf-a-8", "question": "The 'high priestly prayer' of Jesus in John 17 — his longest recorded prayer — is focused primarily on Jesus' own needs and desires, asking the Father for personal glory and vindication.", "correctAnswer": false, "explanation": "While Jesus does pray 'Father, glorify me' (17:5), the prayer is overwhelmingly focused on others. Jesus prays for his disciples' unity (17:11, 21-23), protection (17:11, 15), sanctification in truth (17:17), and joy (17:13). He then extends his prayer beyond the twelve to 'those who will believe in me through their message' (17:20) — every future believer. The prayer moves from Jesus' relationship with the Father, to the immediate disciples, to the universal church. It is profoundly other-centered.", "reference": "John 17:1-26", "points": 20},
+        {"id": "loj-tf-a-9", "question": "The fact that women were the first witnesses to the empty tomb and the resurrection strongly supports historicity, because in first-century Jewish and Roman culture, women's testimony was considered unreliable and would not have been chosen if the story were being fabricated.", "correctAnswer": true, "explanation": "This argument, known as the 'criterion of embarrassment,' is widely accepted by scholars across the theological spectrum. Josephus and the Mishnah indicate that women's testimony was generally not accepted in Jewish courts. If the early church were inventing the resurrection story, they would have chosen male witnesses — especially prominent apostles — to make the account credible. The fact that women are consistently named as the first witnesses in all four Gospels suggests the accounts reflect what actually happened, not what the church would have preferred.", "reference": "Matthew 28:1-10, Mark 16:1-8, Luke 24:1-12, John 20:1-18", "points": 20},
+        {"id": "loj-tf-a-10", "question": "The Gospel of Thomas, discovered at Nag Hammadi in 1945, is widely regarded by mainstream scholars as more historically reliable than the canonical Gospels for reconstructing the authentic words of Jesus.", "correctAnswer": false, "explanation": "While the Gospel of Thomas contains some sayings that may preserve early independent tradition, the majority of scholars do not consider it more reliable than the canonical Gospels overall. It is typically dated to the mid-to-late 2nd century (though some argue for an earlier core). It reflects Gnostic theology, has no passion or resurrection narrative, and many of its sayings appear to be secondary modifications of canonical Gospel material. Some scholars (like those in the Jesus Seminar) gave it higher weight, but this remains a minority position.", "reference": "Gospel of Thomas, Nag Hammadi scholarship", "points": 20},
+        {"id": "loj-tf-a-11", "question": "The phrase 'born again' (or 'born from above'), which Jesus used in his conversation with Nicodemus (John 3), relies on a deliberate ambiguity in the Greek word 'anothen,' which can mean either 'again' (a second time) or 'from above' (from heaven).", "correctAnswer": true, "explanation": "The Greek word 'anothen' is intentionally ambiguous — it means both 'again' (which Nicodemus understood literally: 'How can someone be born when they are old? Can they enter a second time into their mother's womb?') and 'from above' (which is Jesus' intended spiritual meaning — a heavenly, divine rebirth by the Holy Spirit). This double meaning is a literary device characteristic of John's Gospel, where misunderstandings become teaching opportunities.", "reference": "John 3:3-8", "points": 20},
+        {"id": "loj-tf-a-12", "question": "The Apostle Paul, who wrote the earliest New Testament documents, never met Jesus during Jesus' earthly ministry and never claims to have received any information about Jesus from other apostles or eyewitnesses.", "correctAnswer": false, "explanation": "While Paul did not follow Jesus during his earthly ministry, he explicitly claims to have received tradition from others. In 1 Corinthians 15:3, he says 'I delivered to you as of first importance what I also received' — using technical rabbinic terms for formal transmission of tradition. Galatians 1:18 records his visit with Peter for 15 days, and he also met James. Paul received both his direct encounter with the risen Christ (Damascus road) AND formal tradition from the Jerusalem apostles.", "reference": "1 Corinthians 15:3, Galatians 1:18-19, 2:1-10", "points": 20},
+        {"id": "loj-tf-a-13", "question": "The theological concept of the 'Incarnation' — that God became fully human in Jesus without ceasing to be fully God — is universally regarded by theologians as a perfectly logical, easily comprehensible doctrine that presents no philosophical difficulties.", "correctAnswer": false, "explanation": "The Incarnation is widely acknowledged as one of the most profound mysteries in Christian theology. How can one person be both fully God and fully human? How can the infinite become finite? How can the omniscient experience ignorance? Early church councils (Nicaea, Chalcedon) formulated boundaries — Jesus is 'truly God and truly man... without confusion, change, division, or separation' — but explicitly acknowledged that the full 'how' transcends human comprehension. It is a 'mystery' in the theological sense — a reality that exceeds, but does not contradict, reason.", "reference": "John 1:14, Philippians 2:5-11, Council of Chalcedon", "points": 20},
+        {"id": "loj-tf-a-14", "question": "The account of Jesus sweating 'drops of blood' in Gethsemane (Luke 22:44) describes a recognised medical condition called hematidrosis, which can occur under extreme psychological stress when capillaries in the sweat glands rupture and mix blood with perspiration.", "correctAnswer": true, "explanation": "Hematidrosis (also called hematohidrosis) is a rare but medically documented condition where extreme anxiety or emotional stress causes capillaries feeding the sweat glands to rupture, producing sweat tinged with blood. It has been observed in soldiers facing execution, prisoners before torture, and individuals under extreme emotional distress. Luke, traditionally identified as a physician (Colossians 4:14), is the only Gospel writer who records this detail, possibly reflecting medical awareness.", "reference": "Luke 22:44, medical literature on hematidrosis", "points": 20},
+        {"id": "loj-tf-a-15", "question": "The early church's proclamation that Jesus rose 'on the third day' likely carries theological significance beyond simple chronology — in Jewish thought, the third day was associated with divine deliverance, reversal, and rescue.", "correctAnswer": true, "explanation": "The 'third day' motif runs throughout the Old Testament: Joseph released his brothers on the third day (Genesis 42:18), God appeared at Sinai on the third day (Exodus 19:11), Jonah was in the fish three days (Jonah 1:17), Hosea prophesied 'On the third day he will raise us up' (Hosea 6:2), and Esther approached the king on the third day (Esther 5:1). In Jewish tradition, the third day was the day God acts to deliver. Jesus' resurrection 'on the third day' fulfils this theological pattern of divine rescue.", "reference": "Hosea 6:2, 1 Corinthians 15:4, various OT passages", "points": 20},
+        {"id": "loj-tf-a-16", "question": "The phrase 'right hand of God' — used to describe Jesus' position after the ascension — was understood in ancient Jewish thought as a metaphor for sharing in God's sovereign authority and power, not as a reference to a literal physical location in space.", "correctAnswer": true, "explanation": "Psalm 110:1 ('The LORD says to my lord: Sit at my right hand') was the most frequently quoted Old Testament verse in the New Testament. The 'right hand' in ancient Near Eastern court imagery was the position of highest honour and co-regency. When Stephen sees Jesus 'standing at the right hand of God' (Acts 7:55), it signifies Jesus sharing God's throne and exercising divine authority — a claim to full deity. It describes a relational/authority position, not a GPS coordinate.", "reference": "Psalm 110:1, Mark 14:62, Acts 7:55-56", "points": 20},
+        {"id": "loj-tf-a-17", "question": "The 'Q source' (from German 'Quelle' meaning 'source') is a hypothetical document containing primarily sayings of Jesus that scholars believe was used by both Matthew and Luke but not Mark. No physical copy of Q has ever been found.", "correctAnswer": true, "explanation": "Q is a hypothetical reconstruction based on material common to Matthew and Luke that is absent from Mark (approximately 235 verses). Since Matthew and Luke appear to have independently used this shared material (their wording often agrees closely where it overlaps), scholars posit a written source they both accessed. Q is estimated to have been composed around AD 50-60. While no copy has been found, its existence is accepted by the majority of New Testament scholars, though some (like Mark Goodacre) argue Luke used Matthew directly.", "reference": "Two-Source Hypothesis, Q scholarship", "points": 20},
+        {"id": "loj-tf-a-18", "question": "The resurrection narratives in the Gospels describe Jesus' post-resurrection body as identical in every way to a normal human body — with no unusual properties or capabilities beyond those of any living person.", "correctAnswer": false, "explanation": "The Gospels describe Jesus' resurrection body as both continuous with his pre-death body (he had the same wounds, he ate fish, he could be touched) and transformed in remarkable ways. He appeared inside locked rooms (John 20:19, 26), was initially unrecognised by people who knew him (Luke 24:16, John 20:14), vanished from sight (Luke 24:31), and eventually ascended to heaven. Paul describes this as a 'spiritual body' (1 Corinthians 15:44) — not a non-physical body, but a body fully animated and transformed by the Spirit.", "reference": "John 20:19-29, Luke 24:13-43, 1 Corinthians 15:35-49", "points": 20},
+        {"id": "loj-tf-a-19", "question": "The parables of Jesus were simple illustrations that any listener could understand immediately — they required no effort, context, or explanation, and Jesus never had to explain their meaning to anyone.", "correctAnswer": false, "explanation": "Jesus explicitly stated that parables concealed meaning from casual listeners while revealing it to committed disciples: 'The knowledge of the secrets of the kingdom of God has been given to you, but to others I speak in parables, so that seeing they may not see, and hearing they may not understand' (Luke 8:10). The disciples frequently asked for explanations (e.g., the parable of the sower, the wheat and tares). Parables functioned as 'subversive speech' — they drew listeners in and then upended their assumptions.", "reference": "Mark 4:10-12, Matthew 13:10-17", "points": 20},
+        {"id": "loj-tf-a-20", "question": "N.T. Wright's argument for the historicity of the resurrection emphasises that the early Christians' belief cannot be explained by Jewish precedent alone, because no Jews expected a single individual to be resurrected in the middle of history — resurrection was expected to happen to all people at the end of time.", "correctAnswer": true, "explanation": "Wright argues that Jewish belief in resurrection was (1) corporate (all the righteous, not one individual), (2) eschatological (at the end of history, not in the middle), and (3) physical (bodily, not spiritual). The Christian proclamation of one man resurrected in the middle of history, while the rest of the dead remained dead, was unprecedented in Judaism. No Jewish framework predicted or expected this. Wright contends that only an actual event — not theological reflection or grief experiences — can explain this unprecedented mutation in Jewish belief.", "reference": "N.T. Wright, 'The Resurrection of the Son of God'", "points": 20},
+        {"id": "loj-tf-a-21", "question": "The literary genre of the Gospels is best classified as ancient Greco-Roman biography (bios) rather than modern biography, myth, or fiction — they follow the conventions of biographical writing in the ancient world while containing distinctive theological interpretation.", "correctAnswer": true, "explanation": "Richard Burridge's groundbreaking work 'What Are the Gospels?' demonstrated that the Gospels match the formal features of Greco-Roman 'bioi': they focus on a single subject, open with origins/early life, cover the subject's public career, devote disproportionate space to death, and aim to inform and persuade. They are not modern biographies (they lack psychological analysis and strict chronology), not myths (they are rooted in specific historical times and places), and not fiction. They are theological biographies of Jesus.", "reference": "Richard Burridge, 'What Are the Gospels?'", "points": 20},
+        {"id": "loj-tf-a-22", "question": "The 'Son of Man' title that Jesus preferred was ambiguous and strategic — it could simply mean 'a human being' (as in Ezekiel) or could evoke the divine cosmic figure of Daniel 7, allowing Jesus to reveal his identity progressively without triggering premature confrontation.", "correctAnswer": true, "explanation": "The genius of 'Son of Man' as Jesus' preferred self-designation lies in its ambiguity. In Aramaic ('bar enasha'), it could simply mean 'a man' or 'someone.' In Ezekiel, it means 'mere mortal.' But in Daniel 7:13-14, the 'one like a son of man' is a heavenly figure who receives universal, everlasting dominion. By using this title, Jesus could speak about himself publicly while concealing the full import of his claims from casual listeners — revealing his divine authority progressively as the context demanded.", "reference": "Daniel 7:13-14, Mark 2:10, 8:31, 14:62", "points": 20},
+        {"id": "loj-tf-a-23", "question": "The early Christian hymn preserved in Philippians 2:6-11 is considered by many scholars to be pre-Pauline — meaning it was composed and circulated before Paul included it in his letter, making it one of the earliest theological compositions about Jesus' divine identity.", "correctAnswer": true, "explanation": "Most scholars regard Philippians 2:6-11 as a pre-Pauline hymn or creed that Paul incorporated into his letter (written around AD 60-62). Evidence includes its elevated poetic structure, vocabulary unusual for Paul, and theological density. If pre-Pauline, it dates to the AD 30s-50s — extremely early evidence that Christians confessed Jesus as one who was 'in the form of God' and worthy of universal worship ('every knee should bow... every tongue acknowledge that Jesus Christ is Lord'). This pre-dates any possible Hellenistic philosophical influence.", "reference": "Philippians 2:6-11", "points": 20},
+        {"id": "loj-tf-a-24", "question": "The destruction of Jerusalem and the Temple in AD 70 had no significant impact on how the Gospels were written or how early Christians understood Jesus' predictions — the Gospels were written purely from theological interest with no relationship to contemporary historical events.", "correctAnswer": false, "explanation": "The destruction of Jerusalem in AD 70 profoundly influenced Gospel composition. Mark (written around AD 65-70) may reflect the approaching crisis. Matthew and Luke (written after AD 70) show awareness of the destruction in how they present Jesus' predictions (Luke 21:20-24 specifies 'armies surrounding Jerusalem'). The fall of the Temple validated Jesus' prophecy and forced Christians to rethink the relationship between Jesus, the Temple, and God's presence. John's Gospel may present Jesus as the new Temple (John 2:21) partly in response to the Temple's destruction.", "reference": "Mark 13, Luke 21:20-24, John 2:19-21", "points": 20},
+        {"id": "loj-tf-a-25", "question": "The theological concept known as 'recapitulation' — developed by the early church father Irenaeus (c. AD 130-202) — teaches that Jesus 'recapitulated' (relived and reversed) the entire story of Adam and humanity, succeeding at every point where Adam failed.", "correctAnswer": true, "explanation": "Irenaeus' recapitulation theory ('anakephalaiosis') presents Jesus as the 'Second Adam' who reverses the damage of the first Adam by reliving human experience and getting it right. Where Adam was tempted in a garden of abundance and fell, Jesus was tempted in a wilderness of deprivation and stood firm. Where Adam's disobedience brought death, Jesus' obedience brings life. Paul lays the groundwork: 'As in Adam all die, so in Christ all will be made alive' (1 Corinthians 15:22). Jesus doesn't just forgive the Fall — he reverses it.", "reference": "Romans 5:12-21, 1 Corinthians 15:22, 45-49", "points": 20},
+        {"id": "loj-tf-a-26", "question": "The Johannine 'signs source' hypothesis proposes that the author of the Fourth Gospel may have drawn upon an earlier written collection of Jesus' miracles, which he called 'signs,' and that this source can be partially reconstructed from the text of John's Gospel.", "correctAnswer": true, "explanation": "Rudolf Bultmann and subsequent scholars have proposed that John used a 'Semeia (Signs) Source' — a pre-existing collection of Jesus' miracles originally compiled for evangelistic purposes. Evidence includes: the numbering of signs (John 2:11 — 'first sign'; 4:54 — 'second sign'), the concluding summary statement (20:30 — 'Jesus performed many other signs'), and occasional seams between narrative sections that may indicate source integration. While the hypothesis is debated, it explains certain literary features of John's Gospel.", "reference": "John 2:11, 4:54, 20:30-31", "points": 20},
+        {"id": "loj-tf-a-27", "question": "Jesus' practice of calling God 'Abba' (an Aramaic term of intimate familial address, similar to 'Papa' or 'Daddy') was completely unprecedented in Jewish prayer and represented a radically new way of relating to God.", "correctAnswer": false, "explanation": "While Jesus' use of 'Abba' was distinctive, calling it 'completely unprecedented' overstates the case. Joachim Jeremias originally argued that no Jew ever addressed God as 'Abba,' but subsequent research (by scholars like James Barr and Mary Rose D'Angelo) has shown that Jewish literature does contain examples of intimate divine address. What remains distinctive is the frequency, consistency, and centrality of 'Abba' in Jesus' prayer life, and his teaching that all his followers could address God this way. The intimacy is real but not entirely without parallel.", "reference": "Mark 14:36, Romans 8:15, Galatians 4:6", "points": 20},
+        {"id": "loj-tf-a-28", "question": "The empty tomb tradition is attested independently in multiple early Christian sources — Mark, the pre-Pauline creed in 1 Corinthians 15 ('he was buried... he was raised'), John's independent account, and possibly the early preaching in Acts — making it one of the best-attested facts of early Christianity.", "correctAnswer": true, "explanation": "The empty tomb is attested in Mark (the earliest Gospel), is implied by the burial-resurrection sequence in the pre-Pauline creed of 1 Corinthians 15:4 (burial implies a tomb; resurrection implies the tomb was vacated), appears independently in John 20, and is assumed in the early preaching of Acts (2:29 — David's tomb is 'here to this day,' implying Jesus' tomb is NOT). Even many sceptical scholars (like Gerd Lüdemann) accept the empty tomb as historical, though they propose alternative explanations for it.", "reference": "Mark 16:1-8, 1 Corinthians 15:3-4, John 20:1-10, Acts 2:29-32", "points": 20},
+        {"id": "loj-tf-a-29", "question": "The 'Farewell Discourse' of Jesus in John 13-17 functions as a 'testament' or 'farewell address' — a well-known literary genre in ancient Jewish literature where a dying patriarch gives final instructions, predictions, and blessings to his successors.", "correctAnswer": true, "explanation": "The Farewell Discourse follows the pattern of the 'testamentary genre' found in Genesis 49 (Jacob's farewell), Deuteronomy 31-33 (Moses' farewell), and the Testaments of the Twelve Patriarchs. Common features include: awareness of approaching death, final instructions for the community, predictions of future events, comfort in the face of separation, and a prayer/blessing. John shapes Jesus' final teaching in this familiar literary form, presenting Jesus as the ultimate patriarch whose departing words establish the new covenant community.", "reference": "John 13-17", "points": 20},
+        {"id": "loj-tf-a-30", "question": "The concept of 'realised eschatology' (associated with C.H. Dodd) argues that all eschatological promises were completely fulfilled in Jesus' first coming — there is nothing remaining to be fulfilled in the future, no second coming, and no future consummation.", "correctAnswer": false, "explanation": "While C.H. Dodd's 'realised eschatology' emphasised that the kingdom of God was powerfully present in Jesus' ministry ('The kingdom of God has come upon you' — Matthew 12:28), the pure form that denies any future dimension is not widely held. Most scholars today adopt 'inaugurated eschatology' (George Eldon Ladd, N.T. Wright) — the kingdom is 'already' present but 'not yet' fully consummated. Jesus taught both present reality (Luke 17:21) and future expectation (Matthew 25:31-46, the Lord's Prayer: 'Your kingdom come').", "reference": "Matthew 12:28, 25:31-46, Luke 17:20-21", "points": 20}
+      ]
     }
   },
   "miracles": {
