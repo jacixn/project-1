@@ -1,7 +1,53 @@
 {
   "new-testament": {
     "multiple-choice": {
-      "beginner": [],
+      "beginner": [
+        {
+          "id": "nt-mc-b-1",
+          "question": "When Jesus was arrested in the Garden of Gethsemane, one of His disciples pulled out a sword and cut off a servant's ear. Which disciple did this?",
+          "options": ["James", "John", "Peter", "Thomas"],
+          "correctAnswer": 2,
+          "explanation": "Simon Peter drew his sword and struck the high priest's servant, cutting off his right ear. Jesus told Peter to put away his sword and healed the servant's ear.",
+          "reference": "John 18:10",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-2",
+          "question": "After Jesus rose from the dead, one of His disciples refused to believe it until he could see and touch Jesus' wounds for himself. Which disciple demanded this proof?",
+          "options": ["Peter", "Andrew", "Thomas", "Philip"],
+          "correctAnswer": 2,
+          "explanation": "Thomas said he would not believe unless he could put his fingers in the nail marks and his hand in Jesus' side. When Jesus appeared and invited him to do so, Thomas declared 'My Lord and my God!'",
+          "reference": "John 20:24-29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-3",
+          "question": "Before becoming an apostle, Paul (originally called Saul) was actually an enemy of the early Christians and persecuted them. What dramatic event on the road to Damascus changed his life?",
+          "options": ["An earthquake struck him down", "A bright light from heaven blinded him and Jesus spoke to him", "An angel appeared with a scroll", "He had a vision in his sleep"],
+          "correctAnswer": 1,
+          "explanation": "As Saul travelled to Damascus to arrest Christians, a light from heaven flashed around him. He fell to the ground and heard Jesus say 'Saul, Saul, why do you persecute me?' He was blinded for three days until God sent Ananias to restore his sight.",
+          "reference": "Acts 9:1-19",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-4",
+          "question": "Jesus once told a famous parable about a traveller who was robbed, beaten, and left on the road. Two religious leaders walked past without helping, but a man from Samaria stopped to care for him. What is this parable commonly called?",
+          "options": ["The Parable of the Lost Sheep", "The Parable of the Good Samaritan", "The Parable of the Prodigal Son", "The Parable of the Sower"],
+          "correctAnswer": 1,
+          "explanation": "Jesus told this parable to answer the question 'Who is my neighbour?' The Samaritan bandaged the man's wounds, took him to an inn, and paid for his care — showing that loving your neighbour means helping anyone in need, regardless of background.",
+          "reference": "Luke 10:25-37",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-5",
+          "question": "At the very first Christian Pentecost, the Holy Spirit came upon the disciples in Jerusalem. When this happened, what miraculous sign appeared above each of them?",
+          "options": ["Bright halos of golden light", "Tongues of fire resting on their heads", "Doves descending from heaven", "Beams of sunlight through the clouds"],
+          "correctAnswer": 1,
+          "explanation": "When the day of Pentecost came, they heard a sound like a rushing wind and saw what looked like tongues of fire that separated and rested on each of them. They were all filled with the Holy Spirit and began speaking in other languages.",
+          "reference": "Acts 2:1-4",
+          "points": 10
+        }
+      ],
       "intermediate": [],
       "advanced": []
     },
