@@ -46,15 +46,1675 @@
           "explanation": "When the day of Pentecost came, they heard a sound like a rushing wind and saw what looked like tongues of fire that separated and rested on each of them. They were all filled with the Holy Spirit and began speaking in other languages.",
           "reference": "Acts 2:1-4",
           "points": 10
+        },
+        {
+          "id": "nt-mc-b-6",
+          "question": "In the Gospel of Matthew, Jesus went up on a mountainside and delivered one of the most famous sermons ever recorded, teaching about blessings, loving your enemies, and prayer. What is this sermon commonly known as?",
+          "options": ["The Olivet Discourse", "The Sermon on the Mount", "The Farewell Address", "The Galilean Teaching"],
+          "correctAnswer": 1,
+          "explanation": "The Sermon on the Mount, found in Matthew chapters 5-7, contains some of Jesus' most well-known teachings including the Beatitudes, the Lord's Prayer, and the Golden Rule.",
+          "reference": "Matthew 5-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-7",
+          "question": "When Jesus was just 12 years old, His parents Mary and Joseph took Him to Jerusalem for the Passover festival. On the way home, they realised He was missing and searched for three days. Where did they eventually find Him?",
+          "options": ["In the marketplace buying supplies", "At the Temple, sitting among the teachers and discussing Scripture", "At a relative's house in the city", "By the River Jordan with John the Baptist"],
+          "correctAnswer": 1,
+          "explanation": "Mary and Joseph found the boy Jesus in the Temple courts, sitting among the teachers, listening to them and asking questions. Everyone who heard Him was amazed at His understanding. When His parents questioned Him, Jesus said 'Didn't you know I had to be in my Father's house?'",
+          "reference": "Luke 2:41-52",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-8",
+          "question": "Jesus chose 12 men to be His closest followers. Two of these apostles were brothers who worked as fishermen, and Jesus gave them the nickname 'Sons of Thunder' because of their bold and fiery personalities. Who were these two brothers?",
+          "options": ["Peter and Andrew", "James and John", "Philip and Bartholomew", "Matthew and Thomas"],
+          "correctAnswer": 1,
+          "explanation": "James and John, the sons of Zebedee, were given the Aramaic nickname 'Boanerges' meaning 'Sons of Thunder' by Jesus. They once even asked if they could call down fire from heaven on a Samaritan village that rejected Jesus.",
+          "reference": "Mark 3:17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-9",
+          "question": "During the Last Supper — the final meal Jesus shared with His disciples before His crucifixion — Jesus surprised everyone by performing an act of humble service that was normally done by the lowest servant in a household. What did Jesus do?",
+          "options": ["He cooked and served the entire meal Himself", "He washed His disciples' feet", "He gave away His outer cloak to each disciple", "He swept and cleaned the upper room"],
+          "correctAnswer": 1,
+          "explanation": "Jesus wrapped a towel around His waist, poured water into a basin, and began washing His disciples' feet. He told them: 'I have set you an example that you should do as I have done for you.' It was a powerful lesson in servant leadership.",
+          "reference": "John 13:1-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-10",
+          "question": "When Jesus was crucified, He was placed between two criminals who were also being executed. One criminal mocked Jesus, but the other defended Him and asked for mercy. What did this repentant criminal say to Jesus?",
+          "options": ["Please save us from this cross", "Remember me when you come into your kingdom", "I believe you are the Son of God", "Forgive me, for I have sinned greatly"],
+          "correctAnswer": 1,
+          "explanation": "The repentant criminal rebuked the other, saying they deserved their punishment but Jesus had done nothing wrong. He then said 'Jesus, remember me when you come into your kingdom.' Jesus replied, 'Truly I tell you, today you will be with me in paradise.'",
+          "reference": "Luke 23:39-43",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-11",
+          "question": "In the town of Jericho, there was a chief tax collector who was very wealthy but also very short. He desperately wanted to see Jesus passing through, so he climbed a tree to get a view above the crowd. What was this man's name?",
+          "options": ["Matthew", "Levi", "Zacchaeus", "Nicodemus"],
+          "correctAnswer": 2,
+          "explanation": "Zacchaeus climbed a sycamore-fig tree to see Jesus. When Jesus looked up and told him to come down because He wanted to visit his house, the crowd grumbled because Zacchaeus was a hated tax collector. But Zacchaeus repented and promised to give half his possessions to the poor.",
+          "reference": "Luke 19:1-10",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-12",
+          "question": "One of Jesus' 12 apostles was a tax collector before Jesus called him to follow. Tax collectors in that time were despised by the Jewish people because they worked for the Roman Empire and often cheated people. Which apostle had this job?",
+          "options": ["Simon", "Matthew", "Judas", "Bartholomew"],
+          "correctAnswer": 1,
+          "explanation": "Matthew (also called Levi) was sitting at his tax collector's booth when Jesus simply said 'Follow me.' Matthew got up, left everything, and followed Jesus. He later wrote the Gospel of Matthew.",
+          "reference": "Matthew 9:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-13",
+          "question": "One of the 12 apostles is known for betraying Jesus by handing Him over to the religious authorities who wanted to arrest Him. This apostle identified Jesus to the soldiers by greeting Him with a kiss. Who was this betrayer?",
+          "options": ["Peter", "Thomas", "Judas Iscariot", "Simon the Zealot"],
+          "correctAnswer": 2,
+          "explanation": "Judas Iscariot agreed to betray Jesus for 30 pieces of silver. He led a crowd of soldiers and officials to the Garden of Gethsemane and identified Jesus with a kiss. Judas later regretted his actions and returned the money before taking his own life.",
+          "reference": "Matthew 26:14-16, 47-50",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-14",
+          "question": "On the night Jesus was arrested, one of His closest disciples denied even knowing Him — not once, but three times, just as Jesus had predicted. After the third denial, a rooster crowed and this disciple wept bitterly. Who was it?",
+          "options": ["John", "Andrew", "Peter", "James"],
+          "correctAnswer": 2,
+          "explanation": "Peter had boldly promised he would never deny Jesus, even if it meant dying with Him. But when questioned by servants and bystanders in the courtyard, Peter denied knowing Jesus three times. When the rooster crowed, Peter remembered Jesus' prediction and broke down weeping.",
+          "reference": "Luke 22:54-62",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-15",
+          "question": "Before Jesus began His public ministry, He went to the Jordan River to be baptized. The prophet who baptized Him had been living in the wilderness, wearing clothes made of camel's hair and eating locusts and wild honey. Who was this prophet?",
+          "options": ["Elijah", "Isaiah", "John the Baptist", "Zechariah"],
+          "correctAnswer": 2,
+          "explanation": "John the Baptist was the one chosen to prepare the way for Jesus' ministry. When Jesus came to be baptized, John initially protested, saying Jesus should be baptizing him instead. After the baptism, the heavens opened, the Spirit descended like a dove, and God's voice said 'This is my Son, whom I love.'",
+          "reference": "Matthew 3:1-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-16",
+          "question": "Right after Jesus was baptized, the Spirit led Him into the wilderness where He fasted and was tempted by the devil. How many days did Jesus spend in the wilderness being tested?",
+          "options": ["7 days", "21 days", "40 days", "70 days"],
+          "correctAnswer": 2,
+          "explanation": "Jesus fasted for 40 days and 40 nights in the wilderness. The devil tempted Him three times: to turn stones into bread, to throw Himself from the Temple, and to worship the devil in exchange for all the kingdoms of the world. Jesus resisted each temptation by quoting Scripture.",
+          "reference": "Matthew 4:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-17",
+          "question": "In one of Jesus' most famous miracles, a massive crowd of over 5,000 people had gathered to hear Him teach, and they had nothing to eat. A young boy offered his small lunch, and Jesus used it to feed the entire crowd. What did the boy's lunch consist of?",
+          "options": ["Three loaves of bread and two fish", "Five loaves of bread and two fish", "Seven loaves of bread and three fish", "Two loaves of bread and five fish"],
+          "correctAnswer": 1,
+          "explanation": "The boy had five small barley loaves and two small fish. Jesus took them, gave thanks, and distributed them to the crowd. Everyone ate and was satisfied, and the disciples collected 12 baskets of leftovers.",
+          "reference": "John 6:1-14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-18",
+          "question": "The Roman governor of Judea held a trial for Jesus and offered the crowd a choice: he would release either Jesus or a convicted criminal. The crowd chose to release the criminal instead. Who was the Roman governor that sentenced Jesus to crucifixion?",
+          "options": ["Herod Antipas", "Caesar Augustus", "Pontius Pilate", "Felix"],
+          "correctAnswer": 2,
+          "explanation": "Pontius Pilate was the Roman governor who presided over Jesus' trial. Despite finding no fault in Jesus and even having his wife warn him through a dream, Pilate gave in to the crowd's demands. He symbolically washed his hands before the crowd, saying he was innocent of Jesus' blood.",
+          "reference": "Matthew 27:11-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-19",
+          "question": "According to the Gospels, the very first miracle that Jesus ever performed took place at a wedding celebration in the town of Cana. The hosts had run out of a key drink, and Jesus' mother Mary asked Him to help. What did Jesus do?",
+          "options": ["He multiplied the food for the guests", "He turned water into wine", "He healed a sick guest at the wedding", "He calmed a storm that threatened the celebration"],
+          "correctAnswer": 1,
+          "explanation": "When the wine ran out, Mary told the servants to do whatever Jesus said. Jesus told them to fill six stone water jars to the brim, then draw some out and take it to the master of the banquet. The water had been turned into wine — and the master said it was the best wine of the evening.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-20",
+          "question": "After Jesus ascended to heaven, His apostles needed to replace Judas Iscariot (who had betrayed Jesus and died) so that there would once again be 12 apostles. They prayed and cast lots to choose between two candidates. Who was chosen as the replacement?",
+          "options": ["Paul", "Barnabas", "Matthias", "Stephen"],
+          "correctAnswer": 2,
+          "explanation": "The apostles nominated two men — Joseph called Barsabbas and Matthias. After prayer, they cast lots and the lot fell to Matthias, who was added to the eleven apostles. This happened before the day of Pentecost.",
+          "reference": "Acts 1:21-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-21",
+          "question": "According to the Gospel of Luke, when the angel Gabriel appeared to a young virgin named Mary in the town of Nazareth and announced that she would give birth to the Son of God, what was Mary's response?",
+          "options": ["She ran away in fear", "She immediately told Joseph", "She said 'I am the Lord's servant; may it be as you have said'", "She asked for time to think about it"],
+          "correctAnswer": 2,
+          "explanation": "Although Mary was initially troubled and wondered how this could happen since she was a virgin, she ultimately responded in faith, saying 'I am the Lord's servant. May your word to me be fulfilled.' She then visited her relative Elizabeth, who was also miraculously pregnant with John the Baptist.",
+          "reference": "Luke 1:26-38",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-22",
+          "question": "In the Christmas story, after Jesus was born in Bethlehem, a group of visitors from the East followed a special star that led them to the child. These visitors brought expensive gifts to honour the newborn King. What three gifts did they bring?",
+          "options": ["Silver, silk, and spices", "Gold, frankincense, and myrrh", "Jewels, perfume, and fine linen", "Gold, silver, and precious stones"],
+          "correctAnswer": 1,
+          "explanation": "The Magi (wise men) from the East brought three symbolic gifts: gold (representing royalty), frankincense (representing deity and worship), and myrrh (a burial spice, foreshadowing Jesus' death). They were warned in a dream not to return to King Herod, so they went home by a different route.",
+          "reference": "Matthew 2:1-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-23",
+          "question": "On the day Jesus entered Jerusalem for the last time before His crucifixion, crowds of people lined the streets, laid down palm branches and cloaks, and shouted praises. This event is now celebrated as Palm Sunday. What animal did Jesus ride into the city on?",
+          "options": ["A white horse", "A camel", "A donkey", "A chariot pulled by oxen"],
+          "correctAnswer": 2,
+          "explanation": "Jesus rode into Jerusalem on a young donkey, fulfilling the prophecy in Zechariah 9:9 which said 'See, your king comes to you, righteous and victorious, lowly and riding on a donkey.' The crowds shouted 'Hosanna! Blessed is He who comes in the name of the Lord!'",
+          "reference": "Matthew 21:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-24",
+          "question": "At the moment Jesus died on the cross, something dramatic happened inside the Jewish Temple in Jerusalem. A massive curtain that separated the Holy Place from the Most Holy Place (where only the high priest could enter once a year) was affected. What happened to it?",
+          "options": ["It caught fire", "It was torn in two from top to bottom", "It turned white", "It collapsed to the ground"],
+          "correctAnswer": 1,
+          "explanation": "The Temple curtain was torn in two from top to bottom at the moment of Jesus' death. This symbolised that through Jesus' sacrifice, the barrier between God and people was removed — everyone could now have direct access to God, not just the high priest once a year.",
+          "reference": "Matthew 27:51",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-25",
+          "question": "On Easter Sunday morning, when some of Jesus' female followers went to His tomb to anoint His body with spices, they found that the large stone covering the entrance had been rolled away and the tomb was empty. According to the Gospel of John, who was the first person to see the risen Jesus?",
+          "options": ["Peter", "John", "Mary Magdalene", "Jesus' mother Mary"],
+          "correctAnswer": 2,
+          "explanation": "Mary Magdalene was the first person to encounter the risen Jesus. She was weeping at the empty tomb when Jesus appeared to her. At first she thought He was the gardener, but when Jesus said her name 'Mary', she recognised Him immediately.",
+          "reference": "John 20:11-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-26",
+          "question": "After rising from the dead, Jesus appeared to His disciples and others over a period of time before ascending to heaven. According to the book of Acts, how many days after His resurrection did Jesus ascend into heaven?",
+          "options": ["3 days", "7 days", "40 days", "50 days"],
+          "correctAnswer": 2,
+          "explanation": "Jesus appeared to His disciples and many others over a period of 40 days after His resurrection, teaching them about the kingdom of God. He then led them to the Mount of Olives near Bethany, blessed them, and was taken up into heaven before their eyes.",
+          "reference": "Acts 1:3-9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-27",
+          "question": "After Jesus' resurrection, He appeared to His disciples by the Sea of Galilee and had breakfast with them on the shore. During this meal, Jesus asked Peter the same question three times, giving Peter a chance to undo his earlier three denials. What did Jesus ask him?",
+          "options": ["'Will you follow me to the end?'", "'Do you love me?'", "'Do you believe I am the Son of God?'", "'Will you forgive yourself?'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus asked Peter 'Do you love me?' three times — once for each time Peter had denied knowing Him. Each time Peter affirmed his love, Jesus gave him a commission: 'Feed my lambs,' 'Take care of my sheep,' and 'Feed my sheep.' This restored Peter and gave him the mission to lead the early church.",
+          "reference": "John 21:15-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-28",
+          "question": "When Jesus taught His disciples how to pray, He gave them a model prayer that Christians have been reciting for thousands of years. This prayer begins with 'Our Father in heaven, hallowed be your name.' What is this prayer commonly known as?",
+          "options": ["The Apostles' Prayer", "The Lord's Prayer", "The Disciples' Prayer", "The Prayer of Faith"],
+          "correctAnswer": 1,
+          "explanation": "The Lord's Prayer, found in Matthew 6:9-13, is the prayer Jesus taught when His disciples asked Him to show them how to pray. It covers worship, God's will, daily provision, forgiveness, and protection from evil. It is the most widely recited prayer in Christianity.",
+          "reference": "Matthew 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-29",
+          "question": "In the book of Acts, a young deacon named Stephen became the first person to be killed for preaching about Jesus. He was put on trial before the Jewish council and was executed by an angry mob. How was Stephen killed?",
+          "options": ["He was beheaded", "He was crucified", "He was stoned to death", "He was thrown from a cliff"],
+          "correctAnswer": 2,
+          "explanation": "Stephen was stoned to death after giving a powerful speech to the Sanhedrin (Jewish council). As he was being stoned, he looked up to heaven and said he could see Jesus standing at the right hand of God. His last words were 'Lord, do not hold this sin against them.' A young man named Saul (later Paul) watched and approved of his killing.",
+          "reference": "Acts 7:54-60",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-30",
+          "question": "In one of Jesus' most beloved parables, a father had two sons. The younger son demanded his inheritance early, left home, wasted all his money on wild living, and ended up so poor he was feeding pigs. When he finally returned home, how did the father react?",
+          "options": ["He refused to speak to him", "He ran to him, embraced him, and threw a feast to celebrate his return", "He allowed him back but only as a hired servant", "He told him to earn back his inheritance first"],
+          "correctAnswer": 1,
+          "explanation": "In the Parable of the Prodigal Son, the father saw his son coming from a long way off and was filled with compassion. He ran to his son, threw his arms around him, kissed him, and ordered the best robe, a ring, sandals, and a grand feast. This parable illustrates God's unconditional love and forgiveness.",
+          "reference": "Luke 15:11-32",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-31",
+          "question": "One night, a respected Jewish religious leader secretly visited Jesus because he wanted to learn from Him but was afraid of what other leaders would think. Jesus told this man that no one can see the kingdom of God unless they are 'born again.' Who was this leader?",
+          "options": ["Joseph of Arimathea", "Gamaliel", "Nicodemus", "Caiaphas"],
+          "correctAnswer": 2,
+          "explanation": "Nicodemus was a Pharisee and a member of the Jewish ruling council. He came to Jesus at night and Jesus told him 'No one can see the kingdom of God unless they are born again.' This conversation also contains the famous verse John 3:16. Nicodemus later helped bury Jesus after the crucifixion.",
+          "reference": "John 3:1-21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-32",
+          "question": "In the Gospel of John, Jesus met a Samaritan woman at a well outside the town of Sychar. This was shocking because Jewish men did not normally speak to Samaritan women. During their conversation, what did Jesus offer her?",
+          "options": ["A meal from His disciples' supplies", "Living water that would quench her thirst forever", "A healing miracle for her family", "An invitation to join His followers"],
+          "correctAnswer": 1,
+          "explanation": "Jesus told the woman that whoever drinks the water from the well would be thirsty again, but whoever drinks the living water He gives would never thirst — it would become a spring of water welling up to eternal life. The woman was so amazed by Jesus that she went back to her town and told everyone about Him.",
+          "reference": "John 4:1-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-33",
+          "question": "Jesus once encountered a man who had been unable to walk for 38 years. This man was lying by a pool in Jerusalem, hoping for healing. Jesus simply told him to stand up. What was the name of this pool?",
+          "options": ["The Pool of Siloam", "The Pool of Bethesda", "The Pool of Gethsemane", "The Pool of Solomon"],
+          "correctAnswer": 1,
+          "explanation": "The Pool of Bethesda had five covered colonnades where many disabled people lay waiting. They believed an angel would stir the waters and the first person in would be healed. Jesus asked the man 'Do you want to get well?' and then told him 'Get up! Pick up your mat and walk.' The man was instantly healed.",
+          "reference": "John 5:1-15",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-34",
+          "question": "Before Jesus was born, an angel appeared to His earthly father Joseph in a dream and told him not to be afraid to take Mary as his wife, because her child was from the Holy Spirit. The angel also told Joseph what to name the baby. What name did the angel give?",
+          "options": ["Emmanuel", "Jesus", "Joshua", "Messiah"],
+          "correctAnswer": 1,
+          "explanation": "The angel told Joseph: 'You are to give him the name Jesus, because he will save his people from their sins.' The name Jesus (Yeshua in Hebrew) means 'the Lord saves.' Matthew also notes this fulfilled the prophecy about 'Emmanuel' meaning 'God with us.'",
+          "reference": "Matthew 1:20-23",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-35",
+          "question": "Just before Jesus ascended into heaven, He gave His disciples a final command that Christians call 'The Great Commission.' He told them to go into all the world and do something. What did Jesus command them to do?",
+          "options": ["Build churches in every city", "Make disciples of all nations, baptizing and teaching them", "Write down everything He had taught them", "Wait in Jerusalem until the end times"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit, and teaching them to obey everything I have commanded you. And surely I am with you always, to the very end of the age.'",
+          "reference": "Matthew 28:18-20",
+          "points": 10
         }
       ],
-      "intermediate": [],
-      "advanced": []
+      "intermediate": [
+        {
+          "id": "nt-mc-i-1",
+          "question": "The apostle Paul wrote a letter to the church in Rome that became one of the most important books in the New Testament. In this letter, he makes a famous statement about the consequence of sin compared to God's gift. According to Romans 6:23, what are 'the wages of sin'?",
+          "options": ["Suffering", "Separation from God", "Death", "Judgment"],
+          "correctAnswer": 2,
+          "explanation": "Paul wrote 'For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord.' This verse contrasts what sin earns (death) with what God freely gives (eternal life).",
+          "reference": "Romans 6:23",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-2",
+          "question": "On his first missionary journey described in the book of Acts, Paul did not travel alone. He was accompanied by a fellow believer from Cyprus who was known as an encourager and had previously introduced Paul to the suspicious apostles in Jerusalem. Who was this travelling companion?",
+          "options": ["Timothy", "Silas", "Barnabas", "Luke"],
+          "correctAnswer": 2,
+          "explanation": "Barnabas (whose name means 'Son of Encouragement') accompanied Paul on his first missionary journey. They travelled through Cyprus and parts of modern-day Turkey, preaching in synagogues and establishing churches. Barnabas had earlier vouched for Paul when the apostles in Jerusalem were afraid of him.",
+          "reference": "Acts 13:1-3",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-3",
+          "question": "Paul was a highly educated Jewish man who studied under one of the most respected rabbis of his time. Before Paul became a Christian, he was trained as a Pharisee in Jerusalem. Which famous rabbi was Paul's teacher?",
+          "options": ["Hillel", "Shammai", "Gamaliel", "Nicodemus"],
+          "correctAnswer": 2,
+          "explanation": "Paul studied under Gamaliel, one of the most honoured teachers of Jewish law. Gamaliel was so respected that he is the only rabbi referred to as 'Rabban' (our master). Interestingly, Gamaliel later advised the Jewish council to leave the Christians alone, saying 'if their purpose is from God, you will not be able to stop them.'",
+          "reference": "Acts 22:3, Acts 5:34-39",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-4",
+          "question": "In Paul's famous chapter on love in 1 Corinthians 13, he lists three things that will last forever and says one of them is the greatest. He writes that 'these three remain: faith, hope, and love.' According to Paul, which of the three is the greatest?",
+          "options": ["Faith", "Hope", "Love", "They are all equal"],
+          "correctAnswer": 2,
+          "explanation": "Paul wrote 'And now these three remain: faith, hope and love. But the greatest of these is love.' This chapter, often read at weddings, describes love as patient, kind, not envious, not boastful, and never failing.",
+          "reference": "1 Corinthians 13:13",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-5",
+          "question": "In the early church described in Acts chapter 5, a married couple sold a piece of property and secretly kept some of the money for themselves while pretending to give the full amount to the apostles. When confronted by Peter, both of them fell down dead. What were their names?",
+          "options": ["Aquila and Priscilla", "Ananias and Sapphira", "Andronicus and Junia", "Philemon and Apphia"],
+          "correctAnswer": 1,
+          "explanation": "Ananias brought the money and lied about it being the full amount. Peter said 'You have not lied just to human beings but to God,' and Ananias fell down dead. Three hours later, his wife Sapphira came in and told the same lie, and she also died. Great fear seized the whole church.",
+          "reference": "Acts 5:1-11",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-6",
+          "question": "The apostle Peter had a vision that radically changed how the early church understood God's plan for non-Jewish people (Gentiles). In this vision, a large sheet was lowered from heaven containing animals that Jewish law considered unclean. What did a voice tell Peter to do?",
+          "options": ["Release the animals into the wild", "Count the animals and record them", "Kill and eat the animals", "Separate the clean from the unclean"],
+          "correctAnswer": 2,
+          "explanation": "The voice told Peter 'Get up, kill and eat.' When Peter refused because the animals were 'unclean' under Jewish law, the voice said 'Do not call anything impure that God has made clean.' This vision prepared Peter to visit and baptize Cornelius, a Roman centurion — the first Gentile convert.",
+          "reference": "Acts 10:9-16",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-7",
+          "question": "In addition to being an apostle and writing much of the New Testament, Paul also had a regular trade that he used to support himself financially so he would not be a burden to the churches. What was Paul's profession?",
+          "options": ["Carpenter", "Fisherman", "Tentmaker", "Scribe"],
+          "correctAnswer": 2,
+          "explanation": "Paul was a tentmaker by trade. When he arrived in Corinth, he stayed and worked with Aquila and Priscilla, who were also tentmakers. Paul took pride in working with his hands and not being financially dependent on the churches he served.",
+          "reference": "Acts 18:1-3",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-8",
+          "question": "During one of Paul's missionary journeys, he and his companion Silas were beaten and thrown into prison in the city of Philippi. At midnight, while they were praying and singing hymns, something dramatic happened that freed them. What occurred?",
+          "options": ["An angel unlocked their chains", "A violent earthquake shook the prison and all the doors flew open", "The guards fell asleep and they escaped", "The city magistrates sent orders for their release"],
+          "correctAnswer": 1,
+          "explanation": "A violent earthquake shook the prison foundations, all the doors flew open, and everyone's chains came loose. The jailer was about to kill himself (thinking the prisoners had escaped), but Paul shouted that they were all still there. The jailer asked 'What must I do to be saved?' and Paul told him to believe in Jesus. The jailer and his whole household were baptized that night.",
+          "reference": "Acts 16:25-34",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-9",
+          "question": "In the book of Revelation, the risen Jesus dictated messages to seven specific churches in Asia Minor (modern-day Turkey). Each message contained praise, correction, or warning tailored to that church's situation. How many churches received these messages?",
+          "options": ["5", "7", "10", "12"],
+          "correctAnswer": 1,
+          "explanation": "Jesus addressed seven churches: Ephesus, Smyrna, Pergamum, Thyatira, Sardis, Philadelphia, and Laodicea. Each letter followed a pattern of identifying Jesus, acknowledging the church's situation, offering praise or rebuke, and giving a promise to 'the one who overcomes.'",
+          "reference": "Revelation 2-3",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-10",
+          "question": "Paul wrote a deeply personal letter to a Christian slave owner, asking him to forgive and welcome back a runaway slave who had become a Christian under Paul's teaching in prison. This is the shortest of Paul's letters. Who was the slave owner Paul wrote to?",
+          "options": ["Titus", "Philemon", "Timothy", "Onesimus"],
+          "correctAnswer": 1,
+          "explanation": "Paul wrote to Philemon, asking him to receive back his slave Onesimus — no longer as a slave, but as a 'dear brother in Christ.' Paul even offered to pay any debt Onesimus owed. This letter is a beautiful example of reconciliation and equality in Christ.",
+          "reference": "Philemon 1:8-21",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-11",
+          "question": "In Paul's letter to the Galatians, he lists nine qualities that the Holy Spirit produces in the lives of believers. These are collectively known as the 'Fruit of the Spirit.' Which of the following is NOT one of the nine fruits Paul lists?",
+          "options": ["Patience", "Courage", "Gentleness", "Self-control"],
+          "correctAnswer": 1,
+          "explanation": "The nine fruits of the Spirit listed in Galatians 5:22-23 are: love, joy, peace, patience (forbearance), kindness, goodness, faithfulness, gentleness, and self-control. Courage is not on the list, though it is certainly a Christian virtue mentioned elsewhere in Scripture.",
+          "reference": "Galatians 5:22-23",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-12",
+          "question": "In the Sermon on the Mount, Jesus taught a series of blessings that begin with the word 'Blessed.' These statements, such as 'Blessed are the poor in spirit' and 'Blessed are the peacemakers,' are known by a special name. What are they called?",
+          "options": ["The Commandments", "The Beatitudes", "The Benedictions", "The Proverbs of Jesus"],
+          "correctAnswer": 1,
+          "explanation": "The Beatitudes (from the Latin 'beatus' meaning 'blessed' or 'happy') are eight (or nine) blessings that Jesus pronounced at the beginning of the Sermon on the Mount. They describe the character and values of those who belong to God's kingdom.",
+          "reference": "Matthew 5:3-12",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-13",
+          "question": "In Acts chapter 15, the early church leaders met in Jerusalem to settle a major dispute about whether non-Jewish (Gentile) Christians needed to follow all the Jewish laws, including circumcision, to be saved. What is this important meeting commonly called?",
+          "options": ["The Last Supper", "The Council of Jerusalem", "The Synod of Antioch", "The Great Debate"],
+          "correctAnswer": 1,
+          "explanation": "The Council of Jerusalem was a pivotal moment in early Christianity. After much debate, the apostles and elders — led by James, Peter, and Paul — concluded that Gentile believers did not need to be circumcised or follow the full Mosaic law. They only asked them to avoid food sacrificed to idols, blood, strangled animals, and sexual immorality.",
+          "reference": "Acts 15:1-29",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-14",
+          "question": "During Paul's second missionary journey, he arrived in the intellectual city of Athens and found it full of idols. He was invited to speak at a famous hilltop gathering place where Athenian philosophers debated new ideas. What was this location called?",
+          "options": ["The Acropolis", "The Areopagus (Mars Hill)", "The Agora", "The Parthenon"],
+          "correctAnswer": 1,
+          "explanation": "Paul spoke at the Areopagus (also known as Mars Hill), where he gave a brilliant speech connecting with Greek culture. He referenced their altar 'To an Unknown God' and declared that this unknown God was the true Creator who 'is not far from any one of us.' Some believed, including Dionysius the Areopagite.",
+          "reference": "Acts 17:16-34",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-15",
+          "question": "Near the end of Paul's missionary travels, he was on a ship sailing to Rome to stand trial before Caesar. The ship encountered a terrible storm that lasted 14 days. After the shipwreck, Paul and all 276 people on board swam safely to an island. Which island did they land on?",
+          "options": ["Cyprus", "Crete", "Malta", "Sicily"],
+          "correctAnswer": 2,
+          "explanation": "After being battered by the storm for two weeks, the ship ran aground near the island of Malta. All 276 passengers survived, just as Paul had promised them after receiving a message from an angel. The islanders showed unusual kindness and welcomed the survivors.",
+          "reference": "Acts 27:27-28:1",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-16",
+          "question": "After arriving safely on the island of Malta following his shipwreck, Paul was gathering wood for a fire when a venomous snake came out of the bundle and fastened itself on his hand. The islanders expected him to swell up and die. What actually happened to Paul?",
+          "options": ["He became very ill for several days", "He suffered no harm at all", "Luke the physician treated the bite", "He prayed and the venom was neutralised"],
+          "correctAnswer": 1,
+          "explanation": "Paul simply shook the snake off into the fire and suffered no ill effects. The islanders watched him for a long time, expecting him to swell up or suddenly fall dead. When nothing happened, they changed their minds and said he must be a god.",
+          "reference": "Acts 28:3-6",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-17",
+          "question": "In the book of Acts, a woman named Lydia became one of the first converts to Christianity in Europe. Paul met her by a river outside the city of Philippi, where she had gone to pray. What was Lydia's occupation?",
+          "options": ["A potter", "A dealer in purple cloth", "A seamstress", "A merchant of spices"],
+          "correctAnswer": 1,
+          "explanation": "Lydia was a dealer in purple cloth from the city of Thyatira. Purple dye was extremely expensive, so she was likely a wealthy businesswoman. After hearing Paul speak, 'the Lord opened her heart' and she and her entire household were baptized. She then insisted Paul and his companions stay at her home.",
+          "reference": "Acts 16:13-15",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-18",
+          "question": "Jesus told a parable about a master who gave three servants different amounts of money (called 'talents') before going on a journey. Two servants invested and doubled their money, but the third servant buried his in the ground. What happened when the master returned?",
+          "options": ["He forgave all three servants equally", "He praised the two who invested and punished the one who buried his talent", "He took all the money back from everyone", "He gave the third servant another chance"],
+          "correctAnswer": 1,
+          "explanation": "The master praised the two faithful servants, saying 'Well done, good and faithful servant! You have been faithful with a few things; I will put you in charge of many things.' But he called the third servant 'wicked and lazy' and took his talent away. This parable teaches about using the gifts God gives us.",
+          "reference": "Matthew 25:14-30",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-19",
+          "question": "When a teacher of the law asked Jesus which commandment was the greatest, Jesus did not pick just one — He gave two commandments and said all of Scripture hangs on them. The first was to love God with all your heart, soul, and mind. What was the second?",
+          "options": ["Keep the Sabbath holy", "Honour your father and mother", "Love your neighbour as yourself", "Do not worship any other gods"],
+          "correctAnswer": 2,
+          "explanation": "Jesus said the second greatest commandment is 'Love your neighbour as yourself,' quoting Leviticus 19:18. He told the teacher that all the Law and the Prophets hang on these two commandments — loving God completely and loving your neighbour as yourself.",
+          "reference": "Matthew 22:36-40",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-20",
+          "question": "In Paul's letter to the Ephesians, he describes the spiritual protection God provides to believers using the metaphor of a Roman soldier's equipment. This passage is known as the 'Armour of God.' Which of the following is NOT one of the pieces Paul mentions?",
+          "options": ["The belt of truth", "The helmet of salvation", "The shield of faith", "The spear of righteousness"],
+          "correctAnswer": 3,
+          "explanation": "Paul lists the belt of truth, breastplate of righteousness, shoes of the gospel of peace, shield of faith, helmet of salvation, and the sword of the Spirit (the Word of God). There is no 'spear of righteousness' — the only offensive weapon mentioned is the sword of the Spirit.",
+          "reference": "Ephesians 6:10-18",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-21",
+          "question": "Three of Jesus' disciples — Peter, James, and John — witnessed a miraculous event where Jesus' appearance was transformed on top of a mountain. His face shone like the sun and His clothes became dazzlingly white, and two Old Testament figures appeared beside Him. What is this event called?",
+          "options": ["The Ascension", "The Transfiguration", "The Glorification", "The Revelation"],
+          "correctAnswer": 1,
+          "explanation": "During the Transfiguration, Moses and Elijah appeared and talked with Jesus. Peter offered to build three shelters for them. Then a bright cloud covered them and God's voice said 'This is my Son, whom I love; with him I am well pleased. Listen to him!' The disciples fell facedown in terror.",
+          "reference": "Matthew 17:1-8",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-22",
+          "question": "Paul wrote two letters to the church in the city of Corinth, a wealthy Greek port city known for its immorality. In his first letter, he scolded them for divisions within the church — different groups were claiming to follow different leaders. What was the main problem Paul addressed?",
+          "options": ["They were worshipping Greek gods alongside Jesus", "They were dividing into factions saying 'I follow Paul' or 'I follow Apollos'", "They refused to meet together for worship", "They were rejecting Paul's authority completely"],
+          "correctAnswer": 1,
+          "explanation": "Some Corinthians were saying 'I follow Paul,' others 'I follow Apollos,' others 'I follow Cephas (Peter),' and others 'I follow Christ.' Paul rebuked this, asking 'Is Christ divided? Was Paul crucified for you?' He reminded them they were all one body in Christ.",
+          "reference": "1 Corinthians 1:10-17",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-23",
+          "question": "The book of James is a practical letter about living out your faith through actions, not just words. James uses a vivid metaphor to describe the tongue, saying it is a small part of the body but has enormous power. What does James compare the tongue to?",
+          "options": ["A sharp sword that cuts both ways", "A small spark that can set a great forest on fire", "A poisonous snake hiding in the grass", "A rudder that steers a great ship"],
+          "correctAnswer": 1,
+          "explanation": "James actually uses multiple metaphors — he compares the tongue to a bit in a horse's mouth, a rudder on a ship, AND a small spark that sets a forest ablaze. But his main point is that the tongue, though small, can cause enormous destruction through careless or harmful words.",
+          "reference": "James 3:1-12",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-24",
+          "question": "In the book of Acts, a couple named Aquila and Priscilla (or Prisca) were close friends and co-workers with Paul. When they met an eloquent preacher named Apollos who only knew part of the Christian message, what did they do?",
+          "options": ["They reported him to the apostles for teaching errors", "They took him aside privately and explained the full truth more accurately", "They asked him to stop preaching until he was properly trained", "They wrote him a letter of correction"],
+          "correctAnswer": 1,
+          "explanation": "Apollos was a learned man who spoke with great fervour and taught accurately about Jesus, but he only knew about John's baptism. Rather than embarrassing him publicly, Aquila and Priscilla invited him to their home and explained 'the way of God more adequately.' Apollos then became an even more powerful preacher.",
+          "reference": "Acts 18:24-28",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-25",
+          "question": "Paul mentions a personal physical struggle in his second letter to the Corinthians, calling it a 'thorn in my flesh.' He says he prayed three times for God to remove it, but God responded with a famous statement. What did God say to Paul?",
+          "options": ["'Be patient, and I will heal you in time'", "'My grace is sufficient for you, for my power is made perfect in weakness'", "'This suffering will strengthen your faith'", "'Remove it yourself through prayer and fasting'"],
+          "correctAnswer": 1,
+          "explanation": "God told Paul 'My grace is sufficient for you, for my power is made perfect in weakness.' Paul then said he would boast gladly about his weaknesses, so that Christ's power could rest on him. Scholars have debated for centuries what the 'thorn' was — possibilities include a physical ailment, persecution, or a spiritual struggle.",
+          "reference": "2 Corinthians 12:7-10",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-26",
+          "question": "The book of Hebrews describes an Old Testament figure named Melchizedek, who was both a king and a priest, and who blessed Abraham after a battle. Hebrews argues that Jesus is a priest forever 'in the order of Melchizedek.' What was Melchizedek the king of?",
+          "options": ["Babylon", "Egypt", "Salem (later Jerusalem)", "Ur"],
+          "correctAnswer": 2,
+          "explanation": "Melchizedek was 'king of Salem' (an ancient name for Jerusalem) and 'priest of God Most High.' The book of Hebrews uses him to argue that Jesus' priesthood is superior to the Levitical priesthood, since Melchizedek's priesthood predated and outranked it. His name means 'king of righteousness.'",
+          "reference": "Hebrews 7:1-3",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-27",
+          "question": "In Jesus' parable of the sower, a farmer scatters seed on four different types of ground. The seed represents the Word of God, and the soils represent different responses people have to hearing it. According to Jesus, what happened to the seed that fell on the path?",
+          "options": ["It grew quickly but withered in the sun", "Birds came and ate it up", "Thorns choked it out", "It produced a huge harvest"],
+          "correctAnswer": 1,
+          "explanation": "Jesus explained that the seed on the path represents people who hear the message but don't understand it, and the evil one comes and snatches away what was sown. The rocky ground represents shallow faith, the thorns represent worldly worries, and the good soil represents those who hear, understand, and produce fruit.",
+          "reference": "Matthew 13:1-23",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-28",
+          "question": "In the early church, there was a generous believer from Cyprus whose real name was Joseph, but the apostles gave him a nickname that means 'Son of Encouragement.' He later became Paul's travelling partner on the first missionary journey. What was his nickname?",
+          "options": ["Barnabas", "Apollos", "Silas", "Titus"],
+          "correctAnswer": 0,
+          "explanation": "Barnabas (meaning 'Son of Encouragement') sold a field he owned and brought the money to the apostles. He was the one who believed in Paul's conversion when others were still suspicious, and he travelled with Paul on the first missionary journey through Cyprus and Asia Minor.",
+          "reference": "Acts 4:36-37",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-29",
+          "question": "Paul had a young protege whom he called 'my true son in the faith.' This young man's mother was Jewish and his grandmother Lois was known for her sincere faith. Paul wrote two letters to him that are now books of the Bible. Who was this young man?",
+          "options": ["Titus", "Timothy", "Philemon", "Mark"],
+          "correctAnswer": 1,
+          "explanation": "Timothy was Paul's closest and most trusted co-worker. His mother Eunice and grandmother Lois had taught him the Scriptures from infancy. Paul recruited Timothy during his second missionary journey and later wrote two pastoral letters to him with instructions for leading the church in Ephesus.",
+          "reference": "2 Timothy 1:2-5",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-30",
+          "question": "In the Gospel of Luke, Jesus told a parable about a man who was owed money by two people — one owed a large amount and the other a small amount. The moneylender cancelled both debts. Jesus then asked His host Simon which debtor would love the moneylender more. Why did Jesus tell this parable?",
+          "options": ["To teach about financial responsibility", "To explain why a sinful woman who washed His feet with tears showed greater love than Simon", "To warn about lending money to strangers", "To teach about the dangers of debt"],
+          "correctAnswer": 1,
+          "explanation": "A woman known in the city as a sinner came to Simon the Pharisee's house, wept at Jesus' feet, wiped them with her hair, and anointed them with perfume. Simon judged her silently. Jesus told the parable to show that the woman loved greatly because she had been forgiven much, while Simon showed little love because he thought he needed little forgiveness.",
+          "reference": "Luke 7:36-50",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-31",
+          "question": "In the book of Acts, a devout woman named Tabitha (also called Dorcas) was known for her kindness and charity, especially making clothes for widows. When she died, the believers sent for Peter. What did Peter do when he arrived?",
+          "options": ["He comforted the mourners and led a funeral prayer", "He sent everyone out of the room, prayed, and raised her from the dead", "He collected her clothing and distributed it to the poor", "He preached a sermon about the hope of resurrection"],
+          "correctAnswer": 1,
+          "explanation": "Peter sent everyone out of the room, knelt down and prayed, then turned to the dead woman and said 'Tabitha, get up.' She opened her eyes, saw Peter, and sat up. This miracle became known throughout Joppa, and many people believed in the Lord because of it.",
+          "reference": "Acts 9:36-42",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-32",
+          "question": "The author of the Gospel of Luke and the book of Acts was a physician who travelled with Paul on several of his missionary journeys. He is the only non-Jewish (Gentile) author in the New Testament. What was his name?",
+          "options": ["Mark", "Luke", "Matthew", "Theophilus"],
+          "correctAnswer": 1,
+          "explanation": "Luke was a physician and close companion of Paul, who called him 'our dear friend Luke, the doctor' in Colossians 4:14. Luke wrote both his Gospel and the book of Acts to a man named Theophilus. He is known for his detailed, orderly accounts and his emphasis on Jesus' compassion for the marginalised.",
+          "reference": "Colossians 4:14",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-33",
+          "question": "In the parable of the ten virgins (bridesmaids), Jesus described ten young women waiting for a bridegroom to arrive for a wedding feast. Five were wise and five were foolish. What was the difference between the wise and foolish virgins?",
+          "options": ["The wise brought food and the foolish did not", "The wise brought extra oil for their lamps and the foolish did not", "The wise arrived early and the foolish came late", "The wise wore proper wedding garments and the foolish did not"],
+          "correctAnswer": 1,
+          "explanation": "The five wise virgins brought extra oil for their lamps, while the five foolish ones did not. When the bridegroom was delayed and arrived at midnight, the foolish virgins' lamps were going out and they had to go buy more oil. While they were gone, the bridegroom arrived and the door was shut. Jesus used this to teach about being ready for His return.",
+          "reference": "Matthew 25:1-13",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-34",
+          "question": "Paul was originally from a city in Cilicia (modern-day Turkey) that was known as a major centre of learning and commerce in the Roman Empire. Paul sometimes referenced his citizenship of this city. What city was Paul from?",
+          "options": ["Antioch", "Ephesus", "Tarsus", "Corinth"],
+          "correctAnswer": 2,
+          "explanation": "Paul was born in Tarsus, the capital city of the Roman province of Cilicia. It was a prosperous university city. Paul held both Tarsian citizenship and Roman citizenship — the latter being a rare privilege that he used on several occasions to assert his legal rights when facing persecution.",
+          "reference": "Acts 21:39",
+          "points": 15
+        },
+        {
+          "id": "nt-mc-i-35",
+          "question": "In the Gospel of John, Jesus performed a miracle by raising a man from the dead who had been in the tomb for four days. This miracle took place in the village of Bethany, and Jesus wept when He saw the man's sisters grieving. Who was the man Jesus raised?",
+          "options": ["Jairus' daughter", "The widow's son at Nain", "Lazarus", "Eutychus"],
+          "correctAnswer": 2,
+          "explanation": "Lazarus was the brother of Mary and Martha, close friends of Jesus. When Jesus arrived in Bethany, Lazarus had been dead for four days. Jesus wept at the tomb, then commanded 'Lazarus, come out!' and the dead man walked out, still wrapped in burial cloth. This miracle led many to believe in Jesus but also accelerated the plot to kill Him.",
+          "reference": "John 11:1-44",
+          "points": 15
+        }
+      ],
+      "advanced": [
+        {
+          "id": "nt-mc-a-1",
+          "question": "In the book of Revelation, four mysterious horsemen ride out when the first four of seven seals are opened. Each rider represents a different force of destruction. What colour is the horse ridden by the first horseman, who is often interpreted as representing conquest?",
+          "options": ["Red", "Black", "White", "Pale green"],
+          "correctAnswer": 2,
+          "explanation": "The first horseman rides a white horse, carrying a bow and wearing a crown, riding out 'bent on conquest.' The second rides a red horse (war), the third a black horse (famine), and the fourth a pale horse (death). These Four Horsemen of the Apocalypse are among the most well-known images in Revelation.",
+          "reference": "Revelation 6:1-8",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-2",
+          "question": "In Philippians chapter 2, Paul quotes what many scholars believe is an early Christian hymn about Jesus emptying Himself and taking on human form. This theological concept of Christ 'emptying Himself' is known by a specific Greek term. What is it called?",
+          "options": ["Theosis", "Kenosis", "Koinonia", "Metanoia"],
+          "correctAnswer": 1,
+          "explanation": "The 'Kenosis' passage (Philippians 2:5-11) comes from the Greek word 'kenoo' meaning 'to empty.' Paul writes that Christ Jesus, 'being in very nature God, did not consider equality with God something to be used to his own advantage; rather, he made himself nothing (emptied himself) by taking the very nature of a servant.'",
+          "reference": "Philippians 2:5-11",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-3",
+          "question": "The Gospel of John begins with a profound theological prologue: 'In the beginning was the Word, and the Word was with God, and the Word was God.' The Greek term translated 'Word' carries deep philosophical meaning in both Jewish and Greek thought. What is this Greek word?",
+          "options": ["Pneuma", "Logos", "Theos", "Christos"],
+          "correctAnswer": 1,
+          "explanation": "The Greek word 'Logos' means 'word,' 'reason,' or 'principle.' In Greek philosophy, the Logos was the rational principle governing the universe. In Jewish thought, God's Word was His creative power. John brilliantly uses this concept to declare that Jesus IS the Logos — the divine creative Word made flesh.",
+          "reference": "John 1:1-14",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-4",
+          "question": "Paul's letter to the Romans contains a detailed argument about salvation. In Romans chapter 9, Paul discusses God's sovereignty using the example of two brothers — one whom God chose and one He rejected — even before they were born or had done anything good or bad. Which two brothers does Paul reference?",
+          "options": ["Cain and Abel", "Isaac and Ishmael", "Jacob and Esau", "Moses and Aaron"],
+          "correctAnswer": 2,
+          "explanation": "Paul quotes God's statement about Rebekah's twin sons: 'Jacob I loved, but Esau I hated' (from Malachi 1:2-3). Paul uses this to argue that God's purposes in election stand firm, not based on works but on the One who calls. This passage has been central to theological debates about predestination.",
+          "reference": "Romans 9:10-13",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-5",
+          "question": "In his letter to the Colossians, Paul warns against a false teaching that combined elements of Jewish legalism, Greek philosophy, and angel worship. He writes that believers have 'died with Christ to the elemental spiritual forces of this world.' What Greek term does Paul use for these 'elemental forces'?",
+          "options": ["Stoicheia", "Dynamis", "Archon", "Exousia"],
+          "correctAnswer": 0,
+          "explanation": "Paul uses the word 'stoicheia' (elemental principles/forces) to describe the basic spiritual forces or principles that once held the Colossians in bondage. Scholars debate whether Paul meant cosmic spiritual powers, basic religious principles, or elementary teachings. Either way, Paul declares Christ's supremacy over all such forces.",
+          "reference": "Colossians 2:8-23",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-6",
+          "question": "In the Gospel of John, Jesus makes seven distinct 'I am' statements that each reveal something about His divine nature and mission. Which of the following is NOT one of Jesus' seven 'I am' statements in John's Gospel?",
+          "options": ["I am the bread of life", "I am the vine", "I am the cornerstone", "I am the resurrection and the life"],
+          "correctAnswer": 2,
+          "explanation": "The seven 'I am' statements in John are: I am the bread of life (6:35), the light of the world (8:12), the gate/door (10:9), the good shepherd (10:11), the resurrection and the life (11:25), the way, truth, and life (14:6), and the true vine (15:1). While Jesus is called a cornerstone elsewhere (Ephesians 2:20), He never uses that as an 'I am' statement in John.",
+          "reference": "John 6-15",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-7",
+          "question": "The book of Hebrews contains a famous 'Hall of Faith' chapter that lists Old Testament heroes who lived by faith. The chapter begins with a definition of faith that has become one of the most quoted verses about what faith actually is. How does Hebrews 11:1 define faith?",
+          "options": ["Faith is trusting God even when life is difficult", "Faith is confidence in what we hope for and assurance about what we do not see", "Faith is believing what the Scriptures teach about God", "Faith is the decision to follow God regardless of the cost"],
+          "correctAnswer": 1,
+          "explanation": "Hebrews 11:1 states: 'Now faith is confidence in what we hope for and assurance about what we do not see.' This definition sets the stage for the examples that follow — Abel, Enoch, Noah, Abraham, Sarah, Moses, Rahab, and many others who trusted God's promises without seeing their fulfilment.",
+          "reference": "Hebrews 11:1",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-8",
+          "question": "In Revelation, John describes a vision of a 'new heaven and new earth' at the end of time. In this vision, a voice from the throne declares that God will dwell with His people and wipe away every tear. What specific thing does John say will NOT be found in the new creation?",
+          "options": ["Angels", "The sun and moon", "A temple", "Mountains and seas"],
+          "correctAnswer": 2,
+          "explanation": "John writes 'I did not see a temple in the city, because the Lord God Almighty and the Lamb are its temple.' There is also no need for sun or moon because God's glory provides light. This represents the ultimate fulfilment of God dwelling directly with His people — no barrier, no mediating structure needed.",
+          "reference": "Revelation 21:22-23",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-9",
+          "question": "Paul wrote to the Thessalonians about the 'Day of the Lord,' describing events surrounding Christ's return. He mentions a figure he calls 'the man of lawlessness' who will oppose God and even seat himself in God's temple, proclaiming himself to be God. What must happen before this figure is revealed?",
+          "options": ["A great earthquake must strike Jerusalem", "A great falling away (apostasy) must occur first", "The gospel must be preached to every nation", "The Temple in Jerusalem must be rebuilt"],
+          "correctAnswer": 1,
+          "explanation": "Paul told the Thessalonians 'that day will not come until the rebellion (apostasia) occurs and the man of lawlessness is revealed.' He also mentions a 'restrainer' who is currently holding back this lawlessness until the appointed time. This passage has generated extensive debate about end-times theology.",
+          "reference": "2 Thessalonians 2:1-12",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-10",
+          "question": "In the Gospel of Mark, Jesus tells His disciples about a sin that will never be forgiven — what He calls an 'eternal sin.' This statement came after the Pharisees accused Jesus of casting out demons by the power of Satan. What is this unforgivable sin commonly called?",
+          "options": ["Denying the resurrection", "Blasphemy against the Holy Spirit", "Taking the Lord's name in vain", "Worshipping false gods"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Whoever blasphemes against the Holy Spirit will never be forgiven; they are guilty of an eternal sin.' He said this because the Pharisees were attributing the work of the Holy Spirit (casting out demons) to Satan. Theologians generally interpret this as a deliberate, persistent rejection of the Holy Spirit's testimony about Christ.",
+          "reference": "Mark 3:28-30",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-11",
+          "question": "The letter to the Hebrews makes a complex argument comparing Jesus to the Old Testament priesthood. It argues that Jesus is a superior high priest because His priesthood belongs to a different order than the Levitical priests. In what way is Jesus' priestly ministry superior?",
+          "options": ["He offered many sacrifices instead of just one", "He offered Himself as a perfect, once-for-all sacrifice", "He served in a more beautiful temple", "He was appointed by the people rather than by birth"],
+          "correctAnswer": 1,
+          "explanation": "Unlike the Levitical priests who had to repeatedly offer animal sacrifices, Jesus offered Himself as the perfect, sinless sacrifice once for all. Hebrews argues that Jesus' single sacrifice accomplished what countless animal sacrifices never could — permanently removing the barrier of sin between God and humanity.",
+          "reference": "Hebrews 9:11-14, 10:10-14",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-12",
+          "question": "In Paul's letter to the Romans, he introduces the concept of justification by faith using the example of Abraham, arguing that Abraham was declared righteous by God because of his faith, not because of his works. Paul quotes Genesis to make this point. What did Abraham believe that was 'credited to him as righteousness'?",
+          "options": ["That God would deliver him from his enemies", "That God's promise about his descendants would come true, even though he was old", "That he would inherit the land of Canaan", "That God would make him wealthy and powerful"],
+          "correctAnswer": 1,
+          "explanation": "Paul quotes Genesis 15:6: 'Abraham believed God, and it was credited to him as righteousness.' Abraham believed God's promise that his descendants would be as numerous as the stars, even though he and Sarah were far too old to have children. Paul uses this to argue that people are made right with God through faith, not by following the law.",
+          "reference": "Romans 4:1-5, Genesis 15:6",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-13",
+          "question": "In the book of Revelation, John sees a vision of 144,000 people who are 'sealed' by God. These individuals are described as coming from the tribes of Israel. However, one of the original twelve tribes is missing from the list and is replaced by another. Which tribe is notably absent?",
+          "options": ["Benjamin", "Dan", "Judah", "Levi"],
+          "correctAnswer": 1,
+          "explanation": "The tribe of Dan is missing from the list in Revelation 7:4-8. The tribe of Manasseh (one of Joseph's sons) is listed separately instead. Scholars have debated why Dan is excluded — some early church writers suggested it was because the Antichrist would come from Dan (based on Genesis 49:17), though this is speculative.",
+          "reference": "Revelation 7:4-8",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-14",
+          "question": "In John chapter 21, after the risen Jesus helped the disciples catch a miraculous haul of fish, the Gospel records the exact number of fish caught. This specific number has puzzled scholars for centuries, with many proposing symbolic interpretations. How many fish were caught?",
+          "options": ["120", "144", "153", "200"],
+          "correctAnswer": 2,
+          "explanation": "The disciples caught exactly 153 large fish. Various interpretations have been suggested: Jerome said ancient zoologists catalogued 153 species of fish (symbolising all nations), Augustine noted that 153 is the sum of all numbers from 1 to 17, and others see gematria (number values of letters). The net held together despite the enormous catch.",
+          "reference": "John 21:11",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-15",
+          "question": "Paul describes a profound mystery in his letter to the Ephesians — something that had been hidden for ages but was now revealed through Christ. This 'mystery' was central to Paul's understanding of the gospel and his mission. What was this mystery?",
+          "options": ["That Jesus would return a second time", "That Gentiles are fellow heirs with Jews, united in one body through Christ", "That the Temple would be destroyed", "That the law of Moses would be replaced by a new law"],
+          "correctAnswer": 1,
+          "explanation": "Paul writes that 'this mystery is that through the gospel the Gentiles are heirs together with Israel, members together of one body, and sharers together in the promise in Christ Jesus.' This was revolutionary — that God's salvation plan included all peoples, not just the Jewish nation, united as equals in Christ.",
+          "reference": "Ephesians 3:1-6",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-16",
+          "question": "The word 'Maranatha' appears at the end of Paul's first letter to the Corinthians and is one of the few Aramaic words preserved in the Greek New Testament. It reveals what the earliest Christians were eagerly praying for. What does 'Maranatha' mean?",
+          "options": ["Grace be with you", "Our Lord, come!", "Peace be upon you", "God is great"],
+          "correctAnswer": 1,
+          "explanation": "'Maranatha' is Aramaic and can be translated as 'Our Lord, come!' (Marana tha) or 'Our Lord has come' (Maran atha). Most scholars prefer 'Come, Lord!' — expressing the early church's longing for Christ's return. The fact that it was preserved in Aramaic even in Greek-speaking churches shows how ancient and important this prayer was.",
+          "reference": "1 Corinthians 16:22",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-17",
+          "question": "Both the Gospel of Luke and the book of Acts are addressed to the same person. Luke tells this man that he investigated everything carefully so he could write an orderly account. Who was this recipient, whose name means 'friend of God' or 'loved by God'?",
+          "options": ["Theophilus", "Timothy", "Titus", "Tertullus"],
+          "correctAnswer": 0,
+          "explanation": "Both Luke's Gospel (Luke 1:3) and Acts (Acts 1:1) are addressed to 'most excellent Theophilus.' Whether Theophilus was a real person (possibly a Roman official or patron) or a symbolic name meaning 'friend of God' (addressed to all God-loving readers) has been debated by scholars for centuries.",
+          "reference": "Luke 1:1-4, Acts 1:1",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-18",
+          "question": "In the letter of Jude (one of the shortest books in the New Testament), the author references a dispute between the archangel Michael and the devil over the body of Moses. This story is not found in the Old Testament. From which ancient Jewish text does Jude appear to draw this account?",
+          "options": ["The Book of Enoch", "The Assumption of Moses", "The Testament of the Twelve Patriarchs", "The Wisdom of Solomon"],
+          "correctAnswer": 1,
+          "explanation": "Jude appears to reference the 'Assumption of Moses' (also called the 'Testament of Moses'), an ancient Jewish text. In this account, Michael and Satan argued over Moses' body after his death. Michael did not dare pronounce a slanderous judgment against the devil but said 'The Lord rebuke you!' Jude also quotes from 1 Enoch in the same letter.",
+          "reference": "Jude 1:9",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-19",
+          "question": "In 1 Corinthians 15, Paul presents the earliest known creed of Christian faith, listing the people Jesus appeared to after His resurrection. Paul says this tradition was 'passed on' to him. According to this creed, after appearing to the apostles, Jesus appeared to a large group all at once. How many people saw Him at one time?",
+          "options": ["70", "120", "300", "More than 500"],
+          "correctAnswer": 3,
+          "explanation": "Paul writes that Jesus 'appeared to more than five hundred of the brothers and sisters at the same time, most of whom are still living' — meaning people could still verify the claim when Paul wrote. This creed (1 Corinthians 15:3-8) is considered by scholars to date to within just a few years of Jesus' crucifixion.",
+          "reference": "1 Corinthians 15:3-8",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-20",
+          "question": "In the book of Acts, a young man named Eutychus was sitting in a window listening to Paul preach late into the night. Something happened to him that required a miraculous intervention from Paul. What happened?",
+          "options": ["He was struck blind by a vision", "He fell asleep, fell from a third-story window, and died", "He was seized by an evil spirit", "He collapsed from fasting too long"],
+          "correctAnswer": 1,
+          "explanation": "Paul was preaching in Troas and kept talking until midnight. A young man named Eutychus, sitting in a window, sank into a deep sleep and fell from the third floor, and was picked up dead. Paul went down, threw himself on the young man, and embraced him, saying 'Don't be alarmed. He's alive!' Paul then went back upstairs and kept preaching until dawn.",
+          "reference": "Acts 20:7-12",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-21",
+          "question": "In the letter to the Galatians, Paul publicly confronted the apostle Peter (Cephas) in the city of Antioch. Paul accused Peter of hypocrisy for a specific behaviour. What had Peter done that prompted Paul's confrontation?",
+          "options": ["Peter had denied knowing Christ again", "Peter was eating with Gentiles but withdrew when Jewish Christians arrived, fearing their disapproval", "Peter had rejected Paul's authority as an apostle", "Peter had returned to collecting taxes"],
+          "correctAnswer": 1,
+          "explanation": "Peter had been eating freely with Gentile believers in Antioch, but when certain men from James arrived in Jerusalem, Peter pulled away and separated himself, 'because he was afraid of those who belonged to the circumcision group.' Paul opposed him to his face because Peter's hypocrisy was leading others astray, including even Barnabas.",
+          "reference": "Galatians 2:11-14",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-22",
+          "question": "The letter of James and Paul's letter to the Romans appear to contradict each other on the relationship between faith and works. Paul writes 'a person is justified by faith apart from works of the law,' while James writes that 'a person is considered righteous by what they do and not by faith alone.' How do theologians typically reconcile these two statements?",
+          "options": ["James was correcting Paul's errors", "Paul is talking about how a person is initially saved, while James is talking about how genuine faith shows itself through actions", "They are genuinely contradictory and cannot be reconciled", "Paul was writing to Jews and James to Gentiles, so different rules apply"],
+          "correctAnswer": 1,
+          "explanation": "Most theologians see Paul and James addressing different questions. Paul argues against the idea that keeping the Jewish law can earn salvation — faith in Christ alone saves. James argues against a dead, inactive faith that claims to believe but produces no change in behaviour. Both agree that genuine saving faith will naturally produce good works.",
+          "reference": "Romans 3:28, James 2:24",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-23",
+          "question": "In the book of Revelation, John receives a vision of seven golden lampstands and is told what they represent. He also sees seven stars in the right hand of a figure 'like a son of man.' According to Revelation chapter 1, what do the seven lampstands and seven stars represent?",
+          "options": ["The seven days of creation and the seven archangels", "The seven churches and their angels (or messengers)", "The seven seals and the seven trumpets", "The seven continents and the seven spirits of God"],
+          "correctAnswer": 1,
+          "explanation": "Jesus explains the symbolism directly: 'The seven stars are the angels of the seven churches, and the seven lampstands are the seven churches' — Ephesus, Smyrna, Pergamum, Thyatira, Sardis, Philadelphia, and Laodicea. The word 'angel' (angelos) can also mean 'messenger,' possibly referring to the pastor or leader of each church.",
+          "reference": "Revelation 1:20",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-24",
+          "question": "In the Gospel of Matthew, Jesus curses a fig tree on His way to Jerusalem, and it withers immediately. This event, which seems unusual for Jesus, occurred the day after He cleansed the Temple. What do most scholars believe the fig tree symbolised?",
+          "options": ["The Roman Empire and its coming destruction", "Israel's spiritual fruitlessness despite its outward religious appearance", "The futility of relying on earthly sustenance", "The end of the agricultural age"],
+          "correctAnswer": 1,
+          "explanation": "Most scholars interpret the cursing of the fig tree as an enacted parable about Israel. The tree had leaves (outward appearance of religion) but no fruit (genuine spiritual life). Coming alongside the Temple cleansing, it represented Jesus' judgment on Israel's religious establishment, which had the appearance of devotion but lacked true faithfulness.",
+          "reference": "Matthew 21:18-22, Mark 11:12-25",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-25",
+          "question": "In John chapters 14-16, Jesus teaches extensively about the Holy Spirit during His farewell discourse with the disciples. Jesus uses a specific Greek title for the Spirit that is variously translated as 'Counsellor,' 'Advocate,' 'Helper,' or 'Comforter.' What is this Greek word?",
+          "options": ["Pneuma", "Parakletos", "Sophia", "Dunamis"],
+          "correctAnswer": 1,
+          "explanation": "'Parakletos' literally means 'one called alongside' — someone who advocates, comforts, and helps. Jesus promised the Father would send 'another Parakletos' to be with the disciples forever, teach them all things, remind them of Jesus' words, convict the world of sin, and guide them into all truth.",
+          "reference": "John 14:16-17, 26; 15:26; 16:7-15",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-26",
+          "question": "Paul's letter to Philemon is often cited in discussions about slavery in the ancient world. Paul sends back the runaway slave Onesimus with a remarkable request — he asks Philemon to receive Onesimus back not as a slave, but in a new way. How does Paul ask Philemon to treat Onesimus?",
+          "options": ["As a hired servant with wages", "As a dear brother in Christ", "As a freed man with no obligations", "As a business partner in Paul's ministry"],
+          "correctAnswer": 1,
+          "explanation": "Paul writes: 'Perhaps the reason he was separated from you for a little while was that you might have him back forever — no longer as a slave, but better than a slave, as a dear brother.' Paul subtly undermines the institution of slavery by declaring master and slave to be brothers in Christ — equal before God.",
+          "reference": "Philemon 1:15-16",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-27",
+          "question": "In 2 Peter chapter 3, Peter addresses those who mock the idea that Jesus will return, asking 'Where is this coming he promised?' Peter gives a specific reason for the apparent delay of Christ's return. According to Peter, why has the Lord not yet returned?",
+          "options": ["Because certain prophecies must still be fulfilled", "Because the Lord is patient, not wanting anyone to perish, but everyone to come to repentance", "Because the angels are not yet ready for the final battle", "Because the church has not yet reached every nation"],
+          "correctAnswer": 1,
+          "explanation": "Peter writes: 'The Lord is not slow in keeping his promise, as some understand slowness. Instead he is patient with you, not wanting anyone to perish, but everyone to come to repentance.' Peter also reminds readers that 'with the Lord a day is like a thousand years, and a thousand years are like a day.'",
+          "reference": "2 Peter 3:8-9",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-28",
+          "question": "In the Gospel of John, when Pilate asked Jesus 'What is truth?' during His trial, Jesus did not answer. But earlier in John's Gospel, Jesus had already answered this very question in a famous statement to His disciples. What had Jesus said?",
+          "options": ["'The truth will set you free'", "'I am the way, the truth, and the life'", "'You will know the truth by its fruits'", "'The Spirit of truth will guide you'"],
+          "correctAnswer": 1,
+          "explanation": "In John 14:6, Jesus declared 'I am the way and the truth and the life. No one comes to the Father except through me.' This is one of the most definitive claims Jesus made about His identity — He did not merely teach truth, He claimed to BE the truth. Pilate's question in John 18:38 echoes ironically because Truth was standing right in front of him.",
+          "reference": "John 14:6, John 18:38",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-29",
+          "question": "The book of Revelation describes a final battle where the forces of evil gather against God. The armies of the world are assembled at a specific location for this ultimate confrontation. By what name is this famous battle site known?",
+          "options": ["Gehenna", "Armageddon", "Megiddo", "The Valley of Jehoshaphat"],
+          "correctAnswer": 1,
+          "explanation": "Revelation 16:16 says the spirits of demons gathered the kings of the world 'to the place that in Hebrew is called Armageddon.' The name likely derives from 'Har Megiddo' (Mount Megiddo), an ancient battlefield site in northern Israel where many historic battles took place. The term has become synonymous with apocalyptic final conflict.",
+          "reference": "Revelation 16:16",
+          "points": 20
+        },
+        {
+          "id": "nt-mc-a-30",
+          "question": "In Paul's first letter to the Corinthians, he addresses the issue of spiritual gifts and uses the metaphor of a human body to explain how the church should function. According to Paul, what is the key lesson of this body metaphor?",
+          "options": ["The head (pastor) is more important than the other parts", "Every part of the body is needed, and the weaker parts are actually indispensable", "The body should strive to become one uniform part", "Some gifts are clearly superior to others"],
+          "correctAnswer": 1,
+          "explanation": "Paul argues that every member of the church is essential, just as every part of a body is needed. He writes 'those parts of the body that seem to be weaker are indispensable' and 'God has put the body together, giving greater honour to the parts that lacked it.' No one can say 'I don't need you' to another believer.",
+          "reference": "1 Corinthians 12:12-27",
+          "points": 20
+        }
+      ]
     },
     "true-false": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {
+          "id": "nt-tf-b-1",
+          "question": "According to the Gospels, Jesus was born in the city of Nazareth, which is why He was called 'Jesus of Nazareth.'",
+          "correctAnswer": false,
+          "explanation": "Jesus was born in Bethlehem, not Nazareth. He grew up in Nazareth, which is why He was called 'Jesus of Nazareth,' but His birth took place in Bethlehem, the city of David, fulfilling the prophecy in Micah 5:2.",
+          "reference": "Matthew 2:1, Luke 2:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-2",
+          "question": "In the New Testament, Jesus chose exactly 12 men to be His closest followers, and these men are known as the apostles.",
+          "correctAnswer": true,
+          "explanation": "Jesus appointed twelve apostles to be His closest companions and to carry on His mission. Their names are listed in Matthew 10:2-4: Simon Peter, Andrew, James, John, Philip, Bartholomew, Matthew, Thomas, James son of Alphaeus, Thaddaeus, Simon the Zealot, and Judas Iscariot.",
+          "reference": "Matthew 10:1-4",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-3",
+          "question": "The New Testament contains a total of four Gospels — Matthew, Mark, Luke, and John — each telling the story of Jesus' life, death, and resurrection from a different perspective.",
+          "correctAnswer": true,
+          "explanation": "The four Gospels are Matthew, Mark, Luke, and John. The first three (Matthew, Mark, Luke) are called the 'Synoptic Gospels' because they share a similar perspective, while John's Gospel takes a more theological approach and includes many events and teachings not found in the other three.",
+          "reference": "Matthew-John",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-4",
+          "question": "According to the Gospel of Matthew, when Jesus was born, a group of shepherds followed a star from the East to find Him and bring Him gifts of gold, frankincense, and myrrh.",
+          "correctAnswer": false,
+          "explanation": "It was the Magi (wise men), not shepherds, who followed the star and brought gifts. The shepherds were visited by angels in the fields near Bethlehem and went to see the baby Jesus in the manger. The Magi came from the East, possibly arriving much later when Jesus was in a house.",
+          "reference": "Matthew 2:1-12, Luke 2:8-20",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-5",
+          "question": "The apostle Paul wrote more books of the New Testament than any other single author. He is credited with writing 13 of the 27 books.",
+          "correctAnswer": true,
+          "explanation": "Paul is traditionally credited with writing 13 New Testament letters: Romans, 1 & 2 Corinthians, Galatians, Ephesians, Philippians, Colossians, 1 & 2 Thessalonians, 1 & 2 Timothy, Titus, and Philemon. Some scholars debate the authorship of a few, but tradition attributes all 13 to Paul.",
+          "reference": "Romans through Philemon",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-6",
+          "question": "In the Gospel of John, Jesus raised His friend Lazarus from the dead after Lazarus had been in the tomb for four days. The Bible says that Jesus wept when He saw the mourners grieving.",
+          "correctAnswer": true,
+          "explanation": "'Jesus wept' (John 11:35) is the shortest verse in the Bible. Despite knowing He was about to raise Lazarus, Jesus was deeply moved by the grief of Mary, Martha, and the other mourners. He then commanded 'Lazarus, come out!' and the dead man walked out of the tomb.",
+          "reference": "John 11:35-44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-7",
+          "question": "According to the book of Acts, the apostle Peter was the one who preached the sermon on the Day of Pentecost when about 3,000 people believed and were baptized.",
+          "correctAnswer": true,
+          "explanation": "After the Holy Spirit came upon the disciples at Pentecost, Peter stood up and preached a powerful sermon explaining that Jesus was the Messiah, crucified and risen from the dead. About 3,000 people accepted his message and were baptized that day, forming the foundation of the early church.",
+          "reference": "Acts 2:14-41",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-8",
+          "question": "The shortest verse in the English Bible is 'Jesus wept,' which appears in the Gospel of John when Jesus arrived at the tomb of His friend Lazarus.",
+          "correctAnswer": true,
+          "explanation": "John 11:35, 'Jesus wept,' is the shortest verse in most English translations of the Bible. It shows the humanity of Jesus — even though He knew He was about to raise Lazarus from the dead, He was deeply moved by the sorrow and grief of those around Him.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-9",
+          "question": "According to the Gospels, Jesus was crucified on a Friday and rose from the dead on the following Monday, which is why Christians celebrate Easter on Monday.",
+          "correctAnswer": false,
+          "explanation": "Jesus was crucified on a Friday (Good Friday) and rose from the dead on the third day, which was Sunday — not Monday. Christians celebrate Easter on Sunday because that is the day the women found the empty tomb and the risen Jesus appeared to His followers.",
+          "reference": "Mark 15:42, Mark 16:1-6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-10",
+          "question": "The book of Revelation, the last book of the New Testament, was written by the apostle John while he was exiled on a small island called Patmos.",
+          "correctAnswer": true,
+          "explanation": "John was exiled to the island of Patmos 'because of the word of God and the testimony of Jesus.' While there, he received the visions that make up the book of Revelation. Patmos is a small Greek island in the Aegean Sea, and tradition dates John's exile to around 95 AD during the reign of Emperor Domitian.",
+          "reference": "Revelation 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-11",
+          "question": "In the parable of the Prodigal Son, when the younger son returned home after wasting all his money, his father refused to welcome him back and made him work as a servant.",
+          "correctAnswer": false,
+          "explanation": "The father did the opposite — he ran to his son, embraced him, kissed him, and threw a lavish celebration. He put the best robe on him, a ring on his finger, and sandals on his feet. He ordered the fattened calf to be killed for a feast, saying 'this son of mine was dead and is alive again; he was lost and is found.'",
+          "reference": "Luke 15:20-24",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-12",
+          "question": "The Gospel of Mark is generally considered by scholars to be the shortest of the four Gospels and was likely the first one to be written.",
+          "correctAnswer": true,
+          "explanation": "Mark's Gospel is the shortest of the four, with only 16 chapters compared to Matthew's 28, Luke's 24, and John's 21. Most scholars believe Mark was written first (around 65-70 AD) and that Matthew and Luke used Mark as a source when writing their own Gospels.",
+          "reference": "Mark 1-16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-13",
+          "question": "According to the New Testament, Jesus performed His first miracle by healing a blind man at the Pool of Siloam in Jerusalem.",
+          "correctAnswer": false,
+          "explanation": "Jesus' first miracle was turning water into wine at a wedding in Cana of Galilee, not healing a blind man. John 2:11 specifically states 'What Jesus did here in Cana of Galilee was the first of the signs through which he revealed his glory.' The healing of a blind man at the Pool of Siloam happened much later in His ministry.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-14",
+          "question": "After Jesus ascended to heaven, the disciples waited in Jerusalem as He had instructed them. They were all gathered together when the Holy Spirit came upon them on the day of Pentecost.",
+          "correctAnswer": true,
+          "explanation": "Before ascending, Jesus told His disciples to stay in Jerusalem and wait for the gift of the Holy Spirit. They gathered in an upper room, praying together. On the day of Pentecost (50 days after Passover), the Holy Spirit came with the sound of a rushing wind and tongues of fire, empowering them to preach the gospel.",
+          "reference": "Acts 1:4-5, Acts 2:1-4",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-15",
+          "question": "In the Christmas story told in Luke's Gospel, an angel appeared to shepherds watching their flocks at night near Bethlehem and announced the birth of Jesus, calling Him 'a Saviour, who is Christ the Lord.'",
+          "correctAnswer": true,
+          "explanation": "An angel of the Lord appeared to shepherds in the fields near Bethlehem, and the glory of the Lord shone around them. The angel said 'Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Saviour has been born to you; he is the Messiah, the Lord.' Then a great company of angels appeared, praising God.",
+          "reference": "Luke 2:8-14",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-16",
+          "question": "The New Testament was originally written in Latin, the official language of the Roman Empire, and was later translated into Greek.",
+          "correctAnswer": false,
+          "explanation": "The New Testament was originally written in Greek — specifically Koine (common) Greek, which was the widely spoken language of the eastern Roman Empire. Although Latin was the official language of Rome, Greek was the common language of trade, culture, and communication throughout the Mediterranean world in the first century.",
+          "reference": "General NT scholarship",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-17",
+          "question": "According to the Gospel accounts, Jesus walked on water during a storm on the Sea of Galilee, and Peter also briefly walked on water before becoming afraid and beginning to sink.",
+          "correctAnswer": true,
+          "explanation": "Jesus came to the disciples walking on the Sea of Galilee during a storm. Peter asked to come to Jesus on the water, and Jesus said 'Come.' Peter stepped out of the boat and walked on the water toward Jesus, but when he saw the wind and waves, he became afraid and began to sink. Jesus caught him and said 'You of little faith, why did you doubt?'",
+          "reference": "Matthew 14:22-33",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-18",
+          "question": "The well-known verse John 3:16, which begins 'For God so loved the world that He gave His one and only Son,' was spoken by Jesus during a private nighttime conversation with a Pharisee named Nicodemus.",
+          "correctAnswer": true,
+          "explanation": "Nicodemus, a member of the Jewish ruling council, came to Jesus at night. During their conversation about being 'born again,' Jesus spoke the famous words: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.'",
+          "reference": "John 3:1-16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-19",
+          "question": "According to the book of Acts, the apostle Paul was born and raised in Jerusalem and never travelled outside of Israel during his ministry.",
+          "correctAnswer": false,
+          "explanation": "Paul was born in Tarsus (in modern-day Turkey), not Jerusalem. He was one of the most widely travelled figures in the New Testament, making at least three major missionary journeys across the Roman Empire — through modern-day Turkey, Greece, and eventually to Rome. He established churches throughout the Mediterranean world.",
+          "reference": "Acts 22:3, Acts 13-28",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-20",
+          "question": "In the Lord's Prayer that Jesus taught His disciples, one of the requests is 'Give us today our daily bread,' asking God to provide for our everyday needs.",
+          "correctAnswer": true,
+          "explanation": "The Lord's Prayer (Matthew 6:9-13) includes the request 'Give us today our daily bread.' This is a prayer for God's daily provision — not just physical food, but all the necessities of life. It teaches dependence on God for everyday needs, one day at a time.",
+          "reference": "Matthew 6:11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-21",
+          "question": "According to the Gospel of Luke, when Jesus was presented at the Temple as an infant, an elderly man named Simeon held the baby and declared that he could now die in peace because he had seen God's salvation.",
+          "correctAnswer": true,
+          "explanation": "Simeon was a righteous and devout man who had been promised by the Holy Spirit that he would not die before seeing the Messiah. When Mary and Joseph brought the baby Jesus to the Temple, Simeon took the child in his arms and praised God, saying 'my eyes have seen your salvation, which you have prepared in the sight of all nations.'",
+          "reference": "Luke 2:25-32",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-22",
+          "question": "The feeding of the 5,000 is the only miracle (other than the resurrection) that is recorded in all four Gospels — Matthew, Mark, Luke, and John.",
+          "correctAnswer": true,
+          "explanation": "The feeding of the 5,000 is indeed the only miracle performed by Jesus that appears in all four Gospels (Matthew 14:13-21, Mark 6:30-44, Luke 9:10-17, John 6:1-14). This universal inclusion highlights its significance to the early church as a demonstration of Jesus' divine power and compassion.",
+          "reference": "Matthew 14:13-21, Mark 6:30-44, Luke 9:10-17, John 6:1-14",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-23",
+          "question": "In the Gospel of Matthew, Jesus said 'It is easier for a camel to go through the eye of a needle than for a rich person to enter the kingdom of God.' He said this after a wealthy young man walked away sad because he was unwilling to give up his riches.",
+          "correctAnswer": true,
+          "explanation": "A rich young ruler asked Jesus what he must do to inherit eternal life. When Jesus told him to sell his possessions and give to the poor, the man went away sad because he had great wealth. Jesus then made this famous statement to His disciples, adding that 'with God all things are possible.'",
+          "reference": "Matthew 19:16-26",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-24",
+          "question": "According to the Gospel of John, after the resurrection, Jesus cooked breakfast for His disciples on the shore of the Sea of Galilee. The meal included bread and fish.",
+          "correctAnswer": true,
+          "explanation": "In John 21, the risen Jesus appeared to seven of His disciples who had been fishing all night without catching anything. He told them to cast their net on the right side of the boat, and they caught a huge haul. When they came ashore, they found Jesus had prepared a charcoal fire with fish on it and bread. Jesus said 'Come and have breakfast.'",
+          "reference": "John 21:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-25",
+          "question": "The book of Acts records that the early Christians in Jerusalem shared their possessions with one another, sold their property and goods, and gave to anyone who had need.",
+          "correctAnswer": true,
+          "explanation": "Acts 2:44-45 describes the communal life of the early church: 'All the believers were together and had everything in common. They sold property and possessions to give to anyone who had need.' This radical generosity was a hallmark of the first Christian community.",
+          "reference": "Acts 2:44-45",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-26",
+          "question": "According to the Gospel accounts, when Jesus died on the cross, the sky became dark in the middle of the day for three hours, even though it was not nighttime.",
+          "correctAnswer": true,
+          "explanation": "All three Synoptic Gospels record that from noon until 3pm (the sixth hour to the ninth hour), darkness came over the whole land while Jesus hung on the cross. This supernatural darkness lasted three hours, ending when Jesus cried out and gave up His spirit.",
+          "reference": "Matthew 27:45, Mark 15:33, Luke 23:44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-27",
+          "question": "In the New Testament, the word 'gospel' means 'good news,' and it refers to the message about Jesus Christ — His life, death, and resurrection for the salvation of humanity.",
+          "correctAnswer": true,
+          "explanation": "The English word 'gospel' comes from the Old English 'godspel' meaning 'good news,' which is a translation of the Greek word 'euangelion.' In the New Testament, this 'good news' is that God sent His Son Jesus to live a perfect life, die for humanity's sins, and rise again, offering forgiveness and eternal life to all who believe.",
+          "reference": "Mark 1:1, Romans 1:16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-28",
+          "question": "According to the book of Acts, when the Holy Spirit came at Pentecost, the disciples were able to speak in foreign languages they had never learned, and visitors from many different countries could each hear the message in their own native language.",
+          "correctAnswer": true,
+          "explanation": "On Pentecost, Jews from every nation were gathered in Jerusalem. When the Spirit filled the disciples, they began speaking in other tongues (languages). Parthians, Medes, Elamites, Mesopotamians, Egyptians, Romans, Cretans, Arabs — all heard the disciples declaring the wonders of God in their own languages. About 3,000 believed that day.",
+          "reference": "Acts 2:5-12",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-29",
+          "question": "The New Testament contains 27 books in total, including four Gospels, the book of Acts, 21 letters (epistles), and the book of Revelation.",
+          "correctAnswer": true,
+          "explanation": "The New Testament has exactly 27 books: the four Gospels (Matthew, Mark, Luke, John), the history of the early church (Acts), 13 letters attributed to Paul, the letter to the Hebrews, and 7 general epistles (James, 1-2 Peter, 1-3 John, Jude), plus the book of Revelation.",
+          "reference": "General NT canon",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-30",
+          "question": "According to the Gospels, when Jesus healed ten lepers (people with a serious skin disease) and sent them to show themselves to the priests, all ten came back to thank Him.",
+          "correctAnswer": false,
+          "explanation": "Only one of the ten healed lepers returned to thank Jesus — and he was a Samaritan, a foreigner. Jesus asked 'Were not all ten cleansed? Where are the other nine? Has no one returned to give praise to God except this foreigner?' He told the Samaritan 'Rise and go; your faith has made you well.'",
+          "reference": "Luke 17:11-19",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-31",
+          "question": "Joseph of Arimathea, a wealthy member of the Jewish council, provided his own new tomb for the burial of Jesus after the crucifixion.",
+          "correctAnswer": true,
+          "explanation": "Joseph of Arimathea was a rich man and a secret disciple of Jesus. After the crucifixion, he boldly went to Pontius Pilate and asked for Jesus' body. He wrapped it in clean linen cloth and placed it in his own new tomb, which had been cut out of rock. A large stone was rolled in front of the entrance.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-32",
+          "question": "In the Gospel of Luke, when the angel Gabriel appeared to Mary and told her she would give birth to Jesus, Mary was already married to Joseph at the time.",
+          "correctAnswer": false,
+          "explanation": "Mary was engaged (betrothed) to Joseph, not yet married, when the angel Gabriel visited her. In Jewish culture, betrothal was a legally binding agreement, but the couple had not yet lived together. Joseph initially planned to quietly divorce her when he learned she was pregnant, until an angel appeared to him in a dream explaining the situation.",
+          "reference": "Luke 1:26-27, Matthew 1:18-19",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-33",
+          "question": "The Golden Rule — 'Do to others what you would have them do to you' — was taught by Jesus during the Sermon on the Mount and is one of the most widely quoted ethical principles in history.",
+          "correctAnswer": true,
+          "explanation": "Jesus stated this principle in Matthew 7:12 during the Sermon on the Mount: 'So in everything, do to others what you would have them do to you, for this sums up the Law and the Prophets.' This teaching, often called the Golden Rule, has been recognised as a foundational ethical principle across many cultures and religions.",
+          "reference": "Matthew 7:12",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-34",
+          "question": "According to the book of Acts, the city of Antioch in Syria was where the followers of Jesus were first called 'Christians.'",
+          "correctAnswer": true,
+          "explanation": "Acts 11:26 records that 'the disciples were called Christians first at Antioch.' Before this, followers of Jesus were known as 'disciples,' 'believers,' or followers of 'the Way.' Antioch became a major centre of early Christianity and the launching point for Paul's missionary journeys.",
+          "reference": "Acts 11:26",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-35",
+          "question": "In the Gospel of Matthew, Jesus told Peter that he was the 'rock' upon which Jesus would build His church, and gave him 'the keys of the kingdom of heaven.'",
+          "correctAnswer": true,
+          "explanation": "After Peter confessed that Jesus was 'the Messiah, the Son of the living God,' Jesus replied: 'You are Peter (Petros/rock), and on this rock I will build my church, and the gates of Hades will not overcome it. I will give you the keys of the kingdom of heaven.' This passage has been interpreted differently across Christian traditions.",
+          "reference": "Matthew 16:16-19",
+          "points": 10
+        }
+      ],
+      "intermediate": [
+        {
+          "id": "nt-tf-i-1",
+          "question": "Paul's letter to the Philippians, which emphasises joy and contentment, was written while Paul was living comfortably in a house in Philippi, surrounded by friends and supporters.",
+          "correctAnswer": false,
+          "explanation": "Paul wrote Philippians while imprisoned, likely in Rome. Despite being in chains, the letter is remarkably joyful — the word 'joy' or 'rejoice' appears 16 times. Paul wrote 'I have learned to be content whatever the circumstances' and 'I can do all things through Christ who strengthens me.'",
+          "reference": "Philippians 1:12-14, 4:11-13",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-2",
+          "question": "According to the book of Acts, when Paul was bitten by a venomous snake on the island of Malta after his shipwreck, the islanders initially thought he must be a murderer being punished by fate.",
+          "correctAnswer": true,
+          "explanation": "When the viper fastened itself on Paul's hand, the islanders said to each other 'This man must be a murderer; for though he escaped from the sea, the goddess Justice has not allowed him to live.' But when Paul shook the snake off and suffered no harm, they changed their minds and said he must be a god.",
+          "reference": "Acts 28:3-6",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-3",
+          "question": "The letter to the Hebrews specifically identifies its author by name, just like Paul's letters identify Paul as the writer.",
+          "correctAnswer": false,
+          "explanation": "Unlike Paul's letters, which clearly identify Paul as the author, the letter to the Hebrews is anonymous — the author never identifies themselves. Scholars have proposed various candidates including Paul, Barnabas, Apollos, Priscilla, and Luke, but the true authorship remains one of the New Testament's great mysteries.",
+          "reference": "Hebrews 1:1",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-4",
+          "question": "In Paul's letter to the Galatians, he describes a confrontation where he publicly rebuked the apostle Peter for hypocrisy — specifically for withdrawing from eating with Gentile believers when Jewish Christians arrived.",
+          "correctAnswer": true,
+          "explanation": "Paul writes that he 'opposed Cephas (Peter) to his face, because he stood condemned.' Peter had been eating with Gentile Christians but withdrew when men from James arrived, fearing criticism. Paul saw this as undermining the gospel of grace and publicly challenged Peter's inconsistency.",
+          "reference": "Galatians 2:11-14",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-5",
+          "question": "According to the book of Acts, Paul appealed to Caesar to hear his case, which is what ultimately led to his journey to Rome. Only Roman citizens had the legal right to make this appeal.",
+          "correctAnswer": true,
+          "explanation": "As a Roman citizen, Paul had the right to appeal to the emperor. When the Roman governor Festus asked if Paul was willing to go to Jerusalem for trial, Paul said 'I appeal to Caesar!' Festus replied 'You have appealed to Caesar. To Caesar you will go!' This set in motion Paul's famous voyage and shipwreck on the way to Rome.",
+          "reference": "Acts 25:10-12",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-6",
+          "question": "In the Gospel of John, the Samaritan woman at the well had been married once before and was now single, which is why Jesus' knowledge of her past surprised her.",
+          "correctAnswer": false,
+          "explanation": "Jesus told the woman she had had five husbands, and the man she was currently with was not her husband. Her situation was far more complex than being single after one marriage. The woman was amazed that Jesus knew all this about her and told the townspeople 'Come, see a man who told me everything I ever did.'",
+          "reference": "John 4:17-18",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-7",
+          "question": "The apostle John, who wrote the Gospel of John, three epistles, and the book of Revelation, is believed to be the only one of the original twelve apostles who was not martyred but died of natural causes in old age.",
+          "correctAnswer": true,
+          "explanation": "According to early church tradition, John was the only apostle who was not martyred. He is said to have lived to an advanced age in Ephesus. Though he was reportedly persecuted — tradition says he was thrown into boiling oil but survived — he died of natural causes around 100 AD, making him the last surviving apostle.",
+          "reference": "Early church tradition, Revelation 1:9",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-8",
+          "question": "In Paul's second letter to Timothy, Paul describes all Scripture as 'God-breathed' (or 'inspired by God') and useful for teaching, rebuking, correcting, and training in righteousness.",
+          "correctAnswer": true,
+          "explanation": "2 Timothy 3:16-17 states: 'All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness, so that the servant of God may be thoroughly equipped for every good work.' The Greek word 'theopneustos' (God-breathed) is used only here in the entire New Testament.",
+          "reference": "2 Timothy 3:16-17",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-9",
+          "question": "The book of James was written by the apostle James, the son of Zebedee and brother of John, who was one of Jesus' inner circle of three disciples.",
+          "correctAnswer": false,
+          "explanation": "The James who wrote the letter is generally identified as James the brother of Jesus (also called James the Just), not James the son of Zebedee. James son of Zebedee was martyred early (Acts 12:2), while James the brother of Jesus became a key leader of the Jerusalem church and wrote this practical letter about living out faith.",
+          "reference": "James 1:1, Acts 12:2, Galatians 1:19",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-10",
+          "question": "In the Gospel of Mark, Jesus healed a man who was blind from birth by putting mud made from His saliva on the man's eyes and telling him to wash in the Pool of Siloam.",
+          "correctAnswer": false,
+          "explanation": "This miracle — using mud made from saliva and sending the man to wash in the Pool of Siloam — is recorded in the Gospel of John (chapter 9), not Mark. Mark does record Jesus healing a blind man using saliva (Mark 8:22-26), but in that account Jesus spat directly on the man's eyes and laid hands on him in Bethsaida.",
+          "reference": "John 9:1-7, Mark 8:22-26",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-11",
+          "question": "According to the book of Acts, when Paul and Silas were imprisoned in Philippi and an earthquake freed them, the jailer was so moved by their behaviour that he and his entire household believed in Jesus and were baptized that same night.",
+          "correctAnswer": true,
+          "explanation": "When the earthquake opened the prison doors and loosened the chains, the jailer was about to kill himself, thinking the prisoners had escaped. Paul shouted 'Don't harm yourself! We are all here!' The jailer fell trembling before them and asked 'What must I do to be saved?' Paul told him to believe in Jesus, and the jailer and his whole family were baptized that very hour.",
+          "reference": "Acts 16:25-34",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-12",
+          "question": "Paul's famous statement 'I can do all things through Christ who strengthens me' from Philippians 4:13 was written in the context of Paul boasting about his personal achievements and successes in ministry.",
+          "correctAnswer": false,
+          "explanation": "Paul's statement was about contentment in all circumstances, not boasting about achievements. The full context is about learning to be content whether in plenty or in want: 'I know what it is to be in need, and I know what it is to have plenty. I have learned the secret of being content in any and every situation... I can do all this through him who gives me strength.'",
+          "reference": "Philippians 4:11-13",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-13",
+          "question": "In the early church, believers met primarily in large dedicated church buildings that were constructed specifically for Christian worship.",
+          "correctAnswer": false,
+          "explanation": "Early Christians met in private homes, not purpose-built church buildings. The New Testament frequently mentions 'house churches' — churches meeting in the homes of believers like Priscilla and Aquila (Romans 16:5), Nympha (Colossians 4:15), and Philemon (Philemon 1:2). Dedicated church buildings did not appear until the 3rd-4th centuries.",
+          "reference": "Romans 16:5, Colossians 4:15, Acts 2:46",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-14",
+          "question": "The apostle Paul was present at the stoning of Stephen, the first Christian martyr. At that time, Paul (then called Saul) approved of Stephen's execution and guarded the cloaks of those who were throwing stones.",
+          "correctAnswer": true,
+          "explanation": "Acts 7:58 records that the witnesses 'laid their coats at the feet of a young man named Saul,' and Acts 8:1 says 'Saul approved of their killing him.' This detail makes Paul's later conversion all the more dramatic — the man who endorsed the murder of the first Christian martyr became Christianity's greatest missionary.",
+          "reference": "Acts 7:58, 8:1",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-15",
+          "question": "In the parable of the sheep and the goats (Matthew 25), Jesus teaches that at the final judgment, people will be separated based on how they treated 'the least of these' — the hungry, thirsty, stranger, naked, sick, and imprisoned.",
+          "correctAnswer": true,
+          "explanation": "Jesus describes the Son of Man separating people like a shepherd separates sheep from goats. Those who fed the hungry, gave drink to the thirsty, welcomed strangers, clothed the naked, and visited the sick and imprisoned are welcomed into the kingdom. Jesus says 'Whatever you did for one of the least of these brothers and sisters of mine, you did for me.'",
+          "reference": "Matthew 25:31-46",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-16",
+          "question": "The city of Ephesus, where Paul spent about three years establishing a church, was home to one of the Seven Wonders of the Ancient World — the Temple of Artemis (Diana).",
+          "correctAnswer": true,
+          "explanation": "The Temple of Artemis in Ephesus was one of the most famous structures in the ancient world. When Paul's preaching threatened the business of silversmiths who made shrines of Artemis, a silversmith named Demetrius stirred up a riot. A mob filled the amphitheatre shouting 'Great is Artemis of the Ephesians!' for two hours.",
+          "reference": "Acts 19:23-41",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-17",
+          "question": "In the Gospel of Luke, Jesus tells a parable about a Pharisee and a tax collector who both went to the Temple to pray. Jesus says the Pharisee went home justified (made right with God) because of his impressive list of religious accomplishments.",
+          "correctAnswer": false,
+          "explanation": "It was actually the tax collector, not the Pharisee, who went home justified. The Pharisee prayed boastfully about how righteous he was, while the tax collector beat his breast and said 'God, have mercy on me, a sinner.' Jesus said the tax collector went home justified, teaching that 'all those who exalt themselves will be humbled, and those who humble themselves will be exalted.'",
+          "reference": "Luke 18:9-14",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-18",
+          "question": "According to the book of Acts, the first Gentile (non-Jewish person) to be baptized and welcomed into the Christian faith was a Roman centurion named Cornelius, after Peter had a vision about clean and unclean animals.",
+          "correctAnswer": true,
+          "explanation": "Cornelius was a Roman centurion in Caesarea described as devout and God-fearing. After Peter's vision (in which God declared all foods clean), the Holy Spirit directed Peter to Cornelius' house. While Peter was still speaking, the Holy Spirit fell on Cornelius and his household, and Peter baptized them — a watershed moment that opened Christianity to the Gentile world.",
+          "reference": "Acts 10:1-48",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-19",
+          "question": "In Paul's letter to the Romans, he writes that 'all have sinned and fall short of the glory of God,' meaning that every human being (except Jesus) has sinned and needs God's grace.",
+          "correctAnswer": true,
+          "explanation": "Romans 3:23 is one of the most foundational verses in Paul's theology: 'for all have sinned and fall short of the glory of God.' Paul uses this to establish that no one — Jew or Gentile — can earn salvation through their own righteousness. Everyone stands equally in need of God's grace, which comes freely through faith in Jesus Christ.",
+          "reference": "Romans 3:23",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-20",
+          "question": "The seven deacons were appointed in the early church (Acts 6) specifically because the apostles wanted to delegate financial management so they could focus on prayer and preaching the Word.",
+          "correctAnswer": true,
+          "explanation": "Greek-speaking Jewish widows were being overlooked in the daily distribution of food. The apostles said 'It would not be right for us to neglect the ministry of the word of God in order to wait on tables.' They asked the church to choose seven men 'full of the Spirit and wisdom' to handle this responsibility. Stephen and Philip were among those chosen.",
+          "reference": "Acts 6:1-7",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-21",
+          "question": "In his letter to the Colossians, Paul describes Jesus as 'the image of the invisible God, the firstborn over all creation,' through whom and for whom all things were created.",
+          "correctAnswer": true,
+          "explanation": "Colossians 1:15-17 contains one of the highest Christological statements in the New Testament: Jesus is 'the image of the invisible God, the firstborn over all creation. For in him all things were created: things in heaven and on earth, visible and invisible... all things have been created through him and for him. He is before all things, and in him all things hold together.'",
+          "reference": "Colossians 1:15-17",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-22",
+          "question": "Paul and Barnabas had a sharp disagreement about whether to take John Mark on their second missionary journey, which resulted in them parting ways and going on separate missions.",
+          "correctAnswer": true,
+          "explanation": "John Mark had abandoned Paul and Barnabas during the first journey. Barnabas wanted to give him a second chance, but Paul disagreed strongly. Their disagreement was so sharp that they parted company — Barnabas took Mark to Cyprus, while Paul chose Silas and went through Syria and Cilicia. Interestingly, Paul later reconciled with Mark and called him 'helpful to me in my ministry' (2 Timothy 4:11).",
+          "reference": "Acts 15:36-41",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-23",
+          "question": "The phrase 'God helps those who help themselves' is a direct quote from the New Testament and was taught by Jesus during the Sermon on the Mount.",
+          "correctAnswer": false,
+          "explanation": "This phrase is NOT found anywhere in the Bible. It is often attributed to Benjamin Franklin's 'Poor Richard's Almanack' (1736). In fact, the Bible teaches the opposite — that God helps the helpless and saves those who cannot save themselves. Verses like Ephesians 2:8-9 emphasise that salvation is a gift of grace, not earned through human effort.",
+          "reference": "Not in the Bible; cf. Ephesians 2:8-9",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-24",
+          "question": "According to the Gospel of Matthew, Judas Iscariot betrayed Jesus for the price of 30 pieces of silver — the same price the Old Testament set for a slave who was accidentally killed.",
+          "correctAnswer": true,
+          "explanation": "Judas went to the chief priests and asked 'What are you willing to give me if I deliver him over to you?' They counted out 30 pieces of silver. This amount matched the price of a slave in Exodus 21:32 and fulfilled the prophecy in Zechariah 11:12-13. Judas later threw the money back into the Temple in remorse.",
+          "reference": "Matthew 26:14-16, Zechariah 11:12-13",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-25",
+          "question": "In the book of Revelation, Jesus describes the church in Laodicea as being 'lukewarm — neither hot nor cold' and warns that He is about to 'spit them out of his mouth' because of their spiritual complacency.",
+          "correctAnswer": true,
+          "explanation": "Jesus told the Laodicean church: 'I know your deeds, that you are neither cold nor hot. I wish you were either one or the other! So, because you are lukewarm — neither hot nor cold — I am about to spit you out of my mouth.' The Laodiceans were wealthy and self-sufficient, thinking they needed nothing, when in reality they were 'wretched, pitiful, poor, blind and naked.'",
+          "reference": "Revelation 3:14-22",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-26",
+          "question": "Paul wrote his letter to the church in Rome before he had ever visited the city, expressing his desire to come see them and his plans to visit on his way to Spain.",
+          "correctAnswer": true,
+          "explanation": "Unlike most of Paul's letters, which were written to churches he had founded, Romans was written to a church Paul had never visited. He wrote 'I planned many times to come to you' (1:13) and explained his desire to visit them on his way to Spain (15:24). Paul eventually did arrive in Rome — but as a prisoner, not a free traveller.",
+          "reference": "Romans 1:10-13, 15:23-24",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-27",
+          "question": "In the Gospel of Mark, Jesus calmed a violent storm on the Sea of Galilee by simply saying 'Quiet! Be still!' to the wind and waves, and His frightened disciples asked 'Who is this? Even the wind and the waves obey him!'",
+          "correctAnswer": true,
+          "explanation": "The disciples were terrified as their boat was being swamped by waves, while Jesus was sleeping on a cushion in the stern. They woke Him saying 'Teacher, don't you care if we drown?' Jesus rebuked the wind and said to the waves 'Quiet! Be still!' The wind died down and it was completely calm. Jesus asked them 'Why are you so afraid? Do you still have no faith?'",
+          "reference": "Mark 4:35-41",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-28",
+          "question": "The apostle Paul was executed in Rome during the reign of Emperor Nero, who was known for his severe persecution of Christians, including blaming them for the Great Fire of Rome in 64 AD.",
+          "correctAnswer": true,
+          "explanation": "According to early church tradition, Paul was beheaded in Rome around 64-67 AD during Emperor Nero's persecution. As a Roman citizen, Paul was entitled to execution by sword rather than crucifixion. Tradition also holds that Peter was crucified in Rome during this same period, reportedly requesting to be crucified upside down because he felt unworthy to die in the same manner as Jesus.",
+          "reference": "2 Timothy 4:6-8, early church tradition",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-29",
+          "question": "In the Gospel of John, when Jesus washed His disciples' feet, Peter initially refused, telling Jesus 'You shall never wash my feet.' But when Jesus said Peter could have no part with Him otherwise, Peter changed his mind and asked Jesus to wash his hands and head too.",
+          "correctAnswer": true,
+          "explanation": "Peter first protested 'You shall never wash my feet.' Jesus replied 'Unless I wash you, you have no part with me.' Peter then swung to the opposite extreme: 'Then, Lord, not just my feet but my hands and my head as well!' Jesus told him that someone who has already bathed only needs their feet washed — they are already clean.",
+          "reference": "John 13:6-10",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-30",
+          "question": "According to the book of Acts, the apostle Paul performed so many miracles in Ephesus that people were healed simply by touching handkerchiefs and aprons that had been in contact with his body.",
+          "correctAnswer": true,
+          "explanation": "Acts 19:11-12 records that 'God did extraordinary miracles through Paul, so that even handkerchiefs and aprons that had touched him were taken to the sick, and their illnesses were cured and the evil spirits left them.' These were described as 'extraordinary' (unusual) miracles, suggesting even the biblical author found them remarkable.",
+          "reference": "Acts 19:11-12",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-31",
+          "question": "In the letter of 1 John, the author writes that 'God is love' — not merely that God is loving, but that love is part of His very essence and nature.",
+          "correctAnswer": true,
+          "explanation": "1 John 4:8 and 4:16 both state plainly 'God is love.' This is one of the most profound theological statements in the New Testament — love is not just something God does, it is who He is. John goes on to say that 'whoever lives in love lives in God, and God in them.'",
+          "reference": "1 John 4:8, 16",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-32",
+          "question": "The word 'Trinity' — describing God as Father, Son, and Holy Spirit — appears frequently throughout the New Testament and was a term used by Jesus Himself.",
+          "correctAnswer": false,
+          "explanation": "The word 'Trinity' does not appear anywhere in the Bible. It was developed by later theologians (Tertullian is often credited, around 200 AD) to describe the biblical teaching that God exists as three persons — Father, Son, and Holy Spirit — in one divine being. While the concept is supported by passages like Matthew 28:19, the specific term is not found in Scripture.",
+          "reference": "Matthew 28:19, 2 Corinthians 13:14",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-33",
+          "question": "According to the Gospel of Luke, when Jesus sent out 72 disciples in pairs to prepare towns for His arrival, He told them to take plenty of money, extra clothing, and supplies for the journey.",
+          "correctAnswer": false,
+          "explanation": "Jesus told the 72 the opposite: 'Do not take a purse or bag or sandals.' He instructed them to rely entirely on the hospitality of others, eating and drinking whatever was offered. They were to heal the sick and tell people 'The kingdom of God has come near to you.' The 72 returned with joy, reporting that even demons submitted to them in Jesus' name.",
+          "reference": "Luke 10:1-4",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-34",
+          "question": "In Paul's letter to the Ephesians, he describes the church as the 'body of Christ' with Jesus as the head, and teaches that husbands should love their wives 'just as Christ loved the church and gave himself up for her.'",
+          "correctAnswer": true,
+          "explanation": "Paul uses the marriage relationship as an analogy for Christ and the church. He instructs husbands to love their wives sacrificially, 'just as Christ loved the church and gave himself up for her' — a radical teaching in a patriarchal society. He calls this relationship between Christ and the church 'a profound mystery.'",
+          "reference": "Ephesians 5:25-32",
+          "points": 15
+        },
+        {
+          "id": "nt-tf-i-35",
+          "question": "The apostle Peter wrote in his first letter that Christians should 'always be prepared to give an answer to everyone who asks you to give the reason for the hope that you have,' but to do so 'with gentleness and respect.'",
+          "correctAnswer": true,
+          "explanation": "1 Peter 3:15 says: 'Always be prepared to give an answer to everyone who asks you to give the reason for the hope that you have. But do this with gentleness and respect.' This verse balances confident faith with humble, respectful engagement — defending what you believe while treating others with dignity.",
+          "reference": "1 Peter 3:15",
+          "points": 15
+        }
+      ],
+      "advanced": [
+        {
+          "id": "nt-tf-a-1",
+          "question": "The 'Johannine Comma' (1 John 5:7-8) — a Trinitarian statement about the Father, the Word, and the Holy Spirit bearing witness — is found in the earliest and most reliable Greek manuscripts of 1 John.",
+          "correctAnswer": false,
+          "explanation": "The Johannine Comma ('For there are three that bear record in heaven, the Father, the Word, and the Holy Ghost: and these three are one') is not found in any Greek manuscript before the 14th century. It is widely regarded by textual scholars as a later addition. Most modern translations either omit it or place it in a footnote.",
+          "reference": "1 John 5:7-8 (textual criticism)",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-2",
+          "question": "Paul's use of the phrase 'justification by faith' in Romans means essentially the same thing as James' use of the word 'justified' in James 2:24, and both authors are addressing the same theological question.",
+          "correctAnswer": false,
+          "explanation": "Paul and James use 'justified' in different senses addressing different issues. Paul uses it to mean 'declared righteous before God' — arguing against earning salvation through law-keeping. James uses it to mean 'shown to be righteous' — arguing against a faith that produces no action. Paul addresses the basis of salvation (faith, not works), while James addresses the evidence of salvation (works that flow from genuine faith).",
+          "reference": "Romans 3:28, James 2:24",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-3",
+          "question": "In the Gospel of Mark, there is a passage known as the 'Messianic Secret' where Jesus repeatedly tells people He has healed and even demons to keep His identity quiet and not tell anyone who He is.",
+          "correctAnswer": true,
+          "explanation": "Throughout Mark's Gospel, Jesus commands demons to be silent about His identity (1:34, 3:12), tells healed people not to tell anyone (1:44, 5:43, 7:36), and orders His disciples not to reveal that He is the Messiah (8:30). Scholars call this the 'Messianic Secret.' Possible reasons include preventing political misunderstanding of His messiahship and the fact that His mission could only be fully understood after the cross.",
+          "reference": "Mark 1:34, 1:44, 8:30",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-4",
+          "question": "The Greek word 'ekklesia,' translated as 'church' in the New Testament, originally meant a sacred building or temple dedicated to religious worship.",
+          "correctAnswer": false,
+          "explanation": "'Ekklesia' literally means 'called-out assembly' or 'gathering of citizens.' In secular Greek, it referred to an assembly of citizens called together for civic purposes. When the New Testament uses 'ekklesia,' it refers to the gathered community of believers — people, not a building. The concept of a church as a physical building developed centuries later.",
+          "reference": "Matthew 16:18, Acts 19:32",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-5",
+          "question": "The ending of Mark's Gospel (Mark 16:9-20), which includes accounts of Jesus' post-resurrection appearances and the Great Commission, is found in all the earliest and most reliable Greek manuscripts.",
+          "correctAnswer": false,
+          "explanation": "Mark 16:9-20 (the 'Longer Ending of Mark') is absent from the two oldest and most reliable Greek manuscripts (Codex Sinaiticus and Codex Vaticanus). Most scholars believe Mark's original Gospel ended abruptly at 16:8 ('they said nothing to anyone, because they were afraid'). The longer ending was likely added by a later scribe to provide a more satisfying conclusion.",
+          "reference": "Mark 16:8-20 (textual criticism)",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-6",
+          "question": "In the book of Revelation, the number 666 — the 'number of the beast' — is presented as a puzzle to be decoded. In some early manuscripts, the number is actually given as 616 instead of 666.",
+          "correctAnswer": true,
+          "explanation": "While 666 is the reading in most manuscripts, some early manuscripts (including Papyrus 115, dating to the 3rd century) give the number as 616. Both numbers can be arrived at through gematria (assigning numerical values to letters) of 'Nero Caesar' — 666 from the Hebrew spelling and 616 from the Latin spelling. This has led many scholars to identify the 'beast' with Emperor Nero.",
+          "reference": "Revelation 13:18",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-7",
+          "question": "The apostle Paul coined the term 'rapture' in his first letter to the Thessalonians when he described believers being 'caught up' to meet the Lord in the air at His return.",
+          "correctAnswer": false,
+          "explanation": "Paul did describe believers being 'caught up together... to meet the Lord in the air' (1 Thessalonians 4:17), but he did not use the word 'rapture.' The Greek word he used is 'harpazo' (seized/caught up). The word 'rapture' comes from the Latin Vulgate translation 'rapturo.' The term 'rapture' as a theological concept distinct from the Second Coming was developed much later, primarily in the 19th century.",
+          "reference": "1 Thessalonians 4:16-17",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-8",
+          "question": "The earliest complete manuscript of the entire New Testament that still exists today is Codex Sinaiticus, dating to approximately the 4th century AD (around 350 AD).",
+          "correctAnswer": true,
+          "explanation": "Codex Sinaiticus, discovered at St Catherine's Monastery on Mount Sinai in the 19th century, is one of the oldest complete copies of the New Testament, dating to around 330-360 AD. Along with Codex Vaticanus (also 4th century), it is one of the most important witnesses to the original text of the New Testament. Earlier papyrus fragments exist but do not contain the complete text.",
+          "reference": "Textual criticism, Codex Sinaiticus",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-9",
+          "question": "In the Gospel of John, when Jesus says 'Before Abraham was born, I am' (John 8:58), the Jewish leaders tried to stone Him because they understood He was claiming to be God by using the divine name 'I AM' that God revealed to Moses at the burning bush.",
+          "correctAnswer": true,
+          "explanation": "Jesus' statement 'ego eimi' (I AM) deliberately echoes God's self-revelation to Moses: 'I AM WHO I AM' (Exodus 3:14). The Jewish leaders immediately recognised this as a claim to divinity — which is why they picked up stones to kill Him for blasphemy. Jesus was not merely claiming to have existed before Abraham; He was claiming to be the eternal, self-existent God.",
+          "reference": "John 8:58-59, Exodus 3:14",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-10",
+          "question": "Paul's letter to the Ephesians and his letter to the Colossians share so much similar language and content that scholars believe they were likely written around the same time and possibly delivered by the same messenger, Tychicus.",
+          "correctAnswer": true,
+          "explanation": "Ephesians and Colossians share extensive parallel passages, similar themes (the supremacy of Christ, the body metaphor, household codes), and were both apparently carried by Tychicus (Ephesians 6:21, Colossians 4:7). Most scholars who accept Pauline authorship date them to the same period of Paul's Roman imprisonment, around 60-62 AD.",
+          "reference": "Ephesians 6:21, Colossians 4:7",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-11",
+          "question": "In the book of Revelation, the 'millennium' refers to a literal 1,000-year reign of Christ on earth, and all Christian traditions agree on how and when this period will occur.",
+          "correctAnswer": false,
+          "explanation": "The millennium (Revelation 20:1-6) is one of the most debated topics in Christian theology. Premillennialists believe Christ will return before a literal 1,000-year reign. Postmillennialists believe the millennium symbolises a golden age before Christ's return. Amillennialists interpret it symbolically as the current church age. These diverse views have been held throughout church history.",
+          "reference": "Revelation 20:1-6",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-12",
+          "question": "The 'hymn of Christ' in Philippians 2:6-11, which describes Jesus emptying Himself and taking on human form, is widely believed by scholars to be a pre-existing hymn or creed that Paul quoted rather than composed himself.",
+          "correctAnswer": true,
+          "explanation": "Most scholars believe the Philippians 2:6-11 passage (the 'Carmen Christi' or 'Christ Hymn') pre-dates Paul's letter and was an early Christian hymn or confession. Its poetic structure, elevated language, and use of vocabulary not typically found in Paul's other writings suggest it was a liturgical piece already known to the Philippian church that Paul incorporated into his letter.",
+          "reference": "Philippians 2:6-11",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-13",
+          "question": "The story of the woman caught in adultery (John 7:53-8:11), where Jesus says 'Let any one of you who is without sin be the first to throw a stone at her,' is found in the earliest manuscripts of John's Gospel.",
+          "correctAnswer": false,
+          "explanation": "This beloved passage (the 'Pericope Adulterae') is not found in the earliest and best manuscripts of John. It is absent from Papyrus 66, Papyrus 75, Codex Sinaiticus, and Codex Vaticanus. Some manuscripts place it after Luke 21:38 instead. Most scholars believe it is a genuine historical tradition about Jesus that was inserted into John's Gospel later, but was not part of the original text.",
+          "reference": "John 7:53-8:11 (textual criticism)",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-14",
+          "question": "In his letter to the Romans, Paul uses the Greek legal term 'hilasterion' (often translated 'propitiation' or 'mercy seat') to describe Jesus' sacrificial death, linking it directly to the golden lid of the Ark of the Covenant in the Old Testament where God's wrath was turned aside.",
+          "correctAnswer": true,
+          "explanation": "In Romans 3:25, Paul writes that God presented Christ as a 'hilasterion' — the same Greek word used in the Septuagint (Greek Old Testament) for the mercy seat on the Ark of the Covenant (Exodus 25:17-22). Just as the high priest sprinkled blood on the mercy seat on the Day of Atonement, Jesus' blood satisfies God's justice and turns aside His wrath — accomplishing what the old sacrificial system could only foreshadow.",
+          "reference": "Romans 3:25, Exodus 25:17-22",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-15",
+          "question": "The 'Q Source' (from German 'Quelle' meaning 'source') is a hypothetical document that scholars believe Matthew and Luke used as a source, containing sayings of Jesus not found in Mark's Gospel. No copy of Q has ever been found.",
+          "correctAnswer": true,
+          "explanation": "The Q Source is a hypothetical collection of Jesus' sayings proposed to explain material shared by Matthew and Luke but absent from Mark. Since Matthew and Luke share about 235 verses not found in Mark (mostly teachings and sayings), scholars theorise they both had access to this additional source. No physical copy of Q has ever been discovered, and its existence remains a scholarly hypothesis.",
+          "reference": "Synoptic Problem scholarship",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-16",
+          "question": "The concept of 'already but not yet' in New Testament theology describes the idea that God's kingdom has already been inaugurated through Jesus' first coming, but will not be fully realised until His second coming.",
+          "correctAnswer": true,
+          "explanation": "This 'inaugurated eschatology' is a key framework for understanding the New Testament. Jesus announced that 'the kingdom of God has come near' (Mark 1:15), yet He also taught His disciples to pray 'Your kingdom come' (Matthew 6:10). Believers already experience salvation, the Spirit, and new life, but still await the resurrection, final judgment, and the new creation. The kingdom is 'already' here but 'not yet' fully consummated.",
+          "reference": "Mark 1:15, Matthew 6:10, Romans 8:18-25",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-17",
+          "question": "In the book of Hebrews, the author warns that it is 'impossible' for those who have been enlightened and have tasted the heavenly gift, if they fall away, to be brought back to repentance — a passage that has generated centuries of theological debate about whether Christians can lose their salvation.",
+          "correctAnswer": true,
+          "explanation": "Hebrews 6:4-6 is one of the most debated passages in the New Testament. The author describes people who have been 'enlightened,' 'tasted the heavenly gift,' 'shared in the Holy Spirit,' and 'tasted the goodness of the word of God' — and says if they fall away, it is 'impossible to be brought back to repentance.' Theologians have debated for centuries whether this describes genuine Christians, near-believers, or is a hypothetical warning.",
+          "reference": "Hebrews 6:4-6",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-18",
+          "question": "The Greek word 'parousia,' commonly used in the New Testament to describe Christ's second coming, literally means 'arrival' or 'presence' and was originally used to describe the official visit of a king or emperor to a city.",
+          "correctAnswer": true,
+          "explanation": "'Parousia' was a technical term in the Greco-Roman world for the ceremonial arrival of a ruler, dignitary, or emperor at a city. Citizens would go out to meet the arriving king and escort him back into the city. Paul uses this imagery in 1 Thessalonians 4:17 when he describes believers being 'caught up to meet the Lord in the air' — just as citizens would go out to meet an approaching king.",
+          "reference": "1 Thessalonians 4:15, Matthew 24:27",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-19",
+          "question": "All four Gospels agree on the exact day and time of Jesus' crucifixion. There are no chronological differences between John's account and the accounts in Matthew, Mark, and Luke.",
+          "correctAnswer": false,
+          "explanation": "There are notable chronological differences between John and the Synoptic Gospels. The Synoptics present the Last Supper as a Passover meal (Jesus was crucified the day after Passover), while John appears to present Jesus' crucifixion as occurring on the day of Passover preparation — making Jesus the Passover lamb. Scholars have proposed various harmonisations, but the apparent discrepancy remains a significant topic of study.",
+          "reference": "Mark 14:12 vs John 19:14",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-20",
+          "question": "In Paul's first letter to the Corinthians (chapter 15), the creed about Jesus' death, burial, and resurrection that Paul quotes is considered by most scholars to date to within just a few years of Jesus' crucifixion — making it one of the earliest Christian statements of faith.",
+          "correctAnswer": true,
+          "explanation": "The creed in 1 Corinthians 15:3-7 ('that Christ died for our sins according to the Scriptures, that he was buried, that he was raised on the third day...') is widely dated by scholars to within 3-5 years of the crucifixion. Paul says he 'received' this tradition and 'passed it on,' using technical rabbinic language for transmitting oral tradition. This makes it one of the earliest verifiable Christian statements of faith.",
+          "reference": "1 Corinthians 15:3-7",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-21",
+          "question": "The book of Revelation was universally accepted into the New Testament canon from the very beginning, with no early church leaders or councils ever questioning its authenticity or place in Scripture.",
+          "correctAnswer": false,
+          "explanation": "Revelation's place in the canon was heavily debated. While it was accepted early in the Western church, many Eastern churches were hesitant. Dionysius of Alexandria (3rd century) questioned its apostolic authorship. Eusebius listed it among both the 'accepted' and 'disputed' books. The Syrian church did not include it in their canon for centuries. Its canonical status was not fully settled in the East until well into the medieval period.",
+          "reference": "Church history, Eusebius' Ecclesiastical History",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-22",
+          "question": "In Romans 8, Paul writes that 'all things work together for good' for those who love God. The Greek grammar of this verse indicates that God Himself is the one actively working all things together, not that things just happen to work out on their own.",
+          "correctAnswer": true,
+          "explanation": "Romans 8:28 can be translated 'God works all things together for good for those who love him, who have been called according to his purpose.' The Greek text supports God as the active subject — He is the one orchestrating and directing all circumstances (even suffering) toward a good outcome for His people. This is not passive luck but active divine sovereignty.",
+          "reference": "Romans 8:28",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-23",
+          "question": "The 'Pastoral Epistles' — 1 Timothy, 2 Timothy, and Titus — are called 'pastoral' because they were written to individual church leaders (pastors) rather than to entire congregations, and they deal with practical matters of church leadership and organisation.",
+          "correctAnswer": true,
+          "explanation": "The Pastoral Epistles are unique among Paul's letters because they are addressed to individuals (Timothy and Titus) who were overseeing churches, rather than to the churches themselves. They contain practical instructions about church leadership, qualifications for elders and deacons, dealing with false teaching, and personal encouragement for ministry. The term 'Pastoral Epistles' was coined in the 18th century.",
+          "reference": "1 Timothy, 2 Timothy, Titus",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-24",
+          "question": "The Greek word 'agape,' used extensively in the New Testament for God's love and the love Christians should show, was a common and widely used word in secular Greek literature before the New Testament authors adopted it.",
+          "correctAnswer": false,
+          "explanation": "'Agape' was actually a relatively rare and unremarkable word in pre-Christian Greek literature. The New Testament authors essentially transformed it, filling it with rich theological meaning to describe God's unconditional, self-sacrificing love. Other Greek words for love — 'eros' (romantic), 'philia' (friendship), 'storge' (family) — were far more common. The NT writers chose 'agape' precisely because it lacked strong prior associations and could be defined by Christ's example.",
+          "reference": "John 3:16, 1 Corinthians 13, 1 John 4:8",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-25",
+          "question": "In the book of Acts, Luke records Paul's speech to the Ephesian elders at Miletus, in which Paul quotes a saying of Jesus — 'It is more blessed to give than to receive' — that is not found in any of the four Gospels.",
+          "correctAnswer": true,
+          "explanation": "In Acts 20:35, Paul says 'remembering the words the Lord Jesus himself said: \"It is more blessed to give than to receive.\"' This saying of Jesus (called an 'agraphon' — an unwritten saying) does not appear in Matthew, Mark, Luke, or John. It demonstrates that the early church preserved oral traditions of Jesus' teachings beyond what was recorded in the Gospels.",
+          "reference": "Acts 20:35",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-26",
+          "question": "The letter of 2 Peter and the letter of Jude share such extensive verbal parallels — particularly in their descriptions of false teachers — that most scholars believe one borrowed from the other, with the majority view being that 2 Peter borrowed from Jude.",
+          "correctAnswer": true,
+          "explanation": "2 Peter 2 and Jude 4-18 share remarkably similar content, vocabulary, and structure when describing false teachers. Most scholars believe 2 Peter incorporated material from Jude (which is thought to be earlier) rather than the reverse. This literary relationship is one of the clearest examples of intertextuality within the New Testament.",
+          "reference": "2 Peter 2, Jude 4-18",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-27",
+          "question": "In 1 Corinthians 11, Paul instructs women to cover their heads during worship and argues from the 'order of creation' that this practice reflects a spiritual principle. He also states that even 'nature itself' teaches that it is a disgrace for a man to have long hair.",
+          "correctAnswer": true,
+          "explanation": "Paul does indeed make these arguments in 1 Corinthians 11:2-16, appealing to creation order, angelic observation, and 'nature' to support head coverings for women in worship. He also says long hair on men is disgraceful but is given to women 'as a covering.' This is one of the most culturally debated passages in Paul's letters, with Christians disagreeing on whether the principle is universal or culturally specific.",
+          "reference": "1 Corinthians 11:2-16",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-28",
+          "question": "The 'seven spirits of God' mentioned in the book of Revelation (1:4, 3:1, 4:5, 5:6) are generally understood by scholars to refer to seven distinct angelic beings rather than to the Holy Spirit.",
+          "correctAnswer": false,
+          "explanation": "While some interpret the 'seven spirits' as angels, the majority view is that they represent the Holy Spirit in His fullness and completeness (seven being the number of perfection/completion in Jewish symbolism). In Revelation 1:4, the 'seven spirits' are mentioned alongside God the Father and Jesus Christ in a Trinitarian greeting, suggesting they refer to the Holy Spirit. The imagery likely draws from Isaiah 11:2, which lists the Spirit's attributes.",
+          "reference": "Revelation 1:4, Isaiah 11:2",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-29",
+          "question": "In his letter to the Galatians, Paul describes going to Jerusalem and meeting privately with the 'pillars' of the church — James, Peter, and John — who added nothing to his message but gave him and Barnabas 'the right hand of fellowship,' agreeing that Paul should go to the Gentiles while they would go to the Jews.",
+          "correctAnswer": true,
+          "explanation": "Paul describes this pivotal meeting in Galatians 2:1-10. The Jerusalem leaders recognised that Paul had been entrusted with the gospel to the Gentiles, just as Peter had been entrusted with the gospel to the Jews. They added nothing to Paul's message and gave him their full endorsement, asking only that he 'remember the poor' — which Paul was eager to do.",
+          "reference": "Galatians 2:1-10",
+          "points": 20
+        },
+        {
+          "id": "nt-tf-a-30",
+          "question": "The phrase 'born again' that Jesus uses in John 3 when speaking to Nicodemus comes from a Greek word ('anothen') that can mean both 'again' and 'from above,' creating a deliberate double meaning that Nicodemus misunderstood.",
+          "correctAnswer": true,
+          "explanation": "The Greek word 'anothen' is intentionally ambiguous — it means both 'again' (a second time) and 'from above' (from heaven). Nicodemus took it literally as 'again' and asked how a man could enter his mother's womb a second time. But Jesus meant 'from above' — a spiritual rebirth by the Holy Spirit. This wordplay is characteristic of John's Gospel, where misunderstandings often serve as teaching opportunities.",
+          "reference": "John 3:3-8",
+          "points": 20
+        }
+      ]
     }
   },
   "old-testament": {
