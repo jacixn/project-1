@@ -1719,14 +1719,1020 @@
   },
   "old-testament": {
     "multiple-choice": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {
+          "id": "ot-mc-b-1",
+          "question": "In the very first book of the Bible, God created the heavens and the earth in a specific number of days and then rested. According to Genesis, how many days did God spend creating everything before He rested?",
+          "options": ["5 days", "6 days", "7 days", "10 days"],
+          "correctAnswer": 1,
+          "explanation": "God created the heavens, earth, light, sky, land, sea, plants, sun, moon, stars, animals, and humans over six days. On the seventh day, He rested — which is why the Sabbath (day of rest) became sacred in Jewish tradition.",
+          "reference": "Genesis 1-2:3",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-2",
+          "question": "According to Genesis, God created the first man from the dust of the ground and breathed life into him. He then created the first woman from one of the man's ribs to be his companion. What were the names of the first man and woman?",
+          "options": ["Abraham and Sarah", "Adam and Eve", "Noah and his wife", "Isaac and Rebekah"],
+          "correctAnswer": 1,
+          "explanation": "God formed Adam from the dust of the ground and breathed the breath of life into his nostrils. Later, God caused Adam to fall into a deep sleep, took one of his ribs, and fashioned Eve as his partner. Their names mean 'man' (Adam) and 'life-giver' (Eve).",
+          "reference": "Genesis 2:7, 21-23",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-3",
+          "question": "In the Garden of Eden, God told Adam and Eve they could eat from any tree except one. A serpent deceived Eve into eating fruit from this forbidden tree, and she gave some to Adam too. What was this tree called?",
+          "options": ["The Tree of Life", "The Tree of Knowledge of Good and Evil", "The Tree of Wisdom", "The Tree of Paradise"],
+          "correctAnswer": 1,
+          "explanation": "God commanded them not to eat from the Tree of Knowledge of Good and Evil, warning that they would die if they did. The serpent told Eve 'You will not certainly die... your eyes will be opened, and you will be like God.' After they ate, they became aware of their nakedness and hid from God.",
+          "reference": "Genesis 2:16-17, 3:1-7",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-4",
+          "question": "Adam and Eve had two sons. The older brother became a farmer and the younger became a shepherd. When both brought offerings to God, God accepted the younger brother's offering but not the older brother's. In a jealous rage, the older brother killed the younger. Who killed whom?",
+          "options": ["Abel killed Cain", "Cain killed Abel", "Seth killed Cain", "Cain killed Seth"],
+          "correctAnswer": 1,
+          "explanation": "Cain, the farmer, was furious that God accepted Abel's offering (the best portions of his flock) but not his own. God warned Cain that sin was crouching at his door, but Cain lured Abel into a field and killed him. When God asked where Abel was, Cain replied 'Am I my brother's keeper?'",
+          "reference": "Genesis 4:1-12",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-5",
+          "question": "When God saw that the earth had become filled with violence and wickedness, He decided to send a great flood to destroy all life — but He found one righteous man and his family worth saving. God told this man to build a massive boat (an ark) to survive the flood. Who was this man?",
+          "options": ["Abraham", "Moses", "Noah", "Enoch"],
+          "correctAnswer": 2,
+          "explanation": "Noah was described as 'a righteous man, blameless among the people of his time.' God instructed him to build an ark and bring his family plus two of every kind of animal aboard. The flood covered the entire earth for 40 days and nights, but Noah and everyone on the ark survived.",
+          "reference": "Genesis 6:9-22",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-6",
+          "question": "After the great flood, God made a promise (covenant) to Noah that He would never again destroy the earth with a flood. God set a sign in the sky as a reminder of this promise. What was this sign?",
+          "options": ["A bright star", "A rainbow", "A cloud shaped like a dove", "The northern lights"],
+          "correctAnswer": 1,
+          "explanation": "God said 'I have set my rainbow in the clouds, and it will be the sign of the covenant between me and the earth. Whenever the rainbow appears in the clouds, I will see it and remember the everlasting covenant between God and all living creatures.'",
+          "reference": "Genesis 9:12-16",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-7",
+          "question": "God called a man named Abram to leave his homeland and go to a new land that God would show him. God promised to make him the father of a great nation, even though Abram and his wife were very old and had no children. God later changed his name. What did God rename him?",
+          "options": ["Israel", "Abraham", "Moses", "Jacob"],
+          "correctAnswer": 1,
+          "explanation": "God changed Abram's name to Abraham, meaning 'father of many nations,' and his wife Sarai's name to Sarah. Despite being nearly 100 years old, Abraham believed God's promise, and Sarah miraculously gave birth to Isaac — the son through whom God's promise would continue.",
+          "reference": "Genesis 17:1-8",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-8",
+          "question": "God tested Abraham's faith by asking him to do something incredibly difficult — sacrifice his beloved son Isaac on a mountain. Abraham obeyed and was about to go through with it when God intervened at the last moment. What did God provide as a substitute sacrifice?",
+          "options": ["A dove", "A lamb", "A ram caught in a thicket", "A young bull"],
+          "correctAnswer": 2,
+          "explanation": "As Abraham raised the knife, an angel called out 'Do not lay a hand on the boy!' Abraham looked up and saw a ram caught by its horns in a thicket. He sacrificed the ram instead of Isaac. Abraham named that place 'The LORD Will Provide.'",
+          "reference": "Genesis 22:1-14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-9",
+          "question": "Isaac's wife Rebekah gave birth to twin boys. The older twin, who was hairy and red, became a skilled hunter. The younger twin, who was quiet and stayed among the tents, tricked his father into giving him the firstborn's blessing. What were the twins' names?",
+          "options": ["Cain and Abel", "Jacob and Esau", "Esau and Jacob", "Ishmael and Isaac"],
+          "correctAnswer": 2,
+          "explanation": "Esau was born first (red and hairy), followed by Jacob (holding Esau's heel). Jacob first bought Esau's birthright for a bowl of stew, then later disguised himself as Esau to steal the firstborn's blessing from their blind father Isaac. Despite his deception, God chose Jacob to carry on Abraham's covenant.",
+          "reference": "Genesis 25:19-34, 27:1-40",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-10",
+          "question": "Jacob had 12 sons, but he openly favoured one of them — a young man named Joseph — and gave him a special gift that made his brothers extremely jealous. What was this gift that caused so much resentment?",
+          "options": ["A golden crown", "A beautiful coat of many colours", "A fine horse", "A jewelled sword"],
+          "correctAnswer": 1,
+          "explanation": "Jacob gave Joseph a richly ornamented robe (often called a 'coat of many colours'), signalling that Joseph was his favourite. This, combined with Joseph's dreams about his brothers bowing down to him, made them so jealous that they eventually sold him into slavery in Egypt.",
+          "reference": "Genesis 37:3-4",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-11",
+          "question": "After being sold into slavery by his jealous brothers, Joseph ended up in Egypt where he was falsely accused and thrown into prison. He eventually rose to become the second most powerful man in all of Egypt by interpreting something for Pharaoh. What did Joseph interpret?",
+          "options": ["A mysterious inscription on the palace wall", "Pharaoh's dreams about seven fat cows and seven thin cows", "The movements of the stars", "A coded message from a foreign king"],
+          "correctAnswer": 1,
+          "explanation": "Pharaoh dreamed of seven fat cows eaten by seven thin cows, and seven full heads of grain swallowed by seven thin heads. Joseph explained that this meant seven years of abundance followed by seven years of famine. Pharaoh was so impressed that he put Joseph in charge of all Egypt to prepare for the famine.",
+          "reference": "Genesis 41:1-40",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-12",
+          "question": "When the Israelites were enslaved in Egypt, a baby boy was born to a Hebrew family. To save him from Pharaoh's decree to kill all Hebrew baby boys, his mother placed him in a waterproof basket and set it floating in the Nile River. Who found and adopted the baby?",
+          "options": ["A Hebrew midwife", "Pharaoh's daughter", "A wealthy merchant's wife", "A priest's wife"],
+          "correctAnswer": 1,
+          "explanation": "Pharaoh's daughter came to the Nile to bathe and discovered the basket with the crying baby inside. She felt sorry for him and decided to adopt him. She named him Moses, saying 'I drew him out of the water.' Ironically, Moses' own mother was hired as his nursemaid.",
+          "reference": "Exodus 2:1-10",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-13",
+          "question": "When Moses was tending sheep in the wilderness near Mount Horeb, God appeared to him in a dramatic and unusual way to commission him to lead the Israelites out of slavery in Egypt. How did God appear to Moses?",
+          "options": ["As a pillar of cloud", "In a burning bush that was not consumed by the fire", "As a flash of lightning on the mountain", "Through an angel with a flaming sword"],
+          "correctAnswer": 1,
+          "explanation": "Moses saw a bush that was on fire but did not burn up. When he went to investigate, God called to him from within the bush and told him to remove his sandals because he was standing on holy ground. God then revealed His name as 'I AM WHO I AM' and commissioned Moses to free the Israelites.",
+          "reference": "Exodus 3:1-14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-14",
+          "question": "When Pharaoh refused to let the Israelites go, God sent ten devastating plagues upon Egypt. The tenth and final plague was the most terrible of all and finally broke Pharaoh's resistance. What was this final plague?",
+          "options": ["A plague of locusts that destroyed all crops", "Three days of total darkness over Egypt", "The death of every firstborn son in Egypt", "A plague that turned the Nile River to blood"],
+          "correctAnswer": 2,
+          "explanation": "The tenth plague was the death of every firstborn son in Egypt, from Pharaoh's own son to the firstborn of prisoners and livestock. The Israelites were protected by marking their doorposts with lamb's blood — the angel of death 'passed over' these homes. This event is commemorated as Passover.",
+          "reference": "Exodus 11-12",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-15",
+          "question": "After the Israelites left Egypt, Pharaoh changed his mind and sent his army to chase them. The Israelites found themselves trapped between the Egyptian army behind them and a large body of water in front. God performed a miracle to save them. What happened?",
+          "options": ["God sent a storm that destroyed the Egyptian army", "God parted the Red Sea so the Israelites could walk through on dry ground", "God made the Israelites invisible to the Egyptians", "God caused an earthquake that swallowed the Egyptian army"],
+          "correctAnswer": 1,
+          "explanation": "Moses stretched out his hand over the sea, and God drove the sea back with a strong east wind all night, turning it into dry land. The Israelites walked through on dry ground with walls of water on both sides. When the Egyptians followed, God released the waters and the entire army was drowned.",
+          "reference": "Exodus 14:13-28",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-16",
+          "question": "At Mount Sinai, God gave Moses a set of laws for the Israelites to follow. The most famous of these laws are a set of fundamental commandments that were written on stone tablets by God Himself. How many commandments were in this set?",
+          "options": ["5", "7", "10", "12"],
+          "correctAnswer": 2,
+          "explanation": "The Ten Commandments cover duties to God (no other gods, no idols, don't misuse God's name, keep the Sabbath) and duties to others (honour parents, don't murder, don't commit adultery, don't steal, don't lie, don't covet). God wrote them on two stone tablets and gave them to Moses on Mount Sinai.",
+          "reference": "Exodus 20:1-17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-17",
+          "question": "While Moses was up on Mount Sinai receiving God's law for 40 days, the Israelites grew impatient and asked Aaron (Moses' brother) to make them a god they could see and worship. Aaron collected their gold jewellery and made an idol. What shape was this idol?",
+          "options": ["A golden eagle", "A golden calf", "A golden serpent", "A golden lion"],
+          "correctAnswer": 1,
+          "explanation": "Aaron melted down the people's gold earrings and fashioned a golden calf. The people declared 'These are your gods, Israel, who brought you up out of Egypt!' and held a wild celebration. When Moses came down and saw the idol worship, he was so angry he smashed the stone tablets and destroyed the calf.",
+          "reference": "Exodus 32:1-20",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-18",
+          "question": "After leaving Egypt, the Israelites wandered in the wilderness for many years before entering the Promised Land. During this time, God miraculously provided food that appeared on the ground each morning. What was this food called?",
+          "options": ["Unleavened bread", "Manna", "Quail", "Barley cakes"],
+          "correctAnswer": 1,
+          "explanation": "Each morning, thin flakes like frost appeared on the ground. The Israelites called it 'manna' (meaning 'What is it?'). It was white like coriander seed and tasted like wafers made with honey. God provided it six days a week — on the sixth day they gathered double because none appeared on the Sabbath.",
+          "reference": "Exodus 16:14-31",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-19",
+          "question": "When the Israelites finally reached the border of the Promised Land (Canaan), Moses sent 12 spies to scout it out. Ten spies came back terrified, saying the inhabitants were giants. But two spies insisted God could give them victory. Who were these two faithful spies?",
+          "options": ["Moses and Aaron", "Joshua and Caleb", "Samuel and David", "Gideon and Samson"],
+          "correctAnswer": 1,
+          "explanation": "Joshua and Caleb brought back grapes and other fruit, confirming the land was rich and fertile. While the other ten spies said 'We seemed like grasshoppers compared to them,' Joshua and Caleb urged the people not to be afraid, saying 'The LORD is with us.' Because of the people's faithlessness, God made them wander 40 years until that generation died.",
+          "reference": "Numbers 13-14",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-20",
+          "question": "After Moses died, God appointed a new leader to bring the Israelites into the Promised Land. This man had been Moses' assistant and was one of the two faithful spies. Under his leadership, the walls of Jericho famously fell down. Who was this leader?",
+          "options": ["Caleb", "Joshua", "Aaron", "Gideon"],
+          "correctAnswer": 1,
+          "explanation": "Joshua led the Israelites across the Jordan River and into Canaan. At Jericho, God instructed them to march around the city once a day for six days, then seven times on the seventh day. When they blew their trumpets and shouted, the walls of Jericho collapsed and the city was captured.",
+          "reference": "Joshua 1:1-9, 6:1-20",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-21",
+          "question": "One of the most famous stories in the Old Testament involves a young shepherd boy who volunteered to fight a giant Philistine warrior named Goliath, who was over nine feet tall and terrified the entire Israelite army. What weapon did this shepherd boy use to defeat Goliath?",
+          "options": ["A sword and shield", "A spear and javelin", "A sling and a stone", "A bow and arrow"],
+          "correctAnswer": 2,
+          "explanation": "Young David refused King Saul's armour and instead took his shepherd's sling and five smooth stones from a stream. He told Goliath 'You come against me with sword and spear, but I come against you in the name of the LORD Almighty.' David slung a single stone that struck Goliath in the forehead and killed him.",
+          "reference": "1 Samuel 17:40-50",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-22",
+          "question": "After King Saul died, a shepherd-turned-warrior became the greatest king Israel ever had. He conquered Jerusalem, united all the tribes, and wrote many of the Psalms. God made a special covenant with him, promising his royal line would last forever. Who was this king?",
+          "options": ["Solomon", "David", "Samuel", "Josiah"],
+          "correctAnswer": 1,
+          "explanation": "David went from shepherd boy to Israel's most beloved king. Despite his flaws (including his sin with Bathsheba), David was called 'a man after God's own heart.' God promised David that his throne would be established forever — a promise Christians see fulfilled in Jesus, who was called 'Son of David.'",
+          "reference": "2 Samuel 5-7",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-23",
+          "question": "King David's son became the next king of Israel and was known as the wisest man who ever lived. When God offered to give him anything he wanted, this king asked for wisdom instead of wealth or power. He also built the first Temple in Jerusalem. Who was he?",
+          "options": ["Absalom", "Solomon", "Rehoboam", "Nathan"],
+          "correctAnswer": 1,
+          "explanation": "Solomon asked God for 'a discerning heart to govern your people and to distinguish between right and wrong.' God was so pleased with this request that He gave Solomon not only unparalleled wisdom but also the riches and honour he had not asked for. Solomon built the magnificent Temple in Jerusalem and wrote Proverbs, Ecclesiastes, and Song of Solomon.",
+          "reference": "1 Kings 3:5-14, 6:1",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-24",
+          "question": "The prophet Elijah had a dramatic showdown with 450 prophets of the false god Baal on top of Mount Carmel. Each side built an altar and called on their god to send fire from heaven to consume the sacrifice. What happened when Elijah prayed?",
+          "options": ["Nothing happened and the contest was declared a draw", "God sent fire that consumed Elijah's sacrifice, the altar, the stones, and even the water around it", "Lightning struck both altars equally", "A strong wind blew Baal's altar away"],
+          "correctAnswer": 1,
+          "explanation": "Elijah even poured twelve jars of water on his altar to make the challenge harder. When he prayed, fire fell from heaven and burned up the sacrifice, the wood, the stones, the soil, and licked up all the water in the trench. The people fell on their faces and cried 'The LORD — He is God!'",
+          "reference": "1 Kings 18:20-39",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-25",
+          "question": "A man named Jonah was called by God to go preach to the wicked city of Nineveh, but Jonah ran away in the opposite direction by boarding a ship. God sent a great storm, and the sailors threw Jonah overboard. What happened to Jonah in the sea?",
+          "options": ["He drowned and God brought him back to life", "A great fish swallowed him and he lived inside it for three days", "He floated on driftwood until reaching shore", "Dolphins carried him to safety"],
+          "correctAnswer": 1,
+          "explanation": "God sent a great fish (often called a whale) to swallow Jonah. He spent three days and three nights inside the fish, where he prayed and repented. The fish then vomited him onto dry land, and Jonah finally went to Nineveh to deliver God's message. The entire city repented.",
+          "reference": "Jonah 1:17-2:10",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-26",
+          "question": "In the book of Daniel, three young Jewish men refused to bow down and worship a golden statue that King Nebuchadnezzar of Babylon had set up. As punishment, they were thrown into a blazing furnace. What happened to them inside the fire?",
+          "options": ["They were burned but survived", "They were completely unharmed, and a fourth figure appeared with them in the fire", "An angel put out the fire immediately", "The furnace exploded and they escaped"],
+          "correctAnswer": 1,
+          "explanation": "Shadrach, Meshach, and Abednego were thrown into a furnace heated seven times hotter than usual. But when the king looked in, he saw four men walking around unharmed — the fourth looked 'like a son of the gods.' The three men came out without even the smell of smoke on them. Nebuchadnezzar praised their God.",
+          "reference": "Daniel 3:1-30",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-27",
+          "question": "The prophet Daniel continued to pray to God three times a day even after a new law was passed making it illegal to pray to anyone except the king. His enemies reported him and he was thrown into a pit of dangerous animals as punishment. What was in the pit?",
+          "options": ["Snakes", "Scorpions", "Lions", "Bears"],
+          "correctAnswer": 2,
+          "explanation": "Daniel was thrown into the lions' den because he refused to stop praying to God. King Darius, who liked Daniel, was forced to carry out his own decree. The next morning, Darius rushed to the den and called out. Daniel answered that God had sent an angel to shut the lions' mouths. Daniel was lifted out without a scratch.",
+          "reference": "Daniel 6:1-23",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-28",
+          "question": "In the book of Exodus, when God called Moses to confront Pharaoh and demand the release of the Israelites, Moses protested that he was not a good speaker. So God gave Moses a partner who would speak on his behalf. Who was this spokesperson?",
+          "options": ["Joshua", "Aaron", "Caleb", "Miriam"],
+          "correctAnswer": 1,
+          "explanation": "God appointed Aaron, Moses' older brother, to be his spokesperson. God told Moses 'You shall speak to him and put words in his mouth... He will speak to the people for you, and it will be as if he were your mouth and as if you were God to him.' Aaron stood before Pharaoh alongside Moses throughout the confrontations.",
+          "reference": "Exodus 4:10-16",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-29",
+          "question": "In the book of Ruth, a young Moabite woman chose to stay with her Israelite mother-in-law Naomi after both their husbands died, rather than return to her own family. She famously declared her loyalty with the words 'Where you go I will go.' What was this devoted woman's name?",
+          "options": ["Esther", "Ruth", "Hannah", "Deborah"],
+          "correctAnswer": 1,
+          "explanation": "Ruth told Naomi: 'Where you go I will go, and where you stay I will stay. Your people will be my people and your God my God.' Ruth moved to Bethlehem with Naomi and eventually married Boaz, a kind landowner. Ruth became the great-grandmother of King David and is listed in the genealogy of Jesus.",
+          "reference": "Ruth 1:16-17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-30",
+          "question": "A young Jewish woman became queen of Persia and used her position to save the entire Jewish people from a plot to destroy them. She risked her life by approaching the king without being summoned. Who was this brave queen?",
+          "options": ["Ruth", "Deborah", "Esther", "Sarah"],
+          "correctAnswer": 2,
+          "explanation": "Queen Esther was a Jewish orphan raised by her cousin Mordecai. When the evil official Haman plotted to kill all the Jews in Persia, Mordecai urged Esther to speak up, saying 'Who knows whether you have come to the kingdom for such a time as this?' Esther bravely approached the king, exposed Haman's plot, and saved her people.",
+          "reference": "Esther 4:14, 7:1-10",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-31",
+          "question": "The book of Psalms is the longest book in the Bible and contains 150 songs, prayers, and poems. Many of them were written by a shepherd who became king. Which biblical figure is credited with writing the majority of the Psalms?",
+          "options": ["Moses", "Solomon", "David", "Asaph"],
+          "correctAnswer": 2,
+          "explanation": "King David is credited with writing about 73 of the 150 Psalms. They cover a wide range of emotions — praise, thanksgiving, lament, confession, and trust. David wrote many of them from personal experience, including during times of danger, guilt, and triumph. The Psalms remain the most-read poetry in human history.",
+          "reference": "Book of Psalms",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-32",
+          "question": "One of Israel's judges was an incredibly strong man whose power came from God as long as he kept a special vow — part of which was to never cut his hair. When a woman named Delilah discovered his secret and had his hair shaved, he lost his strength. Who was this strongman?",
+          "options": ["Gideon", "Samson", "Ehud", "Jephthah"],
+          "correctAnswer": 1,
+          "explanation": "Samson was a Nazirite — set apart for God from birth. His supernatural strength allowed him to kill a lion with bare hands and defeat 1,000 Philistines with a donkey's jawbone. But Delilah, bribed by the Philistines, pressured him until he revealed that his hair was the sign of his vow. They shaved his head, and his strength left him.",
+          "reference": "Judges 16:4-21",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-33",
+          "question": "A woman named Hannah was deeply distressed because she could not have children. She went to the Tabernacle and prayed so intensely that the priest thought she was drunk. God answered her prayer and she gave birth to a son whom she dedicated to God's service. Who was this son?",
+          "options": ["David", "Samuel", "Saul", "Eli"],
+          "correctAnswer": 1,
+          "explanation": "Hannah prayed with such emotion that the priest Eli initially rebuked her, but when he understood her sincerity, he blessed her. God gave her a son and she named him Samuel, meaning 'heard by God.' When Samuel was weaned, Hannah brought him to the Tabernacle to serve under Eli, keeping her vow to dedicate him to God.",
+          "reference": "1 Samuel 1:1-28",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-34",
+          "question": "The Old Testament tells of a righteous man who lost everything — his children, his wealth, and his health — yet refused to curse God despite his suffering. His friends insisted he must have sinned, but God eventually restored double what he had lost. Who was this man?",
+          "options": ["Job", "Jeremiah", "Daniel", "Ezekiel"],
+          "correctAnswer": 0,
+          "explanation": "Job lost all his livestock, servants, and ten children in a single day, then was struck with painful sores from head to toe. His wife told him to curse God and die, and his friends argued he must have done something wrong. But Job maintained his innocence and trusted God. In the end, God restored Job's fortunes twofold.",
+          "reference": "Job 1-2, 42:10-17",
+          "points": 10
+        },
+        {
+          "id": "ot-mc-b-35",
+          "question": "The prophet Isaiah wrote one of the most famous prophecies in the Old Testament, describing a coming 'Servant' who would suffer and be 'pierced for our transgressions.' Christians believe this prophecy was fulfilled by Jesus. What is this passage commonly called?",
+          "options": ["The Covenant Promise", "The Suffering Servant", "The Messianic Psalm", "The Royal Decree"],
+          "correctAnswer": 1,
+          "explanation": "Isaiah 53, known as the 'Suffering Servant' passage, describes someone who would be 'despised and rejected,' 'pierced for our transgressions,' 'crushed for our iniquities,' and by whose wounds 'we are healed.' Written around 700 BC, it is one of the most frequently cited Old Testament prophecies about Jesus.",
+          "reference": "Isaiah 52:13-53:12",
+          "points": 10
+        }
+      ],
+      "intermediate": [
+        {
+          "id": "ot-mc-i-1",
+          "question": "After Solomon died, the kingdom of Israel split into two nations because Solomon's son Rehoboam refused to lighten the people's heavy taxes. The northern kingdom kept the name Israel, while the southern kingdom took a different name. What was the southern kingdom called?",
+          "options": ["Samaria", "Judah", "Galilee", "Edom"],
+          "correctAnswer": 1,
+          "explanation": "The kingdom split around 930 BC. The ten northern tribes formed the kingdom of Israel (with its capital eventually at Samaria), while the two southern tribes (Judah and Benjamin) formed the kingdom of Judah (with its capital at Jerusalem). Judah maintained the Davidic royal line and the Temple.",
+          "reference": "1 Kings 12:1-24",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-2",
+          "question": "The prophet Elijah did not die a normal death. Instead, he was taken directly to heaven in a dramatic fashion while his protege Elisha watched. How was Elijah taken up to heaven?",
+          "options": ["He walked into a bright light and disappeared", "A chariot of fire and horses of fire appeared, and he was taken up in a whirlwind", "Angels carried him up from a mountaintop", "He was transformed into light and ascended"],
+          "correctAnswer": 1,
+          "explanation": "As Elijah and Elisha were walking and talking, a chariot of fire and horses of fire appeared and separated them, and Elijah went up to heaven in a whirlwind. Elisha saw it and cried out 'My father! My father! The chariots and horsemen of Israel!' He picked up Elijah's cloak and inherited a double portion of his spirit.",
+          "reference": "2 Kings 2:11-14",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-3",
+          "question": "When the prophet Elisha succeeded Elijah, he asked for a specific spiritual gift. Rather than asking for wealth or power, Elisha made a bold request regarding Elijah's spirit. What did Elisha ask for?",
+          "options": ["The same amount of spirit that Elijah had", "A double portion of Elijah's spirit", "The ability to perform greater miracles than Elijah", "Elijah's staff and cloak"],
+          "correctAnswer": 1,
+          "explanation": "Elisha asked for a double portion of Elijah's spirit — the inheritance a firstborn son would receive. Elijah told him this was a difficult request, but if Elisha saw him being taken to heaven, it would be granted. Elisha did witness the ascension and went on to perform twice as many recorded miracles as Elijah.",
+          "reference": "2 Kings 2:9-10",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-4",
+          "question": "In 586 BC, a powerful empire conquered Jerusalem, destroyed Solomon's Temple, and carried the Jewish people into exile. This devastating event, known as the Babylonian Exile, was a defining moment in Jewish history. Which king led this conquest?",
+          "options": ["Cyrus the Great", "Nebuchadnezzar", "Sennacherib", "Pharaoh Necho"],
+          "correctAnswer": 1,
+          "explanation": "King Nebuchadnezzar of Babylon besieged Jerusalem, destroyed the Temple that Solomon had built, and deported most of the population to Babylon. The exile lasted about 70 years, as the prophet Jeremiah had predicted. This traumatic event profoundly shaped Jewish identity, theology, and literature.",
+          "reference": "2 Kings 25:1-21",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-5",
+          "question": "After about 70 years in exile in Babylon, a Persian king conquered Babylon and issued a decree allowing the Jewish people to return home and rebuild their Temple in Jerusalem. Who was this Persian king who freed the Jews?",
+          "options": ["Darius", "Xerxes", "Cyrus the Great", "Artaxerxes"],
+          "correctAnswer": 2,
+          "explanation": "Cyrus the Great conquered Babylon in 539 BC and issued the famous 'Edict of Cyrus,' allowing the Jews to return to Jerusalem and rebuild the Temple. Isaiah had prophesied about Cyrus by name (Isaiah 44:28-45:1) — calling him God's 'anointed' — nearly 150 years before Cyrus was even born.",
+          "reference": "Ezra 1:1-4, Isaiah 44:28",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-6",
+          "question": "In the book of Judges, God called a man named Gideon to lead Israel against the Midianite army. But God kept reducing Gideon's army from 32,000 to an incredibly small number so that Israel would know the victory came from God, not their own strength. How many soldiers did God leave Gideon with?",
+          "options": ["1,000", "500", "300", "100"],
+          "correctAnswer": 2,
+          "explanation": "God first sent home 22,000 who were afraid, leaving 10,000. Then God used a water-drinking test to reduce them further to just 300 men. These 300 defeated the vast Midianite army using only trumpets, torches hidden in jars, and war cries — proving the victory belonged to God.",
+          "reference": "Judges 7:1-22",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-7",
+          "question": "King David committed a grave sin when he saw a beautiful woman bathing on a rooftop, committed adultery with her, and then arranged for her husband to be killed in battle to cover it up. Which prophet confronted David about this sin?",
+          "options": ["Elijah", "Isaiah", "Nathan", "Samuel"],
+          "correctAnswer": 2,
+          "explanation": "The prophet Nathan told David a parable about a rich man who stole a poor man's only lamb. When David angrily declared the rich man deserved to die, Nathan said 'You are the man!' David immediately repented, writing Psalm 51 as his prayer of confession. The woman was Bathsheba, and her husband was Uriah the Hittite.",
+          "reference": "2 Samuel 11-12",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-8",
+          "question": "The book of Proverbs is a collection of wise sayings primarily attributed to Solomon. One of its most famous verses says 'The fear of the LORD is the beginning of...' what?",
+          "options": ["Faith", "Wisdom", "Understanding", "Righteousness"],
+          "correctAnswer": 1,
+          "explanation": "Proverbs 9:10 states 'The fear of the LORD is the beginning of wisdom, and knowledge of the Holy One is understanding.' This 'fear' doesn't mean terror but rather reverent awe and respect for God. It is presented as the foundation upon which all true wisdom is built.",
+          "reference": "Proverbs 9:10",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-9",
+          "question": "The prophet Jeremiah warned the people of Judah for decades that Jerusalem would be destroyed if they did not repent, but they refused to listen and even persecuted him. Because of his constant sorrow over his people, Jeremiah is known by what nickname?",
+          "options": ["The Iron Prophet", "The Weeping Prophet", "The Prophet of Fire", "The Silent Prophet"],
+          "correctAnswer": 1,
+          "explanation": "Jeremiah is called the 'Weeping Prophet' because of his deep anguish over Judah's sin and coming destruction. He wrote 'Oh, that my head were a spring of water and my eyes a fountain of tears! I would weep day and night for the slain of my people.' He also wrote the book of Lamentations, mourning Jerusalem's fall.",
+          "reference": "Jeremiah 9:1",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-10",
+          "question": "In the book of Ezekiel, the prophet had a famous vision of a valley filled with dry bones. God asked him 'Can these bones live?' and then commanded him to prophesy to the bones. What happened when Ezekiel obeyed?",
+          "options": ["The bones crumbled to dust", "The bones came together, grew flesh, and came to life as a vast army", "The valley was filled with water and the bones floated away", "Fire consumed the bones"],
+          "correctAnswer": 1,
+          "explanation": "As Ezekiel prophesied, the bones came together with a rattling sound, tendons and flesh appeared on them, skin covered them, and breath entered them. They stood up as a vast army. God explained this vision represented the restoration of Israel — though the nation seemed dead and hopeless, God would bring them back to life.",
+          "reference": "Ezekiel 37:1-14",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-11",
+          "question": "The book of Ecclesiastes, attributed to Solomon, is a philosophical reflection on the meaning of life. The book opens with a famous phrase that captures its central theme about the fleeting nature of worldly pursuits. What is this phrase?",
+          "options": ["'There is nothing new under the sun'", "'Vanity of vanities, all is vanity'", "'To everything there is a season'", "'The race is not to the swift'"],
+          "correctAnswer": 1,
+          "explanation": "The book opens with 'Vanity of vanities, says the Preacher, vanity of vanities! All is vanity' (or 'Meaningless! Meaningless! Utterly meaningless!' in modern translations). The Hebrew word 'hevel' means 'breath' or 'vapour' — suggesting life's pursuits are as fleeting as mist. Yet the book concludes that fearing God and keeping His commandments is what truly matters.",
+          "reference": "Ecclesiastes 1:2",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-12",
+          "question": "When Nehemiah, a Jewish official serving the Persian king, heard that Jerusalem's walls were still in ruins decades after the exile ended, he was heartbroken and asked the king for permission to go rebuild them. How long did it take Nehemiah and the people to rebuild the walls of Jerusalem?",
+          "options": ["52 days", "6 months", "1 year", "7 years"],
+          "correctAnswer": 0,
+          "explanation": "Despite fierce opposition from surrounding enemies who mocked, threatened, and plotted against them, Nehemiah organised the people to rebuild the walls in just 52 days. The workers carried building materials in one hand and weapons in the other. When the surrounding nations heard the wall was completed, 'they lost their self-confidence, because they realised that this work had been done with the help of our God.'",
+          "reference": "Nehemiah 6:15-16",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-13",
+          "question": "The first king of Israel was chosen by God and anointed by the prophet Samuel. He was tall, handsome, and initially humble, but eventually disobeyed God and was rejected as king. Who was Israel's first king?",
+          "options": ["David", "Solomon", "Saul", "Samuel"],
+          "correctAnswer": 2,
+          "explanation": "Saul, from the tribe of Benjamin, was chosen by God to be Israel's first king. He stood head and shoulders above everyone else. Initially, Saul was humble and effective, but he repeatedly disobeyed God's commands — performing a sacrifice he wasn't authorised to make and sparing an enemy king God told him to destroy. God rejected him and chose David as his replacement.",
+          "reference": "1 Samuel 9-10, 15:26",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-14",
+          "question": "In the book of Genesis, Jacob wrestled with a mysterious figure all night long at a place called Peniel. The figure put Jacob's hip out of joint but Jacob refused to let go until he received a blessing. What new name did Jacob receive after this encounter?",
+          "options": ["Abraham", "Israel", "Judah", "Benjamin"],
+          "correctAnswer": 1,
+          "explanation": "The mysterious figure (understood to be God or an angel of God) renamed Jacob 'Israel,' meaning 'he struggles with God' or 'God prevails.' Jacob said 'I saw God face to face, and yet my life was spared.' His twelve sons became the twelve tribes of Israel, and the nation took his new name.",
+          "reference": "Genesis 32:22-32",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-15",
+          "question": "The prophet Hosea was commanded by God to do something shocking that would serve as a living parable of God's relationship with unfaithful Israel. What did God tell Hosea to do?",
+          "options": ["Walk barefoot through the city for three years", "Marry an unfaithful woman who would be disloyal to him", "Shave his head and lie on his side for 390 days", "Name his children after coming disasters"],
+          "correctAnswer": 1,
+          "explanation": "God told Hosea to marry Gomer, a woman who would be unfaithful to him. Despite her repeated unfaithfulness, Hosea kept loving her and even bought her back from slavery. This was a living picture of God's faithful love for Israel despite their spiritual adultery — constantly turning to false gods while God kept pursuing them.",
+          "reference": "Hosea 1:2-3, 3:1-3",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-16",
+          "question": "In the book of Daniel, a mysterious hand appeared during King Belshazzar's feast and wrote words on the palace wall. The terrified king called for Daniel to interpret the writing. What did the words 'MENE, MENE, TEKEL, UPHARSIN' mean?",
+          "options": ["'Your kingdom will prosper and grow stronger'", "'God has numbered your kingdom's days, you have been weighed and found wanting, your kingdom will be divided'", "'A great famine is coming upon the land'", "'Your enemies are at the gates of the city'"],
+          "correctAnswer": 1,
+          "explanation": "Daniel interpreted: MENE — God has numbered the days of your reign and brought it to an end. TEKEL — You have been weighed on the scales and found wanting. UPHARSIN — Your kingdom is divided and given to the Medes and Persians. That very night, Belshazzar was killed and Darius the Mede took over the kingdom.",
+          "reference": "Daniel 5:1-31",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-17",
+          "question": "The prophet Micah wrote one of the most quoted verses in the Old Testament about what God truly requires from people, boiling down all of God's expectations into three simple things. According to Micah 6:8, what does the Lord require?",
+          "options": ["To pray three times daily, fast weekly, and give tithes", "To act justly, love mercy, and walk humbly with your God", "To build temples, offer sacrifices, and keep the feasts", "To study the law, keep the Sabbath, and avoid unclean foods"],
+          "correctAnswer": 1,
+          "explanation": "Micah 6:8 says 'He has shown you, O mortal, what is good. And what does the LORD require of you? To act justly and to love mercy and to walk humbly with your God.' This verse is often cited as the essence of Old Testament ethics — justice, compassion, and humble relationship with God.",
+          "reference": "Micah 6:8",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-18",
+          "question": "When the Israelites conquered the city of Jericho under Joshua's leadership, they were commanded to destroy everything in the city as an offering to God. However, one man secretly kept some of the plunder for himself, and his disobedience caused Israel's next battle to end in defeat. Who was this man?",
+          "options": ["Caleb", "Achan", "Phinehas", "Korah"],
+          "correctAnswer": 1,
+          "explanation": "Achan took a beautiful robe, 200 shekels of silver, and a bar of gold from Jericho and hid them in his tent. Because of his disobedience, Israel lost their next battle at the small city of Ai. God revealed Achan's sin through a process of elimination by tribe, clan, and family. Achan and his household were punished.",
+          "reference": "Joshua 7:1-26",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-19",
+          "question": "The book of Genesis records that Abraham's nephew Lot settled near two cities that were notorious for their extreme wickedness. God decided to destroy these cities with fire and brimstone from heaven. What were the names of these two cities?",
+          "options": ["Babel and Ur", "Sodom and Gomorrah", "Jericho and Ai", "Nineveh and Tyre"],
+          "correctAnswer": 1,
+          "explanation": "Sodom and Gomorrah were destroyed by God with burning sulphur (brimstone) raining from the sky. Before the destruction, God sent two angels to rescue Lot and his family. They were told to flee and not look back, but Lot's wife looked back at the burning cities and was turned into a pillar of salt.",
+          "reference": "Genesis 19:1-26",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-20",
+          "question": "In the book of Numbers, when the Israelites complained against God in the wilderness, He sent venomous snakes among them and many people died. When Moses prayed for the people, God told him to make something and put it on a pole — anyone who looked at it would be healed. What did Moses make?",
+          "options": ["A golden serpent", "A bronze snake", "A clay figurine", "A wooden cross"],
+          "correctAnswer": 1,
+          "explanation": "God told Moses to make a bronze snake and put it on a pole. Anyone who was bitten could look at the bronze snake and live. Jesus later referenced this event in John 3:14-15, comparing it to His own crucifixion: 'Just as Moses lifted up the snake in the wilderness, so the Son of Man must be lifted up, that everyone who believes may have eternal life.'",
+          "reference": "Numbers 21:4-9",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-21",
+          "question": "The prophet Isaiah had a powerful vision of God seated on His throne in the Temple, surrounded by angelic beings called seraphim who were calling out to one another. What were the seraphim saying?",
+          "options": ["'Praise the Lord, all you nations!'", "'Holy, holy, holy is the LORD Almighty; the whole earth is full of his glory'", "'Blessed is he who comes in the name of the Lord'", "'The Lord reigns; let the earth rejoice'"],
+          "correctAnswer": 1,
+          "explanation": "In Isaiah's throne-room vision, the seraphim had six wings each — two covering their faces, two covering their feet, and two for flying. They called to one another 'Holy, holy, holy is the LORD Almighty; the whole earth is full of his glory.' The triple repetition of 'holy' emphasises God's absolute purity and transcendence.",
+          "reference": "Isaiah 6:1-4",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-22",
+          "question": "King Josiah became king of Judah at just 8 years old. During temple renovations, a lost scroll was discovered that shocked the nation because they had forgotten God's law. What was this scroll that sparked a major religious reform?",
+          "options": ["The Psalms of David", "The Book of the Law (likely Deuteronomy)", "The Prophecies of Isaiah", "The Proverbs of Solomon"],
+          "correctAnswer": 1,
+          "explanation": "When the high priest Hilkiah found the Book of the Law during Temple repairs, King Josiah tore his robes in distress when he heard it read, realising how far Judah had strayed from God's commands. He launched the most thorough religious reform in Judah's history — destroying idols, removing pagan priests, and renewing the covenant with God.",
+          "reference": "2 Kings 22-23",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-23",
+          "question": "The prophet Amos was not a professional prophet or priest — he had a humble occupation before God called him to preach against the social injustices and religious hypocrisy of Israel. What was Amos' original job?",
+          "options": ["A fisherman", "A carpenter", "A shepherd and fig tree farmer", "A tent maker"],
+          "correctAnswer": 2,
+          "explanation": "Amos told the priest Amaziah: 'I was neither a prophet nor the son of a prophet, but I was a shepherd, and I also took care of sycamore-fig trees. But the LORD took me from tending the flock and said to me, Go, prophesy to my people Israel.' His message focused heavily on social justice and caring for the poor.",
+          "reference": "Amos 7:14-15",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-24",
+          "question": "Abraham had a son before Isaac was born. This first son was born to Hagar, Sarah's Egyptian servant. Sarah later demanded that Abraham send Hagar and this son away. Who was Abraham's firstborn son?",
+          "options": ["Esau", "Ishmael", "Lot", "Midian"],
+          "correctAnswer": 1,
+          "explanation": "When Sarah was unable to conceive, she gave her servant Hagar to Abraham. Hagar bore Ishmael when Abraham was 86 years old. After Isaac was born 14 years later, Sarah demanded Hagar and Ishmael be sent away. God told Abraham to listen to Sarah but promised to make Ishmael into a great nation too. Islamic tradition considers Ishmael an ancestor of the Arab peoples.",
+          "reference": "Genesis 16:1-16, 21:8-21",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-25",
+          "question": "The book of Leviticus describes a special day when the high priest would enter the Most Holy Place of the Tabernacle to make atonement for all the sins of Israel. This annual ceremony was the most sacred day in the Jewish calendar. What is it called?",
+          "options": ["Passover", "The Day of Atonement (Yom Kippur)", "The Feast of Tabernacles", "Pentecost"],
+          "correctAnswer": 1,
+          "explanation": "On Yom Kippur, the high priest would sacrifice a bull for his own sins, then cast lots over two goats — one was sacrificed and its blood sprinkled on the mercy seat, while the other (the scapegoat) symbolically carried the people's sins into the wilderness. It was the only day anyone entered the Most Holy Place.",
+          "reference": "Leviticus 16:1-34",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-26",
+          "question": "The prophet Malachi, who wrote the last book of the Old Testament, accused the Israelites of robbing God. When the people asked 'How are we robbing you?', God's answer pointed to a specific area where they were being unfaithful. What were they withholding from God?",
+          "options": ["Their prayers and worship", "Their tithes and offerings", "Their firstborn sons", "Their Sabbath rest"],
+          "correctAnswer": 1,
+          "explanation": "God said 'Will a mere mortal rob God? Yet you rob me. In tithes and offerings.' He then issued a unique challenge: 'Bring the whole tithe into the storehouse... Test me in this and see if I will not throw open the floodgates of heaven and pour out so much blessing that there will not be room enough to store it.'",
+          "reference": "Malachi 3:8-10",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-27",
+          "question": "In the book of 1 Kings, when Solomon was about to build the Temple, he made an alliance with King Hiram of Tyre, who supplied the famous cedar trees for the construction. From which region did these prized cedar trees come?",
+          "options": ["Egypt", "Lebanon", "Mesopotamia", "Ethiopia"],
+          "correctAnswer": 1,
+          "explanation": "The cedars of Lebanon were the most prized building material in the ancient world — tall, fragrant, and resistant to decay. King Hiram of Tyre (in modern-day Lebanon) sent cedar and juniper logs to Solomon, floated along the Mediterranean coast. In return, Solomon provided wheat and olive oil to Tyre.",
+          "reference": "1 Kings 5:1-12",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-28",
+          "question": "The book of Habakkuk is unique among the prophetic books because instead of preaching to the people, Habakkuk complains directly to God about injustice and asks why God allows evil to go unpunished. God's answer included a key phrase that became foundational to Christian theology. What did God say?",
+          "options": ["'Vengeance is mine, I will repay'", "'The righteous shall live by faith'", "'Be still and know that I am God'", "'My ways are higher than your ways'"],
+          "correctAnswer": 1,
+          "explanation": "God told Habakkuk 'the righteous person will live by his faithfulness.' This phrase was later quoted three times in the New Testament (Romans 1:17, Galatians 3:11, Hebrews 10:38) and became the cornerstone of Martin Luther's theology of justification by faith, sparking the Protestant Reformation.",
+          "reference": "Habakkuk 2:4",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-29",
+          "question": "When the Israelites first asked for a king 'like all the other nations,' the prophet Samuel was displeased and warned them about what a king would do to them. According to Samuel, what would a king take from the people?",
+          "options": ["Only their gold and silver", "Their sons for his army, their daughters as servants, and a tenth of their crops and flocks", "Nothing — Samuel fully supported the idea of a king", "Only their firstborn sons"],
+          "correctAnswer": 1,
+          "explanation": "Samuel warned that a king would take their sons to serve in his army and work his fields, their daughters to be perfumers, cooks, and bakers, the best of their fields, vineyards, and olive groves, and a tenth of their grain and flocks. He said 'you yourselves will become his slaves.' The people insisted anyway.",
+          "reference": "1 Samuel 8:10-22",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-30",
+          "question": "The prophet Ezra led a second group of Jewish exiles back from Babylon to Jerusalem. When he arrived, he was horrified to discover that the returned Jews had intermarried with the surrounding pagan nations. What dramatic action did Ezra take when he learned this?",
+          "options": ["He immediately declared war on the surrounding nations", "He tore his garments, pulled hair from his head and beard, and sat appalled, then led a public prayer of confession", "He quietly instructed the priests to handle it", "He returned to Babylon in disgust"],
+          "correctAnswer": 1,
+          "explanation": "Ezra was so distressed that he tore his tunic and cloak, pulled hair from his head and beard, and sat down appalled. At the evening sacrifice, he fell on his knees with his hands spread out to God and prayed a powerful confession on behalf of the people. The community then agreed to separate from their pagan spouses.",
+          "reference": "Ezra 9:1-10:17",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-31",
+          "question": "In the book of Genesis, after Joseph's brothers sold him into slavery and told their father Jacob that Joseph was dead, they presented Jacob with evidence to support their lie. What did they show Jacob?",
+          "options": ["Joseph's sandals covered in dirt", "Joseph's coat of many colours dipped in goat's blood", "A letter claiming Joseph had been killed by bandits", "Joseph's shepherd's staff broken in two"],
+          "correctAnswer": 1,
+          "explanation": "After selling Joseph to traders, the brothers slaughtered a goat and dipped Joseph's ornate robe in its blood. They took it to their father and said 'We found this. Examine it to see whether it is your son's robe.' Jacob recognised it and was devastated, mourning for Joseph and refusing to be comforted for many years.",
+          "reference": "Genesis 37:31-35",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-32",
+          "question": "The book of Song of Solomon (Song of Songs) is unique in the Old Testament because it contains no direct mention of God, law, or covenant. Instead, it is a passionate love poem between two lovers. Who is traditionally credited as its author?",
+          "options": ["David", "Solomon", "An anonymous poet", "Isaiah"],
+          "correctAnswer": 1,
+          "explanation": "The book is attributed to Solomon (Song of Songs 1:1), who is said to have written 1,005 songs (1 Kings 4:32). The poem celebrates romantic love between a man and a woman with vivid, sometimes startling imagery. Jewish tradition interprets it as an allegory of God's love for Israel; Christians often read it as Christ's love for the church.",
+          "reference": "Song of Solomon 1:1",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-33",
+          "question": "Deborah was unique among Israel's judges because she held multiple roles simultaneously. She led Israel, rendered legal judgments under a palm tree, and even went to battle with Barak against the Canaanite general Sisera. What combination of roles did Deborah hold?",
+          "options": ["Queen and priestess", "Judge, prophetess, and military leader", "Scribe and teacher", "High priestess and commander"],
+          "correctAnswer": 1,
+          "explanation": "Deborah served as both a judge (holding court under the Palm of Deborah between Ramah and Bethel) and a prophetess. When she summoned Barak to lead an army against Sisera, Barak refused to go without her, so she accompanied him to battle. She predicted that the honour of killing Sisera would go to a woman — which it did, when Jael drove a tent peg through his temple.",
+          "reference": "Judges 4-5",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-34",
+          "question": "The prophet Zechariah had a vision of a future king who would come to Jerusalem 'righteous and victorious, lowly and riding on a donkey.' Christians see this prophecy as fulfilled when Jesus entered Jerusalem on Palm Sunday. In what chapter is this prophecy found?",
+          "options": ["Zechariah 6:12", "Zechariah 9:9", "Zechariah 14:4", "Zechariah 3:8"],
+          "correctAnswer": 1,
+          "explanation": "Zechariah 9:9 reads: 'Rejoice greatly, Daughter Zion! Shout, Daughter Jerusalem! See, your king comes to you, righteous and victorious, lowly and riding on a donkey, on a colt, the foal of a donkey.' Matthew's Gospel explicitly cites this prophecy as fulfilled when Jesus rode into Jerusalem before His crucifixion.",
+          "reference": "Zechariah 9:9",
+          "points": 15
+        },
+        {
+          "id": "ot-mc-i-35",
+          "question": "In the book of Numbers, a prophet named Balaam was hired by King Balak of Moab to curse the Israelites. On his way to curse them, something extraordinary happened with the donkey he was riding. What did the donkey do?",
+          "options": ["It flew through the air", "It spoke to Balaam in human words after seeing an angel blocking the road", "It transformed into a horse", "It collapsed and refused to move"],
+          "correctAnswer": 1,
+          "explanation": "Balaam's donkey saw the angel of the LORD standing in the road with a drawn sword — though Balaam could not see the angel. The donkey stopped, turned aside, and crushed Balaam's foot against a wall. When Balaam beat the donkey, God opened the donkey's mouth and it said 'What have I done to you to make you beat me these three times?' Then God opened Balaam's eyes to see the angel.",
+          "reference": "Numbers 22:21-35",
+          "points": 15
+        }
+      ],
+      "advanced": [
+        {
+          "id": "ot-mc-a-1",
+          "question": "The Hebrew word 'hesed' is one of the most important theological terms in the Old Testament, appearing over 240 times. It describes God's relationship with His people and is variously translated as 'lovingkindness,' 'steadfast love,' 'mercy,' or 'faithful love.' Which of the following best captures the meaning of 'hesed'?",
+          "options": ["Legal obligation between a ruler and subject", "Loyal, covenant love that persists regardless of the other party's faithfulness", "Romantic affection between spouses", "General benevolence toward all humanity"],
+          "correctAnswer": 1,
+          "explanation": "'Hesed' is a uniquely Hebrew concept describing God's faithful, enduring, covenant love — love that goes beyond duty and remains loyal even when the other party is unfaithful. It combines elements of love, loyalty, mercy, and grace. Hosea's marriage to unfaithful Gomer is considered the most vivid illustration of God's hesed.",
+          "reference": "Psalm 136, Hosea 1-3",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-2",
+          "question": "In Genesis 14, after Abraham rescued his nephew Lot from a coalition of kings, a mysterious priest-king appeared and blessed Abraham. Abraham gave him a tenth of everything. This figure had 'no father or mother, no genealogy, no beginning of days or end of life.' Who was this figure?",
+          "options": ["The Angel of the LORD", "Melchizedek", "Enoch", "Michael"],
+          "correctAnswer": 1,
+          "explanation": "Melchizedek was king of Salem (later Jerusalem) and 'priest of God Most High.' He brought out bread and wine and blessed Abraham. His lack of recorded genealogy in Genesis makes him a type of Christ in Hebrews 7, where Jesus is declared 'a priest forever, in the order of Melchizedek' — a priesthood superior to the Levitical system.",
+          "reference": "Genesis 14:18-20, Hebrews 7",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-3",
+          "question": "The Hebrew word 'Shema' comes from Deuteronomy 6:4, which begins the most important Jewish confession of faith. This verse declares the foundational belief of Israelite religion. What does the Shema say?",
+          "options": ["'The LORD our God is mighty and powerful'", "'Hear, O Israel: The LORD our God, the LORD is one'", "'Blessed is the name of the LORD forever'", "'The LORD reigns, let the earth rejoice'"],
+          "correctAnswer": 1,
+          "explanation": "The Shema ('Hear, O Israel: The LORD our God, the LORD is one') is the foundational declaration of Jewish monotheism, recited twice daily by observant Jews. Jesus quoted it as the greatest commandment. The following verses command loving God with all your heart, soul, and strength, and teaching God's words diligently to your children.",
+          "reference": "Deuteronomy 6:4-9",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-4",
+          "question": "The Hebrew text of Genesis 1:1 uses a specific Hebrew word for God ('Elohim') that has a grammatically unusual feature which has intrigued theologians for centuries. What is unusual about the word 'Elohim'?",
+          "options": ["It is a feminine noun", "It is plural in form but used with singular verbs when referring to God", "It is written in a different script from the rest of Genesis", "It is an untranslatable word unique to Hebrew"],
+          "correctAnswer": 1,
+          "explanation": "'Elohim' is grammatically plural (the '-im' suffix is the Hebrew masculine plural), yet when referring to God it consistently takes singular verbs and adjectives. Some see this as a 'plural of majesty' (like a royal 'we'), while Christians have traditionally seen a hint of the Trinity — one God in plurality. When referring to pagan gods, Elohim takes plural verbs.",
+          "reference": "Genesis 1:1",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-5",
+          "question": "The book of Job contains a famous passage where God responds to Job's complaints by describing the creation of the world. In this poetic speech, God mentions a fearsome sea creature called 'Leviathan' that no human can tame. What literary purpose does Leviathan serve in the book of Job?",
+          "options": ["To prove that dinosaurs existed alongside humans", "To demonstrate God's sovereign power over chaos and creation — things beyond human control", "To warn Job about dangers in the sea", "To describe a literal animal Job should hunt"],
+          "correctAnswer": 1,
+          "explanation": "Leviathan (Job 41) represents the ultimate untameable force of chaos — a creature that breathes fire and cannot be hooked, harnessed, or domesticated. God's point is: 'If you cannot control Leviathan, how can you presume to question the One who created and controls it?' It humbles Job by showing the vast gap between human and divine power.",
+          "reference": "Job 41:1-34",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-6",
+          "question": "Psalm 22, written by David, begins with the words 'My God, my God, why have you forsaken me?' and contains remarkably specific descriptions of suffering — pierced hands and feet, casting lots for garments, bones out of joint. Why is this psalm significant for Christian theology?",
+          "options": ["It describes David's exile during Absalom's rebellion", "It prophetically describes the crucifixion of Jesus in extraordinary detail, written roughly 1,000 years before it happened", "It is a general lament about suffering with no specific fulfilment", "It describes the destruction of the Temple"],
+          "correctAnswer": 1,
+          "explanation": "Psalm 22 reads like an eyewitness account of crucifixion — written centuries before crucifixion was even invented as a method of execution. Jesus quoted its opening line from the cross (Matthew 27:46). Details matching the crucifixion include: pierced hands and feet, bones out of joint, being mocked, casting lots for clothing, and thirst. The psalm ends with triumph and praise.",
+          "reference": "Psalm 22, Matthew 27:46",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-7",
+          "question": "The Old Testament concept of 'covenant' (Hebrew: 'berith') is central to understanding the relationship between God and Israel. God made several major covenants throughout the Old Testament. Which covenant was specifically unconditional — meaning God would fulfil it regardless of human behaviour?",
+          "options": ["The Mosaic Covenant at Sinai", "The Abrahamic Covenant", "The Covenant of Circumcision", "The Priestly Covenant with Levi"],
+          "correctAnswer": 1,
+          "explanation": "The Abrahamic Covenant (Genesis 12, 15, 17) was unconditional — God made promises to Abraham (land, descendants, blessing) that depended on God's faithfulness, not Abraham's. In Genesis 15, God alone passed between the cut animals in the covenant ceremony while Abraham slept, signifying that God was binding Himself unilaterally. The Mosaic Covenant, by contrast, was conditional ('if you obey').",
+          "reference": "Genesis 15:1-21",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-8",
+          "question": "The book of Isaiah contains a passage about a virgin (or young woman — the Hebrew word 'almah' is debated) who would conceive and bear a son called 'Immanuel.' This prophecy had both an immediate historical context and a later messianic fulfilment. What does 'Immanuel' mean?",
+          "options": ["'God is mighty'", "'God with us'", "'God saves'", "'God provides'"],
+          "correctAnswer": 1,
+          "explanation": "'Immanuel' means 'God with us.' In its original context (Isaiah 7:14), the sign was given to King Ahaz during the Syro-Ephraimite crisis around 735 BC. Matthew 1:22-23 quotes this prophecy as fulfilled in Jesus' birth — God literally dwelling among humanity. The dual fulfilment (historical and messianic) is characteristic of Old Testament prophecy.",
+          "reference": "Isaiah 7:14, Matthew 1:22-23",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-9",
+          "question": "In Exodus, God reveals His personal name to Moses at the burning bush. This name, represented by four Hebrew consonants (YHWH), is considered so holy that Jews do not pronounce it. What is this four-letter divine name called?",
+          "options": ["The Decalogue", "The Tetragrammaton", "The Shema", "The Kedusha"],
+          "correctAnswer": 1,
+          "explanation": "The Tetragrammaton (YHWH) is derived from the Hebrew verb 'to be' and is connected to God's self-declaration 'I AM WHO I AM' (Exodus 3:14). Jews traditionally substitute 'Adonai' (Lord) when reading aloud. English Bibles typically render YHWH as 'LORD' (in small capitals). The original pronunciation was likely 'Yahweh' but is debated.",
+          "reference": "Exodus 3:14-15",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-10",
+          "question": "The prophet Daniel interpreted King Nebuchadnezzar's dream of a great statue made of four different metals — gold, silver, bronze, and iron mixed with clay. Each metal represented a successive world empire. According to the traditional interpretation, which empire was represented by the head of gold?",
+          "options": ["Egypt", "Babylon", "Persia", "Rome"],
+          "correctAnswer": 1,
+          "explanation": "Daniel told Nebuchadnezzar 'You are that head of gold' — Babylon was the first empire. The silver chest represented Medo-Persia, the bronze belly represented Greece (Alexander the Great), and the iron legs represented Rome. A stone 'not cut by human hands' struck the statue and became a mountain filling the earth — representing God's eternal kingdom.",
+          "reference": "Daniel 2:31-45",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-11",
+          "question": "The concept of the 'Kinsman-Redeemer' (Hebrew: 'goel') is central to the book of Ruth. This was a family member who had the right and responsibility to buy back (redeem) a relative's property, marry a widow, or avenge a murder. Who served as Ruth's kinsman-redeemer?",
+          "options": ["Elimelech", "Boaz", "Naomi", "The unnamed closer relative"],
+          "correctAnswer": 1,
+          "explanation": "Boaz served as Ruth's kinsman-redeemer after a closer relative declined the responsibility. By marrying Ruth and buying Naomi's land, Boaz preserved the family line. The kinsman-redeemer concept prefigures Christ, who as a 'relative' (through incarnation) redeems humanity, paying a price we could not pay ourselves.",
+          "reference": "Ruth 3-4",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-12",
+          "question": "The Hebrew Bible organises the Old Testament books differently from the Christian Old Testament. In the Hebrew Bible (Tanakh), the books are divided into three sections. What are these three sections called?",
+          "options": ["History, Poetry, and Prophecy", "Torah, Nevi'im, and Ketuvim (Law, Prophets, and Writings)", "Genesis, Covenant, and Apocalypse", "Pentateuch, Historical Books, and Wisdom Literature"],
+          "correctAnswer": 1,
+          "explanation": "The Tanakh divides the Hebrew Bible into Torah (Law — Genesis through Deuteronomy), Nevi'im (Prophets — including historical books like Joshua, Judges, Samuel, and Kings, plus the writing prophets), and Ketuvim (Writings — Psalms, Proverbs, Job, Song of Solomon, Ruth, Ecclesiastes, Esther, Daniel, Ezra-Nehemiah, and Chronicles). The acronym TaNaKh comes from these three divisions.",
+          "reference": "Hebrew Bible tradition",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-13",
+          "question": "In Genesis 1, the Hebrew word 'bara' (to create) is used specifically for God's creative action. Scholars note that 'bara' has a unique characteristic that sets it apart from other Hebrew words for making or forming. What is special about 'bara'?",
+          "options": ["It refers only to creating something out of nothing", "It is used exclusively with God as the subject — only God 'bara's", "It implies creation through physical labour", "It always refers to creating living things only"],
+          "correctAnswer": 1,
+          "explanation": "In the entire Old Testament, the verb 'bara' is never used with a human subject — only God 'bara's. While it doesn't always mean creation from nothing (ex nihilo), its exclusive divine usage emphasises that God's creative work is categorically different from anything humans do. Other Hebrew words (asah, yatsar) describe both human and divine making.",
+          "reference": "Genesis 1:1, 21, 27",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-14",
+          "question": "The prophet Jeremiah prophesied about a 'new covenant' that God would make with His people — different from the Mosaic covenant. According to Jeremiah, what would be fundamentally different about this new covenant?",
+          "options": ["It would be written in a new language", "God would write His law on their hearts, not on stone tablets", "It would only apply to priests and Levites", "It would require more sacrifices than the old covenant"],
+          "correctAnswer": 1,
+          "explanation": "Jeremiah 31:31-34 describes the new covenant: 'I will put my law in their minds and write it on their hearts. I will be their God, and they will be my people... they will all know me, from the least to the greatest... for I will forgive their wickedness and remember their sins no more.' Jesus declared this covenant fulfilled at the Last Supper.",
+          "reference": "Jeremiah 31:31-34",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-15",
+          "question": "The Dead Sea Scrolls, discovered in caves near Qumran between 1947 and 1956, contained manuscripts of nearly every book of the Old Testament. The most important biblical scroll found was a complete copy of one prophetic book, remarkably well-preserved. Which book was found in complete form?",
+          "options": ["Genesis", "Psalms", "Isaiah", "Daniel"],
+          "correctAnswer": 2,
+          "explanation": "The Great Isaiah Scroll (1QIsaa) is one of the most significant archaeological finds in history. It contains all 66 chapters of Isaiah and dates to approximately 125 BC — making it about 1,000 years older than the previously oldest known Hebrew manuscript. Remarkably, the text is nearly identical to the medieval Masoretic text, demonstrating the extraordinary accuracy of biblical transmission.",
+          "reference": "Dead Sea Scrolls scholarship",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-16",
+          "question": "The Hebrew poetic technique of 'parallelism' is the dominant structural feature of Old Testament poetry, including the Psalms and Proverbs. In synonymous parallelism, the second line restates the first in different words. Which of the following is an example of synonymous parallelism?",
+          "options": ["'The LORD is my shepherd; I shall not want'", "'The heavens declare the glory of God; the skies proclaim the work of his hands'", "'For everything there is a season, and a time for every matter under heaven'", "'Trust in the LORD with all your heart and lean not on your own understanding'"],
+          "correctAnswer": 1,
+          "explanation": "Psalm 19:1 is a classic example of synonymous parallelism: 'The heavens declare the glory of God' (line A) is restated as 'the skies proclaim the work of his hands' (line B). Both lines say essentially the same thing in different words. Understanding parallelism is key to interpreting Hebrew poetry correctly.",
+          "reference": "Psalm 19:1",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-17",
+          "question": "The Septuagint is an ancient Greek translation of the Hebrew Old Testament that played a crucial role in the spread of Judaism and early Christianity throughout the Greek-speaking world. According to tradition, how many scholars worked on the original translation?",
+          "options": ["12", "40", "70 (or 72)", "120"],
+          "correctAnswer": 2,
+          "explanation": "According to the Letter of Aristeas, 72 Jewish scholars (6 from each of the 12 tribes) were brought to Alexandria, Egypt around 250 BC to translate the Torah into Greek. The name 'Septuagint' (abbreviated LXX) comes from the Latin word for 70. The New Testament authors frequently quoted the Septuagint rather than the Hebrew text when citing the Old Testament.",
+          "reference": "Letter of Aristeas, LXX tradition",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-18",
+          "question": "The prophet Ezekiel describes a vision of God's glory departing from the Temple in Jerusalem in stages — first from the cherubim to the threshold, then to the east gate, then to the Mount of Olives. What was the theological significance of this departure?",
+          "options": ["God was relocating to a new temple in Babylon", "God's protective presence was withdrawing from Jerusalem, making it vulnerable to destruction", "The vision was purely symbolic and had no practical meaning", "God was demonstrating a new form of worship"],
+          "correctAnswer": 1,
+          "explanation": "Ezekiel's vision of the glory ('kavod') of the LORD departing the Temple (Ezekiel 10-11) was devastating — God's presence, which had dwelt in the Temple since Solomon's dedication, was leaving because of Israel's persistent idolatry. Without God's presence, Jerusalem was exposed to destruction. Ezekiel later envisions the glory returning to a future temple (Ezekiel 43:1-5).",
+          "reference": "Ezekiel 10:18-19, 11:22-23",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-19",
+          "question": "The concept of 'corporate solidarity' in the Old Testament means that an individual's actions could affect the entire community, and the community's identity could be embodied in a single person. Which of the following best illustrates this concept?",
+          "options": ["Each person is judged only for their own individual sins", "Achan's sin at Jericho brought defeat upon all Israel, and his entire household shared in his punishment", "Prophets spoke only to individuals, never to the nation", "Kings had no spiritual influence over their people"],
+          "correctAnswer": 1,
+          "explanation": "Achan's theft of devoted items at Jericho (Joshua 7) perfectly illustrates corporate solidarity — one man's sin caused all Israel to lose their next battle. Similarly, Adam's sin affected all humanity (Genesis 3), David's census brought plague on Israel (2 Samuel 24), and kings' faithfulness or idolatry determined the spiritual state of the entire nation.",
+          "reference": "Joshua 7, Genesis 3, 2 Samuel 24",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-20",
+          "question": "The Hebrew word 'Selah' appears 71 times in the Psalms and 3 times in Habakkuk, yet no one is entirely certain what it means. Which of the following is the most widely accepted scholarly interpretation of 'Selah'?",
+          "options": ["'Amen' — a word of agreement", "A musical or liturgical notation indicating a pause, interlude, or change in instrumentation", "A signal for the congregation to stand up", "A marker indicating the end of a psalm"],
+          "correctAnswer": 1,
+          "explanation": "While its exact meaning is debated, most scholars believe 'Selah' is a musical or liturgical direction — perhaps indicating an instrumental interlude, a pause for reflection, a change in voices or instruments, or a crescendo. The Septuagint translates it as 'diapsalma' (interlude). It appears at natural breaks in thought, supporting the interpretation as a pause marker.",
+          "reference": "Psalm 3:2, 4, 8; Habakkuk 3:3, 9, 13",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-21",
+          "question": "The 'Documentary Hypothesis' (also called the JEDP theory) is a scholarly theory about the composition of the Pentateuch (first five books of the Bible). According to this theory, the Pentateuch was composed from four main literary sources. What does the letter 'J' in JEDP stand for?",
+          "options": ["The 'Judicial' source dealing with laws", "The 'Jahwist' (Yahwist) source, which uses the divine name YHWH", "The 'Jesuit' source from later priestly editors", "The 'Jerusalemite' source from the Southern Kingdom"],
+          "correctAnswer": 1,
+          "explanation": "J stands for the Jahwist/Yahwist source — the earliest proposed source, which consistently uses the divine name YHWH (Jahweh in German scholarship). E is the Elohist source (uses Elohim for God), D is the Deuteronomist source, and P is the Priestly source. While widely influential in academic study, the hypothesis has been significantly modified and critiqued since its formulation by Julius Wellhausen in the 19th century.",
+          "reference": "Pentateuchal criticism scholarship",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-22",
+          "question": "The prophet Isaiah's famous 'Immanuel prophecy' (Isaiah 7:14) uses the Hebrew word 'almah' for the woman who would conceive. This word choice has been debated for centuries. What is the most accurate translation of 'almah'?",
+          "options": ["Specifically a virgin who has never been with a man", "A young woman of marriageable age (virginity is implied but not the primary meaning)", "A married woman", "An elderly woman past childbearing age"],
+          "correctAnswer": 1,
+          "explanation": "'Almah' means 'young woman of marriageable age.' While the word implies virginity (unmarried young women in ancient Israel were expected to be virgins), the specific Hebrew word for 'virgin' is 'betulah.' The Septuagint translators chose the Greek 'parthenos' (virgin), and Matthew's Gospel follows this translation. The debate between 'virgin' and 'young woman' has significant theological implications.",
+          "reference": "Isaiah 7:14",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-23",
+          "question": "The book of Deuteronomy contains a prediction by Moses that God would raise up 'a prophet like me from among your own brothers.' This prophecy became foundational for Jewish messianic expectation. In the New Testament, which figure is identified as the fulfilment of this prophecy?",
+          "options": ["John the Baptist", "Elijah", "Jesus", "Paul"],
+          "correctAnswer": 2,
+          "explanation": "Moses said in Deuteronomy 18:15: 'The LORD your God will raise up for you a prophet like me from among you, from your fellow Israelites. You must listen to him.' In Acts 3:22-23, Peter explicitly identifies Jesus as this promised prophet. Stephen also references this prophecy in his speech before his martyrdom (Acts 7:37).",
+          "reference": "Deuteronomy 18:15-19, Acts 3:22-23",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-24",
+          "question": "The Psalms are traditionally divided into five books (Psalms 1-41, 42-72, 73-89, 90-106, 107-150), each ending with a doxology. This fivefold division is widely believed to intentionally mirror the structure of another section of Scripture. Which section?",
+          "options": ["The five books of Moses (Pentateuch/Torah)", "The five major prophets", "The five scrolls (Megilloth)", "The five books of wisdom literature"],
+          "correctAnswer": 0,
+          "explanation": "The fivefold division of the Psalter is traditionally understood to mirror the five books of the Torah (Genesis-Deuteronomy). Each of the five 'books' of Psalms ends with a concluding doxology (praise). Ancient rabbis noted this correspondence, and some scholars have identified thematic parallels between each book of Psalms and its corresponding book of the Torah.",
+          "reference": "Psalm 41:13, 72:18-20, 89:52, 106:48, 150:6",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-25",
+          "question": "The prophet Daniel's '70 Weeks' prophecy (Daniel 9:24-27) is one of the most studied and debated prophetic passages in the Old Testament. According to the text, the 70 'weeks' (literally 'sevens') were decreed to accomplish six specific purposes for the Jewish people and Jerusalem. What event was prophesied to occur after 69 of the 70 weeks?",
+          "options": ["The rebuilding of the Temple", "The Anointed One (Messiah) would be 'cut off' (killed)", "The kingdom of Israel would be restored", "A new covenant would be established"],
+          "correctAnswer": 1,
+          "explanation": "Daniel 9:26 states that 'after the sixty-two sevens' (plus the initial seven sevens = 69 total), 'the Anointed One will be put to death and will have nothing.' Many Christians calculate these 69 'weeks of years' (69 x 7 = 483 years) from the decree to rebuild Jerusalem and arrive at the approximate time of Jesus' crucifixion.",
+          "reference": "Daniel 9:24-27",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-26",
+          "question": "The 'Aaronic Blessing' (or Priestly Benediction) is one of the oldest known biblical texts — confirmed by the discovery of two silver scrolls at Ketef Hinnom in Jerusalem dating to around 600 BC. What are the opening words of this blessing?",
+          "options": ["'Blessed are you, O LORD our God'", "'The LORD bless you and keep you'", "'May the God of Abraham protect you'", "'Grace and peace from God our Father'"],
+          "correctAnswer": 1,
+          "explanation": "Numbers 6:24-26 records the blessing God told Aaron to pronounce: 'The LORD bless you and keep you; the LORD make his face shine on you and be gracious to you; the LORD turn his face toward you and give you peace.' The Ketef Hinnom silver scrolls, inscribed with this blessing around 600 BC, are the oldest known fragments of biblical text.",
+          "reference": "Numbers 6:24-26",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-27",
+          "question": "In the book of Genesis, the narrative of the Tower of Babel explains the origin of different languages. But scholars also note that the story serves as a theological critique of a specific ancient civilisation's practice of building stepped temple-towers. What were these structures called?",
+          "options": ["Pyramids", "Ziggurats", "Obelisks", "Colosseums"],
+          "correctAnswer": 1,
+          "explanation": "The Tower of Babel story is widely understood as a critique of Mesopotamian ziggurats — massive stepped temple-towers built to reach the heavens and serve as dwelling places for the gods. The Hebrew wordplay is significant: 'Babel' sounds like the Hebrew word 'balal' (to confuse), while in Babylonian it meant 'gate of god.' God scattered the builders and confused their languages.",
+          "reference": "Genesis 11:1-9",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-28",
+          "question": "The wisdom literature of the Old Testament includes a personification of Wisdom as a woman who was present with God at creation. In Proverbs chapter 8, Lady Wisdom declares that she was 'the first of God's works' and was 'the daily delight' of God. Where does this personification appear?",
+          "options": ["Job 28", "Proverbs 8", "Ecclesiastes 1", "Wisdom of Solomon 7"],
+          "correctAnswer": 1,
+          "explanation": "In Proverbs 8:22-31, Wisdom speaks in the first person: 'The LORD brought me forth as the first of his works, before his deeds of old... I was there when he set the heavens in place... Then I was constantly at his side, filled with delight day after day.' Early church fathers saw this as a reference to Christ (the Logos), and the passage influenced John 1's prologue.",
+          "reference": "Proverbs 8:22-31",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-29",
+          "question": "The prophet Hosea uses a Hebrew wordplay with his children's names to communicate God's message. He named his daughter 'Lo-Ruhamah' and his son 'Lo-Ammi.' What do these names mean, and what message did they convey?",
+          "options": ["'Blessed' and 'Faithful' — signs of hope", "'Not Loved' and 'Not My People' — signs of God's rejection of Israel", "'Strength' and 'Victory' — signs of coming conquest", "'Sorrow' and 'Joy' — signs of mixed fortunes"],
+          "correctAnswer": 1,
+          "explanation": "'Lo-Ruhamah' means 'Not Loved/Not Pitied' and 'Lo-Ammi' means 'Not My People.' These names symbolised God's rejection of Israel for their unfaithfulness. But Hosea also prophesied a reversal: 'I will say to those called \"Not my people,\" \"You are my people\"; and they will say \"You are my God\"' — a passage Paul quotes in Romans 9:25-26 regarding Gentile inclusion.",
+          "reference": "Hosea 1:6-9, 2:23",
+          "points": 20
+        },
+        {
+          "id": "ot-mc-a-30",
+          "question": "The book of Genesis contains two distinct creation accounts (Genesis 1:1-2:3 and Genesis 2:4-25) that use different names for God, different literary styles, and a different order of events. Scholars have noted that these accounts serve complementary purposes. What is the primary difference in focus between the two accounts?",
+          "options": ["The first is historical and the second is mythological", "The first presents creation from a cosmic/liturgical perspective, while the second focuses on the human story and relationship with God", "The first is from the Northern Kingdom and the second from the Southern Kingdom", "The first describes creation of the physical world and the second describes creation of the spiritual world"],
+          "correctAnswer": 1,
+          "explanation": "Genesis 1 presents creation as an orderly, majestic, seven-day cosmic event (using 'Elohim' for God), while Genesis 2 zooms in on the intimate creation of humanity, the garden, and human relationships (using 'YHWH Elohim'). The first is structured like a liturgy or hymn; the second reads like narrative. Together they provide both the grand cosmic picture and the intimate human story.",
+          "reference": "Genesis 1:1-2:25",
+          "points": 20
+        }
+      ]
     },
     "true-false": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {"id": "ot-tf-b-1", "question": "According to the book of Genesis, God created humans on the sixth day of creation, after creating the animals, birds, and sea creatures.", "correctAnswer": true, "explanation": "On the sixth day, God created livestock, creatures that move along the ground, and wild animals. Then He said 'Let us make mankind in our image' and created male and female. Humans were the final and crowning act of God's creation.", "reference": "Genesis 1:24-31", "points": 10},
+        {"id": "ot-tf-b-2", "question": "The Old Testament contains a total of 66 books, making it the longer half of the Christian Bible.", "correctAnswer": false, "explanation": "The Old Testament contains 39 books (in the Protestant canon), not 66. The entire Bible contains 66 books — 39 in the Old Testament and 27 in the New Testament. The Old Testament is indeed the longer section by word count, comprising roughly 77% of the Bible.", "reference": "OT canon", "points": 10},
+        {"id": "ot-tf-b-3", "question": "Noah's Ark came to rest on Mount Sinai after the floodwaters receded, and that is where Noah built an altar to God.", "correctAnswer": false, "explanation": "The Ark came to rest on the mountains of Ararat (in modern-day Turkey), not Mount Sinai. Mount Sinai is where Moses later received the Ten Commandments. Noah did build an altar and offer sacrifices after leaving the Ark, and God responded by making a covenant with Noah, symbolised by the rainbow.", "reference": "Genesis 8:4", "points": 10},
+        {"id": "ot-tf-b-4", "question": "Moses was raised in Pharaoh's palace as the adopted son of Pharaoh's daughter, receiving an Egyptian royal education before eventually fleeing to the wilderness.", "correctAnswer": true, "explanation": "After Pharaoh's daughter found baby Moses in the Nile, she adopted him and raised him in the royal palace. Moses received the finest education Egypt could offer. As an adult, he killed an Egyptian who was beating a Hebrew slave, and when this became known, he fled to Midian where he spent 40 years as a shepherd before God called him at the burning bush.", "reference": "Exodus 2:1-15, Acts 7:22", "points": 10},
+        {"id": "ot-tf-b-5", "question": "The Ten Commandments were given by God to Abraham at Mount Sinai, and they became the foundation of Jewish law.", "correctAnswer": false, "explanation": "The Ten Commandments were given to Moses, not Abraham. Abraham lived roughly 500-600 years before Moses. God gave Moses the Ten Commandments on Mount Sinai (also called Mount Horeb) after the Israelites had left Egypt. Moses went up the mountain for 40 days and returned with two stone tablets inscribed by God.", "reference": "Exodus 19-20", "points": 10},
+        {"id": "ot-tf-b-6", "question": "King David was the first king of Israel. He was anointed by the prophet Samuel after God rejected Saul.", "correctAnswer": false, "explanation": "David was the second king of Israel, not the first. Saul was the first king. David was anointed by Samuel while Saul was still reigning, but David did not become king until after Saul's death. David first ruled over Judah from Hebron for seven years, then over all Israel from Jerusalem for 33 years.", "reference": "1 Samuel 16:1-13, 2 Samuel 5:1-5", "points": 10},
+        {"id": "ot-tf-b-7", "question": "The Israelites wandered in the wilderness for 40 years before entering the Promised Land, as a punishment for their lack of faith when the spies returned from Canaan.", "correctAnswer": true, "explanation": "When the twelve spies returned from Canaan and ten of them gave a fearful report, the Israelites refused to enter the land and even wanted to return to Egypt. God declared that the entire generation (except Joshua and Caleb) would die in the wilderness. They wandered for 40 years — one year for each day the spies spent in Canaan.", "reference": "Numbers 14:26-35", "points": 10},
+        {"id": "ot-tf-b-8", "question": "The book of Psalms is the longest book in the Bible by number of chapters, containing 150 individual psalms.", "correctAnswer": true, "explanation": "The book of Psalms contains 150 chapters (individual psalms), making it the longest book in the Bible by chapter count. Psalm 119 is also the longest single chapter in the Bible with 176 verses. However, by word count, the book of Jeremiah is actually longer than Psalms.", "reference": "Book of Psalms", "points": 10},
+        {"id": "ot-tf-b-9", "question": "According to the book of Jonah, when Jonah finally preached to the people of Nineveh and warned them of God's judgment, the people ignored his message and continued in their wickedness.", "correctAnswer": false, "explanation": "The people of Nineveh actually repented! The king himself took off his royal robes, put on sackcloth, and sat in ashes. He issued a decree for everyone — humans and animals — to fast and pray. 'When God saw what they did and how they turned from their evil ways, he relented and did not bring on them the destruction he had threatened.' Ironically, this upset Jonah.", "reference": "Jonah 3:5-10", "points": 10},
+        {"id": "ot-tf-b-10", "question": "The first five books of the Old Testament — Genesis, Exodus, Leviticus, Numbers, and Deuteronomy — are collectively known as the Pentateuch or the Torah.", "correctAnswer": true, "explanation": "These five books, traditionally attributed to Moses, form the foundation of Jewish Scripture. 'Pentateuch' comes from Greek meaning 'five scrolls,' while 'Torah' is Hebrew meaning 'instruction' or 'law.' They contain the creation story, the patriarchs, the Exodus from Egypt, the giving of the Law at Sinai, and the wilderness wanderings.", "reference": "Genesis-Deuteronomy", "points": 10},
+        {"id": "ot-tf-b-11", "question": "In the story of David and Goliath, David was already an experienced soldier in King Saul's army when he volunteered to fight the giant Philistine warrior.", "correctAnswer": false, "explanation": "David was not a soldier — he was a young shepherd boy who had come to the battlefield to bring food to his older brothers. He had no military training or armour. When he volunteered, Saul tried to give him his own armour, but David couldn't walk in it because he wasn't used to it. He went with only his sling, five stones, and his faith in God.", "reference": "1 Samuel 17:12-40", "points": 10},
+        {"id": "ot-tf-b-12", "question": "According to the book of Genesis, Joseph was eventually reunited with his brothers in Egypt during a severe famine, and he forgave them for selling him into slavery.", "correctAnswer": true, "explanation": "When Joseph's brothers came to Egypt to buy grain during the famine, they didn't recognise the powerful Egyptian official as their brother. After testing them, Joseph revealed himself and wept. He told them 'Do not be distressed and do not be angry with yourselves for selling me here, because it was to save lives that God sent me ahead of you.'", "reference": "Genesis 45:1-8", "points": 10},
+        {"id": "ot-tf-b-13", "question": "The walls of Jericho fell after the Israelite army attacked the city with battering rams and siege weapons for seven days.", "correctAnswer": false, "explanation": "The Israelites did not use any conventional weapons against Jericho's walls. God instructed them to march around the city once a day for six days with priests carrying the Ark of the Covenant and blowing trumpets. On the seventh day, they marched around seven times, the priests blew the trumpets, the people shouted, and the walls collapsed miraculously.", "reference": "Joshua 6:1-20", "points": 10},
+        {"id": "ot-tf-b-14", "question": "King Solomon, known for his great wisdom, also built the first Temple in Jerusalem — a magnificent structure that took seven years to complete.", "correctAnswer": true, "explanation": "Solomon built the Temple on Mount Moriah in Jerusalem, using cedar from Lebanon, stone, and gold. It took seven years to build (approximately 966-959 BC). The Temple was the central place of worship for the Israelites and housed the Ark of the Covenant in the Most Holy Place. At the dedication, God's glory filled the Temple so powerfully that the priests could not stand to minister.", "reference": "1 Kings 6:1-38, 8:10-11", "points": 10},
+        {"id": "ot-tf-b-15", "question": "The prophet Elijah was fed by ravens during a period of drought and famine. God sent ravens to bring him bread and meat every morning and evening while he hid by a brook.", "correctAnswer": true, "explanation": "After Elijah told King Ahab there would be no rain for years, God directed Elijah to hide by the Brook Cherith. 'The ravens brought him bread and meat in the morning and bread and meat in the evening, and he drank from the brook.' When the brook dried up, God sent him to a widow in Zarephath whose flour and oil miraculously never ran out.", "reference": "1 Kings 17:1-6", "points": 10},
+        {"id": "ot-tf-b-16", "question": "The book of Proverbs was written entirely by King David, who was known for his wisdom and his ability to write songs and poetry.", "correctAnswer": false, "explanation": "While David wrote many Psalms, the book of Proverbs is primarily attributed to his son Solomon (Proverbs 1:1). However, Proverbs also contains contributions from other authors: 'the sayings of the wise' (22:17), Agur son of Jakeh (chapter 30), and King Lemuel's mother (chapter 31). David is not credited with writing any of the Proverbs.", "reference": "Proverbs 1:1, 30:1, 31:1", "points": 10},
+        {"id": "ot-tf-b-17", "question": "According to the book of Esther, the Jewish festival of Purim celebrates the deliverance of the Jewish people from Haman's plot to destroy them during the Persian Empire.", "correctAnswer": true, "explanation": "Purim gets its name from the 'pur' (lot) that Haman cast to determine the date for the destruction of the Jews. When Queen Esther exposed his plot, Haman was executed on the very gallows he had built for Mordecai. The Jews were allowed to defend themselves, and the days of their deliverance became the annual festival of Purim, still celebrated today.", "reference": "Esther 9:20-32", "points": 10},
+        {"id": "ot-tf-b-18", "question": "In the book of Daniel, Daniel and his three friends refused to eat the king's rich food when they were first brought to Babylon, requesting vegetables and water instead. After ten days on this diet, they looked healthier than all the others.", "correctAnswer": true, "explanation": "Daniel resolved not to defile himself with the royal food and wine. He asked the chief official for permission to eat only vegetables and drink water for ten days as a test. At the end of the ten days, Daniel and his friends looked healthier and better nourished than any of the young men who ate the royal food, so they were allowed to continue their diet.", "reference": "Daniel 1:8-16", "points": 10},
+        {"id": "ot-tf-b-19", "question": "The longest chapter in the entire Bible is Psalm 119, which is an elaborate poem celebrating God's Word, with each section beginning with a successive letter of the Hebrew alphabet.", "correctAnswer": true, "explanation": "Psalm 119 has 176 verses divided into 22 sections, each corresponding to a letter of the Hebrew alphabet. Each section has 8 verses that all begin with that Hebrew letter. Nearly every verse mentions God's Word using synonyms like law, statutes, precepts, commands, decrees, word, promise, or ordinances. It is both the longest psalm and the longest chapter in the Bible.", "reference": "Psalm 119", "points": 10},
+        {"id": "ot-tf-b-20", "question": "According to the book of Genesis, Jacob had twelve sons who became the founders of the twelve tribes of Israel. His favourite wife was Rachel, who was the mother of Joseph and Benjamin.", "correctAnswer": true, "explanation": "Jacob married both Leah and Rachel (sisters), and also had children through their servants Zilpah and Bilhah. Rachel, whom Jacob had loved from the start and worked 14 years to marry, was the mother of Joseph (his favourite son) and Benjamin. Rachel died giving birth to Benjamin, and her death deeply grieved Jacob.", "reference": "Genesis 29-30, 35:16-20", "points": 10},
+        {"id": "ot-tf-b-21", "question": "The prophet Isaiah served during a time of peace and prosperity in Israel, and his message was primarily one of celebration and congratulation for the nation's faithfulness to God.", "correctAnswer": false, "explanation": "Isaiah prophesied during a turbulent period when the northern kingdom of Israel was conquered by Assyria (722 BC) and Judah was under constant threat. His message included stern warnings about social injustice, idolatry, and empty religious rituals, as well as beautiful promises of future redemption and the coming Messiah. Isaiah is often called the 'fifth Gospel' because of his extensive messianic prophecies.", "reference": "Isaiah 1-66", "points": 10},
+        {"id": "ot-tf-b-22", "question": "Samson, the strong judge of Israel, was ultimately captured by the Philistines after Delilah discovered that the secret of his strength was his long hair, which had never been cut as part of his Nazirite vow.", "correctAnswer": true, "explanation": "After Delilah nagged Samson relentlessly, he finally told her 'No razor has ever been used on my head because I have been a Nazirite dedicated to God from my mother's womb. If my head were shaved, my strength would leave me.' She lulled him to sleep and had a man shave off his hair. The Philistines captured him, gouged out his eyes, and put him to work grinding grain in prison.", "reference": "Judges 16:15-21", "points": 10},
+        {"id": "ot-tf-b-23", "question": "The Passover meal, which the Jewish people celebrate to this day, commemorates the night when God delivered the Israelites from slavery in Egypt by striking down the firstborn of the Egyptians while 'passing over' homes marked with lamb's blood.", "correctAnswer": true, "explanation": "On the night of the tenth plague, each Israelite family was instructed to slaughter a lamb and paint its blood on the doorframe of their house. When the angel of death saw the blood, he passed over that house. They ate the lamb with unleavened bread and bitter herbs, ready to leave Egypt. This became the annual Passover feast (Pesach).", "reference": "Exodus 12:1-30", "points": 10},
+        {"id": "ot-tf-b-24", "question": "According to Genesis, the Tower of Babel was a building project where humans tried to build a tower reaching to heaven. God stopped them by making them all speak different languages so they could no longer understand each other.", "correctAnswer": true, "explanation": "The people said 'Come, let us build ourselves a city, with a tower that reaches to the heavens, so that we may make a name for ourselves.' God came down, confused their language so they could not understand each other, and scattered them over all the earth. The city was called Babel (confusion). This story explains the origin of different languages and nations.", "reference": "Genesis 11:1-9", "points": 10},
+        {"id": "ot-tf-b-25", "question": "The book of Ruth takes place during the time of the kings of Israel, when Ruth came from Moab to Bethlehem and married a wealthy landowner named Boaz.", "correctAnswer": false, "explanation": "The book of Ruth takes place during the time of the Judges, not the kings. Ruth 1:1 specifically states 'In the days when the judges ruled.' Ruth did indeed come from Moab to Bethlehem with her mother-in-law Naomi, and she married Boaz. Their great-grandson was King David, making Ruth an ancestor of both David and Jesus.", "reference": "Ruth 1:1, 4:17-22", "points": 10},
+        {"id": "ot-tf-b-26", "question": "The Ark of the Covenant was a sacred wooden chest overlaid with gold that contained the two stone tablets of the Ten Commandments, Aaron's budding staff, and a jar of manna.", "correctAnswer": true, "explanation": "The Ark of the Covenant was made of acacia wood overlaid with pure gold, with two gold cherubim on its lid (the 'mercy seat'). According to Hebrews 9:4, it contained the gold jar of manna, Aaron's staff that had budded, and the stone tablets of the covenant. The Ark was the most sacred object in Israel, kept in the Most Holy Place of the Tabernacle and later the Temple.", "reference": "Exodus 25:10-22, Hebrews 9:4", "points": 10},
+        {"id": "ot-tf-b-27", "question": "The Old Testament prophet Elijah is considered one of the two most important figures in Jewish tradition (alongside Moses), and he is expected to return before the coming of the Messiah.", "correctAnswer": true, "explanation": "Malachi 4:5 prophesied 'I will send the prophet Elijah to you before that great and dreadful day of the LORD comes.' Jewish tradition sets a place for Elijah at every Passover Seder, hoping for his return. Jesus identified John the Baptist as the Elijah who was to come (Matthew 11:14). At the Transfiguration, both Moses and Elijah appeared with Jesus.", "reference": "Malachi 4:5, Matthew 11:14", "points": 10},
+        {"id": "ot-tf-b-28", "question": "According to the book of Genesis, Abraham and Sarah had their promised son Isaac when Abraham was 100 years old and Sarah was 90, making Isaac's birth a miracle.", "correctAnswer": true, "explanation": "God had promised Abraham a son through Sarah, but they waited 25 years for the promise to be fulfilled. When three visitors (angels/God) told Abraham that Sarah would have a son within a year, Sarah laughed — she was 90 years old. But God said 'Is anything too hard for the LORD?' Isaac's name means 'he laughs,' commemorating Sarah's laughter.", "reference": "Genesis 17:17, 18:10-14, 21:1-7", "points": 10},
+        {"id": "ot-tf-b-29", "question": "The prophet Moses led the Israelites into the Promised Land and established them there before his death.", "correctAnswer": false, "explanation": "Moses was not permitted to enter the Promised Land because he disobeyed God at Meribah by striking a rock twice instead of speaking to it as God commanded (Numbers 20:7-12). God allowed Moses to see the land from the top of Mount Nebo in Moab, but he died there and was buried by God in an unknown location. Joshua led the Israelites into Canaan.", "reference": "Deuteronomy 34:1-6", "points": 10},
+        {"id": "ot-tf-b-30", "question": "The book of Lamentations is a collection of five poems mourning the destruction of Jerusalem and the Temple by the Babylonians in 586 BC, and is traditionally attributed to the prophet Jeremiah.", "correctAnswer": true, "explanation": "Lamentations contains five sorrowful poems grieving over Jerusalem's destruction. The poet describes the horrors of the siege — starvation, violence, and exile. Despite the anguish, the book contains a famous expression of hope: 'Because of the LORD's great love we are not consumed, for his compassions never fail. They are new every morning; great is your faithfulness' (3:22-23).", "reference": "Lamentations 1-5, 3:22-23", "points": 10},
+        {"id": "ot-tf-b-31", "question": "In the Old Testament, the first murder in human history occurred when Cain killed his brother Abel because Cain was jealous that God accepted Abel's offering but rejected his own.", "correctAnswer": true, "explanation": "Abel brought the best portions from the firstborn of his flock, while Cain brought some of his crops. God looked with favour on Abel's offering but not on Cain's. Despite God warning Cain that 'sin is crouching at your door,' Cain led Abel into a field and killed him. When God asked where Abel was, Cain replied defiantly 'Am I my brother's keeper?'", "reference": "Genesis 4:1-12", "points": 10},
+        {"id": "ot-tf-b-32", "question": "The prophet Daniel served in the courts of Babylonian and Persian kings for the majority of his life, having been taken to Babylon as a young man during the exile.", "correctAnswer": true, "explanation": "Daniel was taken to Babylon as a teenager around 605 BC during the first deportation under Nebuchadnezzar. He served faithfully in the courts of Nebuchadnezzar, Belshazzar, Darius the Mede, and Cyrus the Persian — spanning roughly 70 years. His integrity, wisdom, and faithfulness to God never wavered despite serving pagan kings in a foreign land.", "reference": "Daniel 1-6", "points": 10},
+        {"id": "ot-tf-b-33", "question": "According to the Old Testament, God appeared to Moses on Mount Sinai and gave him the Ten Commandments written on two tablets of stone. When Moses came down and found the people worshipping a golden calf, he smashed the tablets in anger.", "correctAnswer": true, "explanation": "Moses spent 40 days on the mountain receiving God's law. When he descended and saw the Israelites dancing around the golden calf Aaron had made, 'his anger burned and he threw the tablets out of his hands, breaking them to pieces at the foot of the mountain.' God later told Moses to chisel two new tablets, and God wrote the commandments again.", "reference": "Exodus 32:15-19, 34:1", "points": 10},
+        {"id": "ot-tf-b-34", "question": "The Old Testament ends with the book of Revelation, which describes visions of the end times and the final judgment.", "correctAnswer": false, "explanation": "Revelation is the last book of the New Testament, not the Old Testament. The Old Testament ends with the book of Malachi (in the Christian ordering), which was written around 450-400 BC. Malachi's final prophecy about God sending the prophet Elijah is followed by roughly 400 years of silence before the New Testament begins with the birth of Jesus.", "reference": "Malachi 4:5-6", "points": 10},
+        {"id": "ot-tf-b-35", "question": "Methuselah, the grandfather of Noah, is recorded in Genesis as the longest-lived person in the Bible, living to the age of 969 years.", "correctAnswer": true, "explanation": "Genesis 5:27 states 'Altogether, Methuselah lived a total of 969 years, and then he died.' According to the genealogies, Methuselah died in the same year as the great flood. His name is sometimes interpreted as meaning 'when he dies, it shall be sent' — possibly a prophetic reference to the flood being sent upon his death.", "reference": "Genesis 5:27", "points": 10}
+      ],
+      "intermediate": [
+        {"id": "ot-tf-i-1", "question": "The prophet Elijah was taken directly to heaven without dying, making him one of only two people in the Old Testament who did not experience death. The other was Enoch, who 'walked faithfully with God; then he was no more, because God took him away.'", "correctAnswer": true, "explanation": "Genesis 5:24 says Enoch 'walked faithfully with God; then he was no more, because God took him away.' Elijah was taken up to heaven in a whirlwind with a chariot of fire (2 Kings 2:11). These are the only two Old Testament figures recorded as being taken to heaven without dying.", "reference": "Genesis 5:24, 2 Kings 2:11", "points": 15},
+        {"id": "ot-tf-i-2", "question": "King Hezekiah of Judah was told by the prophet Isaiah that he was going to die from his illness. Hezekiah prayed and wept, and God added 15 years to his life and moved the shadow on a sundial backward as a sign.", "correctAnswer": true, "explanation": "Isaiah told Hezekiah 'Put your house in order, because you are going to die.' Hezekiah turned his face to the wall and prayed, weeping bitterly. Before Isaiah had left the middle court, God told him to go back and tell Hezekiah He had heard his prayer, seen his tears, and would add 15 years to his life. The shadow on the stairway of Ahaz went back ten steps as confirmation.", "reference": "2 Kings 20:1-11", "points": 15},
+        {"id": "ot-tf-i-3", "question": "The prophet Obadiah wrote the shortest book in the Old Testament — only 21 verses long — and his entire message was directed against the nation of Edom for their treachery against Judah.", "correctAnswer": true, "explanation": "Obadiah is indeed the shortest book in the Old Testament with just one chapter of 21 verses. The Edomites, descendants of Esau (Jacob's brother), rejoiced when Babylon destroyed Jerusalem, blocked escape routes, and handed over survivors. Obadiah prophesied that Edom would be completely destroyed for their betrayal of their 'brother' nation Judah.", "reference": "Obadiah 1:1-21", "points": 15},
+        {"id": "ot-tf-i-4", "question": "According to the book of Judges, the Israelites followed a repeated cycle during this period: they would sin, God would allow enemies to oppress them, they would cry out to God, and God would raise up a judge to deliver them — only for the cycle to start again.", "correctAnswer": true, "explanation": "This cycle (sin → oppression → crying out → deliverance → peace → sin again) is the structural backbone of the book of Judges. Each generation 'did evil in the eyes of the LORD' after their deliverer died. The cycle demonstrates both Israel's persistent unfaithfulness and God's persistent mercy. Judges like Othniel, Ehud, Deborah, Gideon, Jephthah, and Samson were raised up during these cycles.", "reference": "Judges 2:11-19", "points": 15},
+        {"id": "ot-tf-i-5", "question": "The prophet Nahum's message was directed against Nineveh — the same city that had repented under Jonah's preaching. By Nahum's time (about 150 years later), Nineveh had returned to its wicked ways and faced final destruction.", "correctAnswer": true, "explanation": "While Jonah's preaching (around 760 BC) led to Nineveh's repentance, the city eventually returned to cruelty and arrogance. Nahum (around 650-612 BC) prophesied Nineveh's complete destruction: 'The LORD is slow to anger but great in power; the LORD will not leave the guilty unpunished.' Nineveh fell to the Babylonians and Medes in 612 BC, exactly as prophesied.", "reference": "Nahum 1-3", "points": 15},
+        {"id": "ot-tf-i-6", "question": "The book of Ecclesiastes declares that 'there is nothing new under the sun' and concludes that the ultimate purpose of life is to accumulate as much wealth and pleasure as possible before death.", "correctAnswer": false, "explanation": "While the Preacher does say 'there is nothing new under the sun' and explores the futility of wealth, pleasure, and human achievement, the book's conclusion is the opposite of pursuing pleasure. Ecclesiastes 12:13 concludes: 'Fear God and keep his commandments, for this is the duty of all mankind.' The book teaches that meaning is found in relationship with God, not in earthly pursuits.", "reference": "Ecclesiastes 12:13-14", "points": 15},
+        {"id": "ot-tf-i-7", "question": "When King Solomon died, his son Rehoboam listened to the advice of the elders and reduced the people's heavy tax burden, which prevented the kingdom from splitting.", "correctAnswer": false, "explanation": "Rehoboam did the opposite. He rejected the elders' wise counsel and instead listened to his young friends, who advised him to increase the burden. Rehoboam told the people: 'My father made your yoke heavy; I will make it even heavier. My father scourged you with whips; I will scourge you with scorpions.' This caused the ten northern tribes to break away and form the kingdom of Israel.", "reference": "1 Kings 12:1-17", "points": 15},
+        {"id": "ot-tf-i-8", "question": "The prophet Jeremiah was thrown into a muddy cistern (well) by officials who were angry at his message that Jerusalem would fall to Babylon. He sank into the mud and would have died if an Ethiopian official named Ebed-Melek had not rescued him.", "correctAnswer": true, "explanation": "Jeremiah was lowered into a cistern that had no water but only mud, and he sank into it. Ebed-Melek, a Cushite (Ethiopian) official in the king's palace, pleaded with King Zedekiah, saying the prophet would starve to death. The king authorised a rescue, and Ebed-Melek used old rags to cushion the ropes so they wouldn't hurt Jeremiah as they pulled him out.", "reference": "Jeremiah 38:1-13", "points": 15},
+        {"id": "ot-tf-i-9", "question": "The Tabernacle (portable tent of worship) that Moses built in the wilderness was designed by human architects and artists based on their own creative vision.", "correctAnswer": false, "explanation": "God gave Moses extremely detailed instructions for the Tabernacle's design on Mount Sinai, saying 'Make this tabernacle and all its furnishings exactly like the pattern I will show you' (Exodus 25:9). Every measurement, material, colour, and piece of furniture was specified by God. The Tabernacle was a copy of a heavenly pattern, not human invention.", "reference": "Exodus 25:9, 25-27, Hebrews 8:5", "points": 15},
+        {"id": "ot-tf-i-10", "question": "David's son Absalom led a rebellion against his father and temporarily seized the throne of Israel, forcing David to flee Jerusalem. Absalom died during the battle when his long hair got caught in a tree.", "correctAnswer": true, "explanation": "Absalom, known for his handsome appearance and luxurious hair, mounted a rebellion and was proclaimed king in Hebron. David fled Jerusalem. In the decisive battle in the forest of Ephraim, Absalom's head got caught in the branches of a large oak tree while riding his mule. He was left hanging and was killed by Joab's men. David wept bitterly: 'O my son Absalom! My son, my son Absalom!'", "reference": "2 Samuel 15-18", "points": 15},
+        {"id": "ot-tf-i-11", "question": "The prophet Habakkuk is unique among the Old Testament prophets because instead of preaching to the people on God's behalf, he questions God directly, challenging God about why He allows evil and injustice to continue.", "correctAnswer": true, "explanation": "Habakkuk's book reads like a dialogue between the prophet and God. Habakkuk asks 'How long, LORD, must I call for help, but you do not listen?' and 'Why do you tolerate wrongdoing?' God's surprising answer — that He would use the wicked Babylonians to punish Judah — only raised more questions. The book culminates in a declaration of faith despite unanswered questions.", "reference": "Habakkuk 1-3", "points": 15},
+        {"id": "ot-tf-i-12", "question": "The prophet Elisha performed twice as many recorded miracles as his predecessor Elijah, fulfilling his request for a 'double portion' of Elijah's spirit.", "correctAnswer": true, "explanation": "Elijah performed approximately 8 recorded miracles, while Elisha performed about 16 — roughly double. Elisha's miracles include purifying water, multiplying oil for a widow, raising a boy from death, curing Naaman's leprosy, making an axe head float, striking an army with blindness, and even causing a dead man to revive when his body touched Elisha's bones in the grave.", "reference": "2 Kings 2-13", "points": 15},
+        {"id": "ot-tf-i-13", "question": "The 'Suffering Servant' passage in Isaiah 53 was universally understood by ancient Jewish scholars as referring to a coming individual Messiah, with no alternative interpretations.", "correctAnswer": false, "explanation": "While some ancient Jewish interpreters did see Isaiah 53 as referring to an individual Messiah, the passage has been interpreted in multiple ways throughout Jewish history. Many Jewish scholars interpreted the Suffering Servant as representing the nation of Israel collectively — suffering innocently among the nations. Others saw it as referring to a righteous remnant, or to specific historical figures. The Christological interpretation, while ancient, was not the only one.", "reference": "Isaiah 52:13-53:12", "points": 15},
+        {"id": "ot-tf-i-14", "question": "When Naaman, a powerful Syrian military commander, came to the prophet Elisha seeking a cure for his leprosy, Elisha told him to wash seven times in the Jordan River. Naaman was initially furious at such a simple and humbling instruction.", "correctAnswer": true, "explanation": "Naaman expected Elisha to come out, stand over him, wave his hand, and dramatically call on God. Instead, Elisha didn't even come to the door — he sent a messenger saying 'Go, wash yourself seven times in the Jordan.' Naaman was outraged: 'Are not the rivers of Damascus better than all the waters of Israel?' His servants persuaded him to try it, and he was completely healed.", "reference": "2 Kings 5:1-14", "points": 15},
+        {"id": "ot-tf-i-15", "question": "The prophet Joel's famous prophecy about God pouring out His Spirit 'on all people' — with sons and daughters prophesying, old men dreaming dreams, and young men seeing visions — was quoted by Peter on the day of Pentecost in the New Testament.", "correctAnswer": true, "explanation": "Joel 2:28-32 prophesied a future outpouring of God's Spirit on all people regardless of age, gender, or social status. In Acts 2:16-21, Peter quoted this passage directly to explain what was happening at Pentecost: 'This is what was spoken by the prophet Joel.' The universal nature of the Spirit's outpouring was revolutionary.", "reference": "Joel 2:28-32, Acts 2:16-21", "points": 15},
+        {"id": "ot-tf-i-16", "question": "King Ahab and his wife Jezebel are portrayed as two of the most wicked rulers in Israel's history. Jezebel introduced the worship of the Canaanite god Baal and persecuted the prophets of the LORD.", "correctAnswer": true, "explanation": "Jezebel, a Phoenician princess, married King Ahab and aggressively promoted Baal worship in Israel. She killed many of the LORD's prophets, forcing 100 of them to hide in caves. She also orchestrated the murder of Naboth to steal his vineyard. Elijah was her primary opponent. The prophet Elijah's confrontation on Mount Carmel was a direct challenge to the Baal worship she championed.", "reference": "1 Kings 16:29-33, 18:4, 21:1-16", "points": 15},
+        {"id": "ot-tf-i-17", "question": "The prophet Haggai urged the returned exiles to stop building their own houses and start rebuilding God's Temple, which had remained in ruins for years while the people focused on their own comfort.", "correctAnswer": true, "explanation": "After returning from exile, the people had rebuilt their own panelled houses but left God's Temple in ruins. Haggai challenged them: 'Is it a time for you yourselves to be living in your panelled houses, while this house remains a ruin?' He pointed out that their crops had been poor and their earnings had 'gone into a purse with holes' because they had neglected God's house. The people responded and began rebuilding.", "reference": "Haggai 1:1-11", "points": 15},
+        {"id": "ot-tf-i-18", "question": "The Old Testament book of Song of Solomon (Song of Songs) contains explicit romantic and sensual poetry between two lovers, making it one of the most debated books in the biblical canon regarding its inclusion.", "correctAnswer": true, "explanation": "Song of Solomon contains passionate love poetry that celebrates physical attraction and romantic love. Rabbi Akiva defended its inclusion in the canon, calling it the 'Holy of Holies' of Scripture. Its place was debated by ancient rabbis. Jewish tradition reads it as an allegory of God's love for Israel; Christian tradition often interprets it as Christ's love for the church. Some scholars simply see it as a celebration of God-given romantic love.", "reference": "Song of Solomon 1-8", "points": 15},
+        {"id": "ot-tf-i-19", "question": "In the book of Numbers, Korah led a rebellion against Moses' leadership, claiming that Moses had too much authority. God punished the rebels by opening the ground, which swallowed Korah and his followers alive.", "correctAnswer": true, "explanation": "Korah, along with Dathan, Abiram, and 250 community leaders, challenged Moses saying 'The whole community is holy, every one of them, and the LORD is with them. Why then do you set yourselves above the LORD's assembly?' Moses said God would show who belonged to Him. The ground split open and swallowed the rebels, their households, and all their possessions. Fire from the LORD consumed the 250 men offering incense.", "reference": "Numbers 16:1-35", "points": 15},
+        {"id": "ot-tf-i-20", "question": "The prophet Zechariah had eight visions in a single night, all relating to the restoration of Jerusalem and the coming of the Messiah. These visions included a man among myrtle trees, four horns, a flying scroll, and a woman in a basket.", "correctAnswer": true, "explanation": "Zechariah received eight night visions (chapters 1-6) that addressed the post-exilic community's concerns about Jerusalem's restoration and future hope. The visions include a horseman among myrtle trees, four horns and four craftsmen, a man with a measuring line, the high priest Joshua, a golden lampstand, a flying scroll, a woman in a basket, and four chariots. Each vision conveyed God's plans for restoration and judgment.", "reference": "Zechariah 1-6", "points": 15},
+        {"id": "ot-tf-i-21", "question": "The ancient Israelite calendar began its religious year in the spring month of Nisan (March-April), which is when Passover was celebrated, rather than in the autumn as the civil calendar did.", "correctAnswer": true, "explanation": "God told Moses in Exodus 12:2 'This month is to be for you the first month, the first month of your year' — referring to Nisan/Aviv, the month of the Exodus and Passover. However, the civil new year (Rosh Hashanah) was celebrated in the autumn month of Tishri (September-October). This dual calendar system persists in Jewish tradition today.", "reference": "Exodus 12:2", "points": 15},
+        {"id": "ot-tf-i-22", "question": "The prophet Amos, despite being from the southern kingdom of Judah, was sent by God to prophesy against the northern kingdom of Israel, particularly criticising the wealthy for exploiting the poor.", "correctAnswer": true, "explanation": "Amos was a shepherd from Tekoa in Judah, but God sent him north to Israel during its prosperous reign under Jeroboam II. He condemned the wealthy who 'sell the innocent for silver and the needy for a pair of sandals,' who 'trample on the heads of the poor,' and who held lavish banquets while ignoring injustice. His message of social justice remains powerfully relevant today.", "reference": "Amos 1:1, 2:6-7, 6:1-7", "points": 15},
+        {"id": "ot-tf-i-23", "question": "The Urim and Thummim were sacred objects kept in the high priest's breastplate and used to determine God's will on important decisions. The exact nature of these objects is unknown.", "correctAnswer": true, "explanation": "The Urim and Thummim were placed in the breastplate of the high priest's garment for making decisions (Exodus 28:30). They were used to seek God's guidance on important matters. Their exact nature is unknown — possibly stones, sticks, or lots that indicated 'yes,' 'no,' or 'no answer.' By the post-exilic period, they appear to have fallen out of use (Ezra 2:63).", "reference": "Exodus 28:30, 1 Samuel 28:6", "points": 15},
+        {"id": "ot-tf-i-24", "question": "King Manasseh of Judah was the most wicked king in Judah's history, practicing child sacrifice and filling Jerusalem with blood. However, according to 2 Chronicles, he later repented in captivity and God restored him to his throne.", "correctAnswer": true, "explanation": "Manasseh did 'more evil than the nations the LORD had destroyed.' He sacrificed his own sons, practiced sorcery, and set up idols in the Temple. God allowed the Assyrians to capture him. In prison, Manasseh 'humbled himself greatly before the God of his ancestors' and God brought him back to Jerusalem. He then removed the foreign gods and restored proper worship — one of the Bible's most dramatic repentance stories.", "reference": "2 Chronicles 33:1-17", "points": 15},
+        {"id": "ot-tf-i-25", "question": "The prophet Malachi is the last book of the Old Testament in the Christian Bible, and after Malachi there were approximately 400 years of prophetic silence before the events of the New Testament began.", "correctAnswer": true, "explanation": "Malachi, written around 450-400 BC, is the last prophetic voice in the Old Testament. The roughly 400-year gap between the Old and New Testaments is sometimes called the 'Intertestamental Period' or the '400 Silent Years.' During this time, major events occurred (Greek conquest, Maccabean revolt, Roman conquest), but no canonical prophetic writings were produced until John the Baptist appeared.", "reference": "Malachi 4:5-6", "points": 15},
+        {"id": "ot-tf-i-26", "question": "In the book of Exodus, God instructed the Israelites to celebrate the Sabbath (a day of rest) every seventh day, and this practice was unique to Israel — no other ancient Near Eastern culture had a regular weekly day of rest.", "correctAnswer": true, "explanation": "The weekly Sabbath was a distinctively Israelite institution. While other ancient cultures had periodic rest days tied to lunar cycles or considered certain days unlucky, Israel's seven-day cycle with a mandatory rest day was unique. The Sabbath was grounded in creation (God rested on the seventh day) and in redemption (remembering their liberation from slavery in Egypt, where they had no rest).", "reference": "Exodus 20:8-11, Deuteronomy 5:12-15", "points": 15},
+        {"id": "ot-tf-i-27", "question": "The prophet Ezekiel performed several 'sign acts' — dramatic visual demonstrations of his prophecies. One of these involved lying on his left side for 390 days and his right side for 40 days to symbolise the years of Israel's and Judah's punishment.", "correctAnswer": true, "explanation": "God told Ezekiel to lie on his left side for 390 days (representing Israel's years of sin) and then on his right side for 40 days (Judah's years of sin). During this time, he ate measured rations of bread and water to symbolise the siege conditions Jerusalem would face. Ezekiel's sign acts were dramatic, embodied prophecies that made God's message unforgettable.", "reference": "Ezekiel 4:1-8", "points": 15},
+        {"id": "ot-tf-i-28", "question": "The book of Job is traditionally considered the oldest book in the Bible, likely written before any of the books of Moses, based on its setting in a patriarchal society and its lack of references to the Mosaic Law, the Exodus, or the nation of Israel.", "correctAnswer": true, "explanation": "While the exact date of Job's composition is debated, many scholars consider it one of the earliest biblical writings. Job himself appears to live in a patriarchal era (he acts as his own priest, his wealth is measured in livestock, he lives an extraordinarily long life). The book makes no mention of the Exodus, the Law, the Temple, Israel as a nation, or any Israelite history.", "reference": "Job 1-42", "points": 15},
+        {"id": "ot-tf-i-29", "question": "When Rahab hid the Israelite spies in Jericho, she lied to the king's soldiers about their whereabouts. Despite her deception, she is praised in both the Old and New Testaments for her faith and is listed in the genealogy of Jesus.", "correctAnswer": true, "explanation": "Rahab, a prostitute in Jericho, hid the two spies and misdirected the soldiers. She declared her faith: 'The LORD your God is God in heaven above and on the earth below.' Her family was saved when Jericho fell. She is praised for her faith in Hebrews 11:31 and James 2:25, and is listed in Jesus' genealogy in Matthew 1:5 as the mother of Boaz (Ruth's husband).", "reference": "Joshua 2, Hebrews 11:31, Matthew 1:5", "points": 15},
+        {"id": "ot-tf-i-30", "question": "The 'cities of refuge' described in Joshua were six cities designated across Israel where a person who accidentally killed someone could flee for protection from the victim's family seeking revenge.", "correctAnswer": true, "explanation": "God established six cities of refuge — three on each side of the Jordan — where someone guilty of accidental manslaughter could flee from the 'avenger of blood' (a relative seeking retribution). The accused would receive a trial, and if found to have killed accidentally, they could live safely in the city of refuge until the death of the high priest, after which they could return home.", "reference": "Joshua 20:1-9, Numbers 35:6-34", "points": 15},
+        {"id": "ot-tf-i-31", "question": "The prophet Hosea's unfaithful wife Gomer was a deliberate prophetic symbol: just as Gomer was unfaithful to Hosea, Israel was unfaithful to God by worshipping other gods. Yet Hosea was commanded to keep loving her, just as God kept loving Israel.", "correctAnswer": true, "explanation": "God told Hosea: 'Go, show your love to your wife again, though she is loved by another man and is an adulteress. Love her as the LORD loves the Israelites, though they turn to other gods.' Hosea even bought Gomer back from slavery. This living parable powerfully demonstrated God's persistent, pursuing love for His unfaithful people — one of the most emotionally powerful prophetic messages in the Bible.", "reference": "Hosea 1-3", "points": 15},
+        {"id": "ot-tf-i-32", "question": "The ancient Jewish practice of 'Jubilee' (every 50th year) required all debts to be cancelled, all slaves to be freed, and all ancestral land to be returned to its original family — effectively resetting the economic system.", "correctAnswer": true, "explanation": "Leviticus 25 describes the Year of Jubilee: every 50th year, trumpets would sound on the Day of Atonement, slaves would be freed, debts cancelled, and land returned to its ancestral owners. The purpose was to prevent permanent poverty and ensure no family was permanently dispossessed. Whether Israel ever fully observed the Jubilee is debated by scholars.", "reference": "Leviticus 25:8-55", "points": 15},
+        {"id": "ot-tf-i-33", "question": "The prophet Zephaniah's message was entirely one of judgment and doom, with no words of hope or promise of future restoration for God's people.", "correctAnswer": false, "explanation": "While Zephaniah does contain severe warnings about the coming 'Day of the LORD' and judgment on Judah and surrounding nations, the book concludes with a beautiful vision of restoration and joy. Zephaniah 3:17 declares: 'The LORD your God is with you, the Mighty Warrior who saves. He will take great delight in you; in his love he will no longer rebuke you, but will rejoice over you with singing.'", "reference": "Zephaniah 3:14-20", "points": 15},
+        {"id": "ot-tf-i-34", "question": "When the prophet Samuel anointed David as the future king of Israel, David was the youngest of Jesse's eight sons and was tending sheep when Samuel arrived. God told Samuel 'The LORD does not look at the things people look at. People look at the outward appearance, but the LORD looks at the heart.'", "correctAnswer": true, "explanation": "God sent Samuel to Jesse's house in Bethlehem. Samuel saw Jesse's oldest son Eliab and thought 'Surely the LORD's anointed stands here,' but God rejected him. Seven sons passed before Samuel, and none was chosen. Finally, they sent for the youngest, David, who was out tending sheep. When he arrived, God said 'Rise and anoint him; this is the one.'", "reference": "1 Samuel 16:1-13", "points": 15},
+        {"id": "ot-tf-i-35", "question": "The book of Ezra records that when the foundation of the second Temple was laid in Jerusalem after the exile, the older priests who remembered Solomon's original Temple wept loudly because the new one was so much smaller and less glorious.", "correctAnswer": true, "explanation": "Ezra 3:12-13 records a remarkable moment: 'Many of the older priests and Levites and family heads, who had seen the former temple, wept aloud when they saw the foundation of this temple being laid, while many others shouted for joy. No one could distinguish the sound of the shouts of joy from the sound of weeping.' The second Temple was indeed far less grand than Solomon's original.", "reference": "Ezra 3:12-13", "points": 15}
+      ],
+      "advanced": [
+        {"id": "ot-tf-a-1", "question": "The Hebrew word 'torah' literally means 'law' in the strict legal sense, referring exclusively to the commandments and prohibitions given at Sinai.", "correctAnswer": false, "explanation": "'Torah' comes from the Hebrew root 'yarah,' meaning 'to teach,' 'to instruct,' or 'to point the way' (like an archer pointing an arrow). While it includes legal material, its primary meaning is 'instruction' or 'teaching' in the broadest sense. The Torah contains narrative, poetry, genealogy, and wisdom alongside legal codes. Reducing it to 'law' misses its richness as divine instruction for all of life.", "reference": "Deuteronomy 4:44, Proverbs 1:8", "points": 20},
+        {"id": "ot-tf-a-2", "question": "The concept of monotheism (belief in one God) was fully developed and universally accepted in Israel from the very beginning, with no Israelites ever worshipping other gods alongside YHWH.", "correctAnswer": false, "explanation": "The Old Testament itself records persistent Israelite idolatry — worshipping Baal, Asherah, Molech, and other Canaanite deities alongside (or instead of) YHWH. Scholars debate whether early Israelite religion was strictly monotheistic or more accurately 'monolatrous' (worshipping one God while acknowledging others exist). Full theological monotheism ('no other gods exist') develops progressively, with its clearest expression in Isaiah 40-55.", "reference": "Judges 2:11-13, Isaiah 44:6-8", "points": 20},
+        {"id": "ot-tf-a-3", "question": "The Hebrew Bible's concept of 'Sheol' (the realm of the dead) is essentially identical to the Christian concept of Hell as a place of eternal punishment for the wicked.", "correctAnswer": false, "explanation": "Sheol in the Hebrew Bible is a shadowy underworld where ALL the dead go — righteous and wicked alike. It is not a place of punishment but a place of silence, darkness, and diminished existence. There is no fire, no torment, and no moral distinction between inhabitants. The concept of differential afterlife (reward/punishment) develops later in Jewish thought. The Christian concept of Hell draws more from intertestamental literature and New Testament teaching.", "reference": "Psalm 6:5, Ecclesiastes 9:10, Isaiah 14:9-11", "points": 20},
+        {"id": "ot-tf-a-4", "question": "The 'Angel of the LORD' (Malak YHWH) in the Old Testament is consistently identified as a created angelic being, distinct from God Himself, with no passages suggesting this figure might be a theophany (appearance of God).", "correctAnswer": false, "explanation": "The Angel of the LORD is one of the most mysterious figures in the Old Testament. In many passages, this figure speaks AS God, is identified AS God, and receives worship (Genesis 16:7-13, Exodus 3:2-6, Judges 13:21-22). Hagar says she has 'seen the One who sees me,' and Jacob says he has 'seen God face to face.' Many theologians identify these appearances as pre-incarnate appearances of Christ (Christophanies).", "reference": "Genesis 16:7-13, Exodus 3:2-6, Judges 13:21-22", "points": 20},
+        {"id": "ot-tf-a-5", "question": "The Masoretic Text (MT) — the authoritative Hebrew text of the Jewish Bible — was copied and transmitted by scribes called the Masoretes, who developed an elaborate system of vowel markings and marginal notes to preserve the exact pronunciation and text of the Hebrew Scriptures.", "correctAnswer": true, "explanation": "The Masoretes (from 'masorah' meaning 'tradition') worked primarily between the 7th-10th centuries AD. They added vowel points (nikud) to the consonantal Hebrew text, created marginal notes counting letters, words, and verses in each book, and marked unusual spellings. Their meticulous work (including noting the middle letter and word of each book) ensured remarkable accuracy in transmission. The Leningrad Codex (1008 AD) is the oldest complete Masoretic manuscript.", "reference": "Masoretic Text tradition", "points": 20},
+        {"id": "ot-tf-a-6", "question": "The Hebrew word 'ruach,' used in Genesis 1:2 ('the Spirit of God was hovering over the waters'), can mean 'spirit,' 'wind,' or 'breath,' making the exact interpretation of this verse a matter of theological and linguistic debate.", "correctAnswer": true, "explanation": "'Ruach' is inherently ambiguous — it can mean divine Spirit, wind, or breath. Genesis 1:2 could be translated 'the Spirit of God was hovering,' 'a wind from God swept,' or 'a mighty wind was moving.' The same ambiguity enriches other passages — Ezekiel's dry bones vision uses 'ruach' to mean wind, breath, and spirit simultaneously. This multivalence is a feature, not a defect, of Hebrew poetry.", "reference": "Genesis 1:2, Ezekiel 37:9-14", "points": 20},
+        {"id": "ot-tf-a-7", "question": "The book of Esther is the only book in the Hebrew Bible that does not mention God by name — not even once — yet it is universally considered canonical by Jews and Christians.", "correctAnswer": true, "explanation": "Esther never explicitly mentions God, prayer, the Temple, the Law, or any religious practice. Yet the book powerfully implies divine providence through 'coincidences' — Esther becoming queen, Mordecai discovering a plot, the king's insomnia leading him to read about Mordecai's loyalty. Some scholars have found God's name (YHWH) hidden as an acrostic in four key verses. Despite its lack of explicit theology, both Jews and Christians consider it canonical.", "reference": "Book of Esther", "points": 20},
+        {"id": "ot-tf-a-8", "question": "The practice of animal sacrifice in ancient Israel was unique — no other ancient Near Eastern culture practised ritual animal sacrifice as part of their worship.", "correctAnswer": false, "explanation": "Animal sacrifice was extremely common throughout the ancient Near East — in Mesopotamia, Egypt, Canaan, Greece, and Rome. What was distinctive about Israelite sacrifice was its theology: sacrifice was not feeding the gods (as in Mesopotamia), but was a means of atonement and communion with YHWH. God explicitly rejected the notion that He needed food (Psalm 50:12-13). The sacrificial system pointed toward a deeper spiritual reality.", "reference": "Leviticus 1-7, Psalm 50:12-13", "points": 20},
+        {"id": "ot-tf-a-9", "question": "The Hebrew creation account in Genesis 1 uses the literary structure of a seven-day framework, with days 1-3 forming the 'realms' of creation and days 4-6 filling those realms with corresponding 'rulers' — a deliberate literary parallelism.", "correctAnswer": true, "explanation": "Genesis 1 exhibits a sophisticated literary structure: Day 1 (light) parallels Day 4 (sun, moon, stars — rulers of light); Day 2 (sky/waters) parallels Day 5 (birds/fish — inhabitants of sky/water); Day 3 (land/vegetation) parallels Day 6 (land animals/humans — inhabitants of land). Days 1-3 create domains; days 4-6 fill them with inhabitants. This literary framework is widely recognised by scholars across the theological spectrum.", "reference": "Genesis 1:1-31", "points": 20},
+        {"id": "ot-tf-a-10", "question": "The prophet Isaiah's ministry spanned the reigns of four kings of Judah — Uzziah, Jotham, Ahaz, and Hezekiah — covering approximately 40 years of prophetic activity during one of the most turbulent periods in Israel's history.", "correctAnswer": true, "explanation": "Isaiah 1:1 dates his ministry to the reigns of these four kings (roughly 740-700 BC). During this period, the northern kingdom of Israel fell to Assyria (722 BC), and Judah faced the terrifying Assyrian siege under Sennacherib (701 BC). Isaiah's ministry encompassed both judgment (chapters 1-39) and comfort (chapters 40-66), addressing both the immediate Assyrian crisis and the distant future.", "reference": "Isaiah 1:1", "points": 20},
+        {"id": "ot-tf-a-11", "question": "The 'Wisdom Literature' of the Old Testament (Job, Proverbs, Ecclesiastes) draws exclusively on Israelite tradition and shows no influence from or parallels with the wisdom literature of surrounding ancient Near Eastern cultures.", "correctAnswer": false, "explanation": "Old Testament wisdom literature has significant parallels with ancient Near Eastern wisdom traditions. The Egyptian 'Instruction of Amenemope' closely parallels Proverbs 22:17-24:22. Mesopotamian texts like 'Ludlul Bel Nemeqi' and 'The Babylonian Theodicy' address themes similar to Job. This doesn't diminish biblical authority but shows God working within cultural contexts. Biblical wisdom is both culturally situated and theologically distinctive.", "reference": "Proverbs 22:17-24:22", "points": 20},
+        {"id": "ot-tf-a-12", "question": "The Mosaic dietary laws (kashrut) distinguishing 'clean' and 'unclean' animals had purely ritual/religious significance and no practical health or ecological rationale.", "correctAnswer": false, "explanation": "While the primary purpose of dietary laws was holiness and distinction ('You must be holy because I am holy' — Leviticus 11:44-45), scholars have proposed various additional rationales. Mary Douglas suggested the laws reflect categories of 'wholeness' in creation. Others note that many prohibited animals (pigs, shellfish, scavengers) carry higher disease risks. Some scholars see ecological wisdom in prohibiting animals that blur categorical boundaries. The laws likely served multiple purposes simultaneously.", "reference": "Leviticus 11, Deuteronomy 14", "points": 20},
+        {"id": "ot-tf-a-13", "question": "The Hebrew word 'nephesh,' often translated as 'soul' in English, actually means 'a living being' or 'life force' in Hebrew, and does not imply an immortal, separable soul in the way Greek philosophy understood the concept.", "correctAnswer": true, "explanation": "In Hebrew thought, 'nephesh' refers to the whole person as a living being — not a separable immaterial soul trapped in a body (the Greek concept). Genesis 2:7 says God breathed into Adam and he 'became a living nephesh' — he didn't receive a nephesh, he became one. Animals are also called 'nephesh' (Genesis 1:20). The Greek dualistic concept of body/soul separation entered Jewish thought primarily during the Hellenistic period.", "reference": "Genesis 2:7, Genesis 1:20", "points": 20},
+        {"id": "ot-tf-a-14", "question": "The 'Servant Songs' in Isaiah (42:1-4, 49:1-6, 50:4-9, 52:13-53:12) form a distinct literary unit within the book, and most scholars agree that the Servant figure is the same in all four songs.", "correctAnswer": false, "explanation": "The identity of the Servant is one of the most debated topics in Old Testament scholarship. While the songs may form a literary progression, scholars disagree on whether the Servant is the same figure throughout. In some songs, the Servant appears to be Israel collectively (49:3), while in others (particularly 52:13-53:12) the Servant seems to be an individual distinct from Israel. This ambiguity may be intentional, allowing for both corporate and individual messianic readings.", "reference": "Isaiah 42:1-4, 49:1-6, 50:4-9, 52:13-53:12", "points": 20},
+        {"id": "ot-tf-a-15", "question": "The Cyrus Cylinder, a Babylonian clay document discovered in 1879, confirms the biblical account in Ezra that the Persian king Cyrus issued a decree allowing conquered peoples (including the Jews) to return to their homelands and rebuild their temples.", "correctAnswer": true, "explanation": "The Cyrus Cylinder (539 BC), now in the British Museum, records Cyrus' policy of allowing displaced peoples to return home and restore their sanctuaries. While it doesn't mention the Jews specifically, it confirms the Persian policy described in Ezra 1:1-4. It is one of the most important archaeological finds corroborating the biblical narrative and has been called the first 'declaration of human rights.'", "reference": "Ezra 1:1-4, Cyrus Cylinder", "points": 20},
+        {"id": "ot-tf-a-16", "question": "The Old Testament contains no concept of resurrection from the dead — this idea was entirely a New Testament innovation introduced by Jesus and the early church.", "correctAnswer": false, "explanation": "While the concept develops gradually, the Old Testament does contain resurrection language. Job says 'I know that my Redeemer lives... in my flesh I will see God' (19:25-26). Isaiah declares 'Your dead will live; their bodies will rise' (26:19). Daniel 12:2 explicitly states 'Multitudes who sleep in the dust of the earth will awake: some to everlasting life, others to shame and everlasting contempt.' By Jesus' time, resurrection was a major theological debate between Pharisees (who believed in it) and Sadducees (who didn't).", "reference": "Job 19:25-26, Isaiah 26:19, Daniel 12:2", "points": 20},
+        {"id": "ot-tf-a-17", "question": "The literary genre of 'apocalyptic literature' — characterised by symbolic visions, angelic interpreters, cosmic battles, and coded imagery — originated with the book of Revelation in the New Testament and has no Old Testament precedents.", "correctAnswer": false, "explanation": "Apocalyptic literature has deep Old Testament roots. Daniel (chapters 7-12) is the primary Old Testament apocalyptic text, featuring symbolic beasts, heavenly court scenes, angelic interpreters, and calculations of end times. Elements of apocalyptic also appear in Ezekiel (chapters 38-39), Zechariah (chapters 1-8, 12-14), Isaiah 24-27 (the 'Isaiah Apocalypse'), and Joel. The New Testament book of Revelation drew extensively on this established literary tradition.", "reference": "Daniel 7-12, Ezekiel 38-39, Zechariah 1-8", "points": 20},
+        {"id": "ot-tf-a-18", "question": "The Old Testament figure of 'Wisdom' personified as a woman in Proverbs 8, who was present at creation and calls out in the public square, influenced early Christian theology about Jesus as the divine Logos (Word) who was 'with God in the beginning' (John 1:1).", "correctAnswer": true, "explanation": "Proverbs 8:22-31 describes Wisdom as present with God before creation, actively involved in the creative process: 'I was there when he set the heavens in place... I was constantly at his side.' Early church fathers (Justin Martyr, Origen, Athanasius) connected this personified Wisdom with Jesus, and John's prologue ('In the beginning was the Logos') clearly draws on this wisdom tradition. The Wisdom-Christ connection profoundly shaped Christological development.", "reference": "Proverbs 8:22-31, John 1:1-14", "points": 20},
+        {"id": "ot-tf-a-19", "question": "The Psalms of Ascent (Psalms 120-134) are a collection of 15 psalms that were traditionally sung by Jewish pilgrims as they 'ascended' to Jerusalem for the three annual pilgrimage festivals.", "correctAnswer": true, "explanation": "These 15 psalms are each titled 'A Song of Ascents.' Jerusalem sits on a hill, so pilgrims literally ascended to reach it. Tradition holds they were sung during the three pilgrimage festivals — Passover, Shavuot (Pentecost), and Sukkot (Tabernacles). Some scholars suggest the 15 songs correspond to the 15 steps between the Court of Women and the Court of Israel in the Temple. They progress from distress (120) to communal blessing (134).", "reference": "Psalms 120-134", "points": 20},
+        {"id": "ot-tf-a-20", "question": "The prophet Jeremiah bought a field in Anathoth during the Babylonian siege of Jerusalem — when the city was about to fall — as a prophetic sign that God would one day restore His people to their land and normal life would resume.", "correctAnswer": true, "explanation": "In Jeremiah 32, while Jerusalem was under siege and Jeremiah was imprisoned, God told him to buy his cousin's field. Jeremiah paid 17 shekels of silver, signed and sealed the deed, and had witnesses — all during a time when buying land seemed absurd. God explained: 'Houses, fields and vineyards will again be bought in this land.' It was a powerful act of faith in future restoration during the darkest moment of Judah's history.", "reference": "Jeremiah 32:1-44", "points": 20},
+        {"id": "ot-tf-a-21", "question": "The chiastic structure (ABA' or ABCB'A' pattern) is a common literary device in Hebrew literature where ideas are presented in a pattern that mirrors itself, with the central element being the most important point of the passage.", "correctAnswer": true, "explanation": "Chiastic (or chiasmic) structure — from the Greek letter chi (X) — is found throughout the Old Testament at word, verse, chapter, and even whole-book levels. In a chiasm, the first element corresponds to the last, the second to the second-to-last, and so on, with the central element carrying the greatest emphasis. The Flood narrative (Genesis 6-9), many Psalms, and even the entire book of Deuteronomy exhibit chiastic structures.", "reference": "Genesis 6-9, various Psalms", "points": 20},
+        {"id": "ot-tf-a-22", "question": "The Samaritan Pentateuch — the version of the first five books of the Bible used by the Samaritans — is identical to the Jewish Masoretic Text and contains no significant textual differences.", "correctAnswer": false, "explanation": "The Samaritan Pentateuch differs from the Masoretic Text in approximately 6,000 places. Most differences are minor (spelling, grammar), but some are theologically significant — particularly the Samaritan addition of a command to build an altar on Mount Gerizim (their holy mountain) rather than Jerusalem. About 1,900 of these differences agree with the Septuagint against the MT, suggesting the Samaritan text preserves some ancient readings lost in the Masoretic tradition.", "reference": "Samaritan Pentateuch scholarship", "points": 20},
+        {"id": "ot-tf-a-23", "question": "The Hebrew concept of 'shalom' (usually translated 'peace') means far more than the absence of conflict — it encompasses wholeness, completeness, well-being, harmony, and flourishing in every dimension of life.", "correctAnswer": true, "explanation": "'Shalom' derives from a root meaning 'complete' or 'whole.' It describes a state where everything is as it should be — right relationships with God, self, others, and creation. It includes physical health, material sufficiency, social harmony, and spiritual wholeness. When priests blessed the people with 'The LORD give you shalom' (Numbers 6:26), they were invoking total well-being, not merely the absence of war.", "reference": "Numbers 6:26, Isaiah 32:17, Jeremiah 29:11", "points": 20},
+        {"id": "ot-tf-a-24", "question": "The 'ban' or 'herem' (total destruction of Canaanite cities including men, women, children, and animals) commanded in Deuteronomy and Joshua presents no ethical difficulties and has been easily reconciled with the character of a loving God by all interpreters throughout history.", "correctAnswer": false, "explanation": "The herem commands are among the most ethically challenging passages in the entire Bible and have troubled interpreters for millennia. Proposed explanations include: God's judgment on extreme Canaanite wickedness (Genesis 15:16), prevention of religious contamination, ancient Near Eastern warfare conventions, hyperbolic conquest language (common in the period), and progressive revelation (God working within fallen human structures). No single explanation fully satisfies all interpreters, and honest scholarship acknowledges the genuine difficulty.", "reference": "Deuteronomy 7:1-5, Joshua 6:21", "points": 20},
+        {"id": "ot-tf-a-25", "question": "The prophet Micaiah ben Imlah, in a remarkable passage in 1 Kings 22, described a vision of God's heavenly court where God asked 'Who will entice Ahab to go up and fall at Ramoth Gilead?' and a spirit volunteered to be 'a lying spirit in the mouths of all his prophets.'", "correctAnswer": true, "explanation": "This passage is extraordinary for its depiction of God's heavenly council and raises profound questions about divine sovereignty and deception. King Ahab consulted 400 prophets who all promised victory. Micaiah first mockingly agreed, then revealed his true vision of the heavenly court scene. He saw Israel scattered 'like sheep without a shepherd' and a spirit volunteering to deceive Ahab's prophets. Ahab went to battle and was killed, exactly as Micaiah predicted.", "reference": "1 Kings 22:1-38", "points": 20},
+        {"id": "ot-tf-a-26", "question": "The phrase 'an eye for an eye, a tooth for a tooth' (lex talionis) in the Old Testament was intended to escalate revenge — encouraging victims to extract maximum retribution against those who wronged them.", "correctAnswer": false, "explanation": "The lex talionis (Exodus 21:24, Leviticus 24:20, Deuteronomy 19:21) was actually a LIMITATION on revenge, not an escalation. In the ancient world, blood feuds could spiral into disproportionate retaliation — a minor injury could provoke the destruction of an entire family. 'An eye for an eye' set a maximum: punishment must be proportional to the offence, no more. It was a revolutionary principle of measured justice in its historical context.", "reference": "Exodus 21:23-25", "points": 20},
+        {"id": "ot-tf-a-27", "question": "The Old Testament uses the same Hebrew word ('olam') for both 'forever/eternity' and 'a long time/age,' which means that passages promising 'eternal' covenants or 'everlasting' promises are sometimes ambiguous about whether they mean truly infinite or simply very long-lasting.", "correctAnswer": true, "explanation": "'Olam' is a flexible term that can mean 'forever,' 'a very long time,' 'the distant past,' or 'the distant future.' Context determines meaning. When applied to God ('from olam to olam'), it suggests true eternity. When applied to human institutions (like a slave serving 'forever' — Exodus 21:6), it means 'for life.' This ambiguity occasionally makes it difficult to determine whether a promise is truly unconditional and eternal or limited to a very long period.", "reference": "Psalm 90:2, Exodus 21:6, Jonah 2:6", "points": 20},
+        {"id": "ot-tf-a-28", "question": "The book of Chronicles (1-2 Chronicles) simply repeats the same events as 1-2 Samuel and 1-2 Kings with no significant theological differences, omissions, or additions.", "correctAnswer": false, "explanation": "Chronicles retells Israel's history with a distinctly different theological agenda. It omits David's adultery with Bathsheba, Absalom's rebellion, Solomon's apostasy, and most of the northern kingdom's history. It adds material about Temple worship, Levitical musicians, and genealogies. The Chronicler emphasises the Temple, worship, and immediate divine retribution. Written for the post-exilic community, Chronicles answers: 'Are we still God's people?' with a resounding yes, focusing on continuity with David's kingdom.", "reference": "1-2 Chronicles vs 1-2 Samuel/Kings", "points": 20},
+        {"id": "ot-tf-a-29", "question": "The 'Immanuel' child prophesied in Isaiah 7:14 had both an immediate historical fulfilment in Isaiah's own time (the birth of a child during the Syro-Ephraimite crisis) and a later messianic fulfilment in the birth of Jesus, making it an example of 'double fulfilment' or 'typological prophecy.'", "correctAnswer": true, "explanation": "In its immediate context, the sign was for King Ahaz during the threat from Syria and Israel (around 735 BC) — before the child would be old enough to know right from wrong, the two threatening kings would be defeated. Many scholars identify this child as Isaiah's own son (Isaiah 8:3-4) or another contemporary figure. Matthew 1:22-23 then applies the prophecy to Jesus' virgin birth as its fuller, ultimate fulfilment — a pattern common in Old Testament prophecy.", "reference": "Isaiah 7:14-16, Matthew 1:22-23", "points": 20},
+        {"id": "ot-tf-a-30", "question": "The concept of 'corporate personality' in the Old Testament — where an individual can represent and embody a whole group — is illustrated by the Hebrew word 'adam,' which can mean both 'Adam' (the individual man) and 'humanity/mankind' collectively.", "correctAnswer": true, "explanation": "The Hebrew word 'adam' means both the proper name 'Adam' and the generic term 'human being' or 'humanity.' This dual usage is deliberate — Adam is both an individual and the representative of all humanity. The same principle applies to 'Israel' (both Jacob the person and the nation), the king (who embodies the nation), and the Suffering Servant (both individual and collective). Paul uses this concept in Romans 5, contrasting Adam (in whom all die) with Christ (in whom all are made alive).", "reference": "Genesis 1-5, Romans 5:12-21", "points": 20}
+      ]
     }
   },
   "life-of-jesus": {
