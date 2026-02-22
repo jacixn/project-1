@@ -348,6 +348,11 @@ class NotificationService {
         targetTab = 'Hub';
         console.log('📱 Navigating to Hub tab for token arrival');
         break;
+
+      case 'vision_checkin':
+        targetTab = 'Vision';
+        console.log('📱 Navigating to Vision screen for check-in');
+        break;
         
       default:
         console.log('📱 Unknown notification type, no navigation');
@@ -1096,6 +1101,51 @@ class NotificationService {
       await this.cancelNotificationsByType('weekly_body_checkin');
     } catch (error) {
       console.error('Failed to cancel weekly body check-in:', error);
+    }
+  }
+
+  /**
+   * Schedule a monthly vision check-in notification.
+   * Fires on the 1st of each month at 9:00 AM, prompting users
+   * to reflect on their life goals.
+   *
+   * Uses a weekly-style calendar trigger (monthly repeat) which is
+   * safe from the iOS instant-fire bug.
+   */
+  async scheduleVisionCheckIn() {
+    try {
+      await this.cancelNotificationsByType('vision_checkin');
+
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
+      if (settings.pushNotifications === false) return;
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Vision Check-In',
+          body: 'Take a moment to reflect on your goals and how far you have come.',
+          data: { type: 'vision_checkin' },
+          sound: settings.sound ? 'default' : false,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          day: 1,
+          hour: 9,
+          minute: 0,
+          repeats: true,
+        },
+      });
+
+      console.log('Vision check-in scheduled — 1st of each month at 9:00 AM');
+    } catch (error) {
+      console.error('Failed to schedule vision check-in:', error);
+    }
+  }
+
+  async cancelVisionCheckIn() {
+    try {
+      await this.cancelNotificationsByType('vision_checkin');
+    } catch (error) {
+      console.error('Failed to cancel vision check-in:', error);
     }
   }
 }

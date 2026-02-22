@@ -10,26 +10,20 @@ All code-side changes for App Store submission have been implemented. The follow
 
 ## YOUR ACTION REQUIRED - App Store Checklist
 
-### 1. Host Legal Pages (CRITICAL - Apple will reject without these)
-- Three HTML files are ready in `fivefold-ios/legal/`:
-  - `privacy-policy.html` -- Privacy Policy
-  - `terms-of-service.html` -- Terms of Service
-  - `support.html` -- Support & FAQ page
-- **You must host these** on a public URL (GitHub Pages, Notion public page, or your own domain like `biblely.app`)
-- Once hosted, update the URLs in `ProfileTab.js` -- search for `biblely.app/privacy-policy`, `biblely.app/terms-of-service`, `biblely.app/support` and replace with your real URLs
-- Apple requires a **Privacy Policy URL** and a **Support URL** in App Store Connect
+### 1. ~~Host Legal Pages~~ -- DONE
+- Website `biblely.uk` is live and hosting privacy policy, terms of service, and support pages
+- URLs in the app already point to `biblely.uk/privacy-policy`, `biblely.uk/terms-of-service`
 
-### 2. Fill in EAS Submit Credentials
-- Open `fivefold-ios/eas.json`
-- Replace these placeholder values:
-  - `"appleId": "jesusxoi@example.com"` --> your real Apple ID email
-  - `"ascAppId": "placeholder"` --> your App Store Connect App ID (numeric, found in App Store Connect > App Information)
-  - `"appleTeamId": "placeholder"` --> your Apple Developer Team ID (found in developer.apple.com > Membership)
+### 2. ~~Fill in EAS Submit Credentials~~ -- DONE (February 22, 2026)
+- `eas.json` updated with real credentials:
+  - `appleId`: `antwijason55@icloud.com`
+  - `ascAppId`: `6754227503`
+  - `appleTeamId`: `HM3DN88VTX`
 
 ### 3. Take App Screenshots
 - Required for App Store Connect listing
 - Minimum sizes: **6.7" display** (iPhone 15 Pro Max) and **5.5" display** (iPhone 8 Plus)
-- Since `supportsTablet: true`, you also need **12.9" iPad Pro** screenshots
+- `supportsTablet: false` so NO iPad screenshots needed
 - Use Xcode Simulator to capture screenshots at each size
 - Recommended: 5-8 screenshots showing key features (Bible, Prayer, Workouts, Nutrition, Todos)
 
@@ -45,7 +39,22 @@ All code-side changes for App Store submission have been implemented. The follow
   - Other Usage Data (streaks, points, app interactions)
 - **Age Rating questionnaire** -- No violence, no gambling, no mature themes. Contains religious content. Likely rating: 4+ or 9+
 - **Marketing copy** -- Ready in `fivefold-ios/legal/app-store-copy.md` (app name, subtitle, description, keywords, categories). Just copy-paste into App Store Connect.
-- **Review Notes** -- Tell Apple: "This is a wellness/fitness tracker, NOT a medical device. No in-app purchases. No subscriptions. The app is completely free."
+- **License Agreement (EULA)** -- Use Apple's standard EULA (already selected in App Store Connect)
+- **Review Notes** -- Paste this into App Store Connect > App Review > App Review Information > Review Notes:
+
+```
+This is a wellness/fitness tracker and Bible reading app, NOT a medical device. No in-app purchases. No subscriptions. The app is completely free.
+
+HEALTH & FITNESS DISCLAIMER: The app provides body composition estimates (BMI, body fat %, muscle mass, body water %, visceral fat, bone mass, body age, Health Score) using standard research-based formulas (Mifflin-St Jeor, BMI calculations). These are for informational and wellness tracking purposes only — they are NOT clinical measurements and are NOT intended to diagnose, treat, or prevent any medical condition. The app clearly states this in multiple places: the App Store description, in-app disclaimers on the Physique screen, Nutrition screen, Gym screen, and in the Terms of Service (Section 8). Users are advised to consult healthcare professionals for medical accuracy.
+
+The app uses DeepSeek for text-based analysis features (Bible study responses, task scoring, workout suggestions, nutrition insights). Users are explicitly informed about this data transfer during onboarding and in the Privacy Policy (Section 4.3 & 5), which clearly states data may be processed on servers in China. No account credentials or authentication tokens are sent to DeepSeek. Users must accept the privacy terms before using the app.
+
+User-generated content features (prayer wall, social feed, messaging) are moderated with automated profanity filtering, user reporting, and user blocking mechanisms.
+```
+
+### 5. Remaining Code Issues to Fix Before Submission
+- **Bible Translation Copyrights (CRITICAL)** -- Many of the 44 Bible translations are copyrighted (NIV, ESV, NLT, NKJV, NASB, etc.). Either get licenses, use an API like API.Bible, or remove copyrighted ones and keep only public domain translations (KJV, ASV, WEB, YLT, Darby, WBT).
+- **"Coming Soon" Placeholder Text** -- Found in ~10+ locations (CustomisationScreen, ProfileTab, SimpleOnboarding, EnhancedOnboarding, ExercisesModal, translations/languages.js). Apple may reject for incomplete app (Guideline 2.1). Either implement the features, remove the buttons, or replace with proper disabled states.
 
 ---
 

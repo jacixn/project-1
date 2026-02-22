@@ -45,6 +45,7 @@ import AudioLearningScreen from '../screens/AudioLearningScreen';
 import BibleReaderScreen from '../screens/BibleReaderScreen';
 import FriendChatScreen from '../screens/FriendChatScreen';
 import CoachChatScreen from '../screens/CoachChatScreen';
+import VisionScreen from '../screens/VisionScreen';
 import CustomisationScreen from '../screens/CustomisationScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
@@ -1086,6 +1087,15 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="TasksDone" 
         component={TasksDoneScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Vision Screen */}
+      <Stack.Screen 
+        name="Vision" 
+        component={VisionScreen}
         options={{
           animation: 'slide_from_right',
         }}

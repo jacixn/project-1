@@ -112,9 +112,10 @@ export const signUp = async ({ email, password, username, displayName }) => {
     displayName: displayName || username,
   });
   
-  // Reserve the username in the usernames collection
+  // Reserve the username in the usernames collection (include email for pre-auth resolution)
   await setDoc(doc(db, 'usernames', normalizedUsername), {
     userId: user.uid,
+    email: email.toLowerCase(),
     createdAt: serverTimestamp(),
   });
   
@@ -198,20 +199,32 @@ export const resolveIdentifierToEmail = async (identifier) => {
     throw new Error('No account found with this username.');
   }
 
-  // Get the user's email from the users collection
-  const userDocRef = doc(db, 'users', usernameData.userId);
-  const userDocSnap = await getDoc(userDocRef);
-
-  if (!userDocSnap.exists()) {
-    throw new Error('No account found with this username.');
+  // Prefer email stored directly on the usernames doc (works pre-auth)
+  if (usernameData.email) {
+    return usernameData.email.toLowerCase();
   }
 
-  const email = userDocSnap.data()?.email;
-  if (!email) {
-    throw new Error('No email associated with this account.');
-  }
+  // Fallback for legacy accounts: read from users collection (requires auth)
+  try {
+    const userDocRef = doc(db, 'users', usernameData.userId);
+    const userDocSnap = await getDoc(userDocRef);
 
-  return email.toLowerCase();
+    if (!userDocSnap.exists()) {
+      throw new Error('No account found with this username.');
+    }
+
+    const email = userDocSnap.data()?.email;
+    if (!email) {
+      throw new Error('No email associated with this account.');
+    }
+
+    return email.toLowerCase();
+  } catch (e) {
+    if (e.message?.includes('permissions') || e.code === 'permission-denied') {
+      throw new Error('Please sign in with your email address instead of your username.');
+    }
+    throw e;
+  }
 };
 
 /**
@@ -235,6 +248,13 @@ export const signIn = async (emailOrUsername, password) => {
   // Get the user's profile from Firestore
   const userDoc = await getDoc(doc(db, 'users', user.uid));
   const userData = userDoc.data();
+  
+  // Backfill email into usernames doc for legacy accounts (enables pre-auth username login)
+  if (userData?.username) {
+    setDoc(doc(db, 'usernames', userData.username.toLowerCase()), {
+      email: user.email.toLowerCase(),
+    }, { merge: true }).catch(() => {});
+  }
   
   return {
     uid: user.uid,

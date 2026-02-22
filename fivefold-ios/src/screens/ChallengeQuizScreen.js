@@ -559,9 +559,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   questionText: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '600',
-    lineHeight: 32,
+    lineHeight: 24,
     textAlign: 'center',
   },
   // Answers

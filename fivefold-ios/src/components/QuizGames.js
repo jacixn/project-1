@@ -1041,10 +1041,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   questionText: {
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#000000',
-    lineHeight: 32,
+    lineHeight: 24,
     marginBottom: 24,
   },
   answersContainer: {

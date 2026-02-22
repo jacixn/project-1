@@ -364,10 +364,11 @@ export const AuthProvider = ({ children }) => {
             throw err;
           }
         } catch (twoFAError) {
-          // Re-throw 2FA required errors
           if (twoFAError.requires2FA) throw twoFAError;
-          // Log but don't block login for 2FA check failures
-          console.warn('[Auth] 2FA check failed, allowing login:', twoFAError?.message);
+          console.error('[Auth] 2FA check failed, blocking login for safety:', twoFAError?.message);
+          await authSignOut();
+          userStorage.clearUser();
+          throw new Error('Could not verify your security settings. Please try again.');
         }
       }
       skip2FACheck.current = false;
@@ -454,14 +455,23 @@ export const AuthProvider = ({ children }) => {
       
       return result;
     } catch (error) {
-      // Preserve 2FA errors with their requires2FA flag so AuthScreen can handle them
-      if (error.requires2FA) throw error;
-      throw new Error(getAuthErrorMessage(error));
-    } finally {
-      isAuthFlowActive.current = false; // Allow background sync again
+      if (error.requires2FA) {
+        isAuthFlowActive.current = false;
+        setLoading(false);
+        throw error;
+      }
+      isAuthFlowActive.current = false;
       setAuthSteps(null);
       setInitializing(false);
       setLoading(false);
+      throw new Error(getAuthErrorMessage(error));
+    } finally {
+      if (isAuthFlowActive.current) {
+        isAuthFlowActive.current = false;
+        setAuthSteps(null);
+        setInitializing(false);
+        setLoading(false);
+      }
     }
   }, [refreshLinkedAccounts]);
 
@@ -862,12 +872,45 @@ export const AuthProvider = ({ children }) => {
       await authSignOut();
       userStorage.clearUser();
 
-      // 5. Sign in as the target account
+      // 5. Sign in as the target account (with 2FA check)
       console.log('[AccountSwitcher] Signing in as', target.username || target.email);
       let result;
       try {
         result = await authSignIn(target.email, password);
+
+        // Check if target account has 2FA enabled
+        const has2FA = await check2FAEnabled(result.uid);
+        if (has2FA) {
+          const codeResult = await send2FALoginCode();
+          await authSignOut();
+          userStorage.clearUser();
+
+          // Recover previous session before throwing
+          if (previousEmail && previousPassword) {
+            try {
+              const recoveredResult = await authSignIn(previousEmail, previousPassword);
+              if (recoveredResult?.uid) {
+                await userStorage.initUser(recoveredResult.uid);
+                await userStorage.setRaw('onboardingCompleted', 'true');
+                await userStorage.set(USER_CACHE_KEY, recoveredResult);
+                await reloadTheme();
+              }
+              setUser(recoveredResult);
+              setUserProfile(previousProfile || recoveredResult);
+            } catch (recoveryErr) {
+              console.warn('[AccountSwitcher] Recovery after 2FA gate:', recoveryErr?.message);
+            }
+          }
+
+          const err = new Error('Two-factor authentication required');
+          err.requires2FA = true;
+          err.maskedEmail = codeResult.maskedEmail;
+          err.resolvedEmail = target.email;
+          err.switchTarget = uid;
+          throw err;
+        }
       } catch (signInErr) {
+        if (signInErr.requires2FA) throw signInErr;
         // Sign-in failed — try to recover by signing back into the previous account
         console.warn('[AccountSwitcher] Target sign-in failed, recovering previous session...');
         if (previousEmail && previousPassword) {

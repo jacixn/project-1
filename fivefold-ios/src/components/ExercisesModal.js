@@ -737,7 +737,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                   ) : (
                     <View style={styles.comingSoonContainer}>
                       <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-                        Coming Soon
+                        No instructions available for this exercise.
                       </Text>
                     </View>
                   )}

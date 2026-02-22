@@ -244,8 +244,6 @@ const EnhancedOnboarding = ({ onComplete }) => {
             onPress={() => {
               if (language.code === 'en') {
                 setSelectedLanguage(language.code);
-              } else {
-                Alert.alert('Coming Soon', `${language.name} language support is coming soon!`);
               }
             }}
             disabled={language.code !== 'en'}
@@ -256,22 +254,20 @@ const EnhancedOnboarding = ({ onComplete }) => {
                 styles.languageName,
                 language.code !== 'en' && styles.languageNameDisabled
               ]}>
-                {language.code === 'en' ? language.name : 'Coming Soon'}
+                {language.name}
               </Text>
               <Text style={[
                 styles.languageNative,
                 language.code !== 'en' && styles.languageNativeDisabled
               ]}>
-                {language.code === 'en' ? language.nativeName : 'Coming Soon'}
+                {language.nativeName}
               </Text>
             </View>
             {selectedLanguage === language.code && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             )}
             {language.code !== 'en' && (
-              <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>Soon</Text>
-              </View>
+              <Ionicons name="lock-closed" size={18} color="#CCC" />
             )}
           </TouchableOpacity>
         ))}
@@ -629,8 +625,6 @@ const EnhancedOnboarding = ({ onComplete }) => {
                 if (item.code === 'en') {
                   setSelectedLanguage(item.code);
                   setShowMoreLanguages(false);
-                } else {
-                  Alert.alert('Coming Soon', `${item.name} language support is coming soon!`);
                 }
               }}
               disabled={item.code !== 'en'}
@@ -641,22 +635,20 @@ const EnhancedOnboarding = ({ onComplete }) => {
                   styles.languageItemName,
                   item.code !== 'en' && styles.languageItemNameDisabled
                 ]}>
-                  {item.code === 'en' ? item.name : 'Coming Soon'}
+                  {item.name}
                 </Text>
                 <Text style={[
                   styles.languageItemNative,
                   item.code !== 'en' && styles.languageItemNativeDisabled
                 ]}>
-                  {item.code === 'en' ? item.nativeName : 'Coming Soon'}
+                  {item.nativeName}
                 </Text>
               </View>
               {selectedLanguage === item.code && (
                 <Ionicons name="checkmark" size={20} color="#007AFF" />
               )}
               {item.code !== 'en' && (
-                <View style={styles.comingSoonBadgeSmall}>
-                  <Text style={styles.comingSoonTextSmall}>Soon</Text>
-                </View>
+                <Ionicons name="lock-closed" size={16} color="#CCC" />
               )}
             </TouchableOpacity>
           )}

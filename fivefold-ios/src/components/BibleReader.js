@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import ViewShot from 'react-native-view-shot';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -162,6 +163,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const { language, t } = useLanguage();
   const versesScrollViewRef = useRef(null);
   const verseRefs = useRef({}); // Store refs to individual verses
+  const versePositions = useRef({}); // Store Y positions of verses for audio auto-scroll
   const [books, setBooks] = useState([]);
   const [currentBook, setCurrentBook] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -265,6 +267,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [shareCardImageOffset, setShareCardImageOffset] = useState({ x: 0, y: 0 }); // drag-to-reposition offset
   const [premiumBgUnlocked, setPremiumBgUnlocked] = useState(false);
   const [premiumBgCachedUris, setPremiumBgCachedUris] = useState({}); // { filename: localUri }
+  const [customPhotoUri, setCustomPhotoUri] = useState(null); // user's own photo as background
   const premiumBgPreloaded = useRef(false);
   const premiumBgFadeAnim = useRef(new Animated.Value(1)).current; // crossfade
   const imageOffsetRef = useRef({ x: 0, y: 0 }); // mutable ref for PanResponder
@@ -401,6 +404,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           if (parsed.italic !== undefined) setShareCardItalic(parsed.italic);
           // Premium background prefs
           if (parsed.premiumBgId !== undefined) setShareCardPremiumBgId(parsed.premiumBgId);
+          if (parsed.customPhotoUri) setCustomPhotoUri(parsed.customPhotoUri);
           if (parsed.textColor !== undefined) setShareCardTextColor(parsed.textColor);
           if (parsed.overlayOpacity !== undefined) setShareCardOverlayOpacity(parsed.overlayOpacity);
           if (parsed.blurRadius !== undefined) setShareCardBlurRadius(parsed.blurRadius);
@@ -468,6 +472,49 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   };
   // Keep ref in sync for PanResponder closure
   savePrefsRef.current = saveShareCardPrefs;
+
+  const pickCustomPhoto = async () => {
+    if (!premiumBgUnlocked) {
+      Alert.alert(
+        'Premium Feature',
+        `Refer ${PREMIUM_BG_REFERRAL_REQUIRED} friend to unlock custom photo backgrounds. Both users must have verified emails for the referral to count.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.9,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const pickedUri = result.assets[0].uri;
+      const destDir = `${FileSystem.documentDirectory}customShareBg/`;
+      await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
+      // Use unique filename to avoid overwrite errors and bust Image cache
+      const destUri = `${destDir}custom_bg_${Date.now()}.jpg`;
+      // Clean up old custom photos
+      try {
+        const files = await FileSystem.readDirectoryAsync(destDir);
+        for (const f of files) {
+          if (f.startsWith('custom_bg_')) {
+            await FileSystem.deleteAsync(`${destDir}${f}`, { idempotent: true });
+          }
+        }
+      } catch {}
+      await FileSystem.copyAsync({ from: pickedUri, to: destUri });
+      Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setCustomPhotoUri(destUri);
+        setShareCardPremiumBgId('custom_photo');
+        setShareCardImageOffset({ x: 0, y: 0 });
+        saveShareCardPrefs({ premiumBgId: 'custom_photo', customPhotoUri: destUri, imageOffset: { x: 0, y: 0 } });
+        Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      });
+    } catch (err) {
+      console.log('Custom photo pick error:', err);
+    }
+  };
 
   // Premium Background Presets - 200+ Options
   const bgPresets = [
@@ -728,6 +775,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     { id: 'split', name: 'Split', description: 'Reference left, version right' },
     { id: 'minimal', name: 'Minimal', description: 'Just the verse' },
     { id: 'bold', name: 'Bold', description: 'Large impactful text' },
+    { id: 'social', name: 'Social', description: 'TikTok / Story style' },
   ];
 
   // Aspect Ratios
@@ -1252,6 +1300,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         // From verses, go back to chapters
         setView('chapters');
         setVerses([]);
+        versePositions.current = {};
         setCurrentChapter(null);
         break;
       case 'chapters':
@@ -1804,15 +1853,26 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     bibleAudioService.onVerseChange = (verse, index) => {
       setCurrentAudioVerse(verse);
       
-      // Auto-scroll to keep the currently-read verse in view
-      // Use a simple approach: scroll based on verse index position
-      if (index !== undefined && versesScrollViewRef.current) {
-        // Estimate verse height (~80px per verse) and scroll to position
-        const estimatedY = index * 80;
-        versesScrollViewRef.current.scrollTo({
-          y: Math.max(0, estimatedY - 150),
-          animated: true,
-        });
+      // Auto-scroll to keep the currently-read verse visible above the audio player bar
+      // verse can be the full verse object or a number — extract the number either way
+      const verseNum = parseInt(verse?.number || verse?.verse || verse);
+      if (verseNum && versesScrollViewRef.current) {
+        const storedY = versePositions.current[verseNum];
+        if (storedY !== undefined) {
+          // storedY is relative to youversionVersesContainer; add ~162 for paddingTop(170) + marginTop(-8)
+          const absoluteY = storedY + 162;
+          // Scroll so the verse appears ~200px from the top (just below the header)
+          versesScrollViewRef.current.scrollTo({
+            y: Math.max(0, absoluteY - 200),
+            animated: true,
+          });
+        } else if (index !== undefined) {
+          const estimatedY = (index * 100) + 162;
+          versesScrollViewRef.current.scrollTo({
+            y: Math.max(0, estimatedY - 200),
+            animated: true,
+          });
+        }
       }
     };
     
@@ -3607,7 +3667,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           style={[styles.content, { backgroundColor: theme.background, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: 170 }]}
+          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: 170, paddingBottom: showAudioPlayer ? 300 : 40 }]}
           scrollEventThrottle={16}
           directionalLockEnabled={true}
         >
@@ -3696,6 +3756,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 }
               ]}
               ref={(el) => (verseRefs.current[verseNumber] = el)}
+              onLayout={(e) => { versePositions.current[verseNumber] = e.nativeEvent.layout.y; }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
                 <Text style={[
@@ -5507,11 +5568,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             const cardHeight = cardWidth / currentAspect.ratio;
             const currentBg = bgPresets[shareCardActiveBg] || bgPresets[0];
 
-            // Premium background
-            const activePremiumBg = shareCardPremiumBgId
-              ? PREMIUM_BACKGROUNDS.find(b => b.id === shareCardPremiumBgId)
-              : null;
+            // Premium background (including custom photo)
+            const isCustomPhoto = shareCardPremiumBgId === 'custom_photo' && !!customPhotoUri;
+            const activePremiumBg = isCustomPhoto
+              ? { id: 'custom_photo', isLight: false }
+              : (shareCardPremiumBgId ? PREMIUM_BACKGROUNDS.find(b => b.id === shareCardPremiumBgId) : null);
             const usingPremiumBg = !!activePremiumBg;
+            const premiumBgImageUri = isCustomPhoto
+              ? customPhotoUri
+              : (activePremiumBg ? premiumBgCachedUris[activePremiumBg.filename] : null);
 
             // Text color: user-chosen > smart auto based on bg colors & hue
             const autoTextColor = usingPremiumBg
@@ -5669,6 +5734,29 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                     </View>
                   );
 
+                case 'social':
+                  return (
+                    <View style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
+                      <Text style={[versionStyle, { textAlign: 'left', fontSize: 13, letterSpacing: 0.3, textTransform: 'none', marginBottom: 4 }]}>
+                        Verse of the day
+                      </Text>
+                      <Text style={[refStyle, { textAlign: 'left', fontSize: 16, marginBottom: 16 }]}>
+                        {verseRef} {versionName}
+                      </Text>
+                      <Text
+                        style={[verseTextStyle, { textAlign: 'left', fontWeight: '700', fontSize: adjustedFontSize + 4, lineHeight: adjustedLineHeight + 6 }]}
+                        numberOfLines={12}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.5}
+                      >
+                        {shareText}
+                      </Text>
+                      {shareCardShowBranding && (
+                        <Text style={[brandStyle, { textAlign: 'right', marginTop: 20 }]}>Biblely</Text>
+                      )}
+                    </View>
+                  );
+
                 case 'centered':
                 default:
                   return (
@@ -5727,9 +5815,9 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                               {...imageDragResponder.panHandlers}
                             >
                               {/* Background image — positioned with drag offset, optional blur */}
-                              {premiumBgCachedUris[activePremiumBg.filename] ? (
+                              {premiumBgImageUri ? (
                                 <Image
-                                  source={{ uri: premiumBgCachedUris[activePremiumBg.filename] }}
+                                  source={{ uri: premiumBgImageUri }}
                                   style={{
                                     position: 'absolute',
                                     width: cardWidth + 120,
@@ -5832,6 +5920,38 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                                     backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center',
                                   }}>
                                     <MaterialIcons name="block" size={22} color={!shareCardPremiumBgId ? '#fff' : 'rgba(255,255,255,0.4)'} />
+                                  </View>
+                                </TouchableOpacity>
+
+                                {/* "Your Photo" import option */}
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    hapticFeedback.light();
+                                    pickCustomPhoto();
+                                  }}
+                                  style={{ marginRight: 10, alignItems: 'center' }}
+                                >
+                                  <View style={{
+                                    width: 56, height: 56, borderRadius: 12, overflow: 'hidden',
+                                    borderWidth: shareCardPremiumBgId === 'custom_photo' ? 3 : 1,
+                                    borderColor: shareCardPremiumBgId === 'custom_photo' ? '#fff' : 'rgba(255,255,255,0.2)',
+                                    backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center',
+                                  }}>
+                                    {customPhotoUri ? (
+                                      <Image
+                                        source={{ uri: customPhotoUri }}
+                                        style={{ width: 56, height: 56, borderRadius: shareCardPremiumBgId === 'custom_photo' ? 9 : 12 }}
+                                        resizeMode="cover"
+                                        blurRadius={!premiumBgUnlocked ? 8 : 0}
+                                      />
+                                    ) : (
+                                      <MaterialIcons name="add-photo-alternate" size={24} color={!premiumBgUnlocked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)'} />
+                                    )}
+                                    {!premiumBgUnlocked && (
+                                      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12 }}>
+                                        <MaterialIcons name="lock" size={18} color="rgba(255,255,255,0.7)" />
+                                      </View>
+                                    )}
                                   </View>
                                 </TouchableOpacity>
 
@@ -6396,17 +6516,19 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           {showTextSelectionModal && (
             <Modal
               visible={showTextSelectionModal}
-              transparent={true}
-              animationType="fade"
+              transparent={false}
+              animationType="slide"
+              presentationStyle="fullScreen"
               onRequestClose={() => setShowTextSelectionModal(false)}
             >
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
+              <View style={{ flex: 1, backgroundColor: '#000' }}>
                 <SafeAreaView style={{ flex: 1 }}>
                   {/* Header */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 }}>
                     <TouchableOpacity
                       onPress={() => setShowTextSelectionModal(false)}
-                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
+                      hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                      style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }}
                     >
                       <MaterialIcons name="close" size={24} color="#fff" />
                     </TouchableOpacity>
@@ -6414,10 +6536,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                     <TouchableOpacity
                       onPress={confirmTextSelection}
                       disabled={textSelectionStart === null}
+                      hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                       style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 10,
-                        borderRadius: 20,
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        borderRadius: 22,
                         backgroundColor: textSelectionStart !== null ? 'rgba(99,102,241,0.9)' : 'rgba(255,255,255,0.1)',
                       }}
                     >

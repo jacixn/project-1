@@ -475,7 +475,9 @@ export const getFriendCount = async (userId) => {
     
     return validCount;
   } catch (error) {
-    console.error('Error getting friend count:', error);
+    if (error.code !== 'permission-denied') {
+      console.error('Error getting friend count:', error);
+    }
     return 0;
   }
 };
@@ -504,6 +506,7 @@ export const subscribeToPendingRequests = (userId, callback) => {
       }
     },
     (error) => {
+      if (error.code === 'permission-denied') { callback(0); return; }
       console.error('Error subscribing to pending requests:', error);
       callback(0);
     }

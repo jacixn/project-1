@@ -835,17 +835,8 @@ const CustomisationScreen = () => {
               />
             </View>
 
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, marginBottom: 12 }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 0.5 }}>Coming Soon</Text>
-            </LinearGradient>
-
             <Text style={{ color: tx2, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
-              Choose from multiple app icons{'\n'}to personalise your home screen
+              Your app icon
             </Text>
           </View>
         </AnimSection>

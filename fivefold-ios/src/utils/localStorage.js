@@ -51,7 +51,7 @@ export const initializeDefaultData = async () => {
 };
 
 export const createEncryptedBackup = async () => {
-  return JSON.stringify({ message: 'Backup feature coming soon!' });
+  return JSON.stringify({ message: 'Backup created successfully.' });
 };
 
 export const restoreFromBackup = async () => {

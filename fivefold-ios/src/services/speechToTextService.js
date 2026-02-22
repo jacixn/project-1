@@ -23,7 +23,7 @@ class SpeechToTextService {
     // Voice input will be available in a future update
     return { 
       success: false, 
-      error: 'Voice input is coming soon. For now, please type your message.',
+      error: 'Voice input is not available. Please type your message.',
       needsRebuild: true
     };
   }

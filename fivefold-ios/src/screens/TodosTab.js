@@ -52,6 +52,9 @@ import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
 import { getReferralCount } from '../services/referralService';
 import { updateTodoWidget } from '../utils/widgetBridge';
 import { pushToCloud } from '../services/userSyncService';
+import VisionCard from '../components/VisionCard';
+import VisionSetupModal from '../components/VisionSetupModal';
+import { loadVisions } from '../services/visionService';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -183,6 +186,8 @@ const TodosTab = () => {
   const [completedTask, setCompletedTask] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
+  const [visions, setVisions] = useState([]);
+  const [showVisionSetup, setShowVisionSetup] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -326,10 +331,17 @@ const TodosTab = () => {
     }, [])
   );
 
+  // Load visions when tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadVisions().then((v) => setVisions(v));
+    }, [])
+  );
+
   // Listen for global "close all modals" event (e.g., when widget is tapped)
   useEffect(() => {
     const handleCloseAllModals = () => {
-      console.log('📱 TodosTab: Closing all modals (widget navigation)');
+      console.log('TodosTab: Closing all modals (widget navigation)');
       setShowFullCalendar(false);
       setShowCompletionCelebration(false);
       setShowAboutModal(false);
@@ -707,10 +719,18 @@ const TodosTab = () => {
               hapticFeedback.light();
               navigation.navigate('ScheduleTask');
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: theme.primary,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}
           >
-            <Text style={[{ fontSize: 13, color: textSecondaryColor }]}>Tap to schedule tasks</Text>
-            <MaterialIcons name="chevron-right" size={18} color={textSecondaryColor} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>Schedule</Text>
+            <MaterialIcons name="arrow-forward" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -1030,6 +1050,18 @@ const TodosTab = () => {
         {/* Beautiful Calendar Header */}
         <CalendarHeader />
 
+        {/* Vision Card */}
+        <VisionCard
+          visions={visions}
+          onPress={() => navigation.navigate('Vision')}
+          onSetup={() => setShowVisionSetup(true)}
+          liquidGlassEnabled={liquidGlassEnabled}
+          textColor={textColor}
+          textSecondaryColor={textSecondaryColor}
+          textOutlineStyle={textOutlineStyle}
+          isBiblelyMainWallpaper={isBiblelyMainWallpaper}
+        />
+
         {/* Main Content - List or Calendar View */}
         {viewMode === 'list' ? (
           <>
@@ -1063,6 +1095,15 @@ const TodosTab = () => {
       {/* Schedule Task - now navigated via stack navigator for swipe-back support */}
 
       {/* Tasks Overview — now a stack screen, navigated via navigation.navigate('TasksOverview') */}
+
+      {/* Vision Setup Modal */}
+      <VisionSetupModal
+        visible={showVisionSetup}
+        onClose={() => setShowVisionSetup(false)}
+        onComplete={() => {
+          loadVisions().then((v) => setVisions(v));
+        }}
+      />
 
       {/* Task Completion Celebration */}
       <TaskCompletionCelebration

@@ -1440,7 +1440,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           </Text>
           
           <Text style={[styles.screenSubtitle, { color: '#666' }]}>
-            More languages coming soon!
+            Select your preferred language
           </Text>
           
           <View style={{ marginTop: 20 }}>
@@ -1512,16 +1512,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                   )}
                   
                   {!isAvailable && (
-                    <View style={{
-                      backgroundColor: '#F5F5F5',
-                      borderRadius: 12,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                    }}>
-                      <Text style={{ fontSize: 11, color: '#999', fontWeight: '600' }}>
-                        COMING SOON
-                      </Text>
-                    </View>
+                    <MaterialIcons name="lock" size={18} color="#CCC" />
                   )}
                 </TouchableOpacity>
               );

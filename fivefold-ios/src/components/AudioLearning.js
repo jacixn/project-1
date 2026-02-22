@@ -881,13 +881,6 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
             <View style={styles.dragHandle} />
           </View>
           
-          {/* Close button */}
-          <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={closePlayer}
-          >
-            <MaterialIcons name="keyboard-arrow-down" size={32} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
         </View>
         
         <View style={styles.musicPlayerContent}>

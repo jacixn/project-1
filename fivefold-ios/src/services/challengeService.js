@@ -459,6 +459,7 @@ export const subscribeToChallenges = (userId, callback) => {
       processAndCallback();
     },
     (error) => {
+      if (error.code === 'permission-denied') return;
       console.error('Error in challenger subscription:', error);
     }
   );
@@ -478,6 +479,7 @@ export const subscribeToChallenges = (userId, callback) => {
       processAndCallback();
     },
     (error) => {
+      if (error.code === 'permission-denied') return;
       console.error('Error in challenged subscription:', error);
     }
   );

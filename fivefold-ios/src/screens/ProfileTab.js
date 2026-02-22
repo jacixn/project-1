@@ -4111,8 +4111,8 @@ const ProfileTab = () => {
                       {version.abbreviation}
                     </Text>
                     {!isAvailable && (
-                      <Text style={[styles.comingSoonText, { color: theme.primary, fontSize: 12, marginTop: 4, fontStyle: 'italic' }]}>
-                        Coming Soon
+                      <Text style={[styles.comingSoonText, { color: theme.textTertiary, fontSize: 12, marginTop: 4, fontStyle: 'italic' }]}>
+                        Not available
                       </Text>
                     )}
                   </View>
@@ -4196,8 +4196,8 @@ const ProfileTab = () => {
                         {lang.name}
                       </Text>
                       {!isEnglish && (
-                        <Text style={[styles.comingSoonText, { color: theme.primary, fontSize: 12, marginTop: 4, fontStyle: 'italic' }]}>
-                          Coming Soon
+                        <Text style={[styles.comingSoonText, { color: theme.textTertiary, fontSize: 12, marginTop: 4, fontStyle: 'italic' }]}>
+                          Not available
                         </Text>
                       )}
                     </View>
@@ -5594,6 +5594,14 @@ const ProfileTab = () => {
                       } catch (err) {
                         setSwitchTarget(null);
                         const errMsg = err.message || '';
+                        if (err.requires2FA) {
+                          Alert.alert(
+                            'Verification Required',
+                            'This account has two-factor authentication enabled. Please sign out and sign in to this account from the login screen.',
+                            [{ text: 'OK' }]
+                          );
+                          return;
+                        }
                         // If the stored password is wrong, prompt the user to re-enter it
                         if (errMsg.includes('invalid-credential') || errMsg.includes('wrong-password')) {
                           Alert.prompt(

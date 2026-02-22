@@ -202,6 +202,7 @@ export const subscribeToConversations = (userId, callback) => {
       callback(conversations);
     },
     (error) => {
+      if (error.code === 'permission-denied') { callback([]); return; }
       console.error('Error in conversations subscription:', error);
       callback([]);
     }
