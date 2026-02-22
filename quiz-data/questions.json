@@ -3755,14 +3755,1020 @@
   },
   "miracles": {
     "multiple-choice": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {
+          "id": "mir-mc-b-1",
+          "question": "At a wedding celebration in the village of Cana, the hosts ran out of wine — a serious social embarrassment. Jesus' mother told him about the problem, and Jesus instructed the servants to fill six large stone jars with water. What happened when the servants drew out the liquid?",
+          "options": ["The water remained water but tasted better", "The water had turned into wine — and the best wine the master of the banquet had ever tasted", "The jars overflowed with milk and honey", "The water turned into grape juice"],
+          "correctAnswer": 1,
+          "explanation": "This was Jesus' first recorded miracle. The master of the banquet tasted the water-turned-wine and was amazed, telling the bridegroom 'Everyone brings out the choice wine first... but you have saved the best till now!' John calls this 'the first of the signs through which he revealed his glory,' and his disciples believed in him.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-2",
+          "question": "A huge crowd of over 5,000 men (plus women and children) had been listening to Jesus teach all day in a remote area. The disciples wanted to send the hungry crowd away, but a young boy offered his small lunch. What did this boy's lunch consist of?",
+          "options": ["Seven loaves and a few small fish", "Five barley loaves and two small fish", "Three loaves of wheat bread and five fish", "Ten rolls and one large fish"],
+          "correctAnswer": 1,
+          "explanation": "The boy had five small barley loaves (the cheapest bread, eaten by the poor) and two small fish. Jesus took this tiny offering, gave thanks, and distributed it to the entire crowd. Everyone ate until satisfied, and the disciples collected twelve baskets of leftovers — one for each apostle. This is the only miracle besides the resurrection recorded in all four Gospels.",
+          "reference": "John 6:1-14, Matthew 14:13-21",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-3",
+          "question": "The disciples were crossing the Sea of Galilee at night when a violent storm arose, threatening to capsize their boat. They were terrified — but then they saw Jesus approaching in a way that seemed impossible. How was Jesus coming toward them?",
+          "options": ["Swimming through the storm", "Riding on a dolphin", "Walking on the surface of the water", "Flying through the clouds"],
+          "correctAnswer": 2,
+          "explanation": "Jesus walked on the stormy sea toward the boat. The disciples were terrified, thinking he was a ghost. Jesus called out 'Take courage! It is I. Don't be afraid.' Peter asked to come to Jesus on the water and actually did — until he looked at the waves, lost faith, and began to sink. Jesus caught him, saying 'You of little faith, why did you doubt?'",
+          "reference": "Matthew 14:22-33",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-4",
+          "question": "Jesus and his disciples were caught in a terrifying storm on the Sea of Galilee. Waves were crashing over the boat and the disciples feared they would drown. But Jesus was asleep in the stern. When the panicked disciples woke him, what did Jesus do to stop the storm?",
+          "options": ["He prayed for hours until the storm passed", "He simply spoke to the wind and waves, saying 'Quiet! Be still!' and everything became immediately calm", "He raised his hands and a shield of light appeared", "He told the disciples to row harder"],
+          "correctAnswer": 1,
+          "explanation": "Jesus rebuked the wind and said to the waves 'Quiet! Be still!' Immediately the wind died down and the sea became completely calm. Then he asked the disciples 'Why are you so afraid? Do you still have no faith?' They were even more terrified by the calm than by the storm, saying 'Who is this? Even the wind and the waves obey him!'",
+          "reference": "Mark 4:35-41",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-5",
+          "question": "In the town of Capernaum, four friends were so determined to get their paralysed friend to Jesus that they couldn't be stopped by the large crowd blocking the door. They came up with a creative way to reach Jesus. What did they do?",
+          "options": ["They pushed through the crowd by force", "They climbed onto the roof, made a hole in it, and lowered their friend down on his mat right in front of Jesus", "They waited outside until the crowd left", "They shouted through the window for Jesus to come out"],
+          "correctAnswer": 1,
+          "explanation": "The four friends carried the paralysed man up to the flat roof, dug through the clay and branches that made up the roofing material, and lowered him on his mat right in front of Jesus. Jesus, 'seeing their faith,' first said 'Son, your sins are forgiven,' then proved his authority by saying 'Get up, take your mat and go home.' The man stood up and walked out in full view of everyone.",
+          "reference": "Mark 2:1-12",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-6",
+          "question": "Jesus encountered a man who was possessed by many demons and lived among the tombs, crying out and cutting himself with stones. No one could restrain him, not even with chains. When Jesus cast the demons out, he allowed them to enter a herd of animals nearby. What kind of animals were they?",
+          "options": ["Sheep", "Goats", "Pigs (swine)", "Cattle"],
+          "correctAnswer": 2,
+          "explanation": "The demons called themselves 'Legion, for we are many' and begged Jesus not to send them out of the area. Jesus allowed them to enter a herd of about 2,000 pigs, which then rushed down the steep bank into the Sea of Galilee and drowned. The healed man was found 'sitting there, dressed and in his right mind.' The local people were so frightened that they asked Jesus to leave.",
+          "reference": "Mark 5:1-20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-7",
+          "question": "A synagogue leader named Jairus came to Jesus in desperation because his twelve-year-old daughter was dying. By the time Jesus reached the house, messengers arrived saying the girl had died. But Jesus went in, took the dead girl by the hand, and spoke to her. What Aramaic words did Jesus say?",
+          "options": ["'Ephphatha' — 'Be opened'", "'Talitha koum' — 'Little girl, I say to you, get up'", "'Eloi, Eloi' — 'My God, my God'", "'Maranatha' — 'Come, Lord'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus told the mourners 'The child is not dead but asleep,' and they laughed at him. He put them all out, took the girl's hand, and said 'Talitha koum!' which means 'Little girl, I say to you, get up!' The girl immediately stood up and began walking around. Jesus told her parents to give her something to eat, and strictly ordered them not to tell anyone.",
+          "reference": "Mark 5:35-43",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-8",
+          "question": "A woman had been suffering from constant bleeding for twelve long years. She had spent all her money on doctors but only grew worse. She believed that if she could just touch Jesus' clothing, she would be healed. When she touched the edge of his cloak in the crowd, what happened?",
+          "options": ["Nothing happened at first and she had to ask Jesus directly", "Her bleeding stopped instantly, and Jesus felt power go out from him and asked 'Who touched my clothes?'", "Jesus turned around and laid his hands on her head", "She fainted and Jesus carried her to safety"],
+          "correctAnswer": 1,
+          "explanation": "The moment she touched his cloak, her bleeding stopped and she felt in her body that she was freed from her suffering. Jesus immediately knew that power had gone out from him and asked 'Who touched me?' The terrified woman fell at his feet and told the whole truth. Jesus said 'Daughter, your faith has healed you. Go in peace and be freed from your suffering.'",
+          "reference": "Mark 5:25-34",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-9",
+          "question": "Jesus' close friend Lazarus became seriously ill and died. By the time Jesus arrived in Bethany, Lazarus had been dead and sealed in a tomb for four days. His sister Martha warned that there would be a terrible smell. What did Jesus do at the tomb?",
+          "options": ["He prayed silently for several hours", "He wept, then commanded 'Lazarus, come out!' and Lazarus walked out alive, still wrapped in burial cloths", "He went into the tomb to anoint the body", "He told the family to have faith and wait for the resurrection"],
+          "correctAnswer": 1,
+          "explanation": "Jesus first wept at the tomb (the shortest verse in the Bible). Then he told them to remove the stone. He prayed aloud so the crowd would believe, then shouted in a loud voice 'Lazarus, come out!' The dead man came out, his hands and feet wrapped in linen strips, his face covered with a cloth. Jesus said 'Take off the grave clothes and let him go.' Many Jews who witnessed this put their faith in Jesus.",
+          "reference": "John 11:1-44",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-10",
+          "question": "In the Old Testament, God parted a large body of water so that the Israelites could escape from the Egyptian army on dry ground. Moses stretched out his hand and God drove the sea back with a strong wind all night. Which body of water was parted?",
+          "options": ["The Jordan River", "The Mediterranean Sea", "The Red Sea (or Sea of Reeds)", "The Dead Sea"],
+          "correctAnswer": 2,
+          "explanation": "The Israelites were trapped between the Egyptian army and the Red Sea (or 'Sea of Reeds' in Hebrew). Moses stretched out his hand and God sent a powerful east wind that divided the waters, creating walls of water on both sides with dry ground in between. The Israelites crossed safely. When the Egyptians followed, God released the waters and the entire army was drowned.",
+          "reference": "Exodus 14:13-28",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-11",
+          "question": "When the Israelites wandered in the wilderness after leaving Egypt, they ran out of food and complained to Moses. God promised to provide food from heaven every morning. Each day, the people found thin flakes on the ground that tasted like wafers made with honey. What was this heavenly food called?",
+          "options": ["Angel bread", "Manna", "Heavenly grain", "God's provision"],
+          "correctAnswer": 1,
+          "explanation": "The Israelites called it 'manna,' which likely comes from the Hebrew 'man hu' meaning 'What is it?' because they didn't know what it was. God provided manna six days a week for 40 years. They were told to gather only enough for one day (it would rot if stored), except on the sixth day when they gathered double because none appeared on the Sabbath.",
+          "reference": "Exodus 16:14-31",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-12",
+          "question": "The prophet Elijah had a dramatic showdown with 450 prophets of the false god Baal on Mount Carmel. Each side built an altar and called on their god to send fire from heaven. The prophets of Baal danced and shouted all day but nothing happened. When Elijah prayed, what happened?",
+          "options": ["A gentle rain fell on Elijah's altar", "Fire fell from heaven and consumed the sacrifice, the wood, the stones, the soil, and even the water in the trench around the altar", "Lightning struck both altars simultaneously", "A voice from heaven declared Elijah the winner"],
+          "correctAnswer": 1,
+          "explanation": "To make the challenge even harder, Elijah had drenched his altar with twelve jars of water. When he prayed, fire fell from heaven and burned up the sacrifice, the wood, the stones, the soil, and licked up all the water in the trench. The people fell on their faces and cried 'The LORD — he is God! The LORD — he is God!'",
+          "reference": "1 Kings 18:20-39",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-13",
+          "question": "Three young Jewish men — Shadrach, Meshach, and Abednego — refused to bow down to a golden statue that King Nebuchadnezzar had set up. As punishment, they were thrown into a blazing furnace heated seven times hotter than normal. What happened to them inside the fire?",
+          "options": ["They were severely burned but survived", "They were completely unharmed, and the king saw a fourth figure walking with them in the flames", "Angels put out the fire immediately", "The furnace collapsed around them but they escaped"],
+          "correctAnswer": 1,
+          "explanation": "When Nebuchadnezzar looked into the furnace, he was astonished: 'I see four men walking around in the fire, unbound and unharmed, and the fourth looks like a son of the gods.' The three men came out without a single hair singed, without their robes scorched, and without even the smell of smoke on them. Nebuchadnezzar praised their God and promoted them.",
+          "reference": "Daniel 3:1-30",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-14",
+          "question": "The prophet Daniel continued to pray to God three times a day despite a new law making it illegal to pray to anyone except the king. His enemies reported him and he was thrown into a den of lions as punishment. What happened to Daniel in the lions' den?",
+          "options": ["He fought off the lions with his bare hands", "God sent an angel who shut the lions' mouths, and Daniel was found the next morning without a scratch", "The lions were already asleep when he was thrown in", "Daniel tamed the lions and they became his pets"],
+          "correctAnswer": 1,
+          "explanation": "King Darius, who liked Daniel but was forced by his own law to punish him, rushed to the den at first light and called out anxiously. Daniel answered that God had sent an angel to shut the lions' mouths because he was found innocent before God. Daniel was lifted out without a single wound. The king then threw Daniel's accusers into the den, and the lions overpowered them instantly.",
+          "reference": "Daniel 6:1-23",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-15",
+          "question": "A prophet named Jonah tried to run away from God's command to preach to Nineveh by boarding a ship sailing in the opposite direction. God sent a violent storm and Jonah was thrown overboard. What happened to Jonah in the sea?",
+          "options": ["He drowned and God raised him from the dead", "A great fish swallowed him and he lived inside it for three days and three nights before being vomited onto dry land", "He was rescued by passing sailors", "Dolphins carried him safely to shore"],
+          "correctAnswer": 1,
+          "explanation": "God provided a great fish (often called a whale) that swallowed Jonah. Inside the fish for three days and three nights, Jonah prayed a prayer of repentance and thanksgiving. The fish then vomited him onto dry land, and Jonah went to Nineveh as God had originally commanded. Jesus later referenced this miracle as a sign pointing to his own three days in the tomb.",
+          "reference": "Jonah 1:17-2:10, Matthew 12:40",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-16",
+          "question": "When Jesus visited the Pool of Bethesda in Jerusalem, he found a man who had been unable to walk for 38 years. The man explained that he had no one to help him into the pool when the water was stirred. What did Jesus say to heal him?",
+          "options": ["'Your faith has made you well'", "'Go and wash in the Pool of Siloam'", "'Get up! Pick up your mat and walk'", "'Be clean!'"],
+          "correctAnswer": 2,
+          "explanation": "Jesus asked the man a profound question first: 'Do you want to get well?' The man made excuses about having no one to help him. Jesus simply said 'Get up! Pick up your mat and walk.' The man was instantly healed, picked up his mat, and walked. This miracle happened on the Sabbath, which angered the religious leaders who accused Jesus of breaking Sabbath rules.",
+          "reference": "John 5:1-15",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-17",
+          "question": "Jesus encountered a man who had been born completely blind — he had never seen anything in his entire life. Jesus healed him in an unusual way. What method did Jesus use to give this man his sight?",
+          "options": ["He simply touched the man's eyes and they opened", "He made mud with his saliva, put it on the man's eyes, and told him to wash in the Pool of Siloam", "He prayed over the man for several hours", "He breathed on the man's face"],
+          "correctAnswer": 1,
+          "explanation": "Jesus spat on the ground, made mud with the saliva, and applied it to the blind man's eyes. Then he told him 'Go, wash in the Pool of Siloam.' The man went, washed, and came back seeing for the first time in his life. When the Pharisees interrogated him about how he was healed, he gave the unforgettable answer: 'One thing I do know. I was blind but now I see!'",
+          "reference": "John 9:1-38",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-18",
+          "question": "When the Israelites were about to enter the Promised Land, they needed to cross the Jordan River. God performed a miracle similar to the Red Sea crossing. What happened when the priests carrying the Ark of the Covenant stepped into the river?",
+          "options": ["A bridge of stone appeared", "The water piled up in a heap upstream, and the riverbed became dry so all the people could cross on dry ground", "The river became shallow enough to wade across", "A strong wind dried up the entire river permanently"],
+          "correctAnswer": 1,
+          "explanation": "As soon as the priests' feet touched the water's edge, the Jordan River — which was at flood stage — stopped flowing. The water piled up in a heap far upstream while the priests stood in the middle of the dry riverbed holding the Ark. All Israel crossed on dry ground. God told Joshua to have twelve stones taken from the riverbed as a memorial of this miracle.",
+          "reference": "Joshua 3:14-17",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-19",
+          "question": "A Roman centurion (military officer) came to Jesus asking him to heal his servant who was paralysed and suffering terribly. When Jesus offered to go to his house, the centurion said something that amazed Jesus more than anything anyone in Israel had said. What did the centurion say?",
+          "options": ["'Please hurry, my servant is dying'", "'I am not worthy for you to come under my roof. Just say the word, and my servant will be healed'", "'I will pay you anything if you heal him'", "'I have heard of your great miracles and I believe'"],
+          "correctAnswer": 1,
+          "explanation": "The centurion understood authority — as a military commander, he knew that when he gave an order, it was carried out even from a distance. He believed Jesus had the same authority over sickness. Jesus was amazed and said 'Truly I tell you, I have not found anyone in Israel with such great faith.' The servant was healed at that very hour, without Jesus ever visiting the house.",
+          "reference": "Matthew 8:5-13",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-20",
+          "question": "Jesus was walking to the house of Jairus (whose daughter was dying) when a large crowd pressed around him. On the way, Jesus stopped because he felt power go out from him when someone in the crowd touched his cloak. Who had touched him?",
+          "options": ["A blind man hoping to see", "A woman who had been bleeding for twelve years", "A leper who wanted to be clean", "A child who wanted a blessing"],
+          "correctAnswer": 1,
+          "explanation": "A woman who had been suffering from bleeding for twelve years had spent everything she had on doctors but only got worse. She thought 'If I just touch his clothes, I will be healed.' The moment she touched his cloak, her bleeding stopped. Jesus felt power go out from him, stopped, and asked 'Who touched me?' The woman confessed and Jesus said 'Your faith has healed you. Go in peace.'",
+          "reference": "Mark 5:25-34",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-21",
+          "question": "Jesus was travelling when he came across a funeral procession in the town of Nain. A widow was weeping because her only son had died — meaning she had lost her husband and now her only child, leaving her with no support. What did Jesus do?",
+          "options": ["He comforted her with words of encouragement", "He touched the coffin and said 'Young man, I say to you, get up!' and the dead man sat up and began to talk", "He promised her that God would provide", "He prayed for her and gave her money"],
+          "correctAnswer": 1,
+          "explanation": "Jesus' heart went out to the widow. He told her 'Don't cry,' then walked up and touched the bier (coffin). He said 'Young man, I say to you, get up!' The dead man sat up and began to talk, and Jesus gave him back to his mother. The crowd was filled with awe and praised God, saying 'A great prophet has appeared among us!' News of this spread throughout Judea.",
+          "reference": "Luke 7:11-17",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-22",
+          "question": "A man came to Jesus begging for help because his son was possessed by a spirit that threw him into fire and water to try to destroy him. The disciples had tried to cast the spirit out but failed. After Jesus healed the boy, the disciples asked privately why they couldn't drive it out. What did Jesus tell them?",
+          "options": ["'You did not pray long enough'", "'This kind can come out only by prayer' (and fasting in some manuscripts)", "'You need more training'", "'Only I have the authority to cast out this kind'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus rebuked the evil spirit, which threw the boy into violent convulsions before coming out. The boy lay so still that people thought he was dead, but Jesus took him by the hand and lifted him up. When the disciples asked why they failed, Jesus said 'This kind can come out only by prayer.' He also told them their failure was due to lack of faith — 'If you have faith as small as a mustard seed, you can say to this mountain, \"Move\" and it will move.'",
+          "reference": "Mark 9:14-29, Matthew 17:14-21",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-23",
+          "question": "When Moses was leading the Israelites through the wilderness, they desperately needed water. God told Moses to speak to a rock and water would pour out. But Moses was angry at the people's complaining and did something different. What did Moses do instead?",
+          "options": ["He dug a well in the sand", "He struck the rock twice with his staff instead of speaking to it", "He prayed for rain", "He refused to get them water at all"],
+          "correctAnswer": 1,
+          "explanation": "In his frustration, Moses said to the people 'Listen, you rebels, must we bring you water out of this rock?' Then he struck the rock twice with his staff instead of speaking to it as God had instructed. Water gushed out abundantly, but God told Moses that because he had not trusted Him enough to honour Him as holy, Moses would not be allowed to enter the Promised Land.",
+          "reference": "Numbers 20:1-12",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-24",
+          "question": "In the Old Testament, a commander named Naaman had a serious skin disease (leprosy). He travelled from Syria to Israel to seek healing from the prophet Elisha. Elisha sent a messenger telling Naaman to do something simple, which initially made Naaman furious. What did Elisha tell Naaman to do?",
+          "options": ["Offer a sacrifice at the Temple", "Wash seven times in the Jordan River", "Climb to the top of Mount Carmel", "Fast for three days"],
+          "correctAnswer": 1,
+          "explanation": "Naaman expected Elisha to come out personally, wave his hand over the leprosy, and dramatically call on God. Instead, Elisha didn't even come to the door — he sent a messenger saying 'Go, wash yourself seven times in the Jordan.' Naaman was furious: 'Are not the rivers of Damascus better?' But his servants persuaded him to try. He dipped seven times in the Jordan and his flesh was restored 'like that of a young boy.'",
+          "reference": "2 Kings 5:1-14",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-25",
+          "question": "After Jesus fed a crowd of 4,000 people with seven loaves and a few small fish (a separate miracle from the feeding of the 5,000), how many baskets of leftovers did the disciples collect?",
+          "options": ["Twelve baskets", "Seven baskets", "Three baskets", "Five baskets"],
+          "correctAnswer": 1,
+          "explanation": "After feeding the 4,000, the disciples collected seven basketfuls of broken pieces. Interestingly, in the feeding of the 5,000, they collected twelve baskets. Jesus later referenced both miracles specifically: 'When I broke the five loaves for the five thousand, how many basketfuls did you pick up? Twelve. And when I broke the seven loaves for the four thousand, how many basketfuls? Seven.' The different numbers suggest symbolic meaning.",
+          "reference": "Mark 8:1-9, 8:19-20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-26",
+          "question": "When Peter and John were going to the Temple to pray, they encountered a man who had been lame from birth and was begging at the Temple gate called Beautiful. Peter said 'Silver or gold I do not have, but what I do have I give you.' What did Peter do?",
+          "options": ["He gave the man food and clothing", "He said 'In the name of Jesus Christ of Nazareth, walk!' and helped him up — the man's feet and ankles became strong instantly", "He prayed for the man and told him to come back tomorrow", "He brought the man to the other apostles for healing"],
+          "correctAnswer": 1,
+          "explanation": "Peter said 'In the name of Jesus Christ of Nazareth, walk!' and took the man by the right hand. Instantly the man's feet and ankles became strong. He jumped to his feet, began to walk, and went with them into the Temple courts, 'walking and jumping, and praising God.' The people were filled with wonder and amazement, and Peter used the opportunity to preach about Jesus.",
+          "reference": "Acts 3:1-10",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-27",
+          "question": "When God sent ten plagues upon Egypt to convince Pharaoh to release the Israelites, the very first plague involved a dramatic transformation of Egypt's most important natural resource. What was the first plague?",
+          "options": ["Frogs covering the land", "Darkness for three days", "The Nile River turning to blood", "Swarms of locusts"],
+          "correctAnswer": 2,
+          "explanation": "Moses stretched out his staff over the Nile and all the water in Egypt — the river, canals, ponds, and even water in wooden and stone containers — turned to blood. The fish died, the river stank, and the Egyptians could not drink the water. This was a direct challenge to the Egyptian god Hapi (god of the Nile), demonstrating that the God of Israel had power over Egypt's most vital resource.",
+          "reference": "Exodus 7:14-24",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-28",
+          "question": "During a severe drought and famine, God sent the prophet Elijah to stay with a poor widow in Zarephath. The widow only had a handful of flour and a little oil — enough for one last meal for herself and her son before they starved. What miracle did God perform?",
+          "options": ["He sent rain immediately to end the drought", "The jar of flour was never used up and the jug of oil did not run dry until the drought ended", "Food appeared from heaven each morning", "The widow found gold buried in her yard"],
+          "correctAnswer": 1,
+          "explanation": "Elijah told the widow 'Don't be afraid. Go home and make a small loaf of bread for me first, then make something for yourself and your son. For this is what the LORD says: The jar of flour will not be used up and the jug of oil will not run dry until the day the LORD sends rain on the land.' She obeyed in faith, and just as God promised, the flour and oil miraculously lasted until the drought ended.",
+          "reference": "1 Kings 17:7-16",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-29",
+          "question": "Jesus healed ten men who were suffering from leprosy (a devastating skin disease that made them outcasts from society). He told them to go show themselves to the priests, and as they went, they were healed. How many of the ten returned to thank Jesus?",
+          "options": ["All ten returned to thank him", "Five of the ten returned", "Only one returned — and he was a Samaritan", "None of them returned"],
+          "correctAnswer": 2,
+          "explanation": "Only one of the ten healed lepers returned to thank Jesus — and he was a Samaritan, a foreigner despised by the Jews. He threw himself at Jesus' feet, thanking him. Jesus asked 'Were not all ten cleansed? Where are the other nine? Has no one returned to give praise to God except this foreigner?' The story highlights that gratitude is rare and that outsiders sometimes show more faith than insiders.",
+          "reference": "Luke 17:11-19",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-30",
+          "question": "After Jesus' resurrection, Peter was fishing with several disciples on the Sea of Galilee but caught nothing all night. A figure on the shore told them to cast their net on the other side of the boat. When they obeyed, what happened?",
+          "options": ["They caught a few small fish", "They caught so many fish that they were unable to haul the net in — 153 large fish in total", "The net came back empty again", "A single enormous fish filled the entire net"],
+          "correctAnswer": 1,
+          "explanation": "When they cast the net on the right side of the boat as the stranger instructed, they caught 153 large fish — so many they couldn't haul the net into the boat. John recognised the figure on shore and said 'It is the Lord!' Peter immediately jumped into the water to swim to Jesus. When they landed, Jesus had already prepared breakfast of bread and fish over a charcoal fire. This was Jesus' third post-resurrection appearance to the disciples.",
+          "reference": "John 21:1-14",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-31",
+          "question": "In the Old Testament, the walls of the heavily fortified city of Jericho fell down miraculously after the Israelites followed God's unusual battle plan. What did God tell them to do?",
+          "options": ["Use battering rams and siege weapons for seven days", "March around the city once a day for six days, then seven times on the seventh day, blow trumpets, and shout", "Pray without ceasing for a week", "Dig tunnels under the walls"],
+          "correctAnswer": 1,
+          "explanation": "God's plan defied all military logic. The Israelites marched around Jericho once a day for six days with seven priests blowing ram's horn trumpets before the Ark of the Covenant. On the seventh day, they marched around seven times. At the sound of the trumpets and a great shout from the people, the walls of Jericho collapsed completely, and the Israelites took the city.",
+          "reference": "Joshua 6:1-20",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-32",
+          "question": "A leper came to Jesus and knelt before him, saying 'If you are willing, you can make me clean.' In that culture, lepers were untouchable outcasts — anyone who touched a leper became ceremonially unclean. How did Jesus respond?",
+          "options": ["He told the man to go wash in the Jordan River", "He reached out his hand and touched the man, saying 'I am willing. Be clean!' and the leprosy disappeared instantly", "He healed the man from a distance without touching him", "He told the man to come back tomorrow"],
+          "correctAnswer": 1,
+          "explanation": "Jesus did something shocking — he reached out and touched the leper. In that culture, this was unthinkable. But instead of Jesus becoming unclean, the leper became clean. Jesus said 'I am willing. Be clean!' and immediately the leprosy disappeared. Then he told the man to show himself to the priest and offer the sacrifices Moses commanded, as a testimony to them.",
+          "reference": "Mark 1:40-45",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-33",
+          "question": "When Moses first appeared before Pharaoh to demand the release of the Israelites, God gave Moses a sign to demonstrate divine power. Moses threw his staff on the ground and it transformed. What did the staff become?",
+          "options": ["A sword", "A snake", "A flowering rod", "A pillar of fire"],
+          "correctAnswer": 1,
+          "explanation": "Moses threw his staff on the ground and it became a snake. Pharaoh's magicians duplicated this feat with their own staffs, but then Moses' snake swallowed all of their snakes — demonstrating that God's power was superior to Egyptian magic. This sign was first given to Moses at the burning bush to convince the Israelites that God had truly sent him.",
+          "reference": "Exodus 7:8-12, 4:2-5",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-34",
+          "question": "After the apostle Peter was arrested by King Herod and imprisoned (chained between two soldiers with guards at the door), the church prayed earnestly for him. That night, something miraculous happened. How was Peter freed?",
+          "options": ["The other apostles broke him out of prison", "An angel appeared, woke Peter up, caused his chains to fall off, and led him past the guards and through the iron gate — which opened by itself", "An earthquake destroyed the prison walls", "Peter convinced the guards to let him go"],
+          "correctAnswer": 1,
+          "explanation": "An angel appeared in Peter's cell and a light shone. The angel struck Peter on the side to wake him and said 'Quick, get up!' Peter's chains fell off his wrists. The angel led him past the guards (who didn't notice) and through the iron gate, which opened by itself. Peter went to Mary's house where the church was praying for him. When he knocked, a servant girl named Rhoda was so overjoyed she forgot to open the door!",
+          "reference": "Acts 12:1-17",
+          "points": 10
+        },
+        {
+          "id": "mir-mc-b-35",
+          "question": "Jesus healed a man with a withered (shrivelled, paralysed) hand on the Sabbath day in a synagogue, while the Pharisees watched to see if he would 'break' the Sabbath rules. Before healing the man, what pointed question did Jesus ask the Pharisees?",
+          "options": ["'Do you believe I can do this?'", "'Which is lawful on the Sabbath: to do good or to do evil, to save life or to kill?'", "'Has no one ever healed on the Sabbath before?'", "'Is this man not worth more than your rules?'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus asked 'Which is lawful on the Sabbath: to do good or to do evil, to save life or to kill?' The Pharisees remained silent. Jesus looked at them with anger, deeply distressed at their stubborn hearts, then told the man 'Stretch out your hand.' The man stretched it out and it was completely restored. The Pharisees went out and immediately began plotting how to kill Jesus.",
+          "reference": "Mark 3:1-6",
+          "points": 10
+        }
+      ],
+      "intermediate": [
+        {
+          "id": "mir-mc-i-1",
+          "question": "When the prophet Elisha died and was buried, an extraordinary miracle occurred at his grave. Some Israelites were burying a man when they spotted a Moabite raiding party. In their hurry, they threw the man's body into Elisha's tomb. What happened when the body touched Elisha's bones?",
+          "options": ["The tomb sealed itself shut", "The dead man came back to life and stood up on his feet", "Elisha's bones turned to dust", "A bright light filled the tomb"],
+          "correctAnswer": 1,
+          "explanation": "When the body touched Elisha's bones, the man came back to life and stood up on his feet. This posthumous miracle is unique in the Bible and demonstrated that God's power was not limited even by the prophet's death. It fulfilled Elisha's request for a 'double portion' of Elijah's spirit — even in death, Elisha performed miracles.",
+          "reference": "2 Kings 13:20-21",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-2",
+          "question": "The prophet Elisha performed a miracle for a desperate widow whose deceased husband's creditor was coming to take her two sons as slaves. She had nothing except a small jar of olive oil. What did Elisha tell her to do?",
+          "options": ["Sell the oil and pay the debt", "Go to all her neighbours and collect as many empty jars as possible, then pour her little oil into them — the oil kept flowing until every jar was full", "Pray for three days and God would provide", "Go to the Temple and ask the priests for help"],
+          "correctAnswer": 1,
+          "explanation": "Elisha told the widow to borrow as many empty jars as she could from all her neighbours, shut the door, and pour oil from her small jar. Miraculously, the oil kept flowing, filling jar after jar, until there were no more empty jars left. Then the oil stopped. Elisha said 'Go, sell the oil and pay your debts. You and your sons can live on what is left.' The miracle matched the measure of her faith — she collected as many jars as she had faith to gather.",
+          "reference": "2 Kings 4:1-7",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-3",
+          "question": "In the book of Joshua, during a battle against the Amorites, Joshua needed more daylight to complete the victory. He made an extraordinary request to God in front of all Israel. What did Joshua ask God to do?",
+          "options": ["Send lightning against the enemy", "Make the sun stand still in the sky (and it did, for about a full day)", "Cause an earthquake to swallow the enemy army", "Send a blinding fog to confuse the enemy"],
+          "correctAnswer": 1,
+          "explanation": "Joshua said in the sight of Israel 'Sun, stand still over Gibeon, and you, moon, over the Valley of Aijalon.' The sun stopped in the middle of the sky and delayed going down for about a full day. The text says 'There has never been a day like it before or since, a day when the LORD listened to a human being.' God also sent large hailstones that killed more enemies than the Israelites did with their swords.",
+          "reference": "Joshua 10:12-14",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-4",
+          "question": "When the apostle Paul was shipwrecked on the island of Malta, he was gathering sticks for a fire when a venomous snake bit him and fastened onto his hand. The islanders expected him to swell up and die. What actually happened?",
+          "options": ["Paul screamed in pain but was eventually healed", "Paul shook the snake off into the fire and suffered no ill effects whatsoever — the islanders then thought he was a god", "Paul was sick for three days before recovering", "Another disciple sucked the poison out"],
+          "correctAnswer": 1,
+          "explanation": "Paul simply shook the snake off into the fire and suffered no harm at all. The islanders watched, expecting him to swell up or suddenly drop dead. When nothing happened after a long time, they changed their minds and said he must be a god. Paul then went on to heal the father of the island's chief official, Publius, who was sick with fever and dysentery, by praying and placing his hands on him.",
+          "reference": "Acts 28:1-10",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-5",
+          "question": "In the book of Numbers, when the Israelites complained and God sent venomous snakes among them, many people were bitten and died. God told Moses to make something and put it on a pole — anyone who looked at it would live. What did Moses make?",
+          "options": ["A golden serpent", "A bronze snake", "A wooden cross", "A clay figurine of a snake"],
+          "correctAnswer": 1,
+          "explanation": "Moses made a bronze snake and put it on a pole. Anyone who was bitten by a snake could look at the bronze snake and live. Jesus later directly referenced this miracle: 'Just as Moses lifted up the snake in the wilderness, so the Son of Man must be lifted up, that everyone who believes may have eternal life' (John 3:14-15). The bronze snake foreshadowed Jesus being lifted up on the cross.",
+          "reference": "Numbers 21:4-9, John 3:14-15",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-6",
+          "question": "When the prophet Elisha was surrounded by an enemy army that had come to capture him, his servant was terrified. Elisha prayed that God would open his servant's eyes, and the servant saw something that completely changed his perspective. What did the servant see?",
+          "options": ["The enemy army fleeing in fear", "The hills full of horses and chariots of fire surrounding and protecting Elisha", "A massive wall of water about to flood the enemy", "An army of angels descending from heaven"],
+          "correctAnswer": 1,
+          "explanation": "Elisha told his terrified servant 'Don't be afraid. Those who are with us are more than those who are with them.' Then he prayed 'Open his eyes, LORD, so that he may see.' God opened the servant's eyes and he saw the hills full of horses and chariots of fire all around Elisha. Elisha then prayed for God to strike the enemy army with blindness, which He did. Elisha led the blinded soldiers to Samaria and told the king to feed them and send them home.",
+          "reference": "2 Kings 6:15-23",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-7",
+          "question": "After Jesus ascended to heaven, the apostle Peter's shadow falling on sick people as he walked by was believed to have healing power. People laid the sick on mats in the streets hoping Peter's shadow would fall on them. According to Acts, what was the result?",
+          "options": ["Nothing happened — shadows have no power", "People brought the sick from surrounding towns and all of them were healed", "Only a few were healed", "Peter told them to stop being superstitious"],
+          "correctAnswer": 1,
+          "explanation": "Acts 5:15-16 records that 'people brought the sick into the streets and laid them on beds and mats so that at least Peter's shadow might fall on some of them as he passed by. Crowds gathered also from the towns around Jerusalem, bringing their sick and those tormented by impure spirits, and all of them were healed.' This remarkable power demonstrated that the same Spirit that empowered Jesus was now working through His apostles.",
+          "reference": "Acts 5:12-16",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-8",
+          "question": "When God told Abraham that his elderly wife Sarah would have a son, Sarah laughed because she was about 90 years old and well past childbearing age. God's response included a rhetorical question that has become one of the most quoted lines about miracles. What did God ask?",
+          "options": ["'Do you not believe in the LORD your God?'", "'Is anything too hard for the LORD?'", "'Have I not promised and will I not fulfil?'", "'Why do you doubt my word?'"],
+          "correctAnswer": 1,
+          "explanation": "God asked 'Is anything too hard for the LORD?' (Genesis 18:14). This rhetorical question — expecting the answer 'No!' — became a foundational statement about God's unlimited power. Sarah did conceive and gave birth to Isaac when Abraham was 100 years old. The angel Gabriel echoed this same principle when he told Mary she would conceive Jesus: 'Nothing will be impossible with God' (Luke 1:37).",
+          "reference": "Genesis 18:14, Luke 1:37",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-9",
+          "question": "The apostle Paul performed an unusual miracle in Troas when a young man named Eutychus fell asleep during Paul's very long sermon (which went until midnight), fell from a third-storey window, and died. What did Paul do?",
+          "options": ["He asked God to forgive the young man", "He went down, threw himself on the young man and embraced him, saying 'Don't be alarmed. He's alive!' — and the young man was restored to life", "He finished his sermon first, then went to check on the young man", "He asked Luke, the physician, to examine the body"],
+          "correctAnswer": 1,
+          "explanation": "Paul went down, threw himself on Eutychus, and put his arms around him, echoing the Old Testament prophets Elijah (1 Kings 17) and Elisha (2 Kings 4) who raised children from the dead in similar fashion. Paul announced 'Don't be alarmed. He's alive!' The people took the young man home alive and were greatly comforted. And Paul continued talking until daylight — apparently undeterred by the incident!",
+          "reference": "Acts 20:7-12",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-10",
+          "question": "During the Exodus, God led the Israelites through the wilderness using two miraculous guides that showed them where to go, day and night. What were these two guides?",
+          "options": ["A star and an angel", "A pillar of cloud by day and a pillar of fire by night", "Two angelic figures walking ahead", "A rainbow by day and the moon by night"],
+          "correctAnswer": 1,
+          "explanation": "God went ahead of the Israelites in a pillar of cloud by day to guide them and a pillar of fire by night to give them light. These were visible manifestations of God's presence ('Shekinah glory'). The pillars never left their place — the cloud pillar did not leave by day, nor the fire pillar by night. During the Red Sea crossing, the pillar moved behind them to block the Egyptian army's advance.",
+          "reference": "Exodus 13:21-22",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-11",
+          "question": "When Jesus healed a deaf man who also had a speech impediment, he used an unusual method that involved physical actions. According to Mark's Gospel, what specific things did Jesus do before saying 'Ephphatha' ('Be opened!')?",
+          "options": ["He touched the man's forehead and prayed", "He put his fingers into the man's ears, spat, and touched the man's tongue", "He waved his hands over the man", "He breathed on the man's face"],
+          "correctAnswer": 1,
+          "explanation": "Jesus took the man aside privately, put his fingers into the man's ears, spat, and touched the man's tongue. He looked up to heaven, sighed deeply, and said 'Ephphatha!' ('Be opened!'). The man's ears were opened, his tongue was loosened, and he began to speak plainly. Jesus' physical actions may have communicated compassion to the deaf man, who could not hear verbal assurance.",
+          "reference": "Mark 7:31-37",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-12",
+          "question": "The prophet Elijah raised a widow's dead son back to life in one of the earliest resurrection miracles in the Bible. The widow had accused Elijah of bringing death to her household. What method did Elijah use to revive the boy?",
+          "options": ["He prayed from a distance", "He stretched himself out over the boy three times and cried out to God, and the boy's life returned", "He poured oil on the boy's head", "He commanded the boy to rise in God's name"],
+          "correctAnswer": 1,
+          "explanation": "Elijah carried the dead boy to the upper room where he was staying, laid him on the bed, and stretched himself out on the boy three times. He cried out 'LORD my God, let this boy's life return to him!' The LORD heard Elijah's prayer and the boy's life returned to him. Elijah carried the living boy back to his mother, who said 'Now I know that you are a man of God and that the word of the LORD from your mouth is the truth.'",
+          "reference": "1 Kings 17:17-24",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-13",
+          "question": "When King Hezekiah was told by the prophet Isaiah that he was going to die from his illness, Hezekiah turned his face to the wall and prayed with bitter weeping. God heard his prayer and added 15 years to his life. What miraculous sign did God give to confirm this promise?",
+          "options": ["A rainbow appeared in the sky", "The shadow on the stairway of Ahaz went backward ten steps", "Rain fell from a cloudless sky", "A star appeared during daytime"],
+          "correctAnswer": 1,
+          "explanation": "Isaiah asked Hezekiah whether he wanted the shadow to go forward or backward ten steps. Hezekiah said going forward would be easy — so he chose the harder sign, backward. Isaiah called out to the LORD, and the shadow went back ten steps on the stairway of Ahaz. This apparently involved the sun's position reversing, making it one of the most dramatic astronomical miracles in the Bible.",
+          "reference": "2 Kings 20:1-11, Isaiah 38:1-8",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-14",
+          "question": "In the book of Acts, a sorcerer named Simon (Simon Magus) in Samaria was so impressed by the miracles performed through the apostles that he offered them money for the ability to give the Holy Spirit through the laying on of hands. How did Peter respond?",
+          "options": ["He accepted Simon's money and taught him", "He sternly rebuked Simon, saying 'May your money perish with you, because you thought you could buy the gift of God with money!'", "He ignored Simon's request", "He said the ability would cost even more money"],
+          "correctAnswer": 1,
+          "explanation": "Peter's sharp rebuke — 'May your money perish with you!' — established an important principle: God's gifts cannot be purchased with money. Peter told Simon 'You have no part or share in this ministry, because your heart is not right before God. Repent of this wickedness and pray to the Lord.' The practice of buying spiritual offices later became known as 'simony' — named after Simon Magus.",
+          "reference": "Acts 8:9-24",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-15",
+          "question": "Jesus cursed a fig tree that had leaves but no fruit, and it withered from the roots. While this seems like a strange miracle, scholars see it as a prophetic sign-act. What did the fig tree symbolise in this context?",
+          "options": ["The Roman Empire, which appeared powerful but was spiritually bankrupt", "Israel/the Temple, which had an outward appearance of religious activity (leaves) but produced no genuine spiritual fruit", "The disciples' lack of faith", "The barrenness of the wilderness"],
+          "correctAnswer": 1,
+          "explanation": "The fig tree was a common Old Testament symbol for Israel (Jeremiah 8:13, Hosea 9:10). Mark deliberately places the fig tree cursing around the Temple cleansing (fig tree cursed → Temple cleansed → fig tree withered), linking them. The Temple had impressive external activity (leaves) but no genuine spiritual fruit. Jesus was pronouncing judgment on a religious system that looked alive but was spiritually dead.",
+          "reference": "Mark 11:12-25",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-16",
+          "question": "The prophet Elisha purified a deadly pot of stew during a famine. The company of prophets had accidentally gathered poisonous gourds and added them to the pot. When they cried out 'There is death in the pot!', what did Elisha do to make the stew safe?",
+          "options": ["He poured the stew out and made new stew", "He threw flour into the pot and the stew became harmless", "He boiled the stew for several more hours", "He prayed over the pot for an hour"],
+          "correctAnswer": 1,
+          "explanation": "Elisha simply said 'Get some flour' and threw it into the pot. He then said 'Serve it to the people to eat.' The flour had no natural ability to counteract poison — it was a symbolic act of faith. The deadly stew became perfectly safe to eat. This miracle demonstrates God's provision during famine and Elisha's role as a prophet who brings life where there is death.",
+          "reference": "2 Kings 4:38-41",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-17",
+          "question": "When Peter was imprisoned by Herod and miraculously freed by an angel in the middle of the night, he went to the house where the believers were praying for his release. When a servant girl named Rhoda answered his knock, what happened?",
+          "options": ["She let him in immediately", "She was so overjoyed that she ran back without opening the door to tell everyone, and they didn't believe her — they said 'It must be his angel'", "She screamed and fainted", "She didn't recognise Peter"],
+          "correctAnswer": 1,
+          "explanation": "Rhoda recognised Peter's voice and was so excited she forgot to open the door! She ran back and exclaimed 'Peter is at the door!' The praying believers — who had been praying for Peter's release — said 'You're out of your mind!' and then 'It must be his angel.' Meanwhile Peter kept knocking. When they finally opened the door and saw him, they were astonished. The irony is delightful: they were praying for a miracle but didn't believe it when it happened.",
+          "reference": "Acts 12:12-17",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-18",
+          "question": "In one of his most dramatic healings, Jesus encountered a man in the synagogue on the Sabbath who had a shrivelled (withered) hand. The Pharisees were watching closely to see if Jesus would heal on the Sabbath so they could accuse him. Jesus told the man to do something bold in front of everyone. What did Jesus say?",
+          "options": ["'Come to me after the service'", "'Stand up in front of everyone... Stretch out your hand' — and when he did, his hand was completely restored", "'Go home and pray, and you will be healed by morning'", "'Wash your hand in the ritual bath'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus deliberately made this healing as public as possible. He told the man 'Stand up in front of everyone,' then asked the Pharisees the pointed question about doing good or evil on the Sabbath. When they refused to answer, Jesus looked at them with anger and deep distress, then told the man 'Stretch out your hand.' The man stretched it out and his hand was completely restored. The Pharisees went out and immediately began plotting to kill Jesus.",
+          "reference": "Mark 3:1-6",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-19",
+          "question": "During the Exodus, God sent ten plagues upon Egypt. The tenth and most devastating plague was the death of every firstborn son. But the Israelites were protected by a specific action they had to take. What did they do to protect their families?",
+          "options": ["They prayed all night in the Temple", "They slaughtered a lamb and painted its blood on the doorframes of their houses — the angel of death 'passed over' homes with blood on the door", "They locked their doors and stayed inside", "They wore white garments and carried candles"],
+          "correctAnswer": 1,
+          "explanation": "Each Israelite family slaughtered a lamb, roasted it, and painted its blood on the top and sides of their doorframe. When the destroyer went through Egypt at midnight, he 'passed over' every house marked with blood. This event became the annual Passover festival. Christians see this as a foreshadowing of Jesus, 'the Lamb of God,' whose blood protects believers from judgment.",
+          "reference": "Exodus 12:1-30",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-20",
+          "question": "A Syrophoenician (Canaanite) woman begged Jesus to cast a demon out of her daughter. Jesus initially seemed to refuse, saying 'It is not right to take the children's bread and toss it to the dogs.' The woman gave a remarkable reply that changed Jesus' response. What did she say?",
+          "options": ["'But even Gentiles deserve God's mercy'", "'Yes, Lord, but even the dogs under the table eat the children's crumbs'", "'I know I am not worthy, but please help my daughter'", "'Surely God's love extends to all nations'"],
+          "correctAnswer": 1,
+          "explanation": "The woman's reply was brilliant in its humility and wit — she didn't argue against Jesus' framework but worked within it. Even the 'crumbs' of Jesus' power would be more than enough for her daughter. Jesus was impressed: 'Woman, you have great faith! Your request is granted.' Her daughter was healed that very hour. The story demonstrates that faith, not ethnicity, opens the door to God's miraculous power.",
+          "reference": "Matthew 15:21-28, Mark 7:24-30",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-21",
+          "question": "When an axe head fell into the Jordan River during tree-cutting, a young prophet was distressed because the axe was borrowed. The prophet Elisha performed a small but remarkable miracle to recover it. What did Elisha do?",
+          "options": ["He dived into the river and retrieved it", "He cut a stick, threw it into the water where the axe had fallen, and the iron axe head floated to the surface", "He parted the river to reveal the axe", "He told the young man to reach into the water and it would come to his hand"],
+          "correctAnswer": 1,
+          "explanation": "Elisha cut a stick and threw it into the water at the place where the axe head had fallen. The heavy iron axe head floated to the surface, defying the law of gravity. The young prophet reached out and picked it up. This seemingly small miracle showed God's care for everyday concerns — even a borrowed tool. Iron was expensive in ancient Israel, and losing a borrowed axe was a serious matter.",
+          "reference": "2 Kings 6:1-7",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-22",
+          "question": "When Paul and Silas were beaten and thrown into prison in Philippi with their feet fastened in stocks, they did something remarkable at midnight that preceded their miraculous release. What were they doing when the earthquake struck?",
+          "options": ["Planning their escape", "Sleeping soundly", "Praying and singing hymns to God, while the other prisoners listened", "Arguing with the guards"],
+          "correctAnswer": 2,
+          "explanation": "At midnight, Paul and Silas were praying and singing hymns to God with their backs bleeding and their feet in stocks. Suddenly a violent earthquake shook the prison, all the doors flew open, and every prisoner's chains came loose. The jailer drew his sword to kill himself (Roman jailers were executed if prisoners escaped), but Paul shouted 'Don't harm yourself! We are all here!' The jailer asked 'What must I do to be saved?' and believed that night.",
+          "reference": "Acts 16:22-34",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-23",
+          "question": "In one of the strangest miracles in the Bible, a prophet named Balaam was riding his donkey when the donkey suddenly stopped and refused to move. Balaam beat the donkey three times, not realising why it had stopped. What extraordinary thing did the donkey do?",
+          "options": ["It ran away at full speed", "It spoke to Balaam in human words, asking why Balaam was beating it — the donkey had seen an angel with a drawn sword blocking the road that Balaam couldn't see", "It transformed into a horse", "It lay down and refused to get up"],
+          "correctAnswer": 1,
+          "explanation": "The donkey could see the angel of the LORD standing in the road with a drawn sword, even though Balaam could not. When Balaam beat the donkey, God opened the donkey's mouth and it said 'What have I done to you to make you beat me these three times?' Then God opened Balaam's eyes and he saw the angel, who told him 'If the donkey had not turned away, I would certainly have killed you by now.'",
+          "reference": "Numbers 22:21-35",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-24",
+          "question": "On the day of Pentecost, when the Holy Spirit descended on the disciples, they began speaking in other languages they had never learned. Jews from many nations were in Jerusalem and each heard the disciples speaking in their own native language. How many people were baptised that day after Peter's sermon?",
+          "options": ["About 500", "About 1,000", "About 3,000", "About 5,000"],
+          "correctAnswer": 2,
+          "explanation": "About 3,000 people were baptised and added to the church on that single day. The crowd was amazed that Galileans (considered uneducated) were speaking fluently in Parthian, Median, Elamite, Mesopotamian, and many other languages. Some accused them of being drunk, but Peter pointed out it was only 9 AM and explained that this was the fulfilment of Joel's prophecy about God pouring out His Spirit.",
+          "reference": "Acts 2:1-41",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-25",
+          "question": "Jesus performed a unique two-stage healing miracle at Bethsaida. He healed a blind man, but unusually, the healing happened in two stages rather than instantly. What happened after the first stage?",
+          "options": ["The man could hear but not see", "The man could see people, but they looked 'like trees walking around' — Jesus then touched his eyes again and his sight was fully restored", "The man could see out of one eye but not the other", "The man could see only in bright light"],
+          "correctAnswer": 1,
+          "explanation": "After Jesus spat on the man's eyes and put his hands on him the first time, the man said 'I see people; they look like trees walking around.' Jesus then put his hands on the man's eyes again, and his eyes were opened — he could see everything clearly. This is the only recorded two-stage miracle of Jesus. Some scholars see it as a parable about the disciples' own gradual understanding of who Jesus was.",
+          "reference": "Mark 8:22-26",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-26",
+          "question": "The prophet Elisha performed a miracle for a wealthy Shunammite woman who had provided him with a guest room. She was childless and her husband was old. Elisha promised her a son, and she gave birth the next year. But when the child died suddenly, what did Elisha do?",
+          "options": ["He prayed from his home and the boy recovered", "He went to the boy, lay on him with his mouth on the boy's mouth, his eyes on his eyes, and his hands on his hands — the boy sneezed seven times and opened his eyes", "He sent his staff with a servant to place on the boy", "He told the woman to take the boy to the Temple"],
+          "correctAnswer": 1,
+          "explanation": "Elisha first sent his servant Gehazi ahead with his staff to place on the boy's face, but nothing happened. When Elisha arrived, he went in alone, prayed, and lay upon the child — mouth to mouth, eyes to eyes, hands to hands. The boy's body grew warm. Elisha walked back and forth in the room, then stretched out on the boy again. The boy sneezed seven times and opened his eyes. Elisha gave him back to his grateful mother.",
+          "reference": "2 Kings 4:8-37",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-27",
+          "question": "When Peter arrived at the house of a believer named Tabitha (Dorcas) in Joppa, she had already died. The room was full of weeping widows showing the robes and clothing she had made for them. Peter sent everyone out of the room and performed a miracle. What happened?",
+          "options": ["He prayed for three days and she revived", "He knelt and prayed, then turned to the dead woman and said 'Tabitha, get up' — she opened her eyes, saw Peter, and sat up", "He anointed her with oil and she recovered", "He called the other apostles to pray together"],
+          "correctAnswer": 1,
+          "explanation": "Peter sent all the weeping mourners out of the room, knelt down and prayed, then turned to the body and said 'Tabitha, get up.' She opened her eyes, saw Peter, and sat up. He helped her to her feet and called the believers and widows back in, presenting her alive. This miracle became known all over Joppa and many people believed in the Lord. The account closely parallels Jesus raising Jairus' daughter.",
+          "reference": "Acts 9:36-42",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-28",
+          "question": "During the conquest of Canaan, the Israelites were defeated at the small city of Ai after their victory at Jericho. God revealed that one man had sinned by keeping plunder from Jericho that was supposed to be devoted to God. Once the sin was dealt with, what happened at Ai?",
+          "options": ["The walls of Ai fell like Jericho's", "God gave Israel victory through an ambush strategy — the entire city was destroyed", "God sent a plague on the people of Ai", "Israel simply walked in and took the city without a fight"],
+          "correctAnswer": 1,
+          "explanation": "After Achan's sin was dealt with, God told Joshua to set an ambush behind the city. Joshua sent 5,000 men to hide behind Ai, then led the main force to pretend to flee. When Ai's warriors chased them, the ambush force entered and burned the city. The retreating Israelites turned and attacked, catching Ai's army between two forces. God used both miraculous intervention and human strategy.",
+          "reference": "Joshua 7-8",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-29",
+          "question": "In the book of Acts, handkerchiefs and aprons that had merely touched the apostle Paul were taken to the sick, and the sick were healed and evil spirits left them. This extraordinary phenomenon occurred in which city during Paul's extended ministry there?",
+          "options": ["Jerusalem", "Antioch", "Ephesus", "Rome"],
+          "correctAnswer": 2,
+          "explanation": "Acts 19:11-12 records that 'God did extraordinary miracles through Paul, so that even handkerchiefs and aprons that had touched him were taken to the sick, and their illnesses were cured and the evil spirits left them.' This happened in Ephesus during Paul's two-year ministry there. The miracles were so remarkable that Luke specifically calls them 'extraordinary' — unusual even by the standards of the apostolic age.",
+          "reference": "Acts 19:11-12",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-30",
+          "question": "Jesus healed a woman in the synagogue who had been bent over double for eighteen years, unable to straighten up at all. When the synagogue leader was indignant because Jesus healed on the Sabbath, Jesus called him a hypocrite. What comparison did Jesus make?",
+          "options": ["He compared the Pharisees to whitewashed tombs", "He pointed out that they would untie their donkey or ox to lead it to water on the Sabbath — shouldn't this woman, bound by Satan for 18 years, be set free?", "He quoted the law of Moses about healing", "He asked if they had never shown mercy on the Sabbath"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'You hypocrites! Doesn't each of you on the Sabbath untie your ox or donkey from the stall and lead it out to give it water? Then should not this woman, a daughter of Abraham, whom Satan has kept bound for eighteen long years, be set free on the Sabbath day from what bound her?' His opponents were humiliated, but the people were delighted at the wonderful things he was doing.",
+          "reference": "Luke 13:10-17",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-31",
+          "question": "When the Israelites crossed the Jordan River into the Promised Land, God instructed Joshua to set up a memorial. How many stones were taken from the riverbed, and what did they represent?",
+          "options": ["Seven stones, one for each day of creation", "Twelve stones, one for each tribe of Israel", "Forty stones, one for each year in the wilderness", "Two stones, representing the two tablets of the law"],
+          "correctAnswer": 1,
+          "explanation": "Joshua chose one man from each of the twelve tribes to take a stone from the middle of the Jordan where the priests had stood with the Ark. The twelve stones were set up at Gilgal as a memorial. Joshua explained: 'In the future when your descendants ask their parents, \"What do these stones mean?\" tell them that Israel crossed the Jordan on dry ground, so that all the peoples of the earth might know that the hand of the LORD is powerful.'",
+          "reference": "Joshua 4:1-24",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-32",
+          "question": "Peter's encounter with a paralysed man named Aeneas in Lydda resulted in a remarkable healing. What were Peter's exact words to Aeneas, who had been bedridden for eight years?",
+          "options": ["'Be healed in the name of Jesus'", "'Aeneas, Jesus Christ heals you. Get up and roll up your mat' — and Aeneas immediately got up", "'Rise up and walk'", "'Your faith has made you well'"],
+          "correctAnswer": 1,
+          "explanation": "Peter's words are significant: he said 'Aeneas, Jesus Christ heals you. Get up and roll up your mat.' Peter made it clear that the healing came from Jesus Christ, not from Peter himself. Aeneas, who had been paralysed and bedridden for eight years, immediately got up. All those who lived in Lydda and Sharon saw him and turned to the Lord.",
+          "reference": "Acts 9:32-35",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-33",
+          "question": "After Jesus fed the 5,000, he sent his disciples ahead in a boat while he went up a mountainside to pray alone. When the disciples were in the middle of the lake straining at the oars against a strong headwind, at what time of night did Jesus come to them walking on the water?",
+          "options": ["Shortly after sunset", "Around midnight", "Shortly before dawn (the fourth watch of the night, between 3 and 6 AM)", "Just after midnight"],
+          "correctAnswer": 2,
+          "explanation": "Mark 6:48 says Jesus came to them 'shortly before dawn' — literally 'the fourth watch of the night,' which was between 3 and 6 AM. The disciples had been straining at the oars for hours against a strong headwind. Jesus was walking on the lake and 'was about to pass by them' — an echo of Old Testament theophanies where God 'passes by' (Exodus 33:19, 1 Kings 19:11). The disciples thought he was a ghost and cried out in terror.",
+          "reference": "Mark 6:45-52",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-34",
+          "question": "In the Old Testament, Aaron's staff miraculously budded, blossomed, and produced almonds overnight as a sign from God to settle a dispute. What was the dispute about?",
+          "options": ["Whether Moses or Aaron should lead Israel", "Which tribe had the right to the priesthood — God chose Levi (Aaron's tribe) by making only his staff bud among twelve tribal staffs", "Whether the Israelites should enter Canaan or return to Egypt", "Who should be the next judge of Israel"],
+          "correctAnswer": 1,
+          "explanation": "After Korah's rebellion against Moses and Aaron's leadership, God settled the question of priestly authority permanently. He told Moses to collect a staff from each of the twelve tribal leaders. Overnight, Aaron's staff (representing Levi) not only budded but also blossomed and produced ripe almonds. God commanded that Aaron's staff be kept before the Ark as a perpetual reminder.",
+          "reference": "Numbers 17:1-11",
+          "points": 15
+        },
+        {
+          "id": "mir-mc-i-35",
+          "question": "When Jesus was arrested in the Garden of Gethsemane, Peter drew a sword and cut off the right ear of the high priest's servant, whose name was Malchus. This was Jesus' final healing miracle before the cross. What did Jesus do?",
+          "options": ["He rebuked Peter and told Malchus to see a doctor", "He touched the servant's ear and healed it, while telling Peter to put away his sword", "He told the soldiers to bandage the wound", "He ignored the injury and focused on his arrest"],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'No more of this!' and touched Malchus' ear, healing it completely. He then rebuked Peter: 'Put your sword back in its place, for all who draw the sword will die by the sword. Do you think I cannot call on my Father, and he will at once put at my disposal more than twelve legions of angels?' This final miracle showed mercy to the very people arresting him.",
+          "reference": "Luke 22:49-51, John 18:10-11, Matthew 26:52-53",
+          "points": 15
+        }
+      ],
+      "advanced": [
+        {
+          "id": "mir-mc-a-1",
+          "question": "Scholars categorise the miracles of Jesus in the Gospels into four main types. Which of the following is NOT one of the standard categories used in academic study of Gospel miracles?",
+          "options": ["Nature miracles (calming storms, walking on water, feeding multitudes)", "Exorcisms (casting out demons)", "Healing miracles (restoring sight, curing leprosy, healing paralysis)", "Political miracles (overthrowing governments, freeing prisoners from Roman authority)"],
+          "correctAnswer": 3,
+          "explanation": "The four standard categories of Jesus' miracles in scholarship are: (1) healing miracles, (2) exorcisms, (3) nature miracles, and (4) raising the dead (resuscitations). Jesus explicitly rejected 'political miracles' — he refused to be made king by force (John 6:15) and told Pilate 'My kingdom is not of this world.' His miracles addressed physical, spiritual, and natural realms but intentionally avoided the political realm his contemporaries expected.",
+          "reference": "Gospel miracle classification",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-2",
+          "question": "The feeding of the 5,000 is the only miracle (besides the resurrection) recorded in all four Gospels. Each Gospel includes distinct details. Which Gospel uniquely identifies the boy with the five loaves and two fish and specifies that the loaves were made of barley?",
+          "options": ["Matthew", "Mark", "Luke", "John"],
+          "correctAnswer": 3,
+          "explanation": "Only John's Gospel mentions the boy (paidarion) and specifies the loaves as barley loaves (the cheapest bread, food of the poor). John also uniquely connects this miracle to the 'Bread of Life' discourse that follows (John 6:22-59). The barley detail may intentionally echo Elisha's miracle of feeding 100 men with twenty barley loaves (2 Kings 4:42-44) — Jesus exceeds Elisha as he feeds 5,000 with even less.",
+          "reference": "John 6:9, 2 Kings 4:42-44",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-3",
+          "question": "The 'nature miracles' of Jesus (calming the storm, walking on water, feeding the multitudes, cursing the fig tree) are considered by many scholars to carry deeper theological significance beyond the literal events. What Old Testament imagery do they primarily evoke?",
+          "options": ["The victories of King David over his enemies", "God's sovereign power over chaos, sea, and creation as depicted in the Psalms and Job — demonstrating that Jesus exercises divine authority over the natural world", "The agricultural festivals of ancient Israel", "The building of Solomon's Temple"],
+          "correctAnswer": 1,
+          "explanation": "The Old Testament consistently depicts control over the sea, storms, and creation as exclusively God's domain. Psalm 107:29 — God 'stilled the storm to a whisper'; Job 9:8 — God 'treads on the waves of the sea'; Psalm 78:24 — God 'rained down manna.' When Jesus calms storms, walks on water, and multiplies food, the Gospel writers present him exercising divine prerogatives that the Old Testament reserves for God alone. The disciples' question 'Who is this?' implies they are recognising divine identity.",
+          "reference": "Psalm 107:29, Job 9:8, Psalm 78:24",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-4",
+          "question": "The Greek word 'semeion' (sign) is John's preferred term for Jesus' miracles, while the Synoptic Gospels prefer 'dunamis' (power/mighty work). What key theological difference does this vocabulary choice reflect?",
+          "options": ["John considered the miracles less important than the Synoptics did", "'Semeion' emphasises that miracles point beyond themselves to reveal Jesus' identity and glory, while 'dunamis' emphasises the raw power and compassion behind them", "The terms are completely interchangeable with no theological significance", "'Dunamis' refers only to healing miracles while 'semeion' refers only to nature miracles"],
+          "correctAnswer": 1,
+          "explanation": "John's use of 'semeion' (sign) treats each miracle as a signpost pointing to a deeper spiritual truth about Jesus' identity. Turning water to wine 'signs' toward Jesus as the source of messianic joy. Healing the blind man 'signs' toward Jesus as 'the light of the world.' The Synoptics' 'dunamis' emphasises God's power breaking into the world through Jesus' compassionate action. Both perspectives are complementary but reflect different theological emphases.",
+          "reference": "John 2:11, 20:30-31",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-5",
+          "question": "David Hume's famous philosophical argument against miracles (1748) has been widely debated for centuries. What is the core of Hume's argument?",
+          "options": ["Miracles are logically impossible because they violate the laws of physics", "The testimony in favour of a miracle is never sufficient to establish it because the uniform experience of humanity against miracles always outweighs any testimony for them", "Miracles only occur in primitive, pre-scientific societies", "Miracles are possible but God would never perform them"],
+          "correctAnswer": 1,
+          "explanation": "Hume argued that since a miracle is a violation of natural law, and natural law is established by 'a firm and unalterable experience,' no testimony can ever be strong enough to make a miracle more probable than its not occurring. Critics (including C.S. Lewis, Alvin Plantinga, and John Earman) have pointed out the circularity: Hume assumes miracles don't occur in order to prove miracles don't occur. He defines 'uniform experience' against miracles before examining the evidence for them.",
+          "reference": "David Hume, 'Of Miracles' (1748)",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-6",
+          "question": "Jesus' exorcisms (casting out demons) are among the most historically well-attested aspects of his ministry, accepted even by sceptical scholars. Why are the exorcisms considered highly likely to be historical?",
+          "options": ["Because exorcism stories are easy to fabricate", "They pass multiple criteria of historicity: they are multiply attested (in Mark, Q, L, and M sources), they caused embarrassment (critics accused Jesus of using demonic power), and they are culturally coherent with first-century Palestinian Judaism", "Because the early church promoted exorcism as its primary ministry", "Because Roman historians independently confirmed them"],
+          "correctAnswer": 1,
+          "explanation": "The exorcisms pass multiple criteria: (1) Multiple attestation — they appear in Mark, Q, special Luke, and special Matthew material; (2) Embarrassment — Jesus' enemies accused him of casting out demons by Beelzebul (Mark 3:22), which the church wouldn't have invented; (3) Coherence — exorcism was a recognised practice in first-century Judaism; (4) Dissimilarity — Jesus' exorcisms lacked the elaborate rituals, incantations, and props used by other ancient exorcists, making them distinctive. Even the sceptical Jesus Seminar accepted the historicity of Jesus as an exorcist.",
+          "reference": "Mark 3:22, Matthew 12:24-28",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-7",
+          "question": "The 'gift of miracles' (charismata iamaton) that Paul discusses in 1 Corinthians 12 is listed among the spiritual gifts given to the church. A major theological debate has centred on whether miraculous gifts continued after the apostolic era or ceased. What is the theological term for the view that miraculous gifts ceased with the death of the apostles?",
+          "options": ["Continuationism", "Cessationism", "Dispensationalism", "Pentecostalism"],
+          "correctAnswer": 1,
+          "explanation": "Cessationism holds that certain miraculous/sign gifts (tongues, prophecy, healing, miracles) ceased with the completion of the New Testament canon and the death of the apostles. Advocates (including B.B. Warfield and many Reformed theologians) argue these gifts served to authenticate the apostles and were no longer needed. Continuationists (including Pentecostals, Charismatics, and scholars like Wayne Grudem and Craig Keener) argue that no biblical text teaches the cessation of these gifts.",
+          "reference": "1 Corinthians 12-14",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-8",
+          "question": "In the Gospel of Mark, Jesus' miracles are sometimes followed by a command to secrecy ('Don't tell anyone'), yet in other cases Jesus tells the healed person to spread the news. This pattern is part of what scholars call the 'Messianic Secret.' In which notable case did Jesus actually command a healed man to GO and tell others?",
+          "options": ["The blind man at Bethsaida", "The leper in Galilee", "The Gerasene demoniac — Jesus told him 'Go home to your own people and tell them how much the Lord has done for you'", "The paralytic at Capernaum"],
+          "correctAnswer": 2,
+          "explanation": "The Gerasene demoniac is a fascinating exception to the secrecy pattern. After casting out 'Legion,' Jesus told the man 'Go home to your own people and tell them how much the Lord has done for you.' This may be because the Decapolis (where it occurred) was predominantly Gentile territory, where there was less risk of misguided messianic fervour. The man 'went away and began to tell in the Decapolis how much Jesus had done for him. And all the people were amazed.'",
+          "reference": "Mark 5:19-20",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-9",
+          "question": "The raising of Lazarus (John 11) differs significantly from the raisings of Jairus' daughter and the widow of Nain's son in a key detail that strengthens its miraculous nature. What is this crucial difference?",
+          "options": ["Lazarus was more well-known than the others", "Lazarus had been dead for four days — well past any possibility of resuscitation — and his body had begun to decompose, making the miracle undeniable", "Lazarus was raised in public while the others were raised privately", "Lazarus was older than the other two"],
+          "correctAnswer": 1,
+          "explanation": "The four-day detail is theologically and historically crucial. Jewish tradition held that the soul lingered near the body for three days and departed on the fourth — meaning Lazarus was considered irrevocably dead. Martha's warning 'by this time there is a bad odour' confirms bodily decomposition had begun. Jesus deliberately waited two extra days (John 11:6) to ensure Lazarus would be dead four days, eliminating any possibility of natural resuscitation and making the miracle's reality beyond dispute.",
+          "reference": "John 11:17, 39",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-10",
+          "question": "Craig Keener's massive two-volume work 'Miracles' (2011) documented thousands of contemporary miracle claims from around the world, including medically documented healings. What was Keener's primary argument against the philosophical dismissal of miracles?",
+          "options": ["That every miracle claim is automatically true", "That the sheer volume of credible, eyewitness testimony from diverse cultures and reliable witnesses — including cases with medical documentation — makes it intellectually irresponsible to dismiss all miracle claims a priori without examining the evidence", "That science has now proven miracles are possible", "That miracles only occur in developing countries"],
+          "correctAnswer": 1,
+          "explanation": "Keener argued that Hume's a priori dismissal of miracle testimony fails when confronted with the massive quantity and quality of modern miracle claims from every continent, culture, and socioeconomic context. He documented cases with medical records, multiple eyewitnesses, and physician verification. His point was not that every claim is genuine, but that blanket dismissal without investigation is not the position of an open-minded scholar but an uncritical assumption.",
+          "reference": "Craig Keener, 'Miracles' (2011)",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-11",
+          "question": "The Old Testament concept of 'signs and wonders' (otot u-moftim) differs from the New Testament concept in an important way. In the Old Testament, who is the primary performer of 'signs and wonders'?",
+          "options": ["The prophets, who perform signs independently of God", "God Himself, working through intermediaries like Moses, Elijah, and Elisha — the humans are always portrayed as channels, never independent sources, of miraculous power", "The priests in the Temple", "The kings of Israel"],
+          "correctAnswer": 1,
+          "explanation": "In the Old Testament, signs and wonders are consistently attributed to God's direct action, even when performed through human intermediaries. Moses doesn't claim 'I parted the Red Sea' but stretches out his staff as God acts. Elijah doesn't generate fire from heaven but prays and God answers. This pattern continues in the New Testament — Peter says 'In the name of Jesus Christ, walk' and Paul says 'God did extraordinary miracles through Paul.' The miracle-worker is always a channel, never the source.",
+          "reference": "Deuteronomy 4:34, Acts 3:12, 19:11",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-12",
+          "question": "The 'principle of analogy' — used by the historian Ernst Troeltsch (1898) — has been a major methodological objection to accepting biblical miracles as historical. What does this principle state?",
+          "options": ["Ancient texts should be interpreted literally", "Historical judgments must be based on analogy with present experience — since we don't observe miracles today, we cannot accept them as historical events in the past", "Miracles in different religions should be compared", "Biblical miracles should be evaluated using the same criteria as other ancient texts"],
+          "correctAnswer": 1,
+          "explanation": "Troeltsch argued that since our present experience does not include miracles, historical method requires us to explain ancient miracle reports through natural causes. Critics respond that this principle begs the question — it assumes miracles don't happen in order to conclude they didn't happen. Wolfhart Pannenberg and N.T. Wright have argued that the principle of analogy is methodologically appropriate for most history but cannot be used to exclude unique, unprecedented events a priori.",
+          "reference": "Ernst Troeltsch, historical methodology",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-13",
+          "question": "Jesus' healing of the man born blind in John 9 includes a theological debate about the relationship between sin and suffering. The disciples asked 'Who sinned, this man or his parents, that he was born blind?' Jesus' answer challenged a widely held belief. What did Jesus say?",
+          "options": ["'His parents sinned, and he bears the consequences'", "'Neither this man nor his parents sinned — this happened so that the works of God might be displayed in him'", "'All suffering is caused by personal sin'", "'This is a punishment for sins committed in a past life'"],
+          "correctAnswer": 1,
+          "explanation": "Jesus rejected the simplistic equation of suffering with personal sin that was common in first-century Judaism (and remains common today). He said the blindness was not caused by anyone's sin but existed 'so that the works of God might be displayed in him.' This reframed suffering from a backward-looking question ('Who caused this?') to a forward-looking one ('What will God do through this?'). It also challenged the 'retribution theology' that the book of Job had already critiqued.",
+          "reference": "John 9:1-3",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-14",
+          "question": "The ten plagues of Egypt have been the subject of various naturalistic explanations (volcanic eruptions, red algae blooms, insect swarms, etc.). From a theological perspective, regardless of whether natural mechanisms were involved, what was the primary purpose of the plagues?",
+          "options": ["To punish the Egyptian people for their personal sins", "Each plague was a direct challenge to a specific Egyptian god — demonstrating YHWH's supremacy over the entire Egyptian pantheon", "To destroy Egypt's economy so they couldn't pursue the Israelites", "To test Moses' faith before the Exodus"],
+          "correctAnswer": 1,
+          "explanation": "Exodus 12:12 explicitly states: 'I will bring judgment on all the gods of Egypt.' Each plague targeted a specific Egyptian deity: the Nile turning to blood challenged Hapi (Nile god); frogs challenged Heqet (frog goddess of fertility); darkness challenged Ra (sun god); the death of firstborn challenged Pharaoh himself (considered divine). The plagues were a systematic theological dismantling of the Egyptian religious system, proving YHWH's sovereignty.",
+          "reference": "Exodus 12:12, Numbers 33:4",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-15",
+          "question": "The concept of 'theophany' — a visible manifestation of God — is closely related to miracles in the Old Testament. Which of the following is considered the most dramatic theophany in the Old Testament?",
+          "options": ["God walking with Adam in the Garden of Eden", "God appearing to Abraham at the oaks of Mamre", "God's descent on Mount Sinai with thunder, lightning, thick cloud, trumpet blast, fire, smoke, and earthquake — so terrifying that even Moses said 'I am trembling with fear'", "God appearing to Elijah in the still small voice"],
+          "correctAnswer": 2,
+          "explanation": "The Sinai theophany (Exodus 19-20) is the most dramatic divine manifestation in the Old Testament. The mountain burned with fire, was covered in smoke and thick cloud, the ground shook, and a trumpet grew louder and louder. God descended in fire and spoke the Ten Commandments audibly. The people were so terrified they stood at a distance and begged Moses 'Speak to us yourself and we will listen. But do not have God speak to us or we will die.' Even Moses said 'I am trembling with fear.'",
+          "reference": "Exodus 19:16-20:21, Hebrews 12:21",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-16",
+          "question": "In Mark's Gospel, Jesus' miracles are concentrated in the first half (chapters 1-8), while the second half (chapters 9-16) is dominated by teaching about his coming suffering and death. What literary and theological purpose does this structural division serve?",
+          "options": ["Mark ran out of miracle stories to include", "The first half establishes Jesus' divine power and authority, while the second half redefines messiahship through suffering — showing that the one who CAN do anything CHOOSES the path of the cross", "The miracles and teachings were addressed to different audiences", "Mark was combining two separate documents about Jesus"],
+          "correctAnswer": 1,
+          "explanation": "Mark's structure is theologically deliberate. The turning point is Peter's confession (8:29) followed immediately by the first passion prediction (8:31). The first half proves Jesus has divine authority — he can heal, exorcise, control nature, raise the dead. The second half shows he voluntarily surrenders that power: the one who calmed storms does not come down from the cross. This creates maximum theological impact — the crucifixion is not weakness but the supreme exercise of divine love.",
+          "reference": "Mark 8:27-31",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-17",
+          "question": "The Gospel of John records exactly seven 'sign miracles' before the resurrection. The seventh and climactic sign — the raising of Lazarus — serves a unique narrative function in John. What does it directly trigger in the plot?",
+          "options": ["Jesus' triumphant entry into Jerusalem", "The decision by the Jewish authorities to put Jesus to death — the greatest sign of life directly causes the plot that leads to Jesus' death", "The Last Supper", "Judas' decision to betray Jesus"],
+          "correctAnswer": 1,
+          "explanation": "John 11:45-53 records that the raising of Lazarus — the most powerful demonstration of Jesus' authority over death — was the immediate catalyst for the Sanhedrin's formal decision to kill Jesus. The irony is profound: the miracle that proved Jesus could give life became the reason they decided to take his life. Caiaphas unknowingly prophesied 'It is better that one man die for the people.' The giver of life must die so that life can be given to all.",
+          "reference": "John 11:45-53",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-18",
+          "question": "The phrase 'your faith has healed you' (or 'your faith has saved you' — the Greek 'sesoken' means both) appears repeatedly in Jesus' healing narratives. What theological insight does the deliberate ambiguity of this phrase convey?",
+          "options": ["That faith is a magical force that controls healing", "That physical healing and spiritual salvation are interconnected in Jesus' ministry — miracles are not just physical fixes but doorways to a deeper wholeness that encompasses body and soul", "That only people with strong faith can be healed", "That healing replaces the need for faith"],
+          "correctAnswer": 1,
+          "explanation": "The Greek word 'sozo' (to save/heal/make whole) deliberately bridges physical healing and spiritual salvation. When Jesus says 'Your faith has saved/healed you,' the ambiguity is intentional — healing is a partial, anticipatory experience of the comprehensive salvation Jesus brings. The miracles are 'signs' of the kingdom, previews of the complete restoration God will accomplish. They address the whole person, not just symptoms.",
+          "reference": "Mark 5:34, Luke 17:19",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-19",
+          "question": "The Elijah-Elisha miracle cycle in 1-2 Kings includes roughly 16 miracles attributed to Elisha versus 8 to Elijah. This doubling is significant because of a specific request Elisha made before Elijah was taken to heaven. What was the theological significance of Elisha receiving a 'double portion' of Elijah's spirit?",
+          "options": ["Elisha wanted to be twice as powerful as Elijah", "The 'double portion' was the inheritance right of the firstborn son — Elisha was claiming to be Elijah's primary spiritual heir and successor, not merely claiming double power", "Elisha needed more power because his enemies were stronger", "The double portion referred to receiving the Holy Spirit twice"],
+          "correctAnswer": 1,
+          "explanation": "In Israelite inheritance law (Deuteronomy 21:17), the firstborn son received a 'double portion' (pi shenayim) — not double the total, but twice the share of each other heir. Elisha's request was not for twice Elijah's power but for recognition as Elijah's primary successor and spiritual firstborn. That Elisha performed roughly twice as many miracles was God's confirmation that the request was granted. Elisha was Elijah's spiritual 'firstborn.'",
+          "reference": "2 Kings 2:9, Deuteronomy 21:17",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-20",
+          "question": "The miracle of Jesus walking on water (Mark 6:48) contains a detail that most English readers miss: the text says Jesus 'was about to pass by them.' This phrase echoes specific Old Testament theophanies. Which Old Testament passages use similar 'passing by' language to describe divine self-revelation?",
+          "options": ["Genesis 1 (creation) and Genesis 3 (the Fall)", "Exodus 33:19-23 (God 'passing by' Moses) and 1 Kings 19:11 (God 'passing by' Elijah at Horeb)", "Joshua 3 (crossing the Jordan) and Joshua 6 (walls of Jericho)", "Psalm 23 (the Lord is my shepherd) and Psalm 100 (make a joyful noise)"],
+          "correctAnswer": 1,
+          "explanation": "The phrase 'he was about to pass by them' (Mark 6:48) deliberately echoes two key theophanies. In Exodus 33:19-23, God tells Moses 'I will cause all my goodness to pass in front of you' as He reveals His glory. In 1 Kings 19:11, God tells Elijah 'The LORD is about to pass by.' Mark is signalling that Jesus walking on the water is a theophany — a divine self-revelation parallel to God's appearances to Moses and Elijah. Jesus IS the God who 'passes by.'",
+          "reference": "Mark 6:48, Exodus 33:19-23, 1 Kings 19:11",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-21",
+          "question": "The concept of 'eschatological reversal' is central to understanding Jesus' miracles theologically. What does this concept mean in the context of miracles?",
+          "options": ["That miracles will become more common as the end times approach", "Jesus' miracles are previews of the coming age — partial reversals of the effects of the Fall (disease, death, demonic oppression, natural chaos) that anticipate God's complete restoration of creation", "That miracles in the Old Testament are more important than New Testament miracles", "That each miracle reverses a specific Old Testament curse"],
+          "correctAnswer": 1,
+          "explanation": "Jesus' miracles function as 'inaugurated eschatology' in action — they are foretastes of the age to come breaking into the present. Healing reverses the bodily decay that entered through the Fall. Exorcism reverses demonic domination. Nature miracles reverse creation's subjection to chaos. Resurrection reverses death itself. Each miracle is a partial, anticipatory experience of the complete cosmic renewal described in Revelation 21: 'no more death or mourning or crying or pain.' The kingdom has begun but is not yet complete.",
+          "reference": "Isaiah 35:5-6, Revelation 21:4",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-22",
+          "question": "The miracle of Jesus healing on the Sabbath is recorded in multiple independent Gospel traditions and always provokes conflict with the religious authorities. How many Sabbath healing controversies are recorded across the four Gospels?",
+          "options": ["Three", "Five", "Seven", "Nine"],
+          "correctAnswer": 2,
+          "explanation": "Seven Sabbath healing controversies are recorded: (1) the man with the withered hand (Mark 3:1-6), (2) the man at the Pool of Bethesda (John 5:1-18), (3) the man born blind (John 9:1-41), (4) the bent-over woman (Luke 13:10-17), (5) the man with dropsy (Luke 14:1-6), (6) a man with an unclean spirit in the synagogue (Mark 1:21-28), and (7) Peter's mother-in-law (Mark 1:29-31). The number seven may be intentional — Jesus is Lord of the Sabbath and heals on it perfectly/completely.",
+          "reference": "Multiple Gospel passages",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-23",
+          "question": "In the history of biblical interpretation, the 'demythologisation' programme of Rudolf Bultmann (1941) proposed a radical approach to miracle stories. What did Bultmann argue should be done with the miracle accounts in the Gospels?",
+          "options": ["They should be accepted literally as historical events", "The mythological 'husk' (miracles, supernatural elements) should be stripped away to reveal the existential 'kernel' — the call to authentic human existence and decision in the face of God's Word", "They should be treated as allegories about moral behaviour", "They should be compared with miracles from other religions to find common truths"],
+          "correctAnswer": 1,
+          "explanation": "Bultmann argued that modern people cannot accept the three-tiered cosmology (heaven above, earth in the middle, hell below) that underlies the miracle stories. His solution was to 'demythologise' — interpret the myths existentially rather than literally. A miracle story is not about a historical event but about the human experience of being confronted by God's word and challenged to authentic existence. Critics (both conservative and liberal) have argued this approach strips the Gospel of its historical foundation and reduces Christianity to existentialist philosophy.",
+          "reference": "Rudolf Bultmann, 'New Testament and Mythology' (1941)",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-24",
+          "question": "The miracle accounts in Acts follow a deliberate literary pattern that parallels the miracles of Jesus in the Gospels. Peter raises Tabitha from the dead (Acts 9), Paul raises Eutychus (Acts 20), and both heal lame men. What theological purpose does this parallelism serve?",
+          "options": ["It proves the apostles were equal to Jesus", "It demonstrates continuity — the risen Jesus continues his miraculous ministry through his Spirit-empowered church, showing that the book of Acts is really about the ongoing acts of the risen Christ, not just his apostles", "It shows the apostles copied Jesus' methods", "It was a literary convention with no theological meaning"],
+          "correctAnswer": 1,
+          "explanation": "Luke structures Acts to show that Jesus' ministry continues through the church. Peter and Paul's miracles mirror Jesus': raising the dead, healing the lame, exorcisms, nature miracles. But crucially, the apostles always attribute the power to Jesus ('In the name of Jesus Christ, walk' — Acts 3:6). The book's full title could be 'The Continuing Acts of Jesus Christ Through His Spirit-Empowered Church.' The miracles demonstrate the risen Jesus is still actively at work.",
+          "reference": "Acts 1:1-2, 3:6, 9:34",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-25",
+          "question": "Jesus' statement 'Whoever believes in me will do the works I have been doing, and they will do even greater things than these' (John 14:12) has been debated for centuries. What is the most commonly accepted interpretation of 'greater things'?",
+          "options": ["Future believers will perform more spectacular miracles than Jesus did", "The 'greater things' refer not to more spectacular miracles but to the wider scope of ministry — through the Holy Spirit, the church would reach every nation and millions of people, accomplishing on a global scale what Jesus did locally in Palestine", "Jesus was speaking hyperbolically and didn't mean it literally", "Only the twelve apostles would do greater things"],
+          "correctAnswer": 1,
+          "explanation": "'Greater' (meizona) likely refers to scope and extent, not to quality or spectacularity. Jesus' earthly ministry was limited to a small geographic area over three years. Through the Spirit, the church would heal, teach, and transform lives across every continent and throughout all of history. The book of Acts immediately begins fulfilling this: 3,000 saved at Pentecost, the gospel reaching Rome, and eventually the entire world. The 'greater works' are the worldwide expansion of Jesus' kingdom ministry.",
+          "reference": "John 14:12",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-26",
+          "question": "The literary structure of the ten plagues of Egypt (Exodus 7-12) reveals a deliberate pattern. Scholars have identified that the plagues are arranged in three triads plus a climactic tenth plague. What pattern does each triad follow?",
+          "options": ["Each triad increases in geographic scope", "In each triad, the first plague is announced by the river, the second at the palace, and the third comes without warning — showing an escalating pattern of judgment", "Each triad targets a different social class", "The triads alternate between natural and supernatural causes"],
+          "correctAnswer": 1,
+          "explanation": "The ten plagues follow a precise literary structure: three groups of three, plus the climactic tenth. In each triad: plague 1 (announced at the Nile), plague 2 (announced at the palace), plague 3 (comes without warning). This escalating pattern intensifies Pharaoh's confrontation with God. The triads also escalate in severity: annoyance (blood, frogs, gnats), suffering (flies, livestock, boils), destruction (hail, locusts, darkness), and finally death (firstborn). The structure demonstrates God's measured, escalating judgment.",
+          "reference": "Exodus 7-12",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-27",
+          "question": "The concept of 'prophetic sign-acts' (symbolic actions performed by prophets to embody their message) provides context for understanding some of Jesus' more unusual miracles. Which of Jesus' miracles is most clearly interpreted by scholars as a prophetic sign-act rather than (or in addition to) a compassionate healing?",
+          "options": ["Healing the blind man at Bethsaida", "Cursing the fig tree — which symbolised God's judgment on fruitless Israel/Temple rather than being an act directed at the tree itself", "Feeding the 5,000", "Calming the storm"],
+          "correctAnswer": 1,
+          "explanation": "The cursing of the fig tree is the clearest example of a prophetic sign-act in Jesus' ministry. Like Jeremiah's smashed pot (Jeremiah 19), Ezekiel's lying on his side (Ezekiel 4), and Hosea's marriage to Gomer (Hosea 1-3), it was a dramatic, embodied prophecy. Mark's 'sandwich' structure — fig tree cursed, Temple cleansed, fig tree withered — makes the connection explicit: the fig tree represents Israel/Temple, which has leaves (religious appearance) but no fruit (genuine faithfulness).",
+          "reference": "Mark 11:12-25",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-28",
+          "question": "The apostle Paul experienced a 'thorn in the flesh' that he asked God to remove three times, but God refused, saying 'My grace is sufficient for you, for my power is made perfect in weakness.' This passage raises what important theological question about miracles?",
+          "options": ["Whether Paul was a genuine apostle", "Why God sometimes chooses NOT to perform a miracle even when asked by a faithful servant — suggesting that unanswered prayer for healing is not necessarily a sign of insufficient faith", "Whether the thorn was a physical or spiritual problem", "Whether Paul should have prayed more than three times"],
+          "correctAnswer": 1,
+          "explanation": "Paul's unanswered prayer for healing is theologically significant because it comes from the same apostle through whom 'extraordinary miracles' occurred (Acts 19:11). If Paul — who healed others — could not secure his own healing, it demolishes the 'prosperity gospel' claim that sufficient faith always produces healing. God's response reveals a higher purpose: divine power displayed through human weakness. Healing is real but not guaranteed, and God's purposes sometimes include suffering.",
+          "reference": "2 Corinthians 12:7-10",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-29",
+          "question": "The miracle of the virgin birth (or virginal conception) of Jesus is attested in two independent Gospel sources — Matthew and Luke — but is notably absent from Mark and John. How do scholars who affirm the virgin birth typically explain its absence from the other two Gospels?",
+          "options": ["Mark and John didn't believe in the virgin birth", "Absence of mention is not the same as denial — Mark begins at Jesus' baptism (not birth), and John's prologue ('the Word became flesh') may presuppose it while addressing Jesus' origins at a deeper cosmic/theological level rather than a biological one", "The virgin birth was a later addition to Matthew and Luke", "Mark and John were written for audiences that wouldn't have understood the concept"],
+          "correctAnswer": 1,
+          "explanation": "The argument from silence is logically weak — Mark doesn't mention Jesus' birth at all (he begins at the baptism), so he neither affirms nor denies the virgin birth. John's prologue ('the Word became flesh and made his dwelling among us') addresses the incarnation at the cosmic level. John 1:13 may contain a veiled reference: some early manuscripts read 'who was born' (singular, referring to Jesus) 'not of natural descent, nor of human decision or a husband's will, but born of God.' The two independent attestations (Matthew and Luke) are actually strong evidence.",
+          "reference": "Matthew 1:18-25, Luke 1:26-38, John 1:14",
+          "points": 20
+        },
+        {
+          "id": "mir-mc-a-30",
+          "question": "The concept of 'divine accommodation' has been used by theologians from Calvin to Warfield to explain how God performs miracles. What does divine accommodation mean in the context of miracles?",
+          "options": ["God adjusts the laws of nature to make miracles seem less dramatic", "God adapts his miraculous activity to the cultural context, understanding, and needs of the people — performing different types of miracles in different eras and contexts while maintaining consistent purposes of revelation, redemption, and compassion", "God only performs miracles when there is no natural explanation available", "God accommodates human doubt by performing miracles on demand"],
+          "correctAnswer": 1,
+          "explanation": "Divine accommodation recognises that God's miraculous activity adapts to historical and cultural contexts. In the Exodus, God used dramatic nature miracles appropriate for confronting Egyptian religion. In Jesus' ministry, healings and exorcisms addressed the most pressing needs of first-century Palestine. In Acts, miracles authenticated the apostolic message in new cultural contexts. The purpose is consistent (revelation, redemption, compassion) but the form adapts. This explains why different biblical eras feature different types of miracles.",
+          "reference": "Calvin's Institutes, theological reflection",
+          "points": 20
+        }
+      ]
     },
     "true-false": {
-      "beginner": [],
-      "intermediate": [],
-      "advanced": []
+      "beginner": [
+        {"id": "mir-tf-b-1", "question": "Jesus' very first miracle, according to John's Gospel, was turning water into wine at a wedding celebration in the village of Cana in Galilee.", "correctAnswer": true, "explanation": "John 2:11 explicitly calls this 'the first of the signs through which he revealed his glory.' Jesus instructed servants to fill six stone water jars with water, then draw some out. The master of the banquet tasted it and was amazed at the quality of the wine, telling the bridegroom 'You have saved the best till now.' This miracle revealed Jesus' glory and caused his disciples to believe in him.", "reference": "John 2:1-11", "points": 10},
+        {"id": "mir-tf-b-2", "question": "When Jesus fed the 5,000 people, he started with five barley loaves and two small fish, and after everyone had eaten, the disciples collected twelve baskets of leftover food.", "correctAnswer": true, "explanation": "A boy had five small barley loaves and two small fish. Jesus gave thanks, broke the bread, and distributed it to the crowd. All 5,000 men (plus women and children) ate until they were satisfied. The twelve baskets of leftovers demonstrate that God's provision through Jesus is always more than enough — there is abundance, not mere sufficiency.", "reference": "John 6:1-14", "points": 10},
+        {"id": "mir-tf-b-3", "question": "Moses parted the Jordan River to allow the Israelites to escape from the Egyptian army during the Exodus from Egypt.", "correctAnswer": false, "explanation": "Moses parted the Red Sea (or Sea of Reeds), not the Jordan River, for the escape from Egypt. The Jordan River was parted later by Joshua (Moses' successor) when the Israelites entered the Promised Land. These are two separate miracles — the Red Sea crossing happened at the beginning of the wilderness journey, and the Jordan crossing happened at the end, forty years later.", "reference": "Exodus 14 (Red Sea), Joshua 3 (Jordan)", "points": 10},
+        {"id": "mir-tf-b-4", "question": "When Jesus walked on water toward the disciples' boat during a storm, the apostle Peter also walked on the water for a time before he became afraid and began to sink.", "correctAnswer": true, "explanation": "Peter said 'Lord, if it's you, tell me to come to you on the water.' Jesus said 'Come.' Peter got out of the boat and actually walked on the water toward Jesus. But when he saw the wind and waves, he was afraid and began to sink, crying out 'Lord, save me!' Jesus immediately reached out his hand, caught him, and said 'You of little faith, why did you doubt?'", "reference": "Matthew 14:28-31", "points": 10},
+        {"id": "mir-tf-b-5", "question": "When Shadrach, Meshach, and Abednego were thrown into King Nebuchadnezzar's fiery furnace, they were badly burned but survived thanks to their strong willpower.", "correctAnswer": false, "explanation": "They were not burned at all — not even slightly. They came out of the furnace without a hair singed, their robes were not scorched, and there was no smell of fire on them. Additionally, Nebuchadnezzar saw a fourth figure in the fire 'like a son of the gods' walking with them. The miracle was not mere survival but complete supernatural protection from a furnace heated seven times hotter than normal.", "reference": "Daniel 3:19-27", "points": 10},
+        {"id": "mir-tf-b-6", "question": "Jesus raised three people from the dead during his earthly ministry: Jairus' twelve-year-old daughter, the widow of Nain's only son, and his friend Lazarus who had been dead for four days.", "correctAnswer": true, "explanation": "These three resurrection miracles show an escalating pattern. Jairus' daughter had just died (Mark 5:35-43). The widow of Nain's son was being carried to burial (Luke 7:11-17). Lazarus had been dead and entombed for four days and had begun to decompose (John 11:1-44). Each miracle demonstrated increasing power over death, culminating in Jesus' own resurrection.", "reference": "Mark 5:35-43, Luke 7:11-17, John 11:1-44", "points": 10},
+        {"id": "mir-tf-b-7", "question": "When God sent ten plagues upon Egypt, the Israelites were affected by every plague just like the Egyptians — God did not distinguish between the two peoples.", "correctAnswer": false, "explanation": "God explicitly distinguished between the Israelites and the Egyptians. From the fourth plague onward, God said 'I will make a distinction between my people and your people.' The land of Goshen (where the Israelites lived) was protected from the flies, livestock disease, hail, darkness, and the death of the firstborn (through the blood on their doorframes). This distinction demonstrated God's covenant faithfulness to Israel.", "reference": "Exodus 8:22-23, 9:4, 9:26, 10:23, 12:13", "points": 10},
+        {"id": "mir-tf-b-8", "question": "Jonah was swallowed by a great fish and lived inside it for three days and three nights. Jesus later compared Jonah's experience to his own time in the tomb before his resurrection.", "correctAnswer": true, "explanation": "Jesus said 'For as Jonah was three days and three nights in the belly of a huge fish, so the Son of Man will be three days and three nights in the heart of the earth' (Matthew 12:40). Jonah's experience became a prophetic foreshadowing of Jesus' death, burial, and resurrection. Just as Jonah emerged from the fish alive, Jesus emerged from the tomb alive on the third day.", "reference": "Jonah 1:17, Matthew 12:40", "points": 10},
+        {"id": "mir-tf-b-9", "question": "Daniel was thrown into the lions' den because he refused to stop praying to God, even though a law had been passed making it illegal to pray to anyone except the king for thirty days.", "correctAnswer": true, "explanation": "Daniel's enemies knew that the only way to trap him was through his faithfulness to God. They convinced King Darius to sign a decree that anyone who prayed to any god or person except the king for thirty days would be thrown into the lions' den. Daniel knew about the decree but continued to pray three times a day with his windows open toward Jerusalem, just as he had always done.", "reference": "Daniel 6:1-10", "points": 10},
+        {"id": "mir-tf-b-10", "question": "When Jesus calmed the storm on the Sea of Galilee, he had to pray for several hours before the wind and waves gradually subsided.", "correctAnswer": false, "explanation": "Jesus did not pray at length — he simply spoke directly to the wind and waves with authority. He said 'Quiet! Be still!' (Mark 4:39) and immediately the wind died down and the sea became completely calm. The instantaneous nature of the miracle was what shocked the disciples: 'Who is this? Even the wind and the waves obey him!' Jesus demonstrated the same authority over nature that God exercised at creation.", "reference": "Mark 4:39-41", "points": 10},
+        {"id": "mir-tf-b-11", "question": "The prophet Elijah was fed by ravens during a drought. God sent ravens to bring him bread and meat every morning and evening while he hid by the Brook Cherith.", "correctAnswer": true, "explanation": "After Elijah told King Ahab that no rain would fall except at Elijah's word, God directed him to hide by the Brook Cherith. 'The ravens brought him bread and meat in the morning and bread and meat in the evening, and he drank from the brook.' Ravens were considered unclean birds in Jewish law, making God's choice of delivery service deliberately surprising and humbling.", "reference": "1 Kings 17:1-6", "points": 10},
+        {"id": "mir-tf-b-12", "question": "When Jesus healed a leper by touching him, this was socially shocking because lepers were considered untouchable outcasts — anyone who touched a leper became ceremonially unclean under Jewish law.", "correctAnswer": true, "explanation": "Lepers were required to live outside the community, wear torn clothes, cover their mouths, and cry 'Unclean! Unclean!' when anyone approached. Touching a leper made you ceremonially unclean. But when Jesus touched the leper, instead of Jesus becoming unclean, the leper became clean. Jesus reversed the expected direction of contamination — his purity was more powerful than the disease's impurity.", "reference": "Mark 1:40-45, Leviticus 13:45-46", "points": 10},
+        {"id": "mir-tf-b-13", "question": "When Jesus told the paralysed man at the Pool of Bethesda to 'Get up! Pick up your mat and walk,' the man was healed but it took several days before he could walk normally.", "correctAnswer": false, "explanation": "The man was healed instantly. John 5:9 says 'At once the man was cured; he picked up his mat and walked.' The immediacy of healing was characteristic of Jesus' miracles — they were not gradual recoveries but instant, complete restorations. The man had been paralysed for 38 years, but the moment Jesus spoke, he was able to stand, pick up his mat, and walk.", "reference": "John 5:8-9", "points": 10},
+        {"id": "mir-tf-b-14", "question": "After Peter and John healed a lame man at the Beautiful Gate of the Temple, the man went into the Temple courts 'walking and jumping, and praising God,' and everyone who saw him was filled with wonder.", "correctAnswer": true, "explanation": "The man, who had been lame from birth and was over 40 years old, was instantly healed when Peter said 'In the name of Jesus Christ of Nazareth, walk!' He jumped to his feet and went into the Temple, walking, jumping, and praising God. The people recognised him as the beggar who sat at the Beautiful Gate every day, and they were filled with wonder and amazement.", "reference": "Acts 3:1-10", "points": 10},
+        {"id": "mir-tf-b-15", "question": "The apostle Peter was miraculously freed from prison by an angel who caused his chains to fall off, led him past sleeping guards, and opened the iron gate by itself — all while Peter thought he was having a dream.", "correctAnswer": true, "explanation": "Peter was chained between two soldiers, with sentries at the door. An angel appeared, light shone in the cell, and the angel struck Peter to wake him. His chains fell off, and the angel led him past two sets of guards and through the iron gate, which opened by itself. Peter thought he was seeing a vision — it wasn't until he was outside on the street that 'he came to himself' and realised it was real.", "reference": "Acts 12:6-11", "points": 10},
+        {"id": "mir-tf-b-16", "question": "When Jesus raised Lazarus from the dead, Lazarus had been in the tomb for only a few hours, which is why the miracle was relatively straightforward.", "correctAnswer": false, "explanation": "Lazarus had been dead for four days — not a few hours. Martha warned Jesus 'by this time there is a bad odour' because decomposition had begun. In Jewish belief, the soul departed the body after three days, meaning after four days Lazarus was considered irrevocably dead. Jesus deliberately waited to make the miracle undeniable. This was the most dramatic resurrection before Jesus' own.", "reference": "John 11:17, 39", "points": 10},
+        {"id": "mir-tf-b-17", "question": "The walls of Jericho fell after the Israelites used battering rams and siege weapons to break through the fortifications over a period of several weeks.", "correctAnswer": false, "explanation": "No conventional weapons were used at all. God told the Israelites to march around the city once a day for six days, with seven priests blowing trumpets before the Ark of the Covenant. On the seventh day, they marched around seven times. When the priests blew the trumpets and the people gave a great shout, the walls of Jericho collapsed. The victory was entirely miraculous, requiring only obedient faith.", "reference": "Joshua 6:1-20", "points": 10},
+        {"id": "mir-tf-b-18", "question": "When God provided manna for the Israelites in the wilderness, they could collect and store as much as they wanted for future use, and it would stay fresh indefinitely.", "correctAnswer": false, "explanation": "God specifically instructed them to gather only enough for one day. Anyone who tried to store extra found that it 'was full of maggots and began to smell' by morning. The only exception was the sixth day, when they gathered a double portion because no manna appeared on the Sabbath — and the extra portion miraculously stayed fresh overnight. This system taught daily dependence on God.", "reference": "Exodus 16:16-26", "points": 10},
+        {"id": "mir-tf-b-19", "question": "A Roman centurion demonstrated such remarkable faith that Jesus said 'Truly I tell you, I have not found anyone in Israel with such great faith.' The centurion believed Jesus could heal his servant simply by speaking a word, without needing to visit the sick man.", "correctAnswer": true, "explanation": "The centurion understood authority — he said 'I myself am a man under authority, with soldiers under me. I tell this one, Go, and he goes; and that one, Come, and he comes.' He recognised that Jesus had the same kind of authority over sickness. Jesus was amazed and said this Gentile's faith exceeded anything he had found in Israel. The servant was healed at that very hour.", "reference": "Matthew 8:5-13", "points": 10},
+        {"id": "mir-tf-b-20", "question": "When the prophet Elisha purified a pot of stew that had been accidentally poisoned with wild gourds, he threw flour into the pot and the stew became safe to eat.", "correctAnswer": true, "explanation": "During a famine, one of the prophets gathered wild gourds (not knowing they were poisonous) and shredded them into the pot of stew. When they tasted it, they cried out 'There is death in the pot!' Elisha said 'Get some flour,' threw it into the pot, and said 'Serve it to the people to eat.' The flour had no natural ability to neutralise poison — God used this simple act as the vehicle for a miracle.", "reference": "2 Kings 4:38-41", "points": 10},
+        {"id": "mir-tf-b-21", "question": "Jesus healed ten lepers at once, sending them to show themselves to the priests, and all ten returned to thank him for their healing.", "correctAnswer": false, "explanation": "Only ONE of the ten returned to thank Jesus — and he was a Samaritan (a foreigner). Jesus asked 'Were not all ten cleansed? Where are the other nine? Has no one returned to give praise to God except this foreigner?' The 90% ingratitude rate highlights that receiving God's blessing doesn't automatically produce gratitude. The one who returned received not just physical healing but spiritual salvation.", "reference": "Luke 17:11-19", "points": 10},
+        {"id": "mir-tf-b-22", "question": "When Moses threw his staff on the ground before Pharaoh, it became a snake. Pharaoh's magicians duplicated this feat, but Moses' snake swallowed all of their snakes.", "correctAnswer": true, "explanation": "When Moses threw down his staff and it became a snake, Pharaoh's sorcerers and magicians did the same thing with their staffs through their secret arts — their staffs also became snakes. But then Aaron's (Moses') staff swallowed up their staffs. This demonstrated that while Egyptian magic could imitate some divine signs, God's power was ultimately superior and would consume all imitations.", "reference": "Exodus 7:8-12", "points": 10},
+        {"id": "mir-tf-b-23", "question": "Jesus' miracle of walking on water is recorded in three of the four Gospels — Matthew, Mark, and John — but not in Luke.", "correctAnswer": true, "explanation": "The walking on water miracle appears in Matthew 14:22-33, Mark 6:45-52, and John 6:16-21, but Luke does not include it. Matthew's account is the most detailed, including Peter's attempt to walk on water. John's is the briefest but includes the notable detail that the boat 'immediately reached the shore where they were heading.' Luke may have omitted it due to space or thematic considerations.", "reference": "Matthew 14:22-33, Mark 6:45-52, John 6:16-21", "points": 10},
+        {"id": "mir-tf-b-24", "question": "The burning bush that Moses encountered in the wilderness was unusual because it was on fire but was not consumed by the flames — it kept burning without being destroyed.", "correctAnswer": true, "explanation": "Exodus 3:2 says 'the bush was on fire but it did not burn up.' When Moses turned aside to investigate this strange sight, God called to him from within the bush and told him to remove his sandals because he was standing on holy ground. The unconsumed bush was a sign of God's presence — fire that illuminates and purifies without destroying, just as God's holy presence would dwell among His people without consuming them.", "reference": "Exodus 3:1-6", "points": 10},
+        {"id": "mir-tf-b-25", "question": "After Jesus' resurrection, he appeared to his disciples on the shore of the Sea of Galilee and miraculously directed them to catch 153 large fish after they had caught nothing all night.", "correctAnswer": true, "explanation": "The disciples had fished all night without catching anything. Jesus (whom they didn't initially recognise) called from shore 'Throw your net on the right side of the boat and you will find some.' When they obeyed, they were unable to haul in the net because of the large number of fish — exactly 153 large fish. Despite the enormous catch, the net was not torn. John recognised Jesus and said 'It is the Lord!'", "reference": "John 21:1-14", "points": 10},
+        {"id": "mir-tf-b-26", "question": "When Paul and Silas were in prison in Philippi at midnight, they were praying and singing hymns to God when a violent earthquake shook the foundations of the prison, opened all the doors, and loosened everyone's chains.", "correctAnswer": true, "explanation": "Despite being beaten, thrown into the inner cell, and having their feet fastened in stocks, Paul and Silas prayed and sang hymns at midnight while the other prisoners listened. A violent earthquake shook the prison foundations, every door flew open, and everyone's chains came loose. The jailer, assuming the prisoners had escaped, drew his sword to kill himself — but Paul shouted 'Don't harm yourself! We are all here!'", "reference": "Acts 16:25-28", "points": 10},
+        {"id": "mir-tf-b-27", "question": "The feeding of the 5,000 is the only miracle of Jesus (other than the resurrection) that is recorded in all four Gospels — Matthew, Mark, Luke, and John.", "correctAnswer": true, "explanation": "This miracle appears in Matthew 14:13-21, Mark 6:30-44, Luke 9:10-17, and John 6:1-14. The fact that all four Gospel writers chose to include it emphasises its significance in the early church's memory of Jesus. No other miracle (except the resurrection itself) received this universal attestation across all four independent Gospel traditions.", "reference": "Matthew 14:13-21, Mark 6:30-44, Luke 9:10-17, John 6:1-14", "points": 10},
+        {"id": "mir-tf-b-28", "question": "When Jesus healed the man born blind in John 9, the Pharisees were so impressed by the miracle that they immediately accepted Jesus as the Messiah and praised God.", "correctAnswer": false, "explanation": "The Pharisees were furious, not impressed. They interrogated the healed man multiple times, called his parents to testify, accused Jesus of being a sinner for healing on the Sabbath, and ultimately threw the healed man out of the synagogue. The man himself had more spiritual insight than the Pharisees — when asked what he thought of Jesus, he said 'He is a prophet,' and later worshipped Jesus as 'Lord.'", "reference": "John 9:13-41", "points": 10},
+        {"id": "mir-tf-b-29", "question": "God led the Israelites through the wilderness with a pillar of cloud by day and a pillar of fire by night, guiding them on their journey for forty years.", "correctAnswer": true, "explanation": "Exodus 13:21-22 says 'By day the LORD went ahead of them in a pillar of cloud to guide them on their way and by night in a pillar of fire to give them light, so that they could travel by day or night. Neither the pillar of cloud by day nor the pillar of fire by night left its place in front of the people.' These visible manifestations of God's presence guided, protected, and illuminated Israel throughout their entire wilderness journey.", "reference": "Exodus 13:21-22", "points": 10},
+        {"id": "mir-tf-b-30", "question": "When Elijah challenged the prophets of Baal on Mount Carmel, he made the challenge harder by pouring twelve jars of water on his altar and sacrifice before calling on God to send fire.", "correctAnswer": true, "explanation": "During a severe drought (when water was extremely precious), Elijah ordered twelve large jars of water poured over his sacrifice and altar — four jars three times. The water ran down, filling the trench around the altar. This made the miracle even more dramatic — not only did God send fire, but the fire consumed the sacrifice, the wood, the stones, the soil, and licked up all the water in the trench. There was no natural explanation possible.", "reference": "1 Kings 18:33-38", "points": 10},
+        {"id": "mir-tf-b-31", "question": "The widow of Zarephath's jar of flour and jug of oil miraculously never ran out during the entire three-year drought, just as the prophet Elijah had promised in the name of the LORD.", "correctAnswer": true, "explanation": "Elijah told the destitute widow 'The jar of flour will not be used up and the jug of oil will not run dry until the day the LORD sends rain on the land.' The widow obeyed in faith, making bread for Elijah first despite having only enough for one last meal for herself and her son. For the entire duration of the drought, the flour and oil supernaturally replenished — a daily miracle of provision.", "reference": "1 Kings 17:14-16", "points": 10},
+        {"id": "mir-tf-b-32", "question": "When God parted the Red Sea for the Israelites, the water formed walls on both their left and right sides, and they walked through on completely dry ground.", "correctAnswer": true, "explanation": "Exodus 14:22 states 'The Israelites went through the sea on dry ground, with a wall of water on their right and on their left.' God drove the sea back with a strong east wind all night long, turning the seabed into dry land. The water stood up like walls on both sides, creating a corridor for the entire nation to pass through safely. When the Egyptians followed, God released the waters.", "reference": "Exodus 14:21-22", "points": 10},
+        {"id": "mir-tf-b-33", "question": "When Jesus was arrested in the Garden of Gethsemane, Peter cut off the ear of the high priest's servant with a sword. Jesus healed the servant's ear — his last miracle before the crucifixion.", "correctAnswer": true, "explanation": "Peter struck the servant of the high priest, cutting off his right ear. The servant's name was Malchus (John 18:10). Jesus said 'No more of this!' and touched the man's ear and healed it (Luke 22:51). This was Jesus' final healing miracle, performed for a member of the very group arresting him. Even at the moment of his arrest, Jesus showed compassion to his enemies.", "reference": "Luke 22:49-51, John 18:10", "points": 10},
+        {"id": "mir-tf-b-34", "question": "When four friends lowered a paralysed man through the roof to reach Jesus, Jesus first forgave the man's sins before healing his body — which caused the religious leaders to accuse Jesus of blasphemy.", "correctAnswer": true, "explanation": "Jesus saw the faith of the four friends and said 'Son, your sins are forgiven.' The teachers of the law thought 'Why does this fellow talk like that? He's blaspheming! Who can forgive sins but God alone?' Jesus knew their thoughts and said 'Which is easier: to say \"Your sins are forgiven\" or \"Get up and walk\"?' Then he healed the paralytic to prove he had authority to forgive sins — connecting physical healing to spiritual restoration.", "reference": "Mark 2:1-12", "points": 10},
+        {"id": "mir-tf-b-35", "question": "The miracle of Jesus turning water into wine at the wedding in Cana was performed using six stone water jars that each held twenty to thirty gallons, meaning Jesus created approximately 120 to 180 gallons of excellent wine.", "correctAnswer": true, "explanation": "John 2:6 specifies 'six stone water jars, the kind used by the Jews for ceremonial washing, each holding from twenty to thirty gallons.' This means Jesus created between 120 and 180 gallons of wine — an extraordinary amount. The master of the banquet remarked on its exceptional quality: 'You have saved the best till now.' The lavish quantity and superior quality symbolised the abundant, superior nature of the messianic age Jesus was inaugurating.", "reference": "John 2:6-10", "points": 10}
+      ],
+      "intermediate": [
+        {"id": "mir-tf-i-1", "question": "The prophet Elisha performed a miracle after his own death — when a dead man's body was thrown into Elisha's tomb and touched his bones, the dead man came back to life.", "correctAnswer": true, "explanation": "2 Kings 13:20-21 records this unique posthumous miracle. Moabite raiders were approaching, so some Israelites hastily threw a dead man's body into Elisha's tomb. When the body touched Elisha's bones, the man came to life and stood on his feet. This is the only posthumous miracle in the Bible and fulfilled Elisha's request for a 'double portion' of Elijah's spirit — God's power continued even after the prophet's death.", "reference": "2 Kings 13:20-21", "points": 15},
+        {"id": "mir-tf-i-2", "question": "Jesus performed two separate feeding miracles — feeding 5,000 with five loaves and two fish (with twelve baskets of leftovers) and feeding 4,000 with seven loaves and a few fish (with seven baskets of leftovers).", "correctAnswer": true, "explanation": "These are two distinct miracles recorded in different locations and circumstances. The feeding of the 5,000 appears in all four Gospels (Matthew 14, Mark 6, Luke 9, John 6), while the feeding of the 4,000 appears in Matthew 15 and Mark 8. Jesus himself distinguished between the two events: 'Don't you remember the five loaves for the five thousand, and how many basketfuls you gathered? Or the seven loaves for the four thousand?' (Matthew 16:9-10).", "reference": "Matthew 14:13-21, 15:32-39, 16:9-10", "points": 15},
+        {"id": "mir-tf-i-3", "question": "When God sent the ten plagues on Egypt, Pharaoh's magicians were able to duplicate the first two plagues (turning water to blood and producing frogs) through their own 'secret arts,' but they could not replicate the third plague (gnats/lice).", "correctAnswer": true, "explanation": "Pharaoh's magicians replicated the first plague (blood — Exodus 7:22) and the second (frogs — Exodus 8:7) through their secret arts. But when Aaron struck the dust and gnats appeared everywhere, the magicians tried to produce gnats but could not. They told Pharaoh 'This is the finger of God.' From this point onward, the magicians could not compete with God's power and eventually could not even appear before Moses due to the plague of boils.", "reference": "Exodus 7:22, 8:7, 8:18-19", "points": 15},
+        {"id": "mir-tf-i-4", "question": "In the book of Acts, handkerchiefs and aprons that had merely touched the apostle Paul were taken to sick people, and their illnesses were cured and evil spirits left them.", "correctAnswer": true, "explanation": "Acts 19:11-12 records that 'God did extraordinary miracles through Paul, so that even handkerchiefs and aprons that had touched him were taken to the sick, and their illnesses were cured and the evil spirits left them.' Luke specifically calls these 'extraordinary' miracles — unusual even by apostolic standards. This occurred during Paul's two-year ministry in Ephesus. The power was clearly God's, channelled through Paul's physical contact with the objects.", "reference": "Acts 19:11-12", "points": 15},
+        {"id": "mir-tf-i-5", "question": "When Jesus healed a blind man at Bethsaida, the healing occurred in two stages — after the first touch, the man could see people but they looked 'like trees walking around,' and only after Jesus' second touch was his sight fully restored.", "correctAnswer": true, "explanation": "This is the only recorded two-stage miracle of Jesus (Mark 8:22-26). After Jesus spat on the man's eyes and laid his hands on him the first time, the man said 'I see people; they look like trees walking around.' Jesus put his hands on the man's eyes again, and this time his sight was fully restored — he could see everything clearly. Many scholars see this as a parable about the disciples' gradual understanding of Jesus' identity.", "reference": "Mark 8:22-26", "points": 15},
+        {"id": "mir-tf-i-6", "question": "The miracle of Joshua commanding the sun to stand still over Gibeon lasted for approximately one full day — 'The sun stopped in the middle of the sky and delayed going down about a full day.'", "correctAnswer": true, "explanation": "Joshua 10:13 states 'The sun stopped in the middle of the sky and delayed going down about a full day. There has never been a day like it before or since, a day when the LORD listened to a human being.' Joshua needed extra daylight to complete the military victory over the Amorites. This is one of the most debated miracles in the Bible — whether it was a literal solar event, atmospheric phenomenon, or literary expression of divine intervention.", "reference": "Joshua 10:12-14", "points": 15},
+        {"id": "mir-tf-i-7", "question": "When the apostle Peter's shadow fell on sick people in the streets of Jerusalem, all of them were healed — according to the book of Acts.", "correctAnswer": true, "explanation": "Acts 5:15-16 records that 'people brought the sick into the streets and laid them on beds and mats so that at least Peter's shadow might fall on some of them as he passed by. Crowds gathered also from the towns around Jerusalem, bringing their sick and those tormented by impure spirits, and all of them were healed.' This extraordinary miracle demonstrated the power of the risen Christ working through the apostolic church.", "reference": "Acts 5:15-16", "points": 15},
+        {"id": "mir-tf-i-8", "question": "When Naaman the Syrian general was healed of leprosy by washing seven times in the Jordan River as Elisha instructed, he was initially furious because he expected a more dramatic healing method and considered the rivers of Damascus to be cleaner.", "correctAnswer": true, "explanation": "Naaman expected Elisha to come out personally, stand before him, call on God's name, wave his hand over the leprosy, and dramatically cure him. Instead, Elisha didn't even come to the door — he sent a messenger with simple instructions. Naaman was enraged: 'Are not Abana and Pharpar, the rivers of Damascus, better than all the waters of Israel?' His servants wisely persuaded him: 'If the prophet had told you to do some great thing, would you not have done it?'", "reference": "2 Kings 5:10-14", "points": 15},
+        {"id": "mir-tf-i-9", "question": "According to the Gospels, Jesus only performed miracles in Jewish territory and never healed or helped Gentiles (non-Jews) during his ministry.", "correctAnswer": false, "explanation": "Jesus performed miracles for several Gentiles: the Roman centurion's servant (Matthew 8:5-13), the Syrophoenician woman's daughter (Mark 7:24-30), the Gerasene demoniac in the Decapolis (Mark 5:1-20), and the feeding of the 4,000 which likely occurred in predominantly Gentile territory. Jesus praised the centurion's faith as greater than any he found in Israel. These Gentile healings foreshadowed the gospel going to all nations.", "reference": "Matthew 8:5-13, Mark 7:24-30, 5:1-20", "points": 15},
+        {"id": "mir-tf-i-10", "question": "When Paul was bitten by a venomous snake on the island of Malta after his shipwreck, he suffered no ill effects whatsoever — the islanders initially expected him to die but then changed their minds and thought he was a god.", "correctAnswer": true, "explanation": "Acts 28:3-6 records that a viper fastened onto Paul's hand as he was gathering sticks for a fire. The islanders expected him to swell up or suddenly drop dead. But Paul shook the snake off into the fire and suffered no harm. After watching for a long time and seeing nothing unusual happen, the islanders changed their minds and said he must be a god. Paul then went on to heal the father of the island's chief official.", "reference": "Acts 28:3-6", "points": 15},
+        {"id": "mir-tf-i-11", "question": "When God parted the Jordan River for Joshua and the Israelites to cross into the Promised Land, the priests carrying the Ark of the Covenant had to stand in the middle of the dry riverbed until all the people had crossed.", "correctAnswer": true, "explanation": "Joshua 3:17 states 'The priests who carried the ark of the covenant of the LORD stopped in the middle of the Jordan and stood on dry ground, while all Israel passed by until the whole nation had completed the crossing on dry ground.' The priests' role was crucial — they represented God's presence (through the Ark) literally standing in the gap so the people could pass safely. As soon as the priests came out, the waters returned.", "reference": "Joshua 3:17, 4:18", "points": 15},
+        {"id": "mir-tf-i-12", "question": "The miracle of Jesus cursing the fig tree and it withering overnight was simply Jesus being frustrated and hungry — it had no deeper symbolic or prophetic meaning.", "correctAnswer": false, "explanation": "The cursing of the fig tree was a prophetic sign-act, not an expression of hunger frustration. Mark deliberately 'sandwiches' the fig tree incident around the Temple cleansing (fig tree cursed → Temple cleansed → fig tree withered), connecting them thematically. The fig tree represented Israel/Temple — it had impressive leaves (religious activity) but no fruit (genuine faithfulness). The withering symbolised coming judgment on a fruitless religious system.", "reference": "Mark 11:12-25", "points": 15},
+        {"id": "mir-tf-i-13", "question": "When Elisha told the widow to collect as many empty jars as she could and pour her small amount of oil into them, the oil miraculously kept flowing until every jar was full — but it stopped flowing when there were no more empty jars left.", "correctAnswer": true, "explanation": "2 Kings 4:6 records that when the last jar was full, 'the oil stopped flowing.' The amount of the miracle matched the amount of the woman's preparation (faith). If she had collected more jars, more oil would have flowed. Elisha then told her to sell the oil, pay her debts, and live on the rest. The miracle principle: God's supply matches the vessel of faith provided.", "reference": "2 Kings 4:1-7", "points": 15},
+        {"id": "mir-tf-i-14", "question": "The young man Eutychus fell from a third-storey window during Paul's sermon in Troas and died. Paul went down, embraced him, and declared he was alive — and Eutychus was restored to life.", "correctAnswer": true, "explanation": "Acts 20:9-12 says Eutychus 'sank into a deep sleep as Paul talked on and on. When he was sound asleep, he fell to the ground from the third storey and was picked up dead.' Paul went down, threw himself on the young man, put his arms around him, and said 'Don't be alarmed. He's alive!' The people took the young man home alive and were greatly comforted. Notably, Paul then went back upstairs and continued talking until daylight!", "reference": "Acts 20:7-12", "points": 15},
+        {"id": "mir-tf-i-15", "question": "In the Old Testament, Aaron's staff miraculously budded, blossomed, and produced almonds overnight — serving as God's confirmation that the tribe of Levi was chosen for the priesthood.", "correctAnswer": true, "explanation": "After Korah's rebellion questioned the priestly authority of Aaron's family, God settled the dispute. He told Moses to collect one staff from each of the twelve tribal leaders and place them in the Tabernacle overnight. The next morning, Aaron's staff (representing Levi) had budded, blossomed, and produced ripe almonds — going through an entire growing season overnight. God commanded that Aaron's staff be kept before the Ark as a permanent sign.", "reference": "Numbers 17:1-11", "points": 15},
+        {"id": "mir-tf-i-16", "question": "When Elisha struck the Jordan River with Elijah's cloak, the water divided just as it had for Elijah, confirming that Elisha had received Elijah's prophetic authority.", "correctAnswer": true, "explanation": "After Elijah was taken to heaven in a whirlwind, Elisha picked up Elijah's cloak, went back to the Jordan River, struck the water with it, and said 'Where now is the LORD, the God of Elijah?' The water divided to the right and to the left, and Elisha crossed over. When the company of prophets saw this, they said 'The spirit of Elijah is resting on Elisha,' and they bowed to the ground before him.", "reference": "2 Kings 2:13-15", "points": 15},
+        {"id": "mir-tf-i-17", "question": "The miracle of Jesus healing the woman who had been bleeding for twelve years occurred while Jesus was on his way to heal someone else — Jairus' daughter — making it an interruption that tested Jairus' faith in Jesus' ability to help his dying daughter.", "correctAnswer": true, "explanation": "Jairus had begged Jesus to come urgently because his daughter was dying. On the way, Jesus stopped because the bleeding woman touched his cloak. During this delay, messengers arrived saying Jairus' daughter had died. The delay tested Jairus' faith — would he still believe when the situation seemed hopeless? Jesus told him 'Don't be afraid; just believe.' He went on to raise the girl from the dead, demonstrating that God's timing is perfect even when it seems too late.", "reference": "Mark 5:21-43", "points": 15},
+        {"id": "mir-tf-i-18", "question": "During the battle against the Amorites, God not only made the sun stand still for Joshua but also sent large hailstones that killed more enemies than the Israelite soldiers did with their swords.", "correctAnswer": true, "explanation": "Joshua 10:11 records that 'the LORD hurled large hailstones down on them, and more of them died from the hail than were killed by the swords of the Israelites.' The hailstones fell on the fleeing Amorite army but not on the Israelites. This was followed by the sun standing still for about a full day. Together, these miracles ensured complete victory and demonstrated that God was fighting for Israel.", "reference": "Joshua 10:11-14", "points": 15},
+        {"id": "mir-tf-i-19", "question": "When Peter raised Tabitha (Dorcas) from the dead in Joppa, his method closely paralleled what Jesus had done when raising Jairus' daughter — he sent everyone out of the room, prayed, and spoke to the dead person.", "correctAnswer": true, "explanation": "The parallels are striking: Jesus put everyone out before raising Jairus' daughter (Mark 5:40), and Peter 'sent them all out of the room' (Acts 9:40). Jesus took Jairus' daughter's hand and said 'Talitha koum' ('Little girl, get up'), and Peter said 'Tabitha, get up' — the Aramaic names are almost identical (Talitha/Tabitha). Peter's actions show he was modelling his ministry on Jesus' example. The miracle became known throughout Joppa and many believed.", "reference": "Acts 9:36-42, Mark 5:35-43", "points": 15},
+        {"id": "mir-tf-i-20", "question": "The prophet Elisha multiplied twenty barley loaves to feed one hundred men — a miracle that Jesus later exceeded by feeding thousands with even fewer loaves.", "correctAnswer": true, "explanation": "In 2 Kings 4:42-44, a man brought Elisha twenty loaves of barley bread. Elisha said 'Give it to the people to eat.' His servant objected: 'How can I set this before a hundred men?' Elisha repeated 'They will eat and have some left over.' They ate and had leftovers, just as Elisha had said. Jesus' feeding miracles (5,000 with five loaves, 4,000 with seven) far exceeded Elisha's, demonstrating that Jesus was 'greater than' the prophets.", "reference": "2 Kings 4:42-44", "points": 15},
+        {"id": "mir-tf-i-21", "question": "When an iron axe head fell into the Jordan River, the prophet Elisha made it float to the surface by throwing a stick into the water — one of the more unusual miracles in the Old Testament.", "correctAnswer": true, "explanation": "A young prophet was cutting trees when his borrowed axe head fell into the Jordan River. He cried out to Elisha in distress because the axe was borrowed. Elisha asked 'Where did it fall?' When shown the spot, Elisha cut a stick and threw it into the water. The heavy iron axe head floated to the surface, defying the law of gravity. The young man reached out and took it. This miracle demonstrated God's care for everyday, practical concerns.", "reference": "2 Kings 6:1-7", "points": 15},
+        {"id": "mir-tf-i-22", "question": "According to Acts, when Paul was in Ephesus, some Jewish exorcists tried to cast out demons using Jesus' name without actually being believers, saying 'In the name of the Jesus whom Paul preaches, I command you to come out.' The evil spirit responded by saying 'Jesus I know, and Paul I know about, but who are you?' and attacked them.", "correctAnswer": true, "explanation": "The seven sons of Sceva (a Jewish chief priest) tried to use Jesus' name as a magical formula without genuine faith. The evil spirit said 'Jesus I know, and Paul I know about, but who are you?' and the possessed man attacked them — they fled the house naked and bleeding. This incident 'became known to the Jews and Greeks living in Ephesus,' and 'the name of the Lord Jesus was held in high honour.'", "reference": "Acts 19:13-17", "points": 15},
+        {"id": "mir-tf-i-23", "question": "When God destroyed the cities of Sodom and Gomorrah with fire and brimstone from heaven, Lot's wife looked back at the burning cities despite being warned not to, and she was turned into a pillar of salt.", "correctAnswer": true, "explanation": "Genesis 19:26 states simply: 'But Lot's wife looked back, and she became a pillar of salt.' The angels had explicitly warned 'Don't look back, and don't stop anywhere in the plain!' Her looking back may have represented longing for the condemned city's lifestyle rather than moving forward in obedience. Jesus referenced this event in Luke 17:32: 'Remember Lot's wife!' — warning against attachment to worldly things when God calls for decisive action.", "reference": "Genesis 19:17, 26; Luke 17:32", "points": 15},
+        {"id": "mir-tf-i-24", "question": "The ninth plague of Egypt — three days of complete darkness — was so thick that 'no one could see anyone else or move about for three days,' but the Israelites had light in their dwellings.", "correctAnswer": true, "explanation": "Exodus 10:21-23 describes a 'darkness that can be felt' covering all of Egypt for three days. No one could see anyone else or leave their place. But 'all the Israelites had light in the places where they lived.' This plague was a direct attack on Ra, the Egyptian sun god — the most powerful deity in the Egyptian pantheon. YHWH demonstrated absolute power over the very source of light that the Egyptians worshipped.", "reference": "Exodus 10:21-23", "points": 15},
+        {"id": "mir-tf-i-25", "question": "When Elisha was surrounded by the Aramean army sent to capture him, he prayed and God struck the entire enemy army with blindness. Elisha then led the blinded soldiers to Samaria and told the king of Israel to kill them all.", "correctAnswer": false, "explanation": "Elisha did pray for God to strike the army with blindness, and he did lead them to Samaria. However, he did NOT tell the king to kill them. When the king asked 'Shall I kill them?', Elisha said 'Would you kill those you have captured with your own sword and bow? Set food and water before them so that they may eat and drink and then go back to their master.' The king prepared a great feast for them and sent them home. After that, the Aramean raids stopped.", "reference": "2 Kings 6:18-23", "points": 15},
+        {"id": "mir-tf-i-26", "question": "The apostle Paul experienced a dramatic conversion on the road to Damascus when the risen Jesus appeared to him in a blinding light. This encounter left Paul physically blind for three days until a believer named Ananias came and laid hands on him, restoring his sight.", "correctAnswer": true, "explanation": "Acts 9 records that a light from heaven flashed around Paul (then called Saul), and Jesus' voice said 'Saul, Saul, why do you persecute me?' Paul was blinded for three days and didn't eat or drink. God told a reluctant believer named Ananias to go to Paul. When Ananias laid his hands on Paul, something like scales fell from Paul's eyes and his sight was restored. He was baptised and began preaching that Jesus was the Son of God.", "reference": "Acts 9:1-19", "points": 15},
+        {"id": "mir-tf-i-27", "question": "When Jesus healed the woman bent over double for eighteen years in the synagogue, he attributed her condition to Satan — saying she was 'a woman whom Satan has kept bound for eighteen long years.'", "correctAnswer": true, "explanation": "Luke 13:16 records Jesus' words: 'Then should not this woman, a daughter of Abraham, whom Satan has kept bound for eighteen long years, be set free on the Sabbath day from what bound her?' This is significant because Jesus attributed her physical condition to spiritual bondage — not to personal sin or simple physical disease. Her healing was both physical (she straightened up) and spiritual (she was freed from Satan's bondage).", "reference": "Luke 13:10-17", "points": 15},
+        {"id": "mir-tf-i-28", "question": "According to the Gospels, Jesus sometimes chose NOT to perform miracles in certain places. In his hometown of Nazareth, 'he could not do any miracles there, except lay his hands on a few sick people and heal them' — and the reason given was the people's lack of faith.", "correctAnswer": true, "explanation": "Mark 6:5-6 records 'He could not do any miracles there, except lay his hands on a few sick people and heal them. He was amazed at their lack of faith.' The people of Nazareth said 'Isn't this the carpenter's son?' and were offended by him. This passage shows that while Jesus' power was unlimited, he chose to work within the context of faith — not performing miracles as magical demonstrations but as responses to trust in God.", "reference": "Mark 6:1-6", "points": 15},
+        {"id": "mir-tf-i-29", "question": "When God told Abraham that his 90-year-old wife Sarah would have a son, Sarah laughed at the idea because she was well past childbearing age. The child born to them was named Isaac, which means 'he laughs.'", "correctAnswer": true, "explanation": "When Sarah overheard the promise, she 'laughed to herself as she thought, \"After I am worn out and my lord is old, will I now have this pleasure?\"' God asked 'Why did Sarah laugh? Is anything too hard for the LORD?' When Isaac was born, Sarah said 'God has brought me laughter, and everyone who hears about this will laugh with me.' The name Isaac (Yitzhak — 'he laughs') commemorates both Sarah's disbelieving laughter and her joyful laughter at the miracle.", "reference": "Genesis 18:12-15, 21:1-7", "points": 15},
+        {"id": "mir-tf-i-30", "question": "The miracle of Pentecost in Acts 2 involved the disciples speaking in actual foreign languages that visitors from other nations could understand — not ecstatic, unintelligible speech.", "correctAnswer": true, "explanation": "Acts 2:6-11 makes clear that these were recognisable human languages: 'Each one heard their own language being spoken. Utterly amazed, they asked: \"Aren't all these who are speaking Galileans? Then how is it that each of us hears them in our native language?\"' Luke lists about fifteen different nationalities who heard the disciples speaking in their own tongues. The miracle of Pentecost was a reversal of Babel — languages that once divided humanity now united them in hearing God's message.", "reference": "Acts 2:4-11", "points": 15},
+        {"id": "mir-tf-i-31", "question": "When Moses struck the rock at Meribah and water gushed out, God praised Moses for his obedience and faith in performing this miracle.", "correctAnswer": false, "explanation": "God was actually angry with Moses. God had told Moses to SPEAK to the rock, but Moses struck it twice with his staff instead, saying 'Listen, you rebels, must WE bring you water out of this rock?' — taking credit for the miracle. God told Moses that because he failed to trust God enough to honour Him as holy before the people, Moses would not be allowed to enter the Promised Land. This was a severe consequence for a seemingly small disobedience.", "reference": "Numbers 20:7-12", "points": 15},
+        {"id": "mir-tf-i-32", "question": "When Jesus healed the ten lepers, he told them to go show themselves to the priests. They were not healed immediately — they were healed 'as they went,' meaning the miracle happened while they were walking in obedience to Jesus' command.", "correctAnswer": true, "explanation": "Luke 17:14 says 'As they went, they were cleansed.' The healing did not happen before they obeyed — it happened during their obedience. They had to take the first step of faith before they experienced the miracle. This pattern of faith preceding sight is common in biblical miracles: Naaman had to dip seven times, the man born blind had to go wash, the paralytic had to stretch out his hand. God often calls for obedience before providing the miracle.", "reference": "Luke 17:14", "points": 15},
+        {"id": "mir-tf-i-33", "question": "The book of Exodus records that when Moses held up his hands during the battle against the Amalekites, Israel was winning; when he lowered his hands from fatigue, the Amalekites began winning. Aaron and Hur eventually held up Moses' hands until sunset to ensure victory.", "correctAnswer": true, "explanation": "Exodus 17:11-13 records this unique miracle: 'As long as Moses held up his hands, the Israelites were winning, but whenever he lowered his hands, the Amalekites were winning. When Moses' hands grew tired, they took a stone and put it under him and he sat on it. Aaron and Hur held his hands up — one on one side, one on the other — so that his hands remained steady till sunset.' The image of believers supporting each other in faith has inspired the church for millennia.", "reference": "Exodus 17:10-13", "points": 15},
+        {"id": "mir-tf-i-34", "question": "According to the Gospel of Matthew, at the moment of Jesus' death on the cross, the earth shook, rocks split, tombs broke open, and the bodies of many holy people who had died were raised to life and appeared to many people in Jerusalem.", "correctAnswer": true, "explanation": "Matthew 27:51-53 records: 'The earth shook, the rocks split and the tombs broke open. The bodies of many holy people who had died were raised to life. They came out of the tombs after Jesus' resurrection and went into the holy city and appeared to many people.' This extraordinary detail — found only in Matthew — presents Jesus' death as a cosmic event that began reversing death itself, anticipating the general resurrection.", "reference": "Matthew 27:51-53", "points": 15},
+        {"id": "mir-tf-i-35", "question": "When Jesus performed the miracle of the great catch of fish (153 fish) after his resurrection, the net was not torn despite the enormous weight of the catch — a detail that John specifically mentions.", "correctAnswer": true, "explanation": "John 21:11 notes: 'So Simon Peter climbed back into the boat and dragged the net ashore. It was full of large fish, 153, but even with so many the net was not torn.' This detail seems symbolic — the unbroken net may represent the unity of the church gathering people from all nations without division. The number 153 has been interpreted various ways (Jerome said it was the number of known fish species, representing all nations), but its exact significance remains debated.", "reference": "John 21:11", "points": 15}
+      ],
+      "advanced": [
+        {"id": "mir-tf-a-1", "question": "The Greek word 'semeion' (sign), which John uses for Jesus' miracles, and the word 'dunamis' (power/mighty work), which the Synoptic Gospels prefer, carry identical theological connotations and are fully interchangeable in New Testament usage.", "correctAnswer": false, "explanation": "'Semeion' and 'dunamis' carry distinct theological emphases. 'Semeion' (John's preferred term) emphasises the revelatory function — miracles as signs pointing beyond themselves to reveal Jesus' identity and glory. 'Dunamis' (Synoptic preference) emphasises the raw power of God breaking into the world through compassionate action. John's miracles are theological windows; the Synoptics' miracles are demonstrations of divine power in action. Both perspectives are true and complementary but highlight different aspects.", "reference": "John 2:11, Mark 6:2", "points": 20},
+        {"id": "mir-tf-a-2", "question": "David Hume's argument against miracles (1748) is considered by all contemporary philosophers to be a definitive, irrefutable proof that miracles are impossible.", "correctAnswer": false, "explanation": "Hume's argument has been widely critiqued by philosophers across the spectrum. John Earman (a secular philosopher of science) wrote 'Hume's Abject Failure' (2000) arguing that Hume's reasoning is circular and contains fundamental logical flaws. Alvin Plantinga, Richard Swinburne, and C.S. Lewis have each shown that Hume's argument assumes what it tries to prove — defining 'experience' to exclude miracles before examining evidence for them. While influential, Hume's argument is far from universally accepted as sound.", "reference": "John Earman, 'Hume's Abject Failure' (2000)", "points": 20},
+        {"id": "mir-tf-a-3", "question": "The literary technique of 'intercalation' (sandwiching one story inside another) that Mark uses with the fig tree and Temple cleansing is a deliberate compositional strategy found throughout Mark's Gospel, not just in this one passage.", "correctAnswer": true, "explanation": "Mark uses intercalation (also called the 'Markan sandwich') at least six times in his Gospel. Other examples include: the calling of the Twelve sandwiched around the Beelzebul controversy (3:20-35), the healing of the bleeding woman sandwiched inside the Jairus story (5:21-43), and the sending of the Twelve sandwiched around the death of John the Baptist (6:7-32). The outer and inner stories always interpret each other, creating richer theological meaning than either story alone.", "reference": "Mark 11:12-25, 5:21-43, 3:20-35", "points": 20},
+        {"id": "mir-tf-a-4", "question": "Jesus' exorcisms (casting out demons) are considered by most historical Jesus scholars — including many sceptical scholars — to be among the most historically certain facts about Jesus' ministry.", "correctAnswer": true, "explanation": "Jesus' role as an exorcist passes multiple criteria of historicity: multiple attestation (Mark, Q, L, M sources), embarrassment (his enemies accused him of using demonic power — Mark 3:22), coherence with first-century Palestinian Judaism, and dissimilarity (his exorcisms lacked the elaborate rituals used by other exorcists). Even the highly sceptical Jesus Seminar accepted that Jesus performed exorcisms. Scholars disagree about how to interpret them, but the historicity of the events is widely accepted.", "reference": "Mark 1:23-28, 3:22, Matthew 12:24-28", "points": 20},
+        {"id": "mir-tf-a-5", "question": "The concept of 'cessationism' — the belief that miraculous spiritual gifts ceased with the apostolic age — is based on explicit biblical statements that clearly teach when and how miraculous gifts would end.", "correctAnswer": false, "explanation": "No biblical text explicitly states that miraculous gifts would cease with the death of the apostles or the completion of the canon. Cessationists typically appeal to 1 Corinthians 13:10 ('when completeness comes, what is in part disappears'), arguing that 'completeness' refers to the closed canon. However, most scholars (including cessationist ones like D.A. Carson) acknowledge this interpretation is debatable. Cessationism is a theological inference, not an explicit biblical teaching. The debate between cessationism and continuationism remains open.", "reference": "1 Corinthians 13:8-10", "points": 20},
+        {"id": "mir-tf-a-6", "question": "The phrase 'your faith has healed/saved you' (Greek: 'he pistis sou sesoken se') uses a Greek word that deliberately carries both physical and spiritual meaning, demonstrating that Jesus' healings were holistic events addressing body and soul.", "correctAnswer": true, "explanation": "The Greek verb 'sozo' means both 'to heal' and 'to save,' and the ambiguity is intentional. When Jesus says 'your faith has saved/healed you,' both meanings are operative simultaneously. Physical healing functions as a sign of the deeper spiritual salvation Jesus brings. The miracles are not merely physical fixes but anticipations of the comprehensive restoration God will accomplish in the age to come — the complete healing of persons, communities, and ultimately all creation.", "reference": "Mark 5:34, Luke 17:19, Mark 10:52", "points": 20},
+        {"id": "mir-tf-a-7", "question": "The ten plagues of Egypt were directed randomly against Egyptian life in general, with no particular pattern or theological purpose beyond punishing Egypt for enslaving Israel.", "correctAnswer": false, "explanation": "Exodus 12:12 explicitly states 'I will bring judgment on all the gods of Egypt.' Each plague systematically targeted a specific Egyptian deity: Nile/blood → Hapi; frogs → Heqet; gnats → Geb; flies → Khepri; livestock → Hathor; boils → Isis; hail → Nut; locusts → Seth; darkness → Ra; death of firstborn → Pharaoh (considered divine). The plagues follow a literary pattern of three triads plus a climax, escalating in severity. Far from random, they are a carefully orchestrated theological demonstration of YHWH's sovereignty over the entire Egyptian religious system.", "reference": "Exodus 7-12, 12:12", "points": 20},
+        {"id": "mir-tf-a-8", "question": "Rudolf Bultmann's 'demythologisation' programme argued that the miracle stories in the Gospels should be stripped of their supernatural elements and interpreted existentially — as encounters with God's Word that call individuals to authentic human existence.", "correctAnswer": true, "explanation": "Bultmann argued in 'New Testament and Mythology' (1941) that modern people cannot accept the three-tiered cosmology (heaven, earth, underworld) that underlies the New Testament miracle stories. His solution was to interpret them existentially: a healing story is not about a historical event but about the human experience of being confronted by God and challenged to 'authentic existence.' Critics from both left and right have challenged this approach for evacuating the Gospel of its historical foundation.", "reference": "Rudolf Bultmann, 'New Testament and Mythology' (1941)", "points": 20},
+        {"id": "mir-tf-a-9", "question": "The miracle of the virgin birth (virginal conception) of Jesus is attested in only one Gospel source — Luke's infancy narrative — making it poorly attested by historical standards.", "correctAnswer": false, "explanation": "The virgin birth is attested in two independent sources: Matthew 1:18-25 (from Joseph's perspective) and Luke 1:26-38 (from Mary's perspective). These accounts come from different source traditions (Matthew's special material and Luke's special material), use different vocabulary, and tell the story from different viewpoints. Two independent attestations is actually strong evidence by ancient historical standards. John 1:13 may contain a veiled reference, and Paul's phrase 'born of a woman' (Galatians 4:4) is sometimes seen as an oblique allusion.", "reference": "Matthew 1:18-25, Luke 1:26-38", "points": 20},
+        {"id": "mir-tf-a-10", "question": "The 'already/not yet' framework of Jesus' miracles means that every miracle Jesus performed during his earthly ministry was a partial, anticipatory experience of the complete restoration that will come at the consummation of the kingdom.", "correctAnswer": true, "explanation": "Jesus' miracles function as 'inaugurated eschatology' in action — they are previews of the age to come breaking into the present age. Every healing is a partial reversal of the Fall's effects on the body. Every exorcism is a partial reversal of demonic domination. Every nature miracle is a partial display of God's coming sovereignty over creation. But they are partial — the healed will die again, Lazarus will die again. Only at the final consummation will healing, liberation, and restoration be complete and permanent (Revelation 21:4).", "reference": "Isaiah 35:5-6, Revelation 21:4", "points": 20},
+        {"id": "mir-tf-a-11", "question": "Craig Keener's two-volume academic work 'Miracles' (2011) is significant because it provides the most comprehensive scholarly collection of documented contemporary miracle claims ever assembled, challenging the assumption that miracles are confined to biblical times.", "correctAnswer": true, "explanation": "Keener's 'Miracles: The Credibility of the New Testament Accounts' (2011) runs over 1,100 pages and documents hundreds of contemporary miracle claims from every continent, including many with medical documentation and multiple eyewitnesses. The work was published by Baker Academic (a respected academic press) and has been widely discussed in both evangelical and mainstream scholarship. Keener doesn't claim every report is genuine, but argues that blanket dismissal without investigation is intellectually irresponsible.", "reference": "Craig Keener, 'Miracles' (2011)", "points": 20},
+        {"id": "mir-tf-a-12", "question": "The Gospel miracle accounts are structured as simple, bare reports of supernatural events with no theological interpretation — the miracles speak for themselves without any editorial commentary from the Gospel writers.", "correctAnswer": false, "explanation": "The Gospel writers carefully select, arrange, and interpret miracles to serve their theological purposes. John explicitly states his interpretive principle: 'These are written that you may believe' (20:31). Mark uses the intercalation technique to create theological commentary. Matthew consistently connects miracles to Old Testament prophecy. Luke emphasises miracles for the marginalised. The miracles are never bare reports — they are theologically curated narratives that reveal Jesus' identity, inaugurate the kingdom, and invite faith.", "reference": "John 20:30-31", "points": 20},
+        {"id": "mir-tf-a-13", "question": "Paul's 'thorn in the flesh' (2 Corinthians 12:7-10), which God refused to remove despite Paul's three requests, demonstrates the important theological principle that God sometimes chooses NOT to perform a miracle even for His most faithful servants — and that this refusal can serve a higher purpose.", "correctAnswer": true, "explanation": "Paul — the same apostle through whom 'extraordinary miracles' occurred (Acts 19:11) — could not secure his own healing. God's response was not healing but sufficiency: 'My grace is sufficient for you, for my power is made perfect in weakness.' This passage is theologically crucial because it prevents reducing miracles to a formula ('enough faith = guaranteed healing'). God's purposes sometimes include suffering, and unanswered prayer for healing is not necessarily a sign of insufficient faith.", "reference": "2 Corinthians 12:7-10", "points": 20},
+        {"id": "mir-tf-a-14", "question": "The Old Testament miracles performed through Moses, Elijah, and Elisha are concentrated in three specific historical periods rather than being evenly distributed throughout Israel's history — and this clustering pattern has theological significance.", "correctAnswer": true, "explanation": "Biblical miracles cluster in three main periods: (1) the Exodus/Conquest under Moses and Joshua, (2) the Elijah/Elisha prophetic period during the struggle against Baal worship, and (3) the life of Jesus and the early church. Long periods between (like the monarchy and exile) have relatively few miracles. Each cluster occurs at a critical transition point when God's redemptive plan faces existential threat — the formation of Israel, the survival of monotheism, and the inauguration of the kingdom through Jesus. Miracles serve God's unfolding salvation history at decisive moments.", "reference": "Exodus-Joshua, 1-2 Kings, Gospels-Acts", "points": 20},
+        {"id": "mir-tf-a-15", "question": "The concept of 'prophetic sign-acts' (dramatic symbolic actions performed by prophets to embody their message) provides the best interpretive framework for understanding Jesus' cursing of the fig tree — it was a prophetic action about Israel's spiritual fruitlessness, not an outburst of frustration at a tree.", "correctAnswer": true, "explanation": "Prophetic sign-acts are well-attested in the Old Testament: Jeremiah smashed a clay pot (Jeremiah 19), Ezekiel lay on his side for 390 days (Ezekiel 4), Isaiah walked naked for three years (Isaiah 20), and Hosea married an unfaithful woman (Hosea 1-3). These dramatic, embodied prophecies made abstract messages concrete and memorable. Jesus' fig tree cursing fits perfectly in this genre — Mark's intercalation with the Temple cleansing makes the symbolic meaning explicit: Israel had religious activity (leaves) but no spiritual fruit.", "reference": "Mark 11:12-25, Jeremiah 19, Ezekiel 4", "points": 20},
+        {"id": "mir-tf-a-16", "question": "In the Gospel of John, the seventh and final 'sign miracle' — the raising of Lazarus — directly triggers the Sanhedrin's decision to kill Jesus, creating a profound theological irony: the greatest demonstration of Jesus' power to give life becomes the catalyst for his own death.", "correctAnswer": true, "explanation": "John 11:45-53 records that many Jews believed in Jesus after seeing Lazarus raised, but the chief priests and Pharisees called an emergency meeting and decided Jesus must die. Caiaphas said 'It is better for you that one man die for the people than that the whole nation perish.' John notes the irony: Caiaphas unknowingly prophesied that Jesus would die for the nation. The miracle that proved Jesus could give life became the immediate cause of his death — and through that death, he would give life to all who believe.", "reference": "John 11:45-53", "points": 20},
+        {"id": "mir-tf-a-17", "question": "Ancient miracle workers outside the Bible (such as Apollonius of Tyana, Honi the Circle Drawer, and Hanina ben Dosa) provide exact parallels to Jesus' miracles, making Jesus' miracle-working indistinguishable from other ancient wonder-workers.", "correctAnswer": false, "explanation": "While ancient sources do record miracle claims for other figures, the parallels are far less exact than often claimed. Jesus' miracles are distinctive in several ways: (1) they lack the elaborate rituals, incantations, and magical paraphernalia common in ancient miracle stories; (2) Jesus heals with simple commands or touches; (3) Jesus' miracles are deeply integrated with his kingdom proclamation; (4) the volume, variety, and attestation of Jesus' miracles exceed any ancient parallel. The differences are as significant as the similarities.", "reference": "Gospel miracle accounts, ancient parallels", "points": 20},
+        {"id": "mir-tf-a-18", "question": "The 'Messianic Secret' in Mark's Gospel — Jesus commanding silence about his miracles — is best understood as a literary creation by Mark with no historical basis, invented to explain why Jesus was not widely recognised as Messiah during his lifetime.", "correctAnswer": false, "explanation": "While William Wrede (1901) proposed this view, it has been significantly modified by subsequent scholarship. Most scholars now recognise a historical core: Jesus did restrict publicity about his miracles because popular messianic expectations were political/military, and premature revelation would trigger the wrong kind of following before his mission was complete. Jesus needed to redefine messiahship through suffering (Mark 8:31-33) before the full truth could be proclaimed. The secrecy has both historical motivation and Markan theological purpose.", "reference": "Mark 1:34, 8:29-31", "points": 20},
+        {"id": "mir-tf-a-19", "question": "The miracle accounts in the book of Acts deliberately parallel Jesus' miracles in the Gospels to demonstrate theological continuity — showing that the risen Christ continues his healing and liberating ministry through the Spirit-empowered church.", "correctAnswer": true, "explanation": "Luke structures Acts to show Jesus' continuing ministry: Peter raises the dead (Tabitha — Acts 9) like Jesus raised Jairus' daughter; Paul raises the dead (Eutychus — Acts 20); both heal the lame (Acts 3, 14); Paul heals like Jesus through touching (Acts 28, compare Mark 5). But crucially, the apostles attribute the power to Jesus ('In the name of Jesus Christ, walk' — Acts 3:6). The opening of Acts says Luke wrote about what Jesus 'began to do' (1:1), implying Acts continues what Jesus does through his Spirit.", "reference": "Acts 1:1, 3:6, 9:34", "points": 20},
+        {"id": "mir-tf-a-20", "question": "The 'double portion' of Elijah's spirit that Elisha requested (2 Kings 2:9) refers to the firstborn son's inheritance rights in Israelite law — Elisha was asking to be recognised as Elijah's primary spiritual heir, not necessarily asking for twice as much raw power.", "correctAnswer": true, "explanation": "In Deuteronomy 21:17, the firstborn son receives a 'double portion' (pi shenayim) of the inheritance. Elisha's request was for the inheritance right of Elijah's spiritual firstborn — recognition as his primary successor. That Elisha subsequently performed roughly twice as many miracles as Elijah (16 versus 8, including a posthumous miracle) was God's dramatic confirmation that the request was granted. The 'double portion' is about prophetic succession and authority, not a mathematical formula for power.", "reference": "2 Kings 2:9, Deuteronomy 21:17", "points": 20},
+        {"id": "mir-tf-a-21", "question": "The fact that Jesus sometimes used physical means in his healings (mud, saliva, touching) while at other times he healed with a word from a distance suggests that the physical actions were theologically significant symbols, not magical necessities.", "correctAnswer": true, "explanation": "Jesus' varied methods — touching lepers (culturally forbidden), using saliva and mud (John 9), putting fingers in ears (Mark 7), laying hands on — demonstrate that the power was not in any technique but in Jesus himself. He also healed from a distance (the centurion's servant, the Syrophoenician woman's daughter) with no physical contact at all. The physical actions likely served pastoral purposes: communicating compassion to the suffering person (the deaf man who couldn't hear verbal assurance) and embodying the truth that God works through material means.", "reference": "John 9:6-7, Mark 7:33, Matthew 8:8-13", "points": 20},
+        {"id": "mir-tf-a-22", "question": "Jesus' statement 'Whoever believes in me will do even greater things than these' (John 14:12) most likely refers to the wider geographic and temporal scope of the church's ministry through the Spirit, not to performing more spectacular miracles than Jesus did.", "correctAnswer": true, "explanation": "The 'greater' (meizona) works are greater in scope and extent, not in quality or spectacularity. Jesus' ministry was limited to a small geographic area (Palestine) over three years. Through the Spirit, the church would heal, teach, liberate, and transform lives across every continent and throughout all of history. Three thousand saved at Pentecost alone exceeded any single day of Jesus' ministry. The global expansion of God's kingdom through the church is the 'greater work' — though miraculous healings continue as part of this broader mission.", "reference": "John 14:12, Acts 2:41", "points": 20},
+        {"id": "mir-tf-a-23", "question": "The walking-on-water narrative in Mark 6:48 contains the phrase 'he was about to pass by them,' which scholars have identified as a deliberate echo of Old Testament theophanies — specifically God 'passing by' Moses at Sinai and Elijah at Horeb — signalling that Jesus walking on water is a divine self-revelation.", "correctAnswer": true, "explanation": "The phrase 'he was about to pass by them' (parelthen) echoes Exodus 33:19-23 (God's glory 'passing by' Moses in the cleft of the rock) and 1 Kings 19:11 ('The LORD is about to pass by' Elijah at Horeb). These are the two most dramatic theophanies in the Old Testament. Mark's use of this language signals that Jesus walking on the water is not merely a miracle but a theophany — a divine self-revelation. Jesus IS the God who passes by, who treads on the waves of the sea (Job 9:8).", "reference": "Mark 6:48, Exodus 33:19-23, 1 Kings 19:11, Job 9:8", "points": 20},
+        {"id": "mir-tf-a-24", "question": "The miracle of the resurrection of Jesus is fundamentally different in kind from the three resuscitations he performed during his ministry (Jairus' daughter, the widow of Nain's son, and Lazarus), because those three were restored to mortal life and would die again, while Jesus was raised to an immortal, transformed existence.", "correctAnswer": true, "explanation": "The three resuscitations during Jesus' ministry restored people to their previous mortal condition — Jairus' daughter, the young man of Nain, and Lazarus all eventually died again. Jesus' resurrection was categorically different: he was raised to a transformed, glorified, immortal existence — a 'spiritual body' (1 Corinthians 15:44) that was both continuous with his earthly body (same wounds, could eat) and radically transformed (appeared in locked rooms, was initially unrecognised). Jesus' resurrection is the 'firstfruits' (1 Corinthians 15:20) — the prototype of the future resurrection of all believers.", "reference": "1 Corinthians 15:20-23, 42-49", "points": 20},
+        {"id": "mir-tf-a-25", "question": "The concept of 'divine accommodation' in miracle theology means that God adapts his miraculous activity to different historical and cultural contexts — performing different types of miracles in different eras while maintaining consistent purposes of revelation, redemption, and compassion.", "correctAnswer": true, "explanation": "Divine accommodation recognises that the type of miracle God performs varies by context. In the Exodus, dramatic nature miracles challenged Egyptian religion. In Jesus' ministry, healings and exorcisms addressed the suffering and spiritual oppression of first-century Palestine. In Acts, signs authenticated the apostolic message in new cultural settings. The forms change but the purposes remain: revealing God's character, delivering people from bondage, and demonstrating compassion. This explains why different biblical eras feature different types of miracles without denying their reality.", "reference": "Various biblical periods", "points": 20},
+        {"id": "mir-tf-a-26", "question": "The Synoptic Gospels record Jesus explicitly refusing to perform miracles 'on demand' as proof — he rejected requests for signs from the Pharisees and refused to use miraculous power to save himself on the cross.", "correctAnswer": true, "explanation": "When the Pharisees demanded a sign, Jesus said 'A wicked and adulterous generation asks for a sign! But none will be given it except the sign of the prophet Jonah' (Matthew 12:39). At the cross, the mockers said 'Let him come down from the cross and we will believe' — but Jesus refused. He also rejected the devil's temptation to throw himself from the Temple to prove his identity. Jesus performed miracles out of compassion and to reveal the kingdom, never as demonstrations to satisfy sceptical curiosity or personal convenience.", "reference": "Matthew 12:38-39, 27:40-42, 4:5-7", "points": 20},
+        {"id": "mir-tf-a-27", "question": "The 153 fish caught in the miraculous catch in John 21 is a historically insignificant number that the author included simply to show he was an eyewitness who counted the fish — most scholars agree the number has no symbolic meaning.", "correctAnswer": false, "explanation": "While the number 153 may simply reflect eyewitness precision, numerous scholars have proposed symbolic significance. Jerome (4th century) claimed there were 153 known species of fish in the ancient world, representing the universal mission of the church gathering all nations. Others note that 153 is a triangular number (the sum of 1+2+3...+17) and that the Hebrew numerical values of various significant phrases equal 153. The debate continues, but the careful recording of the exact number suggests the evangelist considered it significant beyond mere factual reporting.", "reference": "John 21:11", "points": 20},
+        {"id": "mir-tf-a-28", "question": "In biblical theology, miracles serve three primary functions: they reveal God's character (revelation), they deliver people from bondage and suffering (redemption), and they authenticate God's messengers (attestation). All three functions are present in both Old and New Testament miracles.", "correctAnswer": true, "explanation": "These three functions operate throughout Scripture. Revelation: miracles show who God is (the plagues reveal YHWH's supremacy over Egyptian gods; Jesus' miracles reveal the kingdom's nature). Redemption: miracles deliver from bondage (Exodus delivers from slavery; Jesus' healings deliver from sickness, demons, death). Attestation: miracles confirm God's messengers (Moses' signs before Pharaoh; Jesus' signs confirming his messianic identity; apostolic signs confirming the church's message). All three functions often operate simultaneously in a single miracle.", "reference": "Exodus 7-12, John 20:30-31, Acts 2:22", "points": 20},
+        {"id": "mir-tf-a-29", "question": "The pattern of Jesus refusing to perform miracles in Nazareth due to the people's unbelief (Mark 6:5) suggests that Jesus' miraculous power was limited by external human factors — he literally COULD NOT perform miracles without human faith.", "correctAnswer": false, "explanation": "Mark 6:5 says 'he could not do any miracles there' — but this describes a moral/relational inability, not an absolute inability. Jesus chose to work within the context of faith relationships, not because his power was limited but because miracles without faith would be mere spectacle. He DID heal 'a few sick people' even in Nazareth. Elsewhere, Jesus performed miracles without the recipients' prior faith (the widow of Nain's son, Malchus' ear). The 'could not' reflects Jesus' commitment to faith-based relationship, not a limitation on divine power.", "reference": "Mark 6:5-6", "points": 20},
+        {"id": "mir-tf-a-30", "question": "The literary pattern of escalation in Jesus' three resurrection miracles (Jairus' daughter who just died → the widow of Nain's son being carried to burial → Lazarus dead for four days) demonstrates a deliberate Christological progression showing increasing mastery over death.", "correctAnswer": true, "explanation": "The three resurrections show a clear escalation: (1) Jairus' daughter had 'just died' — the most recently deceased (Mark 5); (2) the widow of Nain's son was being carried to burial — further from life (Luke 7); (3) Lazarus had been dead four days and was decomposing — the furthest possible from life (John 11). Each miracle pushes further into death's territory, demonstrating that no stage of death is beyond Jesus' authority. This progression reaches its climax in Jesus' own resurrection — the ultimate and permanent victory over death.", "reference": "Mark 5:35-43, Luke 7:11-17, John 11:1-44", "points": 20}
+      ]
     }
   },
   "parables": {
