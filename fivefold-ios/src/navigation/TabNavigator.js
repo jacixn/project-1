@@ -34,12 +34,10 @@ const TabNavigator = () => {
 
   // Get the active tint color based on theme
   const getActiveTintColor = () => {
-    if (theme.name === 'blush') return '#FF69B4';
+      if (theme.name === 'blush') return '#FF69B4';
     if (theme.name === 'cresvia') return '#8A2BE2';
     if (theme.name === 'eterna') return '#4B0082';
-    if (theme.name === 'spiderman') return '#E31E24';
     if (theme.name === 'faith') return '#4A90E2';
-    if (theme.name === 'sailormoon') return '#C8A2D0';
     return theme.primary || '#007AFF';
   };
 
@@ -60,6 +58,7 @@ const TabNavigator = () => {
         options={{
           title: 'Bible',
           tabBarIcon: () => ({ sfSymbol: 'book.fill' }),
+          tabBarAccessibilityLabel: 'Bible tab',
         }}
       />
       <Tab.Screen 
@@ -68,6 +67,7 @@ const TabNavigator = () => {
         options={{
           title: 'Tasks',
           tabBarIcon: () => ({ sfSymbol: 'checkmark.circle.fill' }),
+          tabBarAccessibilityLabel: 'Tasks tab',
         }}
       />
       <Tab.Screen 
@@ -77,6 +77,7 @@ const TabNavigator = () => {
           title: 'Fitness',
           tabBarIcon: () => ({ sfSymbol: 'figure.strengthtraining.traditional' }),
           tabBarBadge: hasActiveWorkout ? '' : undefined,
+          tabBarAccessibilityLabel: 'Fitness tab',
         }}
       />
       <Tab.Screen 
@@ -85,6 +86,7 @@ const TabNavigator = () => {
         options={{
           title: 'Hub',
           tabBarIcon: () => ({ sfSymbol: 'bubble.left.and.bubble.right.fill' }),
+          tabBarAccessibilityLabel: 'Hub tab',
         }}
       />
       <Tab.Screen 
@@ -93,6 +95,7 @@ const TabNavigator = () => {
         options={{
           title: 'Profile',
           tabBarIcon: () => ({ sfSymbol: 'person.fill' }),
+          tabBarAccessibilityLabel: 'Profile tab',
         }}
       />
     </Tab.Navigator>

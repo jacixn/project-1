@@ -45,14 +45,13 @@ import { getReferralCount } from '../services/referralService';
 import userStorage from '../utils/userStorage';
 
 // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
+const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5 };
 
 const getStreakAnimSource = (animId) => {
   switch (animId) {
     case 'fire2':     return require('../../assets/Fire2.json');
     case 'redcar':    return require('../../assets/Red-Car.json');
     case 'bulb':      return require('../../assets/Bulb Transparent.json');
-    case 'amongus':   return require('../../assets/Loading 50 _ Among Us.json');
     case 'lightning':  return require('../../assets/Lightning.json');
     default:          return require('../../assets/fire-animation.json');
   }
@@ -70,7 +69,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const [myReferralCount, setMyReferralCount] = useState(0);
   const [myStreakAnim, setMyStreakAnim] = useState('fire1');
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
-  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
   useEffect(() => {
     userStorage.getRaw('fivefold_badge_toggles').then(raw => {
       if (raw) {
@@ -1013,8 +1012,6 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
               source={
                 selectedLoadingAnim === 'hamster'
                   ? require('../../assets/Run-Hamster.json')
-                  : selectedLoadingAnim === 'amongus'
-                  ? require('../../assets/Loading 50 _ Among Us.json')
                   : require('../../assets/Running-Cat.json')
               }
               autoPlay

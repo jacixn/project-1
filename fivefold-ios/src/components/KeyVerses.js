@@ -66,6 +66,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
   
   // Open verse detail with animation
   const openVerseDetail = (verse) => {
+    hapticFeedback.light();
     setSelectedVerse(verse);
     setShowVerseDetail(true);
     verseDetailSlide.setValue(height);
@@ -504,17 +505,14 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
                     style={styles.verseDetailSecondaryBtn}
                     onPress={() => {
                       hapticFeedback.light();
-                      // Store reference before closing modal (since selectedVerse will be null after close)
-                      const verseRef = selectedVerse?.reference;
+                      const versePayload = selectedVerse ? { text: selectedVerse.text, reference: selectedVerse.reference } : null;
                       
-                      // Close the verse detail modal immediately (no animation)
                       setShowVerseDetail(false);
                       setSelectedVerse(null);
                       
-                      // Navigate after a brief delay to ensure the modal state is updated
-                      if (onDiscussVerse && verseRef) {
+                      if (onDiscussVerse && versePayload) {
                         setTimeout(() => {
-                          onDiscussVerse(verseRef);
+                          onDiscussVerse(versePayload);
                         }, 150);
                       }
                     }}

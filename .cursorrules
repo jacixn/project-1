@@ -19,7 +19,7 @@
 - The Profile tab icon shows the user's profile picture via `{ uri: profilePicture }`, falling back to `{ sfSymbol: 'person.fill' }`.
 
 ## Loading Animations (CRITICAL — respect user's selected animation)
-- The user selects a loading animation in Customisation: Default, Running Cat, Run Hamster, or Among Us. Stored in `fivefold_loading_animation` via `userStorage`.
+- The user selects a loading animation in Customisation: Default, Running Cat, or Run Hamster. Stored in `fivefold_loading_animation` via `userStorage`.
 - **NEVER use raw `<ActivityIndicator size="large" />` for full-screen or section loading states.** Always use `<CustomLoadingIndicator />` from `src/components/CustomLoadingIndicator.js`.
 - `CustomLoadingIndicator` auto-reads the user's preference and validates referral gates. Pass `selectedAnim={selectedLoadingAnim}` if the parent already tracks it, otherwise the component fetches it internally.
 - **Exceptions**: Small inline button spinners (send, accept, decline, verify) should remain as `<ActivityIndicator size="small" />`.
@@ -29,6 +29,18 @@
 - **NEVER use `<RefreshControl>`** on the Profile tab's main ScrollView. The native iOS `UIRefreshControl` renders a visible spinner that **cannot be hidden** — even `tintColor="transparent"` doesn't work on many iOS versions.
 - Instead, detect the pull gesture with `onScrollEndDrag` checking `contentOffset.y < -70`, and show a **custom absolutely-positioned indicator** (Lottie or ActivityIndicator).
 - The loading animation is user-configurable in Customisation (stored in `fivefold_loading_animation` via userStorage).
+
+## Themes (CRITICAL — follow these steps when adding new themes)
+- The app has **25+ themes** in `fivefold-ios/src/themes/`. Each theme has its own folder with `theme.js` and `wallpaper1.jpg`.
+- **To add a new theme, you MUST do ALL of the following:**
+  1. Create `src/themes/<theme-id>/theme.js` exporting wallpaper (`require('./wallpaper1.jpg')`) and theme object (with `light` and `dark` modes)
+  2. Copy wallpaper image as `wallpaper1.jpg` into the theme folder
+  3. In `ThemeContext.js`: import theme + wallpaper, add to `themeWallpapers` object, add to `themes` object, add to `lightDefaultThemes` or `darkDefaultThemes` in `changeTheme()`
+  4. In `CustomisationScreen.js`: add to `THEME_REFERRAL_GATES` and `allThemes` array
+  5. In `ThemeModal.js`: add to `lightThemes` or `darkThemes` array
+  6. **Rebuild the app** — new images require a native rebuild, not just hot reload
+- **NEVER hardcode theme checks** like `isBlushTheme || isCresviaTheme || ...` — always use `currentTheme && currentTheme !== 'light' && currentTheme !== 'dark'`
+- `AnimatedWallpaper.js` and all tab screens already use dynamic `currentTheme` checks — no changes needed there for new themes
 
 ## UI / UX conventions
 - **Readability first**: gradients/glass are allowed only if text contrast remains strong.
@@ -68,6 +80,22 @@
 - OCR.space API key is stored in `fivefold-ios/ocr.config.js` (gitignored).
 - After a fresh clone, recreate with: `export const OCR_CONFIG = { apiKey: '<your-key>' };`
 - Get a free key from https://ocr.space/ocrapi/freekey
+
+## Quiz Questions (CRITICAL — follow this style when writing questions)
+- Quiz data lives in `quiz-data/questions.json`, hosted on the private GitHub repo (`jacixn/project-1`). The app fetches from `raw.githubusercontent.com` with a cache-busting parameter.
+- **Categories**: new-testament, old-testament, life-of-jesus, miracles, parables, women-of-bible
+- **Types**: multiple-choice, true-false
+- **Difficulties**: beginner (10 pts), intermediate (15 pts), advanced (20 pts)
+- **Distribution per category**: 200 questions total — 35 MC beginner, 35 MC intermediate, 30 MC advanced, 35 TF beginner, 35 TF intermediate, 30 TF advanced
+- **Writing style (CRITICAL)**:
+  - Every question MUST provide full context so users understand what is being asked. NEVER write short, context-free questions like "What was Abigail known for?" — the user won't know who Abigail is.
+  - Instead, set the scene: explain who the person is, what book/event it relates to, and give enough background that someone unfamiliar can still engage with the question.
+  - Good example: "Adam and Eve had two sons. The older brother became a farmer and the younger became a shepherd. When both brought offerings to God, God accepted the younger brother's offering but not the older brother's. In a jealous rage, the older brother killed the younger. Who killed whom?"
+  - Bad example: "Who killed Abel?"
+  - Explanations should be detailed (3-5 sentences) and include the "why" and surrounding story, not just restate the answer.
+  - Always include a `reference` field with the Bible passage(s).
+- **ID format**: `{category-prefix}-{mc|tf}-{b|i|a}-{number}` (e.g., `nt-mc-b-1`, `ot-tf-a-30`)
+- After adding/modifying questions, always `git push` to GitHub so the app can fetch the updated data.
 
 ## Legal / App Store
 - Privacy Policy, Terms of Service, and Support pages are in `fivefold-ios/legal/`.

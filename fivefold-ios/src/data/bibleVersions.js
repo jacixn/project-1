@@ -14,7 +14,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'Biblica',
-    copyright: 'Public Domain',
+    copyright: '© Biblica, Inc.',
     githubFile: 'NEW INTERNATIONAL VERSION.json'
   },
   {
@@ -27,7 +27,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Contemporary',
     publisher: 'Tyndale House',
-    copyright: 'Public Domain',
+    copyright: '© Tyndale House Foundation',
     githubFile: 'NEW LIVING TRANSLATION.json'
   },
   {
@@ -40,7 +40,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'Crossway',
-    copyright: 'Public Domain',
+    copyright: '© Crossway',
     githubFile: 'ENGLISH STANDARD VERSION.json'
   },
   
@@ -69,7 +69,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Traditional',
     publisher: 'Thomas Nelson',
-    copyright: 'Public Domain',
+    copyright: '© Thomas Nelson, Inc.',
     githubFile: 'NEW KING JAMES VERSION.json'
   },
   
@@ -84,7 +84,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Lockman Foundation',
-    copyright: 'Public Domain',
+    copyright: '© The Lockman Foundation',
     githubFile: 'NEW AMERICAN STANDARD BIBLE.json'
   },
   {
@@ -97,7 +97,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'Holman Bible Publishers',
-    copyright: 'Public Domain',
+    copyright: '© Holman Bible Publishers',
     githubFile: 'CHRISTIAN STANDARD BIBLE.json'
   },
   {
@@ -110,7 +110,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Zondervan',
-    copyright: 'Public Domain',
+    copyright: '© The Lockman Foundation',
     githubFile: 'AMPLIFIED BIBLE.json'
   },
   
@@ -125,7 +125,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Contemporary',
     publisher: 'American Bible Society',
-    copyright: 'Public Domain',
+    copyright: 'Copyright \u00A9 1995 American Bible Society',
     githubFile: 'CONTEMPORARY ENGLISH VERSION.json'
   },
   {
@@ -138,7 +138,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Contemporary',
     publisher: 'American Bible Society',
-    copyright: 'Public Domain',
+    copyright: '© American Bible Society',
     githubFile: "GOOD NEWS TRANSLATION.json"
   },
   {
@@ -151,7 +151,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Contemporary',
     publisher: "God's Word to the Nations",
-    copyright: 'Public Domain',
+    copyright: "© God's Word to the Nations Mission Society",
     githubFile: "GOD'S WORD® TRANSLATION.json"
   },
   
@@ -166,7 +166,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Covenant Press',
-    copyright: 'Public Domain',
+    copyright: '© Covenant Press (CC BY-SA)',
     githubFile: 'LITERAL STANDARD VERSION.json'
   },
   {
@@ -261,7 +261,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'David Bauscher',
-    copyright: 'Public Domain',
+    copyright: '© David Bauscher',
     githubFile: 'ARAMAIC BIBLE IN PLAIN ENGLISH.json'
   },
   {
@@ -287,7 +287,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Janet M. Magiera',
-    copyright: 'Public Domain',
+    copyright: '© Janet M. Magiera',
     githubFile: 'PESHITTA HOLY BIBLE TRANSLATED.json'
   },
   
@@ -315,7 +315,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'USCCB',
-    copyright: 'Public Domain',
+    copyright: '© USCCB/CCD',
     githubFile: 'NEW AMERICAN BIBLE.json'
   },
   
@@ -330,7 +330,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'National Council of Churches',
-    copyright: 'Public Domain',
+    copyright: '© National Council of Churches',
     githubFile: 'NEW REVISED STANDARD VERSION.json'
   },
   {
@@ -453,7 +453,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'Holman Bible Publishers',
-    copyright: 'Public Domain',
+    copyright: '© Holman Bible Publishers',
     githubFile: 'HOLMAN CHRISTIAN STANDARD BIBLE.json'
   },
   {
@@ -466,7 +466,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Modern',
     publisher: 'ISV Foundation',
-    copyright: 'Public Domain',
+    copyright: '© ISV Foundation',
     githubFile: 'INTERNATIONAL STANDARD VERSION.json'
   },
   {
@@ -492,7 +492,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'George M. Lamsa',
-    copyright: 'Public Domain',
+    copyright: '© A.J. Holman Co.',
     githubFile: 'LAMSA BIBLE.json'
   },
   {
@@ -505,7 +505,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Three Sixteen Publishing',
-    copyright: 'Public Domain',
+    copyright: '© Three Sixteen Publishing',
     githubFile: 'LEGACY STANDARD BIBLE.json'
   },
   {
@@ -531,7 +531,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Lockman Foundation',
-    copyright: 'Public Domain',
+    copyright: '© The Lockman Foundation',
     githubFile: 'NASB 1977.json'
   },
   {
@@ -544,7 +544,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Lockman Foundation',
-    copyright: 'Public Domain',
+    copyright: '© The Lockman Foundation',
     githubFile: 'NASB 1995.json'
   },
   {
@@ -557,7 +557,7 @@ export const bibleVersions = [
     isAvailable: true,
     category: 'Study',
     publisher: 'Biblical Studies Press',
-    copyright: 'Public Domain',
+    copyright: '© Biblical Studies Press, L.L.C.',
     githubFile: 'NET BIBLE.json'
   },
   

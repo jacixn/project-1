@@ -50,10 +50,10 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bonusPointsEarned, setBonusPointsEarned] = useState(0);
 
-  // Load data on mount
+  // Load data on mount — always fetch fresh from GitHub
   useEffect(() => {
     if (visible) {
-      loadData();
+      loadData(true);
     }
   }, [visible]);
 

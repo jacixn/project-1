@@ -38,6 +38,7 @@ import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorkoutService from './src/services/workoutService';
+import { updateFuelWidget, updateTodoWidget } from './src/utils/widgetBridge';
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -71,11 +72,23 @@ if (global.ErrorUtils && !global.__ERROR_HANDLER_INSTALLED__) {
 LogBox.ignoreLogs(['ReferenceError: Property']);
 
 // Splash Screen Component (dark theme — used during Bible version reload)
+import LottieView from 'lottie-react-native';
+
+const SPLASH_ANIM_SOURCES = {
+  cat: require('./assets/Running-Cat.json'),
+  hamster: require('./assets/Run-Hamster.json'),
+};
+
 const SplashScreen = () => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  const [loadingAnim, setLoadingAnim] = useState(null);
 
   useEffect(() => {
+    AsyncStorage.getItem('app_splash_loading_animation')
+      .then(val => { if (val) setLoadingAnim(val); })
+      .catch(() => {});
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -90,6 +103,9 @@ const SplashScreen = () => {
       }),
     ]).start();
   }, []);
+
+  const lottieSource = SPLASH_ANIM_SOURCES[loadingAnim];
+  const lottieSize = loadingAnim === 'hamster' ? 80 : 120;
 
   return (
     <View style={{
@@ -116,7 +132,13 @@ const SplashScreen = () => {
           fontSize: 28,
           fontWeight: '700',
           color: '#FAFAFA',
+          marginBottom: 24,
         }}>Biblely</Text>
+        {lottieSource ? (
+          <LottieView source={lottieSource} autoPlay loop style={{ width: lottieSize, height: lottieSize }} />
+        ) : (
+          <View style={{ height: lottieSize }} />
+        )}
       </Animated.View>
     </View>
   );
@@ -892,9 +914,7 @@ const ThemedApp = () => {
           'blush': require('./src/themes/blush-bloom/wallpaper1.jpg'),
           'cresvia': require('./src/themes/cresvia/wallpaper1.png'),
           'eterna': require('./src/themes/eterna/wallpaper1.jpg'),
-          'spiderman': require('./src/themes/spiderman/wallpaper1.jpg'),
           'faith': require('./src/themes/faith/wallpaper1.jpg'),
-          'sailormoon': require('./src/themes/sailormoon/wallpaper1.jpg'),
         };
 
         // Biblely theme has multiple wallpapers
@@ -965,6 +985,11 @@ const ThemedApp = () => {
         await notificationService.debugListScheduledNotifications('after-daily-checkin');
 
         console.log('Notifications initialized successfully');
+
+        // Push current data to iOS widgets so they're always up-to-date on launch
+        updateTodoWidget().catch(() => {});
+        updateFuelWidget().catch(() => {});
+        console.log('📱 Widget data pushed on app start');
       } catch (error) {
         console.error('Failed to initialize app:', error);
       }
@@ -1066,6 +1091,11 @@ const ThemedApp = () => {
     // When app comes to foreground, pull latest data from Firebase
     // Cooldown: at most once every 60 seconds to avoid excessive reads
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        // Always refresh widgets when app comes to foreground (cheap, local-only)
+        updateTodoWidget().catch(() => {});
+        updateFuelWidget().catch(() => {});
+      }
       if (nextState === 'active' && userId) {
         const now = Date.now();
         const elapsed = now - lastFirebaseDownloadRef.current;

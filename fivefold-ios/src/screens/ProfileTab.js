@@ -559,7 +559,7 @@ const AccountSwitchOverlay = React.memo(({ visible, switching, currentAccount, t
 });
 
 const ProfileTab = () => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, toggleTheme, changeTheme, availableThemes, currentTheme, selectedWallpaperIndex } = useTheme();
   const { t, language, changeLanguage, isChangingLanguage, availableLanguages } = useLanguage();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -666,7 +666,7 @@ const ProfileTab = () => {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [verseToInterpret, setVerseToInterpret] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
-  const [showLegalModal, setShowLegalModal] = useState(null); // 'privacy' | 'terms' | 'support' | null
+  const [showLegalModal, setShowLegalModal] = useState(null); // 'privacy' | 'terms' | 'support' | 'bibleCredits' | null
   const [showBible, setShowBible] = useState(false);
   const [showAdminAnalytics, setShowAdminAnalytics] = useState(false);
   const [attributionData, setAttributionData] = useState(null);
@@ -2050,25 +2050,20 @@ const ProfileTab = () => {
           // Badges
           { name: 'Blue Tick', category: 'Badge', icon: 'verified', color: '#1DA1F2', required: 1 },
           { name: 'Biblely Badge', category: 'Badge', icon: 'workspace-premium', color: '#F59E0B', required: 5 },
-          { name: 'Among Us Badge', category: 'Badge', icon: 'sports-esports', color: '#4CAF50', required: 5 },
           // Themes
           { name: 'Cresvia', category: 'Theme', icon: 'palette', color: '#8B5CF6', required: 1 },
           { name: 'Eterna', category: 'Theme', icon: 'palette', color: '#06B6D4', required: 1 },
           { name: 'Blush Bloom', category: 'Theme', icon: 'palette', color: '#EC4899', required: 3 },
-          { name: 'Sailor Moon', category: 'Theme', icon: 'palette', color: '#F472B6', required: 5 },
           { name: 'Classic', category: 'Theme', icon: 'palette', color: '#D97706', required: 5 },
-          { name: 'Spiderman', category: 'Theme', icon: 'palette', color: '#E53935', required: 5 },
           { name: 'Biblely Light', category: 'Theme', icon: 'palette', color: '#10B981', required: 5 },
           // Streak Animations
           { name: 'Bright Idea', category: 'Streak Animation', icon: 'lightbulb', color: '#FFC107', required: 2 },
           { name: 'Lightning', category: 'Streak Animation', icon: 'bolt', color: '#7C4DFF', required: 4 },
           { name: 'Red Car', category: 'Streak Animation', icon: 'directions-car', color: '#E53935', required: 5 },
           { name: 'Inferno', category: 'Streak Animation', icon: 'whatshot', color: '#FF3D00', required: 5 },
-          { name: 'Among Us', category: 'Streak Animation', icon: 'sports-esports', color: '#4CAF50', required: 5 },
           // Loading Animations
           { name: 'Running Cat', category: 'Loading Animation', icon: 'pets', color: '#795548', required: 1 },
           { name: 'Run Hamster', category: 'Loading Animation', icon: 'pets', color: '#FF9800', required: 3 },
-          { name: 'Among Us', category: 'Loading Animation', icon: 'sports-esports', color: '#4CAF50', required: 5 },
           // Voices
           { name: 'Premium Voice Packs', category: 'Voices', icon: 'record-voice-over', color: '#00BCD4', required: 1 },
         ];
@@ -2616,7 +2611,7 @@ const ProfileTab = () => {
 
       // Badges are gated ONLY by referrals + toggles — no achievement conditions
       // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-      const BADGE_REFERRAL_GATES = { country: null, verified: 1, biblely: 5, amongus: 5 };
+      const BADGE_REFERRAL_GATES = { country: null, verified: 1, biblely: 5 };
       let refCount = 0;
       try { refCount = await getReferralCount(); } catch (_) {}
       const visibleBadges = AchievementService.PROFILE_BADGES.filter(b => {
@@ -2628,8 +2623,8 @@ const ProfileTab = () => {
       setEarnedBadges(visibleBadges);
       
       // Load selected streak animation (with referral validation)
-      const STREAK_ANIM_GATES = { fire1: null, bulb: 2, lightning: 4, redcar: 5, fire2: 5, amongus: 5 };
-      const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      const STREAK_ANIM_GATES = { fire1: null, bulb: 2, lightning: 4, redcar: 5, fire2: 5 };
+      const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
       const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (savedAnim) {
         const streakReq = STREAK_ANIM_GATES[savedAnim];
@@ -3042,6 +3037,8 @@ const ProfileTab = () => {
           hapticFeedback.buttonPress();
         }}
         hapticType="light"
+        accessibilityLabel="Edit profile"
+        accessibilityRole="button"
       >
         <TouchableOpacity style={styles.editButtonInner}>
           <MaterialIcons name="edit" size={20} color={theme.primary} />
@@ -3051,6 +3048,8 @@ const ProfileTab = () => {
       <TouchableOpacity 
         style={[styles.avatarContainer, { backgroundColor: theme.primary }]}
         onPress={() => setShowEditModal(true)}
+        accessibilityLabel="Profile picture"
+        accessibilityRole="button"
       >
         {profilePicture ? (
           <Image 
@@ -3082,7 +3081,6 @@ const ProfileTab = () => {
               selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
               selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
               selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
-              selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
               selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
               require('../../assets/fire-animation.json')
             }
@@ -3159,7 +3157,6 @@ const ProfileTab = () => {
               selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
               selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
               selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
-              selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
               selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
               require('../../assets/fire-animation.json')
             }
@@ -3559,6 +3556,8 @@ const ProfileTab = () => {
       <AnimatedSettingsCard 
         style={styles.aboutCard}
         onPress={handleSignOut}
+        accessibilityLabel="Sign out"
+        accessibilityRole="button"
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
           <View style={styles.settingLeft}>
@@ -3586,6 +3585,8 @@ const ProfileTab = () => {
         hapticFeedback.buttonPress();
         navigation.navigate('Customisation');
       }}
+      accessibilityLabel="Customisation"
+      accessibilityRole="button"
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
@@ -3605,8 +3606,10 @@ const ProfileTab = () => {
       style={styles.aboutCard}
       onPress={() => {
         hapticFeedback.buttonPress();
-        setShowSettingsModal(true); // Open the settings modal
+        setShowSettingsModal(true);
       }}
+      accessibilityLabel="Settings"
+      accessibilityRole="button"
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
         <View style={styles.settingLeft}>
@@ -3654,12 +3657,23 @@ const ProfileTab = () => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => { hapticFeedback.buttonPress(); setShowLegalModal('support'); }}
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
           activeOpacity={0.6}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MaterialIcons name="help-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
             <Text style={{ color: textColor, fontSize: 15, marginLeft: 12, ...textOutlineStyle }}>Support & FAQ</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={iconColor} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { hapticFeedback.buttonPress(); setShowLegalModal('bibleCredits'); }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 }}
+          activeOpacity={0.6}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons name="menu-book" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <Text style={{ color: textColor, fontSize: 15, marginLeft: 12, ...textOutlineStyle }}>Bible Translation Credits</Text>
           </View>
           <MaterialIcons name="chevron-right" size={20} color={iconColor} />
         </TouchableOpacity>
@@ -3700,7 +3714,7 @@ const ProfileTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (currentTheme && currentTheme !== 'light' && currentTheme !== 'dark') ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -3785,8 +3799,6 @@ const ProfileTab = () => {
             source={
               selectedLoadingAnim === 'hamster'
                 ? require('../../assets/Run-Hamster.json')
-                : selectedLoadingAnim === 'amongus'
-                ? require('../../assets/Loading 50 _ Among Us.json')
                 : require('../../assets/Running-Cat.json')
             }
             autoPlay={false}
@@ -3933,7 +3945,7 @@ const ProfileTab = () => {
               setShowCountryPicker(false);
             }}
           >
-            <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: 60 }}>
+            <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top + 10 }}>
               <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#ccc' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <TouchableOpacity onPress={() => {
@@ -4234,14 +4246,11 @@ const ProfileTab = () => {
               }}
               onScroll={handleSavedVersesScroll}
               scrollEventThrottle={16}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshingSavedVerses}
-                  onRefresh={refreshSavedVerses}
-                  tintColor={theme.primary}
-                  colors={[theme.primary]}
-                />
-              }
+              onScrollEndDrag={(e) => {
+                if (e.nativeEvent.contentOffset.y < -70 && !refreshingSavedVerses) {
+                  refreshSavedVerses();
+                }
+              }}
             >
               {/* Animated spacer that shrinks with search bar */}
               <Animated.View style={{
@@ -7299,7 +7308,11 @@ const ProfileTab = () => {
             setVerseToInterpret(null);
           }}
           initialVerse={verseToInterpret}
-          onNavigateToBible={handleNavigateToVerse}
+          onNavigateToBible={(verseRef) => {
+            setShowAiChat(false);
+            setVerseToInterpret(null);
+            handleNavigateToVerse(verseRef);
+          }}
         />
       )}
 
@@ -7330,7 +7343,7 @@ const ProfileTab = () => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
                 paddingBottom: 120,
-                paddingTop: Platform.OS === 'ios' ? 130 : 100,
+                paddingTop: insets.top + 80,
               }}
               scrollEventThrottle={16}
             >
@@ -7889,7 +7902,7 @@ const ProfileTab = () => {
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 40,
-                paddingTop: Platform.OS === 'ios' ? 120 : 100,
+                paddingTop: insets.top + 70,
               }}
             >
               {highlightedVerses.length === 0 ? (
@@ -8691,7 +8704,7 @@ const ProfileTab = () => {
               contentContainerStyle={{ 
                 paddingHorizontal: 16, 
                 paddingBottom: 120,
-                paddingTop: Platform.OS === 'ios' ? 120 : 100,
+                paddingTop: insets.top + 70,
               }}
             >
               {completedTodosList.length === 0 ? (
@@ -8916,7 +8929,6 @@ const ProfileTab = () => {
                   selectedStreakAnim === 'fire2' ? require('../../assets/Fire2.json') :
                   selectedStreakAnim === 'redcar' ? require('../../assets/Red-Car.json') :
                   selectedStreakAnim === 'bulb' ? require('../../assets/Bulb Transparent.json') :
-                  selectedStreakAnim === 'amongus' ? require('../../assets/Loading 50 _ Among Us.json') :
                   selectedStreakAnim === 'lightning' ? require('../../assets/Lightning.json') :
                   require('../../assets/fire-animation.json')
                 }
@@ -9124,11 +9136,11 @@ const ProfileTab = () => {
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MaterialIcons
-              name={showLegalModal === 'privacy' ? 'privacy-tip' : showLegalModal === 'terms' ? 'description' : 'help-outline'}
+              name={showLegalModal === 'privacy' ? 'privacy-tip' : showLegalModal === 'terms' ? 'description' : showLegalModal === 'bibleCredits' ? 'menu-book' : 'help-outline'}
               size={22} color={isDark ? '#A5B4FC' : '#6366F1'}
             />
             <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#FFF' : '#1a1a2e', marginLeft: 10 }}>
-              {showLegalModal === 'privacy' ? 'Privacy Policy' : showLegalModal === 'terms' ? 'Terms of Service' : 'Support & FAQ'}
+              {showLegalModal === 'privacy' ? 'Privacy Policy' : showLegalModal === 'terms' ? 'Terms of Service' : showLegalModal === 'bibleCredits' ? 'Bible Translation Credits' : 'Support & FAQ'}
             </Text>
           </View>
           <TouchableOpacity onPress={() => { hapticFeedback.medium(); setShowLegalModal(null); }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -9142,7 +9154,7 @@ const ProfileTab = () => {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           {showLegalModal === 'privacy' && (
             <>
-              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 8, 2026</Text>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 21, 2026</Text>
               <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
                 Biblely ("we", "our", or "the app") is a faith and productivity companion. Your privacy matters to us. This policy explains what data we collect, how we use it, and your rights.
               </Text>
@@ -9156,7 +9168,7 @@ const ProfileTab = () => {
                 { title: '6. Analytics and Tracking', content: 'We do not use any analytics or tracking SDKs. We do not track you across apps or websites. No advertising identifiers are collected.' },
                 { title: '7. Data Retention', content: 'Your data is retained as long as your account exists. Food logs older than 90 days are automatically cleaned from local storage. You can delete all your data at any time by deleting your account (Settings > Delete Account).' },
                 { title: '8. Your Rights', content: 'Access: You can view all your data within the app.\n\nDeletion: You can delete your account and all associated data from Settings > Delete Account. This permanently removes your data from Firebase and your device.\n\nPortability: Your data is stored locally on your device and accessible through standard device backup mechanisms.' },
-                { title: '9. Children\'s Privacy', content: 'Biblely is not directed at children under 13. We do not knowingly collect data from children under 13.' },
+                { title: '9. Children\'s Privacy', content: 'Biblely is not directed at children under 12. We do not knowingly collect data from children under 12.' },
                 { title: '10. Security', content: 'We use industry-standard security measures including Firebase Authentication, encrypted connections (HTTPS/TLS), and secure password hashing.' },
                 { title: '11. Changes', content: 'We may update this privacy policy from time to time. We will notify you of significant changes through the app or by updating the "Last updated" date.' },
                 { title: '12. Contact', content: 'If you have questions about this privacy policy or your data, contact us at:\n\nbiblelyios@gmail.com' },
@@ -9171,7 +9183,7 @@ const ProfileTab = () => {
 
           {showLegalModal === 'terms' && (
             <>
-              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 8, 2026</Text>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: February 21, 2026</Text>
               <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
                 Welcome to Biblely. By using the app, you agree to these Terms of Service. If you do not agree, please do not use the app.
               </Text>
@@ -9257,6 +9269,72 @@ const ProfileTab = () => {
               </View>
             </>
           )}
+
+          {showLegalModal === 'bibleCredits' && (
+            <>
+              <Text style={{ fontSize: 14, color: isDark ? '#999' : '#666', marginBottom: 20, lineHeight: 21 }}>
+                Biblely provides Bible text from multiple translations for personal, non-commercial reading. All translations remain the intellectual property of their respective copyright holders.
+              </Text>
+
+              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#A5B4FC' : '#6366F1', marginBottom: 14 }}>Copyrighted Translations</Text>
+              {[
+                { abbr: 'NIV', name: 'New International Version', notice: '© Biblica, Inc. All rights reserved worldwide.' },
+                { abbr: 'NLT', name: 'New Living Translation', notice: '© Tyndale House Foundation. Used by permission of Tyndale House Publishers.' },
+                { abbr: 'ESV', name: 'English Standard Version', notice: '© Crossway, a publishing ministry of Good News Publishers.' },
+                { abbr: 'NKJV', name: 'New King James Version', notice: '© Thomas Nelson, Inc.' },
+                { abbr: 'NASB', name: 'New American Standard Bible', notice: '© The Lockman Foundation.' },
+                { abbr: 'NASB77', name: 'NASB 1977', notice: '© The Lockman Foundation.' },
+                { abbr: 'NASB95', name: 'NASB 1995', notice: '© The Lockman Foundation.' },
+                { abbr: 'CSB', name: 'Christian Standard Bible', notice: '© Holman Bible Publishers.' },
+                { abbr: 'HCSB', name: 'Holman Christian Standard Bible', notice: '© Holman Bible Publishers.' },
+                { abbr: 'AMP', name: 'Amplified Bible', notice: '© The Lockman Foundation.' },
+                { abbr: 'CEV', name: 'Contemporary English Version', notice: '© American Bible Society.' },
+                { abbr: 'GNT', name: 'Good News Translation', notice: '© American Bible Society.' },
+                { abbr: 'GWT', name: "God's Word Translation", notice: "© God's Word to the Nations Mission Society." },
+                { abbr: 'NRSV', name: 'New Revised Standard Version', notice: '© National Council of the Churches of Christ in the USA.' },
+                { abbr: 'NAB', name: 'New American Bible', notice: '© USCCB/Confraternity of Christian Doctrine.' },
+                { abbr: 'NET', name: 'NET Bible', notice: '© Biblical Studies Press, L.L.C.' },
+                { abbr: 'ISV', name: 'International Standard Version', notice: '© ISV Foundation.' },
+                { abbr: 'LSV', name: 'Literal Standard Version', notice: '© Covenant Press. Licensed under CC BY-SA.' },
+                { abbr: 'LSB', name: 'Legacy Standard Bible', notice: '© Three Sixteen Publishing.' },
+                { abbr: 'ABPE', name: 'Aramaic Bible in Plain English', notice: '© David Bauscher.' },
+                { abbr: 'PHBT', name: 'Peshitta Holy Bible Translated', notice: '© Janet M. Magiera.' },
+                { abbr: 'LAMSA', name: 'Lamsa Bible', notice: '© A.J. Holman Co.' },
+              ].map((item, i) => (
+                <View key={i} style={{
+                  marginBottom: 10, padding: 14, borderRadius: 12,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF',
+                  borderWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+                  borderColor: 'rgba(0,0,0,0.06)',
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : '#1a1a2e', marginBottom: 4 }}>{item.abbr} — {item.name}</Text>
+                  <Text style={{ fontSize: 13, color: isDark ? '#AAA' : '#555', lineHeight: 19 }}>{item.notice}</Text>
+                </View>
+              ))}
+
+              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#A5B4FC' : '#6366F1', marginTop: 20, marginBottom: 14 }}>Public Domain Translations</Text>
+              <View style={{
+                padding: 14, borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF',
+                borderWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+                borderColor: 'rgba(0,0,0,0.06)',
+                marginBottom: 10,
+              }}>
+                <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22 }}>
+                  The following translations are in the public domain and freely available:{'\n\n'}KJV (King James Version), ASV (American Standard Version), WEB (World English Bible), YLT (Young's Literal Translation), DRB (Douay-Rheims Bible), WBT (Webster's Bible Translation), SLT (Smith's Literal Translation), ERV (English Revised Version), JPS (JPS Tanakh 1917), BSB (Berean Standard Bible), BLB (Berean Literal Bible), MSB (Majority Standard Bible), NHEB (New Heart English Bible), CPDV (Catholic Public Domain Version), LXX (Brenton Septuagint), ANT (Anderson NT), WNT (Weymouth NT), WORRELL (Worrell NT), WORSLEY (Worsley NT), GODBEY (Godbey NT), HAWEIS (Haweis NT), MACE (Mace NT).
+                </Text>
+              </View>
+
+              <View style={{
+                marginTop: 16, padding: 16, borderRadius: 14,
+                backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#EDE9FE',
+              }}>
+                <Text style={{ fontSize: 13, color: isDark ? '#CCC' : '#555', lineHeight: 20 }}>
+                  Scripture texts are provided for personal reading and study only, not for redistribution or commercial use. All rights belong to their respective copyright holders. If you are a rights holder and have concerns, please contact us at biblelyios@gmail.com.
+                </Text>
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -9313,7 +9391,7 @@ const ProfileTab = () => {
 
         {/* Content */}
         <Animated.ScrollView 
-          style={styles.aboutContent}
+          style={[styles.aboutContent, { paddingTop: insets.top + 70 }]}
           contentContainerStyle={styles.aboutContentContainer}
           showsVerticalScrollIndicator={false}
           opacity={modalFadeAnim}
@@ -10442,7 +10520,6 @@ const styles = StyleSheet.create({
   },
   aboutContent: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 120 : 100,
   },
   aboutContentContainer: {
     padding: 20,

@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import AiBibleChat from '../components/AiBibleChat';
 
 const FriendChatScreen = ({ navigation, route }) => {
@@ -17,10 +16,7 @@ const FriendChatScreen = ({ navigation, route }) => {
       onClose={() => navigation.goBack()}
       initialVerse={initialVerse}
       onNavigateToBible={(verseRef) => {
-        navigation.goBack();
-        setTimeout(() => {
-          DeviceEventEmitter.emit('openBibleFromBibleStudy', { verseRef });
-        }, 100);
+        navigation.navigate('BibleReader', { verseRef });
       }}
       asScreen={true}
     />

@@ -158,6 +158,7 @@ export const TypewriterText = ({
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
+    let cursorInterval = null;
     const timer = setTimeout(() => {
       let index = 0;
       const interval = setInterval(() => {
@@ -167,8 +168,7 @@ export const TypewriterText = ({
         } else {
           clearInterval(interval);
           if (cursor) {
-            // Blink cursor
-            setInterval(() => {
+            cursorInterval = setInterval(() => {
               setShowCursor(prev => !prev);
             }, 500);
           }
@@ -178,7 +178,10 @@ export const TypewriterText = ({
       return () => clearInterval(interval);
     }, delay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (cursorInterval) clearInterval(cursorInterval);
+    };
   }, [children, delay, speed, cursor]);
 
   return (

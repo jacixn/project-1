@@ -21,6 +21,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import userStorage from '../utils/userStorage';
 import { hapticFeedback } from '../utils/haptics';
@@ -29,6 +30,7 @@ import verseByReferenceService from '../services/verseByReferenceService';
 
 const HighlightsScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   
   const [highlightedVerses, setHighlightedVerses] = useState([]);
   const [selectedHighlightColor, setSelectedHighlightColor] = useState(null);
@@ -217,7 +219,7 @@ const HighlightsScreen = ({ navigation }) => {
         contentContainerStyle={{ 
           paddingHorizontal: 16, 
           paddingBottom: 40,
-          paddingTop: Platform.OS === 'ios' ? 120 : 100,
+          paddingTop: insets.top + 70,
         }}
       >
         {highlightedVerses.length === 0 ? (

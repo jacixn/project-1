@@ -112,7 +112,7 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
 };
 
 const SimplePrayerCard = ({ onNavigateToBible }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme } = useTheme();
   
   // For Biblely theme with wallpaper, use white text for better readability
   const textColor = isBiblelyTheme ? '#FFFFFF' : theme.text;

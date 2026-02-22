@@ -83,7 +83,7 @@ class DynamicBibleService {
           signal: controller.signal,
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'FiveFold-Prayer-App/1.0'
+            'User-Agent': 'Biblely/1.0'
           }
         });
         

@@ -1,6 +1,6 @@
 {
   "name": "fivefold-ios",
-  "version": "1.0.50",
+  "version": "1.0.56",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -19,7 +19,6 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/datetimepicker": "^8.6.0",
-    "@react-native-community/netinfo": "11.4.1",
     "@react-native-community/slider": "^5.1.2",
     "@react-navigation/bottom-tabs": "^7.4.7",
     "@react-navigation/native": "^7.1.17",

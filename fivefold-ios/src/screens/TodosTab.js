@@ -147,7 +147,7 @@ const AnimatedCalendarDay = ({ children, onPress, style, ...props }) => {
 const TodosTab = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
+  const { theme, isDark, currentTheme, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
@@ -290,7 +290,7 @@ const TodosTab = () => {
       useNativeDriver: true,
     }).start();
     // Load selected loading animation (with referral validation)
-    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
     Promise.all([
       userStorage.getRaw('fivefold_loading_animation'),
       getReferralCount(),
@@ -309,7 +309,7 @@ const TodosTab = () => {
   // Reload loading animation preference when tab gains focus (with validation)
   useFocusEffect(
     useCallback(() => {
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
       Promise.all([
         userStorage.getRaw('fivefold_loading_animation'),
         getReferralCount(),
@@ -401,6 +401,7 @@ const TodosTab = () => {
         const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0 };
         setTodos(storedTodos);
         setUserStats(storedStats);
+        updateTodoWidget().catch(() => {});
       } catch (err) {
         // Failed to refresh todos after change event
       }
@@ -514,6 +515,8 @@ const TodosTab = () => {
       setTodos(storedTodos);
       setUserStats(storedStats);
       setLoading(false);
+      // Ensure widget has latest data whenever tab loads
+      updateTodoWidget().catch(() => {});
     } catch (error) {
       // Failed to initialize todo data - handle gracefully
       setLoading(false);
@@ -906,7 +909,7 @@ const TodosTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (currentTheme && currentTheme !== 'light' && currentTheme !== 'dark') ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -993,8 +996,6 @@ const TodosTab = () => {
             source={
               selectedLoadingAnim === 'hamster'
                 ? require('../../assets/Run-Hamster.json')
-                : selectedLoadingAnim === 'amongus'
-                ? require('../../assets/Loading 50 _ Among Us.json')
                 : require('../../assets/Running-Cat.json')
             }
             autoPlay={false}

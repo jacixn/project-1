@@ -29,9 +29,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import nutritionService from "../services/nutritionService";
 import bodyCompositionService from "../services/bodyCompositionService";
 import WorkoutSplitModal from "./WorkoutSplitModal";
+import { useNavigation } from "@react-navigation/native";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const navigation = useNavigation();
   const [templates, setTemplates] = useState([]);
   const [folders, setFolders] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,8 +75,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
 
   // Split plan state
   const [splitPlan, setSplitPlan] = useState(null);
-  const [todaySplit, setTodaySplit] = useState(null); // today's config from the plan
+  const [todaySplit, setTodaySplit] = useState(null);
   const [showSplitModal, setShowSplitModal] = useState(false);
+
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(1000)).current;
@@ -1107,7 +1110,11 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             </View>
           )}
 
-          <View style={{ height: 100 }} />
+          <Text style={{ fontSize: 11, color: theme.textTertiary, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
+            Workout plans are auto-generated and may not suit all fitness levels. Consult a fitness professional if you have any health concerns.
+          </Text>
+
+          <View style={{ height: 120 }} />
         </ScrollView>
 
         {/* Transparent Blurred Header */}
@@ -2013,6 +2020,28 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
           onClose={() => setShowSplitModal(false)}
           onSave={handleSplitSave}
         />
+
+        {/* Coach Chat Button - Fixed at bottom */}
+        {!showTemplateEditor && !showSplitModal && !showTemplateDetail && !showCreateModal && !showCreateFolderModal && (
+          <View style={[styles.coachButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+            <TouchableOpacity
+              style={[styles.coachButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.medium();
+                navigation.navigate('CoachChat');
+              }}
+            >
+              <View style={styles.coachButtonContent}>
+                <MaterialIcons name="directions-run" size={20} color={theme.primary} />
+                <Text style={[styles.coachButtonText, { color: theme.text }]}>
+                  Ask me anything...
+                </Text>
+                <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
   );
 
@@ -2853,6 +2882,32 @@ const styles = StyleSheet.create({
   smartCardExDetail: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  coachButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopWidth: 1,
+  },
+  coachButton: {
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  coachButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coachButtonText: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 10,
+    opacity: 0.5,
   },
 });
 

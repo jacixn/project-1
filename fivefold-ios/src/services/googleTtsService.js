@@ -36,6 +36,7 @@ class GoogleTtsService {
     
     // For stopping ongoing speak operations
     this._currentResolve = null;
+    this._isPaused = false;
     
     // Cache index: { [cacheKey]: { path, timestamp, voiceKey } }
     this.cacheIndex = {};
@@ -593,6 +594,7 @@ class GoogleTtsService {
       // Stop any current playback
       await this.stop();
 
+      this._isPaused = false;
       this.isLoading = true;
       this._notifyStateChange('loading');
 
@@ -797,16 +799,8 @@ class GoogleTtsService {
                 resolved = true;
                 clearTimeout(timeout);
                 this.isPlaying = false;
+                this._isPaused = false;
                 this._notifyStateChange('finished');
-                this._cleanup();
-                resolve(true);
-              }
-              // Handle stop - ONLY if we actually started playing first
-              if (hasActuallyStartedPlaying && status.isLoaded && !status.isPlaying && !status.didJustFinish && !resolved) {
-                console.log('[GoogleTTS] Playback was stopped');
-                resolved = true;
-                clearTimeout(timeout);
-                this.isPlaying = false;
                 this._cleanup();
                 resolve(true);
               }
@@ -1068,6 +1062,7 @@ class GoogleTtsService {
     console.log('[GoogleTTS] Stop called');
     this.isPlaying = false;
     this.isLoading = false;
+    this._isPaused = false;
     
     // Resolve any pending speak promise immediately
     if (this._currentResolve) {
@@ -1108,6 +1103,7 @@ class GoogleTtsService {
   async pause() {
     try {
       if (this.sound && this.isPlaying) {
+        this._isPaused = true;
         await this.sound.pauseAsync();
         this.isPlaying = false;
         this._notifyStateChange('paused');
@@ -1124,10 +1120,12 @@ class GoogleTtsService {
     try {
       if (this.sound && !this.isPlaying) {
         await this.sound.playAsync();
+        this._isPaused = false;
         this.isPlaying = true;
         this._notifyStateChange('playing');
       }
     } catch (error) {
+      this._isPaused = false;
       console.log('[GoogleTTS] Resume error:', error);
     }
   }

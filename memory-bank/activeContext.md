@@ -70,11 +70,27 @@ All code-side changes for App Store submission have been implemented. The follow
 8. **`.cursorrules` updated** -- Documented OCR config pattern and legal file locations
 9. **`.gitignore` updated** -- Added `ocr.config.js`
 
+### 17 New Themes Added (February 21, 2026)
+- Added 17 new themes, all free (0 referrals): Cotton Candy, Ascent, Mach, Serenity, Pastures, Good Shepherd, Aurora, Minecraft, Meadow, Walk on Water, Heavens, Calvary, Retro, Nightfall, Cozy Study, Shores, Canopy
+- Each theme has its own folder under `src/themes/` with `theme.js` (light + dark mode) and `wallpaper1.jpg`
+- Registered in: `ThemeContext.js`, `CustomisationScreen.js`, `ThemeModal.js`
+- Fixed `AnimatedWallpaper.js` to dynamically load wallpapers for ANY theme via `themeWallpapers[currentTheme]` instead of hardcoded if-statements
+- Fixed all tab screens (BiblePrayerTab, TodosTab, GymTab, ProfileTab) and Settings.js to use `currentTheme !== 'light' && currentTheme !== 'dark'` for transparent background instead of hardcoded theme boolean checks — this was the root cause of wallpapers not showing for new themes
+- App now has **25 total themes**
+
 ### Previous Major Features
 - **Nutrition Tracker ("Fuel")** -- Full calorie & macro tracking with Gemini Vision food scanning, DeepSeek personalised targets, body composition insights
 - **Body Composition ("Your Body")** -- Health Score, BMI, body fat, muscle mass, bone mass, body water, visceral fat, body age, ideal weight range -- located on PhysiqueScreen
 - **Bible Data** -- 44 translations from private GitHub repo
 - **Task System** -- Calendar scheduling, AI point assignment, celebration animations
+
+### Quiz Questions System (February 2026)
+- Added 200 contextual questions for **New Testament**, **Old Testament**, and **Life of Jesus** categories (600 total so far)
+- Quiz data lives in `quiz-data/questions.json`, fetched from GitHub CDN with cache-busting
+- **Remaining categories to fill**: Miracles, Parables, Women of the Bible (0 questions each)
+- Each category gets 200 questions: 35 MC beginner, 35 MC intermediate, 30 MC advanced, 35 TF beginner, 35 TF intermediate, 30 TF advanced
+- Questions MUST be written with full context (setting the scene, explaining who/what/where) — never short context-free questions
+- See `.cursorrules` "Quiz Questions" section for full writing guidelines
 
 ## Critical Reminders
 - **NEVER delete `fivefold-ios/ios/BiblelyVerseWidget/`** — this is the iOS widget extension. Protect it during all cleanup, refactoring, and cache-clearing operations.

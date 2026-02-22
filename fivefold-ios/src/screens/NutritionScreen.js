@@ -42,6 +42,7 @@ import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
 import notificationService from '../services/notificationService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
+import { updateFuelWidget } from '../utils/widgetBridge';
 
 // ─── Unit conversion helpers ───
 const kgToLbs = (kg) => +(kg * 2.20462).toFixed(1);
@@ -130,6 +131,7 @@ const NutritionScreen = () => {
   // Analyzing scan line animation
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   // Calorie count-up
+  const counterRef = useRef(null);
   const [displayCalories, setDisplayCalories] = useState(0);
 
   // Animations
@@ -246,23 +248,23 @@ const NutritionScreen = () => {
       }, 200);
 
       // 3) Calorie number pops in + count-up
-      setTimeout(() => {
+      const calorieTimeout = setTimeout(() => {
         Animated.parallel([
           Animated.spring(scanCalorieScale, { toValue: 1, damping: 10, stiffness: 100, useNativeDriver: true }),
           Animated.timing(scanCalorieOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
         ]).start();
 
-        // Count-up animation for calories
         const targetCal = parseInt(foodCalories) || 0;
         const steps = 25;
         const stepTime = 30;
         let current = 0;
         const increment = targetCal / steps;
-        const counter = setInterval(() => {
+        counterRef.current = setInterval(() => {
           current += increment;
           if (current >= targetCal) {
             current = targetCal;
-            clearInterval(counter);
+            clearInterval(counterRef.current);
+            counterRef.current = null;
           }
           setDisplayCalories(Math.round(current));
         }, stepTime);
@@ -290,6 +292,14 @@ const NutritionScreen = () => {
           Animated.spring(scanActionsSlide, { toValue: 0, damping: 18, stiffness: 140, useNativeDriver: true }),
         ]).start();
       }, 1050);
+
+      return () => {
+        clearTimeout(calorieTimeout);
+        if (counterRef.current) {
+          clearInterval(counterRef.current);
+          counterRef.current = null;
+        }
+      };
     }
   }, [addFoodMode]);
 
@@ -364,6 +374,9 @@ const NutritionScreen = () => {
           useNativeDriver: true,
         }).start();
       });
+
+      // Ensure widget has latest fuel data whenever screen loads
+      updateFuelWidget().catch(() => {});
     } catch (e) {
       console.warn('[NutritionScreen] Load failed:', e);
       setLoading(false);
@@ -1225,12 +1238,7 @@ const NutritionScreen = () => {
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* ── Header ── */}
         <View style={[styles.dashHeader, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity
-            style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
-          </TouchableOpacity>
+          <View style={styles.headerBtn} />
           <Text style={[styles.dashTitle, { color: textPrimary }]}>Fuel</Text>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
@@ -1627,7 +1635,7 @@ const NutritionScreen = () => {
                   )}
                   {!foodPhotoUri && (
                     <View style={[styles.analyzingCircle, { backgroundColor: theme.primary + '10' }]}>
-                      <ActivityIndicator size="large" color={theme.primary} />
+                      <CustomLoadingIndicator size={48} />
                     </View>
                   )}
                   <Text style={[styles.analyzingText, { color: textPrimary }]}>
@@ -2133,12 +2141,28 @@ const NutritionScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: screenBg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {!showSetup && !showPlanResult && (
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', position: 'absolute', top: insets.top + 8, left: 20, zIndex: 10 }]}
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={isDark ? '#FFFFFF' : theme.text} />
+        </TouchableOpacity>
+      )}
+
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {showPlanResult ? renderPlanResult() : showSetup ? renderSetupForm() : renderDashboard()}
+
+        {!showSetup && !showPlanResult && (
+          <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : theme.textTertiary, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
+            For informational purposes only. Nutritional estimates are approximations and not a substitute for professional medical or dietary advice. Consult a healthcare professional before making significant dietary changes.
+          </Text>
+        )}
       </ScrollView>
 
       {/* Floating Add Button */}

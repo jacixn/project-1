@@ -11,13 +11,13 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Alert,
-  Clipboard,
   Keyboard,
   Dimensions,
   Image,
   ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -25,14 +25,18 @@ import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from '../services/userSyncService';
 import aiService from '../services/aiService';
+import productionAiService from '../services/productionAiService';
 import chatterboxService from '../services/chatterboxService';
 import googleTtsService from '../services/googleTtsService';
 import bibleAudioService from '../services/bibleAudioService';
 import ocrService from '../services/ocrService';
 import speechToTextService from '../services/speechToTextService';
+import nutritionService from '../services/nutritionService';
+import bodyCompositionService from '../services/bodyCompositionService';
+import physiqueService from '../services/physiqueService';
+import WorkoutService from '../services/workoutService';
 import { CircleStrokeSpin, BallVerticalBounce } from './ProgressHUDAnimations';
 import * as ImagePicker from 'expo-image-picker';
-// Removed InteractiveSwipeBack import
 
 // Bible Verse Reference Parser Component
 const BibleVerseText = memo(({ text, style, onVersePress }) => {
@@ -212,8 +216,11 @@ const TypewriterText = memo(({ text, style, speed = 30, onProgress, onVersePress
   );
 });
 
-const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScreen = false }) => {
+const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScreen = false, mode = 'bible' }) => {
   const { theme, isDark } = useTheme();
+  const isGymMode = mode === 'gym';
+  const chatName = isGymMode ? 'Coach' : 'Friend';
+  const historyStorageKey = isGymMode ? 'coachChatHistory' : 'friendChatHistory';
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -234,6 +241,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [gymUserData, setGymUserData] = useState(null);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
 
@@ -483,17 +491,16 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   useEffect(() => {
     if (visible) {
       setIsInitializing(true);
-      // Always start with fresh chat - clear previous messages
       setMessages([]);
-      // Initialize quickly, then load data in background
       setTimeout(() => {
         setIsInitializing(false);
-        // Load data in background
         loadChatHistory();
         loadUserName();
+        if (isGymMode) {
+          loadGymUserData();
+        }
       }, 100);
       
-      // Auto-focus chat input after screen appears
       setTimeout(() => {
         chatInputRef.current?.focus();
       }, 400);
@@ -507,10 +514,42 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     }
   }, [visible, messages]);
 
+  // Load gym user data (nutrition, body comp, physique, workout history)
+  const loadGymUserData = async () => {
+    if (!isGymMode) return;
+    try {
+      const data = {};
+
+      const nutritionProfile = await nutritionService.getProfile();
+      if (nutritionProfile) {
+        data.nutritionProfile = nutritionProfile;
+        data.bodyComposition = bodyCompositionService.calculate(nutritionProfile);
+      }
+
+      const workoutHistory = await WorkoutService.getWorkoutHistory();
+      if (workoutHistory) {
+        await physiqueService.recalculate(workoutHistory);
+        const weakest = physiqueService.getWeakestMuscles(4);
+        const strongest = physiqueService.getStrongestMuscles(3);
+        const overallScore = physiqueService.getOverallScore();
+        data.physiqueScores = { weakest, strongest, overallScore };
+        data.workoutHistory = {
+          totalCount: workoutHistory.length,
+          recentWorkouts: workoutHistory.slice(0, 10).map(w => w.name || 'Workout').filter(Boolean),
+        };
+      }
+
+      setGymUserData(data);
+      console.log('💪 Gym user data loaded for Coach chat');
+    } catch (error) {
+      console.error('Failed to load gym user data:', error);
+    }
+  };
+
   // Load chat history from AsyncStorage
   const loadChatHistory = async () => {
     try {
-      const storedHistory = await userStorage.getRaw('friendChatHistory');
+      const storedHistory = await userStorage.getRaw(historyStorageKey);
       if (storedHistory) {
         const history = JSON.parse(storedHistory);
         setChatHistory(history);
@@ -540,7 +579,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
     try {
       // Load current history to ensure we have the latest
-      const storedHistory = await userStorage.getRaw('friendChatHistory');
+      const storedHistory = await userStorage.getRaw(historyStorageKey);
       const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
       
       // Get the first user message for preview
@@ -569,8 +608,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         
         currentHistory.unshift(updatedConversation); // Add to top
         
-        await userStorage.setRaw('friendChatHistory', JSON.stringify(currentHistory));
-        pushToCloud('friendChatHistory', currentHistory);
+        await userStorage.setRaw(historyStorageKey, JSON.stringify(currentHistory));
+        pushToCloud(historyStorageKey, currentHistory);
         setChatHistory(currentHistory);
         console.log('📝 Updated existing chat in history and moved to top');
       } else {
@@ -584,8 +623,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         };
         
         const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
-        await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
-        pushToCloud('friendChatHistory', updatedHistory);
+        await userStorage.setRaw(historyStorageKey, JSON.stringify(updatedHistory));
+        pushToCloud(historyStorageKey, updatedHistory);
         setChatHistory(updatedHistory);
         console.log('📝 Created new chat in history');
       }
@@ -611,8 +650,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const deleteConversation = async (conversationId) => {
     try {
       const updatedHistory = chatHistory.filter(conv => conv.id !== conversationId);
-      await userStorage.setRaw('friendChatHistory', JSON.stringify(updatedHistory));
-      pushToCloud('friendChatHistory', updatedHistory);
+      await userStorage.setRaw(historyStorageKey, JSON.stringify(updatedHistory));
+      pushToCloud(historyStorageKey, updatedHistory);
       setChatHistory(updatedHistory);
       hapticFeedback.success();
       console.log('🗑️ Deleted conversation:', conversationId);
@@ -633,7 +672,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           style: 'destructive',
           onPress: async () => {
             try {
-              await userStorage.remove('friendChatHistory');
+              await userStorage.remove(historyStorageKey);
               setChatHistory([]);
               setShowHistory(false);
               hapticFeedback.success();
@@ -675,17 +714,14 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   useEffect(() => {
     if (visible && nameLoaded) {
-      if (initialVerse && messages.length === 0) {
-        // If we have an initial verse, start with interpretation
+      if (!isGymMode && initialVerse && messages.length === 0) {
         console.log('🔍 Starting verse interpretation for:', initialVerse);
         console.log('🔍 Using userName:', userName);
         
-        // Auto-start interpretation with user's name
         const verseText = initialVerse.text || initialVerse.content || '';
         const verseReference = initialVerse.reference || '';
         const interpretationRequest = `Please help me understand this Bible verse in 100 words, explain to me clearly in a way I'll understand: "${verseText}" - ${verseReference}. My name is ${userName}.`;
         
-        // Add user message first
         const userMessage = {
           id: Date.now().toString(),
           text: `Please help me understand this Bible verse in 100 words, explain to me clearly in a way I'll understand: "${verseText}" - ${verseReference}`,
@@ -694,12 +730,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         };
         setMessages([userMessage]);
         
-        // Then get Smart response
         setIsLoading(true);
         getBibleAnswer(interpretationRequest).then(response => {
           const aiMessage = {
             id: (Date.now() + 1).toString(),
-            text: `Friend:\n${response}`,
+            text: `${chatName}:\n${response}`,
             isAi: true,
             timestamp: new Date(),
           };
@@ -707,11 +742,13 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           setIsLoading(false);
           scrollToBottom();
         });
-      } else if (visible && messages.length === 0 && !initialVerse) {
-        // Add welcome message when chat opens normally
+      } else if (visible && messages.length === 0 && (!initialVerse || isGymMode)) {
+        const welcomeText = isGymMode
+          ? `${chatName}:\nHey ${userName}! Ready to crush it? Ask me anything about your training, diet, or body.`
+          : `${chatName}:\nHi ${userName}! How can I help?`;
         const welcomeMessage = {
           id: Date.now().toString(),
-          text: `Friend:\nHi ${userName}! How can I help?`,
+          text: welcomeText,
           isAi: true,
           timestamp: new Date(),
         };
@@ -732,9 +769,6 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     hapticFeedback.light();
     
     if (onNavigateToBible) {
-      // Close the Friend chat and navigate directly to the verse
-      onClose();
-      // Pass the verse reference for direct navigation (not search)
       onNavigateToBible(verseReference);
     } else {
       // Fallback: still show alert but make it functional
@@ -907,47 +941,57 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     try {
       console.log('🔄 Starting Smart request...');
       
-      // If there's an image, run OCR to extract text first
       let finalMessage = messageText || '';
+      let response;
+
       if (imageToAnalyze) {
-        console.log('📷 Image attached, running OCR...');
         setIsProcessingImage(true);
-        
-        // Extract text from the image using cloud OCR API
-        // Pass both URI and base64 data (if available from ImagePicker)
-        const ocrResult = await ocrService.extractTextFromImage(
-          imageToAnalyze.uri, 
-          imageToAnalyze.base64 || null
-        );
-        setIsProcessingImage(false);
-        
-        if (ocrResult.success && ocrResult.text) {
-          console.log('✅ OCR extracted text:', ocrResult.text.substring(0, 100) + '...');
-          
-          // Format the prompt with extracted text - AI will respond directly
-          // No need to show the raw extracted text to the user
-          finalMessage = ocrService.formatForAIPrompt(ocrResult.text, messageText);
+
+        if (isGymMode) {
+          console.log('📷 Image attached (gym mode), using Gemini Vision...');
+          const conversationHistory = messages.map(msg => ({
+            role: msg.isAi ? 'assistant' : 'user',
+            content: msg.text || ''
+          }));
+          response = await productionAiService.chatWithCoachImage(
+            imageToAnalyze.base64 || null,
+            messageText,
+            conversationHistory,
+            gymUserData
+          );
+          setIsProcessingImage(false);
         } else {
-          console.log('⚠️ OCR failed or no text found:', ocrResult.error);
-          
-          // If OCR failed, let the user know
-          const errorNote = {
-            id: (Date.now() + 1).toString(),
-            text: ocrResult.error === 'OCR already in progress' 
-              ? "I'm still processing the previous image. Please wait a moment."
-              : "I couldn't read the text from that image clearly. Try taking a clearer photo with good lighting, or you can type the verse reference and I'll help you with it.",
-            isAi: true,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, errorNote]);
-          setIsLoading(false);
-          hapticFeedback.error();
-          return;
+          console.log('📷 Image attached, running OCR...');
+          const ocrResult = await ocrService.extractTextFromImage(
+            imageToAnalyze.uri,
+            imageToAnalyze.base64 || null
+          );
+          setIsProcessingImage(false);
+
+          if (ocrResult.success && ocrResult.text) {
+            console.log('✅ OCR extracted text:', ocrResult.text.substring(0, 100) + '...');
+            finalMessage = ocrService.formatForAIPrompt(ocrResult.text, messageText);
+          } else {
+            console.log('⚠️ OCR failed or no text found:', ocrResult.error);
+            const errorNote = {
+              id: (Date.now() + 1).toString(),
+              text: ocrResult.error === 'OCR already in progress'
+                ? "I'm still processing the previous image. Please wait a moment."
+                : "I couldn't read the text from that image clearly. Try taking a clearer photo with good lighting, or you can type the verse reference and I'll help you with it.",
+              isAi: true,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, errorNote]);
+            setIsLoading(false);
+            hapticFeedback.error();
+            return;
+          }
         }
       }
-      
-      // Call Smart service for Bible questions - now returns response or error message
-      const response = await getBibleAnswer(finalMessage || messageText);
+
+      if (!response) {
+        response = await getBibleAnswer(finalMessage || messageText);
+      }
       console.log('✅ Got response:', response);
       
       const aiMessage = {
@@ -989,54 +1033,54 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   };
 
   const getBibleAnswer = async (question) => {
-    console.log('🎯 Friend chat starting for question:', question);
+    console.log(`🎯 ${chatName} chat starting for question:`, question);
     
-    // Load user profile for personalized responses
     try {
       const debugProfile = await userStorage.getRaw('userProfile');
       if (debugProfile) {
-        const parsed = JSON.parse(debugProfile);
-        // Use parsed profile data for personalization
+        JSON.parse(debugProfile);
       }
     } catch (error) {
       // Handle profile loading error gracefully
     }
     
     try {
-      // Add user's name context to the question if it doesn't already include it
       let contextualQuestion = question;
-      console.log('🔍 AiBibleChat - Current userName state:', userName);
       if (!question.toLowerCase().includes('my name is') && userName !== 'Friend') {
         contextualQuestion = `${question} (My name is ${userName})`;
-        console.log('🔍 AiBibleChat - Contextual question:', contextualQuestion);
-      } else {
-        console.log('🔍 AiBibleChat - NOT adding name context because userName is:', userName);
       }
       
-      // Pass actual conversation history to prevent repeated greetings
-      // Convert messages to the format expected by AI service
       const conversationHistory = messages.map(msg => ({
         role: msg.isAi ? 'assistant' : 'user',
         content: msg.text || ''
       }));
       
-      // Direct call to proxy for chat (not task analysis!)
-      const response = await aiService.chatWithFriend(contextualQuestion, conversationHistory);
+      let response;
+      if (isGymMode) {
+        response = await productionAiService.chatWithCoach(contextualQuestion, conversationHistory, gymUserData);
+      } else {
+        response = await aiService.chatWithFriend(contextualQuestion, conversationHistory);
+      }
       
       if (response) {
-        console.log('✅ Friend response received');
+        console.log(`✅ ${chatName} response received`);
         return response;
       }
       
-      return `Hey ${userName}! How can I help you today?`;
+      return isGymMode
+        ? `Hey ${userName}! How can I help with your fitness today?`
+        : `Hey ${userName}! How can I help you today?`;
       
     } catch (error) {
-      console.error('❌ Friend chat error:', error);
-      // Fallback responses for common greetings
+      console.error(`❌ ${chatName} chat error:`, error);
       if (question.toLowerCase().includes('hey') || question.toLowerCase().includes('hello') || question.toLowerCase().includes('hi')) {
-        return `Hey ${userName}! It's great to hear from you! How are you doing today? Is there anything on your heart you'd like to talk about?`;
+        return isGymMode
+          ? `Hey ${userName}! Great to see you! What can I help you with today? Ask me about workouts, nutrition, or anything fitness related.`
+          : `Hey ${userName}! It's great to hear from you! How are you doing today? Is there anything on your heart you'd like to talk about?`;
       }
-      return `I'm here for you, ${userName}! What's on your mind today?`;
+      return isGymMode
+        ? `I'm here to help, ${userName}! Ask me anything about fitness, nutrition, or your training.`
+        : `I'm here for you, ${userName}! What's on your mind today?`;
     }
   };
 
@@ -1073,10 +1117,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         {
           text: 'New Chat',
           onPress: () => {
-            // Reset to just the welcome message
+            const welcomeText = isGymMode
+              ? `${chatName}:\nHey! Ready to crush it? Ask me anything about your training, diet, or body.`
+              : `${chatName}:\nHow can I help?`;
             const welcomeMessage = {
               id: Date.now().toString(),
-              text: "Friend:\nHow can I help?",
+              text: welcomeText,
               isAi: true,
               timestamp: new Date(),
             };
@@ -1093,7 +1139,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     const lastAiMessage = messages.slice().reverse().find(msg => msg.isAi);
     if (lastAiMessage) {
       try {
-        await Clipboard.setString(lastAiMessage.text);
+        await Clipboard.setStringAsync(lastAiMessage.text);
         Alert.alert('Copied!', 'Message copied to clipboard');
       } catch (error) {
         Alert.alert('Error', 'Failed to copy message');
@@ -1365,7 +1411,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
                   <View style={styles.thinkingContainer}>
                     <BallVerticalBounce size={30} />
                     <Text style={[styles.messageText, { color: theme.text, marginLeft: 12 }]}>
-                      {isProcessingImage ? 'Reading the Bible page...' : 'Friend is thinking...'}
+                      {isProcessingImage
+                        ? (isGymMode ? 'Analysing your photo...' : 'Reading the Bible page...')
+                        : `${chatName} is thinking...`}
                     </Text>
                   </View>
                 </View>
@@ -1404,7 +1452,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
                 </TouchableOpacity>
                 <View style={styles.imageLabel}>
                   <MaterialIcons name="image" size={12} color="#fff" />
-                  <Text style={styles.imageLabelText}>Bible page attached</Text>
+                  <Text style={styles.imageLabelText}>{isGymMode ? 'Photo attached' : 'Bible page attached'}</Text>
                 </View>
               </View>
             )}
@@ -1497,7 +1545,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         >
           <View style={[styles.imagePickerModal, { backgroundColor: theme.card }]}>
             <Text style={[styles.imagePickerTitle, { color: theme.text }]}>
-              Add Bible Page Photo
+              {isGymMode ? 'Add Photo' : 'Add Bible Page Photo'}
             </Text>
             <TouchableOpacity
               style={[styles.imagePickerOption, { borderBottomColor: theme.border }]}
@@ -1601,7 +1649,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
                 <MaterialIcons name="history" size={64} color={theme.textSecondary} />
                 <Text style={[styles.historyEmptyTitle, { color: theme.text }]}>No Chat History</Text>
                 <Text style={[styles.historyEmptyText, { color: theme.textSecondary }]}>
-                  Your conversations with Friend will appear here
+                  Your conversations with {chatName} will appear here
                 </Text>
               </View>
             ) : (
@@ -1721,10 +1769,10 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
               backgroundColor: theme.primary || '#7C3AED',
               marginRight: 10,
             }]}>
-              <MaterialIcons name="stars" size={20} color="#FFFFFF" />
+              <MaterialIcons name={isGymMode ? 'directions-run' : 'stars'} size={20} color="#FFFFFF" />
             </View>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-              Friend
+              {chatName}
             </Text>
           </View>
           

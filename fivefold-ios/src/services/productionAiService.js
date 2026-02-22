@@ -871,6 +871,267 @@ Generate an optimised nutrition plan JSON.`;
       return null;
     }
   }
+
+  // Chat with Coach (gym/fitness mode) - uses Deepseek with user fitness context
+  async chatWithCoach(userMessage, conversationContext = null, userData = null) {
+    try {
+      console.log('💪 Coach chat request:', userMessage.substring(0, 50) + '...');
+
+      let contextPrompt = '';
+      let isFirstMessage = true;
+
+      if (conversationContext) {
+        if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+          const recentMessages = conversationContext.slice(-60);
+          const olderMessages = conversationContext.slice(0, -60);
+
+          if (olderMessages.length > 0) {
+            const oldTopics = olderMessages
+              .filter(msg => msg.role === 'user')
+              .map(msg => msg.content.substring(0, 100))
+              .slice(0, 3);
+            contextPrompt = `Earlier in conversation, user asked about: ${oldTopics.join('; ')}\n\nRecent messages:\n` +
+              recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Coach'}: ${msg.content.substring(0, 150)}`).join('\n') +
+              '\n\n';
+          } else {
+            contextPrompt = 'Previous messages in this conversation:\n' +
+              recentMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Coach'}: ${msg.content.substring(0, 150)}`).join('\n') +
+              '\n\n';
+          }
+          isFirstMessage = !conversationContext.some(msg => msg.role === 'assistant');
+        }
+      }
+
+      // Build user data context block
+      let userDataBlock = '';
+      if (userData) {
+        const parts = [];
+
+        if (userData.nutritionProfile) {
+          const np = userData.nutritionProfile;
+          const npParts = [];
+          if (np.gender) npParts.push(`Gender: ${np.gender}`);
+          if (np.age) npParts.push(`Age: ${np.age}`);
+          if (np.heightCm) npParts.push(`Height: ${np.heightCm}cm`);
+          if (np.weightKg) npParts.push(`Current weight: ${np.weightKg}kg`);
+          if (np.targetWeightKg) npParts.push(`Target weight: ${np.targetWeightKg}kg`);
+          if (np.goal) npParts.push(`Goal: ${np.goal === 'lose' ? 'Lose weight' : np.goal === 'gain' ? 'Build muscle/gain weight' : 'Maintain weight'}`);
+          if (np.activityLevel) npParts.push(`Activity level: ${np.activityLevel}`);
+          if (npParts.length > 0) parts.push(`Profile: ${npParts.join(', ')}`);
+        }
+
+        if (userData.bodyComposition) {
+          const bc = userData.bodyComposition;
+          const bcParts = [];
+          if (bc.bmi) bcParts.push(`BMI: ${bc.bmi}`);
+          if (bc.bodyFat) bcParts.push(`Body fat: ${bc.bodyFat}%`);
+          if (bc.muscleMass) bcParts.push(`Muscle mass: ${bc.muscleMass}kg`);
+          if (bc.skeletalMuscle) bcParts.push(`Skeletal muscle: ${bc.skeletalMuscle}%`);
+          if (bc.visceralFat) bcParts.push(`Visceral fat: ${bc.visceralFat}`);
+          if (bc.bodyWater) bcParts.push(`Body water: ${bc.bodyWater}%`);
+          if (bc.bodyAge) bcParts.push(`Body age: ${bc.bodyAge}`);
+          if (bc.healthScore) bcParts.push(`Health score: ${bc.healthScore}/100`);
+          if (bc.tdee) bcParts.push(`TDEE: ${bc.tdee} cal/day`);
+          if (bcParts.length > 0) parts.push(`Body composition: ${bcParts.join(', ')}`);
+        }
+
+        if (userData.physiqueScores) {
+          const ps = userData.physiqueScores;
+          if (ps.weakest && ps.weakest.length > 0) {
+            parts.push(`Weakest muscles: ${ps.weakest.map(m => `${m.name} (${m.score})`).join(', ')}`);
+          }
+          if (ps.strongest && ps.strongest.length > 0) {
+            parts.push(`Strongest muscles: ${ps.strongest.map(m => `${m.name} (${m.score})`).join(', ')}`);
+          }
+          if (ps.overallScore !== undefined) {
+            parts.push(`Overall physique score: ${ps.overallScore}/100`);
+          }
+        }
+
+        if (userData.workoutHistory) {
+          const wh = userData.workoutHistory;
+          parts.push(`Total workouts logged: ${wh.totalCount}`);
+          if (wh.recentWorkouts && wh.recentWorkouts.length > 0) {
+            parts.push(`Recent workouts: ${wh.recentWorkouts.join(', ')}`);
+          }
+        }
+
+        if (parts.length > 0) {
+          userDataBlock = `\n\nUser's fitness data (use this to personalise your answers):\n${parts.join('\n')}`;
+        }
+      }
+
+      const isContinuation = conversationContext && Array.isArray(conversationContext) && conversationContext.length > 0;
+
+      let prompt;
+      if (isContinuation) {
+        prompt = `${contextPrompt}You are Coach, continuing an ongoing conversation with the user in a fitness app.${userDataBlock}
+
+CRITICAL INSTRUCTIONS FOR CONTINUING CONVERSATION:
+1. DO NOT greet the user again, just continue the discussion naturally
+2. You are a knowledgeable fitness coach who combines professional expertise with friendly encouragement
+3. Write clearly so a teenager or young adult can understand, but you can use proper fitness terminology when helpful (just explain it briefly)
+4. NEVER use dashes, bullet points, or lists. Write in complete, flowing sentences and paragraphs
+5. If the user asks for a specific word count, match it exactly
+6. Reference the user's actual fitness data when relevant to give personalised advice
+7. You help with: workouts, exercise form, nutrition, diet, body composition, recovery, flexibility, general health and wellness
+
+The user said: "${userMessage}"
+
+Answer their question directly as part of the ongoing conversation. Be knowledgeable, supportive, and motivating.`;
+      } else {
+        prompt = `You are Coach, a knowledgeable and motivating fitness coach in a workout app.${userDataBlock}
+
+CRITICAL INSTRUCTIONS:
+1. This is the FIRST message in a new conversation. You may greet the user briefly
+2. You combine professional fitness knowledge with friendly, encouraging energy
+3. Write clearly so a teenager or young adult can understand, but you can use proper fitness terminology when helpful (just explain it briefly)
+4. NEVER use dashes, bullet points, or lists. Write in complete, flowing sentences and paragraphs
+5. If the user asks for a specific word count, match it exactly
+6. Reference the user's actual fitness data when relevant to give personalised advice
+7. You help with: workouts, exercise form, nutrition, diet, body composition, recovery, flexibility, general health and wellness
+
+The user said: "${userMessage}"
+
+Answer their question directly. Be knowledgeable, supportive, and motivating. Keep it conversational.
+
+IMPORTANT: You are ONLY here to help with fitness, gym, workouts, nutrition, diet, body composition, and health/wellness topics. If someone asks about something completely unrelated (homework, coding, etc.), politely redirect them and suggest they ask a fitness or health question instead.`;
+      }
+
+      const response = await this.simpleSmartChat(prompt);
+
+      let cleanResponse = response || 'Hey! How can I help with your fitness today?';
+
+      if (isContinuation) {
+        cleanResponse = cleanResponse.replace(/^(Hey|Hi|Hello)\s+\w+[!,.]?\s*/i, '');
+        cleanResponse = cleanResponse.replace(/^That's a great question[^.!?]*[.!?]\s*/i, '');
+        cleanResponse = cleanResponse.replace(/^Great question[^.!?]*[.!?]\s*/i, '');
+      }
+
+      cleanResponse = cleanResponse.replace(/\s*-\s*/g, ' ');
+      cleanResponse = cleanResponse.replace(/—/g, ' ');
+      cleanResponse = cleanResponse.replace(/–/g, ' ');
+      cleanResponse = cleanResponse.replace(/•/g, '');
+
+      const sentences = cleanResponse.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      if (sentences.length > 8) {
+        cleanResponse = sentences.slice(0, 8).join('. ') + '.';
+      }
+
+      cleanResponse = cleanResponse.replace(/\n\n+/g, '\n\n');
+
+      return cleanResponse;
+
+    } catch (error) {
+      console.error('❌ Coach chat error:', error);
+      return 'Sorry, I\'m having trouble connecting right now. Please try again.';
+    }
+  }
+
+  // Analyze an image for gym/fitness context using Gemini Vision, then pass to Deepseek
+  async chatWithCoachImage(base64Image, userMessage, conversationContext = null, userData = null) {
+    try {
+      console.log('[Coach Vision] Analyzing image with Gemini...');
+
+      let GEMINI_CONFIG_LOCAL = null;
+      try {
+        GEMINI_CONFIG_LOCAL = require('../../gemini.config').GEMINI_CONFIG;
+      } catch (e) {
+        console.warn('[Coach Vision] gemini.config.js not found');
+        return this.chatWithCoach(
+          userMessage || 'I tried to share an image but image analysis is not available right now. Can you still help me?',
+          conversationContext,
+          userData
+        );
+      }
+
+      if (!GEMINI_CONFIG_LOCAL || !GEMINI_CONFIG_LOCAL.apiKey || GEMINI_CONFIG_LOCAL.apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+        return this.chatWithCoach(
+          userMessage || 'I tried to share an image but image analysis is not available right now. Can you still help me?',
+          conversationContext,
+          userData
+        );
+      }
+
+      const geminiModel = 'gemini-2.5-flash';
+      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`;
+      const url = `${geminiEndpoint}?key=${GEMINI_CONFIG_LOCAL.apiKey}`;
+
+      const analysisPrompt = `Analyze this image in a fitness/gym context. Describe what you see in detail. This could be:
+1. Exercise form (describe the exercise, body position, any form issues you notice)
+2. Gym equipment (identify the equipment and what exercises it can be used for)
+3. A nutrition label or food (extract nutritional information)
+4. A body/physique photo (describe what you observe)
+5. Anything else fitness related
+
+Provide a detailed, helpful analysis. Write in flowing sentences, no bullet points or dashes.`;
+
+      const body = {
+        contents: [{
+          parts: [
+            { text: analysisPrompt },
+            { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2048,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        console.warn('[Coach Vision] Gemini API error:', response.status);
+        return this.chatWithCoach(
+          (userMessage || '') + ' (Note: I tried to share an image but it could not be processed)',
+          conversationContext,
+          userData
+        );
+      }
+
+      const result = await response.json();
+      const parts = result?.candidates?.[0]?.content?.parts;
+      let analysisText = '';
+      if (parts) {
+        for (let i = parts.length - 1; i >= 0; i--) {
+          if (parts[i].text && !parts[i].thought) {
+            analysisText = parts[i].text.trim();
+            break;
+          }
+        }
+      }
+
+      if (!analysisText) {
+        return this.chatWithCoach(
+          (userMessage || '') + ' (Note: I shared an image but it could not be analyzed clearly)',
+          conversationContext,
+          userData
+        );
+      }
+
+      console.log('[Coach Vision] Gemini analysis:', analysisText.substring(0, 100) + '...');
+
+      const combinedMessage = userMessage
+        ? `The user shared an image. Here is what the image shows: "${analysisText}"\n\nThe user's message about this image: "${userMessage}"\n\nPlease respond helpfully based on both the image analysis and their message.`
+        : `The user shared an image. Here is what the image shows: "${analysisText}"\n\nPlease provide helpful fitness advice based on what you see in this image.`;
+
+      return this.chatWithCoach(combinedMessage, conversationContext, userData);
+
+    } catch (error) {
+      console.error('[Coach Vision] Error:', error);
+      return this.chatWithCoach(
+        (userMessage || '') + ' (Note: I tried to share an image but encountered an error)',
+        conversationContext,
+        userData
+      );
+    }
+  }
 }
 
 // Create singleton instance

@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, Animated, StyleSheet, Easing } from 'react-native';
+import { View, Text, Image, Animated, StyleSheet, Easing, Dimensions } from 'react-native';
 import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -44,6 +44,7 @@ import BibleFastFactsScreen from '../screens/BibleFastFactsScreen';
 import AudioLearningScreen from '../screens/AudioLearningScreen';
 import BibleReaderScreen from '../screens/BibleReaderScreen';
 import FriendChatScreen from '../screens/FriendChatScreen';
+import CoachChatScreen from '../screens/CoachChatScreen';
 import CustomisationScreen from '../screens/CustomisationScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
@@ -53,40 +54,72 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
-// Premium dark loading screen with step-by-step progress indicators
-// Design: 5 rounds of iterative refinement for maximum visual polish
+const STAR_FIELD = Array.from({ length: 20 }, (_, i) => ({
+  x: (7 + i * 17 + (i * i * 3)) % 100,
+  y: (11 + i * 13 + (i * 7)) % 100,
+  size: 1 + (i % 3),
+  delay: i * 200,
+}));
+
 const AnimatedLoadingScreen = () => {
-  // Core animations
+  const { width: SW } = Dimensions.get('window');
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const heroScale = useRef(new Animated.Value(0.6)).current;
+  const heroOpacity = useRef(new Animated.Value(0)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleSlide = useRef(new Animated.Value(20)).current;
-  const stepsOpacity = useRef(new Animated.Value(0)).current;
+  const titleScale = useRef(new Animated.Value(0.85)).current;
+  const tagOpacity = useRef(new Animated.Value(0)).current;
+  const tagSlide = useRef(new Animated.Value(10)).current;
+  const stepsContainerOpacity = useRef(new Animated.Value(0)).current;
+  const stepsContainerSlide = useRef(new Animated.Value(30)).current;
   const ringRotate = useRef(new Animated.Value(0)).current;
   const ring2Rotate = useRef(new Animated.Value(0)).current;
   const breatheScale = useRef(new Animated.Value(1)).current;
+  const burstScale = useRef(new Animated.Value(0)).current;
+  const burstOpacity = useRef(new Animated.Value(0)).current;
 
-  // Step animations — declared individually (hooks rules)
-  const s0Text = useRef(new Animated.Value(0)).current;
-  const s0Prog = useRef(new Animated.Value(0)).current;
-  const s0Check = useRef(new Animated.Value(0)).current;
-  const s0Slide = useRef(new Animated.Value(12)).current;
-  const s1Text = useRef(new Animated.Value(0)).current;
-  const s1Prog = useRef(new Animated.Value(0)).current;
-  const s1Check = useRef(new Animated.Value(0)).current;
-  const s1Slide = useRef(new Animated.Value(12)).current;
-  const s2Text = useRef(new Animated.Value(0)).current;
-  const s2Prog = useRef(new Animated.Value(0)).current;
-  const s2Check = useRef(new Animated.Value(0)).current;
-  const s2Slide = useRef(new Animated.Value(12)).current;
+  const star0 = useRef(new Animated.Value(0)).current;
+  const star1 = useRef(new Animated.Value(0)).current;
+  const star2 = useRef(new Animated.Value(0)).current;
+  const star3 = useRef(new Animated.Value(0)).current;
+  const star4 = useRef(new Animated.Value(0)).current;
+  const star5 = useRef(new Animated.Value(0)).current;
+  const star6 = useRef(new Animated.Value(0)).current;
+  const star7 = useRef(new Animated.Value(0)).current;
+  const star8 = useRef(new Animated.Value(0)).current;
+  const star9 = useRef(new Animated.Value(0)).current;
+  const star10 = useRef(new Animated.Value(0)).current;
+  const star11 = useRef(new Animated.Value(0)).current;
+  const star12 = useRef(new Animated.Value(0)).current;
+  const star13 = useRef(new Animated.Value(0)).current;
+  const star14 = useRef(new Animated.Value(0)).current;
+  const star15 = useRef(new Animated.Value(0)).current;
+  const star16 = useRef(new Animated.Value(0)).current;
+  const star17 = useRef(new Animated.Value(0)).current;
+  const star18 = useRef(new Animated.Value(0)).current;
+  const star19 = useRef(new Animated.Value(0)).current;
+  const starAnims = [star0,star1,star2,star3,star4,star5,star6,star7,star8,star9,star10,star11,star12,star13,star14,star15,star16,star17,star18,star19];
+
+  const s0Op = useRef(new Animated.Value(0)).current;
+  const s0Sl = useRef(new Animated.Value(16)).current;
+  const s0Pr = useRef(new Animated.Value(0)).current;
+  const s0Ck = useRef(new Animated.Value(0)).current;
+  const s1Op = useRef(new Animated.Value(0)).current;
+  const s1Sl = useRef(new Animated.Value(16)).current;
+  const s1Pr = useRef(new Animated.Value(0)).current;
+  const s1Ck = useRef(new Animated.Value(0)).current;
+  const s2Op = useRef(new Animated.Value(0)).current;
+  const s2Sl = useRef(new Animated.Value(16)).current;
+  const s2Pr = useRef(new Animated.Value(0)).current;
+  const s2Ck = useRef(new Animated.Value(0)).current;
 
   const stepAnims = [
-    { text: s0Text, progress: s0Prog, check: s0Check, slide: s0Slide },
-    { text: s1Text, progress: s1Prog, check: s1Check, slide: s1Slide },
-    { text: s2Text, progress: s2Prog, check: s2Check, slide: s2Slide },
+    { op: s0Op, sl: s0Sl, pr: s0Pr, ck: s0Ck },
+    { op: s1Op, sl: s1Sl, pr: s1Pr, ck: s1Ck },
+    { op: s2Op, sl: s2Sl, pr: s2Pr, ck: s2Ck },
   ];
 
   const [done, setDone] = useState([false, false, false]);
@@ -95,367 +128,412 @@ const AnimatedLoadingScreen = () => {
   const STEPS = ['Signing you in', 'Loading your content', 'Preparing your experience'];
 
   useEffect(() => {
-    // 1. Background fade in
-    Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    // Stars twinkle independently
+    starAnims.forEach((s, i) => {
+      setTimeout(() => {
+        Animated.loop(Animated.sequence([
+          Animated.timing(s, { toValue: 1, duration: 1200 + (i % 5) * 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(s, { toValue: 0.15, duration: 1200 + (i % 5) * 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])).start();
+      }, STAR_FIELD[i].delay);
+    });
 
-    // 2. Logo entrance
+    // Scene fade in
+    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+
+    // Light burst then logo
     setTimeout(() => {
       Animated.parallel([
-        Animated.spring(logoScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
-        Animated.timing(logoOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(burstOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(burstScale, { toValue: 1.5, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]).start();
-    }, 100);
+      setTimeout(() => {
+        Animated.timing(burstOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start();
+      }, 250);
+    }, 200);
 
-    // Continuous animations (all run on native driver — zero perf cost)
-    // Logo breathing glow
-    Animated.loop(Animated.sequence([
-      Animated.timing(glowPulse, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      Animated.timing(glowPulse, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-    ])).start();
-
-    // Logo subtle breathing scale
-    Animated.loop(Animated.sequence([
-      Animated.timing(breatheScale, { toValue: 1.03, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      Animated.timing(breatheScale, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-    ])).start();
-
-    // Logo shimmer sweep
-    Animated.loop(
-      Animated.timing(shimmerAnim, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true })
-    ).start();
-
-    // Decorative rings — slow, elegant rotation
-    Animated.loop(
-      Animated.timing(ringRotate, { toValue: 1, duration: 20000, easing: Easing.linear, useNativeDriver: true })
-    ).start();
-    Animated.loop(
-      Animated.timing(ring2Rotate, { toValue: 1, duration: 28000, easing: Easing.linear, useNativeDriver: true })
-    ).start();
-
-    // 3. Title slides up
     setTimeout(() => {
       Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(titleSlide, { toValue: 0, tension: 80, friction: 12, useNativeDriver: true }),
+        Animated.spring(heroScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.timing(heroOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]).start();
-    }, 350);
+    }, 300);
 
-    // 4. Steps area fade in
+    // Continuous ambient loops (all native driver)
+    Animated.loop(Animated.sequence([
+      Animated.timing(glowPulse, { toValue: 1, duration: 3000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(glowPulse, { toValue: 0, duration: 3000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(breatheScale, { toValue: 1.05, duration: 3000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(breatheScale, { toValue: 1, duration: 3000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.timing(shimmerAnim, { toValue: 1, duration: 2400, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.timing(ringRotate, { toValue: 1, duration: 20000, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.timing(ring2Rotate, { toValue: 1, duration: 30000, easing: Easing.linear, useNativeDriver: true })).start();
+
+    // Title reveal — scale + fade like an Apple keynote
     setTimeout(() => {
-      Animated.timing(stepsOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+      Animated.parallel([
+        Animated.timing(titleOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(titleScale, { toValue: 1, tension: 60, friction: 10, useNativeDriver: true }),
+      ]).start();
     }, 500);
 
-    // Helper to animate a single step
+    // Tagline
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(tagOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(tagSlide, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
+      ]).start();
+    }, 750);
+
+    // Steps container slides up
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(stepsContainerOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+        Animated.spring(stepsContainerSlide, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+      ]).start();
+    }, 900);
+
     const animateStep = (index, delay, duration) => {
       const sa = stepAnims[index];
       setTimeout(() => {
         Animated.parallel([
-          Animated.timing(sa.text, { toValue: 1, duration: 200, useNativeDriver: true }),
-          Animated.spring(sa.slide, { toValue: 0, tension: 120, friction: 14, useNativeDriver: true }),
+          Animated.timing(sa.op, { toValue: 1, duration: 250, useNativeDriver: true }),
+          Animated.spring(sa.sl, { toValue: 0, tension: 100, friction: 14, useNativeDriver: true }),
         ]).start();
-        Animated.timing(sa.progress, { toValue: 1, duration, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
+        Animated.timing(sa.pr, { toValue: 1, duration, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
           markDone(index);
-          Animated.spring(sa.check, { toValue: 1, tension: 300, friction: 8, useNativeDriver: true }).start();
+          Animated.spring(sa.ck, { toValue: 1, tension: 300, friction: 6, useNativeDriver: true }).start();
         });
       }, delay);
     };
 
-    // 5. Steps — fast and efficient (total ~1.3s for all steps)
-    animateStep(0, 550, 400);
-    animateStep(1, 1000, 350);
-    animateStep(2, 1400, 300);
+    animateStep(0, 1000, 450);
+    animateStep(1, 1500, 400);
+    animateStep(2, 1950, 350);
   }, []);
 
-  const shimmerX = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-120, 120] });
+  const shimmerX = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-140, 140] });
   const ringSpin = ringRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const ring2Spin = ring2Rotate.interpolate({ inputRange: [0, 1], outputRange: ['360deg', '0deg'] });
 
   return (
-    <View style={loadingStyles.container}>
-      {/* Deep dark gradient */}
+    <View style={ls.container}>
+      {/* Deep cinematic background */}
       <LinearGradient
-        colors={['#06060A', '#0D1220', '#0A0E1A', '#06060A']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={loadingStyles.bg}
+        colors={['#000004', '#050A18', '#0C1229', '#0A0F20', '#030408']}
+        locations={[0, 0.2, 0.45, 0.7, 1]}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+        style={ls.bg}
       />
 
-      {/* Ambient light — 3 orbs for depth */}
-      <Animated.View style={[loadingStyles.ambientOrb, {
-        top: '8%', left: '-20%', width: 320, height: 320,
-        backgroundColor: 'rgba(245, 158, 11, 0.02)',
-        opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] }),
-      }]} />
-      <Animated.View style={[loadingStyles.ambientOrb, {
-        bottom: '15%', right: '-15%', width: 240, height: 240,
-        backgroundColor: 'rgba(99, 102, 241, 0.015)',
-        opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.8] }),
-      }]} />
-      <Animated.View style={[loadingStyles.ambientOrb, {
-        top: '45%', left: '60%', width: 160, height: 160,
-        backgroundColor: 'rgba(245, 158, 11, 0.01)',
-        opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.6] }),
-      }]} />
+      {/* Star field */}
+      {STAR_FIELD.map((s, i) => (
+        <Animated.View key={i} style={{
+          position: 'absolute',
+          left: `${s.x}%`,
+          top: `${s.y}%`,
+          width: s.size,
+          height: s.size,
+          borderRadius: s.size,
+          backgroundColor: '#FFF',
+          opacity: starAnims[i],
+        }} />
+      ))}
 
-      <Animated.View style={[loadingStyles.content, { opacity: fadeAnim }]}>
-        {/* Logo with ambient glow + decorative rings */}
-        <Animated.View style={[loadingStyles.logoContainer, {
-          transform: [{ scale: Animated.multiply(logoScale, breatheScale) }],
-          opacity: logoOpacity,
+      {/* Warm ambient glow — top */}
+      <Animated.View style={[ls.aOrb, {
+        top: '-8%', left: '-20%', width: 380, height: 380,
+        opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.4] }),
+        transform: [{ scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.08] }) }],
+      }]}>
+        <LinearGradient
+          colors={['rgba(245,158,11,0.06)', 'rgba(245,158,11,0)']}
+          style={{ width: '100%', height: '100%', borderRadius: 190 }}
+        />
+      </Animated.View>
+      {/* Cool ambient glow — bottom */}
+      <Animated.View style={[ls.aOrb, {
+        bottom: '0%', right: '-18%', width: 320, height: 320,
+        opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.5] }),
+        transform: [{ scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [1.05, 0.93] }) }],
+      }]}>
+        <LinearGradient
+          colors={['rgba(99,102,241,0.05)', 'rgba(99,102,241,0)']}
+          style={{ width: '100%', height: '100%', borderRadius: 160 }}
+        />
+      </Animated.View>
+
+      <Animated.View style={[ls.content, { opacity: fadeAnim }]}>
+
+        {/* ── HERO LOGO AREA ── */}
+        <Animated.View style={[ls.heroWrap, {
+          transform: [{ scale: Animated.multiply(heroScale, breatheScale) }],
+          opacity: heroOpacity,
         }]}>
-          {/* Breathing ambient glow */}
-          <Animated.View style={[loadingStyles.logoGlow, {
-            opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }),
-            transform: [{ scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.15] }) }],
+          {/* Multi-layer glow */}
+          <Animated.View style={[ls.glowLayer, {
+            width: 280, height: 280, borderRadius: 140,
+            backgroundColor: 'rgba(245,158,11,0.08)',
+            opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] }),
+            transform: [{ scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.15] }) }],
           }]} />
-          {/* Outer decorative ring — slow clockwise */}
-          <Animated.View style={[loadingStyles.decoRing, loadingStyles.decoRingOuter, {
+          <Animated.View style={[ls.glowLayer, {
+            width: 200, height: 200, borderRadius: 100,
+            backgroundColor: 'rgba(245,158,11,0.06)',
+            opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
+            transform: [{ scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.08] }) }],
+          }]} />
+
+          {/* Decorative orbit rings */}
+          <Animated.View style={[ls.orbitRing, {
+            width: 200, height: 200,
+            borderWidth: 1, borderColor: 'rgba(245,158,11,0.07)',
             transform: [{ rotate: ringSpin }],
-          }]} />
-          {/* Inner decorative ring — slow counter-clockwise */}
-          <Animated.View style={[loadingStyles.decoRing, loadingStyles.decoRingInner, {
+          }]}>
+            <View style={{ position: 'absolute', top: -3, left: '50%', marginLeft: -3,
+              width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(245,158,11,0.4)' }} />
+          </Animated.View>
+          <Animated.View style={[ls.orbitRing, {
+            width: 240, height: 240,
+            borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.04)', borderStyle: 'dashed',
             transform: [{ rotate: ring2Spin }],
-          }]} />
-          {/* Logo glass box */}
-          <View style={loadingStyles.logoBox}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={loadingStyles.logoImg}
-              resizeMode="contain"
+          }]}>
+            <View style={{ position: 'absolute', bottom: -2, right: '30%',
+              width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(99,102,241,0.35)' }} />
+          </Animated.View>
+
+          {/* Light burst */}
+          <Animated.View style={{
+            position: 'absolute', width: 300, height: 300, borderRadius: 150,
+            backgroundColor: 'rgba(245,200,80,0.15)',
+            opacity: burstOpacity,
+            transform: [{ scale: burstScale }],
+          }} />
+
+          {/* Glass logo card */}
+          <View style={ls.logoCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={ls.logoCardGradient}
             />
-            {/* Shimmer sweep */}
-            <Animated.View style={[loadingStyles.shimmer, { transform: [{ translateX: shimmerX }] }]} />
+            <Image source={require('../../assets/logo.png')} style={ls.logoImg} resizeMode="contain" />
+            <Animated.View style={[ls.shimmer, { transform: [{ translateX: shimmerX }] }]} />
           </View>
         </Animated.View>
 
-        {/* Title */}
-        <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleSlide }], marginBottom: 48 }}>
-          <Text style={loadingStyles.title}>Biblely</Text>
+        {/* ── TITLE ── */}
+        <Animated.View style={[ls.titleWrap, {
+          opacity: titleOpacity,
+          transform: [{ scale: titleScale }],
+        }]}>
+          <Text style={ls.title}>Biblely</Text>
         </Animated.View>
 
-        {/* Separator line */}
-        <View style={loadingStyles.separator} />
+        {/* ── TAGLINE ── */}
+        <Animated.View style={{
+          opacity: tagOpacity,
+          transform: [{ translateY: tagSlide }],
+          marginBottom: 48,
+        }}>
+          <Text style={ls.tagline}>Your Faith Journey</Text>
+        </Animated.View>
 
-        {/* Loading steps */}
-        <Animated.View style={[loadingStyles.stepsArea, { opacity: stepsOpacity }]}>
-          {STEPS.map((label, i) => (
-            <Animated.View
-              key={i}
-              style={[
-                loadingStyles.stepRow,
-                { opacity: stepAnims[i].text, transform: [{ translateY: stepAnims[i].slide }] },
-              ]}
-            >
-              {/* Status indicator */}
-              <View style={loadingStyles.indicator}>
-                {done[i] ? (
-                  <Animated.View style={[loadingStyles.checkCircle, {
-                    transform: [{ scale: stepAnims[i].check }],
-                  }]}>
-                    <Text style={loadingStyles.checkMark}>{'✓'}</Text>
-                  </Animated.View>
-                ) : (
-                  <View style={loadingStyles.pendingRing} />
-                )}
-              </View>
+        {/* ── STEPS ── */}
+        <Animated.View style={[ls.stepsWrap, {
+          opacity: stepsContainerOpacity,
+          transform: [{ translateY: stepsContainerSlide }],
+        }]}>
+          {/* Vertical connector line behind the step indicators */}
+          <View style={ls.connectorLine} />
 
-              {/* Step content */}
-              <View style={loadingStyles.stepBody}>
-                <Text style={[loadingStyles.stepLabel, done[i] && loadingStyles.stepLabelDone]}>
-                  {label}
-                </Text>
-                {!done[i] && (
-                  <View style={loadingStyles.progressTrack}>
-                    <Animated.View style={[loadingStyles.progressFill, {
-                      width: stepAnims[i].progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0%', '100%'],
-                      }),
-                    }]}>
+          {STEPS.map((label, i) => {
+            const isLast = i === STEPS.length - 1;
+            return (
+              <Animated.View key={i} style={[
+                ls.stepRow,
+                !isLast && { marginBottom: 20 },
+                { opacity: stepAnims[i].op, transform: [{ translateY: stepAnims[i].sl }] },
+              ]}>
+                {/* Indicator */}
+                <View style={ls.indicatorCol}>
+                  {done[i] ? (
+                    <Animated.View style={[ls.doneDot, { transform: [{ scale: stepAnims[i].ck }] }]}>
                       <LinearGradient
-                        colors={['#F59E0B', '#F97316']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={loadingStyles.progressGradient}
+                        colors={['#34D399', '#10B981']}
+                        style={ls.doneDotGrad}
                       />
+                      <Text style={ls.doneCheck}>{'✓'}</Text>
                     </Animated.View>
-                  </View>
-                )}
-              </View>
-            </Animated.View>
-          ))}
+                  ) : (
+                    <View style={ls.pendingDot}>
+                      <View style={ls.pendingDotInner} />
+                    </View>
+                  )}
+                </View>
+
+                {/* Content */}
+                <View style={ls.stepContent}>
+                  <Text style={[ls.stepLabel, done[i] && ls.stepLabelDone]}>{label}</Text>
+                  {!done[i] && (
+                    <View style={ls.progressTrack}>
+                      <Animated.View style={[ls.progressFill, {
+                        width: stepAnims[i].pr.interpolate({
+                          inputRange: [0, 1], outputRange: ['0%', '100%'],
+                        }),
+                      }]}>
+                        <LinearGradient
+                          colors={['#F59E0B', '#F97316']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={ls.progressGrad}
+                        />
+                      </Animated.View>
+                      {/* Animated glow dot at progress tip */}
+                      <Animated.View style={[ls.progressGlow, {
+                        left: stepAnims[i].pr.interpolate({
+                          inputRange: [0, 1], outputRange: ['0%', '100%'],
+                        }),
+                      }]} />
+                    </View>
+                  )}
+                </View>
+              </Animated.View>
+            );
+          })}
         </Animated.View>
       </Animated.View>
     </View>
   );
 };
 
-const loadingStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  bg: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-  },
-  ambientOrb: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
+const ls = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  bg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  aOrb: { position: 'absolute' },
   content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingBottom: 80, // Push slightly above center for better visual balance
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 36, paddingBottom: 50,
   },
-  // Logo area
-  logoContainer: {
-    width: 150,
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 28,
+
+  heroWrap: {
+    width: 250, height: 250,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 36,
   },
-  logoGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-  },
-  decoRing: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
-  decoRingOuter: {
-    width: 150,
-    height: 150,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.08)',
-    borderStyle: 'dashed',
-  },
-  decoRingInner: {
-    width: 130,
-    height: 130,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-  },
-  logoBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
+  glowLayer: { position: 'absolute' },
+  orbitRing: { position: 'absolute', borderRadius: 999 },
+  logoCard: {
+    width: 120, height: 120, borderRadius: 34,
+    justifyContent: 'center', alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.1)',
     shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 30,
+    elevation: 12,
   },
-  logoImg: {
-    width: 72,
-    height: 72,
+  logoCardGradient: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    borderRadius: 34,
   },
+  logoImg: { width: 82, height: 82 },
   shimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    position: 'absolute', top: 0, bottom: 0, width: 70,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     transform: [{ skewX: '-20deg' }],
   },
-  // Title
+
+  titleWrap: { marginBottom: 6 },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#FAFAFA',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(245, 158, 11, 0.15)',
+    fontSize: 46, fontWeight: '800',
+    color: '#FAFAFA', letterSpacing: 4,
+    textShadowColor: 'rgba(245,158,11,0.25)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 24,
+    textShadowRadius: 40,
   },
-  // Separator
-  separator: {
-    width: 48,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: 36,
+  tagline: {
+    fontSize: 14, fontWeight: '500',
+    color: 'rgba(255,255,255,0.28)',
+    letterSpacing: 8,
+    textTransform: 'uppercase',
+  },
+
+  stepsWrap: {
+    width: '100%', maxWidth: 300,
+    paddingLeft: 20,
+  },
+  connectorLine: {
+    position: 'absolute',
+    left: 30, top: 14, bottom: 14,
+    width: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 1,
   },
-  // Steps
-  stepsArea: {
-    width: '100%',
-    maxWidth: 280,
-  },
   stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 22,
-    minHeight: 30,
+    flexDirection: 'row', alignItems: 'center',
   },
-  indicator: {
-    width: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
+  indicatorCol: {
+    width: 24, alignItems: 'center', marginRight: 16, zIndex: 1,
   },
-  checkCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
+  doneDot: {
+    width: 24, height: 24, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.7,
+    shadowRadius: 14,
+    elevation: 6,
   },
-  checkMark: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: -1,
+  doneDotGrad: {
+    position: 'absolute', width: 24, height: 24, borderRadius: 12,
   },
-  pendingRing: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  doneCheck: {
+    color: '#FFF', fontSize: 13, fontWeight: '800',
   },
-  stepBody: {
-    flex: 1,
+  pendingDot: {
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 1.5, borderColor: 'rgba(245,158,11,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
+  pendingDotInner: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: 'rgba(245,158,11,0.25)',
+  },
+  stepContent: { flex: 1 },
   stepLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.55)',
-    marginBottom: 7,
+    fontSize: 15, fontWeight: '600',
+    color: 'rgba(255,255,255,0.65)',
     letterSpacing: 0.2,
+    marginBottom: 8,
   },
   stepLabelDone: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: 'rgba(255,255,255,0.35)',
     marginBottom: 0,
   },
   progressTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 2,
-    overflow: 'hidden',
+    height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    overflow: 'visible',
   },
-  progressFill: {
-    height: '100%',
-  },
-  progressGradient: {
-    flex: 1,
-    borderRadius: 2,
+  progressFill: { height: '100%', borderRadius: 2, overflow: 'hidden' },
+  progressGrad: { flex: 1, borderRadius: 2 },
+  progressGlow: {
+    position: 'absolute', top: -3, marginLeft: -5,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: 'rgba(245,158,11,0.4)',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
   },
 });
 
@@ -1072,6 +1150,15 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="FriendChat" 
         component={FriendChatScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Coach Chat Screen */}
+      <Stack.Screen 
+        name="CoachChat" 
+        component={CoachChatScreen}
         options={{
           animation: 'slide_from_right',
         }}

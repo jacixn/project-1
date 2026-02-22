@@ -690,8 +690,8 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Premium Transparent Header — matches Achievements */}
-        <BlurView
+        {/* Premium Transparent Header — hidden when player is open */}
+        {!playerVisible && <BlurView
           intensity={50}
           tint={isDark ? 'dark' : 'light'}
           style={{
@@ -818,7 +818,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
               </View>
             </Animated.View>
           </Animated.View>
-        </BlurView>
+        </BlurView>}
       </View>
     );
   };

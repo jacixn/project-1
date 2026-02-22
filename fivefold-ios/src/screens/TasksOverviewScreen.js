@@ -58,6 +58,8 @@ const TasksOverviewScreen = () => {
       const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0 };
       setTodos(storedTodos);
       setUserStats(storedStats);
+      // Ensure widget has latest data whenever screen loads
+      updateTodoWidget().catch(() => {});
     } catch (err) {
       console.warn('Failed to load tasks data:', err);
     } finally {

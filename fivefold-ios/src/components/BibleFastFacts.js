@@ -1889,6 +1889,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   // Premium Detail Modal Styles
+  modalOverlay: {
+    flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+  },
   modalHandleWrapper: {
     alignItems: 'center',
     paddingTop: 14,

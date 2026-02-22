@@ -26,7 +26,7 @@ import {
 // Removed SwipeDownWrapper import
 
 const PrayerScreen = ({ visible, onClose, prayer, onPrayerComplete, prayerHistory, onInterpretVerse }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme } = useTheme();
   const [currentVerses, setCurrentVerses] = useState([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [prayerStatus, setPrayerStatus] = useState(null);

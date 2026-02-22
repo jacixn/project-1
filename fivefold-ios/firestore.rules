@@ -1,0 +1,132 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper functions ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // --- Usernames (username -> userId mapping) ---
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Friends ---
+    // Uses fields: friendsList (array of UIDs), pendingRequests (array of objects),
+    // sentRequests (array of objects). Other users need update access to add/remove
+    // friend requests and for account deletion cleanup.
+    match /friends/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isAuthenticated();
+      allow delete: if isOwner(userId);
+    }
+
+    // --- Conversations ---
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated()
+                  && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated()
+                    && request.auth.uid in resource.data.participants;
+      allow delete: if isAuthenticated()
+                    && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated()
+                    && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if isAuthenticated()
+                      && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow update: if isAuthenticated()
+                      && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow delete: if isAuthenticated()
+                      && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      }
+    }
+
+    // --- Hub Posts ---
+    // Other authenticated users need update access to add/remove reactions
+    // and for account deletion cleanup (removing deleted user from reactions).
+    match /hub_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Challenges ---
+    match /challenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated()
+                    && (resource.data.creatorId == request.auth.uid
+                        || request.auth.uid in resource.data.participants);
+      allow delete: if isAuthenticated()
+                    && resource.data.creatorId == request.auth.uid;
+    }
+
+    // --- Prayers ---
+    // Other authenticated users need update access to add/remove themselves
+    // from prayingUsers and for account deletion cleanup.
+    match /prayers/{prayerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Reports ---
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if isAuthenticated();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // --- Blocked Users ---
+    match /blocked_users/{blockId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && request.resource.data.blockerId == request.auth.uid;
+      allow delete: if isAuthenticated()
+                    && resource.data.blockerId == request.auth.uid;
+    }
+
+    // --- User Restrictions (admin-managed) ---
+    match /user_restrictions/{restrictionId} {
+      allow read: if isAuthenticated();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // --- Verification Codes (Cloud Functions only) ---
+    match /verificationCodes/{codeId} {
+      allow read, write: if false;
+    }
+
+    // --- Password Reset Codes (Cloud Functions only) ---
+    match /passwordResetCodes/{codeId} {
+      allow read, write: if false;
+    }
+  }
+}

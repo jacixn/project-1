@@ -22,7 +22,7 @@ export const AnimatedWallpaper = ({
   fadeOnScroll = false,
   scaleOnScroll = false 
 }) => {
-  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper } = useTheme();
+  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper, themeWallpapers } = useTheme();
 
   // Floating animation for static elements (this stays JS-driven, it's not scroll-related)
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -81,89 +81,21 @@ export const AnimatedWallpaper = ({
     });
   }, [activeScrollY, fadeOnScroll]);
 
-  // Get wallpaper source based on theme
   const getWallpaperSource = () => {
-    if (isBlushTheme) {
-      // Load blush bloom wallpaper
-      try {
-        return require('../themes/blush-bloom/wallpaper1.jpg');
-      } catch (error) {
-        console.log('BlushBloom wallpaper image not found, using gradient background');
-        return null;
-      }
-    }
-    
-    if (isCresviaTheme) {
-      // Load cresvia wallpaper
-      try {
-        console.log('🌌 Loading Cresvia wallpaper...');
-        return require('../themes/cresvia/wallpaper1.png');
-      } catch (error) {
-        console.log('❌ Cresvia wallpaper image not found, using gradient background:', error);
-        return null;
-      }
-    }
-    
-    if (isEternaTheme) {
-      // Load eterna wallpaper
-      try {
-        console.log('✨ Loading Eterna wallpaper...');
-        return require('../themes/eterna/wallpaper1.jpg');
-      } catch (error) {
-        console.log('❌ Eterna wallpaper image not found, using gradient background:', error);
-        return null;
-      }
-    }
-    
-    if (isSpidermanTheme) {
-      // Load spiderman wallpaper
-      try {
-        console.log('🕷️ Loading Spiderman wallpaper...');
-        return require('../themes/spiderman/wallpaper1.jpg');
-      } catch (error) {
-        console.log('❌ Spiderman wallpaper image not found, using gradient background:', error);
-        return null;
-      }
-    }
-    
-    if (isFaithTheme) {
-      // Load faith wallpaper
-      try {
-        console.log('✝️ Loading Faith wallpaper...');
-        return require('../themes/faith/wallpaper1.jpg');
-      } catch (error) {
-        console.log('❌ Faith wallpaper image not found, using gradient background:', error);
-        return null;
-      }
-    }
-    
-    if (isSailormoonTheme) {
-      // Load sailormoon wallpaper
-      try {
-        console.log('🌙 Loading Sailor Moon wallpaper...');
-        return require('../themes/sailormoon/wallpaper1.jpg');
-      } catch (error) {
-        console.log('❌ Sailor Moon wallpaper image not found, using gradient background:', error);
-        return null;
-      }
-    }
-    
     if (isBiblelyTheme) {
-      // Load biblely wallpaper from context selection
       try {
         const wallpaper = getCurrentWallpaper ? getCurrentWallpaper() : null;
-        console.log('🎨 Loading Biblely wallpaper:', wallpaper?.name || 'default');
-        if (wallpaper?.source) {
-          return wallpaper.source;
-        }
-        // Fallback to default wallpaper
+        if (wallpaper?.source) return wallpaper.source;
         return require('../themes/biblely/wallpaper1.jpg');
       } catch (error) {
-        console.log('❌ Biblely wallpaper image not found, using gradient background:', error);
         return null;
       }
     }
-    
+
+    if (themeWallpapers && themeWallpapers[currentTheme]) {
+      return themeWallpapers[currentTheme];
+    }
+
     return null;
   };
 
@@ -193,7 +125,7 @@ export const AnimatedWallpaper = ({
   return (
     <View style={styles.container}>
       {/* Animated Background */}
-      {(isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) && (
+      {currentTheme && currentTheme !== 'light' && currentTheme !== 'dark' && (
         <>
           {/* Gradient Background */}
           <Animated.View 
@@ -369,7 +301,7 @@ export const AnimatedWallpaper = ({
             style={[
               styles.overlay,
               {
-                backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme) ? theme.background + '60' : 'transparent',
+                backgroundColor: wallpaperSource ? theme.background + '60' : 'transparent',
                 opacity: fadeTransform
               }
             ]}

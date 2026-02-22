@@ -222,14 +222,14 @@ const AchievementToast = forwardRef((props, ref) => {
                 ]}
               >
                 {/* Glass card — high blur, low overlay opacity for true frosted glass */}
-                <BlurView
-                  intensity={Platform.OS === 'ios' ? 140 : 50}
-                  tint={isDark ? 'dark' : 'light'}
-                  style={st.glassCard}
-                >
+                  <BlurView
+                    intensity={Platform.OS === 'ios' ? (isDark ? 50 : 80) : 50}
+                    tint={isDark ? 'dark' : 'light'}
+                    style={st.glassCard}
+                  >
                   {/* Thin tint overlay — keep it very light so blur shows through */}
                   <View style={[st.glassInner, {
-                    backgroundColor: isDark ? 'rgba(15,15,25,0.15)' : 'rgba(255,255,255,0.15)',
+                    backgroundColor: isDark ? 'rgba(15,15,25,0.4)' : 'rgba(255,255,255,0.7)',
                   }]}>
 
                     {/* Top shimmer accent line */}
@@ -257,11 +257,11 @@ const AchievementToast = forwardRef((props, ref) => {
                       </View>
 
                       <View style={st.headerText}>
-                        <Text style={[st.headerLabel, { color: '#FFD700' }]}>
-                          {isSingle ? 'ACHIEVEMENT UNLOCKED' : `${achievements.length} ACHIEVEMENTS UNLOCKED`}
-                        </Text>
+                          <Text style={[st.headerLabel, { color: isDark ? '#FFD700' : '#E69500' }]} numberOfLines={2} adjustsFontSizeToFit>
+                            {isSingle ? 'ACHIEVEMENT UNLOCKED' : `${achievements.length} ACHIEVEMENTS UNLOCKED`}
+                          </Text>
                         {!isSingle && (
-                          <Text style={[st.headerSubtext, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                          <Text style={[st.headerSubtext, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' }]}>
                             +{totalPoints.toLocaleString()} points earned
                           </Text>
                         )}
@@ -293,8 +293,8 @@ const AchievementToast = forwardRef((props, ref) => {
                             style={[
                               st.achievementRow,
                               {
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                                borderColor: isDark ? 'rgba(255,215,0,0.15)' : 'rgba(255,165,0,0.15)',
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                borderColor: isDark ? 'rgba(255,215,0,0.15)' : 'rgba(230,149,0,0.15)',
                                 transform: [
                                   { translateY: itemAnim.translateY },
                                   { scale: itemAnim.scale },
@@ -305,13 +305,13 @@ const AchievementToast = forwardRef((props, ref) => {
                           >
                             {/* Icon */}
                             <LinearGradient
-                              colors={['#FFD70030', '#FF8C0015']}
+                              colors={isDark ? ['#FFD70030', '#FF8C0015'] : ['#FFD70080', '#FF8C0040']}
                               style={st.achievementIcon}
                             >
                               <MaterialIcons
                                 name={achievement.icon || 'emoji-events'}
-                                size={22}
-                                color="#FFD700"
+                                size={24}
+                                color={isDark ? '#FFD700' : '#E69500'}
                               />
                             </LinearGradient>
 
@@ -325,7 +325,7 @@ const AchievementToast = forwardRef((props, ref) => {
                               </Text>
                               {description ? (
                                 <Text
-                                  style={[st.achievementDesc, { color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)' }]}
+                                  style={[st.achievementDesc, { color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }]}
                                   numberOfLines={1}
                                 >
                                   {description}
@@ -334,9 +334,9 @@ const AchievementToast = forwardRef((props, ref) => {
                             </View>
 
                             {/* Points */}
-                            <View style={st.pointsBadge}>
-                              <MaterialIcons name="star" size={12} color="#FFD700" />
-                              <Text style={st.pointsBadgeText}>
+                            <View style={[st.pointsBadge, { backgroundColor: isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,179,0,0.15)' }]}>
+                              <MaterialIcons name="star" size={14} color={isDark ? "#FFD700" : "#E69500"} />
+                              <Text style={[st.pointsBadgeText, { color: isDark ? '#FFD700' : '#E69500' }]}>
                                 +{(achievement.points || 0).toLocaleString()}
                               </Text>
                             </View>
@@ -379,7 +379,7 @@ const AchievementToast = forwardRef((props, ref) => {
                     )}
 
                     {/* Dismiss hint */}
-                    <Text style={[st.dismissHint, { color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)' }]}>
+                    <Text style={[st.dismissHint, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)' }]}>
                       Tap anywhere to dismiss
                     </Text>
                   </View>
@@ -427,7 +427,7 @@ const st = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.15)',
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   topLine: {
     height: 2,
@@ -441,36 +441,39 @@ const st = StyleSheet.create({
     paddingBottom: 14,
   },
   trophyContainer: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 8,
   },
   trophyGlow: {
     position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  trophyCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-  },
-  trophyCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 10,
+    justifyContent: 'center',
   },
   headerLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 2.5,
+    letterSpacing: 2,
+    lineHeight: 18,
   },
   headerSubtext: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
   },
   divider: {
@@ -478,80 +481,78 @@ const st = StyleSheet.create({
     marginHorizontal: 20,
   },
   listScroll: {
-    maxHeight: SH * 0.32,
+    maxHeight: SH * 0.4,
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 16,
     paddingBottom: 4,
   },
   achievementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 8,
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 10,
     borderWidth: 1,
   },
   achievementIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   achievementInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   achievementTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
   },
   achievementDesc: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     marginTop: 2,
   },
   pointsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,215,0,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
     gap: 3,
   },
   pointsBadgeText: {
-    color: '#FFD700',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
   },
   totalBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderTopWidth: 1,
     marginTop: 4,
   },
   totalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   totalPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 16,
-    gap: 5,
+    gap: 6,
   },
   totalPillText: {
     color: '#fff',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 14,
   },
   singlePointsRow: {
     alignItems: 'center',
@@ -573,8 +574,8 @@ const st = StyleSheet.create({
     fontSize: 14,
   },
   dismissHint: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     textAlign: 'center',
     paddingBottom: 16,
     paddingTop: 10,

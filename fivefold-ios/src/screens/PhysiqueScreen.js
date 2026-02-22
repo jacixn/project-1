@@ -245,16 +245,20 @@ const PhysiqueScreen = () => {
         />
       )}
 
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={[styles.backBtn, { position: 'absolute', top: insets.top + 8, left: 16, zIndex: 10 }]}
+      >
+        <MaterialIcons name="arrow-back-ios" size={20} color={textPrimary} />
+      </TouchableOpacity>
+
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header — scrolls with content ── */}
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <MaterialIcons name="arrow-back-ios" size={20} color={textPrimary} />
-          </TouchableOpacity>
+          <View style={{ width: 44 }} />
           <Text style={[styles.headerTitle, { color: textPrimary }]}>Physique</Text>
           <View style={{ width: 44 }} />
         </View>
@@ -400,6 +404,10 @@ const PhysiqueScreen = () => {
           })}
         </View>
 
+        <Text style={{ fontSize: 11, color: textTertiary, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
+          Estimates are generated using established formulas and are for informational purposes only. Not a medical measurement. Consult a healthcare professional for clinical assessments.
+        </Text>
+
         <View style={{ height: 50 }} />
       </Animated.ScrollView>
     </View>
@@ -416,7 +424,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 20,
   },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 },

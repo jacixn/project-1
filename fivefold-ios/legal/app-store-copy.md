@@ -42,12 +42,12 @@ WORKOUT TRACKING
 • Personalised balance coaching to keep your training well-rounded
 
 NUTRITION & FUEL
-• Scan food photos to instantly estimate calories and macros
+• Scan food photos to estimate calories and macros
 • Import photos from your library for quick logging
 • Track daily calories, protein, carbs, and fat
 • Personalised daily targets based on your goals
 • Save favourite meals for one-tap logging
-• Body composition insights powered by research-based formulas
+• Body composition estimates using established formulas (not a medical device)
 
 SOCIAL & COMMUNITY
 • Connect with friends and share your faith journey
@@ -62,10 +62,12 @@ BEAUTIFUL DESIGN
 • Works offline — your data is always available
 
 YOUR DATA, YOUR CONTROL
-• All data stored locally on your device
-• Optional cloud sync with your account
+• Data stored locally on your device with secure cloud backup
 • Delete your account and all data at any time
-• No ads. No tracking. No analytics SDKs.
+• No ads. No analytics SDKs. No advertising trackers.
+
+SMART FEATURES
+Some features use automated analysis to provide personalised insights, including verse explanations, task scoring, nutritional estimates, and workout suggestions. These are approximations and not a substitute for professional advice.
 
 Whether you're deepening your faith, building better habits, or pursuing a healthier lifestyle, Biblely brings everything together in one place. Start your journey today.
 
@@ -79,4 +81,4 @@ Lifestyle
 Health & Fitness
 
 ## Age Rating Notes
-Contains Bible/religious content. User-generated content features include a community prayer wall, social feed, direct messaging between friends, and friend connections. All UGC is text-based and moderated with profanity filtering, user reporting, and user blocking mechanisms. No violence, gambling, or mature themes.
+Contains Bible/religious content. Minimum age: 12. User-generated content features include a community prayer wall, social feed, direct messaging between friends, and friend connections. All UGC is text-based and moderated with profanity filtering, user reporting, and user blocking mechanisms. The app provides fitness, nutrition, and wellness estimates using automated analysis — these are informational only and not medical advice. No violence, gambling, or mature themes.

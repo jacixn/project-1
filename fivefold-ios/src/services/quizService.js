@@ -54,11 +54,11 @@ class QuizService {
     try {
       console.log('Fetching quiz data from GitHub...');
       
-      // Fetch all required files
+      const cacheBust = `?t=${Date.now()}`;
       const [categoriesRes, questionsRes, levelsRes] = await Promise.all([
-        fetch(`${GITHUB_BASE_URL}/categories.json`),
-        fetch(`${GITHUB_BASE_URL}/questions.json`),
-        fetch(`${GITHUB_BASE_URL}/levels.json`),
+        fetch(`${GITHUB_BASE_URL}/categories.json${cacheBust}`),
+        fetch(`${GITHUB_BASE_URL}/questions.json${cacheBust}`),
+        fetch(`${GITHUB_BASE_URL}/levels.json${cacheBust}`),
       ]);
 
       if (!categoriesRes.ok || !questionsRes.ok || !levelsRes.ok) {
@@ -89,14 +89,11 @@ class QuizService {
   }
 
   async getQuizData(forceRefresh = false) {
-    // Return from memory cache if available
     if (this.cache && !forceRefresh) {
       return this.cache;
     }
 
-    // Check if we're already loading
-    if (this.isLoading) {
-      // Wait for the current load to complete
+    if (this.isLoading && !forceRefresh) {
       return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
           if (!this.isLoading && this.cache) {
@@ -110,7 +107,6 @@ class QuizService {
     this.isLoading = true;
 
     try {
-      // Try cache first if not forcing refresh
       if (!forceRefresh) {
         const isValid = await this.isCacheValid();
         if (isValid) {
@@ -122,14 +118,12 @@ class QuizService {
         }
       }
 
-      // Fetch from GitHub
       const data = await this.fetchFromGitHub();
       this.isLoading = false;
       return data;
     } catch (error) {
       this.isLoading = false;
       
-      // Fall back to cache if GitHub fails
       const cached = await this.loadFromCache();
       if (cached) {
         console.log('Using cached quiz data (GitHub fetch failed)');

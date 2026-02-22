@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
   Dimensions,
   Modal,
   StatusBar,
@@ -326,6 +327,7 @@ const SCREEN_THEMES = {
   featuresTasks: { bg: '#E8F5E9', accent: '#2E7D32' },    // Green - productivity
   featuresGym: { bg: '#FFEBEE', accent: '#C62828' },      // Red - fitness
   featuresHub: { bg: '#E8EAF6', accent: '#5C6BC0' },      // Indigo - social/community
+  consent: { bg: '#F5F5F5', accent: '#333333' },           // Neutral - legal/consent
   bible: { bg: '#FFF8E1', accent: '#FF8F00' },            // Amber - scripture
   weight: { bg: '#E0F7FA', accent: '#00838F' },           // Cyan - fitness
   photo: { bg: '#FCE4EC', accent: '#AD1457' },            // Pink - personal
@@ -676,6 +678,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [hasScrolledTasks, setHasScrolledTasks] = useState(false);
   const [hasScrolledGym, setHasScrolledGym] = useState(false);
   const [hasScrolledHub, setHasScrolledHub] = useState(false);
+  const [hasScrolledConsent, setHasScrolledConsent] = useState(false);
   const [hasScrolledBible, setHasScrolledBible] = useState(false);
   const [hasScrolledHow, setHasScrolledHow] = useState(false);
   
@@ -803,6 +806,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'featuresTasks',
     'featuresGym',
     'featuresHub',
+    'consent',
     'bible',
     'weight',
     'photo',
@@ -823,6 +827,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'featuresTasks',
     'featuresGym',
     'featuresHub',
+    'consent',
     'bible',
     'weight',
     'photo',
@@ -2107,6 +2112,168 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   // ============================================
+  // SCREEN: Consent / Terms & Privacy
+  // ============================================
+  const ConsentScreen = () => {
+    const screenTheme = SCREEN_THEMES.consent;
+
+    const handleConsentScroll = (event) => {
+      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom < 40 && !hasScrolledConsent) {
+        setHasScrolledConsent(true);
+      }
+    };
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+          <View style={{ alignItems: 'center', marginBottom: 8 }}>
+            <MaterialIcons name="verified-user" size={40} color={screenTheme.accent} />
+          </View>
+          <Text style={[styles.screenTitle, { color: '#333', fontSize: 22 }]}>
+            Terms & Privacy
+          </Text>
+          <Text style={[styles.screenSubtitle, { color: '#666', fontSize: 14 }]}>
+            Please read the following before continuing. You must scroll to the bottom.
+          </Text>
+        </View>
+
+        <ScrollView
+          style={{ flex: 1, marginHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 30 }}
+          showsVerticalScrollIndicator={true}
+          onScroll={handleConsentScroll}
+          scrollEventThrottle={16}
+        >
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 10 }}>
+              Terms of Service
+            </Text>
+
+            <Text style={{ fontSize: 13, color: '#444', lineHeight: 20, marginBottom: 8 }}>
+              By using Biblely, you agree to the following terms:
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Eligibility</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              You must be at least 12 years old to use this app. If you are under 18, you confirm you have parental or guardian consent.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Your Account</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              You are responsible for maintaining the security of your account. You may delete your account and all associated data at any time from Settings.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Acceptable Use</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              You agree not to post offensive, hateful, or inappropriate content. You will not harass other users. Violation may result in account suspension.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Automated Features</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Some features use automated analysis to provide personalised insights, including verse explanations, nutritional estimates, workout suggestions, coaching feedback, and task scoring. These are generated by external services and may contain inaccuracies. They are not a substitute for professional medical, dietary, fitness, or theological advice.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Health & Fitness</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Workout plans, nutrition targets, calorie estimates from food photos, and body composition values are for informational purposes only. They are not medical advice. Always consult a healthcare professional before making significant changes to your diet or exercise routine.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Content</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Bible translations are provided for personal, non-commercial use only. User-generated content is moderated with profanity filtering and user reporting. We reserve the right to remove content that violates our guidelines.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Limitation of Liability</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              The app is provided "as is" without warranties. We are not liable for indirect or consequential damages arising from your use of the app.
+            </Text>
+          </View>
+
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 10 }}>
+              Privacy Policy
+            </Text>
+
+            <Text style={{ fontSize: 13, color: '#444', lineHeight: 20, marginBottom: 8 }}>
+              Your privacy matters to us. Here is a summary of how we handle your data:
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Data We Collect</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Account info (email, name, username, profile photo), prayers, journal entries, workout logs, nutrition data (food logs, calories, macros), body profile (height, weight, age), tasks, saved verses, messages, and push notification tokens.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>How Your Data Is Used</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Your data is used to provide and personalise app features, sync across devices, send notifications you opt into, and generate personalised insights using external services.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Third-Party Services</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              We use Google Firebase (cloud database, authentication), Apple iCloud (sync), and external services for automated analysis. Some data, including health and fitness information, may be processed by servers located outside your country, including in China (DeepSeek) and the United States (Google, Firebase). Data sent for analysis is processed and not permanently stored by these services.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Data Storage & Retention</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              Your data is stored locally on your device and synced to Google Firebase servers (US). Data is retained while your account exists. You can delete your account and all data at any time.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>No Tracking</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              We do not use analytics or advertising SDKs. We do not track you across apps or websites. We do not sell your data.
+            </Text>
+
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Your Rights</Text>
+            <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
+              You can access, correct, or delete your data at any time. You can delete your entire account from Settings. For data requests, contact biblelyios@gmail.com.
+            </Text>
+          </View>
+
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <Text style={{ fontSize: 12, color: '#777', lineHeight: 18, textAlign: 'center' }}>
+              Full documents available at{' '}
+              <Text style={{ color: '#4A90E2', textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://biblely.uk/privacy-policy')}>
+                Privacy Policy
+              </Text>
+              {' and '}
+              <Text style={{ color: '#4A90E2', textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://biblely.uk/terms-of-service')}>
+                Terms of Service
+              </Text>
+            </Text>
+          </View>
+        </ScrollView>
+
+        {!hasScrolledConsent && (
+          <View style={styles.scrollIndicator}>
+            <Text style={styles.scrollIndicatorText}>Scroll to the bottom to continue</Text>
+            <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
+          </View>
+        )}
+
+        <TouchableOpacity
+          onPress={hasScrolledConsent ? handleNext : null}
+          activeOpacity={hasScrolledConsent ? 0.7 : 1}
+          style={[
+            styles.mainButton,
+            { backgroundColor: hasScrolledConsent ? '#333' : '#CCC' },
+          ]}
+        >
+          <Text style={styles.mainButtonText}>
+            {hasScrolledConsent ? 'I Agree & Continue' : 'Read to Continue'}
+          </Text>
+          {hasScrolledConsent && (
+            <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+          )}
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
   // SCREEN: Bible Version Selection
   // ============================================
   const BibleScreen = () => {
@@ -2444,8 +2611,8 @@ const SimpleOnboarding = ({ onComplete }) => {
     const screenTheme = SCREEN_THEMES.theme;
     
     // Filter themes by mode
-    const lightThemes = ['blush-bloom', 'eterna', 'sailormoon', 'biblely'];
-    const darkThemes = ['cresvia', 'spiderman', 'jesusnlambs', 'classic'];
+    const lightThemes = ['blush-bloom', 'eterna', 'biblely'];
+    const darkThemes = ['cresvia', 'jesusnlambs', 'classic'];
     
     const filteredThemes = availableThemes?.filter((t) => {
       if (selectedMode === 'light') return lightThemes.includes(t.id);
@@ -4223,6 +4390,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'featuresTasks': return FeaturesTasksScreen();
       case 'featuresGym': return FeaturesGymScreen();
       case 'featuresHub': return FeaturesHubScreen();
+      case 'consent': return ConsentScreen();
       case 'bible': return BibleScreen();
       case 'weight': return WeightScreen();
       case 'photo': return PhotoScreen();

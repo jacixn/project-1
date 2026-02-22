@@ -33,9 +33,7 @@ const ThemeModal = ({ visible, onClose }) => {
     isBlushTheme, 
     isCresviaTheme, 
     isEternaTheme, 
-    isSpidermanTheme, 
     isFaithTheme, 
-    isSailormoonTheme, 
     isBiblelyTheme, 
     biblelyWallpapers, 
     selectedWallpaperIndex, 
@@ -55,63 +53,48 @@ const ThemeModal = ({ visible, onClose }) => {
     changeTheme(themeId);
   };
 
+  const lightThemes = [
+    { id: 'blush-bloom', name: 'Blush Bloom', wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme },
+    { id: 'eterna', name: 'Eterna', wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme },
+    { id: 'biblely-light', name: 'Biblely', wallpaper: biblelyWallpapers?.[0]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 0, isBiblelyVariant: true, wallpaperIndex: 0 },
+    { id: 'cotton-candy', name: 'Cotton Candy', wallpaper: themeWallpapers?.['cotton-candy'], isActive: currentTheme === 'cotton-candy' },
+    { id: 'serenity', name: 'Serenity', wallpaper: themeWallpapers?.['serenity'], isActive: currentTheme === 'serenity' },
+    { id: 'good-shepherd', name: 'Good Shepherd', wallpaper: themeWallpapers?.['good-shepherd'], isActive: currentTheme === 'good-shepherd' },
+    { id: 'pixel', name: 'Pixel', wallpaper: themeWallpapers?.['pixel'], isActive: currentTheme === 'pixel' },
+    { id: 'meadow', name: 'Meadow', wallpaper: themeWallpapers?.['meadow'], isActive: currentTheme === 'meadow' },
+    { id: 'heavens', name: 'Heavens', wallpaper: themeWallpapers?.['heavens'], isActive: currentTheme === 'heavens' },
+    { id: 'retro', name: 'Retro', wallpaper: themeWallpapers?.['retro'], isActive: currentTheme === 'retro' },
+    { id: 'cozy-study', name: 'Cozy Study', wallpaper: themeWallpapers?.['cozy-study'], isActive: currentTheme === 'cozy-study' },
+    { id: 'shores', name: 'Shores', wallpaper: themeWallpapers?.['shores'], isActive: currentTheme === 'shores' },
+    { id: 'canopy', name: 'Canopy', wallpaper: themeWallpapers?.['canopy'], isActive: currentTheme === 'canopy' },
+    { id: 'faith', name: 'Faith', wallpaper: themeWallpapers?.['faith'], isActive: currentTheme === 'faith' },
+  ];
+
+  const darkThemes = [
+    { id: 'cresvia', name: 'Cresvia', wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme },
+    { id: 'biblely-jesusnlambs', name: 'Jesus & Lambs', wallpaper: biblelyWallpapers?.[1]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 1, isBiblelyVariant: true, wallpaperIndex: 1 },
+    { id: 'biblely-classic', name: 'Classic', wallpaper: biblelyWallpapers?.[2]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 2, isBiblelyVariant: true, wallpaperIndex: 2 },
+    { id: 'ascent', name: 'Ascent', wallpaper: themeWallpapers?.['ascent'], isActive: currentTheme === 'ascent' },
+    { id: 'mach', name: 'Mach', wallpaper: themeWallpapers?.['mach'], isActive: currentTheme === 'mach' },
+    { id: 'pastures', name: 'Pastures', wallpaper: themeWallpapers?.['pastures'], isActive: currentTheme === 'pastures' },
+    { id: 'aurora', name: 'Aurora', wallpaper: themeWallpapers?.['aurora'], isActive: currentTheme === 'aurora' },
+    { id: 'walk-on-water', name: 'Walk on Water', wallpaper: themeWallpapers?.['walk-on-water'], isActive: currentTheme === 'walk-on-water' },
+    { id: 'calvary', name: 'Calvary', wallpaper: themeWallpapers?.['calvary'], isActive: currentTheme === 'calvary' },
+    { id: 'nightfall', name: 'Nightfall', wallpaper: themeWallpapers?.['nightfall'], isActive: currentTheme === 'nightfall' },
+  ];
+
   const getCurrentThemeDisplay = () => {
-    if (isBlushTheme) return { name: 'Blush Bloom', mode: 'Light' };
-    if (isEternaTheme) return { name: 'Eterna', mode: 'Light' };
-    if (isFaithTheme) return { name: 'Faith', mode: 'Light' };
-    if (isSailormoonTheme) return { name: 'Sailor Moon', mode: 'Light' };
     if (isBiblelyTheme) {
       const wallpaper = biblelyWallpapers?.[selectedWallpaperIndex];
-      return { 
-        name: wallpaper?.name || 'Biblely', 
-        mode: wallpaper?.mode === 'dark' ? 'Dark' : 'Light' 
-      };
+      return { name: wallpaper?.name || 'Biblely', mode: wallpaper?.mode === 'dark' ? 'Dark' : 'Light' };
     }
-    if (isCresviaTheme) return { name: 'Cresvia', mode: 'Dark' };
-    if (isSpidermanTheme) return { name: 'Spiderman', mode: 'Dark' };
+    const allEntries = [...lightThemes, ...darkThemes];
+    const match = allEntries.find(t => t.isActive);
+    if (match) return { name: match.name, mode: lightThemes.some(lt => lt.id === match.id) ? 'Light' : 'Dark' };
     return { name: 'Default', mode: 'Unknown' };
   };
 
   const current = getCurrentThemeDisplay();
-
-  // Light mode themes with their wallpapers
-  const lightThemes = [
-    { id: 'blush-bloom', name: 'Blush Bloom', wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme },
-    { id: 'eterna', name: 'Eterna', wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme },
-    { id: 'sailormoon', name: 'Sailor Moon', wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme },
-    // Biblely Light variant
-    { 
-      id: 'biblely-light', 
-      name: 'Biblely', 
-      wallpaper: biblelyWallpapers?.[0]?.source, 
-      isActive: isBiblelyTheme && selectedWallpaperIndex === 0,
-      isBiblelyVariant: true,
-      wallpaperIndex: 0
-    },
-  ];
-
-  // Dark mode themes with their wallpapers
-  const darkThemes = [
-    { id: 'cresvia', name: 'Cresvia', wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme },
-    { id: 'spiderman', name: 'Spiderman', wallpaper: themeWallpapers?.['spiderman'], isActive: isSpidermanTheme },
-    // Biblely Dark variants
-    { 
-      id: 'biblely-jesusnlambs', 
-      name: 'Jesus & Lambs', 
-      wallpaper: biblelyWallpapers?.[1]?.source, 
-      isActive: isBiblelyTheme && selectedWallpaperIndex === 1,
-      isBiblelyVariant: true,
-      wallpaperIndex: 1
-    },
-    { 
-      id: 'biblely-classic', 
-      name: 'Classic', 
-      wallpaper: biblelyWallpapers?.[2]?.source, 
-      isActive: isBiblelyTheme && selectedWallpaperIndex === 2,
-      isBiblelyVariant: true,
-      wallpaperIndex: 2
-    },
-  ];
 
   const renderThemeCard = (themeItem) => {
     const isSelected = themeItem.isActive;
@@ -204,7 +187,7 @@ const ThemeModal = ({ visible, onClose }) => {
         >
 
           {/* Current Theme Display */}
-          <GlassCard style={styles.currentThemeCard} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
+          <GlassCard style={styles.currentThemeCard} blushMode={currentTheme && currentTheme !== 'light' && currentTheme !== 'dark'}>
             <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current Theme</Text>
             <View style={styles.currentThemeInfo}>
               <View style={styles.currentTextContainer}>

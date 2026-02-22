@@ -43,7 +43,7 @@ const DailyVerseCard = ({ onJournalPress, style }) => {
   const handleShare = async () => {
     try {
       hapticFeedback.medium();
-      const message = `"${dailyVerse.text}"\n\n- ${dailyVerse.reference}\n\n📖 Daily Verse from Fivefold`;
+      const message = `"${dailyVerse.text}"\n\n- ${dailyVerse.reference}\n\n📖 Daily Verse from Biblely`;
       
       await Share.share({
         message: message,

@@ -486,15 +486,31 @@ const ChatScreen = () => {
 
   const handleSendMessage = async () => {
     const text = inputText.trim();
-    if (!text || sending || !conversationId) return;
+    if (!text || sending) return;
 
-    // Instant feedback — haptic + clear input immediately
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInputText('');
     setSending(true);
 
     try {
-      // Check for profanity (synchronous — fast)
+      // Ensure we have a conversation ID — create one if missing
+      let activeConversationId = conversationId;
+      if (!activeConversationId) {
+        if (!user?.uid || !otherUserId) {
+          Alert.alert('Unable to Send', 'Please try again later.');
+          setInputText(text);
+          return;
+        }
+        const conversation = await createOrGetConversation(
+          user.uid,
+          userProfile,
+          otherUserId,
+          otherUser
+        );
+        activeConversationId = conversation.id;
+        setConversationId(conversation.id);
+      }
+
       if (profanityFilter.containsProfanity(text)) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert(
@@ -502,61 +518,73 @@ const ChatScreen = () => {
           'Inappropriate language was detected in your message. Please keep conversations respectful and kind. Your message was not sent.',
           [{ text: 'OK', style: 'default' }]
         );
-        setInputText(text); // Restore text
+        setInputText(text);
         return;
       }
 
-      // Check chat restriction (async — runs after haptic already fired)
       if (user?.uid) {
         const check = await isRestricted(user.uid, 'chat');
         if (check.restricted) {
           Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
-          setInputText(text); // Restore text
+          setInputText(text);
           return;
         }
       }
 
       await sendTextMessage(
-        conversationId,
+        activeConversationId,
         user.uid,
         userProfile?.displayName || 'User',
         text,
         otherUserId
       );
       
-      // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      setInputText(text); // Restore text on error
+      setInputText(text);
     } finally {
       setSending(false);
     }
   };
 
   const handleSendEncouragement = async (type) => {
-    if (sending || !conversationId) return;
+    if (sending) return;
 
-    // Instant feedback
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSending(true);
     setShowEncouragements(false);
 
-    // Check chat restriction
-    if (user?.uid) {
-      const check = await isRestricted(user.uid, 'chat');
-      if (check.restricted) {
-        Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
-        setSending(false);
-        return;
-      }
-    }
-
     try {
+      let activeConversationId = conversationId;
+      if (!activeConversationId) {
+        if (!user?.uid || !otherUserId) {
+          setSending(false);
+          return;
+        }
+        const conversation = await createOrGetConversation(
+          user.uid,
+          userProfile,
+          otherUserId,
+          otherUser
+        );
+        activeConversationId = conversation.id;
+        setConversationId(conversation.id);
+      }
+
+      if (user?.uid) {
+        const check = await isRestricted(user.uid, 'chat');
+        if (check.restricted) {
+          Alert.alert('Chat Restricted', `Your ability to send messages has been restricted ${check.expiresLabel || 'permanently'}. If you believe this is a mistake, please contact support.`);
+          setSending(false);
+          return;
+        }
+      }
+
       await sendEncouragementMessage(
-        conversationId,
+        activeConversationId,
         user.uid,
         userProfile?.displayName || 'User',
         type,
@@ -574,17 +602,15 @@ const ChatScreen = () => {
   };
 
   const handlePickImage = async () => {
-    if (uploadingImage || !conversationId) return;
+    if (uploadingImage) return;
 
     try {
-      // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Please allow access to your photos to send images.');
         return;
       }
 
-      // Pick image
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -598,13 +624,28 @@ const ChatScreen = () => {
       setUploadingImage(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Upload to Firebase Storage
-      const imagePath = `chat-images/${conversationId}/${user.uid}_${Date.now()}.jpg`;
+      let activeConversationId = conversationId;
+      if (!activeConversationId) {
+        if (!user?.uid || !otherUserId) {
+          Alert.alert('Unable to Send', 'Please try again later.');
+          setUploadingImage(false);
+          return;
+        }
+        const conversation = await createOrGetConversation(
+          user.uid,
+          userProfile,
+          otherUserId,
+          otherUser
+        );
+        activeConversationId = conversation.id;
+        setConversationId(conversation.id);
+      }
+
+      const imagePath = `chat-images/${activeConversationId}/${user.uid}_${Date.now()}.jpg`;
       const imageUrl = await uploadImage(imagePath, asset.uri);
 
-      // Send image message
       await sendImageMessage(
-        conversationId,
+        activeConversationId,
         user.uid,
         userProfile?.displayName || 'User',
         imageUrl,
@@ -613,7 +654,6 @@ const ChatScreen = () => {
         otherUserId
       );
 
-      // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);

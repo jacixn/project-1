@@ -17,11 +17,13 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import userStorage from '../utils/userStorage';
 
 const TasksDoneScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [completedTodosList, setCompletedTodosList] = useState([]);
 
   const textColor = isDark ? '#FFFFFF' : '#1A1A2E';
@@ -90,7 +92,7 @@ const TasksDoneScreen = ({ navigation }) => {
         contentContainerStyle={{ 
           paddingHorizontal: 16, 
           paddingBottom: 120,
-          paddingTop: Platform.OS === 'ios' ? 120 : 100,
+          paddingTop: insets.top + 70,
         }}
       >
         {completedTodosList.length === 0 ? (

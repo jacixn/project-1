@@ -48,7 +48,7 @@ import { getReferralCount } from '../services/referralService';
 const GymTab = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
+  const { theme, isDark, currentTheme, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   const { language, t } = useLanguage();
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
@@ -125,7 +125,7 @@ const GymTab = () => {
     startShimmerAnimation();
 
     // Load selected loading animation (with referral validation)
-    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
     Promise.all([
       userStorage.getRaw('fivefold_loading_animation'),
       getReferralCount(),
@@ -271,7 +271,7 @@ const GymTab = () => {
       loadScheduledWorkouts();
       loadNutritionProgress();
       // Reload loading animation preference (with referral validation)
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
       Promise.all([
         userStorage.getRaw('fivefold_loading_animation'),
         getReferralCount(),
@@ -785,7 +785,7 @@ const GymTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (currentTheme && currentTheme !== 'light' && currentTheme !== 'dark') ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -872,8 +872,6 @@ const GymTab = () => {
               source={
                 selectedLoadingAnim === 'hamster'
                   ? require('../../assets/Run-Hamster.json')
-                  : selectedLoadingAnim === 'amongus'
-                  ? require('../../assets/Loading 50 _ Among Us.json')
                   : require('../../assets/Running-Cat.json')
               }
               autoPlay={false}
@@ -1014,6 +1012,8 @@ const GymTab = () => {
                 hapticFeedback.heavy();
                 navigation.navigate('StartWorkout');
               }}
+              accessibilityLabel="Start workout"
+              accessibilityRole="button"
             >
               <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
               <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
@@ -1035,6 +1035,8 @@ const GymTab = () => {
                   hapticFeedback.medium();
                   navigation.navigate('Nutrition');
                 }}
+                accessibilityLabel="Open nutrition"
+                accessibilityRole="button"
               >
                 <Text style={styles.browseButtonText}>
                   {nutritionProgress?.hasProfile ? 'Open' : 'Set Up'}
@@ -1084,6 +1086,8 @@ const GymTab = () => {
                   hapticFeedback.medium();
                   navigation.navigate('Physique');
                 }}
+                accessibilityLabel="View physique"
+                accessibilityRole="button"
               >
                 <Text style={styles.browseButtonText}>View</Text>
                 <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -1203,6 +1207,8 @@ const GymTab = () => {
                   hapticFeedback.medium();
                   navigation.navigate('Exercises');
                 }}
+                accessibilityLabel="Browse exercises"
+                accessibilityRole="button"
               >
                 <Text style={styles.browseButtonText}>Browse</Text>
                 <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -1233,7 +1239,10 @@ const GymTab = () => {
             </View>
           </LiquidGlassContainer>
 
-          {/* History removed — now accessed via Profile > Workouts card */}
+          {/* Health disclaimer */}
+          <Text style={{ fontSize: 11, color: textTertiaryColor, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
+            For informational purposes only. Not a substitute for professional fitness or medical advice. Consult a healthcare professional before starting any new exercise programme.
+          </Text>
         </Animated.ScrollView>
       </View>
 

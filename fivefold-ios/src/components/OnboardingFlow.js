@@ -261,8 +261,8 @@ const OnboardingFlow = ({ onComplete }) => {
   };
 
   const themesByMode = useMemo(() => {
-    const lightOnly = ['blush-bloom', 'eterna', 'faith', 'sailormoon'];
-    const darkOnly = ['cresvia', 'spiderman'];
+    const lightOnly = ['blush-bloom', 'eterna', 'faith'];
+    const darkOnly = ['cresvia'];
     return selectedMode === 'light'
       ? availableThemes.filter((t) => lightOnly.includes(t.id))
       : availableThemes.filter((t) => darkOnly.includes(t.id));

@@ -478,7 +478,7 @@ const AnimatedCharacterCard = ({ group, section, onPress, isDark, theme }) => {
 
 
 const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScreen = false, navigation }) => {
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
@@ -850,12 +850,8 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
       return ['#9370DB', '#8A2BE2', '#6A0DAD', '#BA55D3', '#9932CC', '#8B7AB8', '#7B68EE', '#6A5ACD'];
     } else if (isEternaTheme) {
       return ['#663399', '#4B0082', '#2E0854', '#8B008B', '#9400D3', '#800080', '#9370DB', '#8A2BE2'];
-    } else if (isSpidermanTheme) {
-      return ['#E31E24', '#C70000', '#FF4444', '#B30000', '#E31E24', '#C70000', '#FF2020', '#A00000'];
     } else if (isFaithTheme) {
       return ['#4A90E2', '#5BA3F5', '#2979FF', '#90CAF9', '#4A90E2', '#5BA3F5', '#64B5F6', '#42A5F5'];
-    } else if (isSailormoonTheme) {
-      return ['#C8A2D0', '#B8A4D9', '#FFB6D9', '#E0C4E8', '#C8A2D0', '#9B7BA8', '#E8D4F0', '#B8A4D9'];
     } else if (isDark) {
       return ['#3B82F6', '#2563EB', '#1D4ED8', '#60A5FA', '#3B82F6', '#2563EB', '#1E40AF', '#1E3A8A'];
     } else {

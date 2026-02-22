@@ -342,19 +342,20 @@ const BodyCompositionScreen = () => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
+      <TouchableOpacity
+        style={[styles.backBtn, { position: 'absolute', top: insets.top + 8, left: 16, zIndex: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+        onPress={() => navigation.goBack()}
+      >
+        <MaterialIcons name="arrow-back-ios-new" size={20} color={textPrimary} />
+      </TouchableOpacity>
+
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — scrolls with content */}
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialIcons name="arrow-back-ios-new" size={20} color={textPrimary} />
-          </TouchableOpacity>
+          <View style={{ width: 44 }} />
           <Text style={[styles.headerTitle, { color: textPrimary }]}>Body Composition</Text>
           <View style={{ width: 44 }} />
         </View>

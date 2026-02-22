@@ -42,9 +42,7 @@ const getThemeVersePalette = (themeName, primaryColor, primaryLight, primaryDark
     'blush': { gradient: ['#FF69B4', '#FFB6C1', '#FFC0CB'], accent: '#FF69B4' },
     'cresvia': { gradient: ['#8A2BE2', '#9370DB', '#BA55D3'], accent: '#8A2BE2' },
     'eterna': { gradient: ['#4B0082', '#6A5ACD', '#7B68EE'], accent: '#4B0082' },
-    'spiderman': { gradient: ['#E31E24', '#FF4444', '#FF6B6B'], accent: '#E31E24' },
     'faith': { gradient: ['#4A90E2', '#5BA0F2', '#7AB8FF'], accent: '#4A90E2' },
-    'sailormoon': { gradient: ['#C8A2D0', '#E8C8F0', '#F0D8F8'], accent: '#C8A2D0' },
     'biblely': { gradient: ['#E07830', '#F09050', '#FFB080'], accent: '#E07830' },
     'jesusnlambs': { gradient: ['#7CB342', '#9CCC65', '#C8E6C9'], accent: '#7CB342' },
     'classic': { gradient: ['#8B3A4C', '#A85566', '#D4A5A5'], accent: '#8B3A4C' },
@@ -174,7 +172,7 @@ const AnimatedQuickAccessButton = ({ children, onPress, style, ...props }) => {
 const BiblePrayerTab = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
+  const { theme, isDark, currentTheme, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, selectedWallpaperIndex } = useTheme();
   
   // Only the main Biblely wallpaper (index 0) needs special white icons/text overrides
   // Jesus & Lambs (index 1) and Classic (index 2) use their own theme colors
@@ -200,8 +198,7 @@ const BiblePrayerTab = () => {
     return 'biblely';
   };
   const themeName = isBlushTheme ? 'blush' : isCresviaTheme ? 'cresvia' : isEternaTheme ? 'eterna' : 
-                    isSpidermanTheme ? 'spiderman' : isFaithTheme ? 'faith' : isSailormoonTheme ? 'sailormoon' : 
-                    isBiblelyTheme ? getBiblelyVariantName() : 'default';
+                    isFaithTheme ? 'faith' : isBiblelyTheme ? getBiblelyVariantName() : 'default';
   const versePalette = useMemo(() => 
     getThemeVersePalette(themeName, theme.primary, theme.primaryLight, theme.primaryDark),
     [themeName, theme.primary, theme.primaryLight, theme.primaryDark]
@@ -380,7 +377,7 @@ const BiblePrayerTab = () => {
       initializePrayerData();
       loadLiquidGlassSetting();
       // Reload loading animation preference (with referral validation)
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
       Promise.all([
         userStorage.getRaw('fivefold_loading_animation'),
         getReferralCount(),
@@ -1131,6 +1128,8 @@ const BiblePrayerTab = () => {
           hapticFeedback.medium();
           navigation.navigate('BibleReader');
         }}
+        accessibilityLabel="Open Bible"
+        accessibilityRole="button"
       >
         <MaterialIcons name="menu-book" size={24} color={iconColor} />
         <View style={styles.bibleButtonContent}>
@@ -1148,6 +1147,8 @@ const BiblePrayerTab = () => {
       <TouchableOpacity
         activeOpacity={0.4}
         onPress={openVerseModal}
+        accessibilityLabel="Verse of the Day"
+        accessibilityRole="button"
         style={[styles.transparentVerseOfDay, { 
           backgroundColor: `${theme.primary}22`,
           borderWidth: 0.8,
@@ -1240,6 +1241,8 @@ const BiblePrayerTab = () => {
           hapticFeedback.medium();
           navigation.navigate('BibleStudy');
         }}
+        accessibilityLabel="Interactive Bible Study"
+        accessibilityRole="button"
       >
         <MaterialIcons name="school" size={24} color={iconColor} />
         <View style={styles.bibleButtonContent}>
@@ -1265,7 +1268,7 @@ const BiblePrayerTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
-      <View style={[styles.container, { backgroundColor: (isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme) ? 'transparent' : theme.background }]}>
+      <View style={[styles.container, { backgroundColor: (currentTheme && currentTheme !== 'light' && currentTheme !== 'dark') ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
@@ -1331,8 +1334,6 @@ const BiblePrayerTab = () => {
             source={
               selectedLoadingAnim === 'hamster'
                 ? require('../../assets/Run-Hamster.json')
-                : selectedLoadingAnim === 'amongus'
-                ? require('../../assets/Loading 50 _ Among Us.json')
                 : require('../../assets/Running-Cat.json')
             }
             autoPlay={false}
@@ -1470,24 +1471,22 @@ const BiblePrayerTab = () => {
 
             {/* Frosted glass background */}
             <BlurView 
-              intensity={isDark ? 60 : 80} 
+              intensity={isDark ? 25 : 35} 
               tint="dark"
               style={styles.verseModalGradient}
             >
-              {/* Subtle tinted gradient overlay */}
               <LinearGradient
                 colors={[
-                  withOpacity(versePalette.gradient[0], 0.35),
-                  withOpacity(versePalette.gradient[1], 0.25),
-                  withOpacity(versePalette.gradient[versePalette.gradient.length - 1], 0.18),
+                  withOpacity(versePalette.gradient[0], 0.1),
+                  withOpacity(versePalette.gradient[1], 0.07),
+                  withOpacity(versePalette.gradient[versePalette.gradient.length - 1], 0.05),
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-              {/* Glass highlight at top */}
               <LinearGradient
-                colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.05)', 'transparent']}
+                colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.01)', 'transparent']}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 0.5 }}
                 style={StyleSheet.absoluteFill}
@@ -1496,9 +1495,9 @@ const BiblePrayerTab = () => {
                   {/* Close button */}
                   <TouchableOpacity 
                     style={[styles.verseModalClose, {
-                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
                       borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      borderColor: 'rgba(255, 255, 255, 0.15)',
                     }]}
                     onPress={closeVerseModal}
                   >
@@ -1545,7 +1544,7 @@ const BiblePrayerTab = () => {
                       textShadowOffset: { width: 0, height: 2 },
                       textShadowRadius: 5,
                     }}>
-                      {userName ? `${userName}'s Verse` : 'Your Verse'}
+                      {userName ? `${userName}'s Verse Of The Day` : 'Your Verse Of The Day'}
                     </Text>
                     <Text style={{
                       fontSize: 14,
@@ -1562,12 +1561,12 @@ const BiblePrayerTab = () => {
 
                   {/* Verse Card - frosted inner card */}
                   <View style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
                     borderRadius: 20,
                     padding: 24,
                     marginBottom: 24,
                     borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
                     overflow: 'hidden',
                   }}>
                     {/* Opening quote mark */}
@@ -1643,7 +1642,7 @@ const BiblePrayerTab = () => {
                     {/* Go to Verse Button - Primary */}
                     <TouchableOpacity
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
                         borderRadius: 14,
                         paddingVertical: 14,
                         paddingHorizontal: 20,
@@ -1652,10 +1651,12 @@ const BiblePrayerTab = () => {
                         justifyContent: 'center',
                         gap: 10,
                         borderWidth: 1,
-                        borderColor: 'rgba(255, 255, 255, 0.35)',
+                        borderColor: 'rgba(255, 255, 255, 0.25)',
                       }}
                       onPress={handleGoToVerse}
                       activeOpacity={0.8}
+                      accessibilityLabel="Read in Bible"
+                      accessibilityRole="button"
                     >
                       <MaterialIcons name="menu-book" size={20} color="#FFFFFF" />
                       <Text style={{
@@ -1676,7 +1677,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.07)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1684,10 +1685,12 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          borderColor: 'rgba(255, 255, 255, 0.15)',
                         }}
                         onPress={handleDiscussVerse}
                         activeOpacity={0.8}
+                        accessibilityLabel="Discuss verse"
+                        accessibilityRole="button"
                       >
                         <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
                         <Text style={{
@@ -1706,7 +1709,7 @@ const BiblePrayerTab = () => {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.07)',
                           borderRadius: 14,
                           paddingVertical: 14,
                           flexDirection: 'row',
@@ -1714,10 +1717,12 @@ const BiblePrayerTab = () => {
                           justifyContent: 'center',
                           gap: 8,
                           borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          borderColor: 'rgba(255, 255, 255, 0.15)',
                         }}
                         onPress={handleShareVerse}
                         activeOpacity={0.8}
+                        accessibilityLabel="Share verse"
+                        accessibilityRole="button"
                       >
                         <MaterialIcons name="ios-share" size={18} color="#FFFFFF" />
                         <Text style={{
@@ -2491,12 +2496,12 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 25 },
-    shadowOpacity: 0.5,
-    shadowRadius: 40,
-    elevation: 25,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.35,
+    shadowRadius: 35,
+    elevation: 20,
   },
   shimmerOverlay: {
     position: 'absolute',

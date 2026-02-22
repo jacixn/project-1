@@ -3,17 +3,48 @@ import userStorage from '../utils/userStorage';
 import { blushBloomTheme, blushBloomWallpaper } from '../themes/blush-bloom/theme';
 import { cresviaTheme, cresviaWallpaper } from '../themes/cresvia/theme';
 import { eternaTheme, eternaWallpaper } from '../themes/eterna/theme';
-import { spidermanTheme, spidermanWallpaper } from '../themes/spiderman/theme';
-import { sailormoonTheme, sailormoonWallpaper } from '../themes/sailormoon/theme';
 import { biblelyTheme, biblelyWallpapers, jesusNLambsTheme, classicTheme } from '../themes/biblely/theme';
+import { cottonCandyTheme, cottonCandyWallpaper } from '../themes/cotton-candy/theme';
+import { ascentTheme, ascentWallpaper } from '../themes/ascent/theme';
+import { machTheme, machWallpaper } from '../themes/mach/theme';
+import { serenityTheme, serenityWallpaper } from '../themes/serenity/theme';
+import { pasturesTheme, pasturesWallpaper } from '../themes/pastures/theme';
+import { goodShepherdTheme, goodShepherdWallpaper } from '../themes/good-shepherd/theme';
+import { auroraTheme, auroraWallpaper } from '../themes/aurora/theme';
+import { pixelTheme, pixelWallpaper } from '../themes/pixel/theme';
+import { meadowTheme, meadowWallpaper } from '../themes/meadow/theme';
+import { walkOnWaterTheme, walkOnWaterWallpaper } from '../themes/walk-on-water/theme';
+import { heavensTheme, heavensWallpaper } from '../themes/heavens/theme';
+import { calvaryTheme, calvaryWallpaper } from '../themes/calvary/theme';
+import { retroTheme, retroWallpaper } from '../themes/retro/theme';
+import { nightfallTheme, nightfallWallpaper } from '../themes/nightfall/theme';
+import { cozyStudyTheme, cozyStudyWallpaper } from '../themes/cozy-study/theme';
+import { shoresTheme, shoresWallpaper } from '../themes/shores/theme';
+import { canopyTheme, canopyWallpaper } from '../themes/canopy/theme';
+import { faithTheme, faithWallpaper } from '../themes/faith/theme';
 
-// Theme wallpaper previews for the theme selector
 export const themeWallpapers = {
   'blush-bloom': blushBloomWallpaper,
   'cresvia': cresviaWallpaper,
   'eterna': eternaWallpaper,
-  'spiderman': spidermanWallpaper,
-  'sailormoon': sailormoonWallpaper,
+  'cotton-candy': cottonCandyWallpaper,
+  'ascent': ascentWallpaper,
+  'mach': machWallpaper,
+  'serenity': serenityWallpaper,
+  'pastures': pasturesWallpaper,
+  'good-shepherd': goodShepherdWallpaper,
+  'aurora': auroraWallpaper,
+  'pixel': pixelWallpaper,
+  'meadow': meadowWallpaper,
+  'walk-on-water': walkOnWaterWallpaper,
+  'heavens': heavensWallpaper,
+  'calvary': calvaryWallpaper,
+  'retro': retroWallpaper,
+  'nightfall': nightfallWallpaper,
+  'cozy-study': cozyStudyWallpaper,
+  'shores': shoresWallpaper,
+  'canopy': canopyWallpaper,
+  'faith': faithWallpaper,
 };
 
 // Beautiful theme definitions
@@ -68,10 +99,27 @@ const themes = {
   'blush-bloom': blushBloomTheme,
   'cresvia': cresviaTheme,
   'eterna': eternaTheme,
-  'spiderman': spidermanTheme,
   'biblely': biblelyTheme,
   'jesusnlambs': jesusNLambsTheme,
   'classic': classicTheme,
+  'cotton-candy': cottonCandyTheme,
+  'ascent': ascentTheme,
+  'mach': machTheme,
+  'serenity': serenityTheme,
+  'pastures': pasturesTheme,
+  'good-shepherd': goodShepherdTheme,
+  'aurora': auroraTheme,
+  'pixel': pixelTheme,
+  'meadow': meadowTheme,
+  'walk-on-water': walkOnWaterTheme,
+  'heavens': heavensTheme,
+  'calvary': calvaryTheme,
+  'retro': retroTheme,
+  'nightfall': nightfallTheme,
+  'cozy-study': cozyStudyTheme,
+  'shores': shoresTheme,
+  'canopy': canopyTheme,
+  'faith': faithTheme,
   
   dark: {
     // Background colors
@@ -120,7 +168,6 @@ const themes = {
     headerGradient: ['#1F2937', '#111827'],
   },
 
-  'sailormoon': sailormoonTheme,
 };
 
 const ThemeContext = createContext();
@@ -242,13 +289,21 @@ export const ThemeProvider = ({ children }) => {
           await userStorage.setRaw('fivefold_wallpaper_index', '0');
         }
         
-        // Auto-set light mode for Blush Bloom, Eterna, Sailor Moon, Biblely themes
-        if (themeName === 'blush-bloom' || themeName === 'eterna' || themeName === 'sailormoon' || themeName === 'biblely') {
+        const lightDefaultThemes = [
+          'blush-bloom', 'eterna', 'biblely',
+          'cotton-candy', 'serenity', 'good-shepherd', 'pixel',
+          'meadow', 'heavens', 'retro', 'cozy-study', 'shores', 'canopy', 'faith',
+        ];
+        const darkDefaultThemes = [
+          'cresvia',
+          'ascent', 'mach', 'pastures', 'aurora',
+          'walk-on-water', 'calvary', 'nightfall',
+        ];
+
+        if (lightDefaultThemes.includes(themeName)) {
           setIsDarkMode(false);
           await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(false));
-        }
-        // Auto-set dark mode for Cresvia and Spiderman themes
-        else if (themeName === 'cresvia' || themeName === 'spiderman') {
+        } else if (darkDefaultThemes.includes(themeName)) {
           setIsDarkMode(true);
           await userStorage.setRaw('fivefold_dark_mode', JSON.stringify(true));
         }
@@ -350,8 +405,7 @@ export const ThemeProvider = ({ children }) => {
   const isBlushTheme = currentTheme === 'blush-bloom';
   const isCresviaTheme = currentTheme === 'cresvia';
   const isEternaTheme = currentTheme === 'eterna';
-  const isSpidermanTheme = currentTheme === 'spiderman';
-  const isSailormoonTheme = currentTheme === 'sailormoon';
+  const isFaithTheme = currentTheme === 'faith';
   const isBiblelyTheme = currentTheme === 'biblely';
   
   // Filter available themes to only show the themed ones (not light/dark)
@@ -376,8 +430,7 @@ export const ThemeProvider = ({ children }) => {
     isBlushTheme,
     isCresviaTheme,
     isEternaTheme,
-    isSpidermanTheme,
-    isSailormoonTheme,
+    isFaithTheme,
     isBiblelyTheme,
     toggleTheme,
     toggleDarkMode,

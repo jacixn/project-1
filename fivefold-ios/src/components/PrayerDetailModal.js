@@ -9,10 +9,18 @@ import {
   ScrollView,
   Platform,
   PanResponder,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import bibleAudioService from '../services/bibleAudioService';
+import chatterboxService from '../services/chatterboxService';
+import googleTtsService from '../services/googleTtsService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const PrayerDetailModal = ({ 
   visible, 
@@ -32,19 +40,148 @@ const PrayerDetailModal = ({
 }) => {
   const { theme, isDark } = useTheme();
   
-  // Animation refs
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
 
-  // Reset panY when modal closes
+  // Audio state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingVerseIndex, setSpeakingVerseIndex] = useState(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [loadingAudioVerseIndex, setLoadingAudioVerseIndex] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+
   useEffect(() => {
     if (!visible) {
       panY.setValue(0);
+      stopAllAudio();
     }
   }, [visible]);
 
-  // Pan gesture handler for swipe-to-dismiss
+  // TTS state listeners
+  useEffect(() => {
+    const handleChatterboxState = (state) => {
+      if (state === 'finished' || state === 'stopped' || state === 'error') {
+        setIsSpeaking(false);
+        setSpeakingVerseIndex(null);
+        setIsLoadingAudio(false);
+        setLoadingAudioVerseIndex(null);
+        setIsPaused(false);
+      } else if (state === 'playing') {
+        setIsLoadingAudio(false);
+        setLoadingAudioVerseIndex(null);
+        setIsSpeaking(true);
+      } else if (state === 'loading') {
+        setIsLoadingAudio(true);
+      }
+    };
+
+    const handleGoogleTtsState = (state) => {
+      if (state === 'finished' || state === 'stopped' || state === 'error') {
+        setIsSpeaking(false);
+        setSpeakingVerseIndex(null);
+        setIsLoadingAudio(false);
+        setLoadingAudioVerseIndex(null);
+        setIsPaused(false);
+      } else if (state === 'playing') {
+        setIsLoadingAudio(false);
+        setLoadingAudioVerseIndex(null);
+        setIsSpeaking(true);
+      } else if (state === 'loading') {
+        setIsLoadingAudio(true);
+      }
+    };
+
+    chatterboxService.onStateChange = handleChatterboxState;
+    googleTtsService.onStateChange = handleGoogleTtsState;
+
+    return () => {
+      chatterboxService.onStateChange = null;
+      googleTtsService.onStateChange = null;
+    };
+  }, []);
+
+  const stopAllAudio = async () => {
+    try {
+      await chatterboxService.stop();
+      await googleTtsService.stop();
+    } catch (e) {}
+    setIsSpeaking(false);
+    setSpeakingVerseIndex(null);
+    setIsLoadingAudio(false);
+    setLoadingAudioVerseIndex(null);
+    setIsPaused(false);
+  };
+
+  const speakVerse = async (verseText, verseRef, verseIndex) => {
+    try {
+      if ((isSpeaking && speakingVerseIndex === verseIndex) ||
+          (isLoadingAudio && loadingAudioVerseIndex === verseIndex)) {
+        await stopAllAudio();
+        return;
+      }
+
+      await stopAllAudio();
+
+      const cleanText = `${verseRef}. ${verseText}`
+        .replace(/\*\*/g, '')
+        .replace(/\n\n+/g, '. ')
+        .replace(/\n/g, ' ')
+        .trim();
+
+      setIsLoadingAudio(true);
+      setLoadingAudioVerseIndex(verseIndex);
+      setSpeakingVerseIndex(verseIndex);
+      hapticFeedback.light();
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
+
+      if (useGoogleTts) {
+        const success = await googleTtsService.speak(cleanText);
+        if (!success) {
+          setIsLoadingAudio(false);
+          setLoadingAudioVerseIndex(null);
+          setIsSpeaking(false);
+          setSpeakingVerseIndex(null);
+        }
+      } else {
+        const success = await chatterboxService.speak(cleanText);
+        if (!success) {
+          setIsLoadingAudio(false);
+          setLoadingAudioVerseIndex(null);
+          setIsSpeaking(false);
+          setSpeakingVerseIndex(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error speaking verse:', error);
+      await stopAllAudio();
+    }
+  };
+
+  const pauseAudio = async () => {
+    try {
+      await googleTtsService.pause();
+      setIsPaused(true);
+      hapticFeedback.light();
+    } catch (e) {}
+  };
+
+  const resumeAudio = async () => {
+    try {
+      await googleTtsService.resume();
+      setIsPaused(false);
+      hapticFeedback.light();
+    } catch (e) {}
+  };
+
+  const stopAudio = async () => {
+    hapticFeedback.light();
+    await stopAllAudio();
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -89,31 +226,27 @@ const PrayerDetailModal = ({
     })
   ).current;
 
-  // Animate in/out
   useEffect(() => {
     if (visible) {
-      // Ensure we start from closed position
       slideAnim.setValue(0);
       fadeAnim.setValue(0);
       
-      // Small delay to ensure layout is ready
       requestAnimationFrame(() => {
-      Animated.parallel([
+        Animated.parallel([
           Animated.spring(slideAnim, {
-          toValue: 1,
+            toValue: 1,
             tension: 65,
             friction: 11,
-          useNativeDriver: true,
-        }),
+            useNativeDriver: true,
+          }),
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
+            useNativeDriver: true,
+          }),
+        ]).start();
       });
     } else {
-      // Reset to closed position
       slideAnim.setValue(0);
       fadeAnim.setValue(0);
     }
@@ -121,12 +254,13 @@ const PrayerDetailModal = ({
 
   const modalTranslateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1000, 0], // Start from below screen
+    outputRange: [1000, 0],
   });
 
   const combinedTranslateY = Animated.add(modalTranslateY, panY);
 
   const handleBackdropClose = () => {
+    stopAllAudio();
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -144,9 +278,8 @@ const PrayerDetailModal = ({
   };
 
   const handleGoToVersePress = (verseRef) => {
-    console.log('📖 PrayerDetailModal: Go to Verse pressed ->', verseRef);
     hapticFeedback.medium();
-    // Important: close this modal first; otherwise the BibleReader modal can open "behind" it.
+    stopAllAudio();
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -160,83 +293,82 @@ const PrayerDetailModal = ({
       }),
     ]).start(() => {
       onClose();
-      // Let the close commit before opening the Bible modal.
       setTimeout(() => {
         try {
           onNavigateToBible(verseRef);
         } catch (e) {
-          console.error('❌ PrayerDetailModal: onNavigateToBible failed', e);
+          console.error('onNavigateToBible failed', e);
         }
       }, 50);
     });
   };
 
-  const [guideMode, setGuideMode] = useState('how'); // 'acts' | 'how'
+  const [guideMode, setGuideMode] = useState('how');
 
   const actsItems = [
-    {
-      key: 'A',
-      title: 'A — Acknowledging',
-      text: 'Start by praising God for who He is and what He has done.',
-    },
-    {
-      key: 'C',
-      title: 'C — Confession',
-      text: 'Be honest about your sins and shortcomings. Ask for forgiveness and a clean heart.',
-    },
-    {
-      key: 'T',
-      title: 'T — Thanksgiving',
-      text: 'Thank God for specific blessings, answered prayers, and His faithfulness today.',
-    },
-    {
-      key: 'S',
-      title: 'S — Supplication',
-      text: 'Bring your needs and the needs of others before God. Ask for guidance, strength, and peace.',
-    },
+    { key: 'A', title: 'Acknowledging', text: 'Start by praising God for who He is and what He has done.', icon: 'wb-sunny' },
+    { key: 'C', title: 'Confession', text: 'Be honest about your sins and shortcomings. Ask for forgiveness.', icon: 'favorite-border' },
+    { key: 'T', title: 'Thanksgiving', text: 'Thank God for specific blessings and His faithfulness today.', icon: 'emoji-events' },
+    { key: 'S', title: 'Supplication', text: 'Bring your needs and the needs of others before God.', icon: 'people' },
   ];
 
   const howToPrayItems = [
-    {
-      key: '1',
-      title: 'Address God',
-      ref: 'Matthew 6:9',
-      text: 'Start by acknowledging God as your Father and honoring His name.',
-    },
-    {
-      key: '2',
-      title: 'Praise and Worship',
-      ref: 'Psalm 100:4',
-      text: 'Enter His presence with thanksgiving and praise for who He is.',
-    },
-    {
-      key: '3',
-      title: 'Confess',
-      ref: '1 John 1:9',
-      text: 'Be honest about your sins and ask for forgiveness and purification.',
-    },
-    {
-      key: '4',
-      title: 'Present Requests',
-      ref: 'Philippians 4:6',
-      text: 'Share your needs with God with gratitude, trusting His care.',
-    },
-    {
-      key: '5',
-      title: 'Thank Him',
-      ref: '1 Thessalonians 5:18',
-      text: 'Give thanks in all circumstances—He is faithful in every season.',
-    },
-    {
-      key: '6',
-      title: 'Listen',
-      ref: 'John 10:27',
-      text: 'Be still, listen for His guidance, and respond in faith.',
-    },
+    { key: '1', title: 'Address God', ref: 'Matthew 6:9', text: 'Start by acknowledging God as your Father and honoring His name.', icon: 'person' },
+    { key: '2', title: 'Praise and Worship', ref: 'Psalm 100:4', text: 'Enter His presence with thanksgiving and praise for who He is.', icon: 'music-note' },
+    { key: '3', title: 'Confess', ref: '1 John 1:9', text: 'Be honest about your sins and ask for forgiveness.', icon: 'healing' },
+    { key: '4', title: 'Present Requests', ref: 'Philippians 4:6', text: 'Share your needs with God with gratitude.', icon: 'mail-outline' },
+    { key: '5', title: 'Thank Him', ref: '1 Thessalonians 5:18', text: 'Give thanks in all circumstances — He is faithful.', icon: 'volunteer-activism' },
+    { key: '6', title: 'Listen', ref: 'John 10:27', text: 'Be still, listen for His guidance, and respond in faith.', icon: 'hearing' },
   ];
 
-  // FIXED: Don't render modal if prayer is not set (prevents race condition issues)
   if (!prayer || !visible) return null;
+
+  const renderAudioButton = (verseIndex) => {
+    const isThisVerseSpeaking = isSpeaking && speakingVerseIndex === verseIndex;
+    const isThisVerseLoading = isLoadingAudio && loadingAudioVerseIndex === verseIndex;
+
+    if (isThisVerseLoading) {
+      return (
+        <TouchableOpacity
+          onPress={() => stopAudio()}
+          style={[styles.audioButton, { backgroundColor: theme.primary }]}
+          activeOpacity={0.7}
+        >
+          <ActivityIndicator size={14} color="#fff" />
+          <Text style={styles.audioButtonTextActive}>Loading...</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (isThisVerseSpeaking) {
+      return (
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <TouchableOpacity
+            onPress={isPaused ? resumeAudio : pauseAudio}
+            style={[styles.audioButton, { backgroundColor: theme.primary }]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name={isPaused ? 'play-arrow' : 'pause'} size={15} color="#fff" />
+            <Text style={styles.audioButtonTextActive}>{isPaused ? 'Resume' : 'Pause'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={stopAudio}
+            style={[styles.audioButton, { 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+            }]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="stop" size={15} color={theme.text} />
+            <Text style={[styles.audioButtonText, { color: theme.text }]}>Stop</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  const accentGradient = [theme.primary, theme.primaryLight || theme.primary];
 
   return (
     <Modal
@@ -247,7 +379,6 @@ const PrayerDetailModal = ({
       statusBarTranslucent={true}
     >
       <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-        {/* Backdrop */}
         <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim }}>
           <TouchableOpacity 
             style={styles.backdrop}
@@ -256,332 +387,354 @@ const PrayerDetailModal = ({
           />
         </Animated.View>
 
-        {/* Modal Content */}
-          <Animated.View 
-            style={[
+        <Animated.View 
+          style={[
             styles.modalContainer,
-              {
+            {
               transform: [{ translateY: combinedTranslateY }],
-                opacity: fadeAnim,
+              opacity: fadeAnim,
               backgroundColor: theme.background,
-              height: '94%',
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              overflow: 'hidden',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-              elevation: 10
             }
           ]}
         >
-          <View style={styles.safeArea}>
-              <ScrollView 
-                style={styles.scrollView}
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-              >
-                {/* Header with Drag Handle */}
-                <View style={styles.header}>
-                  <View 
-                    style={[styles.dragHandleContainer, { paddingTop: 12, paddingBottom: 4 }]}
-                    {...panResponder.panHandlers}
-                  >
-                    <View style={[styles.dragHandle, { 
-                      width: 40,
-                      height: 5,
-                      borderRadius: 3,
-                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)' 
-                    }]} />
-                    </View>
-                  <View 
-                    style={styles.headerContent}
-                    {...panResponder.panHandlers}
-                  >
-                    <Text style={[styles.title, { color: theme.text }]}>
-                      {prayer.name}
-                    </Text>
-                    <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                        {prayer.time}
-                      </Text>
-                    </View>
-                  </View>
+          {/* Drag Handle */}
+          <View {...panResponder.panHandlers} style={styles.dragArea}>
+            <View style={[styles.dragHandle, { 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)' 
+            }]} />
+          </View>
 
-              {/* Verses Section */}
-                <View style={styles.content}>
-                  <View style={styles.versesSectionHeader}>
-                    <MaterialIcons name="menu-book" size={22} color={theme.text} />
-                    <Text style={[styles.versesSectionTitle, { color: theme.text }]}>
-                      Today's Verses
-                    </Text>
-                  </View>
-                  
-                  {prayer.verses && prayer.verses.map((verse, index) => {
-                    return (
-                      <View key={`${prayer.id}-${index}`} style={[styles.verseCard, { 
-                        backgroundColor: isDark 
-                          ? 'rgba(255, 255, 255, 0.08)' 
-                          : 'rgba(0, 0, 0, 0.04)',
-                        borderWidth: 1,
-                        borderColor: isDark 
-                          ? 'rgba(255, 255, 255, 0.12)' 
-                          : 'rgba(0, 0, 0, 0.08)',
-                      }]}>
-                        <View style={styles.verseHeader}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                            <View style={[styles.verseNumber, { 
-                              backgroundColor: theme.primary + '15',
-                              borderWidth: 1.5,
-                              borderColor: theme.primary + '40'
-                            }]}>
-                              <Text style={[styles.verseNumberText, { 
-                                color: theme.primary
-                              }]}>{index + 1}</Text>
-                            </View>
+          <ScrollView 
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Header */}
+            <View style={styles.headerSection}>
+              <LinearGradient
+                colors={[`${theme.primary}18`, `${theme.primary}08`, 'transparent']}
+                style={styles.headerGradientBg}
+              />
+              <View style={[styles.headerIconCircle, { backgroundColor: `${theme.primary}15` }]}>
+                <MaterialIcons name="favorite" size={28} color={theme.primary} />
+              </View>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>
+                {prayer.name}
+              </Text>
+              <View style={styles.headerMeta}>
+                <View style={[styles.headerTimePill, { backgroundColor: `${theme.primary}12`, borderColor: `${theme.primary}30` }]}>
+                  <MaterialIcons name="schedule" size={14} color={theme.primary} />
+                  <Text style={[styles.headerTimeText, { color: theme.primary }]}>
+                    {prayer.time}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Verses Section */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <LinearGradient
+                  colors={accentGradient}
+                  style={styles.sectionIconBg}
+                >
+                  <MaterialIcons name="auto-stories" size={16} color="#fff" />
+                </LinearGradient>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                  Today's Verses
+                </Text>
+              </View>
+              
+              {prayer.verses && prayer.verses.map((verse, index) => {
+                const verseDisplayText = loadingVerses 
+                  ? 'Loading verse...' 
+                  : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
+
+                return (
+                  <View key={`${prayer.id}-${index}`} style={[styles.verseCard, { 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FAFBFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}18`,
+                  }]}>
+                    {/* Accent strip */}
+                    <LinearGradient
+                      colors={accentGradient}
+                      style={styles.verseAccentStrip}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                    />
+
+                    <View style={styles.verseInner}>
+                      {/* Verse header */}
+                      <View style={styles.verseHeader}>
+                        <View style={styles.verseHeaderLeft}>
+                          <LinearGradient
+                            colors={accentGradient}
+                            style={styles.verseNumberBadge}
+                          >
+                            <Text style={styles.verseNumberText}>{index + 1}</Text>
+                          </LinearGradient>
+                          <View>
                             <Text style={[styles.verseReference, { color: theme.text }]}>
                               {verse.reference}
                             </Text>
                           </View>
-                          <Text style={[styles.versionBadge, { 
-                            color: theme.primary,
-                            backgroundColor: isDark 
-                              ? `${theme.primary}15` 
-                              : `${theme.primary}10`,
-                            borderColor: `${theme.primary}30`
-                          }]}>
+                        </View>
+                        <View style={[styles.versionBadge, { 
+                          backgroundColor: `${theme.primary}10`,
+                          borderColor: `${theme.primary}25`
+                        }]}>
+                          <Text style={[styles.versionBadgeText, { color: theme.primary }]}>
                             {bibleVersion}
                           </Text>
-              </View>
-
-                        <Text style={[styles.verseText, { color: theme.text }]}>
-                          {loadingVerses 
-                            ? 'Loading verse...' 
-                            : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim()}
-                        </Text>
-
-                        <View style={[styles.verseActions, { 
-                          borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                          borderTopWidth: 1
-                        }]}>
-                          {/* Discuss Button - First */}
-                          <TouchableOpacity
-                            style={[styles.verseActionButton, { 
-                              backgroundColor: isDark 
-                                ? `${theme.primary}25`
-                                : `${theme.primary}15`,
-                              borderWidth: 1.5,
-                              borderColor: `${theme.primary}50`
-                            }]}
-                            onPress={(e) => {
-                              if (e) e.stopPropagation();
-                              const displayedText = loadingVerses
-                                ? ''
-                                : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
-                              const displayedVersion =
-                                fetchedVerses[verse.reference]?.version || bibleVersion || 'KJV';
-
-                              onDiscuss({
-                                ...verse,
-                                text: displayedText,
-                                content: displayedText,
-                                reference: verse.reference,
-                                version: displayedVersion,
-                              });
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <MaterialIcons name="chat" size={16} color={theme.primary} />
-                            <Text style={[styles.verseActionText, { color: theme.primary }]}>
-                              Discuss
-                            </Text>
-                          </TouchableOpacity>
-
-                          {/* Go to Verse Button - Second */}
-                          <TouchableOpacity
-                            style={[styles.verseActionButton, { 
-                              backgroundColor: isDark 
-                                ? 'rgba(255, 255, 255, 0.12)' 
-                                : 'rgba(0, 0, 0, 0.08)',
-                              borderWidth: 1.5,
-                              borderColor: isDark 
-                                ? 'rgba(255, 255, 255, 0.2)' 
-                                : 'rgba(0, 0, 0, 0.15)'
-                            }]}
-                            onPress={(e) => {
-                              if (e) e.stopPropagation();
-                              handleGoToVersePress(verse.reference);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <MaterialIcons name="menu-book" size={16} color={theme.text} />
-                            <Text style={[styles.verseActionText, { color: theme.text }]}>
-                              Go to Verse
-                            </Text>
-                          </TouchableOpacity>
                         </View>
                       </View>
-                    );
-                  })}
 
-                  {/* Guide selector */}
-                  <View style={styles.guideSwitchContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.guidePill,
-                        guideMode === 'acts' && [styles.guidePillActive, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}50` }],
-                      ]}
-                      onPress={() => setGuideMode('acts')}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={[
-                        styles.guidePillText,
-                        { color: guideMode === 'acts' ? theme.primary : theme.textSecondary }
-                      ]}>
-                        A.C.T.S.
+                      {/* Verse text */}
+                      <Text style={[styles.verseText, { color: isDark ? 'rgba(255,255,255,0.88)' : '#2D3748' }]}>
+                        {verseDisplayText}
                       </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.guidePill,
-                        guideMode === 'how' && [styles.guidePillActive, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}50` }],
-                      ]}
-                      onPress={() => setGuideMode('how')}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={[
-                        styles.guidePillText,
-                        { color: guideMode === 'how' ? theme.primary : theme.textSecondary }
-                      ]}>
-                        How to Pray
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
 
-                  {/* Guide content */}
-                  {guideMode === 'acts' ? (
-                    <View style={[styles.actsCard, { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    }]}>
-                      <View style={styles.actsHeader}>
-                        <MaterialIcons name="flare" size={18} color={theme.primary} />
-                        <Text style={[styles.actsTitle, { color: theme.text }]}>
-                          Pray with A.C.T.S.
-                        </Text>
-                      </View>
-                      <View style={styles.actsList}>
-                        {actsItems.map((item) => (
-                          <View key={item.key} style={styles.actsRow}>
-                            <View style={[styles.actsBadge, { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}35` }]}>
-                              <Text style={[styles.actsBadgeText, { color: theme.primary }]}>{item.key}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={[styles.actsRowTitle, { color: theme.text }]}>{item.title}</Text>
-                              <Text style={[styles.actsRowText, { color: theme.textSecondary }]}>{item.text}</Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={[styles.actsCard, { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                    }]}>
-                      <View style={styles.actsHeader}>
-                        <MaterialIcons name="lightbulb" size={18} color={theme.primary} />
-                        <Text style={[styles.actsTitle, { color: theme.text }]}>
-                          How to Pray
-                        </Text>
-                      </View>
-                      <View style={styles.actsList}>
-                        {howToPrayItems.map((item) => (
-                          <View key={item.key} style={styles.actsRow}>
-                            <View style={[styles.actsBadge, { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}35` }]}>
-                              <Text style={[styles.actsBadgeText, { color: theme.primary }]}>{item.key}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={[styles.actsRowTitle, { color: theme.text }]}>{item.title}</Text>
-                              <Text style={[styles.actsRowText, { color: theme.textSecondary }]}>{item.text}</Text>
-                              {item.ref ? (
-                                <TouchableOpacity
-                                  onPress={() => handleGoToVersePress(item.ref)}
-                                  activeOpacity={0.8}
-                                  style={{ marginTop: 4 }}
-                                >
-                                  <Text style={[styles.actsRowRef, { color: theme.primary }]}>
-                                    {item.ref}
-                                  </Text>
-                                </TouchableOpacity>
-                              ) : null}
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
+                      {/* Action buttons — equal-width row */}
+                      <View style={[styles.verseActions, {
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                      }]}>
+                        {/* Listen */}
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { 
+                            backgroundColor: (isSpeaking && speakingVerseIndex === index)
+                              ? theme.primary
+                              : (isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`),
+                          }]}
+                          onPress={() => speakVerse(verseDisplayText, verse.reference, index)}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons 
+                            name={(isSpeaking && speakingVerseIndex === index) ? 'graphic-eq' : 'volume-up'} 
+                            size={16} 
+                            color={(isSpeaking && speakingVerseIndex === index) ? '#fff' : theme.primary} 
+                          />
+                          <Text style={[styles.actionBtnText, { 
+                            color: (isSpeaking && speakingVerseIndex === index) ? '#fff' : theme.primary
+                          }]}>
+                            Listen
+                          </Text>
+                        </TouchableOpacity>
 
-                  {/* Prayer Completion Section */}
-              <View style={[styles.completionSection, {
-                    backgroundColor: isDark 
-                      ? 'rgba(255, 255, 255, 0.08)' 
-                      : 'rgba(0, 0, 0, 0.04)',
-                    borderWidth: 1,
-                    borderColor: isDark 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                  }]}>
-                  <View style={styles.completionHeader}>
-                      <MaterialIcons name="stars" size={20} color={theme.text} />
-                    <Text style={[styles.completionTitle, { color: theme.text }]}>
-                        Ready to Complete?
-                    </Text>
+                        {/* Discuss */}
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { 
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
+                          }]}
+                          onPress={(e) => {
+                            if (e) e.stopPropagation();
+                            const displayedText = loadingVerses
+                              ? ''
+                              : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
+                            const displayedVersion =
+                              fetchedVerses[verse.reference]?.version || bibleVersion || 'KJV';
+                            onDiscuss({
+                              ...verse,
+                              text: displayedText,
+                              content: displayedText,
+                              reference: verse.reference,
+                              version: displayedVersion,
+                            });
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons name="chat-bubble-outline" size={16} color={theme.primary} />
+                          <Text style={[styles.actionBtnText, { color: theme.primary }]}>
+                            Discuss
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Go to Verse */}
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { 
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
+                          }]}
+                          onPress={(e) => {
+                            if (e) e.stopPropagation();
+                            handleGoToVersePress(verse.reference);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons name="menu-book" size={16} color={theme.primary} />
+                          <Text style={[styles.actionBtnText, { color: theme.primary }]}>
+                            Open
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Audio playback controls */}
+                      {((isSpeaking && speakingVerseIndex === index) || (isLoadingAudio && loadingAudioVerseIndex === index)) && (
+                        <View style={styles.audioControlsRow}>
+                          {renderAudioButton(index)}
+                        </View>
+                      )}
+                    </View>
                   </View>
-                  
-                  <Text style={[styles.completionSubtitle, { color: theme.textSecondary }]}>
-                      Take a moment to reflect on these verses and complete your prayer when ready.
+                );
+              })}
+            </View>
+
+            {/* Prayer Guide Section */}
+            <View style={styles.sectionContainer}>
+              {/* Guide toggle pills */}
+              <View style={styles.guidePillRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.guidePill,
+                    guideMode === 'acts' && { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}40` },
+                    { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }
+                  ]}
+                  onPress={() => setGuideMode('acts')}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="flare" size={14} color={guideMode === 'acts' ? theme.primary : theme.textSecondary} />
+                  <Text style={[
+                    styles.guidePillText,
+                    { color: guideMode === 'acts' ? theme.primary : theme.textSecondary }
+                  ]}>
+                    A.C.T.S.
                   </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.guidePill,
+                    guideMode === 'how' && { backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}40` },
+                    { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }
+                  ]}
+                  onPress={() => setGuideMode('how')}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="lightbulb-outline" size={14} color={guideMode === 'how' ? theme.primary : theme.textSecondary} />
+                  <Text style={[
+                    styles.guidePillText,
+                    { color: guideMode === 'how' ? theme.primary : theme.textSecondary }
+                  ]}>
+                    How to Pray
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-                  <TouchableOpacity
-                    style={[styles.completeButton, {
-                        backgroundColor: canComplete 
-                          ? theme.primary
-                          : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'),
-                        opacity: canComplete ? 1 : 0.6,
-                        borderWidth: canComplete ? 0 : 1,
-                        borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'
-                      }]}
-                      onPress={onComplete}
-                      disabled={!canComplete}
+              {/* Guide content card */}
+              <View style={[styles.guideCard, { 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FAFBFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}15`,
+              }]}>
+                <View style={styles.guideCardHeader}>
+                  <LinearGradient
+                    colors={accentGradient}
+                    style={styles.sectionIconBg}
                   >
                     <MaterialIcons 
-                        name="check-circle" 
-                      size={24} 
-                        color={canComplete ? '#ffffff' : theme.textSecondary} 
-                      />
-                      <Text style={[styles.completeButtonText, { 
-                        color: canComplete ? '#ffffff' : theme.textSecondary 
-                      }]}>
-                        {canComplete ? 'Complete Prayer' : 
-                         timeUntilAvailable || 'Not Available'}
+                      name={guideMode === 'acts' ? 'flare' : 'lightbulb-outline'} 
+                      size={16} 
+                      color="#fff" 
+                    />
+                  </LinearGradient>
+                  <Text style={[styles.guideCardTitle, { color: theme.text }]}>
+                    {guideMode === 'acts' ? 'Pray with A.C.T.S.' : 'How to Pray'}
+                  </Text>
+                </View>
+
+                {(guideMode === 'acts' ? actsItems : howToPrayItems).map((item) => (
+                  <View key={item.key} style={[styles.guideRow, {
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                  }]}>
+                    <View style={[styles.guideStepBadge, { 
+                      backgroundColor: `${theme.primary}10`,
+                      borderColor: `${theme.primary}25`
+                    }]}>
+                      <MaterialIcons name={item.icon} size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.guideStepContent}>
+                      <Text style={[styles.guideStepTitle, { color: theme.text }]}>
+                        {guideMode === 'acts' ? item.title : `${item.key}. ${item.title}`}
                       </Text>
-                      {canComplete && (
-                        <View style={[styles.pointsBadge, { 
-                          backgroundColor: 'rgba(255, 255, 255, 0.25)' 
-                        }]}>
-                          <Text style={[styles.pointsText, { color: '#ffffff' }]}>
-                            +175 pts
-                    </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+                      <Text style={[styles.guideStepText, { color: theme.textSecondary }]}>
+                        {item.text}
+                      </Text>
+                      {item.ref ? (
+                        <TouchableOpacity
+                          onPress={() => handleGoToVersePress(item.ref)}
+                          activeOpacity={0.7}
+                          style={styles.guideRefTouch}
+                        >
+                          <MaterialIcons name="open-in-new" size={12} color={theme.primary} />
+                          <Text style={[styles.guideRefText, { color: theme.primary }]}>
+                            {item.ref}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
                   </View>
+                ))}
               </View>
-            </ScrollView>
-          </View>
-          </Animated.View>
-        </View>
+            </View>
+
+            {/* Completion Section */}
+            <View style={[styles.completionCard, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FAFBFF',
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}18`,
+            }]}>
+              <View style={styles.completionHeader}>
+                <LinearGradient
+                  colors={accentGradient}
+                  style={styles.sectionIconBg}
+                >
+                  <MaterialIcons name="check-circle-outline" size={16} color="#fff" />
+                </LinearGradient>
+                <Text style={[styles.completionTitle, { color: theme.text }]}>
+                  Ready to Complete?
+                </Text>
+              </View>
+              
+              <Text style={[styles.completionSubtitle, { color: theme.textSecondary }]}>
+                Take a moment to reflect on these verses and complete your prayer when you're ready.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.completeButton, {
+                  opacity: canComplete ? 1 : 0.5,
+                }]}
+                onPress={onComplete}
+                disabled={!canComplete}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={canComplete ? accentGradient : [
+                    isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                    isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  ]}
+                  style={styles.completeButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <MaterialIcons 
+                    name="check-circle" 
+                    size={22} 
+                    color={canComplete ? '#fff' : theme.textSecondary} 
+                  />
+                  <Text style={[styles.completeButtonText, { 
+                    color: canComplete ? '#fff' : theme.textSecondary 
+                  }]}>
+                    {canComplete ? 'Complete Prayer' : 
+                     timeUntilAvailable || 'Not Available'}
+                  </Text>
+                  {canComplete && (
+                    <View style={styles.pointsBadge}>
+                      <Text style={styles.pointsText}>+175 pts</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -595,277 +748,349 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    // Styles moved inline for theme support
+    height: '94%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 16,
   },
-  safeArea: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
+  dragArea: {
+    paddingTop: 14,
+    paddingBottom: 6,
     alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  dragHandleContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 100,
-    marginBottom: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   dragHandle: {
     width: 40,
     height: 5,
     borderRadius: 3,
   },
-  headerContent: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  // Header
+  headerSection: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 24,
     paddingHorizontal: 20,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
+  headerGradientBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  headerIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
     letterSpacing: 0.3,
-  },
-  subtitle: {
-    fontSize: 14,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
+  headerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  versesSectionHeader: {
+  headerTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  headerTimeText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Section generic
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
-    gap: 8,
+    gap: 10,
   },
-  versesSectionTitle: {
-    fontSize: 20,
+  sectionIconBg: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 19,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
+
+  // Verse cards
   verseCard: {
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 18,
     marginBottom: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     elevation: 3,
+    flexDirection: 'row',
+  },
+  verseAccentStrip: {
+    width: 4,
+  },
+  verseInner: {
+    flex: 1,
+    padding: 18,
   },
   verseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  verseNumber: {
+  verseHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  verseNumberBadge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
   },
   verseNumberText: {
-    color: '#ffffff',
+    color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   verseReference: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   versionBadge: {
-    fontSize: 11,
-    fontWeight: '700',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    textTransform: 'uppercase',
+  },
+  versionBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   verseText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 25,
     fontStyle: 'italic',
-  },
-  simpleLoadingBox: {
-    marginTop: 14,
-    padding: 18,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  simpleTextBox: {
-    marginTop: 14,
-    padding: 18,
-    borderRadius: 14,
-  },
-  simpleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    gap: 8,
-  },
-  simpleLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  simpleText: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontStyle: 'italic',
+    fontWeight: '400',
+    letterSpacing: 0.1,
   },
   verseActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 18,
-    paddingTop: 18,
-  },
-  verseActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 22,
-    gap: 7,
-  },
-  verseActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actsCard: {
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-  actsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
     gap: 8,
-    marginBottom: 10,
   },
-  actsTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  actsList: {
-    gap: 12,
-  },
-  actsRow: {
+  actionBtn: {
+    flex: 1,
     flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  actsBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
   },
-  actsBadgeText: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  actsRowTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  actsRowText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  actsRowRef: {
+  actionBtnText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  guideSwitchContainer: {
+
+  // Audio controls
+  audioControlsRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  audioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    gap: 5,
+  },
+  audioButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  audioButtonTextActive: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // Guide pills
+  guidePillRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 8,
-    marginBottom: 12,
-    justifyContent: 'flex-start',
+    marginBottom: 14,
   },
   guidePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 14,
     borderWidth: 1,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-  },
-  guidePillActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
   },
   guidePillText: {
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-  completionSection: {
+
+  // Guide card
+  guideCard: {
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  guideCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  guideCardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  guideRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    alignItems: 'flex-start',
+  },
+  guideStepBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  guideStepContent: {
+    flex: 1,
+  },
+  guideStepTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  guideStepText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  guideRefTouch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 5,
+  },
+  guideRefText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Completion
+  completionCard: {
+    marginHorizontal: 20,
     padding: 22,
     borderRadius: 18,
-    marginTop: 24,
+    borderWidth: 1,
+    marginBottom: 16,
   },
   completionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    gap: 10,
+    marginBottom: 10,
   },
   completionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   completionSubtitle: {
     fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 18,
   },
   completeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
-    borderRadius: 18,
-    gap: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
   },
+  completeButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 10,
+  },
   completeButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   pointsBadge: {
-    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   pointsText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#fff',
   },
 });
 

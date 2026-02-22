@@ -2,11 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.jesusxoi.biblely.refresh</string>
-		<string>com.jesusxoi.biblely.processing</string>
-	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -26,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.54</string>
+	<string>1.0.56</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -35,11 +30,12 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.jesusxoi.biblely</string>
+				<string>biblely</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>54</string>
+	<string>56</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -51,8 +47,6 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Biblely uses your location to show nearby places on interactive Bible maps.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Biblely needs permission to save images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -64,8 +58,6 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
-		<string>processing</string>
-		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>

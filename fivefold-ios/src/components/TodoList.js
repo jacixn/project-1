@@ -146,6 +146,8 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
               hapticFeedback.light();
               onViewAll();
             }}
+            accessibilityLabel="View all tasks"
+            accessibilityRole="button"
           >
             <Text style={[styles.viewAllText, { color: theme.primary }]}>
               View All {hiddenTasksCount > 0 && `(${totalActiveTasks})`}
@@ -159,9 +161,11 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
         <TouchableOpacity 
           style={[styles.addButton, { backgroundColor: theme.primary }]} 
           onPress={() => { 
-            hapticFeedback.light(); // Light feedback when opening add form
+            hapticFeedback.light();
             setIsAdding(true); 
           }}
+          accessibilityLabel="Add task"
+          accessibilityRole="button"
         >
           <MaterialIcons name="add" size={24} color="#ffffff" />
           <Text style={[styles.addButtonText, { color: '#ffffff' }]}>Add Task</Text>

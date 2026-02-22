@@ -11,7 +11,11 @@
 - **Legal links in Settings** — Privacy Policy, Terms of Service, Support & FAQ accessible from ProfileTab
 - **Marketing copy** — App Store description, subtitle, keywords ready in `fivefold-ios/legal/app-store-copy.md`
 
-## Recently improved (Feb 2026)
+## Recently improved (Feb 21, 2026)
+- **17 new themes** — Cotton Candy, Ascent, Mach, Serenity, Pastures, Good Shepherd, Aurora, Minecraft, Meadow, Walk on Water, Heavens, Calvary, Retro, Nightfall, Cozy Study, Shores, Canopy. All free (0 referrals). App now has 25 total themes.
+- **Theme system refactored** — AnimatedWallpaper.js and all tab screens now use dynamic `currentTheme` checks instead of hardcoded boolean flags. Adding new themes no longer requires touching AnimatedWallpaper or tab screen files.
+
+## Previously improved (Feb 2026)
 - **Loading animation unification** — All full-screen/section loading states across the app now use the user's selected loading animation (from Customisation). Created `CustomLoadingIndicator` component as a centralized, reusable replacement for raw `ActivityIndicator`. Updated 20+ files.
 
 ## Previously improved (Feb 8, 2026)

@@ -8,7 +8,7 @@ import VoicePickerModal from './VoicePickerModal';
 import bibleAudioService from '../services/bibleAudioService';
 
 const Settings = ({ settings, onSettingsChange, onClose }) => {
-  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme } = useTheme();
+  const { theme, currentTheme, changeTheme, availableThemes, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme } = useTheme();
   
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -35,9 +35,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
     if (isBlushTheme) return { icon: '🌸', name: 'Blush Bloom' };
     if (isEternaTheme) return { icon: '✨', name: 'Eterna' };
     if (isCresviaTheme) return { icon: '🌌', name: 'Cresvia' };
-    if (isSpidermanTheme) return { icon: '🕷️', name: 'Spiderman' };
     if (isFaithTheme) return { icon: '✝️', name: 'Faith' };
-    if (isSailormoonTheme) return { icon: '🌙', name: 'Sailor Moon' };
     return { icon: '🎨', name: 'Default' };
   };
 
@@ -59,7 +57,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             onPress={() => setShowThemeModal(true)}
             activeOpacity={0.7}
           >
-            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
+            <GlassCard style={styles.section} blushMode={currentTheme && currentTheme !== 'light' && currentTheme !== 'dark'}>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <MaterialIcons name="palette" size={22} color={theme.primary} />
@@ -82,7 +80,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
             onPress={() => setShowVoiceModal(true)}
             activeOpacity={0.7}
           >
-            <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme || isSpidermanTheme || isFaithTheme || isSailormoonTheme || isBiblelyTheme}>
+            <GlassCard style={styles.section} blushMode={currentTheme && currentTheme !== 'light' && currentTheme !== 'dark'}>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <MaterialIcons name="record-voice-over" size={22} color={theme.primary} />
@@ -101,7 +99,7 @@ const Settings = ({ settings, onSettingsChange, onClose }) => {
           </TouchableOpacity>
 
           {/* 📱 About Section */}
-          <GlassCard style={styles.section} blushMode={isBlushTheme || isCresviaTheme || isEternaTheme}>
+          <GlassCard style={styles.section} blushMode={currentTheme && currentTheme !== 'light' && currentTheme !== 'dark'}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>📱 About Biblely</Text>
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>Version: 1.0.0</Text>
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>Faith & Focus, Every Day</Text>

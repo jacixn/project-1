@@ -3003,7 +3003,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     const reference = `${bookName} ${chapterNum}:${verseNum}`;
     const verseText = verse.content || verse.text || '';
     
-    const shareContent = `"${verseText}"\n\n- ${reference}\n\nShared from FiveFold Bible App`;
+    const shareContent = `"${verseText}"\n\n- ${reference}\n\nShared from Biblely`;
     
     try {
       const result = await Share.share({
@@ -4773,7 +4773,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               }}
             >
               <View style={styles.aiButtonContent}>
-                <MaterialIcons name="smart-toy" size={20} color={theme.primary} />
+                <MaterialIcons name="chat-bubble-outline" size={20} color={theme.primary} />
                 <Text style={[styles.aiButtonText, { color: theme.text }]}>
                   Ask me anything...
                 </Text>

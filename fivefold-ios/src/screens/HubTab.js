@@ -26,6 +26,7 @@ import {
   KeyboardAvoidingView,
   AppState,
   Easing,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -56,14 +57,13 @@ import { subscribeToPendingRequests } from '../services/friendsService';
 // LeaderboardScreen is now accessed via stack navigator in RootNavigator
 
 // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
-const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5, amongus: 5 };
+const BADGE_REFERRAL_GATES = { country: null, verified: 1, streak: 5, biblely: 5 };
 
 const getStreakAnimSource = (animId) => {
   switch (animId) {
     case 'fire2':     return require('../../assets/Fire2.json');
     case 'redcar':    return require('../../assets/Red-Car.json');
     case 'bulb':      return require('../../assets/Bulb Transparent.json');
-    case 'amongus':   return require('../../assets/Loading 50 _ Among Us.json');
     case 'lightning':  return require('../../assets/Lightning.json');
     default:          return require('../../assets/fire-animation.json');
   }
@@ -151,7 +151,7 @@ const HubTab = () => {
   }, []);
   
   // Loading animation referral gates (must match CustomisationScreen)
-  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
 
   // Load badge toggles + referral count + loading animation for current user badge display
   useEffect(() => {
@@ -915,6 +915,8 @@ const HubTab = () => {
                     navigation.navigate('Friends');
                   }}
                   activeOpacity={0.7}
+                  accessibilityLabel="Friends"
+                  accessibilityRole="button"
                 >
                   <LinearGradient
                     colors={['#667eea', '#764ba2']}
@@ -961,6 +963,8 @@ const HubTab = () => {
                     navigation.navigate('Leaderboard');
                   }}
                   activeOpacity={0.7}
+                  accessibilityLabel="Leaderboard"
+                  accessibilityRole="button"
                 >
                   <LinearGradient
                     colors={['#f093fb', '#f5576c']}
@@ -1040,8 +1044,6 @@ const HubTab = () => {
             source={
               selectedLoadingAnim === 'hamster'
                 ? require('../../assets/Run-Hamster.json')
-                : selectedLoadingAnim === 'amongus'
-                ? require('../../assets/Loading 50 _ Among Us.json')
                 : require('../../assets/Running-Cat.json')
             }
             autoPlay={false}
@@ -1060,8 +1062,6 @@ const HubTab = () => {
               source={
                 selectedLoadingAnim === 'hamster'
                   ? require('../../assets/Run-Hamster.json')
-                  : selectedLoadingAnim === 'amongus'
-                  ? require('../../assets/Loading 50 _ Among Us.json')
                   : require('../../assets/Running-Cat.json')
               }
               autoPlay
@@ -1107,7 +1107,7 @@ const HubTab = () => {
           },
         ]}
       >
-        <TouchableOpacity onPress={handleFabPress} activeOpacity={0.9}>
+        <TouchableOpacity onPress={handleFabPress} activeOpacity={0.9} accessibilityLabel="Create post" accessibilityRole="button">
           <LinearGradient
             colors={tokenStatus.hasToken ? ['#10B981', '#059669'] : ['#6B7280', '#4B5563']}
             style={styles.fab}
@@ -1259,6 +1259,15 @@ const HubTab = () => {
                   Posts disappear after 7 days
                 </Text>
               </View>
+              <TouchableOpacity 
+                style={styles.expiryNotice}
+                onPress={() => Linking.openURL('https://biblely.uk/terms-of-service')}
+              >
+                <Ionicons name="shield-checkmark-outline" size={14} color={theme.textTertiary} />
+                <Text style={[styles.expiryNoticeText, { color: theme.primary, textDecorationLine: 'underline' }]}>
+                  Community Guidelines
+                </Text>
+              </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
           

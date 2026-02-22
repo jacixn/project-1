@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import LottieView from 'lottie-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
 
-const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3, amongus: 5 };
+const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
 
 const getAnimSource = (animId) => {
   switch (animId) {
     case 'hamster': return require('../../assets/Run-Hamster.json');
-    case 'amongus': return require('../../assets/Loading 50 _ Among Us.json');
     case 'cat':     return require('../../assets/Running-Cat.json');
     default:        return null;
   }
@@ -43,7 +43,7 @@ const _loadAnimPreference = () => {
     } else {
       _cachedAnimId = anim;
     }
-    // Notify all waiting components
+    AsyncStorage.setItem('app_splash_loading_animation', _cachedAnimId).catch(() => {});
     _cacheListeners.forEach(fn => fn(_cachedAnimId));
     _cacheListeners = [];
     return _cachedAnimId;

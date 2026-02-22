@@ -18,9 +18,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import userStorage from '../utils/userStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getReferralCount } from '../services/referralService';
 import { pushToCloud } from '../services/userSyncService';
 import { updateLoadingAnimCache } from '../components/CustomLoadingIndicator';
@@ -40,25 +42,39 @@ const ANIM_REFERRAL_GATES = {
   lightning: 4,      // Lightning — 4 referrals
   redcar:    5,      // Red Car — 5 referrals
   fire2:    5,      // Inferno — 5 referrals
-  amongus:   5,      // Among Us — 5 referrals
 };
 
 const THEME_REFERRAL_GATES = {
-  'biblely-jesusnlambs': null,  // Jesus & Lambs — free
-  'eterna':              null,  // Eterna — free
-  'cresvia':             1,     // Cresvia — 1 referral
-  'blush-bloom':         3,     // Blush Bloom — 3 referrals
-  'sailormoon':          5,     // Sailor Moon — 5 referrals
-  'biblely-classic':     5,     // Classic — 5 referrals
-  'spiderman':           5,     // Spiderman — 5 referrals
-  'biblely-light':       5,     // Biblely — 5 referrals
+  'biblely-jesusnlambs': null,
+  'eterna':              null,
+  'cresvia':             1,
+  'blush-bloom':         3,
+  'biblely-classic':     5,
+  'biblely-light':       5,
+  'cotton-candy':        5,
+  'ascent':              5,
+  'mach':                5,
+  'serenity':            5,
+  'pastures':            5,
+  'good-shepherd':       5,
+  'aurora':              5,
+  'pixel':               5,
+  'meadow':              5,
+  'walk-on-water':       5,
+  'heavens':             5,
+  'calvary':             5,
+  'retro':               5,
+  'nightfall':           5,
+  'cozy-study':          5,
+  'shores':              5,
+  'canopy':              5,
+  'faith':               5,
 };
 
 const BADGE_REFERRAL_GATES = {
   country:  null,  // Country flag — free
   verified: 1,     // Blue Tick — 1 referral
   biblely:  5,     // Biblely Badge — 5 referrals
-  amongus:  5,     // Among Us badge — 5 referrals
 };
 
 // Voice referral gate — 1 referral unlocks all non-free voices
@@ -78,7 +94,6 @@ const BADGES = [
   { id: 'country', name: 'Country', desc: 'Show your country flag next to your name', icon: 'public', image: null, color: '#10B981', gradient: ['#10B981', '#059669'] },
   { id: 'verified', name: 'Blue Tick', desc: 'Verified badge next to your name', icon: 'verified', image: null, color: '#1DA1F2', gradient: ['#1DA1F2', '#0D8BD9'] },
   { id: 'biblely', name: 'Biblely Badge', desc: 'Exclusive founder-level badge', icon: null, image: require('../../assets/logo.png'), color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
-  { id: 'amongus', name: 'Among Us', desc: 'Among Us animation badge next to your name', icon: null, lottie: require('../../assets/Loading 50 _ Among Us.json'), color: '#4CAF50', gradient: ['#4CAF50', '#66BB6A'] },
 ];
 
 // ── Streak animation definitions (sorted by referral cost) ──
@@ -88,7 +103,6 @@ const STREAK_ANIMS = [
   { id: 'lightning', name: 'Lightning',     source: require('../../assets/Lightning.json'),             colors: ['#7C4DFF', '#B388FF'] },
   { id: 'redcar',    name: 'Red Car',      source: require('../../assets/Red-Car.json'),               colors: ['#E53935', '#EF5350'] },
   { id: 'fire2',     name: 'Inferno',      source: require('../../assets/Fire2.json'),                 colors: ['#FF3D00', '#FF6E40'] },
-  { id: 'amongus',   name: 'Among Us',     source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'] },
 ];
 
 // ── Loading animation definitions ────────────────────────────
@@ -97,23 +111,22 @@ const LOADING_ANIMS = [
   { id: 'default',  name: 'Default',      source: null,                                               colors: ['#6366F1', '#818CF8'], icon: 'sync' },
   { id: 'cat',      name: 'Running Cat',  source: require('../../assets/Running-Cat.json'),           colors: ['#795548', '#A1887F'], icon: null },
   { id: 'hamster',  name: 'Run Hamster',  source: require('../../assets/Run-Hamster.json'),           colors: ['#FF9800', '#FFB74D'], icon: null },
-  { id: 'amongus',  name: 'Among Us',     source: require('../../assets/Loading 50 _ Among Us.json'), colors: ['#4CAF50', '#66BB6A'], icon: null },
 ];
 
 const LOADING_ANIM_REFERRAL_GATES = {
   default:  null,   // Default spinner — free
   cat:      1,      // Running Cat — 1 referral
   hamster:  3,      // Run Hamster — 3 referrals
-  amongus:  5,      // Among Us — 5 referrals
 };
 
 // ═══════════════════════════════════════════════════════════════
 const CustomisationScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const {
-    theme, isDark,
+    theme, isDark, currentTheme,
     isBlushTheme, isCresviaTheme, isEternaTheme,
-    isSpidermanTheme, isFaithTheme, isSailormoonTheme, isBiblelyTheme,
+    isFaithTheme, isBiblelyTheme,
     changeTheme, biblelyWallpapers, selectedWallpaperIndex, changeWallpaper,
     themeWallpapers,
   } = useTheme();
@@ -277,8 +290,9 @@ const CustomisationScreen = () => {
       return;
     }
     setSelectedLoadingAnim(id);
-    updateLoadingAnimCache(id); // Update global cache instantly
+    updateLoadingAnimCache(id);
     await userStorage.setRaw(LOADING_ANIM_KEY, id);
+    AsyncStorage.setItem('app_splash_loading_animation', id).catch(() => {});
     pushToCloud('selectedLoadingAnimation', id);
   };
 
@@ -312,10 +326,26 @@ const CustomisationScreen = () => {
     { id: 'eterna',             name: 'Eterna',         wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme, mode: 'Light' },
     { id: 'cresvia',            name: 'Cresvia',        wallpaper: themeWallpapers?.['cresvia'], isActive: isCresviaTheme, mode: 'Dark' },
     { id: 'blush-bloom',        name: 'Blush Bloom',   wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme, mode: 'Light' },
-    { id: 'sailormoon',         name: 'Sailor Moon',    wallpaper: themeWallpapers?.['sailormoon'], isActive: isSailormoonTheme, mode: 'Light' },
     { id: 'biblely-classic',    name: 'Classic',         wallpaper: biblelyWallpapers?.[2]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 2, isBiblelyVariant: true, wallpaperIndex: 2, mode: 'Dark' },
-    { id: 'spiderman',          name: 'Spiderman',      wallpaper: themeWallpapers?.['spiderman'], isActive: isSpidermanTheme, mode: 'Dark' },
     { id: 'biblely-light',      name: 'Biblely',        wallpaper: biblelyWallpapers?.[0]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 0, isBiblelyVariant: true, wallpaperIndex: 0, mode: 'Light' },
+    { id: 'cotton-candy',       name: 'Cotton Candy',   wallpaper: themeWallpapers?.['cotton-candy'], isActive: currentTheme === 'cotton-candy', mode: 'Light' },
+    { id: 'ascent',             name: 'Ascent',         wallpaper: themeWallpapers?.['ascent'], isActive: currentTheme === 'ascent', mode: 'Dark' },
+    { id: 'mach',               name: 'Mach',           wallpaper: themeWallpapers?.['mach'], isActive: currentTheme === 'mach', mode: 'Dark' },
+    { id: 'serenity',           name: 'Serenity',       wallpaper: themeWallpapers?.['serenity'], isActive: currentTheme === 'serenity', mode: 'Light' },
+    { id: 'pastures',           name: 'Pastures',       wallpaper: themeWallpapers?.['pastures'], isActive: currentTheme === 'pastures', mode: 'Dark' },
+    { id: 'good-shepherd',      name: 'Good Shepherd',  wallpaper: themeWallpapers?.['good-shepherd'], isActive: currentTheme === 'good-shepherd', mode: 'Light' },
+    { id: 'aurora',             name: 'Aurora',         wallpaper: themeWallpapers?.['aurora'], isActive: currentTheme === 'aurora', mode: 'Dark' },
+    { id: 'pixel',              name: 'Pixel',           wallpaper: themeWallpapers?.['pixel'], isActive: currentTheme === 'pixel', mode: 'Light' },
+    { id: 'meadow',             name: 'Meadow',         wallpaper: themeWallpapers?.['meadow'], isActive: currentTheme === 'meadow', mode: 'Light' },
+    { id: 'walk-on-water',      name: 'Walk on Water',  wallpaper: themeWallpapers?.['walk-on-water'], isActive: currentTheme === 'walk-on-water', mode: 'Dark' },
+    { id: 'heavens',            name: 'Heavens',        wallpaper: themeWallpapers?.['heavens'], isActive: currentTheme === 'heavens', mode: 'Light' },
+    { id: 'calvary',            name: 'Calvary',        wallpaper: themeWallpapers?.['calvary'], isActive: currentTheme === 'calvary', mode: 'Dark' },
+    { id: 'retro',              name: 'Retro',          wallpaper: themeWallpapers?.['retro'], isActive: currentTheme === 'retro', mode: 'Light' },
+    { id: 'nightfall',          name: 'Nightfall',      wallpaper: themeWallpapers?.['nightfall'], isActive: currentTheme === 'nightfall', mode: 'Dark' },
+    { id: 'cozy-study',         name: 'Cozy Study',     wallpaper: themeWallpapers?.['cozy-study'], isActive: currentTheme === 'cozy-study', mode: 'Light' },
+    { id: 'shores',             name: 'Shores',         wallpaper: themeWallpapers?.['shores'], isActive: currentTheme === 'shores', mode: 'Light' },
+    { id: 'canopy',             name: 'Canopy',         wallpaper: themeWallpapers?.['canopy'], isActive: currentTheme === 'canopy', mode: 'Light' },
+    { id: 'faith',              name: 'Faith',          wallpaper: themeWallpapers?.['faith'], isActive: currentTheme === 'faith', mode: 'Light' },
   ];
 
   // ── Colors ──────────────────────────────────────────────────
@@ -335,7 +365,7 @@ const CustomisationScreen = () => {
   // ═══════════════════════════════════════════════════════════
   return (
     <View style={[st.root, { backgroundColor: bg }]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[st.scroll, { paddingTop: Platform.OS === 'ios' ? 108 : 78 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[st.scroll, { paddingTop: insets.top + 58 }]} showsVerticalScrollIndicator={false}>
 
 
 
