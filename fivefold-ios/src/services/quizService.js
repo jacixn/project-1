@@ -1,5 +1,5 @@
 import userStorage from '../utils/userStorage';
-import { errorHandler } from '../utils/errorHandler';
+import errorHandler from '../utils/errorHandler';
 
 const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/quiz-data';
 const CACHE_KEY = 'quiz_data_cache';
