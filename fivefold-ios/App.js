@@ -38,7 +38,7 @@ import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorkoutService from './src/services/workoutService';
-import { updateFuelWidget, updateTodoWidget } from './src/utils/widgetBridge';
+import { updateFuelWidget, updateTodoWidget, updateHabitsWidget, updateVisionWidget, updateBodyCompWidget } from './src/utils/widgetBridge';
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -989,7 +989,9 @@ const ThemedApp = () => {
         // Push current data to iOS widgets so they're always up-to-date on launch
         updateTodoWidget().catch(() => {});
         updateFuelWidget().catch(() => {});
-        console.log('📱 Widget data pushed on app start');
+        updateHabitsWidget().catch(() => {});
+        updateVisionWidget().catch(() => {});
+        updateBodyCompWidget().catch(() => {});
       } catch (error) {
         console.error('Failed to initialize app:', error);
       }
@@ -1095,6 +1097,9 @@ const ThemedApp = () => {
         // Always refresh widgets when app comes to foreground (cheap, local-only)
         updateTodoWidget().catch(() => {});
         updateFuelWidget().catch(() => {});
+        updateHabitsWidget().catch(() => {});
+        updateVisionWidget().catch(() => {});
+        updateBodyCompWidget().catch(() => {});
       }
       if (nextState === 'active' && userId) {
         const now = Date.now();

@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -38,6 +38,7 @@ const STEPS = [
 
 const VisionSetupModal = ({ visible, onClose, onComplete }) => {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(['', '', '']);
   const [categories, setCategories] = useState(['other', 'other', 'other']);
@@ -131,8 +132,7 @@ const VisionSetupModal = ({ visible, onClose, onComplete }) => {
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
-        <SafeAreaView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5', paddingTop: insets.top }]}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -265,7 +265,7 @@ const VisionSetupModal = ({ visible, onClose, onComplete }) => {
             </ScrollView>
 
             {/* Bottom buttons */}
-            <View style={styles.bottomBar}>
+            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
                 <Text style={[styles.skipText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
                   {isLast ? 'Finish' : 'Skip'}
@@ -293,7 +293,6 @@ const VisionSetupModal = ({ visible, onClose, onComplete }) => {
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
-        </SafeAreaView>
       </View>
     </Modal>
   );

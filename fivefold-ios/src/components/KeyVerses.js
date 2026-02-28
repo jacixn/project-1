@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -16,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
+  InteractionManager,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -193,8 +195,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
     hapticFeedback.success();
   };
 
-  // Collapsible search bar animation (matches Achievements pattern)
-  const searchBarAnim = useRef(new Animated.Value(1)).current;
+  const [searchBarVisible, setSearchBarVisible] = useState(true);
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
 
@@ -204,11 +205,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
 
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
-      Animated.timing(searchBarAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
+      setSearchBarVisible(direction !== 'down');
     }
 
     lastScrollY.current = currentScrollY;
@@ -285,14 +282,14 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
         if (cached) {
           setVersesData(cached);
           setLoading(false);
-          await loadDynamicVerses(cached);
+          InteractionManager.runAfterInteractions(() => loadDynamicVerses(cached));
           return;
         }
       }
       const remote = await fetchVersesFromRemote();
       setVersesData(remote);
       setLoading(false);
-      await loadDynamicVerses(remote);
+      InteractionManager.runAfterInteractions(() => loadDynamicVerses(remote));
     } catch {
       setError('Using offline data');
       setLoading(false);
@@ -549,13 +546,9 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
     );
   };
 
-  // Header spacer height adapts to search bar visibility
-  // Status bar (54) + title row (44) + chips (40) + padding = ~150 collapsed
-  // + search bar (58) when expanded = ~210
-  const headerSpacerHeight = searchBarAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Platform.OS === 'ios' ? 155 : 130, Platform.OS === 'ios' ? 215 : 190],
-  });
+  const headerSpacerHeight = searchBarVisible
+    ? (Platform.OS === 'ios' ? 215 : 190)
+    : (Platform.OS === 'ios' ? 155 : 130);
 
   if (loading) {
     const loadingContent = (
@@ -583,33 +576,35 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Scrollable content */}
-        <ScrollView
+        {/* Scrollable content — FlatList for virtualization */}
+        <FlatList
           ref={scrollViewRef}
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => renderVerseCard(item)}
+          numColumns={viewMode === 'grid' ? 2 : 1}
+          key={viewMode}
           onScroll={handleScroll}
-          scrollEventThrottle={16}
+          scrollEventThrottle={32}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          {/* Dynamic spacer that responds to search bar collapse */}
-          <Animated.View style={{ height: headerSpacerHeight }} />
-
-          <View style={styles.container}>
-            {filtered.length > 0 ? (
-              filtered.map(renderVerseCard)
-            ) : (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, width: '100%' }}>
-                <MaterialIcons name="auto-stories" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
-                <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
-                  No Matches
-                </Text>
-                <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
-                  Try a different search or category.
-                </Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+          contentContainerStyle={{ paddingBottom: 40, ...styles.container }}
+          ListHeaderComponent={<View style={{ height: headerSpacerHeight }} />}
+          ListEmptyComponent={
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, width: '100%' }}>
+              <MaterialIcons name="auto-stories" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
+              <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
+                No Matches
+              </Text>
+              <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
+                Try a different search or category.
+              </Text>
+            </View>
+          }
+          initialNumToRender={10}
+          maxToRenderPerBatch={12}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+        />
 
         {/* Premium Transparent Header — matches Achievements */}
         <BlurView
@@ -624,7 +619,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
           }}
         >
           <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
             {/* Title row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <TouchableOpacity
@@ -678,16 +673,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
             </View>
 
             {/* Collapsible Search bar */}
-            <Animated.View
-              style={{
-                height: searchBarAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 58],
-                }),
-                opacity: searchBarAnim,
-                overflow: 'hidden',
-              }}
-            >
+            {searchBarVisible && (
               <View
                 style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -732,8 +718,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
                   </TouchableOpacity>
                 )}
               </View>
-            </Animated.View>
-          </Animated.View>
+            )}
+          </View>
 
           {/* Category filter chips */}
           <ScrollView

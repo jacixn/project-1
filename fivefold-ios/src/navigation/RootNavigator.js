@@ -9,6 +9,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, Animated, StyleSheet, Easing, Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LottieView from 'lottie-react-native';
 import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -46,6 +48,7 @@ import BibleReaderScreen from '../screens/BibleReaderScreen';
 import FriendChatScreen from '../screens/FriendChatScreen';
 import CoachChatScreen from '../screens/CoachChatScreen';
 import VisionScreen from '../screens/VisionScreen';
+import HabitsScreenWrapper from '../screens/HabitsScreen';
 import CustomisationScreen from '../screens/CustomisationScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
@@ -62,8 +65,21 @@ const STAR_FIELD = Array.from({ length: 20 }, (_, i) => ({
   delay: i * 200,
 }));
 
+const SPLASH_ANIM_SOURCES = {
+  cat: require('../../assets/Running-Cat.json'),
+  hamster: require('../../assets/Run-Hamster.json'),
+};
+const SPLASH_ANIM_SIZES = { cat: 120, hamster: 80 };
+
 const AnimatedLoadingScreen = () => {
   const { width: SW } = Dimensions.get('window');
+  const [splashAnim, setSplashAnim] = useState(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('app_splash_loading_animation').then(id => {
+      if (id && SPLASH_ANIM_SOURCES[id]) setSplashAnim(id);
+    }).catch(() => {});
+  }, []);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const heroScale = useRef(new Animated.Value(0.6)).current;
@@ -340,10 +356,22 @@ const AnimatedLoadingScreen = () => {
         <Animated.View style={{
           opacity: tagOpacity,
           transform: [{ translateY: tagSlide }],
-          marginBottom: 48,
+          marginBottom: splashAnim ? 24 : 48,
         }}>
           <Text style={ls.tagline}>Your Faith Journey</Text>
         </Animated.View>
+
+        {/* ── USER'S SELECTED LOADING ANIMATION ── */}
+        {splashAnim && SPLASH_ANIM_SOURCES[splashAnim] && (
+          <View style={{ alignItems: 'center', marginBottom: 24 }}>
+            <LottieView
+              source={SPLASH_ANIM_SOURCES[splashAnim]}
+              autoPlay
+              loop
+              style={{ width: SPLASH_ANIM_SIZES[splashAnim] || 100, height: SPLASH_ANIM_SIZES[splashAnim] || 100 }}
+            />
+          </View>
+        )}
 
         {/* ── STEPS ── */}
         <Animated.View style={[ls.stepsWrap, {
@@ -1096,6 +1124,15 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="Vision" 
         component={VisionScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Habits Screen */}
+      <Stack.Screen
+        name="Habits"
+        component={HabitsScreenWrapper}
         options={{
           animation: 'slide_from_right',
         }}

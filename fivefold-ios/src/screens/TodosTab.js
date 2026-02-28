@@ -55,6 +55,8 @@ import { pushToCloud } from '../services/userSyncService';
 import VisionCard from '../components/VisionCard';
 import VisionSetupModal from '../components/VisionSetupModal';
 import { loadVisions } from '../services/visionService';
+import HabitsCard from '../components/HabitsCard';
+import { loadHabits, checkIn as habitCheckIn } from '../services/habitsService';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -188,6 +190,7 @@ const TodosTab = () => {
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   const [visions, setVisions] = useState([]);
   const [showVisionSetup, setShowVisionSetup] = useState(false);
+  const [habits, setHabits] = useState([]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -331,10 +334,11 @@ const TodosTab = () => {
     }, [])
   );
 
-  // Load visions when tab gains focus
+  // Load visions and habits when tab gains focus
   useFocusEffect(
     useCallback(() => {
       loadVisions().then((v) => setVisions(v));
+      loadHabits().then((h) => setHabits(h));
     }, [])
   );
 
@@ -1049,6 +1053,21 @@ const TodosTab = () => {
 
         {/* Beautiful Calendar Header */}
         <CalendarHeader />
+
+        {/* Habits Card */}
+        <HabitsCard
+          habits={habits}
+          onPress={() => navigation.navigate('Habits')}
+          onCheckIn={async (habit) => {
+            await habitCheckIn(habit.id);
+            const h = await loadHabits();
+            setHabits(h);
+          }}
+          liquidGlassEnabled={liquidGlassEnabled}
+          textColor={textColor}
+          textSecondaryColor={textSecondaryColor}
+          textOutlineStyle={textOutlineStyle}
+        />
 
         {/* Vision Card */}
         <VisionCard

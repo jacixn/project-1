@@ -86,7 +86,7 @@ const VisionCard = ({
             >
               {vision.title}
             </Text>
-            <View style={styles.progressTrack}>
+            <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '18' }]}>
               <View
                 style={[
                   styles.progressFill,
@@ -208,7 +208,6 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
     marginBottom: 6,
   },

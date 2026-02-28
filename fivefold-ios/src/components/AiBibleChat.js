@@ -244,11 +244,55 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const [gymUserData, setGymUserData] = useState(null);
   const scrollViewRef = useRef(null);
   const chatInputRef = useRef(null);
+  const messagesRef = useRef([]);
+  const conversationIdRef = useRef(null);
+
+  // Keep messagesRef in sync so async saves always see latest messages
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Save conversation on unmount (critical for screen mode where visible never becomes false)
+  useEffect(() => {
+    return () => {
+      const msgs = messagesRef.current;
+      if (msgs.length >= 2) {
+        const convMsgs = msgs.filter(m => m.text && m.text.trim());
+        if (convMsgs.length >= 2) {
+          const firstUserMsg = convMsgs.find(m => !m.isAi);
+          const preview = (firstUserMsg?.text || convMsgs[0]?.text || 'Conversation').substring(0, 50);
+          const previewText = preview + (preview.length >= 50 ? '...' : '');
+          const now = new Date();
+          const convId = conversationIdRef.current || Date.now().toString();
+
+          userStorage.getRaw(historyStorageKey).then(storedHistory => {
+            const history = storedHistory ? JSON.parse(storedHistory) : [];
+            const existingIdx = history.findIndex(c => c.id === convId);
+
+            if (existingIdx !== -1) {
+              history.splice(existingIdx, 1);
+            }
+
+            const entry = {
+              id: convId,
+              timestamp: now.toISOString(),
+              messages: convMsgs,
+              preview: previewText,
+              date: now.toLocaleDateString(),
+            };
+
+            const updated = [entry, ...history].slice(0, 50);
+            userStorage.setRaw(historyStorageKey, JSON.stringify(updated));
+            pushToCloud(historyStorageKey, updated);
+          }).catch(() => {});
+        }
+      }
+    };
+  }, [historyStorageKey]);
 
   // Stop audio when modal closes
   useEffect(() => {
     if (!visible) {
-      // Modal is closing - stop all audio
       chatterboxService.stop();
       googleTtsService.stop();
       setIsSpeaking(false);
@@ -492,6 +536,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     if (visible) {
       setIsInitializing(true);
       setMessages([]);
+      conversationIdRef.current = Date.now().toString();
       setTimeout(() => {
         setIsInitializing(false);
         loadChatHistory();
@@ -507,12 +552,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     }
   }, [visible]);
 
-  // Save current conversation to history when closing
+  // Save current conversation to history when closing (modal mode only)
   useEffect(() => {
-    if (!visible && messages.length > 0) {
+    if (!visible && messagesRef.current.length >= 2) {
       saveChatToHistory();
     }
-  }, [visible, messages]);
+  }, [visible]);
 
   // Load gym user data (nutrition, body comp, physique, workout history)
   const loadGymUserData = async () => {
@@ -559,75 +604,43 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     }
   };
 
-  // Save current conversation to history
+  // Save current conversation to history (reads from ref to avoid stale closures)
   const saveChatToHistory = async () => {
-    if (messages.length === 0) {
-      return;
-    }
+    const currentMessages = messagesRef.current;
+    if (currentMessages.length === 0) return;
 
-    // Filter out only user and Smart messages (not system messages)
-    const conversationMessages = messages.filter(msg => msg.text && msg.text.trim());
-    
-    if (conversationMessages.length === 0) {
-      return;
-    }
-
-    // Only save conversations with 2 or more messages (avoid saving single greetings)
-    if (conversationMessages.length < 2) {
-      return;
-    }
+    const conversationMessages = currentMessages.filter(msg => msg.text && msg.text.trim());
+    if (conversationMessages.length < 2) return;
 
     try {
-      // Load current history to ensure we have the latest
       const storedHistory = await userStorage.getRaw(historyStorageKey);
       const currentHistory = storedHistory ? JSON.parse(storedHistory) : [];
-      
-      // Get the first user message for preview
+
       const firstUserMessage = conversationMessages.find(msg => !msg.isAi);
       const previewText = firstUserMessage?.text || conversationMessages[0]?.text || 'Conversation';
-      
+      const preview = previewText.substring(0, 50) + (previewText.length > 50 ? '...' : '');
+
       const now = new Date();
-      const currentDate = now.toLocaleDateString();
-      
-      // Check if there's an existing conversation with the same first message that should be updated
-      const currentPreview = previewText.substring(0, 50) + (previewText.length > 50 ? '...' : '');
-      const existingConversationIndex = currentHistory.findIndex(conv => conv.preview === currentPreview);
-      let shouldUpdateExisting = existingConversationIndex !== -1;
-      
-      if (shouldUpdateExisting) {
-        // Update the existing conversation and move it to the top (most recent)
-        const existingConversation = currentHistory[existingConversationIndex];
-        currentHistory.splice(existingConversationIndex, 1); // Remove from current position
-        
-        const updatedConversation = {
-          ...existingConversation,
-          timestamp: now.toISOString(),
-          messages: conversationMessages,
-          date: currentDate
-        };
-        
-        currentHistory.unshift(updatedConversation); // Add to top
-        
-        await userStorage.setRaw(historyStorageKey, JSON.stringify(currentHistory));
-        pushToCloud(historyStorageKey, currentHistory);
-        setChatHistory(currentHistory);
-        console.log('📝 Updated existing chat in history and moved to top');
-      } else {
-        // Create new conversation entry
-        const conversation = {
-          id: Date.now().toString(),
-          timestamp: now.toISOString(),
-          messages: conversationMessages,
-          preview: previewText.substring(0, 50) + (previewText.length > 50 ? '...' : ''),
-          date: currentDate
-        };
-        
-        const updatedHistory = [conversation, ...currentHistory].slice(0, 50); // Keep last 50 conversations
-        await userStorage.setRaw(historyStorageKey, JSON.stringify(updatedHistory));
-        pushToCloud(historyStorageKey, updatedHistory);
-        setChatHistory(updatedHistory);
-        console.log('📝 Created new chat in history');
+      const convId = conversationIdRef.current || Date.now().toString();
+
+      // Match by conversation ID (reliable) or fall back to preview matching (legacy)
+      const existingIdx = currentHistory.findIndex(c => c.id === convId);
+      if (existingIdx !== -1) {
+        currentHistory.splice(existingIdx, 1);
       }
+
+      const entry = {
+        id: convId,
+        timestamp: now.toISOString(),
+        messages: conversationMessages,
+        preview,
+        date: now.toLocaleDateString(),
+      };
+
+      const updatedHistory = [entry, ...currentHistory].slice(0, 50);
+      await userStorage.setRaw(historyStorageKey, JSON.stringify(updatedHistory));
+      pushToCloud(historyStorageKey, updatedHistory);
+      setChatHistory(updatedHistory);
     } catch (error) {
       // Error handled gracefully
     }
@@ -635,15 +648,14 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   // Load a conversation from history
   const loadConversationFromHistory = (conversation) => {
-    // Mark all messages as loaded from history (no animation needed)
     const messagesFromHistory = conversation.messages.map(msg => ({
       ...msg,
       isFromHistory: true
     }));
+    conversationIdRef.current = conversation.id;
     setMessages(messagesFromHistory);
     setShowHistory(false);
     hapticFeedback.light();
-    console.log('📖 Loaded conversation from history');
   };
 
   // Delete a specific conversation
@@ -1003,10 +1015,8 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
       setMessages(prev => [...prev, aiMessage]);
       
-      // Auto-save conversation after Smart response
-      setTimeout(() => {
-        saveChatToHistory();
-      }, 1000); // Small delay to ensure state is updated
+      // Auto-save conversation after response (delay lets React flush the state update)
+      setTimeout(() => saveChatToHistory(), 500);
       
       // Only play success sound if it's not an error message
       if (!response.includes('apologize') && !response.includes('trouble') && !response.includes('settings')) {

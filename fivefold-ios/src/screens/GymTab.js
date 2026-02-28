@@ -1239,6 +1239,53 @@ const GymTab = () => {
             </View>
           </LiquidGlassContainer>
 
+          {/* Workout History Card */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Workout History</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  View your past sessions
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  navigation.navigate('GymHistory');
+                }}
+                accessibilityLabel="View workout history"
+                accessibilityRole="button"
+              >
+                <Text style={styles.browseButtonText}>View</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.exercisesPreview}>
+              <View style={[styles.exercisePreviewItem, {
+                backgroundColor: `${theme.primary}20`,
+                borderColor: `${theme.primary}66`,
+                borderWidth: 1,
+              }]}>
+                <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{workoutHistory.length}</Text>
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  {workoutHistory.length === 1 ? 'Workout' : 'Workouts'}
+                </Text>
+              </View>
+              <View style={[styles.exercisePreviewItem, {
+                backgroundColor: `${theme.success || '#10B981'}20`,
+                borderColor: `${theme.success || '#10B981'}66`,
+                borderWidth: 1,
+              }]}>
+                <MaterialIcons name="trending-up" size={32} color={theme.success || '#10B981'} />
+                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                  Progress
+                </Text>
+              </View>
+            </View>
+          </LiquidGlassContainer>
+
           {/* Health disclaimer */}
           <Text style={{ fontSize: 11, color: textTertiaryColor, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
             For informational purposes only. Not a substitute for professional fitness or medical advice. Consult a healthcare professional before starting any new exercise programme.

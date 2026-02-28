@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -82,10 +83,9 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
-  // Collapsible header animation
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Header visibility — simple boolean avoids JS-thread animated layout
+  const [headerExpanded, setHeaderExpanded] = useState(true);
   const lastScrollY = useRef(0);
-  const headerVisible = useRef(new Animated.Value(1)).current;
   const isScrollingDown = useRef(false);
   
   // Random fact animation refs
@@ -303,44 +303,26 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
     }
   }, [selectedFact]);
 
-  // Handle scroll for collapsible header
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: false,
-      listener: (event) => {
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        const diff = currentScrollY - lastScrollY.current;
-        
-        // Only trigger if scrolled more than threshold
-        if (Math.abs(diff) > 5) {
-          if (diff > 0 && currentScrollY > 50) {
-            // Scrolling down - collapse header
-            if (!isScrollingDown.current) {
-              isScrollingDown.current = true;
-              Animated.timing(headerVisible, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: false,
-              }).start();
-            }
-          } else if (diff < 0) {
-            // Scrolling up - expand header
-            if (isScrollingDown.current) {
-              isScrollingDown.current = false;
-              Animated.timing(headerVisible, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: false,
-              }).start();
-            }
-          }
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const diff = currentScrollY - lastScrollY.current;
+    
+    if (Math.abs(diff) > 5) {
+      if (diff > 0 && currentScrollY > 50) {
+        if (!isScrollingDown.current) {
+          isScrollingDown.current = true;
+          setHeaderExpanded(false);
         }
-        
-        lastScrollY.current = currentScrollY;
-      },
+      } else if (diff < 0) {
+        if (isScrollingDown.current) {
+          isScrollingDown.current = false;
+          setHeaderExpanded(true);
+        }
+      }
     }
-  );
+    
+    lastScrollY.current = currentScrollY;
+  };
 
   const loadFavorites = async () => {
     try {
@@ -559,7 +541,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
                 onPress={() => {
                   hapticFeedback.light();
                   setSelectedCategory(category.id);
-                  scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                  scrollViewRef.current?.scrollToOffset?.({ offset: 0, animated: true });
                 }}
                 style={[
                   styles.categoryChip,
@@ -1075,33 +1057,14 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   // Get current category theme
   const currentCategoryTheme = CATEGORY_THEMES[selectedCategory] || CATEGORY_THEMES.all;
   
-  // Animated header height
-  const headerHeight = headerVisible.interpolate({
-    inputRange: [0, 1],
-    outputRange: [COLLAPSED_HEADER_HEIGHT, EXPANDED_HEADER_HEIGHT],
-    extrapolate: 'clamp',
-  });
-  
-  // Animated content padding
-  const contentPaddingTop = headerVisible.interpolate({
-    inputRange: [0, 1],
-    outputRange: [COLLAPSED_HEADER_HEIGHT + 20, EXPANDED_HEADER_HEIGHT + 20],
-    extrapolate: 'clamp',
-  });
-  
-  // Animated opacity for collapsible sections
-  const expandedOpacity = headerVisible.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-    extrapolate: 'clamp',
-  });
+  const headerHeight = headerExpanded ? EXPANDED_HEADER_HEIGHT : COLLAPSED_HEADER_HEIGHT;
 
   const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
         {/* Collapsible Header */}
-        <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
+        <View style={[styles.headerContainer, { height: headerHeight }]}>
           <LinearGradient
             colors={isDark 
               ? ['rgba(30,30,40,0.98)', 'rgba(30,30,40,0.95)']
@@ -1152,7 +1115,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
             </View>
 
             {/* Expandable Section */}
-            <Animated.View style={{ opacity: expandedOpacity, overflow: 'hidden' }}>
+            {headerExpanded && (
+            <View>
               {/* Search Bar */}
               <View style={[styles.searchBar, { 
                 backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -1194,8 +1158,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
                       onPress={() => {
                         hapticFeedback.light();
                         setSelectedCategory(category.id);
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                      }}
+                  scrollViewRef.current?.scrollToOffset?.({ offset: 0, animated: true });
+                }}
                       activeOpacity={0.7}
                       delayPressIn={0}
                       style={styles.categoryChipWrapper}
@@ -1265,7 +1229,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
                   </View>
                 </View>
               </View>
-            </Animated.View>
+            </View>
+            )}
           </LinearGradient>
           
           {/* Bottom border accent */}
@@ -1275,16 +1240,26 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
             end={{ x: 1, y: 0 }}
             style={styles.headerBottomAccent}
           />
-        </Animated.View>
+        </View>
 
-        {/* Main Content */}
-        <Animated.ScrollView
+        {/* Main Content — FlatList for virtualization */}
+        <FlatList
           ref={scrollViewRef}
+          data={filteredFacts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => renderFactCard(item, index)}
+          numColumns={viewMode === 'grid' ? 2 : 1}
+          key={viewMode}
+          {...(viewMode === 'grid' ? { columnWrapperStyle: { paddingHorizontal: 16, gap: 12 } } : {})}
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.contentContainer, { paddingTop: EXPANDED_HEADER_HEIGHT + 20 }]}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { paddingTop: EXPANDED_HEADER_HEIGHT + 20 },
+            viewMode === 'list' && { paddingHorizontal: 16, gap: 10 },
+          ]}
           onScroll={handleScroll}
-          scrollEventThrottle={16}
+          scrollEventThrottle={32}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1294,26 +1269,24 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
               progressViewOffset={EXPANDED_HEADER_HEIGHT}
             />
           }
-        >
-          {/* Facts Grid/List */}
-          <View style={[styles.factsContainer, viewMode === 'list' && styles.factsContainerList]}>
-            {filteredFacts.length > 0 ? (
-              filteredFacts.map((fact, index) => renderFactCard(fact, index))
-            ) : (
-              <View style={styles.emptyState}>
-                <View style={[styles.emptyStateIcon, { backgroundColor: `${theme.primary}15` }]}>
-                  <MaterialIcons name="search-off" size={48} color={theme.primary} />
-                </View>
-                <Text style={[styles.emptyStateText, { color: theme.text }]}>
-                  No facts found
-                </Text>
-                <Text style={[styles.emptyStateSubtext, { color: theme.textSecondary }]}>
-                  Try adjusting your search or filters
-                </Text>
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyStateIcon, { backgroundColor: `${theme.primary}15` }]}>
+                <MaterialIcons name="search-off" size={48} color={theme.primary} />
               </View>
-            )}
-          </View>
-        </Animated.ScrollView>
+              <Text style={[styles.emptyStateText, { color: theme.text }]}>
+                No facts found
+              </Text>
+              <Text style={[styles.emptyStateSubtext, { color: theme.textSecondary }]}>
+                Try adjusting your search or filters
+              </Text>
+            </View>
+          }
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+        />
 
         {/* Fact Detail Modal */}
         {renderFactDetail()}
@@ -1687,6 +1660,7 @@ const styles = StyleSheet.create({
   // Premium Grid Card Styles
   gridCard: {
     width: (width - 44) / 2,
+    marginBottom: 12,
     borderRadius: 20,
     overflow: 'hidden',
     shadowOffset: { width: 0, height: 4 },

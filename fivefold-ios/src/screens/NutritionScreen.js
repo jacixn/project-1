@@ -42,6 +42,7 @@ import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
 import notificationService from '../services/notificationService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
+import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import { updateFuelWidget } from '../utils/widgetBridge';
 
 // ─── Unit conversion helpers ───
@@ -2152,14 +2153,14 @@ const NutritionScreen = () => {
       )}
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {showPlanResult ? renderPlanResult() : showSetup ? renderSetupForm() : renderDashboard()}
 
         {!showSetup && !showPlanResult && (
-          <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : theme.textTertiary, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>
+          <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : theme.textTertiary, textAlign: 'center', paddingHorizontal: 20, marginTop: -8, marginBottom: 8, lineHeight: 16 }}>
             For informational purposes only. Nutritional estimates are approximations and not a substitute for professional medical or dietary advice. Consult a healthcare professional before making significant dietary changes.
           </Text>
         )}
@@ -2177,6 +2178,7 @@ const NutritionScreen = () => {
       )}
 
       {renderAddFoodModal()}
+      <FitnessDisclaimer screenKey="nutrition" />
     </View>
   );
 };

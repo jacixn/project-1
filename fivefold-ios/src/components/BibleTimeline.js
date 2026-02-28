@@ -19,11 +19,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Svg, Path, Circle, Defs, RadialGradient as SvgRadialGradient, Stop } from 'react-native-svg';
+import { Svg, Path, Circle } from 'react-native-svg';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -91,31 +89,11 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const sheetY = useRef(new Animated.Value(height)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  // Hover and pulse animations
-  const hoverAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  const spinAnim = useRef(new Animated.Value(0)).current;
+  // One-shot pop animation when active card changes
+  const activePopAnim = useRef(new Animated.Value(1)).current;
+  const glowFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Start looping animations on mount
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(hoverAnim, { toValue: 1, duration: 2500, useNativeDriver: true }),
-        Animated.timing(hoverAnim, { toValue: 0, duration: 2500, useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.timing(spinAnim, { toValue: 1, duration: 20000, useNativeDriver: true })
-    ).start();
-
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
       playsInSilentModeIOS: true,
@@ -123,10 +101,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     }).catch(() => {});
   }, []);
 
-  // Background color animation
-  const bgAnim = useRef(new Animated.Value(0)).current;
-  const [bgColors, setBgColors] = useState([theme.background, theme.background]);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [bgColor, setBgColor] = useState(theme.background);
 
   // Audio Player & Deck State
   const [playingStoryIndex, setPlayingStoryIndex] = useState(null);
@@ -408,18 +383,17 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     }
   }, [viewedEras.size]);
 
-  // Update dynamic background when activeIndex changes
   useEffect(() => {
     if (timelineData[activeIndex]) {
-      const newColor = timelineData[activeIndex].color + (isDark ? '15' : '1A'); // subtle opacity
-      setBgColors([bgColors[1], newColor]);
-      bgAnim.setValue(0);
-      Animated.timing(bgAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: false,
-      }).start();
+      setBgColor(timelineData[activeIndex].color + (isDark ? '15' : '1A'));
     }
+
+    activePopAnim.setValue(0);
+    glowFadeAnim.setValue(0);
+    Animated.parallel([
+      Animated.spring(activePopAnim, { toValue: 1, tension: 120, friction: 6, useNativeDriver: true }),
+      Animated.timing(glowFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
   }, [activeIndex, timelineData, isDark]);
 
   // =============================================
@@ -519,25 +493,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   // =============================================
   // Render Helpers
   // =============================================
-  // Calculate total path length roughly (height + extra length due to curves)
-  const pathSegmentLength = 340; // rough bezier curve length for ITEM_HEIGHT (240)
-  const totalPathLength = (timelineData.length - 1) * pathSegmentLength + 200; // + head/tail
-
-  const drawProgress = scrollY.interpolate({
-    inputRange: [0, (timelineData.length * ITEM_HEIGHT)],
-    outputRange: [totalPathLength, 0], // Start fully dashed, reduce as we scroll
-    extrapolate: 'clamp'
-  });
-
   const renderSVGPath = () => {
     if (timelineData.length < 2) return null;
     
     const segments = [];
-    const segments2 = []; // Secondary DNA helix strand
-    
-    // Main path starts at center and swoops left (or right)
-    let fullD = `M ${width / 2} -50 Q ${LEFT_NODE_X} 0, ${LEFT_NODE_X} ${START_Y}`;
-    let fullD2 = `M ${width / 2} -50 Q ${RIGHT_NODE_X} 0, ${RIGHT_NODE_X} ${START_Y}`; // Secondary strand opposite
     
     for (let i = 0; i < timelineData.length - 1; i++) {
       const prevIsLeft = i % 2 === 0;
@@ -546,28 +505,17 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       const prevX = prevIsLeft ? LEFT_NODE_X : RIGHT_NODE_X;
       const currX = currIsLeft ? LEFT_NODE_X : RIGHT_NODE_X;
       
-      const prevX2 = prevIsLeft ? RIGHT_NODE_X : LEFT_NODE_X;
-      const currX2 = currIsLeft ? RIGHT_NODE_X : LEFT_NODE_X;
-      
       const prevY = START_Y + i * ITEM_HEIGHT;
       const currY = START_Y + (i + 1) * ITEM_HEIGHT;
       const midY = (prevY + currY) / 2;
       
-      // Crucial: The control points hit exactly `midY` (the physical gap between cards)
-      // This forces the path to cleanly weave between the cards instead of slashing through them.
       const d = `M ${prevX} ${prevY} C ${prevX} ${midY}, ${currX} ${midY}, ${currX} ${currY}`;
-      fullD += ` C ${prevX} ${midY}, ${currX} ${midY}, ${currX} ${currY}`;
-      
-      const d2 = `M ${prevX2} ${prevY} C ${prevX2} ${midY}, ${currX2} ${midY}, ${currX2} ${currY}`;
-      fullD2 += ` C ${prevX2} ${midY}, ${currX2} ${midY}, ${currX2} ${currY}`;
       
       const isViewed = viewedEras.has(timelineData[i].id);
       const nextIsViewed = viewedEras.has(timelineData[i + 1].id);
-      
       const isPathActive = isViewed && nextIsViewed;
       const pathColor = isPathActive ? timelineData[i].color : (isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '20');
 
-      // Primary segment
       segments.push(
         <Path 
           key={`segment-${i}`}
@@ -579,112 +527,32 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
           strokeLinejoin="round" 
         />
       );
-      
-      // Secondary segment (thinner, more transparent to look like a helix background)
-      segments2.push(
-        <Path 
-          key={`segment2-${i}`}
-          d={d2} 
-          stroke={pathColor} 
-          strokeWidth={12} 
-          opacity={0.35}
-          fill="none" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-      );
     }
     
-    // Continue a bit past the last node
     const lastIndex = timelineData.length - 1;
     const lastIsLeft = lastIndex % 2 === 0;
     const lastX = lastIsLeft ? LEFT_NODE_X : RIGHT_NODE_X;
-    const lastX2 = lastIsLeft ? RIGHT_NODE_X : LEFT_NODE_X;
     const lastY = START_Y + lastIndex * ITEM_HEIGHT;
     
-    // Smooth final curve off the screen
     const tailD = `M ${lastX} ${lastY} Q ${lastX} ${lastY + 100}, ${width / 2} ${lastY + 150}`;
-    fullD += ` Q ${lastX} ${lastY + 100}, ${width / 2} ${lastY + 150}`;
-    
-    const tailD2 = `M ${lastX2} ${lastY} Q ${lastX2} ${lastY + 100}, ${width / 2} ${lastY + 150}`;
-    fullD2 += ` Q ${lastX2} ${lastY + 100}, ${width / 2} ${lastY + 150}`;
-    
     const tailColor = isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '20';
 
     segments.push(
       <Path key={`segment-tail`} d={tailD} stroke={tailColor} strokeWidth={26} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     );
-    segments2.push(
-      <Path key={`segment-tail2`} d={tailD2} stroke={tailColor} strokeWidth={12} opacity={0.35} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    );
     
-    // Top leading path
     const headD = `M ${width / 2} -50 Q ${LEFT_NODE_X} 0, ${LEFT_NODE_X} ${START_Y}`;
-    const headD2 = `M ${width / 2} -50 Q ${RIGHT_NODE_X} 0, ${RIGHT_NODE_X} ${START_Y}`;
-    
     const headIsViewed = viewedEras.has(timelineData[0].id);
     const headColor = headIsViewed ? timelineData[0].color : (isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '20');
 
     segments.unshift(
       <Path key={`segment-head`} d={headD} stroke={headColor} strokeWidth={26} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     );
-    segments2.unshift(
-      <Path key={`segment-head2`} d={headD2} stroke={headColor} strokeWidth={12} opacity={0.35} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    );
 
     return (
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Svg width="100%" height={lastY + 150}>
-          {/* Secondary Helix (Behind everything) */}
-          {segments2}
-          <AnimatedPath
-            d={fullD2}
-            stroke={theme.primary}
-            strokeWidth={4}
-            opacity={0.5}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={totalPathLength * 1.5}
-            strokeDashoffset={drawProgress}
-          />
-
-          {/* Primary Shadow path */}
-          <Path 
-            d={fullD} 
-            stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'} 
-            strokeWidth={38} 
-            fill="none" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            transform="translate(0, 4)"
-          />
-          {/* Primary Segments */}
           {segments}
-          
-          {/* Primary Laser Beam Scrolling Path (Glow) */}
-          <AnimatedPath
-            d={fullD}
-            stroke={theme.primary}
-            strokeWidth={18}
-            opacity={0.35}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={totalPathLength * 1.5}
-            strokeDashoffset={drawProgress}
-          />
-          {/* Primary Laser Beam Scrolling Path (Core) */}
-          <AnimatedPath
-            d={fullD}
-            stroke={theme.primary}
-            strokeWidth={6}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={totalPathLength * 1.5}
-            strokeDashoffset={drawProgress}
-          />
         </Svg>
       </View>
     );
@@ -715,42 +583,39 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     const nextIsViewed = hasNextNode ? viewedEras.has(timelineData[index + 1].id) : false;
     const pathIsActive = isViewed && nextIsViewed;
 
-    // Hover transforms (only applies to active item)
-    const hoverY = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [-4, 4] });
-    const stickerHoverY = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [4, -4] }); // Parallax opposite direction
-    const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1.6, 1.9] });
-    const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.4] });
+    const nodeScale = isActive
+      ? activePopAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.25] })
+      : 0.95;
+    const cardScale = isActive
+      ? activePopAnim.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1.05] })
+      : 0.93;
 
     return (
       <View key={era.id} style={[styles.itemRow, { flexDirection: isLeft ? 'row' : 'row-reverse' }]}>
         
-        {/* The Node (Duolingo Style Circle) */}
         <Animated.View style={[
           styles.nodeOuter, 
           { 
             opacity: cardOpacity, 
             transform: [
-              { translateY: isActive ? hoverY : cardTranslateY }, // hover active node
-              { scale: isActive ? 1.25 : 0.95 } // much larger bump when active, shrink when inactive
+              { translateY: cardTranslateY },
+              { scale: nodeScale }
             ] 
           }
         ]}>
-          {/* Glowing aura behind active node */}
           {isActive && (
             <Animated.View style={[StyleSheet.absoluteFillObject, { 
               backgroundColor: era.color, 
               borderRadius: NODE_SIZE, 
-              opacity: pulseOpacity, 
-              transform: [{ scale: pulseScale }] 
+              opacity: glowFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.25] }), 
+              transform: [{ scale: 1.7 }] 
             }]} />
           )}
 
           <View style={[styles.nodeShadow, { shadowColor: era.color }]} />
           
           <View style={[styles.node, { backgroundColor: isViewed ? era.color : (isDark ? '#222' : '#FFF') }]}>
-            {/* SVG Progress Ring */}
             <Svg width={NODE_SIZE} height={NODE_SIZE} style={{ position: 'absolute' }}>
-              {/* Background ring (subtle track) */}
               <Circle
                 cx={NODE_SIZE / 2}
                 cy={NODE_SIZE / 2}
@@ -759,7 +624,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
                 strokeWidth={5}
                 fill="none"
               />
-              {/* Foreground ring (filled) */}
               <Circle
                 cx={NODE_SIZE / 2}
                 cy={NODE_SIZE / 2}
@@ -774,7 +638,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
               />
             </Svg>
 
-            {/* Node Icon/Content */}
             {isViewed ? (
               <FontAwesome5 name="check" size={18} color="#FFF" />
             ) : (
@@ -783,14 +646,13 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
           </View>
         </Animated.View>
 
-        {/* The Card */}
         <Animated.View style={[
           styles.cardOuter, 
           { 
             opacity: cardOpacity, 
             transform: [
-              { translateY: isActive ? hoverY : cardTranslateY }, // hover active card
-              { scale: isActive ? 1.05 : 0.93 } // Scale active card slightly up, shrink others
+              { translateY: cardTranslateY },
+              { scale: cardScale }
             ] 
           }
         ]}>
@@ -799,15 +661,14 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
             onPress={() => openSheet(era)}
             style={[styles.cardShadow, { shadowColor: isActive ? era.color : '#000', shadowOpacity: isActive ? 0.45 : 0.15 }]}
           >
-            <BlurView
-              intensity={isDark ? 30 : 60}
-              tint={isDark ? 'dark' : 'light'}
+            <View
               style={[
                 styles.card, 
                 { 
                   borderWidth: isActive ? 2.5 : 0, 
                   borderColor: 'rgba(255,255,255,0.4)',
-                  opacity: fadeOpacity // apply the fade effect to the card itself
+                  opacity: fadeOpacity,
+                  backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)',
                 }
               ]}
             >
@@ -819,15 +680,12 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
               />
               <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.cardScrim} />
               
-              <Animated.Image 
+              <Image 
                 source={{ uri: era.imageUrl }} 
                 style={[
                   styles.cardSticker, 
                   { 
-                    transform: [
-                      { scale: isActive ? 1.25 : 1 },
-                      { translateY: isActive ? stickerHoverY : 0 } // parallax hover
-                    ],
+                    transform: [{ scale: isActive ? 1.25 : 1 }],
                     right: isActive ? 12 : 8,
                     top: isActive ? 4 : 12 
                   }
@@ -842,7 +700,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
                   <Text style={styles.countPillText}>{era.stories?.length || 0} stories</Text>
                 </View>
               </View>
-            </BlurView>
+            </View>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -1072,50 +930,24 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const viewedCount = viewedEras.size;
   const totalEras = timelineData.length;
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg']
-  });
-  const reverseSpin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['360deg', '0deg']
-  });
-
   const content = (
     <View style={styles.root}>
-      {/* Dynamic Animated Background overlay */}
-      <Animated.View 
-        style={[
-          StyleSheet.absoluteFill, 
-          { 
-            backgroundColor: bgAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: bgColors,
-            }) 
-          }
-        ]} 
-      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: bgColor }]} />
 
       {/* Meshed Ambient Light Orbs */}
       {timelineData.length > 0 && timelineData[activeIndex] && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {/* Top Right Orb */}
-          <Animated.View style={{
+          <View style={{
             position: 'absolute', top: -150, right: -100, width: 400, height: 400, borderRadius: 200,
             backgroundColor: timelineData[activeIndex].color, opacity: 0.15,
-            transform: [{ rotate: spin }, { translateX: 50 }, { translateY: 50 }]
           }} />
-          {/* Bottom Left Orb */}
-          <Animated.View style={{
+          <View style={{
             position: 'absolute', bottom: height * 0.1, left: -150, width: 500, height: 500, borderRadius: 250,
             backgroundColor: timelineData[Math.min(activeIndex + 1, timelineData.length - 1)].color, opacity: 0.1,
-            transform: [{ rotate: reverseSpin }, { translateX: -60 }, { translateY: -40 }]
           }} />
-          {/* Center Subtle Orb */}
-          <Animated.View style={{
+          <View style={{
             position: 'absolute', top: height * 0.4, left: width * 0.1, width: 300, height: 300, borderRadius: 150,
             backgroundColor: timelineData[Math.max(activeIndex - 1, 0)].color, opacity: 0.12,
-            transform: [{ rotate: spin }, { translateX: 80 }, { scale: hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }]
           }} />
         </View>
       )}
@@ -1142,18 +974,15 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       </TouchableOpacity>
 
       {!loading && !error && (
-        <Animated.ScrollView
+        <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+          contentContainerStyle={{ paddingBottom: height * 0.6 + insets.bottom }}
           showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
+          scrollEventThrottle={32}
           snapToInterval={ITEM_HEIGHT}
           decelerationRate="fast"
           disableIntervalMomentum={true}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true, listener: handleScroll }
-          )}
+          onScroll={handleScroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} colors={[theme.primary]} />}
         >
           <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -1176,7 +1005,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
             {renderSVGPath()}
             {timelineData.map((era, index) => renderEraItem(era, index))}
           </View>
-        </Animated.ScrollView>
+        </ScrollView>
       )}
 
       {renderBottomSheet()}

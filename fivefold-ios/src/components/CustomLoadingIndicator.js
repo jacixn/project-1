@@ -34,9 +34,10 @@ const _loadAnimPreference = () => {
 
   _cachePromise = Promise.all([
     userStorage.getRaw('fivefold_loading_animation'),
+    AsyncStorage.getItem('app_splash_loading_animation'),
     getReferralCount(),
-  ]).then(([id, count]) => {
-    const anim = id || 'default';
+  ]).then(([uidScopedId, globalId, count]) => {
+    const anim = uidScopedId || globalId || 'default';
     const req = LOADING_ANIM_GATES[anim];
     if (req !== null && req !== undefined && count < req) {
       _cachedAnimId = 'default';

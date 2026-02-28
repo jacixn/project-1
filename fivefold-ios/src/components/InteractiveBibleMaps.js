@@ -544,72 +544,72 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
           showsBuildings={false}
           showsTraffic={false}
         >
-          {/* Location Markers */}
-          {getFilteredLocations().map((location) => {
-            const isVisited = visitedLocations.includes(location.id);
-            const isBookmarked = bookmarkedLocations.includes(location.id);
-            const isSelected = selectedLocation?.id === location.id;
+          {/* Location Markers — pre-filtered to avoid null children (AIRMap native crash) */}
+          {getFilteredLocations()
+            .filter(loc => loc?.coordinate)
+            .map((location) => {
+              const isVisited = visitedLocations.includes(location.id);
+              const isBookmarked = bookmarkedLocations.includes(location.id);
+              const isSelected = selectedLocation?.id === location.id;
+              const markerColor = getMarkerColor(location);
 
-            return (
-              <Marker
-                key={location.id}
-                coordinate={location.coordinate}
-                title={location.name}
-                description={location.description}
-                onPress={() => {
-                  handleLocationPress(location);
-                  markLocationVisited(location.id);
-                }}
-                pinColor={getMarkerColor(location)}
-              >
-                <View
-                  style={[
-                    styles.customMarker,
-                    {
-                      backgroundColor: getMarkerColor(location),
-                      borderColor: '#FFFFFF',
-                      borderWidth: isBookmarked ? 3 : 2,
-                      opacity: isVisited ? 1.0 : 0.7,
-                      transform: [{ scale: isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0 }],
-                      shadowColor: getMarkerColor(location),
-                      shadowOpacity: isSelected ? 0.8 : 0.4,
-                      shadowRadius: isSelected ? 10 : 5,
-                    },
-                  ]}
+              return (
+                <Marker
+                  key={location.id}
+                  coordinate={location.coordinate}
+                  onPress={() => {
+                    handleLocationPress(location);
+                    markLocationVisited(location.id);
+                  }}
+                  tracksViewChanges={false}
                 >
-                  <MaterialIcons
-                    name={location.icon}
-                    size={isSelected ? 26 : 20}
-                    color="white"
-                  />
-                  {isVisited && (
-                    <View style={styles.visitedIndicator}>
-                      <MaterialIcons name="check-circle" size={12} color="#00E676" />
-                    </View>
-                  )}
-                  {location.miracleCount > 0 && (
-                    <View style={[styles.miracleIndicator, { backgroundColor: getMarkerColor(location) }]}>
-                      <Text style={styles.miracleIndicatorText}>{location.miracleCount}</Text>
-                    </View>
-                  )}
-                </View>
-              </Marker>
-            );
-          })}
+                  <View
+                    style={[
+                      styles.customMarker,
+                      {
+                        backgroundColor: markerColor,
+                        borderColor: '#FFFFFF',
+                        borderWidth: isBookmarked ? 3 : 2,
+                        opacity: isVisited ? 1.0 : 0.7,
+                        transform: [{ scale: isSelected ? 1.4 : isBookmarked ? 1.2 : 1.0 }],
+                        shadowColor: markerColor,
+                        shadowOpacity: isSelected ? 0.8 : 0.4,
+                        shadowRadius: isSelected ? 10 : 5,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name={location.icon || 'place'}
+                      size={isSelected ? 26 : 20}
+                      color="white"
+                    />
+                    {isVisited && (
+                      <View style={styles.visitedIndicator}>
+                        <MaterialIcons name="check-circle" size={12} color="#00E676" />
+                      </View>
+                    )}
+                  </View>
+                </Marker>
+              );
+            })}
 
-          {/* Connection Lines */}
-          {showConnections && selectedLocation && getConnectedLocations(selectedLocation.id).map((connectedLoc) => (
-            <Polyline
-              key={`connection-${selectedLocation.id}-${connectedLoc.id}`}
-              coordinates={[selectedLocation.coordinate, connectedLoc.coordinate]}
-              strokeColor="rgba(255, 215, 0, 0.4)"
-              strokeWidth={2}
-              lineDashPattern={[10, 5]}
-            />
-          ))}
+          {/* Connection Lines — only when connections are shown and location is selected */}
+          {showConnections && selectedLocation?.coordinate &&
+            getConnectedLocations(selectedLocation.id)
+              .filter(loc => loc?.coordinate)
+              .map((connectedLoc) => (
+                <Polyline
+                  key={`connection-${selectedLocation.id}-${connectedLoc.id}`}
+                  coordinates={[selectedLocation.coordinate, connectedLoc.coordinate]}
+                  strokeColor="rgba(255, 215, 0, 0.4)"
+                  strokeWidth={2}
+                  lineDashPattern={[10, 5]}
+                />
+              ))
+          }
 
-          {/* Active Journey Route */}
-          {showJourneyRoutes && selectedJourney?.route && showPaths && (
+          {/* Active Journey Route — guard route has 2+ points */}
+          {showJourneyRoutes && selectedJourney?.route?.length >= 2 && showPaths && (
             <Polyline
               coordinates={selectedJourney.route}
               strokeColor={selectedJourney.color || theme.primary}
@@ -619,18 +619,22 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
             />
           )}
 
-          {/* All Journey Routes (faded) */}
-          {!showJourneyRoutes && showPaths && getFilteredJourneys().map((journey) => (
-            <Polyline
-              key={journey.id}
-              coordinates={journey.route || []}
-              strokeColor={`${journey.color || theme.primary}66`}
-              strokeWidth={2}
-              lineCap="round"
-              lineJoin="round"
-              onPress={() => handleJourneyPress(journey)}
-            />
-          ))}
+          {/* All Journey Routes (faded) — skip journeys with <2 route points */}
+          {!showJourneyRoutes && showPaths &&
+            getFilteredJourneys()
+              .filter(j => j.route?.length >= 2)
+              .map((journey) => (
+                <Polyline
+                  key={journey.id}
+                  coordinates={journey.route}
+                  strokeColor={`${journey.color || theme.primary}66`}
+                  strokeWidth={2}
+                  lineCap="round"
+                  lineJoin="round"
+                  onPress={() => handleJourneyPress(journey)}
+                />
+              ))
+          }
         </MapView>
       </View>
 
@@ -677,7 +681,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   }}
                 >
                   <MaterialIcons
-                    name={era.icon}
+                    name={era.icon || 'place'}
                     size={16}
                     color={activeEra === era.id ? (era.color || theme.primary) : overlayText}
                   />
@@ -720,7 +724,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   }}
                 >
                   <MaterialIcons
-                    name={filter.icon}
+                    name={filter.icon || 'place'}
                     size={14}
                     color={activeFilter === filter.id ? (filter.color || theme.primary) : overlayText}
                   />

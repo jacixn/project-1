@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -15,6 +16,7 @@ import {
   ActivityIndicator,
   Alert,
   DeviceEventEmitter,
+  InteractionManager,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -67,8 +69,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Collapsible search bar animation (matches Achievements pattern)
-  const searchBarAnim = useRef(new Animated.Value(1)).current;
+  // Search bar visibility — simple boolean avoids JS-thread animated layout
+  const [searchBarVisible, setSearchBarVisible] = useState(true);
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
 
@@ -78,22 +80,15 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
 
     if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
       scrollDirection.current = direction;
-      Animated.timing(searchBarAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
+      setSearchBarVisible(direction !== 'down');
     }
 
     lastScrollY.current = currentScrollY;
   };
 
-  // Header spacer height adapts to search bar visibility
-  // Status bar (54) + title row (44) + search (58 when open) + chips (44) + padding
-  const headerSpacerHeight = searchBarAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Platform.OS === 'ios' ? 155 : 130, Platform.OS === 'ios' ? 215 : 190],
-  });
+  const headerSpacerHeight = searchBarVisible
+    ? (Platform.OS === 'ios' ? 215 : 190)
+    : (Platform.OS === 'ios' ? 155 : 130);
 
   // Modal animation refs for guide detail view
   const guideSlideAnim = useRef(new Animated.Value(0)).current;
@@ -188,8 +183,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
           setGuidesData(data);
           setLoading(false);
           console.log('✅ Loaded thematic guides from cache');
-          // Load dynamic verses after loading guides
-          await loadDynamicVerses(data);
+          InteractionManager.runAfterInteractions(() => loadDynamicVerses(data));
           return;
         }
       }
@@ -198,8 +192,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       try {
         const data = await fetchGuidesFromRemote();
         setGuidesData(data);
-        // Load dynamic verses after loading guides
-        await loadDynamicVerses(data);
+        InteractionManager.runAfterInteractions(() => loadDynamicVerses(data));
       } catch (remoteError) {
         console.error('Remote fetch failed, using fallback:', remoteError);
         
@@ -209,13 +202,13 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
           const data = JSON.parse(cachedData);
           setGuidesData(data);
           console.log('📦 Using expired cache due to remote failure');
-          await loadDynamicVerses(data);
+          InteractionManager.runAfterInteractions(() => loadDynamicVerses(data));
         } else {
           // Use fallback data
           const fallbackData = loadLocalFallbackData();
           setGuidesData(fallbackData);
           console.log('🔄 Using fallback data');
-          await loadDynamicVerses(fallbackData);
+          InteractionManager.runAfterInteractions(() => loadDynamicVerses(fallbackData));
         }
         
         setError('Using offline data. Pull to refresh when online.');
@@ -1358,34 +1351,35 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
           </View>
         )}
 
-        {/* Scrollable content */}
+        {/* Scrollable content — FlatList for virtualization */}
         {!loading && !error && (
-          <ScrollView
+          <FlatList
             ref={scrollViewRef}
+            data={filteredGuides}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => renderGuideCard(item, index)}
             onScroll={handleScroll}
-            scrollEventThrottle={16}
+            scrollEventThrottle={32}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            {/* Dynamic spacer that responds to search bar collapse */}
-            <Animated.View style={{ height: headerSpacerHeight }} />
-
-            <View style={styles.guidesSection}>
-              {filteredGuides.length > 0 ? (
-                filteredGuides.map((guide, index) => renderGuideCard(guide, index))
-              ) : (
-                <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}>
-                  <MaterialIcons name="menu-book" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
-                  <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
-                    No Matches
-                  </Text>
-                  <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
-                    Try a different search or category.
-                  </Text>
-                </View>
-              )}
-            </View>
-          </ScrollView>
+            ListHeaderComponent={<View style={{ height: headerSpacerHeight }} />}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 80, paddingHorizontal: 20 }}>
+                <MaterialIcons name="menu-book" size={64} color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} />
+                <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '700', marginTop: 16 }}>
+                  No Matches
+                </Text>
+                <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 }}>
+                  Try a different search or category.
+                </Text>
+              </View>
+            }
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            style={styles.guidesSection}
+          />
         )}
 
         {/* Premium Transparent Header — matches Achievements */}
@@ -1401,7 +1395,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
           }}
         >
           <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-          <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
             {/* Title row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <TouchableOpacity
@@ -1436,16 +1430,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
             </View>
 
             {/* Collapsible Search bar */}
-            <Animated.View
-              style={{
-                height: searchBarAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 58],
-                }),
-                opacity: searchBarAnim,
-                overflow: 'hidden',
-              }}
-            >
+            {searchBarVisible && (
               <View
                 style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -1490,8 +1475,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
                   </TouchableOpacity>
                 )}
               </View>
-            </Animated.View>
-          </Animated.View>
+            )}
+          </View>
 
           {/* Category filter chips */}
           <ScrollView

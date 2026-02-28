@@ -8,7 +8,7 @@
  * - Food favorites with usage tracking
  */
 
-import { updateFuelWidget } from '../utils/widgetBridge';
+import { updateFuelWidget, updateBodyCompWidget } from '../utils/widgetBridge';
 
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from './userSyncService';
@@ -60,8 +60,8 @@ class NutritionService {
       await userStorage.setRaw(PROFILE_KEY, JSON.stringify(data));
       pushToCloud('nutritionProfile', data);
       console.log('[Nutrition] Profile saved');
-      // Push updated targets to widget
       updateFuelWidget().catch(() => {});
+      updateBodyCompWidget().catch(() => {});
       return data;
     } catch (e) {
       console.warn('[Nutrition] Failed to save profile:', e.message);

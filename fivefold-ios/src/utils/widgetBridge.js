@@ -4,6 +4,9 @@
  *
  * Call updateFuelWidget() after any nutrition data change.
  * Call updateTodoWidget() after any todo add / complete / delete / edit.
+ * Call updateHabitsWidget() after any habit check-in / add / delete / edit.
+ * Call updateVisionWidget() after any vision add / update / delete / achieve.
+ * Call updateBodyCompWidget() after nutrition profile changes.
  */
 
 import { NativeModules, Platform } from 'react-native';
@@ -14,6 +17,9 @@ const { WidgetBridge } = NativeModules;
 // Shared UserDefaults keys (must match the Swift widget code)
 const FUEL_KEY = 'widgetFuelData';
 const TODO_KEY = 'widgetTodoData';
+const HABITS_KEY = 'widgetHabitsData';
+const VISION_KEY = 'widgetVisionData';
+const BODY_COMP_KEY = 'widgetBodyCompData';
 
 /**
  * Safely write JSON to the shared App Group container and reload widgets.
@@ -118,7 +124,117 @@ export async function updateTodoWidget() {
   }
 }
 
+// ─── Habits Widget ──────────────────────────────────────────────────────
+
+/**
+ * Read habits data and push it to the Habits widget.
+ */
+export async function updateHabitsWidget() {
+  try {
+    const { loadHabits, isCheckedInToday } = require('../services/habitsService');
+    const habits = await loadHabits();
+
+    const todayChecked = habits.filter((h) => isCheckedInToday(h));
+    const bestStreak = habits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
+
+    const payload = {
+      habits: habits.slice(0, 6).map((h) => ({
+        name: h.name,
+        color: h.color || '#4CAF50',
+        currentStreak: h.currentStreak || 0,
+        isCheckedIn: isCheckedInToday(h),
+      })),
+      totalCount: habits.length,
+      completedToday: todayChecked.length,
+      bestStreak,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    await setWidgetData(HABITS_KEY, payload);
+  } catch (err) {
+    console.warn('widgetBridge: updateHabitsWidget failed:', err);
+  }
+}
+
+// ─── Vision Widget ──────────────────────────────────────────────────────
+
+/**
+ * Read active visions and push them to the Vision widget.
+ */
+export async function updateVisionWidget() {
+  try {
+    const visionService = require('../services/visionService').default;
+    const allVisions = await visionService.loadVisions();
+    const active = visionService.getActiveVisions(allVisions);
+    const achieved = allVisions.filter((v) => v.status === 'achieved');
+
+    const payload = {
+      visions: active.slice(0, 5).map((v) => {
+        const progress = visionService.getProgress(v);
+        return {
+          title: v.title,
+          category: v.category || 'other',
+          progressPercent: progress > 0 ? Math.max(1, Math.round(progress * 100)) : 0,
+          timeRemaining: visionService.getTimeRemaining(v),
+        };
+      }),
+      totalActive: active.length,
+      totalAchieved: achieved.length,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    await setWidgetData(VISION_KEY, payload);
+  } catch (err) {
+    console.warn('widgetBridge: updateVisionWidget failed:', err);
+  }
+}
+
+// ─── Body Composition Widget ────────────────────────────────────────────
+
+/**
+ * Read body composition data and push it to the Body Comp widget.
+ */
+export async function updateBodyCompWidget() {
+  try {
+    const nutritionService = require('../services/nutritionService').default;
+    const bodyCompositionService = require('../services/bodyCompositionService').default;
+
+    const profile = await nutritionService.getProfile();
+    if (!profile || !profile.weightKg || !profile.heightCm) {
+      await setWidgetData(BODY_COMP_KEY, { hasProfile: false, lastUpdated: new Date().toISOString() });
+      return;
+    }
+
+    const data = bodyCompositionService.calculate(profile);
+    if (!data) {
+      await setWidgetData(BODY_COMP_KEY, { hasProfile: false, lastUpdated: new Date().toISOString() });
+      return;
+    }
+
+    const payload = {
+      healthScore: Math.round(data.healthScore),
+      bodyAge: Math.round(data.bodyAge),
+      bmi: Math.round(data.bmi * 10) / 10,
+      bmiStatus: data.bmiStatus.label,
+      bodyFat: Math.round(data.bodyFat * 10) / 10,
+      bodyFatStatus: data.bodyFatStatus.label,
+      muscleRate: Math.round(data.muscleRate * 10) / 10,
+      muscleStatus: data.muscleStatus.label,
+      weight: Math.round(data.weight * 10) / 10,
+      hasProfile: true,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    await setWidgetData(BODY_COMP_KEY, payload);
+  } catch (err) {
+    console.warn('widgetBridge: updateBodyCompWidget failed:', err);
+  }
+}
+
 export default {
   updateFuelWidget,
   updateTodoWidget,
+  updateHabitsWidget,
+  updateVisionWidget,
+  updateBodyCompWidget,
 };

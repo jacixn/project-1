@@ -489,49 +489,26 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
       try { await SecureStore.deleteItemAsync(`biblely_cred_${uid}`); } catch (_) {}
       console.log('[Delete] ✓ Cleared SecureStore credentials');
 
-      // Remove from linked accounts list (preserve other accounts)
+      // Clear linked accounts data
       try {
-        const linkedRaw = await AsyncStorage.getItem('@biblely_linked_accounts');
-        if (linkedRaw) {
-          const linked = JSON.parse(linkedRaw);
-          const filtered = linked.filter(a => a.uid !== uid);
-          if (filtered.length > 0) {
-            await AsyncStorage.setItem('@biblely_linked_accounts', JSON.stringify(filtered));
-          } else {
-            await AsyncStorage.removeItem('@biblely_linked_accounts');
-          }
-          console.log('[Delete] ✓ Removed from linked accounts');
-        }
+        await AsyncStorage.removeItem('@biblely_linked_accounts');
       } catch (_) {}
 
-      // Clear only THIS user's UID-scoped AsyncStorage keys (u:{uid}:*)
-      // This preserves other linked accounts' data
+      // Clear this user's UID-scoped AsyncStorage keys (u:{uid}:*)
       const allKeys = await AsyncStorage.getAllKeys();
       const uidPrefix = `u:${uid}:`;
       const userKeys = allKeys.filter(k => k.startsWith(uidPrefix));
 
-      // Also remove any non-scoped legacy keys that belong to this user
-      // (these are keys from before the UID-scoping migration)
       const legacyKeysToRemove = allKeys.filter(k => 
         !k.startsWith('u:') && 
-        !k.startsWith('@RNC_AsyncStorage_') &&
-        !k.startsWith('@biblely_linked_accounts') &&
-        // Only remove legacy keys if this is the ONLY account (no other linked accounts)
-        // Otherwise we risk wiping another account's un-migrated data
-        true
+        !k.startsWith('@RNC_AsyncStorage_')
       );
 
-      // Check if there are other linked accounts — if so, only remove UID-scoped keys
-      const linkedRaw2 = await AsyncStorage.getItem('@biblely_linked_accounts');
-      const hasOtherAccounts = linkedRaw2 ? JSON.parse(linkedRaw2).length > 0 : false;
-
-      const keysToRemove = hasOtherAccounts
-        ? userKeys  // Only remove UID-scoped keys if other accounts exist
-        : [...userKeys, ...legacyKeysToRemove];  // Remove everything if this is the only account
+      const keysToRemove = [...userKeys, ...legacyKeysToRemove];
 
       if (keysToRemove.length > 0) {
         await AsyncStorage.multiRemove(keysToRemove);
-        console.log(`[Delete] ✓ Removed ${keysToRemove.length} local storage keys (preserved ${hasOtherAccounts ? 'other accounts data' : 'nothing — sole account'})`);
+        console.log(`[Delete] ✓ Removed ${keysToRemove.length} local storage keys`);
       }
 
       // Delete persisted profile pictures from local file system

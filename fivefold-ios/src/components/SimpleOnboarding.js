@@ -35,7 +35,6 @@ import { persistProfileImage } from '../utils/profileImageStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadProfilePicture } from '../services/storageService';
-import { updateLinkedAccountProfile } from '../services/accountSwitcherService';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup } from '../services/authService';
 import { submitReferral } from '../services/referralService';
@@ -1105,11 +1104,6 @@ const SimpleOnboarding = ({ onComplete }) => {
                 countryFlag: selectedCountry?.flag || null,
               }));
 
-              // Update linked account entry so the accounts list shows the profile picture
-              await updateLinkedAccountProfile(user.uid, {
-                displayName: userName.trim() || 'Friend',
-                profilePicture: finalPicture || cached.profilePicture || null,
-              });
             } catch (syncError) {
               console.warn('[Setup] Firebase sync failed:', syncError);
               await minDelay;

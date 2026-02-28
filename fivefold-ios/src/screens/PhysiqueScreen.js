@@ -31,6 +31,7 @@ import productionAiService from '../services/productionAiService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
+import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import { MUSCLE_GROUPS, SCORE_COLORS, getScoreColor } from '../data/exerciseMuscleMap';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -410,6 +411,7 @@ const PhysiqueScreen = () => {
 
         <View style={{ height: 50 }} />
       </Animated.ScrollView>
+      <FitnessDisclaimer screenKey="physique" />
     </View>
   );
 };

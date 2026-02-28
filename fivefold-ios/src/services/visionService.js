@@ -7,6 +7,7 @@
 
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from './userSyncService';
+import { updateVisionWidget } from '../utils/widgetBridge';
 
 const STORAGE_KEY = 'visions';
 
@@ -97,6 +98,7 @@ export const loadVisions = async () => {
 const persist = async (visions) => {
   await userStorage.set(STORAGE_KEY, visions);
   pushToCloud('visions', visions);
+  updateVisionWidget().catch(() => {});
 };
 
 export const addVision = async ({ title, timeframe, category, targetDate }) => {

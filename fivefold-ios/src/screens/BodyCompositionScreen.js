@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
+import FitnessDisclaimer from '../components/FitnessDisclaimer';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -578,6 +579,7 @@ const BodyCompositionScreen = () => {
           </TouchableOpacity>
         </Modal>
       )}
+      <FitnessDisclaimer screenKey="body_composition" />
     </View>
   );
 };

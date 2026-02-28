@@ -12,5 +12,8 @@ struct BiblelyVerseWidgetBundle: WidgetBundle {
         BiblelyVerseWidget()
         FuelWidget()
         TodoWidget()
+        HabitsWidget()
+        VisionWidget()
+        BodyCompWidget()
     }
 }

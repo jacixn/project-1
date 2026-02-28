@@ -1148,6 +1148,57 @@ class NotificationService {
       console.error('Failed to cancel vision check-in:', error);
     }
   }
+
+  async scheduleHabitReminder(habit) {
+    try {
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
+      if (settings.pushNotifications === false) return;
+
+      const notifId = `habit_reminder_${habit.id}`;
+      await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+
+      const [hourStr, minuteStr] = (habit.reminderTime || '22:00').split(':');
+      const hour = parseInt(hourStr, 10);
+      const minute = parseInt(minuteStr, 10);
+      const triggerDate = this.getNextOccurrenceDate(hour, minute);
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: notifId,
+        content: {
+          title: 'Habit Check-in',
+          body: `Have you stayed on track with ${habit.name} today? You're on Day ${habit.currentStreak || 0}!`,
+          data: { type: 'habit_reminder', habitId: habit.id },
+          sound: settings.sound ? 'default' : false,
+        },
+        trigger: triggerDate,
+      });
+
+      console.log(`[Notif] Scheduled habit reminder for "${habit.name}" at ${hour}:${String(minute).padStart(2, '0')}`);
+    } catch (error) {
+      console.error('Failed to schedule habit reminder:', error);
+    }
+  }
+
+  async cancelHabitReminder(habitId) {
+    try {
+      const notifId = `habit_reminder_${habitId}`;
+      await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+    } catch (error) {
+      console.error('Failed to cancel habit reminder:', error);
+    }
+  }
+
+  async rescheduleAllHabitReminders(habits) {
+    try {
+      for (const habit of habits) {
+        if (habit.notificationEnabled !== false) {
+          await this.scheduleHabitReminder(habit);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to reschedule habit reminders:', error);
+    }
+  }
 }
 
 // Create and export singleton instance
