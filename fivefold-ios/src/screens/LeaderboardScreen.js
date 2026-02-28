@@ -42,6 +42,7 @@ import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
 import { getReferralCount } from '../services/referralService';
+import { getCurrentSeason, getDaysRemaining, getSeasonalPoints, getSeasonalPointsForUser, checkSeasonReset } from '../services/seasonService';
 import userStorage from '../utils/userStorage';
 
 // Must match CustomisationScreen BADGE_REFERRAL_GATES exactly
@@ -181,7 +182,8 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
     if (!user) return;
     
     try {
-      // Sync local points to Firebase in the BACKGROUND — don't block leaderboard display
+      await checkSeasonReset();
+      
       syncUserStatsToCloud(user.uid).catch(err => 
         console.warn('[Leaderboard] Background sync failed:', err?.message)
       );
@@ -202,37 +204,33 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const loadFriendsLeaderboard = async () => {
     const friends = await getFriendsWithStats(user.uid);
     
-    // Read points from single source of truth: total_points key
     let freshTotalPoints = 0;
+    let freshSeasonalPoints = 0;
     let freshStreak = 0;
     
     try {
-      // Single source of truth for points
       const totalPointsStr = await userStorage.getRaw('total_points');
       if (totalPointsStr) {
         freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
       }
       
-      // Streak from app_open_streak (AppStreakManager's key)
+      freshSeasonalPoints = await getSeasonalPoints();
+      
       const appStreakStr = await userStorage.getRaw('app_open_streak');
       if (appStreakStr) {
         const appStreakData = JSON.parse(appStreakStr);
         freshStreak = appStreakData.currentStreak || 0;
       }
-      
-      console.log('[Leaderboard] Fresh data:', { freshTotalPoints, freshStreak });
     } catch (err) {
       console.warn('Error getting fresh points:', err);
     }
     
-    // Get local stats for badge display
     let localBadgeStats = {};
     try {
       const mergedStats = await AchievementService.getStats();
       localBadgeStats = mergedStats || {};
     } catch (e) {}
 
-    // Add current user to the list with fresh data
     const currentUserEntry = {
       uid: user.uid,
       displayName: userProfile?.displayName || user.displayName || 'You',
@@ -240,17 +238,23 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       profilePicture: userProfile?.profilePicture || '',
       countryFlag: userProfile?.countryFlag || '',
       totalPoints: freshTotalPoints,
+      seasonalPoints: freshSeasonalPoints,
       currentStreak: freshStreak,
       isCurrentUser: true,
       prayersCompleted: localBadgeStats.prayersCompleted || userProfile?.prayersCompleted || 0,
     };
     
-    const allUsers = [currentUserEntry, ...friends];
+    // For friends, derive their seasonal points from Firestore data
+    const friendsWithSeasonal = friends.map(f => ({
+      ...f,
+      seasonalPoints: getSeasonalPointsForUser(f),
+    }));
     
-    // Sort by selected metric
+    const allUsers = [currentUserEntry, ...friendsWithSeasonal];
+    
     const sorted = allUsers.sort((a, b) => {
       if (sortBy === 'points') {
-        return (b.totalPoints || 0) - (a.totalPoints || 0);
+        return (b.seasonalPoints || 0) - (a.seasonalPoints || 0);
       } else if (sortBy === 'streak') {
         return (b.currentStreak || 0) - (a.currentStreak || 0);
       } else if (sortBy === 'workouts') {
@@ -261,7 +265,6 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       return 0;
     });
     
-    // Add rank
     const ranked = sorted.map((u, index) => ({
       ...u,
       rank: index + 1,
@@ -273,9 +276,6 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const loadGlobalLeaderboard = async () => {
     try {
       const usersRef = collection(db, 'users');
-      
-      // Simple query without orderBy to avoid needing composite index
-      // We'll sort in memory instead
       const q = query(
         usersRef,
         where('isPublic', '==', true),
@@ -285,26 +285,27 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       const querySnapshot = await getDocs(q);
       const users = [];
       
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         users.push({
-          uid: doc.id,
-          ...doc.data(),
-          isCurrentUser: doc.id === user.uid,
+          uid: docSnap.id,
+          ...data,
+          seasonalPoints: getSeasonalPointsForUser(data),
+          isCurrentUser: docSnap.id === user.uid,
         });
       });
       
-      // Read points from single source of truth: total_points key
       let freshTotalPoints = 0;
+      let freshSeasonalPoints = 0;
       let freshStreak = 0;
       
       try {
-        // Single source of truth for points
         const totalPointsStr = await userStorage.getRaw('total_points');
         if (totalPointsStr) {
           freshTotalPoints = parseInt(totalPointsStr, 10) || 0;
         }
+        freshSeasonalPoints = await getSeasonalPoints();
         
-        // Streak from app_open_streak (AppStreakManager's key)
         const appStreakStr = await userStorage.getRaw('app_open_streak');
         if (appStreakStr) {
           const appStreakData = JSON.parse(appStreakStr);
@@ -314,15 +315,12 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         console.warn('[Global Leaderboard] Error getting fresh local points:', err);
       }
       
-      // Update current user's entry with fresh local data
       const currentUserIndex = users.findIndex(u => u.uid === user.uid);
       if (currentUserIndex !== -1) {
-        // User is in global list, update with fresh local points (single source of truth)
         users[currentUserIndex].totalPoints = freshTotalPoints;
+        users[currentUserIndex].seasonalPoints = freshSeasonalPoints;
         users[currentUserIndex].currentStreak = freshStreak;
       } else if (userProfile?.isPublic) {
-        // User should be in global but isn't in query results, add them
-        // Get local stats for badge display
         let localBadgeStats2 = {};
         try {
           const mergedStats2 = await AchievementService.getStats();
@@ -336,6 +334,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           profilePicture: userProfile?.profilePicture || '',
           countryFlag: userProfile?.countryFlag || '',
           totalPoints: freshTotalPoints,
+          seasonalPoints: freshSeasonalPoints,
           currentStreak: freshStreak,
           isCurrentUser: true,
           isPublic: true,
@@ -343,17 +342,15 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         });
       }
       
-      // Sort in memory based on selected metric
       const sortFieldMap = {
-        points: 'totalPoints',
+        points: 'seasonalPoints',
         streak: 'currentStreak',
         workouts: 'workoutsCompleted',
         tasks: 'tasksCompleted',
       };
-      const sortField = sortFieldMap[sortBy] || 'totalPoints';
+      const sortField = sortFieldMap[sortBy] || 'seasonalPoints';
       users.sort((a, b) => (b[sortField] || 0) - (a[sortField] || 0));
       
-      // Add rank
       const ranked = users.map((u, index) => ({
         ...u,
         rank: index + 1,
@@ -380,7 +377,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const getScoreValue = (item) => {
     switch (sortBy) {
       case 'points':
-        return item.totalPoints || 0;
+        return item.seasonalPoints || 0;
       case 'streak':
         return item.currentStreak || 0;
       case 'workouts':
@@ -388,7 +385,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
       case 'tasks':
         return item.tasksCompleted || 0;
       default:
-        return item.totalPoints || 0;
+        return item.seasonalPoints || 0;
     }
   };
   
@@ -1002,6 +999,35 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         </View>
       </Animated.View>
       
+      {/* Season Banner */}
+      {(() => {
+        const season = getCurrentSeason();
+        const daysLeft = getDaysRemaining();
+        return (
+          <Animated.View style={[{ paddingHorizontal: 20, marginBottom: 12 }, { opacity: headerAnim }]}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: season.color + '15',
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name={season.icon} size={18} color={season.color} />
+                <Text style={{ fontSize: 14, fontWeight: '700', color: season.color }}>
+                  {season.name} {season.year}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary }}>
+                {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+              </Text>
+            </View>
+          </Animated.View>
+        );
+      })()}
+
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>

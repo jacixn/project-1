@@ -237,6 +237,15 @@ export const syncUserStatsToCloud = async (userId) => {
       updateData.level = AchievementService.getLevelFromPoints(pointsToSync);
     }
     
+    // Sync seasonal points
+    const seasonalPointsStr = await userStorage.getRaw('seasonal_points');
+    const seasonalPoints = seasonalPointsStr ? parseInt(seasonalPointsStr, 10) : 0;
+    const currentSeasonKey = await userStorage.getRaw('current_season');
+    if (seasonalPoints > 0 && currentSeasonKey) {
+      updateData.seasonalPoints = seasonalPoints;
+      updateData.currentSeason = currentSeasonKey;
+    }
+
     console.log('[Sync] Points to sync:', pointsToSync, '(total_points key:', totalPointsKey, ', userStats:', statsPoints, ')');
     
     // Add other stats fields
@@ -389,7 +398,27 @@ export const downloadAndMergeCloudData = async (userId) => {
     // key must be updated, otherwise syncUserStatsToCloud will push stale data.
     await userStorage.setRaw('total_points', correctTotalPoints.toString());
     console.log('[Sync] Updated total_points key to', correctTotalPoints);
-    
+
+    // Merge seasonal points — keep whichever is higher for the current season
+    if (cloudData.currentSeason && cloudData.seasonalPoints !== undefined) {
+      const localSeasonStr = await userStorage.getRaw('current_season');
+      const localSeasonalStr = await userStorage.getRaw('seasonal_points');
+      const localSeasonal = localSeasonalStr ? parseInt(localSeasonalStr, 10) : 0;
+
+      if (cloudData.currentSeason === localSeasonStr) {
+        const merged = Math.max(localSeasonal, cloudData.seasonalPoints || 0);
+        await userStorage.setRaw('seasonal_points', merged.toString());
+        console.log('[Sync] Merged seasonal points:', merged);
+      } else {
+        // Cloud is on a different season — the season service will handle reset on next check
+        if (!localSeasonStr) {
+          await userStorage.setRaw('seasonal_points', (cloudData.seasonalPoints || 0).toString());
+          await userStorage.setRaw('current_season', cloudData.currentSeason);
+          console.log('[Sync] Imported seasonal data from cloud:', cloudData.currentSeason);
+        }
+      }
+    }
+
     // Also save profile picture URL to local storage for ProfileTab
     if (cloudData.profilePicture) {
       const storedProfile = await userStorage.getRaw('userProfile');
@@ -1504,6 +1533,14 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including daily verse data in upload');
     }
     
+    // Seasonal points
+    const seasonalPointsStr = await userStorage.getRaw('seasonal_points');
+    const currentSeasonStr = await userStorage.getRaw('current_season');
+    if (seasonalPointsStr && currentSeasonStr) {
+      updateData.seasonalPoints = parseInt(seasonalPointsStr, 10) || 0;
+      updateData.currentSeason = currentSeasonStr;
+    }
+
     if (Object.keys(updateData).length > 1) { // More than just lastActive
       // Clean history data - remove entries older than 90 days to save Firebase costs
       const cleanedData = cleanHistoryData(updateData);

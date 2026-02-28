@@ -49,6 +49,7 @@ import LottieView from 'lottie-react-native';
 import AchievementService from '../services/achievementService';
 import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
+import profanityFilter from '../services/profanityFilterService';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { getBlockedUsers } from '../services/reportService';
 import { isRestricted } from '../services/restrictionService';
@@ -484,6 +485,16 @@ const HubTab = () => {
     
     if (postContent.length > 280) {
       Alert.alert('Too Long', 'Posts must be 280 characters or less.');
+      return;
+    }
+
+    if (profanityFilter.containsProfanity(postContent)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Post Blocked',
+        'Inappropriate language was detected in your post. Please keep your words respectful and kind, then try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
     

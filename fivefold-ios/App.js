@@ -413,9 +413,10 @@ const ThemedApp = () => {
   const prevFriendReqCountRef = useRef(-1);
   const prevChallengeIdsRef = useRef(null);
 
-  // Run 90-day history cleanup once on app startup
+  // Run 90-day history cleanup and season check once on app startup
   useEffect(() => {
     runHistoryCleanup();
+    import('./src/services/seasonService').then(m => m.checkSeasonReset()).catch(() => {});
   }, []);
   
   // Listen for userDataDownloaded event to reload theme after sign-in sync

@@ -483,36 +483,86 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       return;
     }
     try {
+      const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permResult.status !== 'granted' && permResult.status !== 'limited') {
+        Alert.alert('Permission Required', 'Photo library access is needed to select a background image.');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.9,
+        quality: 0.8,
       });
       if (result.canceled || !result.assets?.length) return;
       const pickedUri = result.assets[0].uri;
+
+      // Persist the image to the documents directory so it survives cache clears.
+      // Multiple strategies because iOS PHPicker temp URIs can be tricky.
       const destDir = `${FileSystem.documentDirectory}customShareBg/`;
-      await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
-      // Use unique filename to avoid overwrite errors and bust Image cache
       const destUri = `${destDir}custom_bg_${Date.now()}.jpg`;
-      // Clean up old custom photos
+      let finalUri = pickedUri; // fallback: use the picker URI directly
+
       try {
-        const files = await FileSystem.readDirectoryAsync(destDir);
-        for (const f of files) {
-          if (f.startsWith('custom_bg_')) {
-            await FileSystem.deleteAsync(`${destDir}${f}`, { idempotent: true });
+        await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
+
+        // Clean up old custom photos
+        try {
+          const files = await FileSystem.readDirectoryAsync(destDir);
+          for (const f of files) {
+            if (f.startsWith('custom_bg_')) {
+              await FileSystem.deleteAsync(`${destDir}${f}`, { idempotent: true });
+            }
           }
+        } catch {}
+
+        // Strategy 1: copyAsync
+        let persisted = false;
+        try {
+          await FileSystem.copyAsync({ from: pickedUri, to: destUri });
+          const info = await FileSystem.getInfoAsync(destUri);
+          if (info.exists) { finalUri = destUri; persisted = true; }
+        } catch {}
+
+        // Strategy 2: base64 round-trip
+        if (!persisted) {
+          try {
+            const b64 = await FileSystem.readAsStringAsync(pickedUri, { encoding: FileSystem.EncodingType.Base64 });
+            await FileSystem.writeAsStringAsync(destUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+            const info2 = await FileSystem.getInfoAsync(destUri);
+            if (info2.exists) { finalUri = destUri; persisted = true; }
+          } catch {}
         }
-      } catch {}
-      await FileSystem.copyAsync({ from: pickedUri, to: destUri });
-      Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        setCustomPhotoUri(destUri);
-        setShareCardPremiumBgId('custom_photo');
-        setShareCardImageOffset({ x: 0, y: 0 });
-        saveShareCardPrefs({ premiumBgId: 'custom_photo', customPhotoUri: destUri, imageOffset: { x: 0, y: 0 } });
-        Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      });
+
+        // Strategy 3: moveAsync (renames the temp file into documents)
+        if (!persisted) {
+          try {
+            const moveUri = `${destDir}custom_bg_mv_${Date.now()}.jpg`;
+            await FileSystem.moveAsync({ from: pickedUri, to: moveUri });
+            const info3 = await FileSystem.getInfoAsync(moveUri);
+            if (info3.exists) { finalUri = moveUri; persisted = true; }
+          } catch {}
+        }
+
+        if (!persisted) {
+          console.log('[CustomBg] All persist strategies failed — using picker URI directly:', pickedUri);
+        }
+      } catch (fsErr) {
+        console.log('[CustomBg] File system error, using picker URI:', fsErr.message);
+      }
+
+      // Update state with whatever URI we have
+      setCustomPhotoUri(finalUri);
+      setShareCardPremiumBgId('custom_photo');
+      setShareCardImageOffset({ x: 0, y: 0 });
+      imageOffsetRef.current = { x: 0, y: 0 };
+      saveShareCardPrefs({ premiumBgId: 'custom_photo', customPhotoUri: finalUri, imageOffset: { x: 0, y: 0 } });
+
+      premiumBgFadeAnim.setValue(0);
+      Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } catch (err) {
-      console.log('Custom photo pick error:', err);
+      console.log('[CustomBg] Fatal error:', err);
+      Alert.alert('Error', `Failed to set background: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -5904,13 +5954,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                                 <TouchableOpacity
                                   onPress={() => {
                                     hapticFeedback.light();
-                                    // Crossfade out
-                                    Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-                                      setShareCardPremiumBgId(null);
-                                      setShareCardImageOffset({ x: 0, y: 0 });
-                                      saveShareCardPrefs({ premiumBgId: null, imageOffset: { x: 0, y: 0 } });
-                                      Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-                                    });
+                                    setShareCardPremiumBgId(null);
+                                    setShareCardImageOffset({ x: 0, y: 0 });
+                                    imageOffsetRef.current = { x: 0, y: 0 };
+                                    saveShareCardPrefs({ premiumBgId: null, imageOffset: { x: 0, y: 0 } });
+                                    premiumBgFadeAnim.setValue(0);
+                                    Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
                                   }}
                                   style={{ marginRight: 10, alignItems: 'center' }}
                                 >
@@ -5972,13 +6021,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                                           );
                                           return;
                                         }
-                                        // Crossfade
-                                        Animated.timing(premiumBgFadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-                                          setShareCardPremiumBgId(bg.id);
-                                          setShareCardImageOffset({ x: 0, y: 0 });
-                                          saveShareCardPrefs({ premiumBgId: bg.id, imageOffset: { x: 0, y: 0 } });
-                                          Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-                                        });
+                                        setShareCardPremiumBgId(bg.id);
+                                        setShareCardImageOffset({ x: 0, y: 0 });
+                                        imageOffsetRef.current = { x: 0, y: 0 };
+                                        saveShareCardPrefs({ premiumBgId: bg.id, imageOffset: { x: 0, y: 0 } });
+                                        premiumBgFadeAnim.setValue(0);
+                                        Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
                                       }}
                                       style={{ marginRight: 10, alignItems: 'center' }}
                                     >
@@ -6524,7 +6572,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               <View style={{ flex: 1, backgroundColor: '#000' }}>
                 <SafeAreaView style={{ flex: 1 }}>
                   {/* Header */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
                     <TouchableOpacity
                       onPress={() => setShowTextSelectionModal(false)}
                       hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}

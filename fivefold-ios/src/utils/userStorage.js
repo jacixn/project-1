@@ -32,7 +32,7 @@ const requireUid = () => {
 const LEGACY_KEYS = [
   'onboardingCompleted', 'onboarding_complete',
   'userProfile', 'fivefold_userProfile', 'fivefold_userName', 'fivefold_profilePicture', 'user_profile',
-  'userStats', 'fivefold_userStats', 'fivefold_user_stats', 'total_points', 'userLevel', 'userPoints',
+  'userStats', 'fivefold_userStats', 'fivefold_user_stats', 'total_points', 'seasonal_points', 'current_season', 'userLevel', 'userPoints',
   'fivefold_achievements_unlocked', 'fivefold_achievements_prestige', 'achievements',
   'fivefold_unlock_app_streak_15', 'fivefold_unlock_chars_5', 'fivefold_unlock_read_25',
   'fivefold_unlock_tasks_25', 'fivefold_unlock_saved_25', 'fivefold_unlock_read_50',

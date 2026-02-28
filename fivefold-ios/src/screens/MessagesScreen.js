@@ -25,6 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { subscribeToConversations, cleanupAllOldMessages } from '../services/messageService';
 import { getFriendsWithStats } from '../services/friendsService';
+import { getBlockedUsers, getBlockedByUsers } from '../services/reportService';
 import ReportBlockModal from '../components/ReportBlockModal';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
@@ -46,8 +47,17 @@ const MessagesScreen = () => {
 
     setLoading(true);
 
-    const unsubscribe = subscribeToConversations(user.uid, (convs) => {
-      setConversations(convs);
+    const unsubscribe = subscribeToConversations(user.uid, async (convs) => {
+      try {
+        const [blockedIds, blockedByIds] = await Promise.all([
+          getBlockedUsers(user.uid),
+          getBlockedByUsers(user.uid),
+        ]);
+        const blockedSet = new Set([...blockedIds, ...blockedByIds]);
+        setConversations(convs.filter(c => !blockedSet.has(c.otherUserId)));
+      } catch {
+        setConversations(convs);
+      }
       setLoading(false);
     });
 

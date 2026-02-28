@@ -3,6 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { pushToCloud } from './userSyncService';
+import { addSeasonalPoints } from './seasonService';
 
 /**
  * All Bible-focused achievement definitions.
@@ -304,6 +305,9 @@ class AchievementService {
 
       // ── Award achievement bonus points ──────────────────────
       const totalPointsToAward = newlyUnlocked.reduce((sum, m) => sum + m.points, 0);
+      if (totalPointsToAward > 0) {
+        addSeasonalPoints(totalPointsToAward).catch(() => {});
+      }
       const newPoints = currentStatsPoints + totalPointsToAward;
       const newLevel = this.getLevelFromPoints(newPoints);
 

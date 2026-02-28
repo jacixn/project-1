@@ -3,6 +3,7 @@ import iCloudSyncService from '../services/iCloudSyncService';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { pushToCloud } from '../services/userSyncService';
+import { addSeasonalPoints } from '../services/seasonService';
 
 class PrayerCompletionManager {
   static COMPLETION_KEY = 'prayer_completions';
@@ -106,6 +107,8 @@ class PrayerCompletionManager {
         console.log(`🔥 Points synced to Firebase: ${newTotal}`);
       }
       
+      addSeasonalPoints(points).catch(() => {});
+
       console.log(`💰 Points updated: ${currentPoints} + ${points} = ${newTotal}`);
       return newTotal;
     } catch (error) {

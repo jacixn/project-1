@@ -3,6 +3,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import AchievementService from './achievementService';
 import { pushToCloud } from './userSyncService';
+import { addSeasonalPoints } from './seasonService';
 
 const WORKOUT_HISTORY_KEY = '@workout_history';
 const TEMPLATES_KEY = '@workout_templates';
@@ -164,6 +165,7 @@ class WorkoutService {
         };
         await AchievementService._writeBothKeys(updatedStats);
         await userStorage.setRaw('total_points', newPoints.toString());
+        addSeasonalPoints(workoutPoints).catch(() => {});
 
         await AchievementService.incrementStat('workoutsCompleted');
         if (exerciseCount > 0) await AchievementService.incrementStat('exercisesLogged', exerciseCount);

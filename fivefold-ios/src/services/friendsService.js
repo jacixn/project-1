@@ -24,6 +24,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { sendPushToUser, NotificationTemplates } from './socialNotificationService';
+import { getBlockedUsers, getBlockedByUsers } from './reportService';
 
 /**
  * Get a user's friends data
@@ -60,13 +61,18 @@ export const getFriendsData = async (userId) => {
  */
 export const getFriendsWithStats = async (userId) => {
   if (!userId) return [];
-  
+
   try {
-    const friendsData = await getFriendsData(userId);
-    const friendIds = friendsData.friendsList || [];
-    
+    const [friendsData, blockedIds, blockedByIds] = await Promise.all([
+      getFriendsData(userId),
+      getBlockedUsers(userId),
+      getBlockedByUsers(userId),
+    ]);
+    const blockedSet = new Set([...blockedIds, ...blockedByIds]);
+    const friendIds = (friendsData.friendsList || []).filter(id => !blockedSet.has(id));
+
     if (friendIds.length === 0) return [];
-    
+
     // Fetch each friend's profile
     const friendProfiles = await Promise.all(
       friendIds.map(async (friendId) => {
@@ -82,7 +88,7 @@ export const getFriendsWithStats = async (userId) => {
         }
       })
     );
-    
+
     // Filter out nulls and sort by points
     return friendProfiles
       .filter(Boolean)

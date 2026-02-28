@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { createPrayerRequest } from '../services/prayerSocialService';
+import profanityFilter from '../services/profanityFilterService';
 import * as Haptics from 'expo-haptics';
 
 const CreatePrayerModal = ({ visible, onClose, onPrayerCreated }) => {
@@ -66,6 +67,16 @@ const CreatePrayerModal = ({ visible, onClose, onPrayerCreated }) => {
 
     if (content.trim().length < 10) {
       Alert.alert('Too Short', 'Please write a bit more about your prayer request.');
+      return;
+    }
+
+    if (profanityFilter.containsProfanity(content)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Prayer Blocked',
+        'Inappropriate language was detected. Please keep your words respectful and kind, then try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
 

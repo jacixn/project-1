@@ -26,6 +26,7 @@ import AiBibleChat from './AiBibleChat';
 import VerseSimplificationService from '../services/verseSimplificationService';
 import PrayerManagementService from '../services/prayerManagementService';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 const PrayerSection = () => {
@@ -338,6 +339,7 @@ const PrayerSection = () => {
         console.log(`🔥 Prayer points synced to Firebase: ${newStats.totalPoints}`);
       }
 
+      addSeasonalPoints(points).catch(() => {});
       // Check achievements and sync total_points centrally
       await AchievementService.checkAchievements(newStats);
     } catch (error) {

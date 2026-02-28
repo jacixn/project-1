@@ -45,6 +45,7 @@ import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
 import notificationService from '../services/notificationService';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
@@ -609,6 +610,7 @@ const TodosTab = () => {
       // Check achievements in background AFTER the celebration is showing.
       // If achievements unlock, the AchievementToast will appear on top of the
       // celebration (which auto-dismisses after 2.5s), clearly showing the bonus.
+      addSeasonalPoints(pointsEarned).catch(() => {});
       Promise.race([
         AchievementService.checkAchievements(updatedStats),
         new Promise(resolve => setTimeout(() => resolve(null), 5000)), // 5s timeout
@@ -1432,6 +1434,7 @@ const styles = StyleSheet.create({
     height: 32,
     position: 'absolute',
     left: 20,
+    top: -10,
   },
   viewToggle: {
     position: 'absolute',

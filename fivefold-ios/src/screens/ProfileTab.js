@@ -2988,12 +2988,16 @@ const ProfileTab = () => {
                 await userStorage.setRaw('userStats', JSON.stringify(parsed));
               }
 
+              // Reset seasonal points too
+              await userStorage.setRaw('seasonal_points', '0');
+
               // Reset in Firebase
               if (user?.uid) {
                 const { doc, updateDoc } = await import('firebase/firestore');
                 const { db } = await import('../config/firebase');
                 await updateDoc(doc(db, 'users', user.uid), {
                   totalPoints: 0,
+                  seasonalPoints: 0,
                   level: 1,
                 });
               }
@@ -4526,56 +4530,6 @@ const ProfileTab = () => {
                   <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
                 )}
               </TouchableOpacity>
-            </View>
-
-            {/* APPEARANCE SECTION */}
-            <Text style={{
-              fontSize: 12,
-              fontWeight: '700',
-              color: modalTextTertiaryColor,
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              marginBottom: 12,
-              marginLeft: 4,
-            }}>
-              Appearance
-            </Text>
-            <View style={{
-              backgroundColor: theme.card,
-              borderRadius: 16,
-              marginBottom: 24,
-              overflow: 'hidden',
-            }}>
-              {/* Theme — moved to Customisation screen */}
-              {/* Liquid Glass Toggle */}
-              {isLiquidGlassSupportedByDevice && (
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                    <View style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      backgroundColor: `${theme.primary}20`,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <MaterialIcons name="blur-on" size={20} color={theme.primary} />
-                    </View>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Glass Effect</Text>
-                  </View>
-                  <Switch
-                    value={liquidGlassEnabled}
-                    onValueChange={handleLiquidGlassToggle}
-                    trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
-                    thumbColor="#fff"
-                  />
-                </View>
-              )}
             </View>
 
             {/* CONTENT SECTION */}
@@ -9050,6 +9004,7 @@ const styles = StyleSheet.create({
     height: 32,
     position: 'absolute',
     left: 20,
+    top: -10,
   },
   headerTextContainer: {
     alignItems: 'center',

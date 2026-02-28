@@ -16,6 +16,7 @@ import userStorage from '../utils/userStorage';
 import quizService from '../services/quizService';
 import hapticFeedback from '../utils/haptics';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { db, auth } from '../config/firebase';
@@ -269,9 +270,10 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
         console.log(`🔥 Quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
+      addSeasonalPoints(basePoints).catch(() => {});
       // Check achievements in background — bonus shown via AchievementToast
       AchievementService.checkAchievements(updatedStats).catch(() => {});
-      
+
       setBonusPointsEarned(basePoints);
       
       console.log(`🎯 Quiz completed! Awarded ${basePoints} points for ${numQuestions} questions. Total: ${updatedStats.totalPoints}`);

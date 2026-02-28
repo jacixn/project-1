@@ -49,6 +49,7 @@ import { setActiveChatUser, clearActiveChatUser } from '../services/notification
 import { BlurView } from 'expo-blur';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { isRestricted } from '../services/restrictionService';
+import { isEitherBlocked } from '../services/reportService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -329,6 +330,7 @@ const ChatScreen = () => {
   const [conversationId, setConversationId] = useState(passedConversationId);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [chatBlocked, setChatBlocked] = useState(false);
   const [sending, setSending] = useState(false);
   const [showEncouragements, setShowEncouragements] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -456,6 +458,14 @@ const ChatScreen = () => {
     }
 
     try {
+      // Check if either user has blocked the other
+      const blocked = await isEitherBlocked(user.uid, otherUserId);
+      if (blocked) {
+        setChatBlocked(true);
+        setLoading(false);
+        return;
+      }
+
       let convId = passedConversationId;
       
       if (passedConversationId) {
@@ -899,6 +909,27 @@ const ChatScreen = () => {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Text style={[styles.errorText, { color: theme.text }]}>Please sign in to chat</Text>
+      </View>
+    );
+  }
+
+  if (chatBlocked) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <MaterialIcons name="block" size={48} color={theme.textTertiary} style={{ marginBottom: 16 }} />
+        <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text, textAlign: 'center', marginBottom: 8 }}>
+          Chat Unavailable
+        </Text>
+        <Text style={{ fontSize: 14, color: theme.textSecondary, textAlign: 'center', lineHeight: 20 }}>
+          This conversation is no longer available.
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 24, paddingVertical: 12, paddingHorizontal: 28, backgroundColor: theme.primary, borderRadius: 12 }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '600' }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }

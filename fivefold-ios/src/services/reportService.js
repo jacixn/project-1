@@ -18,6 +18,8 @@ import {
   where, 
   serverTimestamp, 
   getDoc,
+  updateDoc,
+  arrayRemove,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -68,7 +70,7 @@ export const reportContent = async ({ reporterId, reportedUserId, contentType, c
 };
 
 /**
- * Block a user. Creates a document in blocked_users keyed by `userId_blockedUserId`.
+ * Block a user. Creates a document in blocked_users and removes from friends list (both sides).
  */
 export const blockUser = async (userId, blockedUserId) => {
   try {
@@ -80,6 +82,18 @@ export const blockUser = async (userId, blockedUserId) => {
       blockedUserId,
       createdAt: serverTimestamp(),
     });
+
+    // Remove from both users' friends lists
+    try {
+      await updateDoc(doc(db, 'friends', userId), {
+        friendsList: arrayRemove(blockedUserId),
+      });
+    } catch (_) {}
+    try {
+      await updateDoc(doc(db, 'friends', blockedUserId), {
+        friendsList: arrayRemove(userId),
+      });
+    } catch (_) {}
 
     return { success: true };
   } catch (error) {
@@ -126,6 +140,39 @@ export const isUserBlocked = async (userId, otherUserId) => {
     const blockDocId = `${userId}_${otherUserId}`;
     const docSnap = await getDoc(doc(db, BLOCKED_USERS_COLLECTION, blockDocId));
     return docSnap.exists();
+  } catch (error) {
+    return false;
+  }
+};
+
+/**
+ * Get all user IDs that have blocked the given user (reverse lookup).
+ * @returns {string[]} Array of UIDs who blocked this user
+ */
+export const getBlockedByUsers = async (userId) => {
+  try {
+    if (!userId) return [];
+    const q = query(
+      collection(db, BLOCKED_USERS_COLLECTION),
+      where('blockedUserId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => d.data().userId);
+  } catch (error) {
+    return [];
+  }
+};
+
+/**
+ * Check if there's a block in either direction between two users.
+ */
+export const isEitherBlocked = async (userId, otherUserId) => {
+  try {
+    const [blocked, blockedBy] = await Promise.all([
+      isUserBlocked(userId, otherUserId),
+      isUserBlocked(otherUserId, userId),
+    ]);
+    return blocked || blockedBy;
   } catch (error) {
     return false;
   }

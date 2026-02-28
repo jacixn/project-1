@@ -89,6 +89,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeDailyReset, scheduleNextDayReset } from '../utils/dailyReset';
 import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVerse';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import { pushToCloud } from '../services/userSyncService';
 import { getReferralCount } from '../services/referralService';
 
@@ -242,8 +243,11 @@ const BiblePrayerTab = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   
-  // Logo animations removed — static logo only
-  
+  // Logo animations
+  const logoSpin = useRef(new Animated.Value(0)).current;
+  const logoPulse = useRef(new Animated.Value(1)).current;
+  const logoFloat = useRef(new Animated.Value(0)).current;
+
   // Modal card animations
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
@@ -305,6 +309,7 @@ const BiblePrayerTab = () => {
     initializePrayerData();
     loadUserName();
     loadLiquidGlassSetting();
+    startLogoAnimations();
     startShimmerAnimation();
 
     // Listen for liquid glass setting changes
@@ -351,6 +356,27 @@ const BiblePrayerTab = () => {
       ]).start();
     }
   }, [showAboutModal]);
+
+  const startLogoAnimations = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoSpin, { toValue: 1, duration: 8000, useNativeDriver: true }),
+        Animated.timing(logoSpin, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoPulse, { toValue: 1.15, duration: 1500, useNativeDriver: true }),
+        Animated.timing(logoPulse, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoFloat, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        Animated.timing(logoFloat, { toValue: 0, duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+  };
 
   const startShimmerAnimation = () => {
     Animated.loop(
@@ -1062,6 +1088,7 @@ const BiblePrayerTab = () => {
         console.log(`🔥 Prayer points synced to Firebase: ${updatedStats.totalPoints}`);
       }
 
+      addSeasonalPoints(basePrayerPoints).catch(() => {});
       // Check achievements in background — bonus shown via AchievementToast
       AchievementService.checkAchievements(updatedStats).catch(() => {});
       console.log(`Prayer completed! +${basePrayerPoints} points earned!`);
@@ -1405,9 +1432,23 @@ const BiblePrayerTab = () => {
             }}
             activeOpacity={0.7}
           >
-            <Image 
+            <Animated.Image 
               source={require('../../assets/logo.png')} 
-              style={styles.headerLogo}
+              style={[
+                styles.headerLogo,
+                {
+                  backgroundColor: 'transparent',
+                  transform: [
+                    { rotate: logoSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+                    { scale: logoPulse },
+                    { translateY: logoFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
+                  ],
+                  shadowColor: theme.primary,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 0 },
+                }
+              ]}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -2419,7 +2460,7 @@ const styles = StyleSheet.create({
     height: 32,
     position: 'absolute',
     left: 16,
-    top: -2,
+    top: -10,
   },
   headerTextContainer: {
     alignItems: 'center',

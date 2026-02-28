@@ -24,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { submitScore, getChallenge } from '../services/challengeService';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import * as Haptics from 'expo-haptics';
 import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
@@ -202,9 +203,10 @@ const ChallengeQuizScreen = () => {
         console.log(`🔥 Challenge quiz points synced to Firebase: ${updatedStats.totalPoints}`);
       }
       
+      addSeasonalPoints(basePoints).catch(() => {});
       // Check achievements in background — bonus shown via AchievementToast
       AchievementService.checkAchievements(updatedStats).catch(() => {});
-      
+
       setPointsEarned(basePoints);
       
       console.log(`🏆 Challenge quiz completed! Awarded ${basePoints} points for ${correctAnswers}/${totalQuestions} correct. Total: ${updatedStats.totalPoints}`);

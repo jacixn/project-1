@@ -33,6 +33,7 @@ import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import { pushToCloud } from '../services/userSyncService';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -833,6 +834,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       // Global Achievement Check — runs in background.
       // The alert message shows basePrayerPoints (175) which is the prayer reward.
       // Any achievement bonuses are shown separately via the AchievementToast.
+      addSeasonalPoints(basePrayerPoints).catch(() => {});
       AchievementService.checkAchievements(updatedStats).catch(() => {});
       const pointsEarned = basePrayerPoints;
 

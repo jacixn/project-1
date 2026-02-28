@@ -1776,7 +1776,7 @@ const styles = StyleSheet.create({
     height: 32,
     position: 'absolute',
     left: 16,
-    top: -2,
+    top: -10,
   },
   headerTextContainer: {
     alignItems: 'center',

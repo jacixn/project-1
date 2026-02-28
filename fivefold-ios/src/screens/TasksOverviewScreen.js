@@ -24,6 +24,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getStoredData, saveData } from '../utils/localStorage';
 import AchievementService from '../services/achievementService';
+import { addSeasonalPoints } from '../services/seasonService';
 import userStorage from '../utils/userStorage';
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -134,6 +135,7 @@ const TasksOverviewScreen = () => {
       });
     }
 
+    addSeasonalPoints(pointsEarned).catch(() => {});
     // Achievement check in background — non-blocking with timeout protection
     Promise.race([
       AchievementService.checkAchievements(updatedStats),
