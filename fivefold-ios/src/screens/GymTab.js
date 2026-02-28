@@ -379,10 +379,18 @@ const GymTab = () => {
       const today = nutritionService.getDateKey();
       const progress = await nutritionService.getDailyProgress(today);
       setNutritionProgress(progress);
-      // Load body composition
+      // Load body composition with workout count for accurate health score
       const profile = await nutritionService.getProfile();
       if (profile && profile.weightKg && profile.heightCm) {
-        setBodyComp(bodyCompositionService.calculate(profile));
+        let recentWorkoutCount = null;
+        try {
+          const history = await WorkoutService.getWorkoutHistory();
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          recentWorkoutCount = (history || []).filter(
+            w => new Date(w.completedAt || w.date).getTime() > thirtyDaysAgo
+          ).length;
+        } catch (_) {}
+        setBodyComp(bodyCompositionService.calculate(profile, { recentWorkoutCount }));
       }
     } catch (e) {
       // silent
@@ -1146,11 +1154,11 @@ const GymTab = () => {
             {bodyComp ? (
               <View style={styles.exercisesPreview}>
                 <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444'}20`,
-                  borderColor: `${bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444'}66`,
+                  backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}20`,
+                  borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}66`,
                   borderWidth: 1,
                 }]}>
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 50 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
                   <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
                     Health Score
                   </Text>

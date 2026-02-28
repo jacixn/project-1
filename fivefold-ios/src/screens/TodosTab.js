@@ -749,43 +749,35 @@ const TodosTab = () => {
           ))}
         </View>
 
-        {/* Calendar Grid - Tappable to open full calendar */}
-        <TouchableOpacity 
-          activeOpacity={0.8}
-          onPress={() => {
-            hapticFeedback.light();
-            navigation.navigate('ScheduleTask');
-          }}
-        >
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((dayData, index) => {
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.calendarDay,
-                    dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
-                    dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
-                  ]}
-                >
-                  <Text style={[
-                    styles.dayNumber,
-                    { color: dayData.isToday ? '#fff' : textColor, ...textOutlineStyle },
-                    dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
-                  ]}>
-                    {dayData.day}
-                  </Text>
-                  {dayData.hasActivity && (
-                    <View style={[
-                      styles.activityDot,
-                      { backgroundColor: dayData.isToday ? '#fff' : theme.success }
-                    ]} />
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </TouchableOpacity>
+        {/* Calendar Grid */}
+        <View style={styles.calendarGrid}>
+          {calendarDays.map((dayData, index) => {
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.calendarDay,
+                  dayData.isToday && [styles.todayDay, { backgroundColor: theme.primary }],
+                  dayData.hasActivity && !dayData.isToday && [styles.activeDay, { backgroundColor: `${theme.success}20` }]
+                ]}
+              >
+                <Text style={[
+                  styles.dayNumber,
+                  { color: dayData.isToday ? '#fff' : textColor, ...textOutlineStyle },
+                  dayData.hasActivity && !dayData.isToday && { color: theme.success, fontWeight: '600' }
+                ]}>
+                  {dayData.day}
+                </Text>
+                {dayData.hasActivity && (
+                  <View style={[
+                    styles.activityDot,
+                    { backgroundColor: dayData.isToday ? '#fff' : theme.success }
+                  ]} />
+                )}
+              </View>
+            );
+          })}
+        </View>
       </LiquidGlassCalendarContainer>
     );
   };

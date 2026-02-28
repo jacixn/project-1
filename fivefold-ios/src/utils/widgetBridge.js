@@ -74,8 +74,8 @@ export async function updateFuelWidget() {
 // ─── Todo Widget ───────────────────────────────────────────────────────
 
 /**
- * Read today's pending todos and push them to the Todo widget.
- * Shows today's scheduled tasks + overdue tasks, up to 6 items.
+ * Read pending todos and push them to the Todo widget.
+ * Shows today's scheduled tasks + overdue + unscheduled ("anytime") tasks.
  */
 export async function updateTodoWidget() {
   try {
@@ -84,36 +84,41 @@ export async function updateTodoWidget() {
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
 
-    // Filter: not completed, scheduled for today or overdue
     const pending = allTodos.filter((t) => !t.completed);
-    const todayTodos = pending.filter((t) => {
-      if (!t.scheduledDate) return false;
-      return t.scheduledDate <= todayStr; // today + overdue
-    });
 
-    // Sort: overdue first, then by scheduled time
+    // Today + overdue (have a date <= today)
+    const todayTodos = pending.filter((t) => t.scheduledDate && t.scheduledDate <= todayStr);
     todayTodos.sort((a, b) => {
       if (a.scheduledDate !== b.scheduledDate) return a.scheduledDate < b.scheduledDate ? -1 : 1;
       return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
     });
 
-    // Also count unscheduled as "anytime" tasks
-    const unscheduledCount = pending.filter((t) => !t.scheduledDate).length;
+    // Unscheduled / anytime tasks (no date set)
+    const unscheduledTodos = pending.filter((t) => !t.scheduledDate);
 
     const completedToday = allTodos.filter(
       (t) => t.completed && t.completedAt && t.completedAt.startsWith(todayStr)
     ).length;
 
+    const mapTodo = (t) => ({
+      id: t.id,
+      text: t.text,
+      tier: t.tier || 'mid',
+      scheduledTime: t.scheduledTime || null,
+      isUnscheduled: !t.scheduledDate,
+    });
+
+    // Combine: today/overdue first, then unscheduled — up to 6 items
+    const combined = [
+      ...todayTodos.map(mapTodo),
+      ...unscheduledTodos.map(mapTodo),
+    ].slice(0, 6);
+
     const payload = {
-      todos: todayTodos.slice(0, 6).map((t) => ({
-        id: t.id,
-        text: t.text,
-        tier: t.tier || 'mid',
-        scheduledTime: t.scheduledTime || null,
-      })),
-      totalCount: todayTodos.length + unscheduledCount,
+      todos: combined,
+      totalCount: todayTodos.length + unscheduledTodos.length,
       todayCount: todayTodos.length,
-      unscheduledCount,
+      unscheduledCount: unscheduledTodos.length,
       completedCount: completedToday,
       lastUpdated: new Date().toISOString(),
     };

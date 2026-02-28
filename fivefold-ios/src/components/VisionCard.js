@@ -58,22 +58,22 @@ const VisionCard = ({
       </View>
     </TouchableOpacity>
   ) : (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => { hapticFeedback.light(); onPress?.(); }}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <Text style={[styles.sectionLabel, { color: textColor, ...textOutlineStyle }]}>
           Vision
         </Text>
         <View style={{ flex: 1 }} />
-        <View style={[styles.pillButton, { backgroundColor: theme.primary }]}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => { hapticFeedback.light(); onPress?.(); }}
+          style={[styles.pillButton, { backgroundColor: theme.primary }]}
+        >
           <Text style={styles.pillText}>
             {active.length} goal{active.length !== 1 ? 's' : ''}
           </Text>
           <MaterialIcons name="arrow-forward" size={16} color="#fff" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {visibleGoals.map((vision) => {
@@ -114,7 +114,7 @@ const VisionCard = ({
           +{remaining} more goal{remaining !== 1 ? 's' : ''}
         </Text>
       )}
-    </TouchableOpacity>
+    </View>
   );
 
   if (useGlass) {

@@ -203,11 +203,22 @@ const BibleCharactersScreen = ({ navigation }) => {
     }
   };
 
-  const playCharacterAudio = async (audioUrl) => {
+  const playCharacterAudio = async (character) => {
+    if (!character) return;
+    const audioUrl = character.audioUrl;
+    const storyText = character.story;
+    const name = character.name?.split(' - ')[0] || selectedCharacter;
+    if (!audioUrl && !storyText) return;
     try {
       setIsCharacterAudioLoading(true);
       if (characterSound) await characterSound.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: true });
+      const characterAudioService = (await import('../services/characterAudioService')).default;
+      const localPath = await characterAudioService.getAudioPath(audioUrl, name, storyText);
+      if (!localPath) {
+        setIsCharacterAudioLoading(false);
+        return;
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri: localPath }, { shouldPlay: true });
       setCharacterSound(sound);
       setIsCharacterAudioPlaying(true);
       sound.setOnPlaybackStatusUpdate((status) => {
@@ -335,11 +346,11 @@ const BibleCharactersScreen = ({ navigation }) => {
               <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', marginBottom: 4, textAlign: 'center' }}>{character.name.split(' - ')[0]}</Text>
               {character.name.split(' - ')[1] && <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 12 }}>{character.name.split(' - ')[1]}</Text>}
               
-              {character.audioUrl && (
+              {(character.audioUrl || character.story) && (
                 <TouchableOpacity onPress={() => {
                   if (isCharacterAudioPlaying) pauseCharacterAudio();
                   else if (characterSound) resumeCharacterAudio();
-                  else playCharacterAudio(character.audioUrl);
+                  else playCharacterAudio(character);
                 }} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                   {isCharacterAudioLoading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <MaterialIcons name={isCharacterAudioPlaying ? 'pause' : 'play-arrow'} size={20} color="#FFFFFF" />}
                   <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginLeft: 6 }}>{isCharacterAudioLoading ? 'Loading...' : isCharacterAudioPlaying ? 'Pause' : 'Listen to Story'}</Text>

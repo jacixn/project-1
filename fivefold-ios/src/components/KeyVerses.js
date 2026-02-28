@@ -547,8 +547,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
   };
 
   const headerSpacerHeight = searchBarVisible
-    ? (Platform.OS === 'ios' ? 215 : 190)
-    : (Platform.OS === 'ios' ? 155 : 130);
+    ? (Platform.OS === 'ios' ? 222 : 197)
+    : (Platform.OS === 'ios' ? 157 : 132);
 
   if (loading) {
     const loadingContent = (
@@ -587,7 +587,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
           onScroll={handleScroll}
           scrollEventThrottle={32}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40, ...styles.container }}
+          contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16 }}
+          {...(viewMode === 'grid' ? { columnWrapperStyle: { justifyContent: 'space-between', marginBottom: 16 } } : {})}
           ListHeaderComponent={<View style={{ height: headerSpacerHeight }} />}
           ListEmptyComponent={
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, width: '100%' }}>
@@ -777,9 +778,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
 };
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  gridCard: { width: (width - 44) / 2, marginBottom: 12, borderRadius: 20, overflow: 'hidden' },
-  listCard: { width: width - 32, marginBottom: 12, borderRadius: 20, overflow: 'hidden' },
+  gridCard: { width: (width - 48) / 2, borderRadius: 20, overflow: 'hidden' },
+  listCard: { width: '100%', marginBottom: 16, borderRadius: 20, overflow: 'hidden' },
   cardGradient: { padding: 16, minHeight: 180, justifyContent: 'space-between' },
   cardText: { color: '#fff', fontSize: 14, fontWeight: '600', lineHeight: 20 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

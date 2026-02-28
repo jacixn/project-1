@@ -23,10 +23,12 @@ class BodyCompositionService {
   /**
    * Main entry — returns a full body composition object.
    * @param {Object} profile - { gender, age, heightCm, weightKg, bodyFatPercent, activityLevel }
+   * @param {Object} [options] - { recentWorkoutCount: number of workouts in last 30 days }
    * @returns {Object} all body composition metrics
    */
-  calculate(profile) {
+  calculate(profile, options = {}) {
     const { gender, age, heightCm, weightKg, bodyFatPercent, activityLevel } = profile;
+    const { recentWorkoutCount } = options;
     if (!gender || !age || !heightCm || !weightKg) return null;
 
     const isMale = gender === 'male';
@@ -85,6 +87,8 @@ class BodyCompositionService {
 
     return {
       // Basic
+      isMale,
+      age,
       weight: weightKg,
       bmi,
       bmr,
@@ -119,7 +123,7 @@ class BodyCompositionService {
       dailyWaterL: this._round1(weightKg * 33 * (activityMultipliers[activityLevel] || 1.55) / 1.55 * (activityLevel === 'active' || activityLevel === 'veryActive' ? 1.2 : 1) / 1000),
 
       // Health Score (0-100)
-      healthScore: this._calcHealthScore(isMale, bmi, bf, muscleRate, bodyWaterPercent, visceralFat, bodyAge, age),
+      healthScore: this._calcHealthScore(isMale, bmi, bf, muscleRate, bodyWaterPercent, visceralFat, bodyAge, age, activityLevel, recentWorkoutCount),
 
       // Ratings / status
       bmiStatus: this._bmiStatus(bmi),
@@ -247,65 +251,107 @@ class BodyCompositionService {
   }
 
   // ────────────────────────────────────────
-  //  HEALTH SCORE (0-100) — Strict & honest
+  //  HEALTH SCORE (0-100) — Brutally honest
+  //
+  //  Philosophy: 80+ = you look and ARE fit (visible muscle, low fat).
+  //  50 = average adult. Formulas overestimate muscle and underestimate
+  //  fat, so the scoring compensates by being strict. No free points.
+  //
+  //  Target ranges:
+  //    90-100  Elite / athlete          (BF <12% male, very active)
+  //    75-89   Genuinely fit            (BF ~14%, active, lean)
+  //    60-74   Decent, room to improve  (BF ~18%, moderate activity)
+  //    40-59   Average / mediocre       (BF ~22%, light activity)
+  //    20-39   Out of shape             (BF ~28%, sedentary)
+  //    5-19    Serious health concerns
   // ────────────────────────────────────────
 
-  _calcHealthScore(isMale, bmi, bf, muscleRate, bodyWater, visceralFat, bodyAge, realAge) {
+  _calcHealthScore(isMale, bmi, bf, muscleRate, bodyWater, visceralFat, bodyAge, realAge, activityLevel, recentWorkoutCount) {
     let score = 100;
 
-    // ── BMI penalty (ideal 19–24.9) ──
-    if (bmi < 16) score -= 20;
-    else if (bmi < 18.5) score -= (18.5 - bmi) * 5;
-    else if (bmi >= 35) score -= 20 + (bmi - 35) * 3;
-    else if (bmi >= 30) score -= 12 + (bmi - 30) * 3;
-    else if (bmi >= 25) score -= (bmi - 25) * 2.5;
+    // ── BMI (ideal 20–23 for full marks) ──
+    if (bmi < 16) score -= 25;
+    else if (bmi < 18.5) score -= 8 + (18.5 - bmi) * 4;
+    else if (bmi < 20) score -= (20 - bmi) * 2;
+    else if (bmi >= 40) score -= 35;
+    else if (bmi >= 35) score -= 25 + (bmi - 35) * 2;
+    else if (bmi >= 30) score -= 15 + (bmi - 30) * 2;
+    else if (bmi >= 27) score -= 6 + (bmi - 27) * 3;
+    else if (bmi >= 25) score -= (bmi - 25) * 3;
+    else if (bmi >= 23) score -= (bmi - 23) * 1.5;
 
-    // ── Body fat — the biggest factor, no free buffer ──
-    // Ideal ranges: Male 12–18%, Female 20–25%
-    const idealBFLow = isMale ? 12 : 20;
-    const idealBFHigh = isMale ? 18 : 25;
+    // ── Body fat — THE dominant factor ──
+    // Tighter ranges: "average" is NOT good, it's mediocre.
+    const bfT = isMale
+      ? { excellent: 12, good: 16, avg: 20, high: 25 }
+      : { excellent: 20, good: 24, avg: 28, high: 33 };
 
-    if (bf > idealBFHigh) {
-      const excess = bf - idealBFHigh;
-      // Progressive penalty: steeper the further you are
-      score -= excess * 3.5;
-      if (excess > 5) score -= (excess - 5) * 2;   // extra steep 5%+ over
-      if (excess > 12) score -= (excess - 12) * 2;  // even steeper 12%+ over
-    } else if (bf < idealBFLow) {
-      // Too lean can be unhealthy
-      const deficit = idealBFLow - bf;
-      score -= deficit * 2;
-      if (deficit > 5) score -= (deficit - 5) * 3;  // dangerously low
-    }
-    // Within ideal range: no penalty (reward for being in range)
-
-    // ── Muscle rate (skeletal muscle %) — modest influence ──
-    // Ideal: Male ~38%, Female ~28% (midpoint of normal-high range)
-    const idealMuscle = isMale ? 38 : 28;
-    if (muscleRate < idealMuscle - 5) {
-      score -= (idealMuscle - 5 - muscleRate) * 2;
-    } else if (muscleRate < idealMuscle) {
-      score -= (idealMuscle - muscleRate) * 1;
+    if (bf <= bfT.excellent) {
+      score += Math.min((bfT.excellent - bf) * 0.5, 2);
+    } else if (bf <= bfT.good) {
+      score -= (bf - bfT.excellent) * 2;
+    } else if (bf <= bfT.avg) {
+      score -= (bfT.good - bfT.excellent) * 2 + (bf - bfT.good) * 3.5;
+    } else if (bf <= bfT.high) {
+      score -= (bfT.good - bfT.excellent) * 2 + (bfT.avg - bfT.good) * 3.5 + (bf - bfT.avg) * 3;
     } else {
-      // Good muscle: small bonus only (should NOT offset bad body fat)
-      score += Math.min((muscleRate - idealMuscle) * 0.25, 3);
+      const base = (bfT.good - bfT.excellent) * 2 + (bfT.avg - bfT.good) * 3.5 + (bfT.high - bfT.avg) * 3;
+      score -= base + (bf - bfT.high) * 2;
     }
+
+    // Dangerously low BF
+    const bfDangerLow = isMale ? 5 : 13;
+    if (bf < bfDangerLow) score -= (bfDangerLow - bf) * 4;
+
+    // ── Muscle — only penalise low, NO bonus from formula estimates ──
+    const idealMuscle = isMale ? 38 : 28;
+    if (muscleRate < idealMuscle - 8) score -= 6 + (idealMuscle - 8 - muscleRate) * 1.5;
+    else if (muscleRate < idealMuscle - 3) score -= (idealMuscle - 3 - muscleRate) * 1;
+    else if (muscleRate < idealMuscle) score -= (idealMuscle - muscleRate) * 0.3;
 
     // ── Hydration ──
     const idealWater = isMale ? 55 : 50;
-    if (bodyWater < idealWater - 5) score -= (idealWater - 5 - bodyWater) * 1.5;
-    else if (bodyWater < idealWater) score -= (idealWater - bodyWater) * 0.5;
+    if (bodyWater < idealWater - 8) score -= 4 + (idealWater - 8 - bodyWater);
+    else if (bodyWater < idealWater) score -= (idealWater - bodyWater) * 0.4;
 
-    // ── Visceral fat (1-30 scale) ──
-    if (visceralFat > 14) score -= 8 + (visceralFat - 14) * 2;
-    else if (visceralFat > 9) score -= (visceralFat - 9) * 1.5;
+    // ── Visceral fat ──
+    if (visceralFat > 14) score -= 10 + (visceralFat - 14) * 2.5;
+    else if (visceralFat > 9) score -= 2 + (visceralFat - 9) * 1.5;
+    else if (visceralFat > 5) score -= (visceralFat - 5) * 0.3;
 
-    // ── Body age vs chronological age ──
-    if (bodyAge > realAge + 5) score -= 5 + (bodyAge - realAge - 5) * 2;
-    else if (bodyAge > realAge) score -= (bodyAge - realAge) * 1.5;
-    else if (bodyAge < realAge) score += Math.min((realAge - bodyAge) * 0.5, 3);
+    // ── Body age vs real age ──
+    if (bodyAge > realAge + 8) score -= 8 + (bodyAge - realAge - 8) * 1.5;
+    else if (bodyAge > realAge + 3) score -= 2 + (bodyAge - realAge - 3) * 1.2;
+    else if (bodyAge > realAge) score -= (bodyAge - realAge) * 0.8;
+    else if (bodyAge < realAge - 5) score += Math.min((realAge - bodyAge - 5) * 0.3, 2);
 
-    return Math.max(10, Math.min(100, Math.round(score)));
+    // ── Activity level — 100% based on real workout data, ignore self-reported ──
+    let effectiveActivity = 'sedentary';
+    if (recentWorkoutCount != null) {
+      if (recentWorkoutCount >= 20) effectiveActivity = 'veryActive';
+      else if (recentWorkoutCount >= 12) effectiveActivity = 'active';
+      else if (recentWorkoutCount >= 7) effectiveActivity = 'moderate';
+      else if (recentWorkoutCount >= 3) effectiveActivity = 'light';
+    }
+
+    const activityPenalties = {
+      sedentary: -20,
+      light: -12,
+      moderate: -6,
+      active: -1,
+      veryActive: 0,
+    };
+    score += (activityPenalties[effectiveActivity] ?? -12);
+
+    // Workout frequency
+    if (recentWorkoutCount != null) {
+      if (recentWorkoutCount === 0) score -= 12;
+      else if (recentWorkoutCount <= 2) score -= 8;
+      else if (recentWorkoutCount <= 5) score -= 4;
+      else if (recentWorkoutCount <= 8) score -= 1;
+    }
+
+    return Math.max(5, Math.min(100, Math.round(score)));
   }
 
   // ── Utils ──

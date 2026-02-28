@@ -52,11 +52,7 @@ const HabitsCard = ({
       </View>
     </TouchableOpacity>
   ) : (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => { hapticFeedback.light(); onPress?.(); }}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
       {/* Header */}
       <View style={styles.header}>
         <MaterialIcons name="local-fire-department" size={20} color="#FF6B35" />
@@ -70,12 +66,16 @@ const HabitsCard = ({
             <Text style={styles.streakBadgeText}>{totalActiveStreak}</Text>
           </View>
         )}
-        <View style={[styles.pillButton, { backgroundColor: theme.primary, marginLeft: 8 }]}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => { hapticFeedback.light(); onPress?.(); }}
+          style={[styles.pillButton, { backgroundColor: theme.primary, marginLeft: 8 }]}
+        >
           <Text style={styles.pillText}>
             {habits.length} habit{habits.length !== 1 ? 's' : ''}
           </Text>
           <MaterialIcons name="arrow-forward" size={16} color="#fff" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Habit Rows */}
@@ -128,7 +128,7 @@ const HabitsCard = ({
           +{remaining} more habit{remaining !== 1 ? 's' : ''}
         </Text>
       )}
-    </TouchableOpacity>
+    </View>
   );
 
   if (useGlass) {

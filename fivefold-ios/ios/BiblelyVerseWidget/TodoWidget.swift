@@ -16,6 +16,7 @@ struct TodoItem: Codable {
     let text: String
     let tier: String        // "low", "mid", "high"
     let scheduledTime: String?
+    let isUnscheduled: Bool?
 }
 
 struct TodoWidgetData: Codable {
@@ -54,9 +55,9 @@ struct TodoProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodoEntry {
         TodoEntry(date: Date(), data: TodoWidgetData(
             todos: [
-                TodoItem(id: "1", text: "Morning workout", tier: "high", scheduledTime: "07:00"),
-                TodoItem(id: "2", text: "Read Bible chapter", tier: "mid", scheduledTime: "09:00"),
-                TodoItem(id: "3", text: "Meal prep", tier: "low", scheduledTime: "12:00"),
+                TodoItem(id: "1", text: "Morning workout", tier: "high", scheduledTime: "07:00", isUnscheduled: false),
+                TodoItem(id: "2", text: "Read Bible chapter", tier: "mid", scheduledTime: "09:00", isUnscheduled: false),
+                TodoItem(id: "3", text: "Meal prep", tier: "low", scheduledTime: nil, isUnscheduled: true),
             ],
             totalCount: 5,
             todayCount: 3,
@@ -130,12 +131,12 @@ struct TodoWidgetSmallView: View {
 
                     Spacer(minLength: 0)
 
-                    // Count badge
-                    Text("\(data.todayCount)")
+                    // Count badge — total pending (today + unscheduled)
+                    Text("\(data.totalCount)")
                         .font(.system(size: 38, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Text(data.todayCount == 1 ? "task today" : "tasks today")
+                    Text(data.totalCount == 1 ? "task pending" : "tasks pending")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.5))
 
@@ -177,7 +178,7 @@ struct TodoWidgetSmallView: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 28))
                         .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85).opacity(0.6))
-                    Text("No tasks today")
+                    Text("No pending tasks")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white.opacity(0.8))
                     Text("Add tasks in the app")
@@ -224,7 +225,7 @@ struct TodoWidgetMediumView: View {
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.green.opacity(0.6))
                         }
-                        Text("\(data.todayCount) task\(data.todayCount == 1 ? "" : "s")")
+                        Text("\(data.totalCount) task\(data.totalCount == 1 ? "" : "s")")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.white.opacity(0.4))
                     }
@@ -234,12 +235,10 @@ struct TodoWidgetMediumView: View {
                     let visibleTodos = Array(data.todos.prefix(4))
                     ForEach(Array(visibleTodos.enumerated()), id: \.offset) { index, todo in
                         HStack(spacing: 8) {
-                            // Tier dot
                             Circle()
                                 .fill(Color.tierColor(for: todo.tier))
                                 .frame(width: 7, height: 7)
 
-                            // Task text
                             Text(todo.text)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white.opacity(0.9))
@@ -247,8 +246,11 @@ struct TodoWidgetMediumView: View {
 
                             Spacer()
 
-                            // Time label
-                            if let time = todo.scheduledTime {
+                            if todo.isUnscheduled == true {
+                                Text("Anytime")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85).opacity(0.6))
+                            } else if let time = todo.scheduledTime {
                                 Text(time)
                                     .font(.system(size: 10, weight: .medium, design: .rounded))
                                     .foregroundColor(.white.opacity(0.35))
@@ -262,9 +264,8 @@ struct TodoWidgetMediumView: View {
                         }
                     }
 
-                    // "and X more" if needed
-                    if data.todayCount > 4 {
-                        Text("and \(data.todayCount - 4) more...")
+                    if data.totalCount > 4 {
+                        Text("and \(data.totalCount - 4) more...")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.white.opacity(0.3))
                             .padding(.top, 4)
@@ -294,7 +295,7 @@ struct TodoWidgetMediumView: View {
                         Text("All clear!")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
-                        Text("No tasks scheduled for today. Open the app to add some.")
+                        Text("No pending tasks. Open the app to add some.")
                             .font(.system(size: 12))
                             .foregroundColor(.white.opacity(0.4))
                             .lineLimit(2)
@@ -346,7 +347,7 @@ struct TodoWidget: Widget {
             }
         }
         .configurationDisplayName("Tasks")
-        .description("See your pending tasks for today at a glance.")
+        .description("See all your pending tasks at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

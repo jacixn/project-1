@@ -207,8 +207,6 @@ const BiblePrayerTab = () => {
   
   const [showBible, setShowBible] = useState(false);
   const [showBibleStudy, setShowBibleStudy] = useState(false);
-  const [libraryExpanded, setLibraryExpanded] = useState(false);
-  const libraryHeight = useRef(new Animated.Value(0)).current;
   const [showPrayerScreen, setShowPrayerScreen] = useState(false);
   const [selectedPrayer, setSelectedPrayer] = useState(null);
   const [showFriendChat, setShowFriendChat] = useState(false);
@@ -1265,6 +1263,7 @@ const BiblePrayerTab = () => {
           shadowOpacity: 0.06,
           shadowRadius: 3,
           elevation: 1,
+          marginBottom: 16,
         }]}
         onPress={() => {
           hapticFeedback.medium();
@@ -1285,117 +1284,133 @@ const BiblePrayerTab = () => {
         <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
       </AnimatedBibleButton>
 
-      {/* My Library — Saved Verses, Highlights, Journal */}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => {
-          hapticFeedback.light();
-          const toValue = libraryExpanded ? 0 : 1;
-          setLibraryExpanded(!libraryExpanded);
-          Animated.spring(libraryHeight, {
-            toValue,
-            tension: 65,
-            friction: 11,
-            useNativeDriver: false,
-          }).start();
-        }}
-        style={[styles.bibleButton, {
-          backgroundColor: `${theme.primary}30`,
-          borderWidth: 0.8,
-          borderColor: `${theme.primary}99`,
-          borderRadius: 16,
-          shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 3,
-          elevation: 1,
-          marginBottom: libraryExpanded ? 0 : 16,
-          borderBottomLeftRadius: libraryExpanded ? 0 : 16,
-          borderBottomRightRadius: libraryExpanded ? 0 : 16,
-        }]}
-      >
-        <MaterialIcons name="collections-bookmark" size={24} color={iconColor} />
-        <View style={styles.bibleButtonContent}>
-          <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
-            My Library
-          </Text>
-          <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-            Saved verses, highlights & journal
-          </Text>
-        </View>
-        <MaterialIcons
-          name={libraryExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-          size={22}
-          color={theme.textTertiary}
-        />
-      </TouchableOpacity>
+      </LiquidGlassBibleStudyContainer>
+    );
+  };
 
-      <Animated.View style={{
-        maxHeight: libraryHeight.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 200],
-        }),
-        opacity: libraryHeight,
-        overflow: 'hidden',
-        marginBottom: 16,
-        backgroundColor: `${theme.primary}18`,
-        borderWidth: 0.8,
-        borderTopWidth: 0,
-        borderColor: `${theme.primary}99`,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 16,
-      }}>
+  const MyLibrarySection = () => {
+    const LiquidGlassLibraryContainer = ({ children }) => {
+      if (!isLiquidGlassSupported || !liquidGlassEnabled) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.bibleCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassBibleCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassLibraryContainer>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>My Library</Text>
+        <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+          Your saved content & reflections
+        </Text>
+
         <TouchableOpacity
-          style={styles.libraryRow}
-          activeOpacity={0.6}
+          style={[styles.bibleButton, {
+            backgroundColor: `${theme.primary}30`,
+            borderWidth: 0.8,
+            borderColor: `${theme.primary}99`,
+            borderRadius: 16,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
+          }]}
+          activeOpacity={0.7}
           onPress={() => {
             hapticFeedback.light();
             navigation.navigate('SavedVerses');
           }}
         >
-          <View style={[styles.libraryIconBg, { backgroundColor: `${theme.info}20` }]}>
-            <MaterialIcons name="bookmark" size={20} color={theme.info} />
+          <MaterialIcons name="bookmark-outline" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Saved Verses</Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Your bookmarked passages
+            </Text>
           </View>
-          <Text style={[styles.libraryRowText, { color: textColor }]}>Saved Verses</Text>
-          <MaterialIcons name="chevron-right" size={20} color={textSecondaryColor} />
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </TouchableOpacity>
 
-        <View style={[styles.libraryDivider, { backgroundColor: `${theme.primary}20` }]} />
-
         <TouchableOpacity
-          style={styles.libraryRow}
-          activeOpacity={0.6}
+          style={[styles.bibleButton, {
+            backgroundColor: `${theme.primary}30`,
+            borderWidth: 0.8,
+            borderColor: `${theme.primary}99`,
+            borderRadius: 16,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
+          }]}
+          activeOpacity={0.7}
           onPress={() => {
             hapticFeedback.light();
             navigation.navigate('Highlights');
           }}
         >
-          <View style={[styles.libraryIconBg, { backgroundColor: `${theme.warning}20` }]}>
-            <MaterialIcons name="palette" size={20} color={theme.warning} />
+          <MaterialIcons name="format-paint" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Highlights</Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Your coloured markings
+            </Text>
           </View>
-          <Text style={[styles.libraryRowText, { color: textColor }]}>Highlights</Text>
-          <MaterialIcons name="chevron-right" size={20} color={textSecondaryColor} />
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </TouchableOpacity>
 
-        <View style={[styles.libraryDivider, { backgroundColor: `${theme.primary}20` }]} />
-
         <TouchableOpacity
-          style={styles.libraryRow}
-          activeOpacity={0.6}
+          style={[styles.bibleButton, {
+            backgroundColor: `${theme.primary}30`,
+            borderWidth: 0.8,
+            borderColor: `${theme.primary}99`,
+            borderRadius: 16,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 3,
+            elevation: 1,
+            marginBottom: 16,
+          }]}
+          activeOpacity={0.7}
           onPress={() => {
             hapticFeedback.light();
             navigation.navigate('Journal');
           }}
         >
-          <View style={[styles.libraryIconBg, { backgroundColor: `${theme.info}20` }]}>
-            <MaterialIcons name="import-contacts" size={20} color={theme.info} />
+          <MaterialIcons name="menu-book" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Journal</Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Your personal reflections
+            </Text>
           </View>
-          <Text style={[styles.libraryRowText, { color: textColor }]}>Journal</Text>
-          <MaterialIcons name="chevron-right" size={20} color={textSecondaryColor} />
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </TouchableOpacity>
-      </Animated.View>
-
-      </LiquidGlassBibleStudyContainer>
+      </LiquidGlassLibraryContainer>
     );
   };
 
@@ -1528,6 +1543,9 @@ const BiblePrayerTab = () => {
 
         {/* Bible Study Section */}
         <BibleStudySection />
+
+        {/* My Library Section */}
+        <MyLibrarySection />
       </Animated.ScrollView>
 
 

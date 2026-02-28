@@ -20,6 +20,7 @@ import { retroTheme, retroWallpaper } from '../themes/retro/theme';
 import { nightfallTheme, nightfallWallpaper } from '../themes/nightfall/theme';
 import { cozyStudyTheme, cozyStudyWallpaper } from '../themes/cozy-study/theme';
 import { shoresTheme, shoresWallpaper } from '../themes/shores/theme';
+import { aquariumTheme, aquariumWallpaper } from '../themes/aquarium/theme';
 import { canopyTheme, canopyWallpaper } from '../themes/canopy/theme';
 import { faithTheme, faithWallpaper } from '../themes/faith/theme';
 
@@ -43,6 +44,7 @@ export const themeWallpapers = {
   'nightfall': nightfallWallpaper,
   'cozy-study': cozyStudyWallpaper,
   'shores': shoresWallpaper,
+  'aquarium': aquariumWallpaper,
   'canopy': canopyWallpaper,
   'faith': faithWallpaper,
 };
@@ -118,6 +120,7 @@ const themes = {
   'nightfall': nightfallTheme,
   'cozy-study': cozyStudyTheme,
   'shores': shoresTheme,
+  'aquarium': aquariumTheme,
   'canopy': canopyTheme,
   'faith': faithTheme,
   
@@ -292,7 +295,7 @@ export const ThemeProvider = ({ children }) => {
         const lightDefaultThemes = [
           'blush-bloom', 'eterna', 'biblely',
           'cotton-candy', 'serenity', 'good-shepherd', 'pixel',
-          'meadow', 'heavens', 'retro', 'cozy-study', 'shores', 'canopy', 'faith',
+          'meadow', 'heavens', 'retro', 'cozy-study', 'shores', 'canopy', 'faith', 'aquarium',
         ];
         const darkDefaultThemes = [
           'cresvia',

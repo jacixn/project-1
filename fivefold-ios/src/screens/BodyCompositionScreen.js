@@ -17,6 +17,7 @@ import {
   Platform,
   StatusBar,
   Modal,
+  Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
+import WorkoutService from '../services/workoutService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -74,7 +76,15 @@ const BodyCompositionScreen = () => {
       setLoading(true);
       const profile = await nutritionService.getProfile();
       if (profile && profile.weightKg && profile.heightCm) {
-        const data = bodyCompositionService.calculate(profile);
+        let recentWorkoutCount = null;
+        try {
+          const history = await WorkoutService.getWorkoutHistory();
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          recentWorkoutCount = (history || []).filter(
+            w => new Date(w.completedAt || w.date).getTime() > thirtyDaysAgo
+          ).length;
+        } catch (_) {}
+        const data = bodyCompositionService.calculate(profile, { recentWorkoutCount });
         setBodyComp(data);
       }
       setLoading(false);
@@ -141,117 +151,136 @@ const BodyCompositionScreen = () => {
       example: 'Think of it like a grade for your body. 80+ is an A, 60–79 is a B, and below 60 means there\'s room to improve.',
       icon: 'favorite',
       color: '#10B981',
+      source: { label: 'WHO — Obesity & Overweight', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
     },
     'Body Age': {
       explanation: 'How old your body "acts" based on your fitness level, not your actual birthday. If you\'re fit, your body age could be lower than your real age.',
       example: 'If you\'re 30 years old but very active with good muscle mass, your body age might be 25. If you\'re sedentary with high body fat, it could be 35.',
       icon: 'favorite',
       color: '#3B82F6',
+      source: { label: 'Mayo Clinic — Fitness Assessment', url: 'https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/fitness/art-20046433' },
     },
     'BMI': {
       explanation: 'Body Mass Index — a simple number calculated from your height and weight. It gives a rough idea of whether you\'re underweight, normal, overweight, or obese.',
       example: 'BMI under 18.5 = Underweight. 18.5–24.9 = Normal. 25–29.9 = Overweight. 30+ = Obese. For example, someone 170 cm and 70 kg has a BMI of 24.2 (Normal).',
       icon: 'speed',
       color: '#6366F1',
+      source: { label: 'WHO — BMI Classification', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
     },
     'Water Goal': {
       explanation: 'How much water you should drink daily based on your weight and activity level. Staying hydrated helps your energy, skin, digestion, and brain function.',
       example: 'If your goal is 1.9 L/day, that\'s about 8 glasses of water. Try carrying a water bottle and sipping throughout the day.',
       icon: 'opacity',
       color: '#3B82F6',
+      source: { label: 'Mayo Clinic — Water & Hydration', url: 'https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/in-depth/water/art-20044256' },
     },
     'Ideal Weight': {
       explanation: 'The healthy weight range for someone your height. Being within this range is associated with lower risk of health problems.',
       example: 'If your range is 61–76 kg and you\'re at 74 kg, you\'re right in the healthy zone. It\'s a range because bodies are different — muscle, bone density, etc.',
       icon: 'track-changes',
       color: '#10B981',
+      source: { label: 'WHO — BMI Classification', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
     },
     'Weight': {
       explanation: 'Your total body weight. On its own it doesn\'t tell the full story — what matters is the breakdown between muscle, fat, water, and bone.',
       example: 'Two people can both weigh 80 kg but look completely different. One might have 20% body fat (muscular), the other 35% (higher fat). That\'s why we look at the other metrics too.',
       icon: 'monitor-weight',
       color: '#6366F1',
+      source: { label: 'WHO — Obesity & Overweight', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
     },
     'Body Fat': {
       explanation: 'The percentage of your body that is fat. Some fat is essential (organs, hormones), but too much increases health risks.',
       example: 'For men: 10–20% is athletic to fit, 20–25% is average, 25%+ is above average. For women: 18–28% is fit to average, 28%+ is above average.',
       icon: 'pie-chart',
       color: '#F59E0B',
+      source: { label: 'Harvard Health — Abdominal Fat', url: 'https://www.health.harvard.edu/staying-healthy/abdominal-fat-and-what-to-do-about-it' },
     },
     'Muscle Rate': {
       explanation: 'Your skeletal muscle as a percentage of body weight. These are the muscles you control — biceps, quads, abs, etc. Higher means a faster metabolism and stronger body.',
       example: 'For men: 33–39% is normal, 40%+ is high/athletic. For women: 24–30% is normal, 31%+ is high. Strength training is the best way to increase it.',
       icon: 'fitness-center',
       color: '#10B981',
+      source: { label: 'PubMed — Janssen et al. (2000)', url: 'https://pubmed.ncbi.nlm.nih.gov/11071523/' },
     },
     'BMR': {
       explanation: 'Basal Metabolic Rate — the number of calories your body burns just to stay alive (breathing, heartbeat, brain function) even if you lie in bed all day.',
       example: 'If your BMR is 1,719 kcal, that means you burn 1,719 calories doing absolutely nothing. Add exercise and daily activities on top of that for your total burn.',
       icon: 'local-fire-department',
       color: '#F97316',
+      source: { label: 'PubMed — Mifflin-St Jeor (1990)', url: 'https://pubmed.ncbi.nlm.nih.gov/2305711/' },
     },
     'Fat-free Weight': {
       explanation: 'Everything in your body that isn\'t fat — muscles, bones, organs, water. Also called "lean body mass." Higher is generally better.',
       example: 'If you weigh 74 kg and have 40% body fat, your fat-free weight is about 44 kg (the non-fat part).',
       icon: 'accessibility-new',
       color: '#10B981',
+      source: { label: 'PubMed — Janssen et al. (2000)', url: 'https://pubmed.ncbi.nlm.nih.gov/11071523/' },
     },
     'Muscle Mass': {
       explanation: 'The actual weight of your muscles in kilograms. Building muscle improves strength, metabolism, and appearance.',
       example: 'Average muscle mass for men is 33–40 kg, and for women 20–28 kg. Strength training is the best way to increase it.',
       icon: 'grain',
       color: '#8B5CF6',
+      source: { label: 'PubMed — Janssen et al. (2000)', url: 'https://pubmed.ncbi.nlm.nih.gov/11071523/' },
     },
     'Skeletal Muscle': {
       explanation: 'The muscles attached to your skeleton that you can voluntarily control — like your biceps, quads, and abs. These are the muscles you build in the gym.',
       example: 'Healthy range is 33–39% for men and 24–33% for women. Higher skeletal muscle % usually means you\'re more fit and athletic.',
       icon: 'directions-run',
       color: '#06B6D4',
+      source: { label: 'PubMed — Janssen et al. (2000)', url: 'https://pubmed.ncbi.nlm.nih.gov/11071523/' },
     },
     'Subcutaneous Fat': {
       explanation: 'The fat stored just under your skin. It\'s the fat you can see and pinch. It carries fewer health concerns than visceral fat but affects your appearance.',
       example: 'When people say they want to "lose belly fat," they mostly mean subcutaneous fat. It decreases with a calorie deficit and exercise.',
       icon: 'spa',
       color: '#F59E0B',
+      source: { label: 'Harvard Health — Abdominal Fat', url: 'https://www.health.harvard.edu/staying-healthy/abdominal-fat-and-what-to-do-about-it' },
     },
     'Visceral Fat': {
       explanation: 'The hidden fat stored deep inside, around your organs (liver, stomach, intestines). High levels may be associated with increased health risks. Consult a healthcare professional for personalised guidance.',
       example: 'A rating of 1–12 is healthy. 13–59 is too high. Even slim people can have high visceral fat if they don\'t exercise. It responds well to cardio exercise.',
       icon: 'whatshot',
       color: '#EF4444',
+      source: { label: 'Harvard Health — Visceral Fat', url: 'https://www.health.harvard.edu/staying-healthy/abdominal-fat-and-what-to-do-about-it' },
     },
     'Bone Mass': {
       explanation: 'The total weight of the bones in your body. Healthy bones are dense and strong. Exercise and calcium help maintain bone mass.',
       example: 'Average bone mass is about 2.5–3.5 kg for men and 2.0–3.0 kg for women. Weight-bearing exercises like running and lifting help keep bones strong.',
       icon: 'straighten',
       color: '#78716C',
+      source: { label: 'NIH — Bone Health', url: 'https://www.niams.nih.gov/health-topics/bone-health' },
     },
     'Protein': {
       explanation: 'The percentage of your body made up of protein. Your muscles, organs, skin, and hair are all built from protein. It\'s a sign of good muscle health.',
       example: 'A healthy protein percentage is 16–20%. If it\'s low, it could mean you\'re losing muscle mass. Eating enough protein (meat, fish, eggs, beans) helps.',
       icon: 'science',
       color: '#EC4899',
+      source: { label: 'Harvard — The Nutrition Source', url: 'https://www.hsph.harvard.edu/nutritionsource/what-should-you-eat/protein/' },
     },
     'TDEE': {
       explanation: 'Total Daily Energy Expenditure — the total calories you burn in a day including exercise, walking, and daily activities. This is the number you need to know for weight management.',
       example: 'If your TDEE is 2,200 kcal: eat less than 2,200 to lose weight, eat 2,200 to maintain, eat more to gain weight. It\'s that simple.',
       icon: 'bolt',
       color: '#F97316',
+      source: { label: 'PubMed — Mifflin-St Jeor (1990)', url: 'https://pubmed.ncbi.nlm.nih.gov/2305711/' },
     },
     'Body Breakdown': {
       explanation: 'A visual split of what your body is made of — muscle, fat, water, and bone. A healthy body has more muscle and water than fat.',
       example: 'Imagine your body as a pie chart. Ideally, the biggest slice should be muscle and water, not fat. The bar shows your current split at a glance.',
       icon: 'donut-large',
       color: '#6366F1',
+      source: { label: 'WHO — Body Composition', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
     },
   };
 
-  const showInfo = (metricName) => {
+  const showInfo = (metricName, semanticColor) => {
     const info = metricExplanations[metricName];
     if (!info) return;
+    const rangeData = typeof getMetricRangeData === 'function' ? getMetricRangeData(metricName) : null;
     infoFade.setValue(0);
     infoScale.setValue(0.85);
-    setInfoPopup({ title: metricName, ...info });
+    setInfoPopup({ title: metricName, ...info, ...(semanticColor ? { color: semanticColor } : {}), rangeData });
     Animated.parallel([
       Animated.timing(infoFade, { toValue: 1, duration: 250, useNativeDriver: true }),
       Animated.spring(infoScale, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
@@ -305,30 +334,210 @@ const BodyCompositionScreen = () => {
     );
   }
 
-  const scoreColor = bodyComp.healthScore >= 80 ? '#10B981' : bodyComp.healthScore >= 60 ? '#F59E0B' : '#EF4444';
-  const scoreColorEnd = bodyComp.healthScore >= 80 ? '#6366F1' : bodyComp.healthScore >= 60 ? '#F97316' : '#DC2626';
-  const ageColorFn = (ba) => ba <= 25 ? '#10B981' : ba <= 35 ? '#3B82F6' : ba <= 45 ? '#F59E0B' : '#EF4444';
+  const SEMANTIC = { bad: '#EF4444', average: '#F59E0B', good: '#10B981', excellent: '#3B82F6' };
+
+  const getSemanticColor = (name) => {
+    const m = bodyComp;
+    const male = m.isMale;
+    switch (name) {
+      case 'Weight': {
+        const mid = (m.idealWeightLow + m.idealWeightHigh) / 2;
+        const half = (m.idealWeightHigh - m.idealWeightLow) / 2;
+        const diff = Math.abs(m.weight - mid);
+        if (diff <= half) return SEMANTIC.excellent;
+        if (diff <= half + 5) return SEMANTIC.good;
+        if (diff <= half + 12) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      }
+      case 'Body Fat':
+        if (male) {
+          if (m.bodyFat < 6) return SEMANTIC.average;
+          if (m.bodyFat < 14) return SEMANTIC.excellent;
+          if (m.bodyFat < 18) return SEMANTIC.good;
+          if (m.bodyFat < 25) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.bodyFat < 14) return SEMANTIC.average;
+        if (m.bodyFat < 21) return SEMANTIC.excellent;
+        if (m.bodyFat < 25) return SEMANTIC.good;
+        if (m.bodyFat < 32) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Muscle Rate':
+        if (male) {
+          if (m.muscleRate >= 44) return SEMANTIC.excellent;
+          if (m.muscleRate >= 40) return SEMANTIC.good;
+          if (m.muscleRate >= 33) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.muscleRate >= 36) return SEMANTIC.excellent;
+        if (m.muscleRate >= 31) return SEMANTIC.good;
+        if (m.muscleRate >= 24) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'BMR':
+        if (male) {
+          if (m.bmr >= 1800) return SEMANTIC.excellent;
+          if (m.bmr >= 1600) return SEMANTIC.good;
+          if (m.bmr >= 1400) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.bmr >= 1500) return SEMANTIC.excellent;
+        if (m.bmr >= 1300) return SEMANTIC.good;
+        if (m.bmr >= 1100) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Fat-free Weight': {
+        const pct = (m.fatFreeWeight / m.weight) * 100;
+        if (male) {
+          if (pct >= 85) return SEMANTIC.excellent;
+          if (pct >= 80) return SEMANTIC.good;
+          if (pct >= 75) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (pct >= 78) return SEMANTIC.excellent;
+        if (pct >= 72) return SEMANTIC.good;
+        if (pct >= 65) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      }
+      case 'Muscle Mass':
+        if (male) {
+          if (m.muscleMass >= 40) return SEMANTIC.excellent;
+          if (m.muscleMass >= 35) return SEMANTIC.good;
+          if (m.muscleMass >= 30) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.muscleMass >= 28) return SEMANTIC.excellent;
+        if (m.muscleMass >= 24) return SEMANTIC.good;
+        if (m.muscleMass >= 18) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Subcutaneous Fat':
+        if (male) {
+          if (m.subcutaneousFat < 10) return SEMANTIC.excellent;
+          if (m.subcutaneousFat < 15) return SEMANTIC.good;
+          if (m.subcutaneousFat < 20) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.subcutaneousFat < 15) return SEMANTIC.excellent;
+        if (m.subcutaneousFat < 20) return SEMANTIC.good;
+        if (m.subcutaneousFat < 27) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Visceral Fat':
+        if (m.visceralFat <= 5) return SEMANTIC.excellent;
+        if (m.visceralFat <= 9) return SEMANTIC.good;
+        if (m.visceralFat <= 14) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Bone Mass':
+        if (male) {
+          if (m.boneMass >= 3.5) return SEMANTIC.excellent;
+          if (m.boneMass >= 3.0) return SEMANTIC.good;
+          if (m.boneMass >= 2.5) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.boneMass >= 3.0) return SEMANTIC.excellent;
+        if (m.boneMass >= 2.5) return SEMANTIC.good;
+        if (m.boneMass >= 2.0) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Protein':
+        if (m.protein >= 18) return SEMANTIC.excellent;
+        if (m.protein >= 16) return SEMANTIC.good;
+        if (m.protein >= 14) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Body Age': {
+        const diff = m.bodyAge - m.age;
+        if (diff <= -5) return SEMANTIC.excellent;
+        if (diff <= 0) return SEMANTIC.good;
+        if (diff <= 3) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      }
+      case 'TDEE':
+        if (male) {
+          if (m.tdee >= 2800) return SEMANTIC.excellent;
+          if (m.tdee >= 2400) return SEMANTIC.good;
+          if (m.tdee >= 2000) return SEMANTIC.average;
+          return SEMANTIC.bad;
+        }
+        if (m.tdee >= 2300) return SEMANTIC.excellent;
+        if (m.tdee >= 1900) return SEMANTIC.good;
+        if (m.tdee >= 1600) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'BMI':
+        if (m.bmi < 18.5) return SEMANTIC.average;
+        if (m.bmi < 25) return SEMANTIC.good;
+        if (m.bmi < 30) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      case 'Health Score':
+        if (m.healthScore >= 80) return SEMANTIC.excellent;
+        if (m.healthScore >= 70) return SEMANTIC.good;
+        if (m.healthScore >= 40) return SEMANTIC.average;
+        return SEMANTIC.bad;
+      default:
+        return SEMANTIC.good;
+    }
+  };
+
+  const getMetricRangeData = (name) => {
+    const m = bodyComp;
+    const male = m.isMale;
+    const defs = {
+      'Health Score': { value: m.healthScore, thresholds: [40, 70, 80], zones: [{ label: 'Poor', color: SEMANTIC.bad }, { label: 'Average', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 5, max: 100 },
+      'BMI': { value: m.bmi, thresholds: [18.5, 25, 30], zones: [{ label: 'Under', color: SEMANTIC.average }, { label: 'Normal', color: SEMANTIC.good }, { label: 'Over', color: SEMANTIC.average }, { label: 'Obese', color: SEMANTIC.bad }], min: 15, max: 40 },
+      'Weight': { value: m.weight, thresholds: [m.idealWeightLow, m.idealWeightHigh], zones: [{ label: 'Under', color: SEMANTIC.average }, { label: 'Ideal', color: SEMANTIC.good }, { label: 'Over', color: SEMANTIC.bad }], min: Math.round(Math.max(30, m.idealWeightLow - 15)), max: Math.round(m.idealWeightHigh + 25) },
+      'Body Fat': male
+        ? { value: m.bodyFat, thresholds: [14, 18, 25], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 5, max: 40 }
+        : { value: m.bodyFat, thresholds: [21, 25, 32], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 10, max: 45 },
+      'Muscle Rate': male
+        ? { value: m.muscleRate, thresholds: [33, 40, 44], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.good }, { label: 'Very High', color: SEMANTIC.excellent }], min: 25, max: 55 }
+        : { value: m.muscleRate, thresholds: [24, 31, 36], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.good }, { label: 'Very High', color: SEMANTIC.excellent }], min: 18, max: 45 },
+      'BMR': male
+        ? { value: m.bmr, thresholds: [1400, 1600, 1800], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Below Avg', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'High', color: SEMANTIC.excellent }], min: 1000, max: 2500 }
+        : { value: m.bmr, thresholds: [1100, 1300, 1500], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Below Avg', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'High', color: SEMANTIC.excellent }], min: 800, max: 2000 },
+      'Fat-free Weight': male
+        ? { value: m.fatFreeWeight, thresholds: [50, 60, 70], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 35, max: 85 }
+        : { value: m.fatFreeWeight, thresholds: [35, 42, 50], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 25, max: 65 },
+      'Muscle Mass': male
+        ? { value: m.muscleMass, thresholds: [30, 35, 40], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 20, max: 55 }
+        : { value: m.muscleMass, thresholds: [18, 24, 28], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 12, max: 40 },
+      'Subcutaneous Fat': male
+        ? { value: m.subcutaneousFat, thresholds: [10, 15, 20], zones: [{ label: 'Low', color: SEMANTIC.excellent }, { label: 'Normal', color: SEMANTIC.good }, { label: 'High', color: SEMANTIC.average }, { label: 'Very High', color: SEMANTIC.bad }], min: 3, max: 30 }
+        : { value: m.subcutaneousFat, thresholds: [15, 20, 27], zones: [{ label: 'Low', color: SEMANTIC.excellent }, { label: 'Normal', color: SEMANTIC.good }, { label: 'High', color: SEMANTIC.average }, { label: 'Very High', color: SEMANTIC.bad }], min: 5, max: 35 },
+      'Visceral Fat': { value: m.visceralFat, thresholds: [9, 14], zones: [{ label: 'Standard', color: SEMANTIC.good }, { label: 'High', color: SEMANTIC.average }, { label: 'Too High', color: SEMANTIC.bad }], min: 1, max: 30 },
+      'Bone Mass': male
+        ? { value: m.boneMass, thresholds: [2.5, 3.0, 3.5], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Strong', color: SEMANTIC.excellent }], min: 1.5, max: 5 }
+        : { value: m.boneMass, thresholds: [2.0, 2.5, 3.0], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Strong', color: SEMANTIC.excellent }], min: 1, max: 4 },
+      'Protein': { value: m.protein, thresholds: [14, 16, 18], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Below Avg', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 8, max: 25 },
+      'Body Age': (() => {
+        const baMin = Math.max(18, m.age - 15);
+        const baMax = m.age + 15;
+        return { value: m.bodyAge, thresholds: [Math.max(baMin, m.age - 5), Math.max(baMin, m.age), Math.min(baMax, m.age + 3)], zones: [{ label: 'Excellent', color: SEMANTIC.excellent }, { label: 'Good', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: baMin, max: baMax };
+      })(),
+      'TDEE': male
+        ? { value: m.tdee, thresholds: [2000, 2400, 2800], zones: [{ label: 'Low', color: SEMANTIC.average }, { label: 'Moderate', color: SEMANTIC.good }, { label: 'Active', color: SEMANTIC.excellent }, { label: 'Very Active', color: SEMANTIC.excellent }], min: 1500, max: 3500 }
+        : { value: m.tdee, thresholds: [1600, 1900, 2300], zones: [{ label: 'Low', color: SEMANTIC.average }, { label: 'Moderate', color: SEMANTIC.good }, { label: 'Active', color: SEMANTIC.excellent }, { label: 'Very Active', color: SEMANTIC.excellent }], min: 1200, max: 3000 },
+    };
+    return defs[name] || null;
+  };
+
+  const scoreColor = getSemanticColor('Health Score');
+  const scoreColorEnd = scoreColor === SEMANTIC.excellent ? '#6366F1' : scoreColor === SEMANTIC.good ? '#059669' : scoreColor === SEMANTIC.average ? '#F97316' : '#DC2626';
 
   const quickItems = [
-    { label: 'Body Age', value: bodyComp.bodyAge, unit: '', color: ageColorFn(bodyComp.bodyAge), icon: 'favorite' },
-    { label: 'BMI', value: bodyComp.bmi, unit: bodyComp.bmiStatus.label, color: bodyComp.bmiStatus.color, icon: 'speed' },
+    { label: 'Body Age', value: bodyComp.bodyAge, unit: '', color: getSemanticColor('Body Age'), icon: 'favorite' },
+    { label: 'BMI', value: bodyComp.bmi, unit: bodyComp.bmiStatus.label, color: getSemanticColor('BMI'), icon: 'speed' },
     { label: 'Water Goal', value: bodyComp.dailyWaterL, unit: 'L / day', color: '#3B82F6', icon: 'opacity' },
     { label: 'Ideal Weight', value: `${bodyComp.idealWeightLow}–${bodyComp.idealWeightHigh}`, unit: 'kg', color: '#10B981', icon: 'track-changes' },
   ];
 
   const allMetrics = [
-    { icon: 'monitor-weight', label: 'Weight', value: `${bodyComp.weight} kg`, color: '#6366F1', bar: bodyComp.weight / 120 },
-    { icon: 'pie-chart', label: 'Body Fat', value: `${bodyComp.bodyFat}%`, color: bodyComp.bodyFatStatus.color, status: bodyComp.bodyFatStatus.label, bar: bodyComp.bodyFat / 50 },
-    { icon: 'fitness-center', label: 'Muscle Rate', value: `${bodyComp.muscleRate}%`, color: bodyComp.muscleStatus.color, status: bodyComp.muscleStatus.label, bar: bodyComp.muscleRate / 60 },
-    { icon: 'local-fire-department', label: 'BMR', value: `${bodyComp.bmr} kcal`, color: '#F97316', bar: bodyComp.bmr / 2500 },
-    { icon: 'accessibility-new', label: 'Fat-free Weight', value: `${bodyComp.fatFreeWeight} kg`, color: '#10B981', bar: bodyComp.fatFreeWeight / 90, expanded: true },
-    { icon: 'grain', label: 'Muscle Mass', value: `${bodyComp.muscleMass} kg`, color: '#8B5CF6', bar: bodyComp.muscleMass / 50, expanded: true },
-    { icon: 'spa', label: 'Subcutaneous Fat', value: `${bodyComp.subcutaneousFat}%`, color: '#F59E0B', bar: bodyComp.subcutaneousFat / 40, expanded: true },
-    { icon: 'whatshot', label: 'Visceral Fat', value: bodyComp.visceralFat, color: bodyComp.visceralFatStatus.color, status: bodyComp.visceralFatStatus.label, bar: bodyComp.visceralFat / 30, expanded: true },
-    { icon: 'straighten', label: 'Bone Mass', value: `${bodyComp.boneMass} kg`, color: '#78716C', bar: bodyComp.boneMass / 5, expanded: true },
-    { icon: 'science', label: 'Protein', value: `${bodyComp.protein}%`, color: '#EC4899', bar: bodyComp.protein / 25, expanded: true },
-    { icon: 'favorite', label: 'Body Age', value: bodyComp.bodyAge, color: ageColorFn(bodyComp.bodyAge), bar: bodyComp.bodyAge / 60, expanded: true },
-    { icon: 'bolt', label: 'TDEE', value: `${bodyComp.tdee} kcal`, color: '#F97316', bar: bodyComp.tdee / 3500, expanded: true },
+    { icon: 'monitor-weight', label: 'Weight', value: `${bodyComp.weight} kg`, color: getSemanticColor('Weight'), bar: bodyComp.weight / 120 },
+    { icon: 'pie-chart', label: 'Body Fat', value: `${bodyComp.bodyFat}%`, color: getSemanticColor('Body Fat'), status: bodyComp.bodyFatStatus.label, bar: bodyComp.bodyFat / 50 },
+    { icon: 'fitness-center', label: 'Muscle Rate', value: `${bodyComp.muscleRate}%`, color: getSemanticColor('Muscle Rate'), status: bodyComp.muscleStatus.label, bar: bodyComp.muscleRate / 60 },
+    { icon: 'local-fire-department', label: 'BMR', value: `${bodyComp.bmr} kcal`, color: getSemanticColor('BMR'), bar: bodyComp.bmr / 2500 },
+    { icon: 'accessibility-new', label: 'Fat-free Weight', value: `${bodyComp.fatFreeWeight} kg`, color: getSemanticColor('Fat-free Weight'), bar: bodyComp.fatFreeWeight / 90, expanded: true },
+    { icon: 'grain', label: 'Muscle Mass', value: `${bodyComp.muscleMass} kg`, color: getSemanticColor('Muscle Mass'), bar: bodyComp.muscleMass / 50, expanded: true },
+    { icon: 'spa', label: 'Subcutaneous Fat', value: `${bodyComp.subcutaneousFat}%`, color: getSemanticColor('Subcutaneous Fat'), bar: bodyComp.subcutaneousFat / 40, expanded: true },
+    { icon: 'whatshot', label: 'Visceral Fat', value: bodyComp.visceralFat, color: getSemanticColor('Visceral Fat'), status: bodyComp.visceralFatStatus.label, bar: bodyComp.visceralFat / 30, expanded: true },
+    { icon: 'straighten', label: 'Bone Mass', value: `${bodyComp.boneMass} kg`, color: getSemanticColor('Bone Mass'), bar: bodyComp.boneMass / 5, expanded: true },
+    { icon: 'science', label: 'Protein', value: `${bodyComp.protein}%`, color: getSemanticColor('Protein'), bar: bodyComp.protein / 25, expanded: true },
+    { icon: 'favorite', label: 'Body Age', value: bodyComp.bodyAge, color: getSemanticColor('Body Age'), bar: bodyComp.bodyAge / 60, expanded: true },
+    { icon: 'bolt', label: 'TDEE', value: `${bodyComp.tdee} kcal`, color: getSemanticColor('TDEE'), bar: bodyComp.tdee / 3500, expanded: true },
   ];
   const visibleMetrics = expanded ? allMetrics : allMetrics.filter(m => !m.expanded);
 
@@ -338,6 +547,58 @@ const BodyCompositionScreen = () => {
     { flex: bodyComp.bodyWater * 0.3, color: '#3B82F6', label: `Water ${bodyComp.bodyWater}%` },
     { flex: bodyComp.boneMass * 3, color: '#78716C', label: `Bone ${bodyComp.boneMass}kg` },
   ];
+
+  const renderRangeIndicator = (rangeData, accentColor) => {
+    if (!rangeData) return null;
+    const { value, thresholds, zones, min, max } = rangeData;
+    const total = max - min;
+    const breakpoints = [min, ...thresholds, max];
+    const clamped = Math.min(max, Math.max(min, value));
+    const valuePct = ((clamped - min) / total) * 100;
+    let indicatorColor = zones[zones.length - 1].color;
+    for (let i = 0; i < zones.length; i++) {
+      if (clamped <= breakpoints[i + 1]) { indicatorColor = zones[i].color; break; }
+    }
+    return (
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: accentColor, marginBottom: 12 }}>Your Range</Text>
+        <View style={{ height: 18, position: 'relative', marginBottom: 4 }}>
+          {thresholds.map((t, i) => {
+            const pct = ((t - min) / total) * 100;
+            return (
+              <View key={i} style={{ position: 'absolute', left: `${pct}%`, width: 44, marginLeft: -22, alignItems: 'center' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: textSecondary }}>{Number.isInteger(t) ? t : t.toFixed(1)}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <View style={{ height: 26, justifyContent: 'center' }}>
+          <View style={{ height: 10, borderRadius: 5, flexDirection: 'row', overflow: 'hidden' }}>
+            {zones.map((zone, i) => (
+              <View key={i} style={{ width: `${((breakpoints[i + 1] - breakpoints[i]) / total) * 100}%`, height: '100%', backgroundColor: zone.color, opacity: 0.85 }} />
+            ))}
+          </View>
+          <View style={{
+            position: 'absolute', left: `${valuePct}%`, marginLeft: -13,
+            width: 26, height: 26, borderRadius: 13,
+            backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF',
+            borderWidth: 3, borderColor: indicatorColor,
+            shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+          }} />
+        </View>
+        <View style={{ height: 16, position: 'relative', marginTop: 8 }}>
+          {zones.map((zone, i) => {
+            const center = (((breakpoints[i] + breakpoints[i + 1]) / 2 - min) / total) * 100;
+            return (
+              <View key={i} style={{ position: 'absolute', left: `${center}%`, width: 70, marginLeft: -35, alignItems: 'center' }}>
+                <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: '600', color: isDark ? 'rgba(255,255,255,0.45)' : '#888' }}>{zone.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -362,7 +623,7 @@ const BodyCompositionScreen = () => {
         </View>
 
         {/* ── Hero Health Score ── */}
-        <TouchableOpacity activeOpacity={0.8} onPress={() => showInfo('Health Score')}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => showInfo('Health Score', scoreColor)}>
           <Animated.View style={[styles.heroSection, {
             transform: [{ scale: Animated.multiply(heroScale, pulseAnim) }],
             opacity: heroOpacity,
@@ -395,12 +656,14 @@ const BodyCompositionScreen = () => {
               </View>
             </View>
             <Text style={[styles.heroDesc, { color: textSecondary }]}>
-              {bodyComp.healthScore >= 90 ? 'Outstanding — you\'re in top shape!' :
-               bodyComp.healthScore >= 80 ? 'Great shape — keep pushing!' :
-               bodyComp.healthScore >= 70 ? 'Good foundation — stay consistent.' :
-               bodyComp.healthScore >= 60 ? 'Decent — room for improvement.' :
-               bodyComp.healthScore >= 45 ? 'Work in progress — keep going.' :
-               'Time to build healthier habits.'}
+              {bodyComp.healthScore >= 90 ? 'Elite level — you\'re in incredible shape.' :
+               bodyComp.healthScore >= 80 ? 'Looking great — keep it up!' :
+               bodyComp.healthScore >= 70 ? 'Solid progress — stay consistent.' :
+               bodyComp.healthScore >= 60 ? 'Decent foundation — keep pushing.' :
+               bodyComp.healthScore >= 50 ? 'Average — you have potential, use it.' :
+               bodyComp.healthScore >= 40 ? 'Below average — time to step it up.' :
+               bodyComp.healthScore >= 25 ? 'Work needed — every journey starts somewhere.' :
+               'Serious changes needed — start today.'}
             </Text>
             <View style={styles.tapHint}>
               <MaterialIcons name="info-outline" size={12} color={textTertiary} />
@@ -415,7 +678,7 @@ const BodyCompositionScreen = () => {
             <TouchableOpacity
               key={item.label}
               activeOpacity={0.7}
-              onPress={() => showInfo(item.label)}
+              onPress={() => showInfo(item.label, item.color)}
             >
               <Animated.View
                 style={[styles.quickCard, {
@@ -488,7 +751,7 @@ const BodyCompositionScreen = () => {
             <TouchableOpacity
               key={metric.label}
               activeOpacity={0.7}
-              onPress={() => showInfo(metric.label)}
+              onPress={() => showInfo(metric.label, metric.color)}
             >
               <View style={[styles.metricRow, { borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6' }]}>
                 <View style={[styles.metricIcon, { backgroundColor: metric.color + '14' }]}>
@@ -561,6 +824,8 @@ const BodyCompositionScreen = () => {
                 <Text style={[styles.infoSectionHead, { color: infoPopup.color }]}>What is it?</Text>
                 <Text style={[styles.infoText, { color: textSecondary }]}>{infoPopup.explanation}</Text>
 
+                {infoPopup.rangeData && renderRangeIndicator(infoPopup.rangeData, infoPopup.color)}
+
                 {/* Example */}
                 <View style={[styles.infoExampleBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8F9FA', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB' }]}>
                   <View style={styles.infoExampleHeader}>
@@ -569,6 +834,17 @@ const BodyCompositionScreen = () => {
                   </View>
                   <Text style={[styles.infoExampleText, { color: textSecondary }]}>{infoPopup.example}</Text>
                 </View>
+
+                {infoPopup.source && (
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, alignSelf: 'flex-start' }}
+                    onPress={() => Linking.openURL(infoPopup.source.url)}
+                    activeOpacity={0.6}
+                  >
+                    <MaterialIcons name="open-in-new" size={13} color={infoPopup.color} />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: infoPopup.color }}>{infoPopup.source.label}</Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Close button */}
                 <TouchableOpacity style={[styles.infoCloseBtn, { backgroundColor: infoPopup.color + '14' }]} onPress={hideInfo}>

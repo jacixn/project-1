@@ -50,6 +50,7 @@ import CoachChatScreen from '../screens/CoachChatScreen';
 import VisionScreen from '../screens/VisionScreen';
 import HabitsScreenWrapper from '../screens/HabitsScreen';
 import CustomisationScreen from '../screens/CustomisationScreen';
+import CustomiseTabBarScreen from '../screens/CustomiseTabBarScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1215,6 +1216,15 @@ const RootNavigator = () => {
       <Stack.Screen 
         name="Customisation" 
         component={CustomisationScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Customise Tab Bar Screen */}
+      <Stack.Screen 
+        name="CustomiseTabBar" 
+        component={CustomiseTabBarScreen}
         options={{
           animation: 'slide_from_right',
         }}

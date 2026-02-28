@@ -4,6 +4,26 @@ import userStorage from '../utils/userStorage';
 import Constants from 'expo-constants';
 import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
+import WorkoutService from './workoutService';
+
+const TAB_NOTIFICATION_MAP = {
+  BiblePrayer: {
+    settingsKeys: ['prayerReminders'],
+    notificationTypes: ['prayer_reminder', 'custom_prayer', 'missed_prayer'],
+  },
+  Todos: {
+    settingsKeys: ['taskReminders'],
+    notificationTypes: ['task_reminder'],
+  },
+  Gym: {
+    settingsKeys: ['workoutReminders', 'weeklyBodyCheckIn'],
+    notificationTypes: ['workout_reminder', 'workout_overdue', 'weekly_body_checkin'],
+  },
+  Hub: {
+    settingsKeys: ['tokenArrival'],
+    notificationTypes: ['token_arrived'],
+  },
+};
 
 // ─── Active chat tracking ───
 // When the user is inside a specific chat, we store the other user's ID
@@ -1197,6 +1217,191 @@ class NotificationService {
       }
     } catch (error) {
       console.error('Failed to reschedule habit reminders:', error);
+    }
+  }
+
+  async pauseNotificationsForTab(tabName) {
+    const mapping = TAB_NOTIFICATION_MAP[tabName];
+    if (!mapping) return;
+
+    try {
+      const settings = await getStoredData('notificationSettings') || {};
+      const backup = await getStoredData('hiddenTabNotificationBackup') || {};
+
+      const tabBackup = {};
+      for (const key of mapping.settingsKeys) {
+        tabBackup[key] = settings[key] !== false;
+      }
+      backup[tabName] = tabBackup;
+      await saveData('hiddenTabNotificationBackup', backup);
+
+      const newSettings = { ...settings };
+      for (const key of mapping.settingsKeys) {
+        newSettings[key] = false;
+      }
+      await saveData('notificationSettings', newSettings);
+
+      for (const type of mapping.notificationTypes) {
+        await this.cancelNotificationsByType(type);
+      }
+
+      console.log(`[Notif] Paused notifications for hidden tab: ${tabName}`, tabBackup);
+    } catch (error) {
+      console.error(`Failed to pause notifications for tab ${tabName}:`, error);
+    }
+  }
+
+  async restoreNotificationsForTab(tabName) {
+    const mapping = TAB_NOTIFICATION_MAP[tabName];
+    if (!mapping) return;
+
+    try {
+      const settings = await getStoredData('notificationSettings') || {};
+      const backup = await getStoredData('hiddenTabNotificationBackup') || {};
+      const tabBackup = backup[tabName];
+
+      if (!tabBackup) {
+        console.log(`[Notif] No backup found for tab ${tabName}, skipping restore`);
+        return;
+      }
+
+      const newSettings = { ...settings };
+      for (const key of mapping.settingsKeys) {
+        if (tabBackup[key] !== undefined) {
+          newSettings[key] = tabBackup[key];
+        }
+      }
+
+      delete backup[tabName];
+      await saveData('hiddenTabNotificationBackup', backup);
+
+      await this.updateSettings(newSettings);
+
+      if (newSettings.pushNotifications !== false) {
+        if (tabName === 'Todos' && newSettings.taskReminders) {
+          await this._rescheduleTaskNotifications(newSettings.sound);
+        }
+        if (tabName === 'Gym' && newSettings.workoutReminders) {
+          await this._rescheduleWorkoutNotifications(newSettings.sound);
+        }
+      }
+
+      console.log(`[Notif] Restored notifications for unhidden tab: ${tabName}`, tabBackup);
+    } catch (error) {
+      console.error(`Failed to restore notifications for tab ${tabName}:`, error);
+    }
+  }
+
+  async _rescheduleTaskNotifications(soundEnabled) {
+    try {
+      const storedTodos = await userStorage.getRaw('fivefold_todos');
+      if (!storedTodos) return;
+
+      const tasks = JSON.parse(storedTodos);
+      const now = new Date();
+      let count = 0;
+
+      for (const task of tasks) {
+        if (task.completed || !task.scheduledDate) continue;
+        const taskDate = new Date(task.scheduledDate);
+        if (taskDate <= now) continue;
+
+        const reminderMin = task.reminderBefore || 60;
+        const notifyTime = new Date(taskDate.getTime() - reminderMin * 60 * 1000);
+        if (notifyTime <= now) continue;
+
+        const reminderText = reminderMin >= 60
+          ? `${Math.floor(reminderMin / 60)} hour${reminderMin >= 120 ? 's' : ''}`
+          : `${reminderMin} minutes`;
+
+        await Notifications.cancelScheduledNotificationAsync(task.id).catch(() => {});
+        await Notifications.scheduleNotificationAsync({
+          identifier: task.id,
+          content: {
+            title: 'Task Reminder',
+            body: `"${task.text}" is scheduled in ${reminderText}!`,
+            data: { type: 'task_reminder', taskId: task.id },
+            sound: soundEnabled ? 'default' : null,
+          },
+          trigger: { type: 'date', date: notifyTime },
+        });
+        count++;
+      }
+      console.log(`[Notif] Rescheduled ${count} task notifications (tab restore)`);
+    } catch (error) {
+      console.error('Failed to reschedule task notifications:', error);
+    }
+  }
+
+  async _rescheduleWorkoutNotifications(soundEnabled) {
+    try {
+      const schedules = await WorkoutService.getScheduledWorkouts();
+      if (!schedules || schedules.length === 0) return;
+
+      let count = 0;
+      const sound = soundEnabled ? 'default' : null;
+
+      for (const schedule of schedules) {
+        const notifyMin = schedule.notifyBefore || 60;
+        const [hours, minutes] = schedule.time.split(':').map(Number);
+
+        let notifyHours = hours;
+        let notifyMins = minutes - notifyMin;
+        if (notifyMins < 0) {
+          notifyHours -= Math.ceil(Math.abs(notifyMins) / 60);
+          notifyMins = 60 + (notifyMins % 60);
+          if (notifyMins === 60) notifyMins = 0;
+        }
+        if (notifyHours < 0) notifyHours += 24;
+
+        const reminderText = notifyMin >= 60
+          ? `${Math.floor(notifyMin / 60)} hour${notifyMin >= 120 ? 's' : ''}`
+          : `${notifyMin} minutes`;
+
+        try {
+          if (schedule.type === 'recurring') {
+            for (let i = 0; i <= 6; i++) {
+              await Notifications.cancelScheduledNotificationAsync(`${schedule.id}_${i}`).catch(() => {});
+            }
+            for (const day of schedule.days) {
+              await Notifications.scheduleNotificationAsync({
+                identifier: `${schedule.id}_${day}`,
+                content: {
+                  title: 'Workout Reminder',
+                  body: `${schedule.templateName} starts in ${reminderText}!`,
+                  data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
+                  sound,
+                },
+                trigger: { type: 'weekly', weekday: day + 1, hour: notifyHours, minute: notifyMins, repeats: true },
+              });
+              count++;
+            }
+          } else {
+            await Notifications.cancelScheduledNotificationAsync(schedule.id).catch(() => {});
+            const workoutDate = new Date(schedule.date);
+            workoutDate.setHours(hours, minutes, 0, 0);
+            const notifyTime = new Date(workoutDate.getTime() - notifyMin * 60 * 1000);
+            if (notifyTime > new Date()) {
+              await Notifications.scheduleNotificationAsync({
+                identifier: schedule.id,
+                content: {
+                  title: 'Workout Reminder',
+                  body: `${schedule.templateName} starts in ${reminderText}!`,
+                  data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
+                  sound,
+                },
+                trigger: { type: 'date', date: notifyTime },
+              });
+              count++;
+            }
+          }
+        } catch (err) {
+          console.error('Error scheduling workout notification:', err);
+        }
+      }
+      console.log(`[Notif] Rescheduled ${count} workout notifications (tab restore)`);
+    } catch (error) {
+      console.error('Failed to reschedule workout notifications:', error);
     }
   }
 }

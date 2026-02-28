@@ -55,6 +55,7 @@ const ThemeModal = ({ visible, onClose }) => {
 
   const lightThemes = [
     { id: 'blush-bloom', name: 'Blush Bloom', wallpaper: themeWallpapers?.['blush-bloom'], isActive: isBlushTheme },
+    { id: 'aquarium', name: 'Aquarium', wallpaper: themeWallpapers?.['aquarium'], isActive: currentTheme === 'aquarium' },
     { id: 'eterna', name: 'Eterna', wallpaper: themeWallpapers?.['eterna'], isActive: isEternaTheme },
     { id: 'biblely-light', name: 'Biblely', wallpaper: biblelyWallpapers?.[0]?.source, isActive: isBiblelyTheme && selectedWallpaperIndex === 0, isBiblelyVariant: true, wallpaperIndex: 0 },
     { id: 'cotton-candy', name: 'Cotton Candy', wallpaper: themeWallpapers?.['cotton-candy'], isActive: currentTheme === 'cotton-candy' },

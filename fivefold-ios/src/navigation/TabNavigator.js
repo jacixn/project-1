@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
 import { Platform } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useWorkout } from '../contexts/WorkoutContext';
+import userStorage from '../utils/userStorage';
 
 // Tab screens
 import BiblePrayerTab from '../screens/BiblePrayerTab';
@@ -14,7 +15,6 @@ try {
   ProfileTab = require('../screens/ProfileTab').default;
 } catch (e) {
   console.error('[TabNavigator] ProfileTab failed to load:', e);
-  // Fallback component so the app doesn't crash
   ProfileTab = () => {
     const { View, Text } = require('react-native');
     return (
@@ -28,18 +28,80 @@ try {
 
 const Tab = createNativeBottomTabNavigator();
 
+const DEFAULT_ORDER = ['BiblePrayer', 'Todos', 'Gym', 'Hub', 'Profile'];
+
+const TAB_DEFINITIONS = {
+  BiblePrayer: {
+    component: BiblePrayerTab,
+    title: 'Bible',
+    icon: 'book.fill',
+    accessibilityLabel: 'Bible tab',
+  },
+  Todos: {
+    component: TodosTab,
+    title: 'Tasks',
+    icon: 'checkmark.circle.fill',
+    accessibilityLabel: 'Tasks tab',
+  },
+  Gym: {
+    component: GymTab,
+    title: 'Fitness',
+    icon: 'figure.strengthtraining.traditional',
+    accessibilityLabel: 'Fitness tab',
+  },
+  Hub: {
+    component: HubTab,
+    title: 'Hub',
+    icon: 'bubble.left.and.bubble.right.fill',
+    accessibilityLabel: 'Hub tab',
+  },
+  Profile: {
+    component: ProfileTab,
+    title: 'Profile',
+    icon: 'person.fill',
+    accessibilityLabel: 'Profile tab',
+  },
+};
+
+let _refreshFn = null;
+export const refreshTabBarConfig = () => _refreshFn?.();
+export { DEFAULT_ORDER, TAB_DEFINITIONS };
+
 const TabNavigator = () => {
   const { theme, isDark } = useTheme();
   const { hasActiveWorkout } = useWorkout();
+  const [tabConfig, setTabConfig] = useState(null);
 
-  // Get the active tint color based on theme
+  const loadConfig = async () => {
+    try {
+      const config = await userStorage.get('tabBarConfig');
+      setTabConfig(config);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    loadConfig();
+    _refreshFn = loadConfig;
+    return () => { _refreshFn = null; };
+  }, []);
+
   const getActiveTintColor = () => {
-      if (theme.name === 'blush') return '#FF69B4';
+    if (theme.name === 'blush') return '#FF69B4';
     if (theme.name === 'cresvia') return '#8A2BE2';
     if (theme.name === 'eterna') return '#4B0082';
     if (theme.name === 'faith') return '#4A90E2';
     return theme.primary || '#007AFF';
   };
+
+  const order = tabConfig?.order || DEFAULT_ORDER;
+  const hidden = new Set(tabConfig?.hidden || []);
+  hidden.delete('Profile');
+
+  const visibleTabs = order.filter(name => !hidden.has(name) && TAB_DEFINITIONS[name]);
+
+  if (!visibleTabs.includes('Profile')) {
+    visibleTabs.push('Profile');
+  }
 
   return (
     <Tab.Navigator
@@ -47,57 +109,26 @@ const TabNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: getActiveTintColor(),
       }}
-      // Native iOS tab bar settings
       translucent={true}
       hapticFeedbackEnabled={true}
       sidebarAdaptable={false}
     >
-      <Tab.Screen 
-        name="BiblePrayer" 
-        component={BiblePrayerTab}
-        options={{
-          title: 'Bible',
-          tabBarIcon: () => ({ sfSymbol: 'book.fill' }),
-          tabBarAccessibilityLabel: 'Bible tab',
-        }}
-      />
-      <Tab.Screen 
-        name="Todos" 
-        component={TodosTab}
-        options={{
-          title: 'Tasks',
-          tabBarIcon: () => ({ sfSymbol: 'checkmark.circle.fill' }),
-          tabBarAccessibilityLabel: 'Tasks tab',
-        }}
-      />
-      <Tab.Screen 
-        name="Gym" 
-        component={GymTab}
-        options={{
-          title: 'Fitness',
-          tabBarIcon: () => ({ sfSymbol: 'figure.strengthtraining.traditional' }),
-          tabBarBadge: hasActiveWorkout ? '' : undefined,
-          tabBarAccessibilityLabel: 'Fitness tab',
-        }}
-      />
-      <Tab.Screen 
-        name="Hub" 
-        component={HubTab}
-        options={{
-          title: 'Hub',
-          tabBarIcon: () => ({ sfSymbol: 'bubble.left.and.bubble.right.fill' }),
-          tabBarAccessibilityLabel: 'Hub tab',
-        }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileTab}
-        options={{
-          title: 'Profile',
-          tabBarIcon: () => ({ sfSymbol: 'person.fill' }),
-          tabBarAccessibilityLabel: 'Profile tab',
-        }}
-      />
+      {visibleTabs.map(name => {
+        const def = TAB_DEFINITIONS[name];
+        return (
+          <Tab.Screen
+            key={name}
+            name={name}
+            component={def.component}
+            options={{
+              title: def.title,
+              tabBarIcon: () => ({ sfSymbol: def.icon }),
+              tabBarBadge: name === 'Gym' && hasActiveWorkout ? '' : undefined,
+              tabBarAccessibilityLabel: def.accessibilityLabel,
+            }}
+          />
+        );
+      })}
     </Tab.Navigator>
   );
 };

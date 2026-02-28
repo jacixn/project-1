@@ -292,6 +292,13 @@ for (const root of ROOTS) {
   }
 }
 
+// ── Cleaned root words (length >= 4) for full-text scan ──
+const ROOTS_CLEAN = new Set();
+for (const root of ROOTS) {
+  const clean = root.replace(/[^a-z]/g, '');
+  if (clean && clean.length >= 4) ROOTS_CLEAN.add(clean);
+}
+
 // Phrases (multi-word, checked on spaced text)
 const BLOCKED_PHRASES = [
   'kill yourself','kill urself','kill ur self','kill myself',
@@ -458,16 +465,91 @@ const _deLeet = (str) => str
   .replace(/[^a-z]/g, '');
 const _collapse = (str) => str.replace(/(.)\1+/g, '$1');
 
+// ── Unicode homoglyph normalization ──
+const HOMOGLYPHS = {
+  // Cyrillic → Latin
+  '\u0430':'a','\u0431':'b','\u0435':'e','\u0456':'i','\u043E':'o','\u0440':'p',
+  '\u0441':'c','\u0443':'y','\u0445':'x','\u043A':'k','\u043C':'m',
+  '\u043D':'h','\u0442':'t','\u0451':'e','\u044B':'y','\u0455':'s',
+  '\u0410':'a','\u0412':'b','\u0415':'e','\u041E':'o','\u0420':'p',
+  '\u0421':'c','\u0422':'t','\u041C':'m','\u041D':'h','\u041A':'k',
+  '\u0425':'x',
+  // Greek → Latin
+  '\u03B1':'a','\u03B2':'b','\u03B5':'e','\u03B7':'n','\u03B9':'i',
+  '\u03BA':'k','\u03BF':'o','\u03C1':'p','\u03C4':'t','\u03C5':'u','\u03C7':'x',
+  // Common substitutes
+  '\u00F8':'o','\u00F0':'d','\u00FE':'p','\u0142':'l','\u00F1':'n',
+  // Visual look-alikes commonly used to evade filters
+  '|':'i','/':'l','\\':'l',
+};
+
+const _normalizeUnicode = (str) => {
+  let r = str.replace(/[\u200B-\u200F\u2028-\u202F\uFEFF\u00AD\u034F\u061C\u180E\u2060-\u2069\uFFF9-\uFFFC]/g, '');
+  r = [...r].map(c => HOMOGLYPHS[c] || c).join('');
+  r = r.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  r = r.replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  return r;
+};
+
+const _checkBlockedSubstrings = (str) => {
+  if (!str || str.length < 3) return false;
+  for (let size = 3; size <= Math.min(20, str.length); size++) {
+    for (let start = 0; start <= str.length - size; start++) {
+      if (BLOCKED_SET.has(str.substring(start, start + size))) return true;
+    }
+  }
+  return false;
+};
+
+const _checkShortWordRuns = (wordList) => {
+  const run = [];
+  for (let i = 0; i < wordList.length; i++) {
+    const w = wordList[i];
+    if (w.length === 0) continue;
+    if (w.length <= 3) { run.push(w); continue; }
+    if (run.length >= 2) {
+      const combined = run.join('');
+      if (_checkBlockedSubstrings(combined) || _checkBlockedSubstrings(_collapse(combined))) return true;
+    }
+    run.length = 0;
+  }
+  if (run.length >= 2) {
+    const combined = run.join('');
+    if (_checkBlockedSubstrings(combined) || _checkBlockedSubstrings(_collapse(combined))) return true;
+  }
+  return false;
+};
+
+const _fullTextScan = (wordVariants) => {
+  const filtered = wordVariants.filter(w => w.length > 0);
+  const joined = filtered.join('');
+  if (joined.length < 4) return false;
+  const posToWord = new Array(joined.length);
+  let pos = 0;
+  for (let wi = 0; wi < filtered.length; wi++) {
+    for (let ci = 0; ci < filtered[wi].length; ci++) {
+      posToWord[pos++] = wi;
+    }
+  }
+  for (let size = 4; size <= Math.min(20, joined.length); size++) {
+    for (let start = 0; start <= joined.length - size; start++) {
+      const sub = joined.substring(start, start + size);
+      if (ROOTS_CLEAN.has(sub) && posToWord[start] !== posToWord[start + size - 1]) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 /**
  * Check if text contains profanity.
- * 
- * Uses WORD-LEVEL matching (not full-text substring) to avoid false positives
- * like "beautiful" (was caught by "ar" from "ar15"), "class" ("ass"), "title" ("tit"), etc.
  *
- * Strategy:
+ * 4-layer defence:
  *  1. Per-word: exact match + within-word substring (min 4 chars)
- *  2. Space-evasion: detect "f u c k" single-char patterns
+ *  2. Short-word chunk: combine adjacent short words (≤3 chars), catch spacing tricks
  *  3. Phrase matching on the full spaced text
+ *  4. Full-text aggressive scan: strip all separators, detect blocked roots spanning word boundaries
  *
  * @param {string} text
  * @returns {boolean}
@@ -475,33 +557,23 @@ const _collapse = (str) => str.replace(/(.)\1+/g, '$1');
 const containsProfanity = (text) => {
   if (!text || text.length === 0) return false;
 
-  const raw = text.toLowerCase();
-
-  // ── Split into words ──
+  const raw = _normalizeUnicode(text).toLowerCase();
   const words = raw.split(/\s+/).filter(w => w.length > 0);
 
+  // ── Layer 1: Per-word exact + substring match ──
   for (const word of words) {
     const stripped = _normalize(word);
     if (!stripped) continue;
-
-    // Skip known safe English words
     if (SAFE_WORDS.has(stripped)) continue;
 
     const deLeet = _deLeet(word);
     const collapsed = _collapse(stripped);
     const deLeetCollapsed = _collapse(deLeet);
-
-    // De-duplicate variants
     const variants = new Set([stripped, deLeet, collapsed, deLeetCollapsed]);
 
     for (const v of variants) {
       if (!v) continue;
-
-      // ── Exact word match (catches short bad words: "ass", "ho", "fag", etc.) ──
       if (BLOCKED_SET.has(v)) return true;
-
-      // ── Substring within word (for compound evasions like "fuckoff", "dumbass") ──
-      // Min size 4 to avoid "tit" in "title", "ass" in "class", "nip" in "turnip", etc.
       const len = v.length;
       for (let size = 4; size < len; size++) {
         for (let start = 0; start <= len - size; start++) {
@@ -511,39 +583,25 @@ const containsProfanity = (text) => {
     }
   }
 
-  // ── Space-evasion detection: "f u c k" → combine single-char runs ──
-  const singleRun = [];
-  for (let i = 0; i < words.length; i++) {
-    const clean = _normalize(words[i]);
-    if (clean.length === 1) {
-      singleRun.push(clean);
-    } else {
-      if (singleRun.length >= 3) {
-        const combined = singleRun.join('');
-        for (let size = 3; size <= Math.min(20, combined.length); size++) {
-          for (let start = 0; start <= combined.length - size; start++) {
-            if (BLOCKED_SET.has(combined.substring(start, start + size))) return true;
-          }
-        }
-      }
-      singleRun.length = 0;
-    }
-  }
-  // Check final run
-  if (singleRun.length >= 3) {
-    const combined = singleRun.join('');
-    for (let size = 3; size <= Math.min(20, combined.length); size++) {
-      for (let start = 0; start <= combined.length - size; start++) {
-        if (BLOCKED_SET.has(combined.substring(start, start + size))) return true;
-      }
-    }
-  }
+  // ── Layer 2: Short-word chunk detection ──
+  const normWords = words.map(w => _normalize(w));
+  const leetWords = words.map(w => _deLeet(w));
+  if (_checkShortWordRuns(normWords)) return true;
+  if (_checkShortWordRuns(leetWords)) return true;
 
-  // ── Phrase check on full spaced text ──
+  // ── Layer 3: Phrase check ──
   const spaced = raw.replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
   for (const phrase of BLOCKED_PHRASES) {
     if (spaced.includes(phrase)) return true;
   }
+
+  // ── Layer 4: Full-text aggressive scan ──
+  // Check normalized, collapsed, de-leeted, and collapsed-de-leeted variants.
+  // Each preserves per-word boundaries so single-word safe words are not falsely flagged.
+  if (_fullTextScan(normWords)) return true;
+  if (_fullTextScan(normWords.map(w => _collapse(w)))) return true;
+  if (_fullTextScan(leetWords)) return true;
+  if (_fullTextScan(leetWords.map(w => _collapse(w)))) return true;
 
   return false;
 };

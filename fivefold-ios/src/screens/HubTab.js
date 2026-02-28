@@ -105,6 +105,7 @@ const HubTab = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [posting, setPosting] = useState(false);
+  const postingLock = useRef(false);
   const [postingSuccess, setPostingSuccess] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   
@@ -213,6 +214,7 @@ const HubTab = () => {
           console.warn('[Hub] Failed to load blocked users:', blockErr.message);
         }
       }
+      filteredPosts = filteredPosts.filter(p => !p.content || !profanityFilter.containsProfanity(p.content));
       setPosts(filteredPosts);
     } catch (error) {
       console.error('[Hub] Error loading posts:', error);
@@ -466,8 +468,9 @@ const HubTab = () => {
   };
   
   const handlePost = async () => {
-    // Guard against double-tap immediately
-    if (posting) return;
+    if (postingLock.current) return;
+    postingLock.current = true;
+    try {
     
     // Check posting restriction
     if (user?.uid) {
@@ -602,6 +605,10 @@ const HubTab = () => {
       await new Promise(resolve => setTimeout(resolve, 200));
       setPosting(false);
       Alert.alert('Error', result.error || 'Failed to create post');
+    }
+
+    } finally {
+      postingLock.current = false;
     }
   };
   
