@@ -335,6 +335,27 @@
         "Micah 5:6"
       ],
       "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/nimrod.mp3"
+    },
+    "Abraham": {
+      "name": "Abraham - Father of Nations",
+      "imageUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/profileImage/abraham.png",
+      "story": "Abraham (originally Abram) is the man God chose to found a people through whom all the world would be blessed (Genesis 12-25). His name was changed from Abram, meaning \"exalted father,\" to Abraham, meaning \"father of many nations.\" God called him to leave his home in Ur and journey to Canaan, promising him land, countless descendants, and a lasting covenant. Abraham went in faith, taking his wife Sarah and his nephew Lot.\n\nAbraham's life is marked by trust and testing. He believed God's promise of a son even when he and Sarah were old. When Sarah could not conceive, she gave him her servant Hagar, and Ishmael was born; later God gave them Isaac, the child of the promise. God made a covenant with Abraham, and three visitors announced that Sarah would have a son. Abraham also pleaded with God for the city of Sodom, where Lot lived. The most severe test came when God asked Abraham to offer Isaac as a sacrifice. Abraham obeyed, and at the last moment God provided a ram instead. Because Abraham did not withhold his son, God renewed the promise of blessing and countless offspring.\n\nAbraham lived 175 years and was buried with Sarah in the cave of Machpelah. He is honoured in Scripture as the father of faith. Jews, Christians, and Muslims look to him as a model of obedience and the friend of God.",
+      "themes": [
+        "Faith and Obedience: Abraham left home, family, and security because he trusted God's word; his faith is counted as righteousness",
+        "Covenant: God made an everlasting covenant with Abraham, promising land, descendants, and blessing to all nations through his line",
+        "Testing and Provision: The binding of Isaac shows costly obedience; God provides when we trust Him, and the ram in the thicket points to God's later provision of a sacrifice",
+        "Father of Many: Abraham is the spiritual father of all who believe, and his offspring include both the nation of Israel and those who share his faith"
+      ],
+      "culturalImpact": "Abraham is central in Jewish, Christian, and Islamic tradition. He appears in art as an old man with a knife and a bound son, or welcoming the three visitors. Handel's oratorio and countless paintings depict the sacrifice of Isaac. The phrase \"faith of Abraham\" is shorthand for radical trust in God. His story shapes how believers speak about calling, promise, and testing.",
+      "verses": [
+        "Genesis 12:1-3",
+        "Genesis 15:6",
+        "Genesis 22:1-18",
+        "Romans 4:3",
+        "Hebrews 11:8-19",
+        "James 2:21-23"
+      ],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/bible-characters/abraham.mp3"
     }
   },
   "characterGroups": [
