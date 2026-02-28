@@ -87,11 +87,12 @@ class BibleCharactersService {
   async fetchFromGitHub() {
     try {
       console.log('📥 Fetching Bible characters from GitHub...');
-      const response = await fetch(GITHUB_RAW_URL, {
+      const url = `${GITHUB_RAW_URL}?t=${Date.now()}`;
+      const response = await fetch(url, {
         headers: {
           'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
         },
-        timeout: 10000, // 10 second timeout
       });
 
       if (!response.ok) {
