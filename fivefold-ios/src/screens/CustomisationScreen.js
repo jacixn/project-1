@@ -70,6 +70,11 @@ const THEME_REFERRAL_GATES = {
   'shores':              5,
   'canopy':              5,
   'faith':               5,
+  'trackstar':           5,
+  'sprint':              5,
+  'courtside':           5,
+  'matchday':            5,
+  'playbook':            5,
 };
 
 const BADGE_REFERRAL_GATES = {
@@ -348,6 +353,11 @@ const CustomisationScreen = () => {
     { id: 'shores',             name: 'Shores',         wallpaper: themeWallpapers?.['shores'], isActive: currentTheme === 'shores', mode: 'Light' },
     { id: 'canopy',             name: 'Canopy',         wallpaper: themeWallpapers?.['canopy'], isActive: currentTheme === 'canopy', mode: 'Light' },
     { id: 'faith',              name: 'Faith',          wallpaper: themeWallpapers?.['faith'], isActive: currentTheme === 'faith', mode: 'Light' },
+    { id: 'trackstar',          name: 'Trackstar',      wallpaper: themeWallpapers?.['trackstar'], isActive: currentTheme === 'trackstar', mode: 'Dark' },
+    { id: 'sprint',             name: 'Sprint',         wallpaper: themeWallpapers?.['sprint'], isActive: currentTheme === 'sprint', mode: 'Dark' },
+    { id: 'courtside',          name: 'Courtside',      wallpaper: themeWallpapers?.['courtside'], isActive: currentTheme === 'courtside', mode: 'Light' },
+    { id: 'matchday',           name: 'Match Day',      wallpaper: themeWallpapers?.['matchday'], isActive: currentTheme === 'matchday', mode: 'Dark' },
+    { id: 'playbook',           name: 'Playbook',       wallpaper: themeWallpapers?.['playbook'], isActive: currentTheme === 'playbook', mode: 'Light' },
   ];
 
   // ── Colors ──────────────────────────────────────────────────

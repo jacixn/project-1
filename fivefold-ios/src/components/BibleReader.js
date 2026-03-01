@@ -3088,7 +3088,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-          // Close if swiped down significantly
+          hapticFeedback.light();
           closeVerseMenu();
         } else {
           // Snap back

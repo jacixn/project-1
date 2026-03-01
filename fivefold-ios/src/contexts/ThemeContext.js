@@ -23,6 +23,11 @@ import { shoresTheme, shoresWallpaper } from '../themes/shores/theme';
 import { aquariumTheme, aquariumWallpaper } from '../themes/aquarium/theme';
 import { canopyTheme, canopyWallpaper } from '../themes/canopy/theme';
 import { faithTheme, faithWallpaper } from '../themes/faith/theme';
+import { trackstarTheme, trackstarWallpaper } from '../themes/trackstar/theme';
+import { sprintTheme, sprintWallpaper } from '../themes/sprint/theme';
+import { courtsideTheme, courtsideWallpaper } from '../themes/courtside/theme';
+import { matchdayTheme, matchdayWallpaper } from '../themes/matchday/theme';
+import { playbookTheme, playbookWallpaper } from '../themes/playbook/theme';
 
 export const themeWallpapers = {
   'blush-bloom': blushBloomWallpaper,
@@ -47,6 +52,11 @@ export const themeWallpapers = {
   'aquarium': aquariumWallpaper,
   'canopy': canopyWallpaper,
   'faith': faithWallpaper,
+  'trackstar': trackstarWallpaper,
+  'sprint': sprintWallpaper,
+  'courtside': courtsideWallpaper,
+  'matchday': matchdayWallpaper,
+  'playbook': playbookWallpaper,
 };
 
 // Beautiful theme definitions
@@ -123,6 +133,11 @@ const themes = {
   'aquarium': aquariumTheme,
   'canopy': canopyTheme,
   'faith': faithTheme,
+  'trackstar': trackstarTheme,
+  'sprint': sprintTheme,
+  'courtside': courtsideTheme,
+  'matchday': matchdayTheme,
+  'playbook': playbookTheme,
   
   dark: {
     // Background colors
@@ -296,11 +311,13 @@ export const ThemeProvider = ({ children }) => {
           'blush-bloom', 'eterna', 'biblely',
           'cotton-candy', 'serenity', 'good-shepherd', 'pixel',
           'meadow', 'heavens', 'retro', 'cozy-study', 'shores', 'canopy', 'faith', 'aquarium',
+          'courtside', 'playbook',
         ];
         const darkDefaultThemes = [
           'cresvia',
           'ascent', 'mach', 'pastures', 'aurora',
           'walk-on-water', 'calvary', 'nightfall',
+          'trackstar', 'sprint', 'matchday',
         ];
 
         if (lightDefaultThemes.includes(themeName)) {

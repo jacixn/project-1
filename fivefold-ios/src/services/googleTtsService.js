@@ -6,10 +6,12 @@
  * https://cloud.google.com/text-to-speech
  */
 
+import { Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import userStorage from '../utils/userStorage';
 import { GOOGLE_TTS_CONFIG } from '../../googleTts.config';
+import aiRateLimiter from '../utils/aiRateLimiter';
 
 const VOICE_SETTINGS_KEY = 'google_tts_voice_settings';
 const CACHE_INDEX_KEY = 'google_tts_cache_index';
@@ -610,6 +612,14 @@ class GoogleTtsService {
         console.log('[GoogleTTS] Using CACHED audio - instant playback!');
       } else {
         // No cache - need to call API
+        const rl = await aiRateLimiter.checkLimit('voice');
+        if (!rl.allowed) {
+          this.isLoading = false;
+          this._notifyStateChange('stopped');
+          if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message);
+          return false;
+        }
+        await aiRateLimiter.increment('voice');
         console.log('[GoogleTTS] Cache MISS - calling Google TTS API...');
         
         // Get current voice config
@@ -876,6 +886,12 @@ class GoogleTtsService {
       }
       
       // No cache - need to call API
+      const rl = await aiRateLimiter.checkLimit('voice');
+      if (!rl.allowed) {
+        this.isPreloading = false;
+        return false;
+      }
+      await aiRateLimiter.increment('voice');
       console.log('[GoogleTTS] Preload: Cache MISS - calling API...');
       
       const voice = this.getCurrentVoice();

@@ -101,12 +101,33 @@ export const getTimeRemaining = (vision) => {
 export const loadVisions = async () => {
   try {
     const data = await userStorage.get(STORAGE_KEY);
-    return Array.isArray(data) ? data : [];
+    const visions = Array.isArray(data) ? data : [];
+    const cleaned = cleanupOldVisions(visions);
+    if (cleaned.length !== visions.length) {
+      await userStorage.set(STORAGE_KEY, cleaned);
+      pushToCloud('visions', cleaned);
+    }
+    return cleaned;
   } catch (e) {
     console.warn('[visionService] loadVisions error:', e);
     return [];
   }
 };
+
+const CLEANUP_DAYS = 7;
+
+function cleanupOldVisions(visions) {
+  const cutoff = Date.now() - CLEANUP_DAYS * 24 * 60 * 60 * 1000;
+  return visions.filter(v => {
+    if (v.status === 'achieved' && v.achievedAt) {
+      return new Date(v.achievedAt).getTime() > cutoff;
+    }
+    if (v.status === 'archived' && v.archivedAt) {
+      return new Date(v.archivedAt).getTime() > cutoff;
+    }
+    return true;
+  });
+}
 
 const persist = async (visions) => {
   await userStorage.set(STORAGE_KEY, visions);
@@ -174,7 +195,7 @@ export const markAchieved = async (id) => {
 };
 
 export const archiveVision = async (id) => {
-  return updateVision(id, { status: 'archived' });
+  return updateVision(id, { status: 'archived', archivedAt: new Date().toISOString() });
 };
 
 export const getActiveVisions = (visions) =>

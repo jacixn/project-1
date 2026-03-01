@@ -119,7 +119,7 @@ const ReportBlockModal = ({
     if (event.nativeEvent.oldState === State.ACTIVE) {
       const { translationY, velocityY } = event.nativeEvent;
       if (translationY > 80 || velocityY > 500) {
-        // Dismiss — slide sheet out + fade backdrop simultaneously
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Animated.parallel([
           Animated.timing(gestureY, {
             toValue: 500,

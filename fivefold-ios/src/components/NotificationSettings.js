@@ -526,34 +526,6 @@ const NotificationSettings = ({ visible, onClose }) => {
               iconColor="#2196F3"
             />
           </View>
-
-          {/* Debug tools */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Diagnostics</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-              Use these to verify iOS is scheduling notifications.
-            </Text>
-
-            <TouchableOpacity
-              onPress={sendTestNotification}
-              style={[styles.diagnosticButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            >
-              <MaterialIcons name="notifications-active" size={20} color={theme.primary} />
-              <Text style={[styles.diagnosticButtonText, { color: theme.text }]}>
-                Send Test Notification Now
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={debugScheduledNotifications}
-              style={[styles.diagnosticButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            >
-              <MaterialIcons name="list" size={20} color={theme.primary} />
-              <Text style={[styles.diagnosticButtonText, { color: theme.text }]}>
-                Show Scheduled Notifications
-              </Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </Modal>

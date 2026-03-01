@@ -10,12 +10,13 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { calculateVisionPoints } from '../services/visionService';
 
 const { width, height } = Dimensions.get('window');
-const CONFETTI_COUNT = 14;
+const CONFETTI_COUNT = 18;
 
 const MOTIVATIONAL_MESSAGES = [
   "Every great achievement takes time. You're still on the path.",
@@ -35,11 +36,12 @@ const formatPoints = (pts) => {
 
 const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onClose }) => {
   const { theme, isDark } = useTheme();
-  const [phase, setPhase] = useState('ask'); // 'ask' | 'celebrate' | 'motivate'
+  const [phase, setPhase] = useState('ask');
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const iconScaleAnim = useRef(new Animated.Value(0)).current;
   const pointsScaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const confettiAnims = useRef(
     Array.from({ length: CONFETTI_COUNT }, () => ({
       y: new Animated.Value(-100),
@@ -70,6 +72,7 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
     scaleAnim.stopAnimation();
     iconScaleAnim.stopAnimation();
     pointsScaleAnim.stopAnimation();
+    fadeAnim.stopAnimation();
     confettiAnims.forEach(a => {
       a.y.stopAnimation();
       a.rotation.stopAnimation();
@@ -85,6 +88,7 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
         MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
 
       scaleAnim.setValue(0);
+      fadeAnim.setValue(0);
       iconScaleAnim.setValue(0);
       pointsScaleAnim.setValue(0);
       confettiAnims.forEach(a => {
@@ -93,12 +97,19 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
         a.rotation.setValue(0);
       });
 
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       return () => {
         clearAllTimers();
@@ -112,11 +123,18 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
     closingRef.current = true;
     clearAllTimers();
     stopAllAnimations();
-    Animated.timing(scaleAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
     setTimeout(() => onClose(), 180);
   }, [onClose, clearAllTimers, stopAllAnimations]);
 
@@ -198,9 +216,15 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
   const points = calculateVisionPoints(vision);
   const confettiColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#82E0AA'];
 
+  const cardBg = isDark ? 'rgba(30,30,35,0.95)' : 'rgba(255,255,255,0.97)';
+  const subtleText = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+  const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={phase !== 'ask' ? handleDismiss : undefined}>
+      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={phase !== 'ask' ? handleDismiss : undefined} />
+
         {phase === 'celebrate' && confettiAnims.map((anim, i) => (
           <Animated.View
             key={i}
@@ -208,6 +232,9 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
               styles.confetti,
               {
                 backgroundColor: confettiColors[i % confettiColors.length],
+                width: i % 3 === 0 ? 12 : 8,
+                height: i % 3 === 0 ? 12 : 8,
+                borderRadius: i % 2 === 0 ? 6 : 2,
                 transform: [
                   { translateX: anim.x },
                   { translateY: anim.y },
@@ -220,37 +247,55 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
         ))}
 
         <Animated.View style={[styles.cardContainer, { transform: [{ scale: scaleAnim }] }]}>
-          <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.card}>
+          <BlurView intensity={isDark ? 60 : 40} tint={isDark ? 'dark' : 'light'} style={[styles.card, { backgroundColor: cardBg }]}>
 
             {phase === 'ask' && (
               <>
-                <View style={[styles.iconCircle, { backgroundColor: '#F59E0B20' }]}>
-                  <MaterialIcons name="flag" size={44} color="#F59E0B" />
+                <View style={styles.topAccent}>
+                  <LinearGradient
+                    colors={['#F59E0B', '#F97316']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.iconCircle}
+                  >
+                    <MaterialIcons name="flag" size={32} color="#fff" />
+                  </LinearGradient>
                 </View>
+
                 <Text style={[styles.title, { color: theme.text }]}>Time's Up</Text>
-                <Text style={[styles.visionTitle, { color: theme.textSecondary || (isDark ? 'rgba(255,255,255,0.6)' : '#6B7280') }]} numberOfLines={3}>
-                  "{vision.title}"
-                </Text>
+
+                <View style={[styles.visionBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                  <Text style={[styles.visionTitle, { color: subtleText }]} numberOfLines={3}>
+                    {vision.title}
+                  </Text>
+                </View>
+
+                <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
                 <Text style={[styles.question, { color: theme.text }]}>
                   Did you achieve this vision?
                 </Text>
 
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.choiceBtn, { backgroundColor: '#22c55e' }]}
-                    onPress={handleYes}
-                    activeOpacity={0.8}
-                  >
-                    <MaterialIcons name="check" size={20} color="#fff" />
-                    <Text style={styles.choiceBtnText}>Yes, I did!</Text>
+                <View style={styles.buttonCol}>
+                  <TouchableOpacity onPress={handleYes} activeOpacity={0.85} style={styles.primaryBtnWrap}>
+                    <LinearGradient
+                      colors={['#22c55e', '#16a34a']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.primaryBtn}
+                    >
+                      <MaterialIcons name="check-circle" size={20} color="#fff" />
+                      <Text style={styles.primaryBtnText}>Yes, I did!</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
+
                   <TouchableOpacity
-                    style={[styles.choiceBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}
+                    style={[styles.secondaryBtn, { borderColor: dividerColor }]}
                     onPress={handleNo}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
-                    <MaterialIcons name="close" size={20} color={isDark ? '#fff' : '#333'} />
-                    <Text style={[styles.choiceBtnText, { color: isDark ? '#fff' : '#333' }]}>Not yet</Text>
+                    <MaterialIcons name="close" size={18} color={subtleText} />
+                    <Text style={[styles.secondaryBtnText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)' }]}>Not yet</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -258,58 +303,72 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
 
             {phase === 'celebrate' && (
               <>
-                <Animated.View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: '#22c55e', transform: [{ scale: iconScaleAnim }] },
-                  ]}
-                >
-                  <MaterialIcons name="emoji-events" size={48} color="#fff" />
+                <Animated.View style={{ transform: [{ scale: iconScaleAnim }] }}>
+                  <LinearGradient
+                    colors={['#22c55e', '#16a34a']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.iconCircleLg}
+                  >
+                    <MaterialIcons name="emoji-events" size={44} color="#fff" />
+                  </LinearGradient>
                 </Animated.View>
-                <Text style={[styles.title, { color: theme.text }]}>Vision Achieved</Text>
-                <Text style={[styles.visionTitle, { color: theme.textSecondary || (isDark ? 'rgba(255,255,255,0.6)' : '#6B7280') }]} numberOfLines={2}>
+
+                <Text style={[styles.title, { color: theme.text, marginTop: 20 }]}>Vision Achieved!</Text>
+                <Text style={[styles.celebrateSubtitle, { color: subtleText }]} numberOfLines={2}>
                   {vision.title}
                 </Text>
 
-                <Animated.View style={[styles.pointsContainer, { transform: [{ scale: pointsScaleAnim }] }]}>
-                  <View style={[styles.pointsBadge, { backgroundColor: '#22c55e20' }]}>
-                    <MaterialIcons name="stars" size={32} color="#22c55e" />
-                    <Text style={[styles.pointsText, { color: '#22c55e' }]}>+{formatPoints(points)}</Text>
-                    <Text style={[styles.pointsLabel, { color: '#22c55e' }]}>points</Text>
-                  </View>
+                <Animated.View style={[styles.pointsWrap, { transform: [{ scale: pointsScaleAnim }] }]}>
+                  <LinearGradient
+                    colors={isDark ? ['rgba(34,197,94,0.15)', 'rgba(34,197,94,0.05)'] : ['rgba(34,197,94,0.12)', 'rgba(34,197,94,0.04)']}
+                    style={styles.pointsBadge}
+                  >
+                    <MaterialIcons name="stars" size={28} color="#22c55e" />
+                    <Text style={styles.pointsText}>+{formatPoints(points)}</Text>
+                    <Text style={styles.pointsLabel}>points</Text>
+                  </LinearGradient>
                 </Animated.View>
 
-                <TouchableOpacity style={styles.continueButton} onPress={handleDismiss} activeOpacity={0.7}>
-                  <Text style={[styles.continueText, { color: theme.textSecondary || (isDark ? 'rgba(255,255,255,0.5)' : '#888') }]}>
-                    Tap to continue
-                  </Text>
+                <TouchableOpacity style={styles.tapToContinue} onPress={handleDismiss} activeOpacity={0.7}>
+                  <Text style={[styles.tapToContinueText, { color: subtleText }]}>Tap to continue</Text>
                 </TouchableOpacity>
               </>
             )}
 
             {phase === 'motivate' && (
               <>
-                <View style={[styles.iconCircle, { backgroundColor: '#3B82F620' }]}>
-                  <MaterialIcons name="favorite" size={44} color="#3B82F6" />
-                </View>
-                <Text style={[styles.title, { color: theme.text }]}>Keep Going</Text>
-                <Text style={[styles.motivationalText, { color: theme.textSecondary || (isDark ? 'rgba(255,255,255,0.6)' : '#6B7280') }]}>
+                <LinearGradient
+                  colors={['#3B82F6', '#6366F1']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconCircle}
+                >
+                  <MaterialIcons name="favorite" size={32} color="#fff" />
+                </LinearGradient>
+
+                <Text style={[styles.title, { color: theme.text, marginTop: 20 }]}>Keep Going</Text>
+
+                <Text style={[styles.motivationalText, { color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)' }]}>
                   {motivationalMsg.current}
                 </Text>
 
-                <TouchableOpacity
-                  style={[styles.dismissBtn, { backgroundColor: theme.primary || '#3B82F6' }]}
-                  onPress={handleDismiss}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.dismissBtnText}>Got it</Text>
+                <TouchableOpacity onPress={handleDismiss} activeOpacity={0.85} style={styles.primaryBtnWrap}>
+                  <LinearGradient
+                    colors={['#3B82F6', '#6366F1']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.primaryBtn}
+                  >
+                    <Text style={styles.primaryBtnText}>Got it</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </>
             )}
 
           </BlurView>
         </Animated.View>
-      </TouchableOpacity>
+      </Animated.View>
     </Modal>
   );
 };
@@ -317,118 +376,169 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   confetti: {
     position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   cardContainer: {
     width: width * 0.85,
-    maxWidth: 400,
+    maxWidth: 380,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 32,
+    paddingTop: 36,
     alignItems: 'center',
     overflow: 'hidden',
   },
+  topAccent: {
+    marginBottom: 4,
+  },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 8,
   },
+  iconCircleLg: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 16,
+    letterSpacing: -0.3,
+  },
+  visionBadge: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    maxWidth: '100%',
   },
   visionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-    fontStyle: 'italic',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  divider: {
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    marginVertical: 20,
   },
   question: {
     fontSize: 17,
     fontWeight: '600',
     marginBottom: 24,
     textAlign: 'center',
+    lineHeight: 24,
   },
-  buttonRow: {
+  buttonCol: {
     width: '100%',
     gap: 10,
   },
-  choiceBtn: {
+  primaryBtnWrap: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  primaryBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 16,
-    gap: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 6,
   },
-  choiceBtnText: {
-    fontSize: 16,
+  secondaryBtnText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
   },
-  pointsContainer: {
-    marginBottom: 16,
+  celebrateSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  pointsWrap: {
+    marginBottom: 12,
   },
   pointsBadge: {
     paddingVertical: 20,
-    paddingHorizontal: 32,
+    paddingHorizontal: 36,
     borderRadius: 20,
     alignItems: 'center',
     gap: 4,
   },
   pointsText: {
-    fontSize: 44,
-    fontWeight: 'bold',
-    lineHeight: 48,
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#22c55e',
+    lineHeight: 44,
+    letterSpacing: -1,
   },
   pointsLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#22c55e',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   motivationalText: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
+    marginTop: 12,
     marginBottom: 28,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+    fontWeight: '500',
   },
-  dismissBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 16,
-  },
-  dismissBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  continueButton: {
+  tapToContinue: {
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
-  continueText: {
-    fontSize: 14,
+  tapToContinueText: {
+    fontSize: 13,
     fontWeight: '500',
   },
 });

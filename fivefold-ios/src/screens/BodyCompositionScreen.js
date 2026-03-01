@@ -31,6 +31,7 @@ import WorkoutService from '../services/workoutService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import ScaleConnectionModal from '../components/ScaleConnectionModal';
 import scaleService from '../services/scaleService';
+import { hapticFeedback } from '../utils/haptics';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -660,7 +661,7 @@ const BodyCompositionScreen = () => {
         }}>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => setScaleModalVisible(true)}
+            onPress={() => { hapticFeedback.medium(); setScaleModalVisible(true); }}
             style={[styles.scaleCard, {
               backgroundColor: cardBg,
               borderColor: cardBorder,

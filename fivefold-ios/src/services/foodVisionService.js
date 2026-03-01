@@ -6,6 +6,9 @@
  * and returns estimated nutritional information.
  */
 
+import { Alert } from 'react-native';
+import aiRateLimiter from '../utils/aiRateLimiter';
+
 let GEMINI_CONFIG = null;
 
 try {
@@ -124,12 +127,19 @@ class FoodVisionService {
    * @returns {Promise<Object|null>} { name, calories, protein, carbs, fat, portionSize }
    */
   async analyzeFood(base64Image, mimeType = 'image/jpeg') {
+    const rl = await aiRateLimiter.checkLimit('food');
+    if (!rl.allowed) {
+      if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message);
+      return null;
+    }
+
     if (!GEMINI_CONFIG || !GEMINI_CONFIG.apiKey || GEMINI_CONFIG.apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
       console.warn('[FoodVision] No valid API key configured');
       return null;
     }
 
     try {
+      await aiRateLimiter.increment('food');
       console.log('[FoodVision] Analyzing food photo with', GEMINI_MODEL, '...');
 
       const url = `${GEMINI_ENDPOINT}?key=${GEMINI_CONFIG.apiKey}`;
@@ -227,12 +237,19 @@ class FoodVisionService {
    * Uses the same Gemini API but text-only.
    */
   async estimateFromText(description) {
+    const rl = await aiRateLimiter.checkLimit('food');
+    if (!rl.allowed) {
+      if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message);
+      return null;
+    }
+
     if (!GEMINI_CONFIG || !GEMINI_CONFIG.apiKey || GEMINI_CONFIG.apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
       console.warn('[FoodVision] No valid API key configured');
       return null;
     }
 
     try {
+      await aiRateLimiter.increment('food');
       console.log('[FoodVision] Estimating nutrition from text:', description);
 
       const url = `${GEMINI_ENDPOINT}?key=${GEMINI_CONFIG.apiKey}`;

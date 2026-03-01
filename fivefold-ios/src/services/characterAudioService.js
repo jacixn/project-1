@@ -7,6 +7,7 @@
 
 import * as FileSystem from 'expo-file-system/legacy';
 import { GOOGLE_TTS_CONFIG } from '../../googleTts.config';
+import aiRateLimiter from '../utils/aiRateLimiter';
 
 const CACHE_DIR = `${FileSystem.cacheDirectory}character_audio/`;
 const STUDIO_FEMALE_VOICE = GOOGLE_TTS_CONFIG.voices['studio-female'] || GOOGLE_TTS_CONFIG.defaultVoice;
@@ -89,6 +90,9 @@ class CharacterAudioService {
    */
   async generateViaTTS(text, outputPath) {
     try {
+      const rl = await aiRateLimiter.checkLimit('voice');
+      if (!rl.allowed) return null;
+      await aiRateLimiter.increment('voice');
       const requestBody = {
         input: { text },
         voice: {

@@ -246,7 +246,8 @@ class ICloudSyncService {
                 await download(filePath);
                 const cloudData = await readFile(filePath);
                 const cloudParsed = JSON.parse(cloudData);
-                const localParsed = JSON.parse(localData);
+                let localParsed;
+                try { localParsed = JSON.parse(localData); } catch (_) { localParsed = localData; }
                 
                 // Merge: combine cloud and local data
                 const merged = await this.mergeData(key, localParsed, cloudParsed.data);
@@ -261,13 +262,15 @@ class ICloudSyncService {
               } catch (mergeError) {
                 console.warn(`Error merging ${key}, uploading local:`, mergeError.message);
                 // If merge fails, just upload local data
-                const parsed = JSON.parse(localData);
+                let parsed;
+                try { parsed = JSON.parse(localData); } catch (_) { parsed = localData; }
                 await this.syncToCloud(key, parsed);
                 migratedCount++;
               }
             } else {
               // No cloud data - just upload local
-              const parsed = JSON.parse(localData);
+              let parsed;
+              try { parsed = JSON.parse(localData); } catch (_) { parsed = localData; }
               await this.syncToCloud(key, parsed);
               migratedCount++;
               console.log(`Migrated ${key} to iCloud`);
@@ -363,7 +366,10 @@ class ICloudSyncService {
             
             // Get local data
             const localData = await userStorage.getRaw(key);
-            const localParsed = localData ? JSON.parse(localData) : null;
+            let localParsed = null;
+            if (localData) {
+              try { localParsed = JSON.parse(localData); } catch (_) { localParsed = localData; }
+            }
             
             // Resolve conflicts - cloud wins if newer, otherwise merge
             const resolved = await this.resolveConflict(key, localParsed, cloudParsed);
@@ -438,7 +444,7 @@ class ICloudSyncService {
         version: 2
       };
 
-      await writeFile(filePath, JSON.stringify(cloudData));
+      await writeFile(filePath, JSON.stringify(cloudData), { override: true });
 
       console.log(`Synced ${key} to iCloud`);
       return { success: true };
@@ -471,7 +477,8 @@ class ICloudSyncService {
           const localData = await userStorage.getRaw(key);
           
           if (localData) {
-            const parsed = JSON.parse(localData);
+            let parsed;
+            try { parsed = JSON.parse(localData); } catch (_) { parsed = localData; }
             const result = await this.syncToCloud(key, parsed);
             
             if (result.success) {
@@ -788,12 +795,16 @@ class ICloudSyncService {
     this._pendingSyncs[key] = setTimeout(async () => {
       delete this._pendingSyncs[key];
       try {
-        const parsed = JSON.parse(value);
+        let parsed;
+        try {
+          parsed = JSON.parse(value);
+        } catch (_) {
+          parsed = value;
+        }
         const result = await this.syncToCloud(key, parsed);
         if (result.success) {
           await this.setLocalModifiedTime(key);
         }
-        // Notify listeners that a key changed (used by App.js for Firebase sync)
         this.notifyListeners('key_changed', { key });
       } catch (error) {
         console.warn(`[iCloud] Auto-sync failed for ${key}:`, error.message);
@@ -851,7 +862,8 @@ class ICloudSyncService {
         // Auto-sync to cloud if key is in sync list
         if (SYNC_KEYS.includes(key) && self.isAvailable) {
           try {
-            const parsed = JSON.parse(value);
+            let parsed;
+            try { parsed = JSON.parse(value); } catch (_) { parsed = value; }
             await self.syncToCloud(key, parsed);
           } catch (error) {
             console.warn('Auto-sync failed for', key, error.message);

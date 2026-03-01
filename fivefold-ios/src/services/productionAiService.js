@@ -1,7 +1,9 @@
 // Production-Ready AI Service
 // Direct Deepseek API calls - No Railway needed!
 
+import { Alert } from 'react-native';
 import { DEEPSEEK_CONFIG } from '../../deepseek.config';
+import aiRateLimiter from '../utils/aiRateLimiter';
 
 // Helper to perform a Deepseek request with primary key, then fallback on 401
 async function deepseekFetchWithFallback(body) {
@@ -86,6 +88,9 @@ class ProductionSmartService {
   // Chat with Friend - MUST use Deepseek
   async chatWithFriend(userMessage, conversationContext = null) {
     try {
+      const rl = await aiRateLimiter.checkLimit('chat');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('chat');
       console.log('💬 Friend chat request:', userMessage.substring(0, 50) + '...');
       
       // Build context-aware prompt based on conversation history
@@ -229,6 +234,9 @@ Remember: Write for a 12-year-old, ALWAYS include specific verse references (Boo
   // Simplify Bible verses for 12-year-olds - NO SCORING
   async simplifyBibleVerse(originalText, reference = '') {
     try {
+      const rl = await aiRateLimiter.checkLimit('bible');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('bible');
       console.log('📖 Bible simplification request for:', originalText.substring(0, 50) + '...');
       
       const prompt = `Rewrite this Bible verse using very simple, everyday words like you're talking to a 12-year-old friend. Use short sentences and common words. Keep the same meaning but make it super easy to understand. Don't add explanations - just rewrite the verse in simple words:
@@ -272,6 +280,9 @@ Write only the simplified verse, nothing else.`;
   // Chat with Smart (for future Bible chat feature)
   async chat(messages, stream = true) {
     try {
+      const rl = await aiRateLimiter.checkLimit('chat');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('chat');
       if (!this.isInitialized) {
         await this.initialize();
       }
@@ -305,6 +316,9 @@ Write only the simplified verse, nothing else.`;
   // Discuss Bible verse with AI
   async discussBibleVerse(verseText, userQuestion, verseReference = '') {
     try {
+      const rl = await aiRateLimiter.checkLimit('bible');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('bible');
       console.log('📖 Bible discussion request');
       
       const prompt = `The user is reading this Bible verse:
@@ -369,6 +383,9 @@ No explanations, just the two numbers.`;
   // Analyze a task and assign points (for todo scoring)
   async analyzeTask(taskText) {
     try {
+      const rl = await aiRateLimiter.checkLimit('task');
+      if (!rl.allowed) return { urgency: 5, importance: 5, tier: 'low', timeEstimate: '5-10 minutes', confidence: 50, reasoning: rl.message, rateLimited: true };
+      await aiRateLimiter.increment('task');
       console.log('🚀 Using Smart Analysis for task scoring...');
       this.requestCount++;
 
@@ -491,6 +508,9 @@ Respond with ONLY a JSON object:
    */
   async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseCount, targetMuscles, gender, bodyFatPercent, dailyCalories, goal, currentWeight, targetWeight }) {
     try {
+      const rl = await aiRateLimiter.checkLimit('generation');
+      if (!rl.allowed) { if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message); return null; }
+      await aiRateLimiter.increment('generation');
       console.log('[AI Workout] Generating smart workout…');
 
       const hasNutrition = dailyCalories && goal;
@@ -624,6 +644,9 @@ Generate a workout JSON.`;
    */
   async generatePhysiqueCoachFeedback({ overallScore, strongest, weakest, groupAverages, totalWorkouts, bodyComposition, nutritionData, userInfo }) {
     try {
+      const rl = await aiRateLimiter.checkLimit('generation');
+      if (!rl.allowed) { if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message); return null; }
+      await aiRateLimiter.increment('generation');
       console.log('[AI Coach] Generating physique feedback…');
 
       const strongNames = strongest.map(m => `${m.name} (${m.score})`).join(', ');
@@ -795,6 +818,9 @@ Write one paragraph of feedback (50-80 words). Be honest, positive, and motivati
    */
   async generateNutritionPlan({ gender, age, heightCm, weightKg, bodyFatPercent, targetWeightKg, goal, activityLevel, baseTDEE }) {
     try {
+      const rl = await aiRateLimiter.checkLimit('generation');
+      if (!rl.allowed) { if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message); return null; }
+      await aiRateLimiter.increment('generation');
       console.log('[AI Nutrition] Generating personalised plan…');
 
       const bfLine = bodyFatPercent ? `Body fat: ${bodyFatPercent}%` : 'Body fat: unknown';
@@ -875,6 +901,9 @@ Generate an optimised nutrition plan JSON.`;
   // Chat with Coach (gym/fitness mode) - uses Deepseek with user fitness context
   async chatWithCoach(userMessage, conversationContext = null, userData = null) {
     try {
+      const rl = await aiRateLimiter.checkLimit('chat');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('chat');
       console.log('💪 Coach chat request:', userMessage.substring(0, 50) + '...');
 
       let contextPrompt = '';
@@ -1031,6 +1060,9 @@ IMPORTANT: You are ONLY here to help with fitness, gym, workouts, nutrition, die
   // Analyze an image for gym/fitness context using Gemini Vision, then pass to Deepseek
   async chatWithCoachImage(base64Image, userMessage, conversationContext = null, userData = null) {
     try {
+      const rl = await aiRateLimiter.checkLimit('chat');
+      if (!rl.allowed) return rl.message;
+      await aiRateLimiter.increment('chat');
       console.log('[Coach Vision] Analyzing image with Gemini...');
 
       let GEMINI_CONFIG_LOCAL = null;

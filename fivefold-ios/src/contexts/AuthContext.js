@@ -327,6 +327,10 @@ export const AuthProvider = ({ children }) => {
           console.error('[Auth] 2FA check failed, blocking login for safety:', twoFAError?.message);
           await authSignOut();
           userStorage.clearUser();
+          const msg = (twoFAError?.message || '').toLowerCase();
+          if (msg.includes('wait') || msg.includes('too many') || msg.includes('rate') || msg.includes('seconds')) {
+            throw new Error('Too many login attempts. Please wait a moment and try again.');
+          }
           throw new Error('Could not verify your security settings. Please try again.');
         }
       }

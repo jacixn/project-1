@@ -8,9 +8,16 @@
  * - Chipsea chipset (0xFFF0) — the most common generic scale protocol
  * - Yunmai-style (0xFFE0)
  *
+ * Chipsea scales send TWO types of packets:
+ *   1. Weight packets  — contain weight + stability flag
+ *   2. Body comp packets — contain fat %, BMI, bone mass, etc. (arrive AFTER weight stabilises)
+ *
+ * The user's profile (height, age, gender) must be written to the scale
+ * via the FFF1 write characteristic so it can calculate body composition.
+ *
  * Data flow:
- *   BLE Scale → scaleService (parse) → AsyncStorage (@scale_history, @scale_device)
- *                                     → nutritionService (update profile weight/bf)
+ *   BLE Scale → scaleService (parse + accumulate) → AsyncStorage (@scale_history, @scale_device)
+ *                                                  → nutritionService (update profile weight/bf)
  */
 
 import { BleManager } from 'react-native-ble-plx';
@@ -22,31 +29,23 @@ const DEVICE_KEY = '@scale_device';
 const HISTORY_KEY = '@scale_history';
 const MAX_HISTORY = 365;
 
-// Standard BLE service/characteristic UUIDs
 const WEIGHT_SCALE_SVC = '0000181d-0000-1000-8000-00805f9b34fb';
 const BODY_COMP_SVC = '0000181b-0000-1000-8000-00805f9b34fb';
 const WEIGHT_MEASUREMENT_CHAR = '00002a9d-0000-1000-8000-00805f9b34fb';
 const BODY_COMP_MEASUREMENT_CHAR = '00002a9c-0000-1000-8000-00805f9b34fb';
 
-// Chipsea protocol UUIDs
 const CHIPSEA_SVC = '0000fff0-0000-1000-8000-00805f9b34fb';
 const CHIPSEA_WRITE_CHAR = '0000fff1-0000-1000-8000-00805f9b34fb';
 const CHIPSEA_NOTIFY_CHAR = '0000fff4-0000-1000-8000-00805f9b34fb';
 
-// Yunmai-style
 const YUNMAI_SVC = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const YUNMAI_NOTIFY_CHAR = '0000ffe4-0000-1000-8000-00805f9b34fb';
 
-// Generic body fat scale service (used by many white-label scales)
 const GENERIC_SVC = '0000ffb0-0000-1000-8000-00805f9b34fb';
 const GENERIC_NOTIFY_CHAR = '0000ffb2-0000-1000-8000-00805f9b34fb';
 
 const SCALE_SERVICE_UUIDS = [
-  WEIGHT_SCALE_SVC,
-  BODY_COMP_SVC,
-  CHIPSEA_SVC,
-  YUNMAI_SVC,
-  GENERIC_SVC,
+  WEIGHT_SCALE_SVC, BODY_COMP_SVC, CHIPSEA_SVC, YUNMAI_SVC, GENERIC_SVC,
 ];
 
 class ScaleService {
@@ -58,6 +57,9 @@ class ScaleService {
     this._scanning = false;
     this._connected = false;
     this._protocol = null;
+    this._recentWeights = [];
+    this._lastValidWeight = null;
+    this._measurement = {};
   }
 
   // ═══════════════════════════════════════════
@@ -65,28 +67,22 @@ class ScaleService {
   // ═══════════════════════════════════════════
 
   _getManager() {
-    if (!this._manager) {
-      this._manager = new BleManager();
-    }
+    if (!this._manager) this._manager = new BleManager();
     return this._manager;
   }
 
   async requestPermissions() {
     if (Platform.OS === 'android') {
-      const apiLevel = Platform.Version;
-      if (apiLevel >= 31) {
+      if (Platform.Version >= 31) {
         const granted = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ]);
         return Object.values(granted).every(v => v === PermissionsAndroid.RESULTS.GRANTED);
-      } else {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
       }
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
     }
     return true;
   }
@@ -95,19 +91,13 @@ class ScaleService {
     const manager = this._getManager();
     return new Promise((resolve, reject) => {
       const sub = manager.onStateChange((state) => {
-        if (state === 'PoweredOn') {
-          sub.remove();
-          resolve(true);
-        } else if (state === 'PoweredOff' || state === 'Unauthorized') {
+        if (state === 'PoweredOn') { sub.remove(); resolve(true); }
+        else if (state === 'PoweredOff' || state === 'Unauthorized') {
           sub.remove();
           reject(new Error(state === 'PoweredOff' ? 'Bluetooth is turned off' : 'Bluetooth permission denied'));
         }
       }, true);
-
-      setTimeout(() => {
-        sub.remove();
-        reject(new Error('Bluetooth state check timed out'));
-      }, 10000);
+      setTimeout(() => { sub.remove(); reject(new Error('Bluetooth state check timed out')); }, 10000);
     });
   }
 
@@ -117,7 +107,6 @@ class ScaleService {
 
   async startScan(onDeviceFound, durationMs = 15000) {
     if (this._scanning) return;
-
     await this.requestPermissions();
     await this.ensureBluetoothReady();
 
@@ -125,38 +114,26 @@ class ScaleService {
     const manager = this._getManager();
     const seen = new Set();
 
-    manager.startDeviceScan(
-      null,
-      { allowDuplicates: false },
-      (error, device) => {
-        if (error) {
-          console.warn('[Scale] Scan error:', error.message);
-          return;
-        }
-        if (!device || seen.has(device.id)) return;
-
-        const isScale = this._looksLikeScale(device);
-        if (isScale) {
-          seen.add(device.id);
-          onDeviceFound({
-            id: device.id,
-            name: device.name || device.localName || 'Unknown Scale',
-            rssi: device.rssi,
-            serviceUUIDs: device.serviceUUIDs,
-          });
-        }
+    manager.startDeviceScan(null, { allowDuplicates: false }, (error, device) => {
+      if (error) { console.warn('[Scale] Scan error:', error.message); return; }
+      if (!device || seen.has(device.id)) return;
+      if (this._looksLikeScale(device)) {
+        seen.add(device.id);
+        onDeviceFound({
+          id: device.id,
+          name: device.name || device.localName || 'Unknown Scale',
+          rssi: device.rssi,
+          serviceUUIDs: device.serviceUUIDs,
+        });
       }
-    );
-
+    });
     setTimeout(() => this.stopScan(), durationMs);
   }
 
   stopScan() {
     if (!this._scanning) return;
     this._scanning = false;
-    try {
-      this._getManager().stopDeviceScan();
-    } catch (_) {}
+    try { this._getManager().stopDeviceScan(); } catch (_) {}
   }
 
   _looksLikeScale(device) {
@@ -169,17 +146,13 @@ class ScaleService {
       'insmart', '1byone', 'kamtron', 'bluetooth', 'smartscale',
       'if_', 'qs-', 'qn-', 'el-', 'hl-', 'hm-', 'hs-',
     ];
-
     if (scaleKeywords.some(k => name.includes(k))) return true;
-
     const svcs = device.serviceUUIDs || [];
     if (svcs.some(s => SCALE_SERVICE_UUIDS.includes(s.toLowerCase()))) return true;
-
     if (device.serviceData) {
       const sdKeys = Object.keys(device.serviceData);
       if (sdKeys.some(k => SCALE_SERVICE_UUIDS.includes(k.toLowerCase()))) return true;
     }
-
     return false;
   }
 
@@ -190,16 +163,14 @@ class ScaleService {
   async connect(deviceId, onData, onStatus) {
     this.stopScan();
     this.disconnect();
+    this._recentWeights = [];
+    this._measurement = {};
 
     const manager = this._getManager();
     onStatus?.('connecting');
 
     try {
-      let device = await manager.connectToDevice(deviceId, {
-        requestMTU: 512,
-        timeout: 15000,
-      });
-
+      let device = await manager.connectToDevice(deviceId, { requestMTU: 512, timeout: 15000 });
       device = await device.discoverAllServicesAndCharacteristics();
       this._device = device;
       this._connected = true;
@@ -212,17 +183,15 @@ class ScaleService {
       onStatus?.('connected');
 
       await this._subscribeToMeasurements(device, protocol, onData, onStatus);
-
       await this._saveDevice({ id: device.id, name: device.name || device.localName || 'Scale' });
 
-      device.onDisconnected((error, dev) => {
+      device.onDisconnected((error) => {
         console.log('[Scale] Disconnected', error?.message);
         this._connected = false;
         this._subscription?.remove();
         this._subscription = null;
         onStatus?.('disconnected');
       });
-
     } catch (err) {
       console.warn('[Scale] Connection failed:', err.message);
       this._connected = false;
@@ -235,29 +204,77 @@ class ScaleService {
     this._subscription?.remove();
     this._subscription = null;
     if (this._device) {
-      try {
-        this._getManager().cancelDeviceConnection(this._device.id);
-      } catch (_) {}
+      try { this._getManager().cancelDeviceConnection(this._device.id); } catch (_) {}
       this._device = null;
     }
     this._connected = false;
     this._protocol = null;
+    this._recentWeights = [];
+    this._measurement = {};
   }
 
-  isConnected() {
-    return this._connected;
+  isConnected() { return this._connected; }
+
+  /**
+   * Send user profile to Chipsea-based scales so they calculate body composition.
+   * Must be called AFTER connect() completes.
+   */
+  async sendUserProfile(gender, age, heightCm, weightKg) {
+    if (!this._device || !this._connected) return;
+
+    const svcUUID = this._protocol === 'chipsea' ? CHIPSEA_SVC
+                  : this._protocol === 'generic' ? GENERIC_SVC
+                  : null;
+    if (!svcUUID) return;
+
+    const g = gender === 'male' ? 0x01 : 0x02;
+    const a = Math.min(255, Math.max(10, Math.round(age || 25)));
+    const h = Math.min(255, Math.max(100, Math.round(heightCm || 170)));
+    const wInt = Math.round((weightKg || 70) * 10);
+    const wHi = (wInt >> 8) & 0xFF;
+    const wLo = wInt & 0xFF;
+
+    // Find a writable characteristic on this service
+    let writeCharUUID = null;
+    try {
+      const chars = await this._device.characteristicsForService(svcUUID);
+      const writeChar = chars.find(c => c.isWritableWithResponse || c.isWritableWithoutResponse);
+      if (writeChar) writeCharUUID = writeChar.uuid;
+    } catch (_) {}
+    if (!writeCharUUID) return;
+
+    const cmds = [
+      new Uint8Array([0x10, g, a, h, wHi, wLo, 0x00, 0x00]),
+      new Uint8Array([0xFE, 0x01, g, a, h, wHi, wLo, 0x00]),
+      new Uint8Array([0x13, g, a, h, 0x00, 0x00, 0x00, 0x00]),
+    ];
+
+    for (const cmd of cmds) {
+      let xor = 0;
+      for (let i = 0; i < cmd.length - 1; i++) xor ^= cmd[i];
+      cmd[cmd.length - 1] = xor;
+
+      const b64 = this._bytesToBase64(cmd);
+      try {
+        await this._device.writeCharacteristicWithResponseForService(svcUUID, writeCharUUID, b64);
+        console.log('[Scale] Sent profile cmd:', Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' '));
+      } catch (_) {
+        try {
+          await this._device.writeCharacteristicWithoutResponseForService(svcUUID, writeCharUUID, b64);
+          console.log('[Scale] Sent profile cmd (no-resp):', Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' '));
+        } catch (__) {}
+      }
+    }
   }
 
   async _detectProtocol(device, services) {
     const svcUUIDs = services.map(s => s.uuid.toLowerCase());
-
     if (svcUUIDs.includes(BODY_COMP_SVC)) return 'body_composition';
     if (svcUUIDs.includes(WEIGHT_SCALE_SVC)) return 'weight_scale';
     if (svcUUIDs.includes(CHIPSEA_SVC)) return 'chipsea';
     if (svcUUIDs.includes(YUNMAI_SVC)) return 'yunmai';
     if (svcUUIDs.includes(GENERIC_SVC)) return 'generic';
 
-    // Fallback: scan all characteristics for known ones
     for (const svc of services) {
       const chars = await device.characteristicsForService(svc.uuid);
       const charUUIDs = chars.map(c => c.uuid.toLowerCase());
@@ -266,7 +283,6 @@ class ScaleService {
       if (charUUIDs.includes(GENERIC_NOTIFY_CHAR)) return 'generic';
       if (charUUIDs.includes(WEIGHT_MEASUREMENT_CHAR)) return 'weight_scale';
     }
-
     return 'unknown';
   }
 
@@ -275,15 +291,13 @@ class ScaleService {
       this._subscription = device.monitorCharacteristicForService(
         serviceUUID, charUUID,
         (error, char) => {
-          if (error) {
-            console.warn('[Scale] Notification error:', error.message);
-            return;
-          }
+          if (error) { console.warn('[Scale] Notification error:', error.message); return; }
           if (!char?.value) return;
-
           const bytes = this._base64ToBytes(char.value);
+          console.log('[Scale] Raw (' + bytes.length + 'B):', Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
           const parsed = parser(bytes);
           if (parsed) {
+            console.log('[Scale] Parsed:', JSON.stringify(parsed));
             this._emitData(parsed, onData);
           }
         }
@@ -293,7 +307,6 @@ class ScaleService {
     switch (protocol) {
       case 'body_composition':
         subscribe(BODY_COMP_SVC, BODY_COMP_MEASUREMENT_CHAR, this._parseBodyComposition.bind(this));
-        // Weight often comes via separate Weight Measurement characteristic
         try {
           const weightSub = device.monitorCharacteristicForService(
             WEIGHT_SCALE_SVC, WEIGHT_MEASUREMENT_CHAR,
@@ -305,9 +318,7 @@ class ScaleService {
             }
           );
           const origSub = this._subscription;
-          this._subscription = {
-            remove: () => { origSub?.remove(); weightSub?.remove(); }
-          };
+          this._subscription = { remove: () => { origSub?.remove(); weightSub?.remove(); } };
         } catch (_) {}
         break;
 
@@ -315,31 +326,82 @@ class ScaleService {
         subscribe(WEIGHT_SCALE_SVC, WEIGHT_MEASUREMENT_CHAR, this._parseWeightMeasurement.bind(this));
         break;
 
-      case 'chipsea':
+      case 'chipsea': {
+        // Send init handshake
         try {
           const initCmd = new Uint8Array([0xFD, 0x37, 0x00, 0x00, 0x00, 0x00]);
-          const b64 = this._bytesToBase64(initCmd);
-          await device.writeCharacteristicWithResponseForService(CHIPSEA_SVC, CHIPSEA_WRITE_CHAR, b64);
+          await device.writeCharacteristicWithResponseForService(CHIPSEA_SVC, CHIPSEA_WRITE_CHAR, this._bytesToBase64(initCmd));
         } catch (_) {}
-        subscribe(CHIPSEA_SVC, CHIPSEA_NOTIFY_CHAR, this._parseChipsea.bind(this));
+
+        // Subscribe to ALL notifiable characteristics on FFF0
+        // Body comp data may arrive on FFF2/FFF3, not just FFF4
+        const chipseaChars = await device.characteristicsForService(CHIPSEA_SVC);
+        const subs = [];
+        for (const c of chipseaChars) {
+          if (c.isNotifiable) {
+            const charTag = c.uuid.slice(4, 8);
+            console.log('[Scale] Subscribing to Chipsea char:', charTag);
+            const sub = device.monitorCharacteristicForService(
+              CHIPSEA_SVC, c.uuid,
+              (error, char) => {
+                if (error) { console.warn('[Scale] Notify error [' + charTag + ']:', error.message); return; }
+                if (!char?.value) return;
+                const bytes = this._base64ToBytes(char.value);
+                console.log('[Scale] Raw [' + charTag + '] (' + bytes.length + 'B):', Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+                const parsed = this._parseChipsea(bytes);
+                if (parsed) {
+                  console.log('[Scale] Parsed [' + charTag + ']:', JSON.stringify(parsed));
+                  this._emitData(parsed, onData);
+                }
+              }
+            );
+            subs.push(sub);
+          }
+        }
+        this._subscription = { remove: () => subs.forEach(s => s?.remove()) };
         break;
+      }
 
       case 'yunmai':
         subscribe(YUNMAI_SVC, YUNMAI_NOTIFY_CHAR, this._parseYunmai.bind(this));
         break;
 
-      case 'generic':
-        subscribe(GENERIC_SVC, GENERIC_NOTIFY_CHAR, this._parseGeneric.bind(this));
+      case 'generic': {
+        // Subscribe to ALL notifiable chars on FFB0 (body comp may arrive on a different char)
+        const genericChars = await device.characteristicsForService(GENERIC_SVC);
+        const gSubs = [];
+        for (const c of genericChars) {
+          if (c.isNotifiable || c.isIndicatable) {
+            const charTag = c.uuid.slice(4, 8);
+            console.log('[Scale] Subscribing to generic char:', charTag);
+            const sub = device.monitorCharacteristicForService(
+              GENERIC_SVC, c.uuid,
+              (error, char) => {
+                if (error) { console.warn('[Scale] Notify error [' + charTag + ']:', error.message); return; }
+                if (!char?.value) return;
+                const bytes = this._base64ToBytes(char.value);
+                console.log('[Scale] Raw [' + charTag + '] (' + bytes.length + 'B):', Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+                const parsed = this._parseGeneric(bytes);
+                if (parsed) {
+                  console.log('[Scale] Parsed [' + charTag + ']:', JSON.stringify(parsed));
+                  this._emitData(parsed, onData);
+                }
+              }
+            );
+            gSubs.push(sub);
+          }
+        }
+        this._subscription = { remove: () => gSubs.forEach(s => s?.remove()) };
         break;
+      }
 
       default: {
-        // Try to find any notifiable characteristic and do best-effort parsing
         const services = await device.services();
         for (const svc of services) {
           const chars = await device.characteristicsForService(svc.uuid);
           for (const c of chars) {
             if (c.isNotifiable) {
-              console.log('[Scale] Subscribing to unknown protocol:', svc.uuid, c.uuid);
+              console.log('[Scale] Subscribing to unknown char:', svc.uuid, c.uuid);
               subscribe(svc.uuid, c.uuid, this._parseUnknown.bind(this));
               return;
             }
@@ -357,7 +419,6 @@ class ScaleService {
 
   _parseWeightMeasurement(bytes) {
     if (bytes.length < 3) return null;
-
     const flags = bytes[0];
     const isKg = !(flags & 0x01);
     const hasTimestamp = !!(flags & 0x02);
@@ -367,213 +428,189 @@ class ScaleService {
     let weightKg = isKg ? weightRaw / 200 : weightRaw / 200 * 0.453592;
     const stable = !(flags & 0x20);
 
-    let result = {
-      weightKg: Math.round(weightKg * 100) / 100,
-      stable,
-      protocol: 'weight_scale',
-    };
-
+    let result = { weightKg: Math.round(weightKg * 100) / 100, stable, protocol: 'weight_scale' };
     if (hasBMI && bytes.length >= (hasTimestamp ? 12 : 5)) {
       const offset = hasTimestamp ? 9 : 3;
-      if (bytes.length > offset + 1) {
-        result.bmi = ((bytes[offset + 1] << 8) | bytes[offset]) / 10;
-      }
+      if (bytes.length > offset + 1) result.bmi = ((bytes[offset + 1] << 8) | bytes[offset]) / 10;
     }
-
     return result;
   }
 
   _parseBodyComposition(bytes) {
     if (bytes.length < 4) return null;
-
     const flags = (bytes[1] << 8) | bytes[0];
     const isKg = !(flags & 0x01);
-
-    // Per Bluetooth SIG 0x2A9C: bytes 2-3 = Body Fat Percentage (mandatory, resolution 0.1%)
     const bfRaw = (bytes[3] << 8) | bytes[2];
     const bodyFatPercent = bfRaw / 10;
 
-    let result = {
-      stable: true,
-      protocol: 'body_composition',
-    };
-
-    if (bodyFatPercent > 0 && bodyFatPercent < 70) {
-      result.bodyFatPercent = bodyFatPercent;
-    }
+    let result = { stable: true, protocol: 'body_composition' };
+    if (bodyFatPercent > 0 && bodyFatPercent < 70) result.bodyFatPercent = bodyFatPercent;
 
     let offset = 4;
-    if (flags & 0x02) {
-      offset += 7; // Timestamp (7 bytes)
-    }
-    if (flags & 0x04) {
-      offset += 1; // User ID (1 byte)
-    }
+    if (flags & 0x02) offset += 7;
+    if (flags & 0x04) offset += 1;
     if (flags & 0x08 && bytes.length > offset + 3) {
-      // BMI (2 bytes) + Height (2 bytes) — paired per spec
       result.bmi = ((bytes[offset + 1] << 8) | bytes[offset]) / 10;
       offset += 4;
     }
     if (flags & 0x10 && bytes.length > offset + 1) {
-      // Muscle Percentage (resolution 0.1%)
       result.musclePercent = ((bytes[offset + 1] << 8) | bytes[offset]) / 10;
       offset += 2;
     }
-    if (flags & 0x20 && bytes.length > offset + 1) {
-      // Muscle Mass (resolution 0.005 kg)
-      offset += 2;
-    }
-    if (flags & 0x40 && bytes.length > offset + 1) {
-      // Fat Free Mass
-      offset += 2;
-    }
-    if (flags & 0x80 && bytes.length > offset + 1) {
-      // Soft Lean Mass
-      offset += 2;
-    }
-    if (flags & 0x100 && bytes.length > offset + 1) {
-      // Body Water Mass
-      offset += 2;
-    }
+    if (flags & 0x20 && bytes.length > offset + 1) offset += 2;
+    if (flags & 0x40 && bytes.length > offset + 1) offset += 2;
+    if (flags & 0x80 && bytes.length > offset + 1) offset += 2;
+    if (flags & 0x100 && bytes.length > offset + 1) offset += 2;
     if (flags & 0x200 && bytes.length > offset + 1) {
-      // Impedance (resolution 0.1 Ohm)
       result.impedance = ((bytes[offset + 1] << 8) | bytes[offset]) / 10;
       offset += 2;
     }
     if (flags & 0x400 && bytes.length > offset + 1) {
-      // Weight
       const weightRaw = (bytes[offset + 1] << 8) | bytes[offset];
       result.weightKg = isKg ? weightRaw / 200 : weightRaw / 200 * 0.453592;
       result.weightKg = Math.round(result.weightKg * 100) / 100;
-      offset += 2;
     }
-
     return result;
   }
 
+  /**
+   * Chipsea: detect weight packets vs body composition packets.
+   * Weight packets contain a plausible human weight (25-250 kg).
+   * Body comp packets contain metrics like fat %, BMI, bone mass.
+   */
   _parseChipsea(bytes) {
     if (bytes.length < 4) return null;
 
+    const weightResult = this._parseChipseaWeight(bytes);
+    if (weightResult) return weightResult;
+
+    const bodyResult = this._parseChipseaBodyComp(bytes);
+    if (bodyResult) return bodyResult;
+
+    return null;
+  }
+
+  _parseChipseaWeight(bytes) {
+    if (bytes.length < 6) return null;
+
     const header = bytes[0];
+    const stable = (header & 0x01) === 0;
 
-    // Weight data packet (varies by model, common patterns)
-    if (bytes.length >= 10) {
-      const stable = !!(header & 0x20) || !!(bytes[0] & 0x40);
-      const unit = bytes[0] & 0x0F;
-      let weightRaw = (bytes[3] << 8) | bytes[4];
-      if (weightRaw === 0) weightRaw = (bytes[4] << 8) | bytes[3];
+    const attempts = [
+      [3, 4, 100], [2, 3, 100], [1, 2, 100],
+      [4, 3, 100], [3, 2, 100],
+      [3, 4, 10],  [2, 3, 10],
+    ];
 
-      let weightKg;
-      if (unit === 0x01 || unit === 0x02) {
-        weightKg = weightRaw / 100;
-      } else {
-        weightKg = weightRaw / 10;
+    let weightKg = null;
+    for (const [hi, lo, div] of attempts) {
+      if (hi >= bytes.length || lo >= bytes.length) continue;
+      const raw = (bytes[hi] << 8) | bytes[lo];
+      const kg = raw / div;
+      if (kg >= 25 && kg <= 250) {
+        weightKg = Math.round(kg * 100) / 100;
+        break;
       }
-
-      if (weightKg < 2 || weightKg > 300) {
-        weightKg = weightRaw / 100;
-      }
-      if (weightKg < 2 || weightKg > 300) return null;
-
-      let result = {
-        weightKg: Math.round(weightKg * 100) / 100,
-        stable,
-        protocol: 'chipsea',
-      };
-
-      // Impedance is usually in bytes 5-6 for Chipsea
-      if (bytes.length >= 8) {
-        const imp = (bytes[5] << 8) | bytes[6];
-        if (imp > 100 && imp < 2000) {
-          result.impedance = imp;
-        }
-      }
-
-      return result;
     }
+    if (!weightKg) return null;
 
+    let result = { weightKg, stable, protocol: 'chipsea' };
+
+    if (bytes.length >= 8) {
+      for (let i = 5; i < bytes.length - 1 && i <= 8; i++) {
+        const imp = (bytes[i] << 8) | bytes[i + 1];
+        if (imp > 100 && imp < 2000) { result.impedance = imp; break; }
+      }
+    }
+    return result;
+  }
+
+  _parseChipseaBodyComp(bytes) {
+    if (bytes.length < 8) return null;
+
+    for (let i = 1; i < bytes.length - 1; i++) {
+      const raw = (bytes[i] << 8) | bytes[i + 1];
+      const val = raw / 10;
+      if (val >= 5.0 && val <= 60.0) {
+        const bodyFat = Math.round(val * 10) / 10;
+        console.log('[Scale] Body fat detected:', bodyFat, '% at byte', i);
+        return { protocol: 'chipsea_body_comp', bodyFatPercent: bodyFat };
+      }
+    }
     return null;
   }
 
   _parseYunmai(bytes) {
     if (bytes.length < 6) return null;
-
-    // Yunmai packets start with 0x0D or similar
     const weightRaw = (bytes[3] << 8) | bytes[4];
     const weightKg = weightRaw / 100;
+    if (weightKg < 25 || weightKg > 250) return null;
 
-    if (weightKg < 2 || weightKg > 300) return null;
-
-    const stable = bytes[5] === 0x01;
-
-    let result = {
-      weightKg: Math.round(weightKg * 100) / 100,
-      stable,
-      protocol: 'yunmai',
-    };
-
-    // Body fat in later bytes
+    let result = { weightKg: Math.round(weightKg * 100) / 100, stable: bytes[5] === 0x01, protocol: 'yunmai' };
     if (bytes.length >= 14) {
       const bfRaw = (bytes[7] << 8) | bytes[8];
-      if (bfRaw > 0 && bfRaw < 800) {
-        result.bodyFatPercent = bfRaw / 10;
-      }
+      if (bfRaw > 50 && bfRaw < 600) result.bodyFatPercent = bfRaw / 10;
     }
-
     return result;
   }
 
   _parseGeneric(bytes) {
     if (bytes.length < 4) return null;
 
-    // Try common patterns
+    // 20-byte Healthkeep/QN format on FFB2 (weight):
+    // [seq][07][00][A2][status][00][w2][w1][w0][00...][chk]
+    // Weight = bytes 6-8 as 24-bit BE grams, status byte 4: 0x01=unstable 0x02=stable
+    if (bytes.length >= 10 && bytes[1] === 0x07 && bytes[3] === 0xA2) {
+      const weightGrams = (bytes[6] << 16) | (bytes[7] << 8) | bytes[8];
+      const weightKg = weightGrams / 1000;
+      if (weightKg >= 20 && weightKg <= 250) {
+        const stable = bytes[4] === 0x02;
+        return { weightKg: Math.round(weightKg * 100) / 100, stable, protocol: 'generic' };
+      }
+    }
+
+    // 20-byte Healthkeep/QN format on FFB3 (impedance result):
+    // [00][08][00][A3][00][w2][w1][w0][00][imp_hi][imp_lo][00...][chk]
+    // Sent once after weight+impedance stabilise — contains final weight + raw impedance
+    if (bytes.length >= 12 && bytes[1] === 0x08 && bytes[3] === 0xA3) {
+      const weightGrams = (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
+      const weightKg = weightGrams / 1000;
+      const impRaw = (bytes[9] << 8) | bytes[10];
+      if (weightKg >= 20 && weightKg <= 250) {
+        let result = { weightKg: Math.round(weightKg * 100) / 100, stable: true, protocol: 'generic' };
+        if (impRaw > 50 && impRaw < 10000) result.impedance = impRaw;
+        console.log('[Scale] A3 impedance packet: weight=' + result.weightKg + ' imp=' + impRaw);
+        return result;
+      }
+    }
+
+    // Fallback: 2-byte weight parsing for other generic scales
     let weightRaw = (bytes[1] << 8) | bytes[2];
     let weightKg = weightRaw / 100;
-
-    if (weightKg < 2 || weightKg > 300) {
+    if (weightKg < 25 || weightKg > 250) {
       weightRaw = (bytes[2] << 8) | bytes[1];
       weightKg = weightRaw / 100;
     }
-    if (weightKg < 2 || weightKg > 300) {
+    if ((weightKg < 25 || weightKg > 250) && bytes.length >= 5) {
       weightRaw = (bytes[3] << 8) | bytes[4];
       weightKg = weightRaw / 100;
     }
-    if (weightKg < 2 || weightKg > 300) return null;
-
-    return {
-      weightKg: Math.round(weightKg * 100) / 100,
-      stable: true,
-      protocol: 'generic',
-    };
+    if (weightKg < 25 || weightKg > 250) return null;
+    return { weightKg: Math.round(weightKg * 100) / 100, stable: false, protocol: 'generic' };
   }
 
   _parseUnknown(bytes) {
     if (bytes.length < 3) return null;
-
-    // Brute force: scan every pair of bytes for a plausible weight
     for (let i = 0; i < bytes.length - 1; i++) {
       for (const divisor of [100, 200, 10]) {
         const raw = (bytes[i] << 8) | bytes[i + 1];
         const kg = raw / divisor;
-        if (kg >= 10 && kg <= 250) {
-          return {
-            weightKg: Math.round(kg * 100) / 100,
-            stable: true,
-            protocol: 'unknown',
-          };
-        }
+        if (kg >= 25 && kg <= 250) return { weightKg: Math.round(kg * 100) / 100, stable: false, protocol: 'unknown' };
         const rawLE = (bytes[i + 1] << 8) | bytes[i];
         const kgLE = rawLE / divisor;
-        if (kgLE >= 10 && kgLE <= 250) {
-          return {
-            weightKg: Math.round(kgLE * 100) / 100,
-            stable: true,
-            protocol: 'unknown',
-          };
-        }
+        if (kgLE >= 25 && kgLE <= 250) return { weightKg: Math.round(kgLE * 100) / 100, stable: false, protocol: 'unknown' };
       }
     }
-
     return null;
   }
 
@@ -583,15 +620,12 @@ class ScaleService {
 
   calculateBodyFat(impedance, weightKg, heightCm, age, isMale) {
     if (!impedance || !weightKg || !heightCm || !age) return null;
-
-    // Lukaski formula adapted for consumer scales
     let lbm;
     if (isMale) {
       lbm = (0.485 * (heightCm * heightCm) / impedance) + (0.338 * weightKg) + 5.32;
     } else {
       lbm = (0.474 * (heightCm * heightCm) / impedance) + (0.18 * weightKg) + 7.3;
     }
-
     const bf = ((weightKg - lbm) / weightKg) * 100;
     return Math.max(3, Math.min(65, Math.round(bf * 10) / 10));
   }
@@ -601,8 +635,46 @@ class ScaleService {
   // ═══════════════════════════════════════════
 
   _emitData(parsed, onData) {
-    onData?.(parsed);
-    this._listeners.forEach(fn => fn(parsed));
+    // --- Accumulate into _measurement ---
+
+    if (parsed.weightKg) {
+      if (parsed.weightKg < 25 || parsed.weightKg > 300) {
+        console.log('[Scale] Rejected implausible weight:', parsed.weightKg, 'kg');
+        return;
+      }
+      this._measurement.weightKg = parsed.weightKg;
+      this._measurement.protocol = parsed.protocol;
+      if (parsed.impedance) this._measurement.impedance = parsed.impedance;
+
+      this._recentWeights.push(parsed.weightKg);
+      if (this._recentWeights.length > 10) this._recentWeights.shift();
+
+      const recent = this._recentWeights.slice(-3);
+      const hasEnough = recent.length >= 2;
+      const consistent = hasEnough && recent.every(w => Math.abs(w - parsed.weightKg) <= 1.0);
+
+      if (parsed.stable && !consistent) {
+        parsed.stable = false;
+      } else if (!parsed.stable && consistent && recent.length >= 3) {
+        parsed.stable = true;
+      }
+
+      if (parsed.stable) {
+        this._lastValidWeight = parsed.weightKg;
+        this._measurement.weightStable = true;
+      }
+    }
+
+    if (parsed.bodyFatPercent) this._measurement.bodyFatPercent = parsed.bodyFatPercent;
+
+    // Emit full accumulated data with current stability
+    const emitData = {
+      ...this._measurement,
+      stable: this._measurement.weightStable || false,
+    };
+
+    onData?.(emitData);
+    this._listeners.forEach(fn => fn(emitData));
   }
 
   addListener(fn) {
@@ -616,20 +688,17 @@ class ScaleService {
         timestamp: new Date().toISOString(),
         weightKg: reading.weightKg,
         bodyFatPercent: reading.bodyFatPercent || null,
-        impedance: reading.impedance || null,
         protocol: reading.protocol || 'unknown',
       };
 
       const json = await userStorage.getRaw(HISTORY_KEY);
       const history = json ? JSON.parse(json) : [];
-
       history.unshift(entry);
       if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
 
       await userStorage.setRaw(HISTORY_KEY, JSON.stringify(history));
       pushToCloud('scaleHistory', history);
-
-      console.log('[Scale] Reading saved:', entry.weightKg, 'kg');
+      console.log('[Scale] Reading saved:', entry.weightKg, 'kg, bf:', entry.bodyFatPercent, '%');
       return entry;
     } catch (e) {
       console.warn('[Scale] Failed to save reading:', e.message);
@@ -641,9 +710,7 @@ class ScaleService {
     try {
       const json = await userStorage.getRaw(HISTORY_KEY);
       return json ? JSON.parse(json) : [];
-    } catch (_) {
-      return [];
-    }
+    } catch (_) { return []; }
   }
 
   async getLastReading() {
@@ -656,38 +723,25 @@ class ScaleService {
   // ═══════════════════════════════════════════
 
   async _saveDevice(device) {
-    try {
-      await userStorage.setRaw(DEVICE_KEY, JSON.stringify(device));
-    } catch (_) {}
+    try { await userStorage.setRaw(DEVICE_KEY, JSON.stringify(device)); } catch (_) {}
   }
 
   async getSavedDevice() {
     try {
       const json = await userStorage.getRaw(DEVICE_KEY);
       return json ? JSON.parse(json) : null;
-    } catch (_) {
-      return null;
-    }
+    } catch (_) { return null; }
   }
 
   async forgetDevice() {
-    try {
-      this.disconnect();
-      await userStorage.setRaw(DEVICE_KEY, JSON.stringify(null));
-    } catch (_) {}
+    try { this.disconnect(); await userStorage.setRaw(DEVICE_KEY, JSON.stringify(null)); } catch (_) {}
   }
 
   async autoReconnect(onData, onStatus) {
     const saved = await this.getSavedDevice();
     if (!saved) return false;
-
-    try {
-      await this.connect(saved.id, onData, onStatus);
-      return true;
-    } catch (err) {
-      console.log('[Scale] Auto-reconnect failed:', err.message);
-      return false;
-    }
+    try { await this.connect(saved.id, onData, onStatus); return true; }
+    catch (err) { console.log('[Scale] Auto-reconnect failed:', err.message); return false; }
   }
 
   // ═══════════════════════════════════════════
@@ -697,26 +751,19 @@ class ScaleService {
   _base64ToBytes(base64) {
     const binary = global.atob(base64);
     const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
   }
 
   _bytesToBase64(bytes) {
     let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return global.btoa(binary);
   }
 
   destroy() {
     this.disconnect();
-    if (this._manager) {
-      this._manager.destroy();
-      this._manager = null;
-    }
+    if (this._manager) { this._manager.destroy(); this._manager = null; }
   }
 }
 

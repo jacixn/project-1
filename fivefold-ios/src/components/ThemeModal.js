@@ -69,6 +69,8 @@ const ThemeModal = ({ visible, onClose }) => {
     { id: 'shores', name: 'Shores', wallpaper: themeWallpapers?.['shores'], isActive: currentTheme === 'shores' },
     { id: 'canopy', name: 'Canopy', wallpaper: themeWallpapers?.['canopy'], isActive: currentTheme === 'canopy' },
     { id: 'faith', name: 'Faith', wallpaper: themeWallpapers?.['faith'], isActive: currentTheme === 'faith' },
+    { id: 'courtside', name: 'Courtside', wallpaper: themeWallpapers?.['courtside'], isActive: currentTheme === 'courtside' },
+    { id: 'playbook', name: 'Playbook', wallpaper: themeWallpapers?.['playbook'], isActive: currentTheme === 'playbook' },
   ];
 
   const darkThemes = [
@@ -82,6 +84,9 @@ const ThemeModal = ({ visible, onClose }) => {
     { id: 'walk-on-water', name: 'Walk on Water', wallpaper: themeWallpapers?.['walk-on-water'], isActive: currentTheme === 'walk-on-water' },
     { id: 'calvary', name: 'Calvary', wallpaper: themeWallpapers?.['calvary'], isActive: currentTheme === 'calvary' },
     { id: 'nightfall', name: 'Nightfall', wallpaper: themeWallpapers?.['nightfall'], isActive: currentTheme === 'nightfall' },
+    { id: 'trackstar', name: 'Trackstar', wallpaper: themeWallpapers?.['trackstar'], isActive: currentTheme === 'trackstar' },
+    { id: 'sprint', name: 'Sprint', wallpaper: themeWallpapers?.['sprint'], isActive: currentTheme === 'sprint' },
+    { id: 'matchday', name: 'Match Day', wallpaper: themeWallpapers?.['matchday'], isActive: currentTheme === 'matchday' },
   ];
 
   const getCurrentThemeDisplay = () => {

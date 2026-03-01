@@ -27,6 +27,7 @@ import {
   deleteVision,
   addReflection,
   markAchieved,
+  archiveVision,
   getProgress,
   getTimeRemaining,
   getActiveVisions,
@@ -142,8 +143,10 @@ const VisionScreen = () => {
     refresh();
   };
 
-  const handleNotAchieved = (vision) => {
+  const handleNotAchieved = async (vision) => {
     askedVisionIds.current.add(vision.id);
+    await archiveVision(vision.id);
+    refresh();
   };
 
   const handleAchieve = async (vision) => {

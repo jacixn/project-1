@@ -4,9 +4,12 @@
  * Premium BLE scale connection UI with:
  * - Animated radar scanning pulse
  * - Device list with signal strength indicators
- * - Real-time weight display with animated ring
- * - Body fat readout when available
+ * - Real-time weight + body fat display with animated ring
+ * - Body composition readout when available
  * - Status transitions with haptic feedback
+ *
+ * After weight stabilises, waits up to 4 s for the scale to send
+ * body composition data before finalising the reading.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -20,6 +23,8 @@ import {
   Easing,
   FlatList,
   ActivityIndicator,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,7 +45,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const insets = useSafeAreaInsets();
 
   // State
-  const [phase, setPhase] = useState('idle'); // idle | scanning | devices | connecting | measuring | done
+  const [phase, setPhase] = useState('idle');
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('');
@@ -50,9 +55,13 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const [savedDevice, setSavedDevice] = useState(null);
   const [error, setError] = useState(null);
 
+  const SCREEN_HEIGHT = Dimensions.get('window').height;
+  const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
+
   // Animations
   const fadeIn = useRef(new Animated.Value(0)).current;
-  const slideUp = useRef(new Animated.Value(60)).current;
+  const slideUp = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const panY = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const pulse2Anim = useRef(new Animated.Value(0)).current;
   const pulse3Anim = useRef(new Animated.Value(0)).current;
@@ -68,6 +77,8 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const profileRef = useRef(null);
   const scanTimeoutRef = useRef(null);
   const phaseRef = useRef('idle');
+  const bodyCompTimerRef = useRef(null);
+  const stableDataRef = useRef(null);
 
   const textPrimary = isDark ? '#FFFFFF' : '#1A1A2E';
   const textSecondary = isDark ? 'rgba(255,255,255,0.7)' : '#555';
@@ -99,8 +110,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   };
 
   const loadSavedDevice = async () => {
-    const dev = await scaleService.getSavedDevice();
-    setSavedDevice(dev);
+    setSavedDevice(await scaleService.getSavedDevice());
   };
 
   const updatePhase = (newPhase) => {
@@ -109,10 +119,9 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   };
 
   const resetState = () => {
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = null;
-    }
+    if (scanTimeoutRef.current) { clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null; }
+    if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    stableDataRef.current = null;
     updatePhase('idle');
     setDevices([]);
     setSelectedDevice(null);
@@ -122,7 +131,8 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     setStableReading(null);
     setError(null);
     fadeIn.setValue(0);
-    slideUp.setValue(60);
+    slideUp.setValue(SHEET_HEIGHT);
+    panY.setValue(0);
     pulseAnim.setValue(0);
     pulse2Anim.setValue(0);
     pulse3Anim.setValue(0);
@@ -142,7 +152,6 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     setDevices([]);
     setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
     startScanAnimation();
 
     try {
@@ -155,10 +164,8 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       }, 15000);
 
       scanTimeoutRef.current = setTimeout(() => {
-        // Guard: only act if we're still in scanning/devices phase
         const currentPhase = phaseRef.current;
         if (currentPhase === 'connecting' || currentPhase === 'measuring' || currentPhase === 'done') return;
-
         setDevices(prev => {
           if (prev.length > 0) {
             updatePhase('devices');
@@ -170,7 +177,6 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
           return prev;
         });
       }, 16000);
-
     } catch (err) {
       setError(err.message);
       updatePhase('idle');
@@ -185,23 +191,15 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   }, [devices.length, phase]);
 
   const startScanAnimation = () => {
-    const createPulse = (anim, delay) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 2000, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      );
-    };
-
+    const createPulse = (anim, delay) =>
+      Animated.loop(Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(anim, { toValue: 1, duration: 2000, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ]));
     Animated.parallel([
-      createPulse(pulseAnim, 0),
-      createPulse(pulse2Anim, 700),
-      createPulse(pulse3Anim, 1400),
-      Animated.loop(
-        Animated.timing(scanRotate, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true })
-      ),
+      createPulse(pulseAnim, 0), createPulse(pulse2Anim, 700), createPulse(pulse3Anim, 1400),
+      Animated.loop(Animated.timing(scanRotate, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true })),
     ]).start();
   };
 
@@ -214,13 +212,21 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
   // ── Connection ──
 
+  const onConnected = useCallback(() => {
+    updatePhase('measuring');
+    startMeasuringAnimation();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const p = profileRef.current;
+    if (p) {
+      scaleService.sendUserProfile(p.gender, p.age, p.heightCm, p.weightKg);
+    }
+  }, []);
+
   const connectToDevice = async (device) => {
     stopScanAnimation();
     scaleService.stopScan();
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = null;
-    }
+    if (scanTimeoutRef.current) { clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null; }
     setSelectedDevice(device);
     updatePhase('connecting');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -229,14 +235,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       await scaleService.connect(
         device.id,
         (data) => handleScaleData(data),
-        (status) => {
-          setConnectionStatus(status);
-          if (status === 'connected') {
-            updatePhase('measuring');
-            startMeasuringAnimation();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-        }
+        (status) => { setConnectionStatus(status); if (status === 'connected') onConnected(); }
       );
     } catch (err) {
       setError(`Could not connect to ${device.name}. Please try again.`);
@@ -255,14 +254,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       await scaleService.connect(
         savedDevice.id,
         (data) => handleScaleData(data),
-        (status) => {
-          setConnectionStatus(status);
-          if (status === 'connected') {
-            updatePhase('measuring');
-            startMeasuringAnimation();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-        }
+        (status) => { setConnectionStatus(status); if (status === 'connected') onConnected(); }
       );
     } catch (err) {
       setError('Could not reconnect. Try scanning for devices.');
@@ -276,71 +268,119 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       Animated.timing(weightOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
 
-    pulseLoop.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowPulse, { toValue: 0.8, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(glowPulse, { toValue: 0.3, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
+    pulseLoop.current = Animated.loop(Animated.sequence([
+      Animated.timing(glowPulse, { toValue: 0.8, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(glowPulse, { toValue: 0.3, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    ]));
     pulseLoop.current.start();
   };
 
   // ── Data Handling ──
 
-  const handleScaleData = useCallback((data) => {
-    if (!data?.weightKg) return;
+  const finalizeMeasurement = useCallback((data) => {
+    if (phaseRef.current !== 'measuring') return;
 
-    setLiveWeight(data.weightKg);
+    if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    stableDataRef.current = null;
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setStableReading(data);
+    updatePhase('done');
+
+    pulseLoop.current?.stop();
+    Animated.parallel([
+      Animated.timing(ringProgress, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.spring(successScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+    ]).start();
+
+    saveReading(data);
+  }, []);
+
+  const handleScaleData = useCallback((data) => {
+    if (!data) return;
+
+    // Update live displays with whatever the scale sends
+    if (data.weightKg) setLiveWeight(data.weightKg);
 
     let bf = data.bodyFatPercent || null;
     if (!bf && data.impedance && profileRef.current) {
       const p = profileRef.current;
-      bf = scaleService.calculateBodyFat(
-        data.impedance, data.weightKg, p.heightCm, p.age, p.gender === 'male'
-      );
+      bf = scaleService.calculateBodyFat(data.impedance, data.weightKg, p.heightCm, p.age, p.gender === 'male');
     }
     if (bf) setLiveBodyFat(bf);
 
-    if (data.stable && data.weightKg > 5) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const reading = { ...data, bodyFatPercent: bf };
-      setStableReading(reading);
-      updatePhase('done');
+    if (!data.weightKg || data.weightKg < 25 || !data.stable) return;
+    if (phaseRef.current !== 'measuring') return;
 
-      pulseLoop.current?.stop();
-      Animated.parallel([
-        Animated.timing(ringProgress, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-        Animated.spring(successScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
-      ]).start();
+    // Weight stable — build reading with all accumulated body comp
+    const reading = {
+      ...data,
+      bodyFatPercent: bf || data.bodyFatPercent || null,
+    };
 
-      saveReading(reading);
+    if (reading.bodyFatPercent) {
+      finalizeMeasurement(reading);
+      return;
     }
-  }, []);
+
+    // No body comp yet — store data and wait up to 15 s for impedance packet
+    stableDataRef.current = reading;
+    if (!bodyCompTimerRef.current) {
+      bodyCompTimerRef.current = setTimeout(() => {
+        if (phaseRef.current === 'measuring' && stableDataRef.current) {
+          finalizeMeasurement(stableDataRef.current);
+        }
+      }, 15000);
+    }
+  }, [finalizeMeasurement]);
 
   const saveReading = async (reading) => {
     await scaleService.saveReading(reading);
 
-    // Update nutrition profile with new weight
     const profile = await nutritionService.getProfile();
     if (profile) {
       const updates = { ...profile, weightKg: reading.weightKg };
-      if (reading.bodyFatPercent) {
-        updates.bodyFatPercent = reading.bodyFatPercent;
-      }
+      if (reading.bodyFatPercent) updates.bodyFatPercent = reading.bodyFatPercent;
       await nutritionService.saveProfile(updates);
     }
-
     onReadingSaved?.(reading);
   };
 
-  const handleClose = () => {
+  const handleCloseRef = useRef(null);
+
+  const handleClose = useCallback(() => {
     stopScanAnimation();
     scaleService.stopScan();
-    if (phase !== 'measuring') {
-      scaleService.disconnect();
-    }
-    onClose();
-  };
+    if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    if (phaseRef.current !== 'measuring') scaleService.disconnect();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.parallel([
+      Animated.timing(slideUp, { toValue: SHEET_HEIGHT, duration: 280, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+      Animated.timing(fadeIn, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => {
+      panY.setValue(0);
+      onClose();
+    });
+  }, [onClose]);
+
+  handleCloseRef.current = handleClose;
+
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) panY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100 || g.vy > 0.5) {
+          handleCloseRef.current?.();
+        } else {
+          Animated.spring(panY, { toValue: 0, tension: 65, friction: 10, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
 
   const forgetDevice = async () => {
     await scaleService.forgetDevice();
@@ -348,7 +388,6 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // ── Signal Strength ──
   const getSignalBars = (rssi) => {
     if (!rssi) return 1;
     if (rssi > -50) return 4;
@@ -421,15 +460,12 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
         {renderPulseRing(pulseAnim, 180)}
         {renderPulseRing(pulse2Anim, 180)}
         {renderPulseRing(pulse3Anim, 180)}
-        <Animated.View style={{
-          transform: [{ rotate: scanRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }],
-        }}>
+        <Animated.View style={{ transform: [{ rotate: scanRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
           <View style={[styles.scanCenter, { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)' }]}>
             <MaterialIcons name="bluetooth-searching" size={32} color={ACCENT} />
           </View>
         </Animated.View>
       </View>
-
       <Text style={[styles.phaseTitle, { color: textPrimary }]}>Scanning...</Text>
       <Text style={[styles.phaseDesc, { color: textSecondary }]}>
         Looking for nearby Bluetooth scales.{'\n'}Make sure your scale is powered on.
@@ -440,9 +476,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const renderDevicesPhase = () => (
     <Animated.View style={[styles.phaseContainer, { opacity: deviceListOpacity }]}>
       <Text style={[styles.phaseTitle, { color: textPrimary, marginBottom: 4 }]}>Devices Found</Text>
-      <Text style={[styles.phaseDesc, { color: textSecondary, marginBottom: 16 }]}>
-        Tap your scale to connect
-      </Text>
+      <Text style={[styles.phaseDesc, { color: textSecondary, marginBottom: 16 }]}>Tap your scale to connect</Text>
 
       <FlatList
         data={devices}
@@ -502,13 +536,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const renderMeasuringPhase = () => (
     <Animated.View style={[styles.phaseContainer, { opacity: weightOpacity, transform: [{ scale: weightScale }] }]}>
       <View style={styles.measureContainer}>
-        {/* Glow effect */}
-        <Animated.View style={[styles.measureGlow, {
-          backgroundColor: ACCENT,
-          opacity: glowPulse,
-        }]} />
-
-        {/* Ring */}
+        <Animated.View style={[styles.measureGlow, { backgroundColor: ACCENT, opacity: glowPulse }]} />
         <Svg width={RING_SIZE} height={RING_SIZE} style={styles.measureRing}>
           <Defs>
             <SvgGrad id="measGrad" x1="0" y1="0" x2="1" y2="1">
@@ -516,26 +544,11 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
               <Stop offset="1" stopColor={ACCENT_END} />
             </SvgGrad>
           </Defs>
-          <Circle
-            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-            stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}
-            strokeWidth={RING_STROKE} fill="none"
-          />
-          <Circle
-            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-            stroke="url(#measGrad)" strokeWidth={RING_STROKE} fill="none"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            strokeDashoffset={RING_CIRCUMFERENCE * 0.25}
-            strokeLinecap="round" rotation="-90"
-            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-          />
+          <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth={RING_STROKE} fill="none" />
+          <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke="url(#measGrad)" strokeWidth={RING_STROKE} fill="none" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={RING_CIRCUMFERENCE * 0.25} strokeLinecap="round" rotation="-90" origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`} />
         </Svg>
-
-        {/* Weight display */}
         <View style={styles.measureCenter}>
-          <Text style={[styles.liveWeight, { color: textPrimary }]}>
-            {liveWeight ? liveWeight.toFixed(1) : '--.-'}
-          </Text>
+          <Text style={[styles.liveWeight, { color: textPrimary }]}>{liveWeight ? liveWeight.toFixed(1) : '--.-'}</Text>
           <Text style={[styles.liveUnit, { color: ACCENT }]}>kg</Text>
         </View>
       </View>
@@ -548,87 +561,69 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       {liveWeight && (
         <View style={[styles.liveIndicator, { backgroundColor: ACCENT + '18' }]}>
           <View style={[styles.liveDot, { backgroundColor: ACCENT }]} />
-          <Text style={[styles.liveText, { color: ACCENT }]}>Receiving data...</Text>
+          <Text style={[styles.liveText, { color: ACCENT }]}>
+            {liveBodyFat ? `${liveWeight?.toFixed(1)} kg · ${liveBodyFat.toFixed(1)}% fat` : 'Receiving data...'}
+          </Text>
         </View>
       )}
     </Animated.View>
   );
 
-  const renderDonePhase = () => (
-    <View style={styles.phaseContainer}>
-      <Animated.View style={[styles.doneContainer, { transform: [{ scale: successScale }] }]}>
-        {/* Ring */}
-        <Svg width={RING_SIZE} height={RING_SIZE}>
-          <Defs>
-            <SvgGrad id="doneGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={SUCCESS} />
-              <Stop offset="1" stopColor={SUCCESS_END} />
-            </SvgGrad>
-          </Defs>
-          <Circle
-            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-            stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}
-            strokeWidth={RING_STROKE} fill="none"
-          />
-          <Circle
-            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-            stroke="url(#doneGrad)" strokeWidth={RING_STROKE} fill="none"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            strokeDashoffset={ringProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [RING_CIRCUMFERENCE, 0],
-            })}
-            strokeLinecap="round" rotation="-90"
-            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-          />
-        </Svg>
+  const renderDonePhase = () => {
+    const bf = stableReading?.bodyFatPercent || liveBodyFat;
 
-        <View style={styles.measureCenter}>
-          <Text style={[styles.doneWeight, { color: SUCCESS }]}>
-            {stableReading?.weightKg?.toFixed(1) || '--.-'}
-          </Text>
-          <Text style={[styles.doneUnit, { color: SUCCESS }]}>kg</Text>
-        </View>
-      </Animated.View>
-
-      {/* Metrics row */}
-      <View style={styles.doneMetrics}>
-        <View style={styles.doneMetricItem}>
-          <MaterialIcons name="monitor-weight" size={20} color={SUCCESS} />
-          <Text style={[styles.doneMetricValue, { color: textPrimary }]}>
-            {stableReading?.weightKg?.toFixed(1)} kg
-          </Text>
-          <Text style={[styles.doneMetricLabel, { color: textTertiary }]}>Weight</Text>
-        </View>
-
-        {liveBodyFat && (
-          <View style={[styles.doneMetricDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
-        )}
-
-        {liveBodyFat && (
-          <View style={styles.doneMetricItem}>
-            <MaterialIcons name="pie-chart" size={20} color="#F59E0B" />
-            <Text style={[styles.doneMetricValue, { color: textPrimary }]}>
-              {liveBodyFat.toFixed(1)}%
-            </Text>
-            <Text style={[styles.doneMetricLabel, { color: textTertiary }]}>Body Fat</Text>
+    return (
+      <View style={styles.phaseContainer}>
+        <Animated.View style={[styles.doneContainer, { transform: [{ scale: successScale }] }]}>
+          <Svg width={RING_SIZE} height={RING_SIZE}>
+            <Defs>
+              <SvgGrad id="doneGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={SUCCESS} />
+                <Stop offset="1" stopColor={SUCCESS_END} />
+              </SvgGrad>
+            </Defs>
+            <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth={RING_STROKE} fill="none" />
+            <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke="url(#doneGrad)" strokeWidth={RING_STROKE} fill="none" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringProgress.interpolate({ inputRange: [0, 1], outputRange: [RING_CIRCUMFERENCE, 0] })} strokeLinecap="round" rotation="-90" origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`} />
+          </Svg>
+          <View style={styles.measureCenter}>
+            <Text style={[styles.doneWeight, { color: SUCCESS }]}>{stableReading?.weightKg?.toFixed(1) || '--.-'}</Text>
+            <Text style={[styles.doneUnit, { color: SUCCESS }]}>kg</Text>
           </View>
-        )}
-      </View>
+        </Animated.View>
 
-      <View style={[styles.savedBadge, { backgroundColor: SUCCESS + '14' }]}>
-        <MaterialIcons name="check-circle" size={16} color={SUCCESS} />
-        <Text style={[styles.savedBadgeText, { color: SUCCESS }]}>Reading saved & profile updated</Text>
-      </View>
+        <View style={styles.doneMetrics}>
+          <View style={styles.doneMetricItem}>
+            <MaterialIcons name="monitor-weight" size={20} color={SUCCESS} />
+            <Text style={[styles.doneMetricValue, { color: textPrimary }]}>{stableReading?.weightKg?.toFixed(1)} kg</Text>
+            <Text style={[styles.doneMetricLabel, { color: textTertiary }]}>Weight</Text>
+          </View>
 
-      <TouchableOpacity style={styles.primaryBtn} onPress={handleClose} activeOpacity={0.8}>
-        <LinearGradient colors={[SUCCESS, SUCCESS_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
-          <MaterialIcons name="check" size={20} color="#FFF" />
-          <Text style={styles.primaryBtnText}>Done</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
+          {bf ? (
+            <>
+              <View style={[styles.doneMetricDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
+              <View style={styles.doneMetricItem}>
+                <MaterialIcons name="pie-chart" size={20} color="#F59E0B" />
+                <Text style={[styles.doneMetricValue, { color: textPrimary }]}>{bf.toFixed(1)}%</Text>
+                <Text style={[styles.doneMetricLabel, { color: textTertiary }]}>Body Fat</Text>
+              </View>
+            </>
+          ) : null}
+        </View>
+
+        <View style={[styles.savedBadge, { backgroundColor: SUCCESS + '14' }]}>
+          <MaterialIcons name="check-circle" size={16} color={SUCCESS} />
+          <Text style={[styles.savedBadgeText, { color: SUCCESS }]}>Reading saved & profile updated</Text>
+        </View>
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleClose} activeOpacity={0.8}>
+          <LinearGradient colors={[SUCCESS, SUCCESS_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
+            <MaterialIcons name="check" size={20} color="#FFF" />
+            <Text style={styles.primaryBtnText}>Done</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const renderPhase = () => {
     switch (phase) {
@@ -644,363 +639,90 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={handleClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.55)' }]}>
-        <Animated.View style={[
-          styles.sheet,
-          {
+      <Animated.View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.55)', opacity: fadeIn }]}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
+        <Animated.View
+          style={[styles.sheet, {
             backgroundColor: surfaceBg,
             paddingBottom: insets.bottom + 20,
-            opacity: fadeIn,
-            transform: [{ translateY: slideUp }],
-          }
-        ]}>
-          {/* Handle bar */}
-          <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }]} />
+            transform: [{ translateY: Animated.add(slideUp, panY) }],
+          }]}
+        >
+          <View {...sheetPanResponder.panHandlers} style={styles.dragZone}>
+            <View style={styles.handleRow}>
+              <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }]} />
+            </View>
           </View>
-
-          {/* Close button */}
-          <TouchableOpacity
-            style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={handleClose}
-          >
-            <MaterialIcons name="close" size={20} color={textSecondary} />
-          </TouchableOpacity>
-
           {renderPhase()}
         </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    minHeight: 460,
-    maxHeight: '90%',
-  },
-  handleRow: {
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, minHeight: 460, maxHeight: '90%' },
+  dragZone: { width: '100%', paddingBottom: 16 },
+  handleRow: { alignItems: 'center', paddingTop: 14, paddingBottom: 10 },
+  handle: { width: 40, height: 5, borderRadius: 3 },
 
-  phaseContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
+  phaseContainer: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 24, paddingBottom: 8 },
 
-  // ── Idle ──
-  iconContainer: {
-    marginBottom: 20,
-  },
-  iconGlow: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    top: -16,
-    left: -16,
-  },
-  iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  phaseTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginBottom: 8,
-  },
-  phaseDesc: {
-    fontSize: 15,
-    fontWeight: '400',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-    paddingHorizontal: 8,
-  },
+  iconContainer: { marginBottom: 20 },
+  iconGlow: { position: 'absolute', width: 120, height: 120, borderRadius: 60, top: -16, left: -16 },
+  iconCircle: { width: 88, height: 88, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  phaseTitle: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3, marginBottom: 8 },
+  phaseDesc: { fontSize: 15, fontWeight: '400', textAlign: 'center', lineHeight: 22, marginBottom: 24, paddingHorizontal: 8 },
 
-  // ── Saved device ──
-  savedDeviceCard: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  savedDeviceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  savedDeviceName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  savedDeviceHint: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
+  savedDeviceCard: { width: '100%', borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 16 },
+  savedDeviceRow: { flexDirection: 'row', alignItems: 'center' },
+  savedDeviceName: { fontSize: 15, fontWeight: '600' },
+  savedDeviceHint: { fontSize: 12, fontWeight: '600', marginTop: 2 },
 
-  // ── Buttons ──
-  primaryBtn: {
-    width: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  primaryBtnGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  primaryBtnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    gap: 6,
-    width: '100%',
-    marginTop: 12,
-  },
-  secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  primaryBtn: { width: '100%', borderRadius: 16, overflow: 'hidden', marginTop: 8 },
+  primaryBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  primaryBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  secondaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, gap: 6, width: '100%', marginTop: 12 },
+  secondaryBtnText: { fontSize: 15, fontWeight: '600' },
 
-  // ── Error ──
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 12,
-    width: '100%',
-  },
-  errorText: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-    lineHeight: 19,
-  },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12, marginTop: 12, width: '100%' },
+  errorText: { fontSize: 13, fontWeight: '500', flex: 1, lineHeight: 19 },
 
-  // ── Scanning radar ──
-  radarContainer: {
-    width: 180,
-    height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  pulseRing: {
-    position: 'absolute',
-    borderWidth: 2,
-  },
-  scanCenter: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  radarContainer: { width: 180, height: 180, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  pulseRing: { position: 'absolute', borderWidth: 2 },
+  scanCenter: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
 
-  // ── Device list ──
-  deviceList: {
-    width: '100%',
-    maxHeight: 240,
-    marginBottom: 4,
-  },
-  deviceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 8,
-    gap: 12,
-  },
-  deviceIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deviceName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  deviceId: {
-    fontSize: 12,
-    fontWeight: '400',
-    marginTop: 2,
-  },
-  signalBars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    marginRight: 4,
-  },
-  signalBar: {
-    width: 4,
-    borderRadius: 2,
-  },
+  deviceList: { width: '100%', maxHeight: 240, marginBottom: 4 },
+  deviceCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 8, gap: 12 },
+  deviceIcon: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  deviceName: { fontSize: 15, fontWeight: '600' },
+  deviceId: { fontSize: 12, fontWeight: '400', marginTop: 2 },
+  signalBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, marginRight: 4 },
+  signalBar: { width: 4, borderRadius: 2 },
 
-  // ── Connecting ──
-  connectingRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
+  connectingRing: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
 
-  // ── Measuring ──
-  measureContainer: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  measureGlow: {
-    position: 'absolute',
-    width: RING_SIZE - 40,
-    height: RING_SIZE - 40,
-    borderRadius: (RING_SIZE - 40) / 2,
-  },
-  measureRing: {
-    position: 'absolute',
-  },
-  measureCenter: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  liveWeight: {
-    fontSize: 48,
-    fontWeight: '900',
-    letterSpacing: -2,
-  },
-  liveUnit: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: -2,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  liveText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  measureContainer: { width: RING_SIZE, height: RING_SIZE, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  measureGlow: { position: 'absolute', width: RING_SIZE - 40, height: RING_SIZE - 40, borderRadius: (RING_SIZE - 40) / 2 },
+  measureRing: { position: 'absolute' },
+  measureCenter: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
+  liveWeight: { fontSize: 48, fontWeight: '900', letterSpacing: -2 },
+  liveUnit: { fontSize: 16, fontWeight: '700', marginTop: -2 },
+  liveIndicator: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 8 },
+  liveDot: { width: 8, height: 8, borderRadius: 4 },
+  liveText: { fontSize: 13, fontWeight: '600' },
 
-  // ── Done ──
-  doneContainer: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  doneWeight: {
-    fontSize: 44,
-    fontWeight: '900',
-    letterSpacing: -2,
-  },
-  doneUnit: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: -2,
-  },
-  doneMetrics: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    gap: 24,
-  },
-  doneMetricItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  doneMetricValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  doneMetricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  doneMetricDivider: {
-    width: 1,
-    height: 40,
-  },
-  savedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  savedBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  doneContainer: { width: RING_SIZE, height: RING_SIZE, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  doneWeight: { fontSize: 44, fontWeight: '900', letterSpacing: -2 },
+  doneUnit: { fontSize: 16, fontWeight: '700', marginTop: -2 },
+  doneMetrics: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, gap: 20 },
+  doneMetricItem: { alignItems: 'center', gap: 4 },
+  doneMetricValue: { fontSize: 17, fontWeight: '700' },
+  doneMetricLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  doneMetricDivider: { width: 1, height: 40 },
+  savedBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginBottom: 20 },
+  savedBadgeText: { fontSize: 13, fontWeight: '600' },
 });
 
 export default ScaleConnectionModal;

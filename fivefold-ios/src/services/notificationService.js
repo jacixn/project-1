@@ -463,7 +463,7 @@ class NotificationService {
             data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
           },
-          trigger: triggerDate,
+          trigger: { type: 'date', date: triggerDate },
         });
 
         console.log(
@@ -502,7 +502,7 @@ class NotificationService {
           data: { type: 'custom_prayer' },
           sound: settings.sound ? 'default' : false,
         },
-        trigger: triggerDate,
+        trigger: { type: 'date', date: triggerDate },
       });
 
       console.log('Custom reminder scheduled with ID:', identifier);
@@ -543,7 +543,7 @@ class NotificationService {
           data: { type: 'missed_prayer', prayerSlot },
           sound: settings.sound ? 'default' : false,
         },
-        trigger: alertTime,
+        trigger: { type: 'date', date: alertTime },
       });
 
       console.log(`Missed prayer alert scheduled for ${prayerSlot}`);
@@ -649,7 +649,7 @@ class NotificationService {
           data: { type: 'daily_streak' },
           sound: true,
         },
-        trigger: nextTriggerDate,
+        trigger: { type: 'date', date: nextTriggerDate },
       });
 
       console.log('Daily streak reminder scheduled for:', nextTriggerDate.toISOString());
@@ -1057,7 +1057,7 @@ class NotificationService {
 
       const targetTime = new Date(start.getTime() + 60 * 60 * 1000); // +1 hour
       const now = new Date();
-      const trigger = targetTime <= now ? null : targetTime;
+      const trigger = targetTime <= now ? null : { type: 'date', date: targetTime };
 
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -1296,7 +1296,7 @@ class NotificationService {
           data: { type: 'habit_reminder', habitId: habit.id },
           sound: settings.sound ? 'default' : false,
         },
-        trigger: triggerDate,
+        trigger: { type: 'date', date: triggerDate },
       });
 
       console.log(`[Notif] Scheduled habit reminder for "${habit.name}" at ${hour}:${String(minute).padStart(2, '0')}`);

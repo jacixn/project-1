@@ -9,7 +9,7 @@ import {
   ScrollView,
   LayoutAnimation,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -138,6 +138,7 @@ const TabRow = React.memo(({
             onValueChange={() => onToggle(name)}
             trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
             thumbColor="#fff"
+            style={{ marginTop: 16 }}
           />
         )}
       </Animated.View>
@@ -277,7 +278,7 @@ const CustomiseTabBarScreen = () => {
   const visibleCount = order.filter(n => !hidden.includes(n)).length;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -354,7 +355,7 @@ const CustomiseTabBarScreen = () => {
           <Text style={styles.saveButtonText}>Save Changes</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
