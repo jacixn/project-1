@@ -64,23 +64,40 @@ const TAB_DEFINITIONS = {
 };
 
 let _refreshFn = null;
+let _cachedConfig = undefined;
+
 export const refreshTabBarConfig = () => _refreshFn?.();
+
+export const preloadTabConfig = async () => {
+  try {
+    const config = await userStorage.get('tabBarConfig');
+    _cachedConfig = config;
+    return config;
+  } catch (_) {
+    _cachedConfig = null;
+    return null;
+  }
+};
+
 export { DEFAULT_ORDER, TAB_DEFINITIONS };
 
 const TabNavigator = () => {
   const { theme, isDark } = useTheme();
   const { hasActiveWorkout } = useWorkout();
-  const [tabConfig, setTabConfig] = useState(null);
+  const [tabConfig, setTabConfig] = useState(_cachedConfig ?? null);
+  const [configLoaded, setConfigLoaded] = useState(_cachedConfig !== undefined);
 
   const loadConfig = async () => {
     try {
       const config = await userStorage.get('tabBarConfig');
+      _cachedConfig = config;
       setTabConfig(config);
     } catch (_) {}
+    setConfigLoaded(true);
   };
 
   useEffect(() => {
-    loadConfig();
+    if (!configLoaded) loadConfig();
     _refreshFn = loadConfig;
     return () => { _refreshFn = null; };
   }, []);
@@ -92,6 +109,8 @@ const TabNavigator = () => {
     if (theme.name === 'faith') return '#4A90E2';
     return theme.primary || '#007AFF';
   };
+
+  if (!configLoaded) return null;
 
   const order = tabConfig?.order || DEFAULT_ORDER;
   const hidden = new Set(tabConfig?.hidden || []);

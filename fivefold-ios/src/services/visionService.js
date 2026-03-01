@@ -50,6 +50,19 @@ export const TIMEFRAMES = [
   { id: 'custom', label: 'Custom' },
 ];
 
+// ── Points calculation ───────────────────────────────────────────────
+
+/**
+ * Calculate points awarded for completing a vision.
+ * ~10,000 pts per year of duration, minimum 100 pts.
+ */
+export const calculateVisionPoints = (vision) => {
+  const created = new Date(vision.createdAt).getTime();
+  const target = new Date(vision.targetDate).getTime();
+  const durationDays = Math.max(1, (target - created) / (1000 * 60 * 60 * 24));
+  return Math.max(100, Math.round((durationDays / 365) * 10000));
+};
+
 // ── Progress calculation ─────────────────────────────────────────────
 
 export const getProgress = (vision) => {
@@ -187,6 +200,7 @@ export default {
   getNearestVision,
   getProgress,
   getTimeRemaining,
+  calculateVisionPoints,
   CATEGORIES,
   TIMEFRAMES,
 };

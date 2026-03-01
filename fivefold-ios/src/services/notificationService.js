@@ -12,8 +12,8 @@ const TAB_NOTIFICATION_MAP = {
     notificationTypes: ['prayer_reminder', 'custom_prayer', 'missed_prayer'],
   },
   Todos: {
-    settingsKeys: ['taskReminders'],
-    notificationTypes: ['task_reminder'],
+    settingsKeys: ['taskReminders', 'visionExpiryReminders'],
+    notificationTypes: ['task_reminder', 'vision_expiry'],
   },
   Gym: {
     settingsKeys: ['workoutReminders', 'weeklyBodyCheckIn'],
@@ -372,6 +372,12 @@ class NotificationService {
       case 'vision_checkin':
         targetTab = 'Vision';
         console.log('📱 Navigating to Vision screen for check-in');
+        break;
+
+      case 'vision_expiry':
+        targetTab = 'Vision';
+        additionalData = { visionId: data.visionId, showCompletion: true };
+        console.log('📱 Navigating to Vision screen for expiry:', data.visionId);
         break;
         
       default:
@@ -791,6 +797,14 @@ class NotificationService {
         console.log('Token arrival notifications disabled - cancelled');
       }
 
+      // Handle vision expiry toggle
+      if (settings.visionExpiryReminders === false) {
+        await this.cancelNotificationsByType('vision_expiry');
+        console.log('Vision expiry reminders disabled - cancelled');
+      } else if (settings.visionExpiryReminders !== false) {
+        await this.rescheduleAllVisionExpiryNotifications();
+      }
+
       // Handle weekly body check-in toggle
       if (settings.weeklyBodyCheckIn === false) {
         await this.cancelNotificationsByType('weekly_body_checkin');
@@ -1166,6 +1180,98 @@ class NotificationService {
       await this.cancelNotificationsByType('vision_checkin');
     } catch (error) {
       console.error('Failed to cancel vision check-in:', error);
+    }
+  }
+
+  /**
+   * Schedule a notification for when a vision's target date is reached.
+   * Uses the vision's targetDate as the trigger.
+   */
+  async scheduleVisionExpiryNotification(vision) {
+    try {
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        pushNotifications: true,
+        visionExpiryReminders: true,
+      };
+
+      if (settings.pushNotifications === false || settings.visionExpiryReminders === false) {
+        console.log('[Notif] Vision expiry notifications disabled, skipping');
+        return;
+      }
+
+      const targetDate = new Date(vision.targetDate);
+      if (targetDate <= new Date()) {
+        console.log('[Notif] Vision target date already passed, skipping notification');
+        return;
+      }
+
+      const notifId = `vision_expiry_${vision.id}`;
+      await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: notifId,
+        content: {
+          title: 'Vision Target Reached',
+          body: `Your vision "${vision.title}" has reached its target date. Did you achieve it?`,
+          data: { type: 'vision_expiry', visionId: vision.id },
+          sound: settings.sound ? 'default' : false,
+        },
+        trigger: { type: 'date', date: targetDate },
+      });
+
+      console.log(`[Notif] Vision expiry scheduled for "${vision.title}" at ${targetDate.toISOString()}`);
+    } catch (error) {
+      console.error('Failed to schedule vision expiry notification:', error);
+    }
+  }
+
+  async cancelVisionExpiryNotification(visionId) {
+    try {
+      const notifId = `vision_expiry_${visionId}`;
+      await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+    } catch (error) {
+      console.error('Failed to cancel vision expiry notification:', error);
+    }
+  }
+
+  /**
+   * Reschedule expiry notifications for all active visions.
+   * Called when the setting is toggled on or on app launch.
+   */
+  async rescheduleAllVisionExpiryNotifications() {
+    try {
+      await this.cancelNotificationsByType('vision_expiry');
+
+      const settings = await getStoredData('notificationSettings') || {
+        sound: true,
+        pushNotifications: true,
+        visionExpiryReminders: true,
+      };
+
+      if (settings.pushNotifications === false || settings.visionExpiryReminders === false) {
+        return;
+      }
+
+      const visionsStr = await userStorage.getRaw('visions');
+      if (!visionsStr) return;
+
+      const visions = JSON.parse(visionsStr);
+      const now = new Date();
+      let count = 0;
+
+      for (const v of visions) {
+        if (v.status !== 'active') continue;
+        const targetDate = new Date(v.targetDate);
+        if (targetDate <= now) continue;
+
+        await this.scheduleVisionExpiryNotification(v);
+        count++;
+      }
+
+      console.log(`[Notif] Rescheduled ${count} vision expiry notifications`);
+    } catch (error) {
+      console.error('Failed to reschedule vision expiry notifications:', error);
     }
   }
 

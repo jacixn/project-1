@@ -355,6 +355,19 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
     // ── Step 4: Delete cloud profile & data ──
     progress(4);
     try {
+      // Referral rollback via Cloud Function (server has permission to update referrer's doc)
+      try {
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('../config/firebase');
+        const rollbackReferral = httpsCallable(functions, 'rollbackReferralOnAccountDelete');
+        const result = await rollbackReferral();
+        if (result?.data?.decremented) {
+          console.log('[Delete] ✓ Referral count decremented for referrer (via Cloud Function)');
+        }
+      } catch (e) {
+        console.warn('[Delete] Referral rollback failed:', e.message);
+      }
+
       // Get username for reservation cleanup
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
@@ -362,27 +375,6 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
         if (userData.username) {
           await deleteDoc(doc(db, 'usernames', userData.username));
           console.log('[Delete] Deleted username:', userData.username);
-        }
-
-        // ── Referral rollback: if this user was referred by someone,
-        //    decrement the referrer's count so deleted accounts can't
-        //    be exploited to farm referrals ──
-        if (userData.referredBy) {
-          try {
-            const referrerRef = doc(db, 'users', userData.referredBy);
-            const referrerSnap = await getDoc(referrerRef);
-            if (referrerSnap.exists()) {
-              const currentCount = referrerSnap.data().referralCount || 0;
-              if (currentCount > 0) {
-                await updateDoc(referrerRef, {
-                  referralCount: increment(-1),
-                });
-                console.log('[Delete] ✓ Decremented referral count for referrer:', userData.referredBy);
-              }
-            }
-          } catch (e) {
-            console.error('[Delete] ✗ Referral rollback failed:', e.message);
-          }
         }
       }
       // Delete main user document

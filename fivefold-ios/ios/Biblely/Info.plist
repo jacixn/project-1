@@ -21,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.58</string>
+	<string>1.0.62</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -35,7 +35,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>58</string>
+	<string>62</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -51,6 +51,8 @@
 	<string>Biblely needs permission to save images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Biblely uses Bluetooth to connect to your smart scale for body composition tracking.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.</string>
 	<key>RCTNewArchEnabled</key>
@@ -58,6 +60,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>bluetooth-central</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>

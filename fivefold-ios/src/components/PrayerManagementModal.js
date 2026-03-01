@@ -181,7 +181,11 @@ const PrayerManagementModal = ({
                 </Text>
               </View>
             ) : (
-              prayers.map((prayer) => (
+              [...prayers].sort((a, b) => {
+                const [aH, aM] = (a.time || '00:00').split(':').map(Number);
+                const [bH, bM] = (b.time || '00:00').split(':').map(Number);
+                return (aH * 60 + aM) - (bH * 60 + bM);
+              }).map((prayer) => (
                 <View
                   key={prayer.id}
                   style={[styles.prayerItem, { 

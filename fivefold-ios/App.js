@@ -34,6 +34,8 @@ import {
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
+import FeedbackModal from './src/components/FeedbackModal';
+import feedbackService from './src/services/feedbackService';
 import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -243,6 +245,9 @@ const AppNavigation = () => {
   const currentRoute = React.useContext(CurrentRouteContext);
   const [firstPlayer, setFirstPlayer] = useState(null); // 'workout' or 'audio' - tracks which came first
   const achievementToastRef = React.useRef(null);
+  const feedbackModalRef = React.useRef(null);
+  const pendingFeedbackRef = React.useRef(false);
+  const feedbackFallbackRef = React.useRef(null);
 
   // Track which player came first
   useEffect(() => {
@@ -312,25 +317,58 @@ const AppNavigation = () => {
       setWorkoutModalVisible(true);
     });
 
+    // ── Unified feedback prompt scheduling ──
+    // Uses refs so the pending state survives effect re-runs
+    // (maximizeWorkout is not memoized, causing frequent re-runs).
+    const tryShowFeedback = () => {
+      if (!pendingFeedbackRef.current) return;
+      pendingFeedbackRef.current = false;
+      if (feedbackFallbackRef.current) { clearTimeout(feedbackFallbackRef.current); feedbackFallbackRef.current = null; }
+      setTimeout(() => {
+        feedbackService.shouldShowPrompt().then(should => {
+          if (should) feedbackModalRef.current?.show();
+        });
+      }, 2000);
+    };
+
+    const scheduleFeedback = () => {
+      pendingFeedbackRef.current = true;
+      if (feedbackFallbackRef.current) clearTimeout(feedbackFallbackRef.current);
+      feedbackFallbackRef.current = setTimeout(tryShowFeedback, 15000);
+    };
+
     // Listen for batched achievements (multiple at once)
     const achievementBatchSubscription = DeviceEventEmitter.addListener('achievementsUnlockedBatch', (achievements) => {
       console.log('🏆 Achievement batch unlocked:', achievements.length);
       if (achievementToastRef.current) {
         achievementToastRef.current.showBatch(achievements);
       }
+      const ids = achievements.map(a => a.id);
+      if (feedbackService.shouldTriggerForAchievements(ids)) {
+        feedbackService.shouldShowPrompt().then(should => {
+          if (should) scheduleFeedback();
+        });
+      }
     });
 
+    // Show rating prompt after onboarding — wait for VOTD to close first
+    const onboardingDoneSubscription = DeviceEventEmitter.addListener('onboardingCompleted', () => {
+      scheduleFeedback();
+    });
+
+    const popupDismissedSubscription = DeviceEventEmitter.addListener('popupDismissed', tryShowFeedback);
+
     // Individual event fallback — only fires for legacy/external callers
-    // (The batch handler above covers the main checkAchievements flow)
     const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
       // No-op: batch handler already shows these.
-      // Kept for subscription cleanup only.
     });
 
     return () => {
       subscription.remove();
       achievementSubscription.remove();
       achievementBatchSubscription.remove();
+      onboardingDoneSubscription.remove();
+      popupDismissedSubscription.remove();
     };
   }, [hasActiveWorkout, maximizeWorkout]);
 
@@ -394,6 +432,9 @@ const AppNavigation = () => {
 
       {/* Global Achievement Notification */}
       <AchievementToast ref={achievementToastRef} />
+
+      {/* Global Feedback / Rating Modal */}
+      <FeedbackModal ref={feedbackModalRef} />
     </>
   );
 };

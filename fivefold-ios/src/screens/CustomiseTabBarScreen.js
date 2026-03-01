@@ -1,13 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Switch,
-  Animated,
   Alert,
+  ScrollView,
+  LayoutAnimation,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +25,8 @@ import userStorage from '../utils/userStorage';
 import { refreshTabBarConfig, DEFAULT_ORDER } from '../navigation/TabNavigator';
 import notificationService from '../services/notificationService';
 
+const ROW_HEIGHT = 68;
+
 const TAB_META = {
   BiblePrayer: { label: 'Bible', icon: 'menu-book', color: '#3B82F6' },
   Todos: { label: 'Tasks', icon: 'check-circle', color: '#10B981' },
@@ -24,6 +34,116 @@ const TAB_META = {
   Hub: { label: 'Hub', icon: 'forum', color: '#8B5CF6' },
   Profile: { label: 'Profile', icon: 'person', color: '#EC4899' },
 };
+
+const SWAP_ANIM = {
+  duration: 200,
+  update: { type: LayoutAnimation.Types.easeInEaseOut },
+};
+
+const TabRow = React.memo(({
+  name,
+  isLast,
+  isDark,
+  textColor,
+  textSecondary,
+  theme,
+  isHidden,
+  isProfile,
+  onToggle,
+  draggedKey,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+}) => {
+  const meta = TAB_META[name];
+
+  const gesture = React.useMemo(() =>
+    Gesture.Pan()
+      .activateAfterLongPress(200)
+      .onStart(() => {
+        'worklet';
+        draggedKey.value = name;
+        runOnJS(onDragStart)(name);
+      })
+      .onUpdate(({ translationY }) => {
+        'worklet';
+        runOnJS(onDragMove)(translationY);
+      })
+      .onEnd(() => {
+        'worklet';
+        draggedKey.value = '';
+        runOnJS(onDragEnd)();
+      })
+      .onFinalize(() => {
+        'worklet';
+        if (draggedKey.value === name) {
+          draggedKey.value = '';
+          runOnJS(onDragEnd)();
+        }
+      })
+      .enabled(!isProfile),
+    [name, isProfile]
+  );
+
+  const normalBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
+
+  const animStyle = useAnimatedStyle(() => {
+    const isActive = draggedKey.value === name;
+    return {
+      transform: [
+        { scale: withSpring(isActive ? 1.02 : 1, { damping: 15, stiffness: 200 }) },
+      ],
+      zIndex: isActive ? 100 : 1,
+    };
+  });
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={[
+          styles.tabRow,
+          animStyle,
+          { backgroundColor: normalBg },
+          !isLast && {
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+          },
+          isHidden && { opacity: 0.45 },
+        ]}
+      >
+        <View style={styles.dragHandle}>
+          {isProfile ? (
+            <View style={{ width: 22 }} />
+          ) : (
+            <MaterialIcons name="drag-indicator" size={22} color={textSecondary} />
+          )}
+        </View>
+
+        <View style={[styles.tabIconBg, { backgroundColor: meta.color + '20' }]}>
+          <MaterialIcons name={meta.icon} size={20} color={meta.color} />
+        </View>
+
+        <View style={styles.tabInfo}>
+          <Text style={[styles.tabLabel, { color: textColor }]}>{meta.label}</Text>
+          {isProfile && (
+            <Text style={[styles.tabHint, { color: textSecondary }]}>Always visible</Text>
+          )}
+        </View>
+
+        {isProfile ? (
+          <MaterialIcons name="lock" size={18} color={textSecondary} style={{ opacity: 0.5 }} />
+        ) : (
+          <Switch
+            value={!isHidden}
+            onValueChange={() => onToggle(name)}
+            trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+            thumbColor="#fff"
+          />
+        )}
+      </Animated.View>
+    </GestureDetector>
+  );
+});
 
 const CustomiseTabBarScreen = () => {
   const navigation = useNavigation();
@@ -34,7 +154,15 @@ const CustomiseTabBarScreen = () => {
   const [hidden, setHidden] = useState([]);
   const [initialHidden, setInitialHidden] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  const orderRef = useRef(order);
+  orderRef.current = order;
+
+  const currentDragIdx = useRef(-1);
+  const swapAccumulator = useRef(0);
+
+  const draggedKey = useSharedValue('');
 
   const textColor = isDark ? '#FFFFFF' : '#1A1A2E';
   const textSecondary = isDark ? 'rgba(255,255,255,0.6)' : '#666';
@@ -43,7 +171,6 @@ const CustomiseTabBarScreen = () => {
 
   useEffect(() => {
     loadConfig();
-    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
   }, []);
 
   const loadConfig = async () => {
@@ -82,42 +209,75 @@ const CustomiseTabBarScreen = () => {
     }
   };
 
-  const resetToDefault = async () => {
+  const resetToDefault = () => {
     setOrder([...DEFAULT_ORDER]);
     setHidden([]);
     setHasChanges(true);
     hapticFeedback.medium();
   };
 
-  const moveTab = (index, direction) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= order.length) return;
-    const newOrder = [...order];
-    [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-    setOrder(newOrder);
-    setHasChanges(true);
-    hapticFeedback.light();
-  };
-
-  const toggleTab = (name) => {
+  const toggleTab = useCallback((name) => {
     if (name === 'Profile') return;
-    const visibleCount = order.filter(n => !hidden.includes(n)).length;
-    if (!hidden.includes(name) && visibleCount <= 2) {
-      hapticFeedback.error();
-      Alert.alert('Minimum Tabs', 'You need at least 2 visible tabs.');
-      return;
+    setHidden(prev => {
+      const currentOrder = orderRef.current;
+      const visibleCount = currentOrder.filter(n => !prev.includes(n)).length;
+      if (!prev.includes(name) && visibleCount <= 2) {
+        hapticFeedback.error();
+        Alert.alert('Minimum Tabs', 'You need at least 2 visible tabs.');
+        return prev;
+      }
+      setHasChanges(true);
+      hapticFeedback.light();
+      return prev.includes(name) ? prev.filter(h => h !== name) : [...prev, name];
+    });
+  }, []);
+
+  const onDragStart = useCallback((name) => {
+    currentDragIdx.current = orderRef.current.indexOf(name);
+    swapAccumulator.current = 0;
+    setScrollEnabled(false);
+    hapticFeedback.medium();
+  }, []);
+
+  const onDragMove = useCallback((translationY) => {
+    const adjustedY = translationY - swapAccumulator.current;
+    const threshold = ROW_HEIGHT * 0.5;
+    const idx = currentDragIdx.current;
+    const currentOrder = orderRef.current;
+
+    if (adjustedY > threshold && idx < currentOrder.length - 1) {
+      LayoutAnimation.configureNext(SWAP_ANIM);
+      const newOrder = [...currentOrder];
+      [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+      orderRef.current = newOrder;
+      setOrder(newOrder);
+      setHasChanges(true);
+      currentDragIdx.current = idx + 1;
+      swapAccumulator.current += ROW_HEIGHT;
+      hapticFeedback.light();
+    } else if (adjustedY < -threshold && idx > 0) {
+      LayoutAnimation.configureNext(SWAP_ANIM);
+      const newOrder = [...currentOrder];
+      [newOrder[idx], newOrder[idx - 1]] = [newOrder[idx - 1], newOrder[idx]];
+      orderRef.current = newOrder;
+      setOrder(newOrder);
+      setHasChanges(true);
+      currentDragIdx.current = idx - 1;
+      swapAccumulator.current -= ROW_HEIGHT;
+      hapticFeedback.light();
     }
-    setHidden(prev =>
-      prev.includes(name) ? prev.filter(h => h !== name) : [...prev, name]
-    );
-    setHasChanges(true);
-    hapticFeedback.light();
-  };
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    currentDragIdx.current = -1;
+    swapAccumulator.current = 0;
+    setScrollEnabled(true);
+  }, []);
 
   const visibleCount = order.filter(n => !hidden.includes(n)).length;
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor: theme.background, opacity: fadeAnim }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -132,13 +292,14 @@ const CustomiseTabBarScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <Animated.ScrollView
+      <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
       >
         <Text style={[styles.sectionDesc, { color: textSecondary }]}>
-          Choose which tabs to show and drag to reorder. Profile is always visible.
+          Hold and drag to reorder. Profile is always visible.
         </Text>
 
         <View style={[styles.previewBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
@@ -159,71 +320,30 @@ const CustomiseTabBarScreen = () => {
         <Text style={[styles.sectionTitle, { color: textSecondary }]}>TABS</Text>
 
         <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-          {order.map((name, index) => {
-            const meta = TAB_META[name];
-            const isProfile = name === 'Profile';
-            const isHidden = hidden.includes(name);
-            const isFirst = index === 0;
-            const isLast = index === order.length - 1;
-
-            return (
-              <View
-                key={name}
-                style={[
-                  styles.tabRow,
-                  !isLast && { borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' },
-                  isHidden && { opacity: 0.45 },
-                ]}
-              >
-                <View style={styles.reorderButtons}>
-                  <TouchableOpacity
-                    onPress={() => moveTab(index, -1)}
-                    disabled={isFirst}
-                    style={[styles.arrowBtn, isFirst && { opacity: 0.2 }]}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <MaterialIcons name="keyboard-arrow-up" size={22} color={textSecondary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => moveTab(index, 1)}
-                    disabled={isLast}
-                    style={[styles.arrowBtn, isLast && { opacity: 0.2 }]}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <MaterialIcons name="keyboard-arrow-down" size={22} color={textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.tabIconBg, { backgroundColor: meta.color + '20' }]}>
-                  <MaterialIcons name={meta.icon} size={20} color={meta.color} />
-                </View>
-
-                <View style={styles.tabInfo}>
-                  <Text style={[styles.tabLabel, { color: textColor }]}>{meta.label}</Text>
-                  {isProfile && (
-                    <Text style={[styles.tabHint, { color: textSecondary }]}>Always visible</Text>
-                  )}
-                </View>
-
-                {isProfile ? (
-                  <MaterialIcons name="lock" size={18} color={textSecondary} style={{ opacity: 0.5 }} />
-                ) : (
-                  <Switch
-                    value={!isHidden}
-                    onValueChange={() => toggleTab(name)}
-                    trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
-                    thumbColor="#fff"
-                  />
-                )}
-              </View>
-            );
-          })}
+          {order.map((name, index) => (
+            <TabRow
+              key={name}
+              name={name}
+              isLast={index === order.length - 1}
+              isDark={isDark}
+              textColor={textColor}
+              textSecondary={textSecondary}
+              theme={theme}
+              isHidden={hidden.includes(name)}
+              isProfile={name === 'Profile'}
+              onToggle={toggleTab}
+              draggedKey={draggedKey}
+              onDragStart={onDragStart}
+              onDragMove={onDragMove}
+              onDragEnd={onDragEnd}
+            />
+          ))}
         </View>
 
         <Text style={[styles.footerNote, { color: textSecondary }]}>
           {visibleCount} of {order.length} tabs visible
         </Text>
-      </Animated.ScrollView>
+      </ScrollView>
 
       <View style={[styles.saveBar, { paddingBottom: insets.bottom + 16, backgroundColor: theme.background }]}>
         <TouchableOpacity
@@ -234,7 +354,7 @@ const CustomiseTabBarScreen = () => {
           <Text style={styles.saveButtonText}>Save Changes</Text>
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -310,17 +430,15 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    height: ROW_HEIGHT,
     paddingRight: 16,
     paddingLeft: 4,
   },
-  reorderButtons: {
+  dragHandle: {
+    width: 36,
+    height: '100%',
     alignItems: 'center',
-    width: 32,
-    marginRight: 4,
-  },
-  arrowBtn: {
-    padding: 1,
+    justifyContent: 'center',
   },
   tabIconBg: {
     width: 36,

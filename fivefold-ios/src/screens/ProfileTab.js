@@ -77,6 +77,7 @@ import {
 import { REPORT_REASONS } from '../services/reportService';
 import bibleAudioService from '../services/bibleAudioService';
 import BibleReader from '../components/BibleReader';
+import FeedbackModal from '../components/FeedbackModal';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
 import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
@@ -351,6 +352,11 @@ const ProfileTab = () => {
   const [showAdminReports, setShowAdminReports] = useState(false);
   const [reportsData, setReportsData] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
+
+  // Admin Feedback state
+  const [showAdminFeedback, setShowAdminFeedback] = useState(false);
+  const [feedbackEntries, setFeedbackEntries] = useState([]);
+  const [loadingFeedbackEntries, setLoadingFeedbackEntries] = useState(false);
   const [reportsFilter, setReportsFilter] = useState('pending'); // 'pending' | 'all' | 'resolved'
   const [reportUserCache, setReportUserCache] = useState({}); // uid -> userInfo
   const [selectedReport, setSelectedReport] = useState(null);
@@ -391,6 +397,7 @@ const ProfileTab = () => {
 
   // Pull-to-refresh Lottie animation values
   const refreshLottieRef = useRef(null);
+  const feedbackModalRef = useRef(null);
   const refreshLottieScale = useRef(new Animated.Value(0)).current;
   const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
   const refreshLottieRotate = useRef(new Animated.Value(0)).current;
@@ -566,6 +573,24 @@ const ProfileTab = () => {
       Alert.alert('Error', 'Failed to load reports.');
     } finally {
       setLoadingReports(false);
+    }
+  }, [isAdmin]);
+
+  // ── Admin Feedback Fetcher ──
+  const fetchFeedbackEntries = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingFeedbackEntries(true);
+    try {
+      const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      const q = query(collection(db, 'app_feedback'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setFeedbackEntries(entries);
+    } catch (error) {
+      console.warn('[Admin] Failed to fetch feedback:', error.message);
+    } finally {
+      setLoadingFeedbackEntries(false);
     }
   }, [isAdmin]);
 
@@ -3574,6 +3599,158 @@ const ProfileTab = () => {
         onClose={() => setShowNotificationSettings(false)}
       />
 
+      {/* Feedback / Rate Modal */}
+      <FeedbackModal ref={feedbackModalRef} />
+
+      {/* ══════════════════════════════════════════════════════════════
+           ADMIN USER EXPERIENCE MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      <Modal visible={showAdminFeedback} animationType="slide" presentationStyle="pageSheet">
+        <View style={{ flex: 1, backgroundColor: isDark ? '#111' : '#F5F5F7' }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 12,
+            backgroundColor: isDark ? '#111' : '#F5F5F7',
+          }}>
+            <TouchableOpacity onPress={() => setShowAdminFeedback(false)} style={{ padding: 4 }}>
+              <MaterialIcons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>User Experience</Text>
+            <TouchableOpacity onPress={fetchFeedbackEntries} style={{ padding: 4 }}>
+              <MaterialIcons name="refresh" size={24} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Summary Stats */}
+          {!loadingFeedbackEntries && feedbackEntries.length > 0 && (
+            <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
+              {(() => {
+                const avg = (feedbackEntries.reduce((sum, e) => sum + (e.rating || 0), 0) / feedbackEntries.length).toFixed(1);
+                const positive = feedbackEntries.filter(e => e.rating >= 4).length;
+                const negative = feedbackEntries.filter(e => e.rating <= 2).length;
+                return (
+                  <>
+                    <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: '#FF9500' }}>{avg}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>Avg Rating</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>{feedbackEntries.length}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>Total</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: '#34C759' }}>{positive}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>Positive</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: '#FF3B30' }}>{negative}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>Negative</Text>
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
+          )}
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 4, paddingBottom: 40 }}>
+            {loadingFeedbackEntries ? (
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <CustomLoadingIndicator color={theme.primary} selectedAnim={selectedLoadingAnim} />
+                <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 14 }}>Loading feedback...</Text>
+              </View>
+            ) : feedbackEntries.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <MaterialIcons name="rate-review" size={48} color={theme.textSecondary} />
+                <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 15, textAlign: 'center' }}>
+                  No feedback yet
+                </Text>
+              </View>
+            ) : feedbackEntries.map((entry) => {
+              const ratingColor = entry.rating >= 4 ? '#34C759' : entry.rating === 3 ? '#FF9500' : '#FF3B30';
+              const date = entry.createdAt?.toDate?.()
+                ? entry.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'Unknown';
+
+              return (
+                <View key={entry.id} style={{
+                  backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 4,
+                  elevation: 2,
+                  borderLeftWidth: 4,
+                  borderLeftColor: ratingColor,
+                }}>
+                  {/* Rating + Date */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <MaterialIcons key={s} name={s <= entry.rating ? 'star' : 'star-border'} size={18} color={s <= entry.rating ? ratingColor : theme.textSecondary} />
+                      ))}
+                    </View>
+                    <Text style={{ fontSize: 11, color: theme.textSecondary }}>{date}</Text>
+                  </View>
+
+                  {/* Comment */}
+                  {entry.comment ? (
+                    <Text style={{ fontSize: 14, color: theme.text, lineHeight: 20, marginBottom: 8 }}>
+                      "{entry.comment}"
+                    </Text>
+                  ) : null}
+
+                  {/* Improvement tags */}
+                  {entry.improvements && entry.improvements.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                      {entry.improvements.map(tag => (
+                        <View key={tag} style={{ backgroundColor: `${ratingColor}15`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: ratingColor }}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* User Info */}
+                  <View style={{
+                    paddingTop: 8,
+                    borderTopWidth: 1,
+                    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                      {entry.displayName ? (
+                        <Text style={{ fontSize: 12, color: theme.textSecondary }}>
+                          <Text style={{ fontWeight: '600', color: theme.text }}>{entry.displayName}</Text>
+                        </Text>
+                      ) : null}
+                      {entry.username ? (
+                        <Text style={{ fontSize: 12, color: theme.textSecondary }}>@{entry.username}</Text>
+                      ) : null}
+                      {entry.email ? (
+                        <Text style={{ fontSize: 12, color: theme.textSecondary }}>{entry.email}</Text>
+                      ) : null}
+                      {entry.country ? (
+                        <Text style={{ fontSize: 12, color: theme.textSecondary }}>{entry.country}</Text>
+                      ) : null}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary }}>v{entry.appVersion || '?'}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textSecondary }}>{entry.platform || 'ios'}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* Voice Picker Modal */}
       <VoicePickerModal
         visible={showVoicePickerModal}
@@ -4914,6 +5091,40 @@ const ProfileTab = () => {
               </View>
               <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
             </TouchableOpacity>
+
+            {/* Rate Biblely */}
+            <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                }}
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => feedbackModalRef.current?.show(), 350);
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: '#FF950020',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="star" size={20} color="#FF9500" />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Rate Biblely</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>Help us improve with your feedback</Text>
+                  </View>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+            </TouchableOpacity>
             </View>
 
             {/* DANGER ZONE */}
@@ -5061,6 +5272,43 @@ const ProfileTab = () => {
                         <MaterialIcons name="report" size={20} color="#FF3B30" />
                       </View>
                       <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Reports</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
+
+                  {/* Separator */}
+                  <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', marginHorizontal: 16 }} />
+
+                  {/* User Experience / Feedback */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 16,
+                    }}
+                    onPress={() => {
+                      hapticFeedback.buttonPress();
+                      setShowSettingsModal(false);
+                      setTimeout(() => {
+                        setShowAdminFeedback(true);
+                        fetchFeedbackEntries();
+                      }, 300);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#FF950020',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <MaterialIcons name="rate-review" size={20} color="#FF9500" />
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Experience</Text>
                     </View>
                     <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
                   </TouchableOpacity>

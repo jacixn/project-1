@@ -744,3 +744,56 @@ exports.verify2FALoginCode = onCall({ maxInstances: 10 }, async (request) => {
   console.log('[verify2FALoginCode] 2FA verified for', maskEmail(email));
   return { success: true };
 });
+
+// ─── rollbackReferralOnAccountDelete ─────────────────────────────
+// Authenticated — called by the client before deleting their account.
+// Reads the caller's user doc to get referredBy, then decrements that
+// referrer's referralCount by 1 so deleted accounts don't leave stale counts.
+
+exports.rollbackReferralOnAccountDelete = onCall({ maxInstances: 10 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const uid = request.auth.uid;
+  const userRef = db.collection('users').doc(uid);
+  const userSnap = await userRef.get();
+
+  if (!userSnap.exists) {
+    return { success: true, decremented: false };
+  }
+
+  const userData = userSnap.data();
+  const referrerUid = userData.referredBy || null;
+
+  if (!referrerUid) {
+    return { success: true, decremented: false };
+  }
+
+  const referrerRef = db.collection('users').doc(referrerUid);
+  const referrerSnap = await referrerRef.get();
+
+  if (!referrerSnap.exists) {
+    return { success: true, decremented: false };
+  }
+
+  const currentCount = referrerSnap.data().referralCount || 0;
+  if (currentCount <= 0) {
+    return { success: true, decremented: false };
+  }
+
+  await referrerRef.update({
+    referralCount: FieldValue.increment(-1),
+  });
+
+  // Clear referral fields on deleting user so a retry of this callable won't double-decrement
+  await userRef.update({
+    referredBy: null,
+    referredByUsername: null,
+    referredByDisplayName: null,
+    referralDate: null,
+  });
+
+  console.log('[rollbackReferralOnAccountDelete] Decremented referral count for', referrerUid, ' (deleting user:', uid, ')');
+  return { success: true, decremented: true };
+});

@@ -505,11 +505,16 @@ const BiblePrayerTab = () => {
   }, [refreshing, selectedLoadingAnim]);
 
   // Load userName when verse modal opens (just like Friend chat does)
+  // Emit event when it closes so other popups know it's safe to show
+  const prevVerseModal = useRef(false);
   useEffect(() => {
     if (showVerseModal) {
       console.log('📖 Verse modal opened - loading user name');
       loadUserName();
+    } else if (prevVerseModal.current) {
+      DeviceEventEmitter.emit('popupDismissed');
     }
+    prevVerseModal.current = showVerseModal;
   }, [showVerseModal]);
 
   // Format possessive form of name (e.g., "Jason's" or "Jesus'")

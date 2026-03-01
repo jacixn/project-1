@@ -2,7 +2,7 @@
   "expo": {
     "name": "Biblely",
     "slug": "fivefold-ios",
-    "version": "1.0.58",
+    "version": "1.0.61",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,13 +17,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.jesusxoi.biblely",
-      "buildNumber": "58",
+      "buildNumber": "61",
       "infoPlist": {
         "NSCameraUsageDescription": "Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.",
         "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.",
         "NSUserNotificationsUsageDescription": "Biblely sends prayer reminders and achievement notifications to help you maintain your spiritual journey.",
+        "NSBluetoothAlwaysUsageDescription": "Biblely uses Bluetooth to connect to your smart scale for body composition tracking.",
         "UIBackgroundModes": [
-          "remote-notification"
+          "remote-notification",
+          "bluetooth-central"
         ],
         "UIStatusBarHidden": false,
         "UIViewControllerBasedStatusBarAppearance": false,

@@ -67,7 +67,11 @@ const NewPrayerCard = ({ userPrayers = [], prayerHistory, onPrayerComplete, onPr
           </View>
         ) : (
           <View style={[styles.prayersList, { backgroundColor: theme.surface }]}>
-            {userPrayers.map(prayer => {
+            {[...userPrayers].sort((a, b) => {
+              const [aH, aM] = (a.time || '00:00').split(':').map(Number);
+              const [bH, bM] = (b.time || '00:00').split(':').map(Number);
+              return (aH * 60 + aM) - (bH * 60 + bM);
+            }).map(prayer => {
               // Create a prayer object compatible with the existing status system
               const prayerForStatus = {
                 time: prayer.time,

@@ -4391,7 +4391,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     }
   };
 
-  return renderScreen();
+  return <View key={screens[currentScreen]} style={{ flex: 1 }}>{renderScreen()}</View>;
 };
 
 const styles = StyleSheet.create({

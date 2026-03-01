@@ -20,25 +20,48 @@ import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
 import WorkoutService from '../services/workoutService';
 
+const SETTING_TO_TAB = {
+  prayerReminders: 'BiblePrayer',
+  taskReminders: 'Todos',
+  visionExpiryReminders: 'Todos',
+  workoutReminders: 'Gym',
+  weeklyBodyCheckIn: 'Gym',
+  tokenArrival: 'Hub',
+};
+
 const NotificationSettings = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
   const [settings, setSettings] = useState({
-    prayerReminders: true, // Single toggle for 30 min before prayer reminders
-    taskReminders: true, // Toggle for task/todo notifications
-    workoutReminders: true, // Toggle for workout/gym notifications
-    weeklyBodyCheckIn: true, // Toggle for weekly Saturday weigh-in reminder
-    tokenArrival: true, // Toggle for daily Hub token arrival notification
+    prayerReminders: true,
+    taskReminders: true,
+    visionExpiryReminders: true,
+    workoutReminders: true,
+    weeklyBodyCheckIn: true,
+    tokenArrival: true,
     achievementNotifications: true,
     streakReminders: true,
     pushNotifications: true,
     sound: true,
     vibration: true,
   });
-
+  const [hiddenTabs, setHiddenTabs] = useState(new Set());
 
   useEffect(() => {
     loadNotificationSettings();
-  }, []);
+    loadHiddenTabs();
+  }, [visible]);
+
+  const loadHiddenTabs = async () => {
+    try {
+      const config = await userStorage.get('tabBarConfig');
+      setHiddenTabs(new Set(config?.hidden || []));
+    } catch (_) {}
+  };
+
+  const isSettingHidden = (key) => {
+    const tab = SETTING_TO_TAB[key];
+    return tab ? hiddenTabs.has(tab) : false;
+  };
 
   const loadNotificationSettings = async () => {
     try {
@@ -300,6 +323,11 @@ const NotificationSettings = ({ visible, onClose }) => {
       await rescheduleWorkoutNotifications(newSettings.sound);
     }
 
+    // When toggling vision expiry ON, reschedule for all active visions
+    if (key === 'visionExpiryReminders' && isTogglingOn && newSettings.pushNotifications) {
+      await notificationService.rescheduleAllVisionExpiryNotifications();
+    }
+
     // When toggling main push notifications ON, reschedule all enabled notification types
     if (key === 'pushNotifications' && isTogglingOn) {
       // Task notifications
@@ -379,65 +407,87 @@ const NotificationSettings = ({ visible, onClose }) => {
             />
           </View>
 
-          {/* Single Prayer Reminder Toggle */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Prayer Reminders</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-              Remind me 30 minutes before every prayer
-            </Text>
-            
-            <NotificationToggle
-              title="Prayer Reminders"
-              subtitle="Get notified 30 minutes before each prayer time"
-              icon="notifications-active"
-              settingKey="prayerReminders"
-              iconColor="#2196F3"
-            />
-          </View>
+          {/* Prayer Reminders — hidden when Bible tab is hidden */}
+          {!isSettingHidden('prayerReminders') && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Prayer Reminders</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Remind me 30 minutes before every prayer
+              </Text>
+              
+              <NotificationToggle
+                title="Prayer Reminders"
+                subtitle="Get notified 30 minutes before each prayer time"
+                icon="notifications-active"
+                settingKey="prayerReminders"
+                iconColor="#2196F3"
+              />
+            </View>
+          )}
 
-          {/* Task & Workout Reminders */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Task & Fitness</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-              Get reminded about your scheduled tasks and workouts
-            </Text>
-            
-            <NotificationToggle
-              title="Task Reminders"
-              subtitle="Get notified about upcoming scheduled tasks"
-              icon="check-circle"
-              settingKey="taskReminders"
-              iconColor="#4CAF50"
-            />
-            
-            <NotificationToggle
-              title="Workout Reminders"
-              subtitle="Get notified before scheduled workouts"
-              icon="fitness-center"
-              settingKey="workoutReminders"
-              iconColor="#FF5722"
-            />
-            
-            <NotificationToggle
-              title="Weekly Check-In"
-              subtitle="Saturday reminder to update your weight"
-              icon="monitor-weight"
-              settingKey="weeklyBodyCheckIn"
-              iconColor="#9C27B0"
-            />
-          </View>
+          {/* Task & Fitness — show section if at least one toggle is visible */}
+          {(!isSettingHidden('taskReminders') || !isSettingHidden('workoutReminders')) && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Task & Fitness</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Get reminded about your scheduled tasks and workouts
+              </Text>
+              
+              {!isSettingHidden('taskReminders') && (
+                <NotificationToggle
+                  title="Task Reminders"
+                  subtitle="Get notified about upcoming scheduled tasks"
+                  icon="check-circle"
+                  settingKey="taskReminders"
+                  iconColor="#4CAF50"
+                />
+              )}
+
+              {!isSettingHidden('visionExpiryReminders') && (
+                <NotificationToggle
+                  title="Vision Expiry"
+                  subtitle="Get notified when a vision reaches its target date"
+                  icon="visibility"
+                  settingKey="visionExpiryReminders"
+                  iconColor="#F59E0B"
+                />
+              )}
+              
+              {!isSettingHidden('workoutReminders') && (
+                <NotificationToggle
+                  title="Workout Reminders"
+                  subtitle="Get notified before scheduled workouts"
+                  icon="fitness-center"
+                  settingKey="workoutReminders"
+                  iconColor="#FF5722"
+                />
+              )}
+              
+              {!isSettingHidden('weeklyBodyCheckIn') && (
+                <NotificationToggle
+                  title="Weekly Check-In"
+                  subtitle="Saturday reminder to update your weight"
+                  icon="monitor-weight"
+                  settingKey="weeklyBodyCheckIn"
+                  iconColor="#9C27B0"
+                />
+              )}
+            </View>
+          )}
 
           {/* App Features */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>App Features</Text>
             
-            <NotificationToggle
-              title="Token Arrival"
-              subtitle="Get notified when your daily Hub token arrives"
-              icon="stars"
-              settingKey="tokenArrival"
-              iconColor="#eab308"
-            />
+            {!isSettingHidden('tokenArrival') && (
+              <NotificationToggle
+                title="Token Arrival"
+                subtitle="Get notified when your daily Hub token arrives"
+                icon="stars"
+                settingKey="tokenArrival"
+                iconColor="#eab308"
+              />
+            )}
             
             <NotificationToggle
               title="Achievement Unlocked"

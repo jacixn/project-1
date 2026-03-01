@@ -80,3 +80,7 @@ All Bible data was scraped from BibleHub.com on Feb 7-8, 2026. If the `jacixn/bi
 - Full Bible translations (66 books): NIV, NLT, ESV, KJV, NKJV, NASB, CSB, AMP, CEV, GNT, GWT, LSV, YLT, BLB, BSB, ASV, WEB, DRB, CPDV, NAB, NRSV, NHEB, WBT, SLT, ERV, HCSB, ISV, LAMSA, LSB, MSB, NASB77, NASB95, NET
 - OT only: JPS Tanakh 1917, Brenton Septuagint, Peshitta Holy Bible
 - NT only: Anderson, Weymouth, Worrell, Worsley, Godbey, Haweis, Mace, Aramaic Bible in Plain English, Berean Literal Bible
+
+## Firebase / Cloud Functions
+- Cloud Functions live at repo root: `functions/index.js` (and `functions/package.json`). Used for verification codes, password reset, 2FA, and referral rollback on account delete.
+- **After any change to Cloud Functions, always run deploy** from project root: `firebase deploy --only functions`. Do not leave it to the user — run the deploy as part of the same change so the update is live.

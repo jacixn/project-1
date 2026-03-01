@@ -11,6 +11,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -29,9 +30,12 @@ import {
   getProgress,
   getTimeRemaining,
   getActiveVisions,
+  calculateVisionPoints,
   CATEGORIES,
   TIMEFRAMES,
 } from '../services/visionService';
+import VisionCompletionModal from '../components/VisionCompletionModal';
+import notificationService from '../services/notificationService';
 
 const VisionScreen = () => {
   const navigation = useNavigation();
@@ -41,6 +45,8 @@ const VisionScreen = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showReflectionModal, setShowReflectionModal] = useState(null);
+  const [completionVision, setCompletionVision] = useState(null);
+  const askedVisionIds = useRef(new Set());
 
   const textPrimary = isDark ? '#FFFFFF' : theme.text;
   const textSecondary = isDark ? 'rgba(255,255,255,0.6)' : '#6B7280';
@@ -56,6 +62,20 @@ const VisionScreen = () => {
       loadVisions().then((v) => setVisions(v));
     }, [])
   );
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notificationDataReceived', (payload) => {
+      if (payload.tab === 'Vision' && payload.data?.showCompletion && payload.data?.visionId) {
+        loadVisions().then((all) => {
+          const match = all.find((v) => v.id === payload.data.visionId);
+          if (match && match.status === 'active') {
+            setCompletionVision(match);
+          }
+        });
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const anims = cardSlideAnims.map((anim, i) =>
@@ -91,36 +111,58 @@ const VisionScreen = () => {
         onPress: async () => {
           hapticFeedback.medium();
           await deleteVision(vision.id);
+          notificationService.cancelVisionExpiryNotification(vision.id);
           refresh();
         },
       },
     ]);
   };
 
+  const isExpired = (vision) => {
+    return vision.status === 'active' && new Date(vision.targetDate) <= new Date();
+  };
+
+  const handleVisionTap = (vision) => {
+    if (isExpired(vision) && !askedVisionIds.current.has(vision.id)) {
+      setCompletionVision(vision);
+    } else {
+      setExpandedId(expandedId === vision.id ? null : vision.id);
+    }
+  };
+
+  const handleAchieved = async (vision) => {
+    await markAchieved(vision.id);
+    await notificationService.cancelVisionExpiryNotification(vision.id);
+    const points = calculateVisionPoints(vision);
+    try {
+      await PrayerCompletionManager.addPoints(points);
+    } catch (e) {
+      console.warn('Failed to award vision points:', e);
+    }
+    refresh();
+  };
+
+  const handleNotAchieved = (vision) => {
+    askedVisionIds.current.add(vision.id);
+  };
+
   const handleAchieve = async (vision) => {
+    if (isExpired(vision)) {
+      setCompletionVision(vision);
+      return;
+    }
     hapticFeedback.success();
     await markAchieved(vision.id);
-
-    const created = new Date(vision.createdAt).getTime();
-    const target = new Date(vision.targetDate).getTime();
-    const durationDays = (target - created) / (1000 * 60 * 60 * 24);
-
-    let points;
-    if (durationDays > 30) {
-      points = 230;
-    } else if (durationDays > 1) {
-      points = 92;
-    } else {
-      points = 52;
-    }
-
+    await notificationService.cancelVisionExpiryNotification(vision.id);
+    const points = calculateVisionPoints(vision);
     try {
       await PrayerCompletionManager.addPoints(points);
     } catch (e) {
       console.warn('Failed to award vision points:', e);
     }
 
-    Alert.alert('Vision Achieved', `You earned ${points} points!`);
+    const formatPts = (p) => p >= 1000 ? `${(p / 1000).toFixed(p % 1000 === 0 ? 0 : 1)}k` : p.toString();
+    Alert.alert('Vision Achieved', `You earned ${formatPts(points)} points!`);
     refresh();
   };
 
@@ -143,7 +185,7 @@ const VisionScreen = () => {
         activeOpacity={0.85}
         onPress={() => {
           hapticFeedback.light();
-          setExpandedId(isExpanded ? null : vision.id);
+          handleVisionTap(vision);
         }}
         onLongPress={() => {
           hapticFeedback.medium();
@@ -353,11 +395,22 @@ const VisionScreen = () => {
         )}
       </ScrollView>
 
+      <VisionCompletionModal
+        visible={!!completionVision}
+        vision={completionVision}
+        onAchieved={handleAchieved}
+        onNotAchieved={handleNotAchieved}
+        onClose={() => { setCompletionVision(null); refresh(); }}
+      />
+
       <AddVisionModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={async (data) => {
-          await addVision(data);
+          const result = await addVision(data);
+          if (result?.vision) {
+            notificationService.scheduleVisionExpiryNotification(result.vision);
+          }
           refresh();
           setShowAddModal(false);
         }}

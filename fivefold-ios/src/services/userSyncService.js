@@ -929,6 +929,36 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
 
+    // Visions — merge by ID, keep local-only additions
+    if (cloudData.visions && Array.isArray(cloudData.visions)) {
+      const merged = await mergeArraysById('visions', cloudData.visions);
+      console.log(`[Sync] Merged visions: ${merged?.length || 0} total`);
+    }
+
+    // Habits — merge habits array by ID, keep local-only additions
+    if (cloudData.user_habits && cloudData.user_habits.habits && Array.isArray(cloudData.user_habits.habits)) {
+      const localStr = await userStorage.getRaw('fivefold_user_habits');
+      const localData = localStr ? JSON.parse(localStr) : { habits: [] };
+      const localHabits = localData.habits || [];
+
+      const localMap = new Map();
+      localHabits.forEach(h => { if (h.id) localMap.set(h.id, h); });
+
+      cloudData.user_habits.habits.forEach(h => {
+        if (h.id) localMap.set(h.id, h);
+      });
+
+      localHabits.forEach(h => {
+        if (h.id && !cloudData.user_habits.habits.find(c => c.id === h.id)) {
+          localMap.set(h.id, h);
+        }
+      });
+
+      const mergedHabits = Array.from(localMap.values());
+      await userStorage.setRaw('fivefold_user_habits', JSON.stringify({ habits: mergedHabits }));
+      console.log(`[Sync] Merged habits: ${mergedHabits.length} total`);
+    }
+
     // Workout split plan — cloud wins (stable config data)
     if (cloudData.splitPlan) {
       const localStr = await userStorage.getRaw('@workout_split_plan');
@@ -1515,6 +1545,20 @@ export const syncAllHistoryToCloud = async (userId) => {
     if (splitPlanStr) {
       updateData.splitPlan = JSON.parse(splitPlanStr);
       console.log('[Sync] Including workout split plan in upload');
+    }
+
+    // Visions
+    const visionsStr = await userStorage.getRaw('visions');
+    if (visionsStr) {
+      updateData.visions = JSON.parse(visionsStr);
+      console.log(`[Sync] Including visions (${updateData.visions.length}) in upload`);
+    }
+
+    // Habits
+    const habitsStr = await userStorage.getRaw('fivefold_user_habits');
+    if (habitsStr) {
+      updateData.user_habits = JSON.parse(habitsStr);
+      console.log(`[Sync] Including habits (${updateData.user_habits.habits?.length || 0}) in upload`);
     }
 
     // Daily verse data (verse of the day - per user)

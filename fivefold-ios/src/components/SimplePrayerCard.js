@@ -968,7 +968,11 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
             </Text>
           </View>
         ) : (
-          prayers.map((prayer) => {
+          [...prayers].sort((a, b) => {
+            const [aH, aM] = (a.time || '00:00').split(':').map(Number);
+            const [bH, bM] = (b.time || '00:00').split(':').map(Number);
+            return (aH * 60 + aM) - (bH * 60 + bM);
+          }).map((prayer) => {
             const completedToday = prayer.completedAt && isSameDay(new Date(prayer.completedAt), new Date());
             const canComplete = completedToday ? false : canCompletePrayer(prayer);
             const timeUntil = completedToday ? null : getTimeUntilAvailable(prayer);

@@ -29,6 +29,8 @@ import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 import WorkoutService from '../services/workoutService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
+import ScaleConnectionModal from '../components/ScaleConnectionModal';
+import scaleService from '../services/scaleService';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -43,6 +45,13 @@ const BodyCompositionScreen = () => {
   const [infoPopup, setInfoPopup] = useState(null); // { title, explanation, example, icon, color }
   const infoFade = useRef(new Animated.Value(0)).current;
   const infoScale = useRef(new Animated.Value(0.85)).current;
+
+  // Smart Scale
+  const [scaleModalVisible, setScaleModalVisible] = useState(false);
+  const [lastScaleReading, setLastScaleReading] = useState(null);
+  const [savedScaleDevice, setSavedScaleDevice] = useState(null);
+  const scaleCardScale = useRef(new Animated.Value(0)).current;
+  const scaleCardOpacity = useRef(new Animated.Value(0)).current;
 
   // ── Animations ──
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -68,8 +77,30 @@ const BodyCompositionScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadData();
+      loadScaleData();
     }, [])
   );
+
+  const loadScaleData = async () => {
+    const [reading, device] = await Promise.all([
+      scaleService.getLastReading(),
+      scaleService.getSavedDevice(),
+    ]);
+    setLastScaleReading(reading);
+    setSavedScaleDevice(device);
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(scaleCardScale, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+        Animated.timing(scaleCardOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      ]).start();
+    }, 800);
+  };
+
+  const handleScaleReadingSaved = (reading) => {
+    setLastScaleReading(reading);
+    loadData();
+  };
 
   const loadData = async () => {
     try {
@@ -622,6 +653,44 @@ const BodyCompositionScreen = () => {
           <View style={{ width: 44 }} />
         </View>
 
+        {/* ── Smart Scale Card ── */}
+        <Animated.View style={{
+          opacity: scaleCardOpacity,
+          transform: [{ scale: scaleCardScale }],
+        }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setScaleModalVisible(true)}
+            style={[styles.scaleCard, {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+            }]}
+          >
+            <View style={styles.scaleCardContent}>
+              <View style={[styles.scaleIconBg, { backgroundColor: '#6366F114' }]}>
+                <MaterialIcons name="bluetooth" size={22} color="#6366F1" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.scaleCardTitle, { color: textPrimary }]}>Smart Scale</Text>
+                {lastScaleReading ? (
+                  <Text style={[styles.scaleCardSub, { color: textSecondary }]}>
+                    Last: {lastScaleReading.weightKg?.toFixed(1)} kg
+                    {lastScaleReading.bodyFatPercent ? ` · ${lastScaleReading.bodyFatPercent?.toFixed(1)}% fat` : ''}
+                    {' · '}{_formatScaleDate(lastScaleReading.timestamp)}
+                  </Text>
+                ) : (
+                  <Text style={[styles.scaleCardSub, { color: textTertiary }]}>
+                    {savedScaleDevice ? 'Tap to weigh in' : 'Connect your Bluetooth scale'}
+                  </Text>
+                )}
+              </View>
+              <View style={[styles.scaleCardArrow, { backgroundColor: '#6366F114' }]}>
+                <MaterialIcons name={savedScaleDevice ? 'bluetooth-connected' : 'chevron-right'} size={16} color="#6366F1" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* ── Hero Health Score ── */}
         <TouchableOpacity activeOpacity={0.8} onPress={() => showInfo('Health Score', scoreColor)}>
           <Animated.View style={[styles.heroSection, {
@@ -856,9 +925,31 @@ const BodyCompositionScreen = () => {
         </Modal>
       )}
       <FitnessDisclaimer screenKey="body_composition" />
+
+      <ScaleConnectionModal
+        visible={scaleModalVisible}
+        onClose={() => setScaleModalVisible(false)}
+        onReadingSaved={handleScaleReadingSaved}
+      />
     </View>
   );
 };
+
+function _formatScaleDate(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -870,6 +961,43 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 },
+
+  // Smart Scale
+  scaleCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+  },
+  scaleCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scaleIconBg: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scaleCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  scaleCardSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  scaleCardArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   // Hero
   heroSection: { alignItems: 'center', paddingTop: 20, paddingBottom: 8 },

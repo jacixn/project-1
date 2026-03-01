@@ -8,13 +8,13 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, Animated, StyleSheet, Easing, Dimensions } from 'react-native';
+import { View, Text, Image, Animated, StyleSheet, Easing, Dimensions, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LottieView from 'lottie-react-native';
 import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import TabNavigator from './TabNavigator';
+import TabNavigator, { preloadTabConfig } from './TabNavigator';
 import AuthScreen from '../screens/AuthScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
@@ -958,7 +958,10 @@ const RootNavigator = () => {
     const checkOnboarding = async () => {
       try {
         if (isAuthenticated && !loading) {
-          const onboardingCompleted = await userStorage.getRaw('onboardingCompleted');
+          const [onboardingCompleted] = await Promise.all([
+            userStorage.getRaw('onboardingCompleted'),
+            preloadTabConfig(),
+          ]);
           console.log('[RootNavigator] onboardingCompleted:', onboardingCompleted);
           setNeedsOnboarding(onboardingCompleted !== 'true');
         } else if (!isAuthenticated) {
@@ -998,6 +1001,7 @@ const RootNavigator = () => {
   const handleOnboardingComplete = async () => {
     await userStorage.setRaw('onboardingCompleted', 'true');
     setNeedsOnboarding(false);
+    DeviceEventEmitter.emit('onboardingCompleted');
   };
   
   // Show account deletion progress screen

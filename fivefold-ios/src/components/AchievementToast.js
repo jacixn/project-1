@@ -140,6 +140,7 @@ const AchievementToast = forwardRef((props, ref) => {
       setAchievements([]);
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
+      DeviceEventEmitter.emit('popupDismissed');
     });
   }, [clearPendingTimeouts]);
 
@@ -150,12 +151,11 @@ const AchievementToast = forwardRef((props, ref) => {
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('dismissAchievementToast', () => {
       clearPendingTimeouts();
-      // Instant hide — no animation — to avoid any overlap with the
-      // parent Modal's dismiss transition.
       setVisible(false);
       setAchievements([]);
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
+      DeviceEventEmitter.emit('popupDismissed');
     });
     return () => sub.remove();
   }, [clearPendingTimeouts]);
