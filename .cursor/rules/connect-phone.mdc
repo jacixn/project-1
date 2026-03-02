@@ -1,0 +1,26 @@
+---
+description: Steps to connect physical iPhone for development testing. Triggered when user says "time to connect phone".
+alwaysApply: true
+---
+
+# Connect Phone for Development Testing
+
+When the user says **"time to connect phone"** (or similar), provide these full steps:
+
+## Prerequisites
+- iPhone plugged into Mac via USB cable
+
+## Steps
+
+1. **Open Xcode** — Cursor will open Xcode for you by running: `open fivefold-ios/ios/Biblely.xcworkspace`
+2. **Select your iPhone in Xcode** — In the top device bar, change the destination from a simulator to your physical iPhone (it appears by name once plugged in).
+3. **Trust the computer** — If prompted on your iPhone, tap "Trust This Computer" and enter your passcode.
+4. **Build to device** — In Xcode, press **Cmd+R** (Product > Run) to build a debug version directly to your phone. This takes a few minutes the first time.
+5. **Start Metro** — In a terminal, navigate to `fivefold-ios/` and run: `npx expo start`
+6. **Connect Metro on your phone** — When the Expo dev client opens on your phone, enter your Mac's local IP in the URL field: `http://<mac-ip>:8081`. Find your Mac's IP by running `ipconfig getifaddr en0` in the terminal (last known IP was `192.168.1.158`).
+7. **Done** — The app loads via Metro. Code changes hot-reload instantly without rebuilding.
+
+## Notes
+- This is for **debug/development** testing only (hot reload, console logs, etc.)
+- For **TestFlight** builds, use Product > Archive instead
+- Bluetooth features require a physical device (simulators don't support BLE)

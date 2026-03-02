@@ -41,9 +41,11 @@ import nutritionService, { ACTIVITY_LABELS } from '../services/nutritionService'
 import foodVisionService from '../services/foodVisionService';
 import productionAiService from '../services/productionAiService';
 import notificationService from '../services/notificationService';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import { updateFuelWidget } from '../utils/widgetBridge';
+import barcodeService from '../services/barcodeService';
 
 // ─── Unit conversion helpers ───
 const kgToLbs = (kg) => +(kg * 2.20462).toFixed(1);
@@ -100,7 +102,9 @@ const NutritionScreen = () => {
 
   // Add Food modal
   const [addFoodVisible, setAddFoodVisible] = useState(false);
-  const [addFoodMode, setAddFoodMode] = useState(null); // 'camera' | 'manual' | 'favorites' | 'scanResult'
+  const [addFoodMode, setAddFoodMode] = useState(null); // 'camera' | 'manual' | 'favorites' | 'scanResult' | 'barcode'
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const barcodeLockRef = useRef(false);
   const [foodName, setFoodName] = useState('');
   const [foodCalories, setFoodCalories] = useState('');
   const [foodProtein, setFoodProtein] = useState('');
@@ -114,6 +118,9 @@ const NutritionScreen = () => {
   const [selectedFavoriteIds, setSelectedFavoriteIds] = useState([]);
   const [calculatingPlan, setCalculatingPlan] = useState(false);
   const [planResult, setPlanResult] = useState(null); // { dailyCalories, protein, carbs, fat, explanation, goal }
+  const [scaleUpdatePending, setScaleUpdatePending] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const scaleUpdateAnim = useRef(new Animated.Value(0)).current;
 
   // Scan result animations
   const scanPhotoScale = useRef(new Animated.Value(0.85)).current;
@@ -327,6 +334,15 @@ const NutritionScreen = () => {
       if (p) {
         // Pre-fill form for editing
         prefillForm(p);
+
+        if (p.pendingScaleUpdate && p.aiTargets) {
+          setScaleUpdatePending(true);
+          scaleUpdateAnim.setValue(0);
+          Animated.spring(scaleUpdateAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }).start();
+        } else {
+          setScaleUpdatePending(false);
+        }
+
         // Load dashboard data
         const today = nutritionService.getDateKey();
         const progress = await nutritionService.getDailyProgress(today);
@@ -597,6 +613,55 @@ const NutritionScreen = () => {
     });
   };
 
+  const handleRecalculateFromScale = async () => {
+    if (!profile) return;
+    hapticFeedback.medium();
+    setRecalculating(true);
+
+    try {
+      const baseTDEE = nutritionService.calculateTDEE(profile).tdee;
+      const aiPlan = await productionAiService.generateNutritionPlan({
+        gender: profile.gender,
+        age: profile.age,
+        heightCm: profile.heightCm,
+        weightKg: profile.weightKg,
+        bodyFatPercent: profile.bodyFatPercent || null,
+        targetWeightKg: profile.targetWeightKg,
+        goal: profile.goal,
+        activityLevel: profile.activityLevel,
+        baseTDEE,
+      });
+
+      const updated = { ...profile, pendingScaleUpdate: false };
+
+      if (aiPlan) {
+        updated.aiTargets = {
+          dailyCalories: aiPlan.dailyCalories,
+          protein: aiPlan.protein,
+          carbs: aiPlan.carbs,
+          fat: aiPlan.fat,
+        };
+      } else {
+        delete updated.aiTargets;
+      }
+
+      await nutritionService.saveProfile(updated);
+      setScaleUpdatePending(false);
+      hapticFeedback.success();
+      loadData();
+    } catch (e) {
+      console.warn('[NutritionScreen] Scale recalculate failed, using formula:', e.message);
+      const updated = { ...profile, pendingScaleUpdate: false };
+      delete updated.aiTargets;
+      await nutritionService.saveProfile(updated);
+      setScaleUpdatePending(false);
+      hapticFeedback.success();
+      loadData();
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   // ─── Add food handlers ───
   const openAddFood = () => {
     setAddFoodMode(null);
@@ -764,6 +829,56 @@ const NutritionScreen = () => {
       setAnalyzing(false);
       setFoodPhotoUri(null);
       Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  };
+
+  const handleStartBarcodeScan = async () => {
+    if (!cameraPermission?.granted) {
+      const { granted } = await requestCameraPermission();
+      if (!granted) {
+        Alert.alert('Permission Needed', 'Camera access is required to scan barcodes.');
+        return;
+      }
+    }
+    barcodeLockRef.current = false;
+    setAddFoodMode('barcode');
+  };
+
+  const handleBarcodeScan = async ({ data }) => {
+    if (barcodeLockRef.current) return;
+    barcodeLockRef.current = true;
+    hapticFeedback.light();
+
+    setAnalyzing(true);
+    setAddFoodMode('camera');
+    setFoodPhotoUri(null);
+
+    try {
+      const nutrition = await barcodeService.lookup(data);
+
+      if (nutrition) {
+        setAnalyzedFood(nutrition);
+        setFoodName(nutrition.name);
+        setFoodDescription(nutrition.description || '');
+        setFoodCalories(String(nutrition.calories));
+        setFoodProtein(String(nutrition.protein));
+        setFoodCarbs(String(nutrition.carbs));
+        setFoodFat(String(nutrition.fat));
+        setAddFoodMode('scanResult');
+        hapticFeedback.light();
+      } else {
+        Alert.alert(
+          'Product Not Found',
+          'This barcode was not recognised. You can enter the food details manually.',
+        );
+        setAddFoodMode('manual');
+      }
+    } catch (e) {
+      console.warn('[NutritionScreen] Barcode scan failed:', e);
+      Alert.alert('Error', 'Something went wrong looking up the barcode. Please try again.');
+      setAddFoodMode('manual');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -1249,6 +1364,38 @@ const NutritionScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {scaleUpdatePending && (
+          <Animated.View style={{ transform: [{ scale: scaleUpdateAnim }], opacity: scaleUpdateAnim, marginBottom: 16 }}>
+            <TouchableOpacity
+              style={[styles.scaleUpdateBanner, { borderColor: theme.primary + '30' }]}
+              onPress={handleRecalculateFromScale}
+              disabled={recalculating}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={isDark ? [theme.primary + '18', theme.primary + '08'] : [theme.primary + '12', theme.primary + '04']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.scaleUpdateIcon}>
+                <MaterialIcons name="monitor-weight" size={22} color={theme.primary} />
+              </View>
+              <View style={styles.scaleUpdateText}>
+                <Text style={[styles.scaleUpdateTitle, { color: textPrimary }]}>New Body Data Available</Text>
+                <Text style={[styles.scaleUpdateSubtitle, { color: textSecondary }]}>
+                  Your weight was updated from your scale. Tap to recalculate your daily targets.
+                </Text>
+              </View>
+              {recalculating ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <MaterialIcons name="refresh" size={22} color={theme.primary} />
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         {/* ── Card 0: Calorie Ring ── */}
         <Animated.View
           style={[
@@ -1577,6 +1724,23 @@ const NutritionScreen = () => {
                     <MaterialIcons name="chevron-right" size={20} color={textTertiary} />
                   </TouchableOpacity>
 
+                  {/* Scan Barcode */}
+                  <TouchableOpacity
+                    style={[styles.modeCard, { backgroundColor: inputBg, borderColor: cardBorder }]}
+                    onPress={handleStartBarcodeScan}
+                  >
+                    <View style={[styles.modeIconCircle, { backgroundColor: '#EC4899' + '14' }]}>
+                      <MaterialIcons name="qr-code-scanner" size={24} color="#EC4899" />
+                    </View>
+                    <View style={styles.modeCardText}>
+                      <Text style={[styles.modeCardTitle, { color: textPrimary }]}>Scan Barcode</Text>
+                      <Text style={[styles.modeCardDesc, { color: textTertiary }]}>
+                        Scan a product barcode for nutrition info
+                      </Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color={textTertiary} />
+                  </TouchableOpacity>
+
                   {/* Enter Manually */}
                   <TouchableOpacity
                     style={[styles.modeCard, { backgroundColor: inputBg, borderColor: cardBorder }]}
@@ -1611,6 +1775,41 @@ const NutritionScreen = () => {
                       </Text>
                     </View>
                     <MaterialIcons name="chevron-right" size={20} color={textTertiary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Barcode Scanner */}
+              {addFoodMode === 'barcode' && !analyzing && (
+                <View style={styles.barcodeScannerContainer}>
+                  <CameraView
+                    style={styles.barcodeCamera}
+                    facing="back"
+                    barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39'] }}
+                    onBarcodeScanned={handleBarcodeScan}
+                  />
+                  <View style={styles.barcodeOverlay}>
+                    <View style={styles.barcodeOverlayDark} />
+                    <View style={styles.barcodeTargetRow}>
+                      <View style={styles.barcodeOverlayDark} />
+                      <View style={styles.barcodeTarget}>
+                        <View style={[styles.barcodeCorner, styles.barcodeCornerTL]} />
+                        <View style={[styles.barcodeCorner, styles.barcodeCornerTR]} />
+                        <View style={[styles.barcodeCorner, styles.barcodeCornerBL]} />
+                        <View style={[styles.barcodeCorner, styles.barcodeCornerBR]} />
+                      </View>
+                      <View style={styles.barcodeOverlayDark} />
+                    </View>
+                    <View style={styles.barcodeOverlayDark} />
+                  </View>
+                  <View style={styles.barcodeHintContainer}>
+                    <Text style={styles.barcodeHintText}>Point at a product barcode</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.barcodeCancelBtn}
+                    onPress={() => setAddFoodMode(null)}
+                  >
+                    <MaterialIcons name="close" size={24} color="#FFF" />
                   </TouchableOpacity>
                 </View>
               )}
@@ -2218,6 +2417,36 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  scaleUpdateBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    overflow: 'hidden',
+  },
+  scaleUpdateIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  scaleUpdateText: {
+    flex: 1,
+    marginRight: 8,
+  },
+  scaleUpdateTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  scaleUpdateSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   // ─── Card base ───
@@ -3262,6 +3491,87 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  barcodeScannerContainer: {
+    width: '100%',
+    height: SCREEN_HEIGHT * 0.55,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  barcodeCamera: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  barcodeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  barcodeOverlayDark: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  barcodeTargetRow: {
+    flexDirection: 'row',
+    height: 180,
+  },
+  barcodeTarget: {
+    width: SCREEN_WIDTH * 0.65,
+    height: 180,
+    position: 'relative',
+  },
+  barcodeCorner: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderColor: '#FFFFFF',
+  },
+  barcodeCornerTL: {
+    top: 0, left: 0,
+    borderTopWidth: 3, borderLeftWidth: 3,
+    borderTopLeftRadius: 8,
+  },
+  barcodeCornerTR: {
+    top: 0, right: 0,
+    borderTopWidth: 3, borderRightWidth: 3,
+    borderTopRightRadius: 8,
+  },
+  barcodeCornerBL: {
+    bottom: 0, left: 0,
+    borderBottomWidth: 3, borderLeftWidth: 3,
+    borderBottomLeftRadius: 8,
+  },
+  barcodeCornerBR: {
+    bottom: 0, right: 0,
+    borderBottomWidth: 3, borderRightWidth: 3,
+    borderBottomRightRadius: 8,
+  },
+  barcodeHintContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  barcodeHintText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  barcodeCancelBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

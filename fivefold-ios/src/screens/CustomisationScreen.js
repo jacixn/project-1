@@ -201,15 +201,8 @@ const CustomisationScreen = () => {
         }
       }
 
-      // Validate stored loading animation — reset to free default if locked
       if (loadingAnimId) {
-        const loadReq = LOADING_ANIM_REFERRAL_GATES[loadingAnimId];
-        if (loadReq !== null && loadReq !== undefined && count < loadReq) {
-          setSelectedLoadingAnim('default'); // Reset to free default
-          await userStorage.setRaw(LOADING_ANIM_KEY, 'default');
-        } else {
-          setSelectedLoadingAnim(loadingAnimId);
-        }
+        setSelectedLoadingAnim(loadingAnimId);
       }
 
       let toggles = badgeTogglesRaw ? JSON.parse(badgeTogglesRaw) : null;

@@ -1,7 +1,7 @@
 /**
  * PhysiqueScreen
  *
- * Premium body progress map with a rotatable 3D mannequin.
+ * Premium body progress map with an anatomical 2D figure.
  * Muscle groups are color-coded by training freshness.
  */
 
@@ -24,7 +24,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import BodyMap3D from '../components/BodyMap3D';
+import BodyMap2D from '../components/BodyMap2D';
 import physiqueService from '../services/physiqueService';
 import WorkoutService from '../services/workoutService';
 import productionAiService from '../services/productionAiService';
@@ -33,6 +33,10 @@ import bodyCompositionService from '../services/bodyCompositionService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import { MUSCLE_GROUPS, SCORE_COLORS, getScoreColor } from '../data/exerciseMuscleMap';
+import scaleService from '../services/scaleService';
+import userStorage from '../utils/userStorage';
+
+const COACH_CACHE_KEY = 'physique_coach_cache';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BODY_HEIGHT = Math.min(SCREEN_HEIGHT * 0.52, 520);
@@ -67,11 +71,9 @@ const PhysiqueScreen = () => {
     try {
       setLoading(true);
 
-      // Load nutrition profile for gender default + AI coach data
       let nutritionProfile = null;
       try {
         nutritionProfile = await nutritionService.getProfile();
-        // Default 3D model gender to user's profile gender (only once)
         if (nutritionProfile?.gender && !profileGenderLoaded.current) {
           setGender(nutritionProfile.gender === 'female' ? 'female' : 'male');
           profileGenderLoaded.current = true;
@@ -94,8 +96,17 @@ const PhysiqueScreen = () => {
 
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
 
-      // Fire AI coach in the background (non-blocking)
-      generateAiCoachFeedback(currentScores, currentOverall, history, nutritionProfile);
+      // Check if data changed before running AI coach
+      const lastWorkoutTs = history.length > 0 ? history[0].completedAt : null;
+      const lastScaleReading = await scaleService.getLastReading().catch(() => null);
+      const lastScaleTs = lastScaleReading?.timestamp || null;
+
+      const cached = await loadCoachCache();
+      if (cached && cached.lastWorkoutTs === lastWorkoutTs && cached.lastScaleTs === lastScaleTs) {
+        setAiCoachText(cached.text);
+      } else {
+        generateAiCoachFeedback(currentScores, currentOverall, history, nutritionProfile, lastWorkoutTs, lastScaleTs);
+      }
     } catch (error) {
       console.warn('[Physique] Load failed:', error);
       setLoading(false);
@@ -103,11 +114,23 @@ const PhysiqueScreen = () => {
     }
   };
 
-  const generateAiCoachFeedback = async (currentScores, currentOverall, history, nutritionProfile) => {
+  const loadCoachCache = async () => {
+    try {
+      const json = await userStorage.getRaw(COACH_CACHE_KEY);
+      return json ? JSON.parse(json) : null;
+    } catch (_) { return null; }
+  };
+
+  const saveCoachCache = async (text, lastWorkoutTs, lastScaleTs) => {
+    try {
+      await userStorage.setRaw(COACH_CACHE_KEY, JSON.stringify({ text, lastWorkoutTs, lastScaleTs }));
+    } catch (_) {}
+  };
+
+  const generateAiCoachFeedback = async (currentScores, currentOverall, history, nutritionProfile, lastWorkoutTs, lastScaleTs) => {
     try {
       setAiCoachLoading(true);
 
-      // Build data for the AI
       const pushMuscles = ['chest', 'frontDelts', 'triceps'];
       const pullMuscles = ['lats', 'upperBack', 'biceps', 'rearDelts'];
       const legMuscles  = ['quads', 'hamstrings', 'glutes', 'calves'];
@@ -129,7 +152,6 @@ const PhysiqueScreen = () => {
         score: m.score,
       }));
 
-      // ── Fetch body composition data ──
       let bodyCompData = null;
       const profile = nutritionProfile || (await nutritionService.getProfile().catch(() => null));
       try {
@@ -140,7 +162,6 @@ const PhysiqueScreen = () => {
         console.warn('[AI Coach] Could not load body comp:', e.message);
       }
 
-      // ── Fetch today's nutrition / fuel data ──
       let nutritionData = null;
       try {
         const todayKey = nutritionService.getDateKey();
@@ -152,7 +173,6 @@ const PhysiqueScreen = () => {
         console.warn('[AI Coach] Could not load nutrition data:', e.message);
       }
 
-      // ── Build user info from nutrition profile ──
       const userName = userProfile?.displayName || user?.displayName || null;
       let userInfo = null;
       if (profile) {
@@ -186,14 +206,14 @@ const PhysiqueScreen = () => {
       });
 
       if (feedback) {
-        // Strip any dashes (em-dash, en-dash, hyphens used as dashes) from the response
         const cleaned = feedback
-          .replace(/\u2014/g, ',')   // em-dash → comma
-          .replace(/\u2013/g, ',')   // en-dash → comma
-          .replace(/ - /g, ', ')     // spaced hyphen → comma
-          .replace(/^- /gm, '')      // leading bullet dashes
+          .replace(/\u2014/g, ',')
+          .replace(/\u2013/g, ',')
+          .replace(/ - /g, ', ')
+          .replace(/^- /gm, '')
           .trim();
         setAiCoachText(cleaned);
+        saveCoachCache(cleaned, lastWorkoutTs, lastScaleTs);
       }
     } catch (e) {
       console.warn('[AI Coach] Error:', e.message);
@@ -272,14 +292,14 @@ const PhysiqueScreen = () => {
               style={[styles.pillBtn, gender === 'male' && styles.pillActive]}
               onPress={() => setGender('male')}
             >
-              <MaterialIcons name="male" size={16} color={gender === 'male' ? '#FFF' : textTertiary} />
+              <MaterialIcons name="male" size={14} color={gender === 'male' ? '#FFF' : textTertiary} />
               <Text style={[styles.pillText, { color: gender === 'male' ? '#FFF' : textTertiary }]}>Male</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.pillBtn, gender === 'female' && styles.pillActive]}
               onPress={() => setGender('female')}
             >
-              <MaterialIcons name="female" size={16} color={gender === 'female' ? '#FFF' : textTertiary} />
+              <MaterialIcons name="female" size={14} color={gender === 'female' ? '#FFF' : textTertiary} />
               <Text style={[styles.pillText, { color: gender === 'female' ? '#FFF' : textTertiary }]}>Female</Text>
             </TouchableOpacity>
           </View>
@@ -291,16 +311,16 @@ const PhysiqueScreen = () => {
           </View>
         </View>
 
-        {/* ── 3D Body ── */}
+        {/* ── Body Map ── */}
         <View style={styles.bodyArea}>
-          <BodyMap3D
+          <BodyMap2D
             scores={scores}
             gender={gender}
             selectedMuscle={selectedMuscle}
             onMusclePress={handleMusclePress}
             height={BODY_HEIGHT}
           />
-          <Text style={[styles.hint, { color: textTertiary }]}>Drag to rotate  ·  Tap a muscle</Text>
+          <Text style={[styles.hint, { color: textTertiary }]}>Tap a muscle to see details</Text>
         </View>
 
         {/* ── Legend ── */}
@@ -436,7 +456,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, marginBottom: 4,
   },
   pill: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 3 },
-  pillBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+  pillBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   pillActive: { backgroundColor: '#7C3AED' },
   pillText: { fontSize: 12, fontWeight: '600' },
 

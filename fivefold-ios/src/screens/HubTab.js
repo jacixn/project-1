@@ -152,9 +152,6 @@ const HubTab = () => {
     return () => clearInterval(interval);
   }, []);
   
-  // Loading animation referral gates (must match CustomisationScreen)
-  const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
-
   // Load badge toggles + referral count + loading animation for current user badge display
   useEffect(() => {
     userStorage.getRaw('fivefold_badge_toggles').then(raw => {
@@ -162,38 +159,19 @@ const HubTab = () => {
     }).catch(() => {});
     getReferralCount().then(c => {
       setMyReferralCount(c);
-      // Validate loading animation against referral count
-      userStorage.getRaw('fivefold_loading_animation').then(v => {
-        const animId = v || 'default';
-        const req = LOADING_ANIM_GATES[animId];
-        if (req !== null && req !== undefined && c < req) {
-          setSelectedLoadingAnim('default');
-          userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(animId);
-        }
-      }).catch(() => {});
+    }).catch(() => {});
+    userStorage.getRaw('fivefold_loading_animation').then(v => {
+      setSelectedLoadingAnim(v || 'default');
     }).catch(() => {});
     userStorage.getRaw('fivefold_streak_animation').then(v => { if (v) setMyStreakAnim(v); }).catch(() => {});
   }, []);
 
-  // Reload loading animation preference when tab gains focus (with validation)
   useFocusEffect(
     useCallback(() => {
-      Promise.all([
-        userStorage.getRaw('fivefold_loading_animation'),
-        getReferralCount(),
-      ]).then(([v, count]) => {
-        setMyReferralCount(count);
-        const animId = v || 'default';
-        const req = LOADING_ANIM_GATES[animId];
-        if (req !== null && req !== undefined && count < req) {
-          setSelectedLoadingAnim('default');
-          userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(animId);
-        }
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        setSelectedLoadingAnim(v || 'default');
       }).catch(() => {});
+      getReferralCount().then(c => setMyReferralCount(c)).catch(() => {});
     }, [])
   );
 

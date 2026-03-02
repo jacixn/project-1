@@ -91,7 +91,6 @@ import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVers
 import AchievementService from '../services/achievementService';
 import { addSeasonalPoints } from '../services/seasonService';
 import { pushToCloud } from '../services/userSyncService';
-import { getReferralCount } from '../services/referralService';
 
 // Prayer times are now user-configurable - no hardcoded defaults
 
@@ -402,20 +401,8 @@ const BiblePrayerTab = () => {
       loadUserName();
       initializePrayerData();
       loadLiquidGlassSetting();
-      // Reload loading animation preference (with referral validation)
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
-      Promise.all([
-        userStorage.getRaw('fivefold_loading_animation'),
-        getReferralCount(),
-      ]).then(([id, count]) => {
-        const animId = id || 'default';
-        const req = LOAD_GATES[animId];
-        if (req !== null && req !== undefined && count < req) {
-          setSelectedLoadingAnim('default');
-          userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(animId);
-        }
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        setSelectedLoadingAnim(v || 'default');
       }).catch(() => {});
     }, [])
   );

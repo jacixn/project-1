@@ -41,7 +41,7 @@ import WorkoutService from '../services/workoutService';
 import AchievementService from '../services/achievementService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
-import { getReferralCount } from '../services/referralService';
+
 
 // const { width } = Dimensions.get('window');
 
@@ -124,20 +124,8 @@ const GymTab = () => {
     // Start shimmer animation
     startShimmerAnimation();
 
-    // Load selected loading animation (with referral validation)
-    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
-    Promise.all([
-      userStorage.getRaw('fivefold_loading_animation'),
-      getReferralCount(),
-    ]).then(([id, count]) => {
-      const animId = id || 'default';
-      const req = LOADING_ANIM_GATES[animId];
-      if (req !== null && req !== undefined && count < req) {
-        setSelectedLoadingAnim('default');
-        userStorage.setRaw('fivefold_loading_animation', 'default');
-      } else {
-        setSelectedLoadingAnim(animId);
-      }
+    userStorage.getRaw('fivefold_loading_animation').then(id => {
+      setSelectedLoadingAnim(id || 'default');
     }).catch(() => {});
     
     // Listen for workout scheduled events
@@ -270,20 +258,8 @@ const GymTab = () => {
       loadWorkoutHistory();
       loadScheduledWorkouts();
       loadNutritionProgress();
-      // Reload loading animation preference (with referral validation)
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
-      Promise.all([
-        userStorage.getRaw('fivefold_loading_animation'),
-        getReferralCount(),
-      ]).then(([id, count]) => {
-        const animId = id || 'default';
-        const req = LOAD_GATES[animId];
-        if (req !== null && req !== undefined && count < req) {
-          setSelectedLoadingAnim('default');
-          userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(animId);
-        }
+      userStorage.getRaw('fivefold_loading_animation').then(id => {
+        setSelectedLoadingAnim(id || 'default');
       }).catch(() => {});
     }, [])
   );
@@ -379,18 +355,9 @@ const GymTab = () => {
       const today = nutritionService.getDateKey();
       const progress = await nutritionService.getDailyProgress(today);
       setNutritionProgress(progress);
-      // Load body composition with workout count for accurate health score
       const profile = await nutritionService.getProfile();
       if (profile && profile.weightKg && profile.heightCm) {
-        let recentWorkoutCount = null;
-        try {
-          const history = await WorkoutService.getWorkoutHistory();
-          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-          recentWorkoutCount = (history || []).filter(
-            w => new Date(w.completedAt || w.date).getTime() > thirtyDaysAgo
-          ).length;
-        } catch (_) {}
-        setBodyComp(bodyCompositionService.calculate(profile, { recentWorkoutCount }));
+        setBodyComp(bodyCompositionService.calculate(profile));
       }
     } catch (e) {
       // silent
@@ -995,6 +962,80 @@ const GymTab = () => {
             </TouchableOpacity>
           </LiquidGlassContainer>
 
+          {/* Body Composition Card — compact preview, tap to view full details */}
+          <LiquidGlassContainer>
+            <View style={styles.exercisesHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Body Composition</Text>
+                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                  {bodyComp ? 'Your body insights' : 'Set up your profile'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  hapticFeedback.medium();
+                  if (bodyComp) {
+                    navigation.navigate('BodyComposition');
+                  } else {
+                    navigation.navigate('Nutrition');
+                  }
+                }}
+              >
+                <Text style={styles.browseButtonText}>{bodyComp ? 'View' : 'Set Up'}</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {bodyComp ? (
+              <View style={styles.exercisesPreview}>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}20`,
+                  borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}66`,
+                  borderWidth: 1,
+                }]}>
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Health Score
+                  </Text>
+                </View>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.primary}20`,
+                  borderColor: `${theme.primary}66`,
+                  borderWidth: 1,
+                }]}>
+                  <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Body Age
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.exercisesPreview}>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.primary}20`,
+                  borderColor: `${theme.primary}66`,
+                  borderWidth: 1,
+                }]}>
+                  <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Body Metrics
+                  </Text>
+                </View>
+                <View style={[styles.exercisePreviewItem, {
+                  backgroundColor: `${theme.success || '#10B981'}20`,
+                  borderColor: `${theme.success || '#10B981'}66`,
+                  borderWidth: 1,
+                }]}>
+                  <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
+                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
+                    Health Score
+                  </Text>
+                </View>
+              </View>
+            )}
+          </LiquidGlassContainer>
+
           {/* Start Workout Card */}
           <LiquidGlassContainer style={styles.comingSoonCard}>
             <View style={styles.startWorkoutHeader}>
@@ -1124,80 +1165,6 @@ const GymTab = () => {
                 </Text>
               </View>
             </View>
-          </LiquidGlassContainer>
-
-          {/* Body Composition Card — compact preview, tap to view full details */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Body Composition</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  {bodyComp ? 'Your body insights' : 'Set up your profile'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  if (bodyComp) {
-                    navigation.navigate('BodyComposition');
-                  } else {
-                    navigation.navigate('Nutrition');
-                  }
-                }}
-              >
-                <Text style={styles.browseButtonText}>{bodyComp ? 'View' : 'Set Up'}</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-
-            {bodyComp ? (
-              <View style={styles.exercisesPreview}>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}20`,
-                  borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}66`,
-                  borderWidth: 1,
-                }]}>
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Health Score
-                  </Text>
-                </View>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.primary}20`,
-                  borderColor: `${theme.primary}66`,
-                  borderWidth: 1,
-                }]}>
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Body Age
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.exercisesPreview}>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.primary}20`,
-                  borderColor: `${theme.primary}66`,
-                  borderWidth: 1,
-                }]}>
-                  <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Body Metrics
-                  </Text>
-                </View>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.success || '#10B981'}20`,
-                  borderColor: `${theme.success || '#10B981'}66`,
-                  borderWidth: 1,
-                }]}>
-                  <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Health Score
-                  </Text>
-                </View>
-              </View>
-            )}
           </LiquidGlassContainer>
 
           {/* Exercises Card */}

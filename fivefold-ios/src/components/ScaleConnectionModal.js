@@ -55,6 +55,16 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const [savedDevice, setSavedDevice] = useState(null);
   const [error, setError] = useState(null);
 
+  // Multi-attempt
+  const [attempts, setAttempts] = useState([]);
+  const TOTAL_ATTEMPTS = 3;
+  const attemptsRef = useRef([]);
+  const needsStepOffRef = useRef(false);
+  const seenUnstableRef = useRef(true);
+  const [countdown, setCountdown] = useState(null);
+  const countdownRef = useRef(null);
+  const STEP_OFF_SECONDS = 5;
+
   const SCREEN_HEIGHT = Dimensions.get('window').height;
   const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
 
@@ -79,6 +89,14 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const phaseRef = useRef('idle');
   const bodyCompTimerRef = useRef(null);
   const stableDataRef = useRef(null);
+  const selectedDeviceRef = useRef(null);
+  const startNextAttemptRef = useRef(null);
+  const autoProceedRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const noDataTimerRef = useRef(null);
+  const reconnectForAttemptRef = useRef(null);
+  const reconnectGenRef = useRef(0);
+  const isRetryingRef = useRef(false);
 
   const textPrimary = isDark ? '#FFFFFF' : '#1A1A2E';
   const textSecondary = isDark ? 'rgba(255,255,255,0.7)' : '#555';
@@ -121,6 +139,12 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const resetState = () => {
     if (scanTimeoutRef.current) { clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null; }
     if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+    if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; }
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    if (noDataTimerRef.current) { clearTimeout(noDataTimerRef.current); noDataTimerRef.current = null; }
+    reconnectGenRef.current++;
+    isRetryingRef.current = false;
     stableDataRef.current = null;
     updatePhase('idle');
     setDevices([]);
@@ -130,6 +154,11 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     setLiveBodyFat(null);
     setStableReading(null);
     setError(null);
+    setAttempts([]);
+    setCountdown(null);
+    attemptsRef.current = [];
+    needsStepOffRef.current = false;
+    seenUnstableRef.current = true;
     fadeIn.setValue(0);
     slideUp.setValue(SHEET_HEIGHT);
     panY.setValue(0);
@@ -165,7 +194,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
       scanTimeoutRef.current = setTimeout(() => {
         const currentPhase = phaseRef.current;
-        if (currentPhase === 'connecting' || currentPhase === 'measuring' || currentPhase === 'done') return;
+        if (currentPhase === 'connecting' || currentPhase === 'measuring' || currentPhase === 'attemptDone' || currentPhase === 'done') return;
         setDevices(prev => {
           if (prev.length > 0) {
             updatePhase('devices');
@@ -228,6 +257,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     scaleService.stopScan();
     if (scanTimeoutRef.current) { clearTimeout(scanTimeoutRef.current); scanTimeoutRef.current = null; }
     setSelectedDevice(device);
+    selectedDeviceRef.current = device;
     updatePhase('connecting');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -247,6 +277,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   const reconnectSaved = async () => {
     if (!savedDevice) return;
     setSelectedDevice(savedDevice);
+    selectedDeviceRef.current = savedDevice;
     updatePhase('connecting');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -285,21 +316,37 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setStableReading(data);
-    updatePhase('done');
 
-    pulseLoop.current?.stop();
-    Animated.parallel([
-      Animated.timing(ringProgress, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      Animated.spring(successScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
-    ]).start();
+    const updated = [...attemptsRef.current, data];
+    attemptsRef.current = updated;
+    setAttempts(updated);
 
-    saveReading(data);
+    if (updated.length >= TOTAL_ATTEMPTS) {
+      const best = pickConsensusReading(updated);
+      setStableReading(best);
+      updatePhase('done');
+      pulseLoop.current?.stop();
+      Animated.parallel([
+        Animated.timing(ringProgress, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+        Animated.spring(successScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+      ]).start();
+      saveReading(best);
+    } else {
+      updatePhase('attemptDone');
+      pulseLoop.current?.stop();
+    }
   }, []);
 
   const handleScaleData = useCallback((data) => {
     if (!data) return;
 
-    // Update live displays with whatever the scale sends
+    if (needsStepOffRef.current) return;
+
+    if (data.weightKg && noDataTimerRef.current) {
+      clearTimeout(noDataTimerRef.current);
+      noDataTimerRef.current = null;
+    }
+
     if (data.weightKg) setLiveWeight(data.weightKg);
 
     let bf = data.bodyFatPercent || null;
@@ -309,7 +356,10 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     }
     if (bf) setLiveBodyFat(bf);
 
+    if (!data.stable) seenUnstableRef.current = true;
+
     if (!data.weightKg || data.weightKg < 25 || !data.stable) return;
+    if (!seenUnstableRef.current) return;
     if (phaseRef.current !== 'measuring') return;
 
     // Weight stable — build reading with all accumulated body comp
@@ -339,12 +389,187 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
     const profile = await nutritionService.getProfile();
     if (profile) {
+      const weightChanged = Math.abs((profile.weightKg || 0) - reading.weightKg) > 0.3;
+      const bfChanged = reading.bodyFatPercent && Math.abs((profile.bodyFatPercent || 0) - reading.bodyFatPercent) > 0.5;
+
       const updates = { ...profile, weightKg: reading.weightKg };
       if (reading.bodyFatPercent) updates.bodyFatPercent = reading.bodyFatPercent;
+
+      if (profile.aiTargets && (weightChanged || bfChanged)) {
+        updates.pendingScaleUpdate = true;
+        updates.scaleUpdatedAt = new Date().toISOString();
+      }
+
       await nutritionService.saveProfile(updates);
     }
     onReadingSaved?.(reading);
   };
+
+  // ── Consensus logic ──
+
+  const pickConsensusReading = (readings) => {
+    if (readings.length <= 1) return readings[0] || null;
+
+    const WEIGHT_TOL = 1.0;
+    const BF_TOL = 2.0;
+
+    const agrees = (a, b) => {
+      if (Math.abs((a.weightKg || 0) - (b.weightKg || 0)) > WEIGHT_TOL) return false;
+      const bfA = a.bodyFatPercent || 0;
+      const bfB = b.bodyFatPercent || 0;
+      if (!bfA && !bfB) return true;
+      return Math.abs(bfA - bfB) <= BF_TOL;
+    };
+
+    const avgOf = (arr) => {
+      const n = arr.length;
+      const w = arr.reduce((s, r) => s + (r.weightKg || 0), 0) / n;
+      const bfs = arr.filter(r => r.bodyFatPercent).map(r => r.bodyFatPercent);
+      const bf = bfs.length ? bfs.reduce((s, v) => s + v, 0) / bfs.length : null;
+      return {
+        ...arr[0],
+        weightKg: Math.round(w * 100) / 100,
+        bodyFatPercent: bf ? Math.round(bf * 10) / 10 : null,
+      };
+    };
+
+    if (readings.length >= 3) {
+      const [a, b, c] = readings;
+      const ab = agrees(a, b);
+      const ac = agrees(a, c);
+      const bc = agrees(b, c);
+      if (ab && ac && bc) return avgOf(readings);
+      if (ab) return avgOf([a, b]);
+      if (ac) return avgOf([a, c]);
+      if (bc) return avgOf([b, c]);
+    }
+
+    const sorted = [...readings].sort((a, b) => (a.weightKg || 0) - (b.weightKg || 0));
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+
+  const reconnectForAttempt = async () => {
+    const gen = ++reconnectGenRef.current;
+
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    if (noDataTimerRef.current) { clearTimeout(noDataTimerRef.current); noDataTimerRef.current = null; }
+
+    if (phaseRef.current !== 'measuring') return;
+
+    if (!isRetryingRef.current) {
+      needsStepOffRef.current = true;
+      setCountdown(0);
+    }
+    scaleService.resetMeasurement();
+
+    const device = selectedDeviceRef.current;
+    if (!device) { needsStepOffRef.current = false; setCountdown(null); return; }
+
+    try {
+      scaleService.disconnect();
+      await new Promise(r => setTimeout(r, 500));
+
+      if (gen !== reconnectGenRef.current || phaseRef.current !== 'measuring') return;
+
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+
+      await scaleService.connect(
+        device.id,
+        (data) => handleScaleData(data),
+        (status) => {
+          if (gen !== reconnectGenRef.current) return;
+
+          setConnectionStatus(status);
+          if (status === 'connected') {
+            isRetryingRef.current = false;
+            scaleService.resetMeasurement();
+            const p = profileRef.current;
+            if (p) scaleService.sendUserProfile(p.gender, p.age, p.heightCm, p.weightKg);
+            needsStepOffRef.current = false;
+            seenUnstableRef.current = false;
+            setCountdown(null);
+
+            noDataTimerRef.current = setTimeout(() => {
+              if (gen !== reconnectGenRef.current) return;
+              if (phaseRef.current === 'measuring' && !stableDataRef.current) {
+                console.log('[Scale] No data received after reconnect — retrying connection...');
+                isRetryingRef.current = true;
+                reconnectForAttemptRef.current?.();
+              }
+            }, 12000);
+          }
+
+          if (status === 'disconnected' && phaseRef.current === 'measuring') {
+            retryTimerRef.current = setTimeout(() => {
+              if (gen !== reconnectGenRef.current) return;
+              if (phaseRef.current === 'measuring') {
+                console.log('[Scale] Disconnected during measurement — retrying...');
+                isRetryingRef.current = true;
+                reconnectForAttemptRef.current?.();
+              }
+            }, 2000);
+          }
+        }
+      );
+    } catch (err) {
+      if (gen !== reconnectGenRef.current) return;
+      console.warn('[Scale] Reconnect for next attempt failed:', err.message);
+      isRetryingRef.current = true;
+      needsStepOffRef.current = false;
+      setCountdown(null);
+      if (phaseRef.current === 'measuring') {
+        retryTimerRef.current = setTimeout(() => {
+          if (gen !== reconnectGenRef.current) return;
+          if (phaseRef.current === 'measuring') {
+            console.log('[Scale] Connection failed — retrying...');
+            reconnectForAttemptRef.current?.();
+          }
+        }, 3000);
+      }
+    }
+  };
+
+  reconnectForAttemptRef.current = reconnectForAttempt;
+
+  const startNextAttempt = () => {
+    if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+    stableDataRef.current = null;
+    setLiveWeight(null);
+    setLiveBodyFat(null);
+    setStableReading(null);
+    needsStepOffRef.current = true;
+    seenUnstableRef.current = false;
+    isRetryingRef.current = false;
+    setCountdown(STEP_OFF_SECONDS);
+
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          setTimeout(() => reconnectForAttemptRef.current?.(), 0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    updatePhase('measuring');
+    startMeasuringAnimation();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  startNextAttemptRef.current = startNextAttempt;
+
+  useEffect(() => {
+    if (phase === 'attemptDone') {
+      autoProceedRef.current = setTimeout(() => {
+        startNextAttemptRef.current?.();
+      }, 3000);
+      return () => { if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; } };
+    }
+  }, [phase]);
 
   const handleCloseRef = useRef(null);
 
@@ -352,7 +577,11 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     stopScanAnimation();
     scaleService.stopScan();
     if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
-    if (phaseRef.current !== 'measuring') scaleService.disconnect();
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+    if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; }
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    if (noDataTimerRef.current) { clearTimeout(noDataTimerRef.current); noDataTimerRef.current = null; }
+    scaleService.disconnect();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.parallel([
       Animated.timing(slideUp, { toValue: SHEET_HEIGHT, duration: 280, easing: Easing.in(Easing.ease), useNativeDriver: true }),
@@ -533,41 +762,152 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     </View>
   );
 
-  const renderMeasuringPhase = () => (
-    <Animated.View style={[styles.phaseContainer, { opacity: weightOpacity, transform: [{ scale: weightScale }] }]}>
-      <View style={styles.measureContainer}>
-        <Animated.View style={[styles.measureGlow, { backgroundColor: ACCENT, opacity: glowPulse }]} />
-        <Svg width={RING_SIZE} height={RING_SIZE} style={styles.measureRing}>
-          <Defs>
-            <SvgGrad id="measGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={ACCENT} />
-              <Stop offset="1" stopColor={ACCENT_END} />
-            </SvgGrad>
-          </Defs>
-          <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth={RING_STROKE} fill="none" />
-          <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke="url(#measGrad)" strokeWidth={RING_STROKE} fill="none" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={RING_CIRCUMFERENCE * 0.25} strokeLinecap="round" rotation="-90" origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`} />
-        </Svg>
-        <View style={styles.measureCenter}>
-          <Text style={[styles.liveWeight, { color: textPrimary }]}>{liveWeight ? liveWeight.toFixed(1) : '--.-'}</Text>
-          <Text style={[styles.liveUnit, { color: ACCENT }]}>kg</Text>
-        </View>
+  const renderAttemptIndicator = () => {
+    const completedCount = attempts.length;
+    return (
+      <View style={styles.attemptRow}>
+        {[1, 2, 3].map((num) => {
+          const isDone = num <= completedCount;
+          const isActive = num === completedCount + 1;
+          return (
+            <React.Fragment key={num}>
+              {num > 1 && (
+                <View style={[styles.attemptLine, { backgroundColor: isDone ? SUCCESS : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }]} />
+              )}
+              <View style={[
+                styles.attemptDot,
+                isDone && { backgroundColor: SUCCESS, borderColor: SUCCESS },
+                isActive && { backgroundColor: ACCENT, borderColor: ACCENT },
+                !isDone && !isActive && { backgroundColor: 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' },
+              ]}>
+                {isDone ? (
+                  <MaterialIcons name="check" size={12} color="#FFF" />
+                ) : (
+                  <Text style={[styles.attemptDotText, { color: isActive ? '#FFF' : textTertiary }]}>{num}</Text>
+                )}
+              </View>
+            </React.Fragment>
+          );
+        })}
       </View>
+    );
+  };
 
-      <Text style={[styles.phaseTitle, { color: textPrimary }]}>Step on the Scale</Text>
-      <Text style={[styles.phaseDesc, { color: textSecondary }]}>
-        Stand still on your scale.{'\n'}The reading will lock when stable.
-      </Text>
+  const renderMeasuringPhase = () => {
+    const attemptNum = attempts.length + 1;
+    const isRetry = attemptNum > 1;
+    const isCountingDown = countdown !== null && countdown > 0;
+    const isReconnecting = countdown === 0;
 
-      {liveWeight && (
-        <View style={[styles.liveIndicator, { backgroundColor: ACCENT + '18' }]}>
-          <View style={[styles.liveDot, { backgroundColor: ACCENT }]} />
-          <Text style={[styles.liveText, { color: ACCENT }]}>
-            {liveBodyFat ? `${liveWeight?.toFixed(1)} kg · ${liveBodyFat.toFixed(1)}% fat` : 'Receiving data...'}
+    return (
+      <Animated.View style={[styles.phaseContainer, { opacity: weightOpacity, transform: [{ scale: weightScale }] }]}>
+        {renderAttemptIndicator()}
+        <Text style={[styles.attemptLabel, { color: ACCENT }]}>Attempt {attemptNum} of {TOTAL_ATTEMPTS}</Text>
+
+        <View style={styles.measureContainer}>
+          <Animated.View style={[styles.measureGlow, { backgroundColor: (isCountingDown || isReconnecting) ? textTertiary : ACCENT, opacity: (isCountingDown || isReconnecting) ? 0.15 : glowPulse }]} />
+          <Svg width={RING_SIZE} height={RING_SIZE} style={styles.measureRing}>
+            <Defs>
+              <SvgGrad id="measGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={(isCountingDown || isReconnecting) ? textTertiary : ACCENT} />
+                <Stop offset="1" stopColor={(isCountingDown || isReconnecting) ? textTertiary : ACCENT_END} />
+              </SvgGrad>
+            </Defs>
+            <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth={RING_STROKE} fill="none" />
+            <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} stroke="url(#measGrad)" strokeWidth={RING_STROKE} fill="none" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={isCountingDown ? RING_CIRCUMFERENCE * (countdown / STEP_OFF_SECONDS) : RING_CIRCUMFERENCE * 0.25} strokeLinecap="round" rotation="-90" origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`} />
+          </Svg>
+          <View style={styles.measureCenter}>
+            {isCountingDown ? (
+              <>
+                <Text style={[styles.liveWeight, { color: ACCENT }]}>{countdown}</Text>
+                <Text style={[styles.liveUnit, { color: textTertiary }]}>sec</Text>
+              </>
+            ) : isReconnecting ? (
+              <ActivityIndicator size="large" color={ACCENT} />
+            ) : (
+              <>
+                <Text style={[styles.liveWeight, { color: textPrimary }]}>{liveWeight ? liveWeight.toFixed(1) : '--.-'}</Text>
+                <Text style={[styles.liveUnit, { color: ACCENT }]}>kg</Text>
+              </>
+            )}
+          </View>
+        </View>
+
+        <Text style={[styles.phaseTitle, { color: textPrimary }]}>
+          {isCountingDown ? 'Step Off the Scale' : isReconnecting ? 'Preparing Scale...' : isRetry ? (liveWeight ? 'Measuring...' : 'Step Back On') : 'Step on the Scale'}
+        </Text>
+        <Text style={[styles.phaseDesc, { color: textSecondary }]}>
+          {isCountingDown
+            ? 'Wait for the countdown, then step back on.'
+            : isReconnecting
+              ? 'Reconnecting to your scale for a fresh reading.'
+              : isRetry
+                ? (liveWeight ? 'Stand still. The reading will lock when stable.' : 'Wait for the scale screen to turn off,\nthen step on to start the next reading.')
+                : 'Stand still on your scale.\nThe reading will lock when stable.'}
+        </Text>
+
+        {!isCountingDown && !isReconnecting && liveWeight && (
+          <View style={[styles.liveIndicator, { backgroundColor: ACCENT + '18' }]}>
+            <View style={[styles.liveDot, { backgroundColor: ACCENT }]} />
+            <Text style={[styles.liveText, { color: ACCENT }]}>
+              {liveBodyFat ? `${liveWeight?.toFixed(1)} kg · ${liveBodyFat.toFixed(1)}% fat` : 'Receiving data...'}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+    );
+  };
+
+  const renderAttemptDonePhase = () => {
+    const attemptNum = attempts.length;
+    const reading = attempts[attemptNum - 1];
+    const bf = reading?.bodyFatPercent;
+
+    return (
+      <View style={styles.phaseContainer}>
+        {renderAttemptIndicator()}
+        <Text style={[styles.attemptLabel, { color: SUCCESS }]}>Attempt {attemptNum} Complete</Text>
+
+        <View style={[styles.attemptResultCard, { backgroundColor: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.05)', borderColor: SUCCESS + '25' }]}>
+          <View style={styles.attemptResultRow}>
+            <View style={styles.attemptResultItem}>
+              <MaterialIcons name="monitor-weight" size={18} color={SUCCESS} />
+              <Text style={[styles.attemptResultValue, { color: textPrimary }]}>{reading?.weightKg?.toFixed(1)} kg</Text>
+            </View>
+            {bf ? (
+              <>
+                <View style={[styles.attemptResultDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
+                <View style={styles.attemptResultItem}>
+                  <MaterialIcons name="pie-chart" size={18} color="#F59E0B" />
+                  <Text style={[styles.attemptResultValue, { color: textPrimary }]}>{bf.toFixed(1)}%</Text>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+
+        {attempts.length > 1 && (
+          <View style={styles.prevAttemptsList}>
+            {attempts.slice(0, -1).map((a, i) => (
+              <View key={i} style={[styles.prevAttemptRow, { borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                <Text style={[styles.prevAttemptLabel, { color: textTertiary }]}>Attempt {i + 1}</Text>
+                <Text style={[styles.prevAttemptValue, { color: textSecondary }]}>
+                  {a.weightKg?.toFixed(1)} kg{a.bodyFatPercent ? ` · ${a.bodyFatPercent.toFixed(1)}%` : ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={[styles.autoProceedRow, { backgroundColor: ACCENT + '12' }]}>
+          <ActivityIndicator size="small" color={ACCENT} />
+          <Text style={[styles.autoProceedText, { color: ACCENT }]}>
+            Next reading starting shortly...
           </Text>
         </View>
-      )}
-    </Animated.View>
-  );
+      </View>
+    );
+  };
 
   const renderDonePhase = () => {
     const bf = stableReading?.bodyFatPercent || liveBodyFat;
@@ -610,9 +950,33 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
           ) : null}
         </View>
 
+        {attempts.length >= TOTAL_ATTEMPTS && (
+          <View style={styles.allAttemptsSection}>
+            <Text style={[styles.allAttemptsTitle, { color: textTertiary }]}>All Readings</Text>
+            {attempts.map((a, i) => {
+              const isOutlier = stableReading && (
+                Math.abs((a.weightKg || 0) - (stableReading.weightKg || 0)) > 1.0 ||
+                (a.bodyFatPercent && stableReading.bodyFatPercent && Math.abs(a.bodyFatPercent - stableReading.bodyFatPercent) > 2.0)
+              );
+              return (
+                <View key={i} style={[styles.allAttemptRow, { borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                  <View style={[styles.allAttemptDot, { backgroundColor: isOutlier ? '#EF4444' : SUCCESS }]} />
+                  <Text style={[styles.allAttemptNum, { color: textTertiary }]}>#{i + 1}</Text>
+                  <Text style={[styles.allAttemptValue, { color: isOutlier ? textTertiary : textPrimary, textDecorationLine: isOutlier ? 'line-through' : 'none' }]}>
+                    {a.weightKg?.toFixed(1)} kg{a.bodyFatPercent ? ` · ${a.bodyFatPercent.toFixed(1)}%` : ''}
+                  </Text>
+                  {isOutlier && <Text style={[styles.outlierTag, { color: '#EF4444' }]}>outlier</Text>}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         <View style={[styles.savedBadge, { backgroundColor: SUCCESS + '14' }]}>
           <MaterialIcons name="check-circle" size={16} color={SUCCESS} />
-          <Text style={[styles.savedBadgeText, { color: SUCCESS }]}>Reading saved & profile updated</Text>
+          <Text style={[styles.savedBadgeText, { color: SUCCESS }]}>
+            {attempts.length >= TOTAL_ATTEMPTS ? 'Best reading saved & profile updated' : 'Reading saved & profile updated'}
+          </Text>
         </View>
 
         <TouchableOpacity style={styles.primaryBtn} onPress={handleClose} activeOpacity={0.8}>
@@ -632,6 +996,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       case 'devices': return renderDevicesPhase();
       case 'connecting': return renderConnectingPhase();
       case 'measuring': return renderMeasuringPhase();
+      case 'attemptDone': return renderAttemptDonePhase();
       case 'done': return renderDonePhase();
       default: return renderIdlePhase();
     }
@@ -723,6 +1088,39 @@ const styles = StyleSheet.create({
   doneMetricDivider: { width: 1, height: 40 },
   savedBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginBottom: 20 },
   savedBadgeText: { fontSize: 13, fontWeight: '600' },
+
+  // Attempt indicator
+  attemptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8, gap: 0 },
+  attemptDot: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  attemptDotText: { fontSize: 11, fontWeight: '700' },
+  attemptLine: { width: 32, height: 2, borderRadius: 1 },
+  attemptLabel: { fontSize: 13, fontWeight: '700', letterSpacing: 0.3, marginBottom: 16, textTransform: 'uppercase' },
+
+  // Auto-proceed
+  autoProceedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14, marginTop: 12 },
+  autoProceedText: { fontSize: 14, fontWeight: '600' },
+
+  // Attempt done card
+  attemptResultCard: { width: '100%', borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 12 },
+  attemptResultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  attemptResultItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  attemptResultValue: { fontSize: 17, fontWeight: '700' },
+  attemptResultDivider: { width: 1, height: 24 },
+
+  // Previous attempts list
+  prevAttemptsList: { width: '100%', marginBottom: 4 },
+  prevAttemptRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, gap: 8 },
+  prevAttemptLabel: { fontSize: 12, fontWeight: '600', width: 70 },
+  prevAttemptValue: { fontSize: 14, fontWeight: '500' },
+
+  // Done — all attempts
+  allAttemptsSection: { width: '100%', marginBottom: 16 },
+  allAttemptsTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  allAttemptRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, gap: 8 },
+  allAttemptDot: { width: 8, height: 8, borderRadius: 4 },
+  allAttemptNum: { fontSize: 12, fontWeight: '600', width: 24 },
+  allAttemptValue: { fontSize: 14, fontWeight: '500', flex: 1 },
+  outlierTag: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
 });
 
 export default ScaleConnectionModal;

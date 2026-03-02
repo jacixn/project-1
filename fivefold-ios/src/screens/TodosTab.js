@@ -50,7 +50,6 @@ import userStorage from '../utils/userStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { QuintupleDotDance } from '../components/ProgressHUDAnimations';
-import { getReferralCount } from '../services/referralService';
 import { updateTodoWidget } from '../utils/widgetBridge';
 import { pushToCloud } from '../services/userSyncService';
 import VisionCard from '../components/VisionCard';
@@ -298,39 +297,15 @@ const TodosTab = () => {
       delay: 200,
       useNativeDriver: true,
     }).start();
-    // Load selected loading animation (with referral validation)
-    const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
-    Promise.all([
-      userStorage.getRaw('fivefold_loading_animation'),
-      getReferralCount(),
-    ]).then(([id, count]) => {
-      const animId = id || 'default';
-      const req = LOADING_ANIM_GATES[animId];
-      if (req !== null && req !== undefined && count < req) {
-        setSelectedLoadingAnim('default');
-        userStorage.setRaw('fivefold_loading_animation', 'default');
-      } else {
-        setSelectedLoadingAnim(animId);
-      }
+    userStorage.getRaw('fivefold_loading_animation').then(id => {
+      setSelectedLoadingAnim(id || 'default');
     }).catch(() => {});
   }, []);
 
-  // Reload loading animation preference when tab gains focus (with validation)
   useFocusEffect(
     useCallback(() => {
-      const LOAD_GATES = { default: null, cat: 1, hamster: 3 };
-      Promise.all([
-        userStorage.getRaw('fivefold_loading_animation'),
-        getReferralCount(),
-      ]).then(([v, count]) => {
-        const animId = v || 'default';
-        const req = LOAD_GATES[animId];
-        if (req !== null && req !== undefined && count < req) {
-          setSelectedLoadingAnim('default');
-          userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(animId);
-        }
+      userStorage.getRaw('fivefold_loading_animation').then(v => {
+        setSelectedLoadingAnim(v || 'default');
       }).catch(() => {});
     }, [])
   );

@@ -413,8 +413,6 @@ const HighlightsScreen = ({ navigation }) => {
           highlightVersesWithText.map((verse, index) => (
             <View key={verse.verseId + index} style={{
               marginBottom: 16, borderRadius: 24, overflow: 'hidden',
-              shadowColor: selectedHighlightColor, shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: isDark ? 0.4 : 0.2, shadowRadius: 16, elevation: 6
             }}>
               <LinearGradient
                 colors={[
@@ -422,7 +420,7 @@ const HighlightsScreen = ({ navigation }) => {
                   isDark ? `${selectedHighlightColor}20` : `${selectedHighlightColor}12`
                 ]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={{ padding: 22, borderWidth: 2, borderColor: `${selectedHighlightColor}50`, borderRadius: 24 }}
+                style={{ padding: 22, borderRadius: 24 }}
               >
                 <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, backgroundColor: selectedHighlightColor }} />
                 

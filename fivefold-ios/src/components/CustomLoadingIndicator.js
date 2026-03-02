@@ -3,9 +3,6 @@ import { ActivityIndicator } from 'react-native';
 import LottieView from 'lottie-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import userStorage from '../utils/userStorage';
-import { getReferralCount } from '../services/referralService';
-
-const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
 
 const getAnimSource = (animId) => {
   switch (animId) {
@@ -27,24 +24,21 @@ const getAnimSize = (animId) => {
 let _cachedAnimId = null;      // null = not yet loaded
 let _cachePromise = null;      // deduplicates concurrent fetches
 let _cacheListeners = [];      // components waiting for the first fetch
+let _hadUidOnLoad = false;     // tracks whether UID was available during cache load
 
 const _loadAnimPreference = () => {
-  if (_cachedAnimId !== null) return Promise.resolve(_cachedAnimId);
-  if (_cachePromise) return _cachePromise;
+  if (_cachedAnimId !== null && _hadUidOnLoad) return Promise.resolve(_cachedAnimId);
 
   _cachePromise = Promise.all([
     userStorage.getRaw('fivefold_loading_animation'),
     AsyncStorage.getItem('app_splash_loading_animation'),
-    getReferralCount(),
-  ]).then(([uidScopedId, globalId, count]) => {
+  ]).then(([uidScopedId, globalId]) => {
+    _hadUidOnLoad = !!uidScopedId;
     const anim = uidScopedId || globalId || 'default';
-    const req = LOADING_ANIM_GATES[anim];
-    if (req !== null && req !== undefined && count < req) {
-      _cachedAnimId = 'default';
-    } else {
-      _cachedAnimId = anim;
+    _cachedAnimId = anim;
+    if (uidScopedId) {
+      AsyncStorage.setItem('app_splash_loading_animation', anim).catch(() => {});
     }
-    AsyncStorage.setItem('app_splash_loading_animation', _cachedAnimId).catch(() => {});
     _cacheListeners.forEach(fn => fn(_cachedAnimId));
     _cacheListeners = [];
     return _cachedAnimId;
@@ -64,6 +58,7 @@ const _loadAnimPreference = () => {
  */
 export const updateLoadingAnimCache = (newAnimId) => {
   _cachedAnimId = newAnimId || 'default';
+  _hadUidOnLoad = true;
   _cachePromise = null;
 };
 
@@ -73,6 +68,7 @@ export const updateLoadingAnimCache = (newAnimId) => {
 export const invalidateLoadingAnimCache = () => {
   _cachedAnimId = null;
   _cachePromise = null;
+  _hadUidOnLoad = false;
 };
 
 // Start fetching immediately when this module is first imported.
@@ -101,20 +97,16 @@ const CustomLoadingIndicator = ({ color = '#6366F1', size = 'large', selectedAni
   const [animId, setAnimId] = useState(resolvedSync);
 
   useEffect(() => {
-    // If parent passed it, always use that
     if (selectedAnim !== undefined) {
       setAnimId(selectedAnim);
       return;
     }
-    // If cache is already populated, use it
-    if (_cachedAnimId !== null) {
+    if (_cachedAnimId !== null && _hadUidOnLoad) {
       setAnimId(_cachedAnimId);
       return;
     }
-    // Otherwise wait for the in-flight fetch
     const listener = (id) => setAnimId(id);
     _cacheListeners.push(listener);
-    // Ensure the fetch is running
     _loadAnimPreference();
 
     return () => {

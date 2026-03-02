@@ -287,6 +287,7 @@ const ProfileTab = () => {
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showProfileImageViewer, setShowProfileImageViewer] = useState(false);
   const [editName, setEditName] = useState('Faithful Friend');
   const [profilePicture, setProfilePictureRaw] = useState(null);
   const profilePictureRef = useRef(null);
@@ -2322,7 +2323,6 @@ const ProfileTab = () => {
       
       // Load selected streak animation (with referral validation)
       const STREAK_ANIM_GATES = { fire1: null, bulb: 2, lightning: 4, redcar: 5, fire2: 5 };
-      const LOADING_ANIM_GATES = { default: null, cat: 1, hamster: 3 };
       const savedAnim = await userStorage.getRaw('fivefold_streak_animation');
       if (savedAnim) {
         const streakReq = STREAK_ANIM_GATES[savedAnim];
@@ -2334,16 +2334,9 @@ const ProfileTab = () => {
         }
       }
 
-      // Load selected loading animation (with referral validation)
       const savedLoadingAnim = await userStorage.getRaw('fivefold_loading_animation');
       if (savedLoadingAnim) {
-        const loadReq = LOADING_ANIM_GATES[savedLoadingAnim];
-        if (loadReq !== null && loadReq !== undefined && refCount < loadReq) {
-          setSelectedLoadingAnim('default');
-          await userStorage.setRaw('fivefold_loading_animation', 'default');
-        } else {
-          setSelectedLoadingAnim(savedLoadingAnim);
-        }
+        setSelectedLoadingAnim(savedLoadingAnim);
       }
       
       console.log(`📊 Profile loaded: ${correctTotal} points, Level ${level}, ${actualCompletedCount} completed tasks`);
@@ -2745,8 +2738,8 @@ const ProfileTab = () => {
 
       <TouchableOpacity 
         style={[styles.avatarContainer, { backgroundColor: theme.primary }]}
-        onPress={() => setShowEditModal(true)}
-        accessibilityLabel="Profile picture"
+        onPress={() => { if (profilePicture) setShowProfileImageViewer(true); }}
+        accessibilityLabel="View profile picture"
         accessibilityRole="button"
       >
         {profilePicture ? (
@@ -3411,6 +3404,28 @@ const ProfileTab = () => {
         <LegalSection />
         {/* AboutSection removed */}
       </Animated.ScrollView>
+
+      {/* Profile Image Viewer */}
+      <Modal
+        visible={showProfileImageViewer}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProfileImageViewer(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowProfileImageViewer(false)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}
+        >
+          {profilePicture && (
+            <Image
+              source={{ uri: profilePicture }}
+              style={{ width: Dimensions.get('window').width - 40, height: Dimensions.get('window').width - 40, borderRadius: 20 }}
+              resizeMode="cover"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
 
       {/* Edit Profile Modal */}
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
@@ -7660,11 +7675,6 @@ const ProfileTab = () => {
                       marginBottom: 16,
                       borderRadius: 24,
                       overflow: 'hidden',
-                      shadowColor: selectedHighlightColor,
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: isDark ? 0.4 : 0.2,
-                      shadowRadius: 16,
-                      elevation: 6
                     }}
                   >
                     <LinearGradient
@@ -7676,8 +7686,6 @@ const ProfileTab = () => {
                       end={{ x: 1, y: 1 }}
                       style={{
                         padding: 22,
-                        borderWidth: 2,
-                        borderColor: `${selectedHighlightColor}50`,
                         borderRadius: 24
                       }}
                     >

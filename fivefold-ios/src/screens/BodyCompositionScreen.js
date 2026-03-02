@@ -12,6 +12,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Animated,
   Dimensions,
   Platform,
@@ -27,7 +28,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
-import WorkoutService from '../services/workoutService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import ScaleConnectionModal from '../components/ScaleConnectionModal';
 import scaleService from '../services/scaleService';
@@ -108,15 +108,7 @@ const BodyCompositionScreen = () => {
       setLoading(true);
       const profile = await nutritionService.getProfile();
       if (profile && profile.weightKg && profile.heightCm) {
-        let recentWorkoutCount = null;
-        try {
-          const history = await WorkoutService.getWorkoutHistory();
-          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-          recentWorkoutCount = (history || []).filter(
-            w => new Date(w.completedAt || w.date).getTime() > thirtyDaysAgo
-          ).length;
-        } catch (_) {}
-        const data = bodyCompositionService.calculate(profile, { recentWorkoutCount });
+        const data = bodyCompositionService.calculate(profile);
         setBodyComp(data);
       }
       setLoading(false);
@@ -179,8 +171,8 @@ const BodyCompositionScreen = () => {
   // ── Metric Explanations (simple, human language) ──
   const metricExplanations = {
     'Health Score': {
-      explanation: 'An overall rating of your body health on a scale of 0–100. It combines your BMI, body fat, muscle mass, and other metrics into one easy number.',
-      example: 'Think of it like a grade for your body. 80+ is an A, 60–79 is a B, and below 60 means there\'s room to improve.',
+      explanation: 'Your Health Score rates your physique from 0 to 100. It starts at 100 and deducts points based on six body composition factors — all adjusted for your specific age and gender:\n\n• Body Fat % — the biggest factor. Young people are held to a stricter standard because your body is at its physical peak. Older adults get more lenient thresholds since maintaining low body fat gets harder with age.\n\n• BMI — are you in a healthy weight range for your height?\n\n• Muscle Mass — do you carry enough muscle for your age?\n\n• Hydration — is your body water at a healthy level?\n\n• Visceral Fat — the dangerous fat stored around your organs.\n\n• Body Age vs Real Age — does your body measure younger or older than you?\n\nThis score reflects how your body actually is — not how active you\'ve been.',
+      example: 'A 24-year-old male needs under 8% body fat to reach "Excellent" — that means visible abs. That same body fat on a 60-year-old would score much higher because it\'s harder to stay lean with age. Body fat is what moves the needle most — lowering it will give you the biggest score boost.',
       icon: 'favorite',
       color: '#10B981',
       source: { label: 'WHO — Obesity & Overweight', url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight' },
@@ -872,57 +864,50 @@ const BodyCompositionScreen = () => {
       {/* ── Info Popup Modal ── */}
       {infoPopup && (
         <Modal transparent visible={!!infoPopup} animationType="none" onRequestClose={hideInfo}>
-          <TouchableOpacity
-            style={styles.infoOverlay}
-            activeOpacity={1}
-            onPress={hideInfo}
-          >
-            <Animated.View style={{ opacity: infoFade, transform: [{ scale: infoScale }], width: '100%', alignItems: 'center' }}>
-              <TouchableOpacity activeOpacity={1} style={[styles.infoCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
-                {/* Colored accent bar */}
+          <View style={styles.infoOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={hideInfo} />
+            <Animated.View style={{ opacity: infoFade, transform: [{ scale: infoScale }], width: '100%', alignItems: 'center' }} pointerEvents="box-none">
+              <View style={[styles.infoCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF', maxHeight: SH * 0.8 }]}>
                 <View style={[styles.infoAccent, { backgroundColor: infoPopup.color }]} />
 
-                {/* Icon header */}
-                <View style={[styles.infoIconBg, { backgroundColor: infoPopup.color + '18' }]}>
-                  <MaterialIcons name={infoPopup.icon} size={28} color={infoPopup.color} />
-                </View>
-
-                {/* Title */}
-                <Text style={[styles.infoTitle, { color: textPrimary }]}>{infoPopup.title}</Text>
-
-                {/* What is it? */}
-                <Text style={[styles.infoSectionHead, { color: infoPopup.color }]}>What is it?</Text>
-                <Text style={[styles.infoText, { color: textSecondary }]}>{infoPopup.explanation}</Text>
-
-                {infoPopup.rangeData && renderRangeIndicator(infoPopup.rangeData, infoPopup.color)}
-
-                {/* Example */}
-                <View style={[styles.infoExampleBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8F9FA', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB' }]}>
-                  <View style={styles.infoExampleHeader}>
-                    <MaterialIcons name="lightbulb" size={16} color="#F59E0B" />
-                    <Text style={[styles.infoExampleLabel, { color: isDark ? '#F59E0B' : '#B45309' }]}>Example</Text>
+                <ScrollView showsVerticalScrollIndicator={true} bounces={false} style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 8 }} nestedScrollEnabled>
+                  <View style={[styles.infoIconBg, { backgroundColor: infoPopup.color + '18' }]}>
+                    <MaterialIcons name={infoPopup.icon} size={28} color={infoPopup.color} />
                   </View>
-                  <Text style={[styles.infoExampleText, { color: textSecondary }]}>{infoPopup.example}</Text>
-                </View>
 
-                {infoPopup.source && (
-                  <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, alignSelf: 'flex-start' }}
-                    onPress={() => Linking.openURL(infoPopup.source.url)}
-                    activeOpacity={0.6}
-                  >
-                    <MaterialIcons name="open-in-new" size={13} color={infoPopup.color} />
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: infoPopup.color }}>{infoPopup.source.label}</Text>
-                  </TouchableOpacity>
-                )}
+                  <Text style={[styles.infoTitle, { color: textPrimary }]}>{infoPopup.title}</Text>
 
-                {/* Close button */}
+                  <Text style={[styles.infoSectionHead, { color: infoPopup.color }]}>What is it?</Text>
+                  <Text style={[styles.infoText, { color: textSecondary }]}>{infoPopup.explanation}</Text>
+
+                  {infoPopup.rangeData && renderRangeIndicator(infoPopup.rangeData, infoPopup.color)}
+
+                  <View style={[styles.infoExampleBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8F9FA', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB' }]}>
+                    <View style={styles.infoExampleHeader}>
+                      <MaterialIcons name="lightbulb" size={16} color="#F59E0B" />
+                      <Text style={[styles.infoExampleLabel, { color: isDark ? '#F59E0B' : '#B45309' }]}>Example</Text>
+                    </View>
+                    <Text style={[styles.infoExampleText, { color: textSecondary }]}>{infoPopup.example}</Text>
+                  </View>
+
+                  {infoPopup.source && (
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, alignSelf: 'flex-start' }}
+                      onPress={() => Linking.openURL(infoPopup.source.url)}
+                      activeOpacity={0.6}
+                    >
+                      <MaterialIcons name="open-in-new" size={13} color={infoPopup.color} />
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: infoPopup.color }}>{infoPopup.source.label}</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+
                 <TouchableOpacity style={[styles.infoCloseBtn, { backgroundColor: infoPopup.color + '14' }]} onPress={hideInfo}>
                   <Text style={[styles.infoCloseBtnText, { color: infoPopup.color }]}>Got it</Text>
                 </TouchableOpacity>
-              </TouchableOpacity>
+              </View>
             </Animated.View>
-          </TouchableOpacity>
+          </View>
         </Modal>
       )}
       <FitnessDisclaimer screenKey="body_composition" />

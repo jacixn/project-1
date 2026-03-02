@@ -3,7 +3,8 @@
  *
  * Core service for nutrition tracking:
  * - Body profile storage (age, height, weight, goal, etc.)
- * - TDEE calculation via Mifflin-St Jeor
+ * - TDEE calculation via Katch-McArdle (when body fat known) or Mifflin-St Jeor
+ * - Body-composition-aware macro targets (protein per kg lean mass)
  * - Daily food log with calories and macros
  * - Food favorites with usage tracking
  */
@@ -34,7 +35,7 @@ const ACTIVITY_LABELS = {
   veryActive: 'Extra Active',
 };
 
-// ─── Macro splits (percentage of total calories) ───
+// ─── Default macro splits (percentage of total calories) ───
 const MACRO_SPLITS = {
   lose: { protein: 0.40, carbs: 0.30, fat: 0.30 },
   gain: { protein: 0.30, carbs: 0.45, fat: 0.25 },
@@ -99,10 +100,18 @@ class NutritionService {
   // ════════════════════════════════════════════════════
 
   /**
-   * Calculate BMR using Mifflin-St Jeor.
+   * Calculate BMR.
+   * Uses Katch-McArdle (lean-mass based) when bodyFatPercent is available
+   * for significantly better accuracy, otherwise falls back to Mifflin-St Jeor.
    */
   calculateBMR(profile) {
-    const { gender, weightKg, heightCm, age } = profile;
+    const { gender, weightKg, heightCm, age, bodyFatPercent } = profile;
+
+    if (bodyFatPercent && bodyFatPercent > 0 && bodyFatPercent < 70) {
+      const leanMassKg = weightKg * (1 - bodyFatPercent / 100);
+      return 370 + 21.6 * leanMassKg;
+    }
+
     if (gender === 'female') {
       return 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
     }
@@ -122,19 +131,60 @@ class NutritionService {
     if (profile.goal === 'lose') dailyCalories = tdee - 500;
     if (profile.goal === 'gain') dailyCalories = tdee + 400;
 
-    // Safety floor
     if (dailyCalories < 1200) dailyCalories = 1200;
 
     return { bmr: Math.round(bmr), tdee, dailyCalories, goal: profile.goal };
   }
 
   /**
+   * Build body-composition-aware macro splits.
+   * When body fat % is known, protein is set per kg of lean mass
+   * (more accurate than a flat % of calories), then the remaining
+   * calories are divided between carbs and fat based on the goal.
+   */
+  _getSmartMacros(profile, dailyCalories) {
+    const { weightKg, bodyFatPercent, goal } = profile;
+
+    if (!bodyFatPercent || bodyFatPercent <= 0 || bodyFatPercent >= 70) {
+      return null;
+    }
+
+    const leanMassKg = weightKg * (1 - bodyFatPercent / 100);
+
+    // Protein: 1.6-2.4 g per kg of lean mass depending on goal
+    let proteinPerKgLBM;
+    if (goal === 'lose') proteinPerKgLBM = 2.4;
+    else if (goal === 'gain') proteinPerKgLBM = 2.0;
+    else proteinPerKgLBM = 1.8;
+
+    const proteinG = Math.round(leanMassKg * proteinPerKgLBM);
+    const proteinCal = proteinG * 4;
+
+    // Fat floor: ~0.8 g per kg total bodyweight (hormonal health)
+    const fatFloorG = Math.round(weightKg * 0.8);
+    const remaining = dailyCalories - proteinCal;
+
+    let fatG, carbsG;
+    if (goal === 'lose') {
+      fatG = Math.max(fatFloorG, Math.round(remaining * 0.40 / 9));
+      carbsG = Math.round(Math.max(0, remaining - fatG * 9) / 4);
+    } else if (goal === 'gain') {
+      fatG = Math.max(fatFloorG, Math.round(remaining * 0.28 / 9));
+      carbsG = Math.round(Math.max(0, remaining - fatG * 9) / 4);
+    } else {
+      fatG = Math.max(fatFloorG, Math.round(remaining * 0.35 / 9));
+      carbsG = Math.round(Math.max(0, remaining - fatG * 9) / 4);
+    }
+
+    return { protein: proteinG, carbs: carbsG, fat: fatG };
+  }
+
+  /**
    * Get macro targets in grams.
-   * If AI overrides exist on the profile, use those. Otherwise fall back to formula.
+   * Priority: AI overrides > body-comp-aware formula > basic percentage splits.
    * Returns { protein, carbs, fat, dailyCalories }.
    */
   getMacroTargets(profile) {
-    // If AI-generated targets are stored, use them
     if (profile.aiTargets && profile.aiTargets.dailyCalories) {
       return {
         protein: profile.aiTargets.protein,
@@ -144,14 +194,18 @@ class NutritionService {
       };
     }
 
-    // Fallback: formula-based
     const { dailyCalories } = this.calculateTDEE(profile);
-    const split = MACRO_SPLITS[profile.goal] || MACRO_SPLITS.maintain;
 
+    const smart = this._getSmartMacros(profile, dailyCalories);
+    if (smart) {
+      return { ...smart, dailyCalories };
+    }
+
+    const split = MACRO_SPLITS[profile.goal] || MACRO_SPLITS.maintain;
     return {
-      protein: Math.round((dailyCalories * split.protein) / 4),  // 4 cal/g
-      carbs: Math.round((dailyCalories * split.carbs) / 4),      // 4 cal/g
-      fat: Math.round((dailyCalories * split.fat) / 9),           // 9 cal/g
+      protein: Math.round((dailyCalories * split.protein) / 4),
+      carbs: Math.round((dailyCalories * split.carbs) / 4),
+      fat: Math.round((dailyCalories * split.fat) / 9),
       dailyCalories,
     };
   }

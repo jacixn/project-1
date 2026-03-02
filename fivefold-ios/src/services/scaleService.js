@@ -215,6 +215,12 @@ class ScaleService {
 
   isConnected() { return this._connected; }
 
+  resetMeasurement() {
+    this._measurement = {};
+    this._recentWeights = [];
+    this._lastValidWeight = null;
+  }
+
   /**
    * Send user profile to Chipsea-based scales so they calculate body composition.
    * Must be called AFTER connect() completes.

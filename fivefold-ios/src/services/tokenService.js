@@ -491,10 +491,6 @@ const scheduleTokenNotification = async (arrivalMinutes, userId) => {
       return;
     }
     
-    // Use a Date trigger (not { seconds }) because expo-notifications SDK 54+
-    // requires a `type` field on object triggers.  A plain Date is auto-converted
-    // to a DateTriggerInput and is the proven pattern in this codebase (prayer
-    // reminders, streak reminders, etc.).
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Your Token Has Arrived',
@@ -502,7 +498,7 @@ const scheduleTokenNotification = async (arrivalMinutes, userId) => {
         data: { type: 'token_arrived' },
         sound: true,
       },
-      trigger: arrivalDate,
+      trigger: { type: 'date', date: arrivalDate },
     });
     
     console.log(`[Token] Scheduled notification for ${minutesToTimeString(arrivalMinutes)} (in ${delaySeconds}s) — trigger: ${arrivalDate.toISOString()}`);
