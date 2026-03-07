@@ -154,6 +154,7 @@ const FeedbackModal = forwardRef((_, ref) => {
   }, [rating, selectedTags, comment, animateOut]);
 
   const handleDismiss = useCallback(() => {
+    hapticFeedback.buttonPress();
     Keyboard.dismiss();
     feedbackService.markPromptShown();
     animateOut(() => setVisible(false));

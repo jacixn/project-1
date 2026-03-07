@@ -223,8 +223,13 @@ export const getFeedPosts = async (lastDoc = null, pageSize = POSTS_PER_PAGE) =>
     
     const lastVisible = snapshot.docs[snapshot.docs.length - 1];
     
+    // Client-side safety filter: hide posts older than 7 days even if cleanup hasn't run yet
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() - POST_EXPIRY_DAYS);
+    const freshPosts = posts.filter(p => p.createdAt >= expiryDate);
+    
     // Enrich posts with fresh author profile data
-    const enrichedPosts = await enrichPostsWithProfiles(posts);
+    const enrichedPosts = await enrichPostsWithProfiles(freshPosts);
     
     return {
       posts: enrichedPosts,
@@ -448,7 +453,7 @@ export const cleanupOldPosts = async () => {
         deletedCount++;
         console.log('[Feed] Deleted old post:', docSnapshot.id);
       } catch (err) {
-        console.error('[Feed] Error deleting old post:', docSnapshot.id, err);
+        console.log('[Feed] Skipped old post (not owner):', docSnapshot.id);
       }
     }
     

@@ -349,8 +349,20 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
   // Note: toggleFavorite is defined at the top with the modal animations
 
   const getVerseGradient = (cat) => {
-    const g = { faith: ['#6366f1', '#8b5cf6'], love: ['#ec4899', '#f43f5e'], hope: ['#10b981', '#14b8a6'] };
-    return g[cat] || ['#6366f1', '#8b5cf6'];
+    const categoryData = versesData?.categories?.find(c => c.id === cat);
+    if (categoryData?.color) {
+      const base = categoryData.color;
+      // Darken the base color slightly for the second gradient stop
+      const darken = (hex) => {
+        const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - 30);
+        const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - 30);
+        const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - 30);
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      };
+      return [base, darken(base)];
+    }
+    const fallbacks = { faith: ['#6366f1', '#8b5cf6'], love: ['#ec4899', '#f43f5e'], hope: ['#10b981', '#14b8a6'] };
+    return fallbacks[cat] || ['#6366f1', '#8b5cf6'];
   };
 
   const renderVerseCard = (verse) => {

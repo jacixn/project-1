@@ -29,6 +29,7 @@
  */
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
@@ -796,4 +797,39 @@ exports.rollbackReferralOnAccountDelete = onCall({ maxInstances: 10 }, async (re
 
   console.log('[rollbackReferralOnAccountDelete] Decremented referral count for', referrerUid, ' (deleting user:', uid, ')');
   return { success: true, decremented: true };
+});
+
+// ─── cleanupExpiredHubPosts ──────────────────────────────────────
+// Scheduled — runs daily at 3 AM UTC to delete hub_posts older than 7 days.
+// Uses admin SDK so it bypasses Firestore rules (can delete any user's posts).
+
+exports.cleanupExpiredHubPosts = onSchedule('every day 03:00', async () => {
+  const POST_EXPIRY_DAYS = 7;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - POST_EXPIRY_DAYS);
+
+  let totalDeleted = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const snapshot = await db
+      .collection('hub_posts')
+      .where('createdAt', '<', cutoff)
+      .limit(100)
+      .get();
+
+    if (snapshot.empty) {
+      hasMore = false;
+      break;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    totalDeleted += snapshot.size;
+
+    if (snapshot.size < 100) hasMore = false;
+  }
+
+  console.log(`[cleanupExpiredHubPosts] Deleted ${totalDeleted} expired posts`);
 });

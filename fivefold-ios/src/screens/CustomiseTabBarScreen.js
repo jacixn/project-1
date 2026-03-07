@@ -51,6 +51,7 @@ const TabRow = React.memo(({
   isProfile,
   onToggle,
   draggedKey,
+  draggingTab,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -85,13 +86,14 @@ const TabRow = React.memo(({
     [name, isProfile]
   );
 
-  const normalBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
+  const normalBg = isDark ? '#151515' : '#FFFFFF';
+  const isBeingDragged = draggingTab === name;
 
   const animStyle = useAnimatedStyle(() => {
     const isActive = draggedKey.value === name;
     return {
       transform: [
-        { scale: withSpring(isActive ? 1.02 : 1, { damping: 15, stiffness: 200 }) },
+        { scale: withSpring(isActive ? 1.04 : 1, { damping: 15, stiffness: 200 }) },
       ],
       zIndex: isActive ? 100 : 1,
     };
@@ -103,7 +105,8 @@ const TabRow = React.memo(({
         style={[
           styles.tabRow,
           animStyle,
-          { backgroundColor: normalBg },
+          { backgroundColor: isBeingDragged ? (isDark ? '#1A3D1A' : '#D5F5D5') : normalBg },
+          isBeingDragged && { borderRadius: 14, borderWidth: 1.5, borderColor: isDark ? '#2E7D32' : '#4CAF50' },
           !isLast && {
             borderBottomWidth: 1,
             borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
@@ -156,6 +159,7 @@ const CustomiseTabBarScreen = () => {
   const [initialHidden, setInitialHidden] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [draggingTab, setDraggingTab] = useState(null);
 
   const orderRef = useRef(order);
   orderRef.current = order;
@@ -237,6 +241,7 @@ const CustomiseTabBarScreen = () => {
     currentDragIdx.current = orderRef.current.indexOf(name);
     swapAccumulator.current = 0;
     setScrollEnabled(false);
+    setDraggingTab(name);
     hapticFeedback.medium();
   }, []);
 
@@ -273,6 +278,7 @@ const CustomiseTabBarScreen = () => {
     currentDragIdx.current = -1;
     swapAccumulator.current = 0;
     setScrollEnabled(true);
+    setDraggingTab(null);
   }, []);
 
   const visibleCount = order.filter(n => !hidden.includes(n)).length;
@@ -334,6 +340,7 @@ const CustomiseTabBarScreen = () => {
               isProfile={name === 'Profile'}
               onToggle={toggleTab}
               draggedKey={draggedKey}
+              draggingTab={draggingTab}
               onDragStart={onDragStart}
               onDragMove={onDragMove}
               onDragEnd={onDragEnd}

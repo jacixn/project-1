@@ -1220,6 +1220,23 @@ const ThemedApp = () => {
           <NavigationContainer 
             key={`nav-${appKey}`}
             ref={navigationRef}
+            theme={{
+              dark: isDark,
+              fonts: {
+                regular: { fontFamily: 'System', fontWeight: '400' },
+                medium: { fontFamily: 'System', fontWeight: '500' },
+                bold: { fontFamily: 'System', fontWeight: '700' },
+                heavy: { fontFamily: 'System', fontWeight: '800' },
+              },
+              colors: {
+                primary: theme.primary || '#F59E0B',
+                background: theme.background,
+                card: theme.background,
+                text: theme.text || '#FFFFFF',
+                border: 'transparent',
+                notification: theme.primary || '#F59E0B',
+              },
+            }}
             onStateChange={(state) => {
               const routeName = getActiveRouteName(state);
               setCurrentRoute(routeName);

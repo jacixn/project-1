@@ -201,7 +201,18 @@ const VisionScreen = () => {
           ]);
         }}
       >
-        <View style={styles.goalRow}>
+        <View style={[
+          styles.goalRow,
+          isExpanded && {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+            marginHorizontal: -14,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          },
+        ]}>
           <View style={styles.goalLabelRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.goalLabel, { color: textPrimary }]} numberOfLines={isExpanded ? 0 : 2}>

@@ -2875,7 +2875,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                   setVerifyMaskedEmailState(result.maskedEmail);
                 }
               } catch (e) {
-                console.error('Error sending verification code:', e);
+                console.log('Error sending verification code:', e);
                 Alert.alert('Error', 'Failed to send verification code. You can try again on the next screen.');
               }
               setShowVerificationScreen(true);

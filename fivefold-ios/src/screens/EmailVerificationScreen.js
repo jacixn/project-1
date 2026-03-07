@@ -96,7 +96,7 @@ const EmailVerificationScreen = ({ onDismiss, email: emailProp }) => {
           if (result.maskedEmail) setDisplayEmail(result.maskedEmail);
           setCooldown(60);
         } catch (error) {
-          console.error('[EmailVerification] Auto-send failed:', error?.message || error);
+          console.log('[EmailVerification] Auto-send failed:', error?.message || error);
           // Don't show alert on auto-send failure — user can tap "Resend Code"
         } finally {
           setSending(false);
@@ -225,7 +225,7 @@ const EmailVerificationScreen = ({ onDismiss, email: emailProp }) => {
       setCooldown(60);
       Alert.alert('Code Sent', `A new code has been sent to ${result.maskedEmail || maskedEmail}.`);
     } catch (error) {
-      console.error('[EmailVerification] Resend failed:', error?.message || error);
+      console.log('[EmailVerification] Resend failed:', error?.message || error);
       const msg = error?.message || 'Failed to send code. Please try again.';
       Alert.alert('Error', msg);
     } finally {

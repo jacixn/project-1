@@ -190,7 +190,7 @@ export const submitReferral = async (referrerUsername) => {
 
     return result;
   } catch (error) {
-    console.error('[Referral] Error submitting referral:', error);
+    console.log('[Referral] Error submitting referral:', error);
     return { success: false, message: 'Something went wrong while saving your referral. Please try again.' };
   } finally {
     // Always release the mutex

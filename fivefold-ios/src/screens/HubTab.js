@@ -40,7 +40,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkout } from '../contexts/WorkoutContext';
 import bibleAudioService from '../services/bibleAudioService';
 import { GlassHeader } from '../components/GlassEffect';
-import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles, invalidateAuthorCache } from '../services/feedService';
+import { getFeedPosts, createPost, viewPost, deletePost, formatTimeAgo, enrichPostsWithProfiles, invalidateAuthorCache, cleanupOldPosts } from '../services/feedService';
 import { isEmailVerified, sendVerificationCode, refreshEmailVerificationStatus } from '../services/authService';
 import { getTokenStatus, useToken, getTimeUntilToken, checkAndDeliverToken, forceRefreshTokenFromFirebase } from '../services/tokenService';
 import { getTotalUnreadCount, subscribeToConversations } from '../services/messageService';
@@ -206,6 +206,9 @@ const HubTab = () => {
     
     // One-time fetch of posts (no real-time listener)
     loadPosts();
+    
+    // Clean up posts older than 7 days (fire-and-forget)
+    cleanupOldPosts().catch(() => {});
     
     // Delay initial token check to allow cloud data to download first
     const tokenCheckDelay = setTimeout(() => {

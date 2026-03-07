@@ -1,0 +1,13 @@
+---
+description: Always provide full absolute paths when telling the user to run terminal commands
+alwaysApply: true
+---
+
+# Full Paths in Terminal Instructions
+
+When instructing the user to run a command in their terminal, **always provide the full absolute path** — never use relative paths.
+
+- Bad: "Navigate to `fivefold-ios/` and run `npx expo start`"
+- Good: "In your terminal, run: `cd /Users/jz/Desktop/guthub/project-1/fivefold-ios && npx expo start`"
+
+This applies to all terminal instructions: cd, npx, node, npm, firebase, git, etc.

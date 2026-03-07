@@ -25,6 +25,7 @@ import {
   isCheckedInToday,
   getWeekDots,
   getCompletionRate,
+  resetStreak,
   HABIT_ICONS,
   HABIT_COLORS,
 } from '../services/habitsService';
@@ -284,6 +285,33 @@ const HabitsScreen = () => {
                 ))
               )}
             </View>
+
+            {/* Reset Streak */}
+            <TouchableOpacity
+              style={styles.resetStreakBtn}
+              onPress={() => {
+                Alert.alert(
+                  'Reset Streak',
+                  `Reset the streak for "${habit.name}" back to Day 0? This cannot be undone.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Reset',
+                      style: 'destructive',
+                      onPress: async () => {
+                        hapticFeedback.warning();
+                        await resetStreak(habit.id);
+                        await refresh();
+                        setSelectedHabit(null);
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <MaterialIcons name="restart-alt" size={18} color="#ef4444" />
+              <Text style={styles.resetStreakText}>Reset Streak</Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </Modal>
@@ -301,7 +329,7 @@ const HabitsScreen = () => {
       </TouchableOpacity>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 90 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Scrollable header */}
@@ -356,7 +384,31 @@ const HabitsScreen = () => {
         ) : (
           habits.map(renderHabitCard)
         )}
+
       </ScrollView>
+
+      {/* Emergency Button — fixed at bottom */}
+      {habits.length > 0 && (
+        <View style={[styles.emergencyWrapper, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              hapticFeedback.medium();
+              navigation.navigate('PanicButton');
+            }}
+          >
+            <LinearGradient
+              colors={['#DC2626', '#991B1B']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.panicButton}
+            >
+              <MaterialIcons name="warning" size={22} color="#FFFFFF" />
+              <Text style={styles.panicButtonText}>Emergency</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Add Habit Modal */}
       <AddHabitModal
@@ -787,6 +839,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontStyle: 'italic',
   },
+  resetStreakBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+    backgroundColor: 'rgba(239,68,68,0.06)',
+  },
+  resetStreakText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
   historyRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -877,6 +947,34 @@ const styles = StyleSheet.create({
   timePickerHint: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  emergencyWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: 'transparent',
+  },
+  panicButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 20,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  panicButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 });
 

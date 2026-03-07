@@ -373,19 +373,29 @@ const BodyCompositionScreen = () => {
         if (diff <= half + 12) return SEMANTIC.average;
         return SEMANTIC.bad;
       }
-      case 'Body Fat':
+      case 'Body Fat': {
+        const ageShift = Math.max(0, (m.age || 25) - 25) * 0.25;
         if (male) {
-          if (m.bodyFat < 6) return SEMANTIC.average;
-          if (m.bodyFat < 14) return SEMANTIC.excellent;
-          if (m.bodyFat < 18) return SEMANTIC.good;
-          if (m.bodyFat < 25) return SEMANTIC.average;
+          const essMax = 6;
+          const athMax = (8 + ageShift + 11 + ageShift) / 2;
+          const fitMax = (11 + ageShift + 14 + ageShift) / 2;
+          const highMax = 18 + ageShift * 0.8;
+          if (m.bodyFat < essMax) return SEMANTIC.average;
+          if (m.bodyFat < athMax) return SEMANTIC.excellent;
+          if (m.bodyFat < fitMax) return SEMANTIC.good;
+          if (m.bodyFat < highMax) return SEMANTIC.average;
           return SEMANTIC.bad;
         }
-        if (m.bodyFat < 14) return SEMANTIC.average;
-        if (m.bodyFat < 21) return SEMANTIC.excellent;
-        if (m.bodyFat < 25) return SEMANTIC.good;
-        if (m.bodyFat < 32) return SEMANTIC.average;
+        const essMaxF = 14;
+        const athMaxF = (16 + ageShift + 20 + ageShift) / 2;
+        const fitMaxF = (20 + ageShift + 24 + ageShift) / 2;
+        const highMaxF = 29 + ageShift * 0.8;
+        if (m.bodyFat < essMaxF) return SEMANTIC.average;
+        if (m.bodyFat < athMaxF) return SEMANTIC.excellent;
+        if (m.bodyFat < fitMaxF) return SEMANTIC.good;
+        if (m.bodyFat < highMaxF) return SEMANTIC.average;
         return SEMANTIC.bad;
+      }
       case 'Muscle Rate':
         if (male) {
           if (m.muscleRate >= 44) return SEMANTIC.excellent;
@@ -504,9 +514,19 @@ const BodyCompositionScreen = () => {
       'Health Score': { value: m.healthScore, thresholds: [40, 70, 80], zones: [{ label: 'Poor', color: SEMANTIC.bad }, { label: 'Average', color: SEMANTIC.average }, { label: 'Good', color: SEMANTIC.good }, { label: 'Excellent', color: SEMANTIC.excellent }], min: 5, max: 100 },
       'BMI': { value: m.bmi, thresholds: [18.5, 25, 30], zones: [{ label: 'Under', color: SEMANTIC.average }, { label: 'Normal', color: SEMANTIC.good }, { label: 'Over', color: SEMANTIC.average }, { label: 'Obese', color: SEMANTIC.bad }], min: 15, max: 40 },
       'Weight': { value: m.weight, thresholds: [m.idealWeightLow, m.idealWeightHigh], zones: [{ label: 'Under', color: SEMANTIC.average }, { label: 'Ideal', color: SEMANTIC.good }, { label: 'Over', color: SEMANTIC.bad }], min: Math.round(Math.max(30, m.idealWeightLow - 15)), max: Math.round(m.idealWeightHigh + 25) },
-      'Body Fat': male
-        ? { value: m.bodyFat, thresholds: [14, 18, 25], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 5, max: 40 }
-        : { value: m.bodyFat, thresholds: [21, 25, 32], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 10, max: 45 },
+      'Body Fat': (() => {
+        const ageShift = Math.max(0, (m.age || 25) - 25) * 0.25;
+        if (male) {
+          const fitMax = Math.round(11 + ageShift);
+          const avgMax = Math.round(14 + ageShift);
+          const highMax = Math.round(18 + ageShift * 0.8);
+          return { value: m.bodyFat, thresholds: [fitMax, avgMax, highMax], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 5, max: 40 };
+        }
+        const fitMaxF = Math.round(20 + ageShift);
+        const avgMaxF = Math.round(24 + ageShift);
+        const highMaxF = Math.round(29 + ageShift * 0.8);
+        return { value: m.bodyFat, thresholds: [fitMaxF, avgMaxF, highMaxF], zones: [{ label: 'Athletic', color: SEMANTIC.excellent }, { label: 'Fitness', color: SEMANTIC.good }, { label: 'Average', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.bad }], min: 10, max: 45 };
+      })(),
       'Muscle Rate': male
         ? { value: m.muscleRate, thresholds: [33, 40, 44], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.good }, { label: 'Very High', color: SEMANTIC.excellent }], min: 25, max: 55 }
         : { value: m.muscleRate, thresholds: [24, 31, 36], zones: [{ label: 'Low', color: SEMANTIC.bad }, { label: 'Normal', color: SEMANTIC.average }, { label: 'High', color: SEMANTIC.good }, { label: 'Very High', color: SEMANTIC.excellent }], min: 18, max: 45 },

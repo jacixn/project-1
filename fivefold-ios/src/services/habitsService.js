@@ -122,6 +122,16 @@ export const isCheckedInToday = (habit) => {
   return habit.checkIns?.includes(todayString()) || false;
 };
 
+export const resetStreak = async (habitId) => {
+  const habits = await loadHabits();
+  const idx = habits.findIndex((h) => h.id === habitId);
+  if (idx === -1) return null;
+  habits[idx].checkIns = [];
+  habits[idx].currentStreak = 0;
+  await persist(habits);
+  return habits[idx];
+};
+
 export const getWeekDots = (habit) => {
   const dots = [];
   const today = todayString();

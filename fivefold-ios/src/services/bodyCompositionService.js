@@ -261,12 +261,10 @@ class BodyCompositionService {
   _bodyFatStatus(isMale, age, bf) {
     const t = this._getBodyFatThresholds(isMale, age);
     const essentialMax = isMale ? 6 : 14;
-    const athleticMax = (t.excellent + t.good) / 2;
-    const fitnessMax = (t.good + t.avg) / 2;
     const ranges = [
       { max: essentialMax, label: 'Essential', color: '#3B82F6' },
-      { max: athleticMax, label: 'Athletic', color: '#10B981' },
-      { max: fitnessMax, label: 'Fitness', color: '#10B981' },
+      { max: t.good, label: 'Athletic', color: '#3B82F6' },
+      { max: t.avg, label: 'Fitness', color: '#10B981' },
       { max: t.high, label: 'Average', color: '#F59E0B' },
     ];
     const match = ranges.find(r => bf < r.max);
@@ -337,18 +335,19 @@ class BodyCompositionService {
 
     // ── Body fat — THE dominant factor, thresholds slide with age ──
     const bfT = this._getBodyFatThresholds(isMale, realAge);
+    const youthFactor = 1 + Math.max(0, 35 - realAge) * 0.03;
 
     if (bf <= bfT.excellent) {
       score += Math.min((bfT.excellent - bf) * 0.5, 2);
     } else if (bf <= bfT.good) {
-      score -= (bf - bfT.excellent) * 2;
+      score -= (bf - bfT.excellent) * 2.5 * youthFactor;
     } else if (bf <= bfT.avg) {
-      score -= (bfT.good - bfT.excellent) * 2 + (bf - bfT.good) * 3.5;
+      score -= (bfT.good - bfT.excellent) * 2.5 * youthFactor + (bf - bfT.good) * 4 * youthFactor;
     } else if (bf <= bfT.high) {
-      score -= (bfT.good - bfT.excellent) * 2 + (bfT.avg - bfT.good) * 3.5 + (bf - bfT.avg) * 3;
+      score -= (bfT.good - bfT.excellent) * 2.5 * youthFactor + (bfT.avg - bfT.good) * 4 * youthFactor + (bf - bfT.avg) * 3.5 * youthFactor;
     } else {
-      const base = (bfT.good - bfT.excellent) * 2 + (bfT.avg - bfT.good) * 3.5 + (bfT.high - bfT.avg) * 3;
-      score -= base + (bf - bfT.high) * 2;
+      const base = (bfT.good - bfT.excellent) * 2.5 * youthFactor + (bfT.avg - bfT.good) * 4 * youthFactor + (bfT.high - bfT.avg) * 3.5 * youthFactor;
+      score -= base + (bf - bfT.high) * 2.5;
     }
 
     // Dangerously low BF

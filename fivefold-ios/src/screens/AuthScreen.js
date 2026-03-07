@@ -558,7 +558,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                       <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
                       <TextInput
                         style={styles.input}
-                        placeholder="John Doe"
+                        placeholder="Your name"
                         placeholderTextColor="#BBB"
                         value={displayName}
                         onChangeText={setDisplayName}
@@ -1020,6 +1020,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
+    letterSpacing: 0,
   },
   forgotLink: {
     alignSelf: 'flex-end',

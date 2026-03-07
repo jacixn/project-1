@@ -38,6 +38,14 @@ import ScheduleTaskScreen from '../screens/ScheduleTaskScreen';
 import TasksOverviewScreen from '../screens/TasksOverviewScreen';
 import BibleStudyScreen from '../screens/BibleStudyScreen';
 import QuizGamesScreen from '../screens/QuizGamesScreen';
+import QuizCategoriesScreen from '../screens/QuizCategoriesScreen';
+import BibleGamesScreen from '../screens/BibleGamesScreen';
+import VerseJumbleGame from '../screens/bible-games/VerseJumbleGame';
+import BibleHangmanGame from '../screens/bible-games/BibleHangmanGame';
+import WhoAmIGame from '../screens/bible-games/WhoAmIGame';
+import BookOrderGame from '../screens/bible-games/BookOrderGame';
+import VerseCompleteGame from '../screens/bible-games/VerseCompleteGame';
+import BiblePairsGame from '../screens/bible-games/BiblePairsGame';
 import BibleTimelineScreen from '../screens/BibleTimelineScreen';
 import BibleMapsScreen from '../screens/BibleMapsScreen';
 import ThematicGuidesScreen from '../screens/ThematicGuidesScreen';
@@ -49,6 +57,27 @@ import FriendChatScreen from '../screens/FriendChatScreen';
 import CoachChatScreen from '../screens/CoachChatScreen';
 import VisionScreen from '../screens/VisionScreen';
 import HabitsScreenWrapper from '../screens/HabitsScreen';
+import PanicButtonScreen from '../screens/PanicButtonScreen';
+import RelapsedScreen from '../screens/RelapsedScreen';
+import DistractionGamesScreen from '../screens/DistractionGamesScreen';
+import MemoryRecallGame from '../screens/games/MemoryRecallGame';
+import FindItFastGame from '../screens/games/FindItFastGame';
+import StroopTestGame from '../screens/games/StroopTestGame';
+import MathBlitzGame from '../screens/games/MathBlitzGame';
+import BreathHoldGame from '../screens/games/BreathHoldGame';
+import ColorMatchGame from '../screens/games/ColorMatchGame';
+import PatternRepeatGame from '../screens/games/PatternRepeatGame';
+import ReactionTimeGame from '../screens/games/ReactionTimeGame';
+import NumberChainGame from '../screens/games/NumberChainGame';
+import TypingSpeedGame from '../screens/games/TypingSpeedGame';
+import EmojiMatchGame from '../screens/games/EmojiMatchGame';
+import BubblePopGame from '../screens/games/BubblePopGame';
+import MazeRunnerGame from '../screens/games/MazeRunnerGame';
+import QuickSortGame from '../screens/games/QuickSortGame';
+import SpotDifferenceGame from '../screens/games/SpotDifferenceGame';
+import TrueOrFalseGame from '../screens/games/TrueOrFalseGame';
+import CountdownGame from '../screens/games/CountdownGame';
+import FlashCardsGame from '../screens/games/FlashCardsGame';
 import CustomisationScreen from '../screens/CustomisationScreen';
 import CustomiseTabBarScreen from '../screens/CustomiseTabBarScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
@@ -1142,6 +1171,113 @@ const RootNavigator = () => {
           animation: 'slide_from_right',
         }}
       />
+
+      {/* Panic Button Flow */}
+      <Stack.Screen
+        name="PanicButton"
+        component={PanicButtonScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Relapsed"
+        component={RelapsedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="DistractionGames"
+        component={DistractionGamesScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="MemoryRecallGame"
+        component={MemoryRecallGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="FindItFastGame"
+        component={FindItFastGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="StroopTestGame"
+        component={StroopTestGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="MathBlitzGame"
+        component={MathBlitzGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="BreathHoldGame"
+        component={BreathHoldGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ColorMatchGame"
+        component={ColorMatchGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PatternRepeatGame"
+        component={PatternRepeatGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ReactionTimeGame"
+        component={ReactionTimeGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="NumberChainGame"
+        component={NumberChainGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="TypingSpeedGame"
+        component={TypingSpeedGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="EmojiMatchGame"
+        component={EmojiMatchGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="BubblePopGame"
+        component={BubblePopGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="MazeRunnerGame"
+        component={MazeRunnerGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="QuickSortGame"
+        component={QuickSortGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="SpotDifferenceGame"
+        component={SpotDifferenceGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="TrueOrFalseGame"
+        component={TrueOrFalseGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="CountdownGame"
+        component={CountdownGame}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="FlashCardsGame"
+        component={FlashCardsGame}
+        options={{ animation: 'slide_from_right' }}
+      />
       
       {/* Saved Verses Screen */}
       <Stack.Screen 
@@ -1191,6 +1327,14 @@ const RootNavigator = () => {
       {/* Bible Study Sub-Screens */}
       <Stack.Screen name="BibleCharacters" component={require('../screens/BibleCharactersScreen').default} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="QuizGames" component={QuizGamesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="QuizCategories" component={QuizCategoriesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleGames" component={BibleGamesScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="VerseJumbleGame" component={VerseJumbleGame} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleHangmanGame" component={BibleHangmanGame} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="WhoAmIGame" component={WhoAmIGame} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BookOrderGame" component={BookOrderGame} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="VerseCompleteGame" component={VerseCompleteGame} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BiblePairsGame" component={BiblePairsGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="BibleTimeline" component={BibleTimelineScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="BibleMaps" component={BibleMapsScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="ThematicGuides" component={ThematicGuidesScreen} options={{ animation: 'slide_from_right' }} />

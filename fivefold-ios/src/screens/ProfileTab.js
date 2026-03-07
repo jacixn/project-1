@@ -3049,6 +3049,11 @@ const ProfileTab = () => {
     if (showSettingsModal || showReferralModal) {
       loadReferralInfo();
     }
+    if (showSettingsModal) {
+      refreshEmailVerificationStatus().then(verified => {
+        setEmailVerified(verified);
+      }).catch(() => {});
+    }
   }, [showSettingsModal, showReferralModal, loadReferralInfo]);
 
   const referralSubmitLock = useRef(false);

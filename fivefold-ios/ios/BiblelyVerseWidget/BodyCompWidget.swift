@@ -90,8 +90,9 @@ struct ScoreRingView: View {
     }
 
     private var scoreColor: Color {
-        if score >= 80 { return Color(red: 0.06, green: 0.72, blue: 0.51) }
-        if score >= 60 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
+        if score >= 80 { return Color(red: 0.23, green: 0.51, blue: 0.96) }
+        if score >= 70 { return Color(red: 0.06, green: 0.72, blue: 0.51) }
+        if score >= 40 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
         return Color(red: 0.94, green: 0.27, blue: 0.27)
     }
 

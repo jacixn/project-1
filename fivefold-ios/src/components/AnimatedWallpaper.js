@@ -22,7 +22,7 @@ export const AnimatedWallpaper = ({
   fadeOnScroll = false,
   scaleOnScroll = false 
 }) => {
-  const { theme, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper, themeWallpapers } = useTheme();
+  const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme, currentTheme, getCurrentWallpaper, themeWallpapers } = useTheme();
 
   // Floating animation for static elements (this stays JS-driven, it's not scroll-related)
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -285,9 +285,10 @@ export const AnimatedWallpaper = ({
                   style={[
                     styles.blurOverlay,
                     {
-                      opacity: typeof fadeTransform === 'number' ? 0.6 : fadeTransform.interpolate({
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                      opacity: typeof fadeTransform === 'number' ? (isDark ? 0.6 : 0.2) : fadeTransform.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.3, 0.6]
+                        outputRange: isDark ? [0.3, 0.6] : [0.1, 0.2]
                       })
                     }
                   ]}
@@ -301,7 +302,7 @@ export const AnimatedWallpaper = ({
             style={[
               styles.overlay,
               {
-                backgroundColor: wallpaperSource ? theme.background + '60' : 'transparent',
+                backgroundColor: wallpaperSource ? theme.background + (isDark ? '60' : '25') : 'transparent',
                 opacity: fadeTransform
               }
             ]}

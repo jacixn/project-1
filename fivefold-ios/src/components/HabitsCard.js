@@ -83,20 +83,6 @@ const HabitsCard = ({
         const checked = isCheckedInToday(habit);
         return (
           <View key={habit.id} style={styles.habitRow}>
-            <View style={[styles.habitIcon, { backgroundColor: (habit.color || '#4CAF50') + '20' }]}>
-              <MaterialIcons name={habit.icon || 'flag'} size={16} color={habit.color || '#4CAF50'} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={[styles.habitName, { color: textColor, ...textOutlineStyle }]} numberOfLines={1}>
-                {habit.name}
-              </Text>
-              <View style={styles.miniStreakRow}>
-                <MaterialIcons name="local-fire-department" size={11} color="#FF6B35" />
-                <Text style={[styles.miniStreakText, { color: textSecondaryColor }]}>
-                  Day {habit.currentStreak || 0}
-                </Text>
-              </View>
-            </View>
             <TouchableOpacity
               onPress={() => {
                 if (!checked) {
@@ -119,6 +105,21 @@ const HabitsCard = ({
                 color={checked ? habit.color || '#4CAF50' : '#fff'}
               />
             </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <View style={[styles.habitIcon, { backgroundColor: (habit.color || '#4CAF50') + '20' }]}>
+              <MaterialIcons name={habit.icon || 'flag'} size={16} color={habit.color || '#4CAF50'} />
+            </View>
+            <View style={{ marginLeft: 10, alignItems: 'flex-end' }}>
+              <Text style={[styles.habitName, { color: textColor, ...textOutlineStyle }]} numberOfLines={1}>
+                {habit.name}
+              </Text>
+              <View style={styles.miniStreakRow}>
+                <MaterialIcons name="local-fire-department" size={11} color="#FF6B35" />
+                <Text style={[styles.miniStreakText, { color: textSecondaryColor }]}>
+                  Day {habit.currentStreak || 0}
+                </Text>
+              </View>
+            </View>
           </View>
         );
       })}

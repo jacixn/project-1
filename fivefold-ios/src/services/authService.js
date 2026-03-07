@@ -312,6 +312,8 @@ export const verifyEmailCode = async (code) => {
 
   // Reload the local user so user.emailVerified updates
   await user.reload();
+  // Force token refresh so Cloud Functions see updated email_verified claim
+  await user.getIdToken(true);
 
   console.log('[Auth] Email verified successfully');
   return result.data;
@@ -329,6 +331,8 @@ export const refreshEmailVerificationStatus = async () => {
   
   // Update Firestore if verification status changed
   if (user.emailVerified) {
+    // Force token refresh so Cloud Functions see updated email_verified claim
+    await user.getIdToken(true);
     await setDoc(doc(db, 'users', user.uid), {
       emailVerified: true,
     }, { merge: true });

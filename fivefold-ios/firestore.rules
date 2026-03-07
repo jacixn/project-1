@@ -16,7 +16,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId)
+                    || (isAuthenticated()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['referralCount']));
       allow delete: if isOwner(userId);
     }
 
