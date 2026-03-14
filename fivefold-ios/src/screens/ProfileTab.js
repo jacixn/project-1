@@ -5081,6 +5081,42 @@ const ProfileTab = () => {
               <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
             </TouchableOpacity>
 
+            {/* Customise Cards */}
+            <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}
+              onPress={() => {
+                hapticFeedback.buttonPress();
+                setShowSettingsModal(false);
+                setTimeout(() => navigation.navigate('CustomiseCards'), 300);
+              }}
+                activeOpacity={0.7}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: '#8B5CF620',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="dashboard-customize" size={20} color="#8B5CF6" />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Customise Cards</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>Reorder or hide sections</Text>
+                  </View>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+            </TouchableOpacity>
+
             {/* Notifications */}
             <TouchableOpacity 
                 style={{

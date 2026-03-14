@@ -83,6 +83,11 @@ const GymTab = () => {
   const [bodyComp, setBodyComp] = useState(null);
   const [bodyCompExpanded, setBodyCompExpanded] = useState(false);
 
+  // Card customisation config
+  const GYM_DEFAULT_ORDER = ['WeeklyCalendar', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'];
+  const [cardOrder, setCardOrder] = useState(GYM_DEFAULT_ORDER);
+  const [hiddenCards, setHiddenCards] = useState([]);
+
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
@@ -260,6 +265,17 @@ const GymTab = () => {
       loadNutritionProgress();
       userStorage.getRaw('fivefold_loading_animation').then(id => {
         setSelectedLoadingAnim(id || 'default');
+      }).catch(() => {});
+      userStorage.get('cardConfig_Gym').then(config => {
+        if (config) {
+          const saved = config.order || GYM_DEFAULT_ORDER;
+          const merged = [
+            ...saved.filter(id => GYM_DEFAULT_ORDER.includes(id)),
+            ...GYM_DEFAULT_ORDER.filter(id => !saved.includes(id)),
+          ];
+          setCardOrder(merged);
+          setHiddenCards(config.hidden || []);
+        }
       }).catch(() => {});
     }, [])
   );
@@ -878,388 +894,301 @@ const GymTab = () => {
           {/* Animated spacer for refresh animation */}
           <Animated.View style={{ height: refreshSpacerHeight }} />
 
-          {/* Weekly Calendar Card */}
-          <LiquidGlassContainer>
-            {/* Weekly Calendar Preview */}
-            <TouchableOpacity 
-              style={styles.weeklyCalendarContainer}
-              onPress={openCalendarModal}
-              activeOpacity={0.8}
-            >
-              <View style={styles.weeklyCalendarHeader}>
-                <Text style={[styles.weeklyCalendarTitle, { color: textColor, ...textOutlineStyle }]}>
-                  This Week
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={[styles.weeklyCalendarHint, { color: textSecondaryColor }]}>
-                    Tap for full calendar
-                  </Text>
-                  <MaterialIcons name="chevron-right" size={18} color={theme.textSecondary} />
-                </View>
-              </View>
-              
-              <View style={styles.weeklyDaysRow}>
-                {getCurrentWeekDays().map((day, index) => (
-                  <View key={index} style={styles.weeklyDayItem}>
-                    <Text style={[
-                      styles.weeklyDayName,
-                      { color: day.isToday ? theme.primary : textSecondaryColor, ...textOutlineStyle }
-                    ]}>
-                      {day.dayName}
-                    </Text>
-                    <View style={[
-                      styles.weeklyDayCircle,
-                      day.hasWorkout && styles.weeklyDayCircleActive,
-                      day.isToday && styles.weeklyDayCircleToday,
-                      {
-                        backgroundColor: day.hasWorkout 
-                          ? theme.primary 
-                          : day.hasScheduled && !day.hasWorkout
-                            ? `${theme.warning}25`
-                            : day.isToday 
-                              ? `${theme.primary}30`
-                              : 'transparent',
-                        borderColor: day.hasScheduled && !day.hasWorkout
-                          ? theme.warning
-                          : day.isToday 
-                            ? theme.primary 
-                            : 'transparent',
-                        borderWidth: day.hasScheduled && !day.hasWorkout ? 2 : (day.isToday ? 2 : 0),
-                      }
-                    ]}>
-                      <Text style={[
-                        styles.weeklyDayNumber,
-                        { 
-                          color: day.hasWorkout 
-                            ? '#FFFFFF' 
-                            : day.hasScheduled
-                              ? theme.warning
-                              : day.isToday 
-                                ? theme.primary 
-                                : textColor,
-                          ...textOutlineStyle,
-                          fontWeight: day.hasScheduled ? '700' : '600',
-                        }
-                      ]}>
-                        {day.date}
+          {cardOrder.filter(id => !hiddenCards.includes(id)).map(id => {
+            switch (id) {
+              case 'WeeklyCalendar': return (
+                <LiquidGlassContainer key={id}>
+                  <TouchableOpacity 
+                    style={styles.weeklyCalendarContainer}
+                    onPress={openCalendarModal}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.weeklyCalendarHeader}>
+                      <Text style={[styles.weeklyCalendarTitle, { color: textColor, ...textOutlineStyle }]}>
+                        This Week
                       </Text>
-                      {/* Completed workout checkmark */}
-                      {day.hasWorkout && (
-                        <View style={styles.workoutCheckmark}>
-                          <MaterialIcons name="check" size={10} color="#FFFFFF" />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={[styles.weeklyCalendarHint, { color: textSecondaryColor }]}>
+                          Tap for full calendar
+                        </Text>
+                        <MaterialIcons name="chevron-right" size={18} color={theme.textSecondary} />
+                      </View>
+                    </View>
+                    <View style={styles.weeklyDaysRow}>
+                      {getCurrentWeekDays().map((day, index) => (
+                        <View key={index} style={styles.weeklyDayItem}>
+                          <Text style={[
+                            styles.weeklyDayName,
+                            { color: day.isToday ? theme.primary : textSecondaryColor, ...textOutlineStyle }
+                          ]}>
+                            {day.dayName}
+                          </Text>
+                          <View style={[
+                            styles.weeklyDayCircle,
+                            day.hasWorkout && styles.weeklyDayCircleActive,
+                            day.isToday && styles.weeklyDayCircleToday,
+                            {
+                              backgroundColor: day.hasWorkout 
+                                ? theme.primary 
+                                : day.hasScheduled && !day.hasWorkout
+                                  ? `${theme.warning}25`
+                                  : day.isToday 
+                                    ? `${theme.primary}30`
+                                    : 'transparent',
+                              borderColor: day.hasScheduled && !day.hasWorkout
+                                ? theme.warning
+                                : day.isToday 
+                                  ? theme.primary 
+                                  : 'transparent',
+                              borderWidth: day.hasScheduled && !day.hasWorkout ? 2 : (day.isToday ? 2 : 0),
+                            }
+                          ]}>
+                            <Text style={[
+                              styles.weeklyDayNumber,
+                              { 
+                                color: day.hasWorkout 
+                                  ? '#FFFFFF' 
+                                  : day.hasScheduled
+                                    ? theme.warning
+                                    : day.isToday 
+                                      ? theme.primary 
+                                      : textColor,
+                                ...textOutlineStyle,
+                                fontWeight: day.hasScheduled ? '700' : '600',
+                              }
+                            ]}>
+                              {day.date}
+                            </Text>
+                            {day.hasWorkout && (
+                              <View style={styles.workoutCheckmark}>
+                                <MaterialIcons name="check" size={10} color="#FFFFFF" />
+                              </View>
+                            )}
+                            {day.hasScheduled && !day.hasWorkout && (
+                              <View style={[styles.scheduledIndicator, { backgroundColor: theme.warning }]}>
+                                <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
+                              </View>
+                            )}
+                          </View>
                         </View>
-                      )}
-                      {/* Scheduled workout indicator */}
-                      {day.hasScheduled && !day.hasWorkout && (
-                        <View style={[styles.scheduledIndicator, { backgroundColor: theme.warning }]}>
-                          <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
-                        </View>
-                      )}
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                </LiquidGlassContainer>
+              );
+              case 'BodyComposition': return (
+                <LiquidGlassContainer key={id}>
+                  <View style={styles.exercisesHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Body Composition</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                        {bodyComp ? 'Your body insights' : 'Set up your profile'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                      onPress={() => {
+                        hapticFeedback.medium();
+                        if (bodyComp) {
+                          navigation.navigate('BodyComposition');
+                        } else {
+                          navigation.navigate('Nutrition');
+                        }
+                      }}
+                    >
+                      <Text style={styles.browseButtonText}>{bodyComp ? 'View' : 'Set Up'}</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  {bodyComp ? (
+                    <View style={styles.exercisesPreview}>
+                      <View style={[styles.exercisePreviewItem, {
+                        backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}20`,
+                        borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}66`,
+                        borderWidth: 1,
+                      }]}>
+                        <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
+                        <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Health Score</Text>
+                      </View>
+                      <View style={[styles.exercisePreviewItem, {
+                        backgroundColor: `${theme.primary}20`,
+                        borderColor: `${theme.primary}66`,
+                        borderWidth: 1,
+                      }]}>
+                        <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
+                        <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Body Age</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.exercisesPreview}>
+                      <View style={[styles.exercisePreviewItem, {
+                        backgroundColor: `${theme.primary}20`,
+                        borderColor: `${theme.primary}66`,
+                        borderWidth: 1,
+                      }]}>
+                        <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
+                        <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Body Metrics</Text>
+                      </View>
+                      <View style={[styles.exercisePreviewItem, {
+                        backgroundColor: `${theme.success || '#10B981'}20`,
+                        borderColor: `${theme.success || '#10B981'}66`,
+                        borderWidth: 1,
+                      }]}>
+                        <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
+                        <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Health Score</Text>
+                      </View>
+                    </View>
+                  )}
+                </LiquidGlassContainer>
+              );
+              case 'StartWorkout': return (
+                <LiquidGlassContainer key={id} style={styles.comingSoonCard}>
+                  <View style={styles.startWorkoutHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8, ...textOutlineStyle }]}>Start Workout</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 20, ...textOutlineStyle }]}>Begin a new workout session</Text>
+                    </View>
+                    {hasActiveWorkout && (
+                      <View style={[styles.activeWorkoutBadge, { backgroundColor: theme.error || '#EF4444' }]}>
+                        <MaterialIcons name="fitness-center" size={16} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.startWorkoutButton, { backgroundColor: theme.primary }]}
+                    onPress={() => { hapticFeedback.heavy(); navigation.navigate('StartWorkout'); }}
+                    accessibilityLabel="Start workout"
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
+                    <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
+                  </TouchableOpacity>
+                </LiquidGlassContainer>
+              );
+              case 'Fuel': return (
+                <LiquidGlassContainer key={id}>
+                  <View style={styles.exercisesHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Fuel</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>Track your nutrition</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                      onPress={() => { hapticFeedback.medium(); navigation.navigate('Nutrition'); }}
+                      accessibilityLabel="Open nutrition"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.browseButtonText}>{nutritionProgress?.hasProfile ? 'Open' : 'Set Up'}</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  {nutritionProgress?.hasProfile ? (
+                    <View style={styles.fuelProgressRow}>
+                      <View style={styles.fuelProgressBarBg}>
+                        <View style={[styles.fuelProgressBarFill, { backgroundColor: theme.primary, width: `${Math.min(((nutritionProgress.consumed?.calories || 0) / (nutritionProgress.targets?.calories || 2000)) * 100, 100)}%` }]} />
+                      </View>
+                      <Text style={[styles.fuelProgressText, { color: textSecondaryColor }]}>
+                        {nutritionProgress.consumed?.calories || 0} / {nutritionProgress.targets?.calories || 0} cal
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.fuelSetupPrompt}>
+                      <MaterialIcons name="restaurant-menu" size={20} color={textSecondaryColor} />
+                      <Text style={[styles.fuelSetupText, { color: textSecondaryColor }]}>Set up your nutrition plan to track calories</Text>
+                    </View>
+                  )}
+                </LiquidGlassContainer>
+              );
+              case 'Physique': return (
+                <LiquidGlassContainer key={id}>
+                  <View style={styles.exercisesHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Physique</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>Body progress map</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                      onPress={() => { hapticFeedback.medium(); navigation.navigate('Physique'); }}
+                      accessibilityLabel="View physique"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.browseButtonText}>View</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.exercisesPreview}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}66`, borderWidth: 1 }]}>
+                      <MaterialIcons name="accessibility-new" size={32} color={theme.primary} />
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Muscle Map</Text>
+                    </View>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}66`, borderWidth: 1 }]}>
+                      <MaterialIcons name="psychology" size={32} color={theme.primary} />
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Balance Coach</Text>
                     </View>
                   </View>
-                ))}
-              </View>
-            </TouchableOpacity>
-          </LiquidGlassContainer>
-
-          {/* Body Composition Card — compact preview, tap to view full details */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Body Composition</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  {bodyComp ? 'Your body insights' : 'Set up your profile'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  if (bodyComp) {
-                    navigation.navigate('BodyComposition');
-                  } else {
-                    navigation.navigate('Nutrition');
-                  }
-                }}
-              >
-                <Text style={styles.browseButtonText}>{bodyComp ? 'View' : 'Set Up'}</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-
-            {bodyComp ? (
-              <View style={styles.exercisesPreview}>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}20`,
-                  borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}66`,
-                  borderWidth: 1,
-                }]}>
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Health Score
-                  </Text>
-                </View>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.primary}20`,
-                  borderColor: `${theme.primary}66`,
-                  borderWidth: 1,
-                }]}>
-                  <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Body Age
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.exercisesPreview}>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.primary}20`,
-                  borderColor: `${theme.primary}66`,
-                  borderWidth: 1,
-                }]}>
-                  <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Body Metrics
-                  </Text>
-                </View>
-                <View style={[styles.exercisePreviewItem, {
-                  backgroundColor: `${theme.success || '#10B981'}20`,
-                  borderColor: `${theme.success || '#10B981'}66`,
-                  borderWidth: 1,
-                }]}>
-                  <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
-                  <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                    Health Score
-                  </Text>
-                </View>
-              </View>
-            )}
-          </LiquidGlassContainer>
-
-          {/* Start Workout Card */}
-          <LiquidGlassContainer style={styles.comingSoonCard}>
-            <View style={styles.startWorkoutHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8, ...textOutlineStyle }]}>
-                  Start Workout
-                </Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor, marginBottom: 20, ...textOutlineStyle }]}>
-                  Begin a new workout session
-                </Text>
-              </View>
-              {/* Active workout badge */}
-              {hasActiveWorkout && (
-                <View style={[styles.activeWorkoutBadge, { backgroundColor: theme.error || '#EF4444' }]}>
-                  <MaterialIcons name="fitness-center" size={16} color="#FFFFFF" />
-                </View>
-              )}
-            </View>
-            
-            <TouchableOpacity
-              style={[styles.startWorkoutButton, { backgroundColor: theme.primary }]}
-              onPress={() => {
-                hapticFeedback.heavy();
-                navigation.navigate('StartWorkout');
-              }}
-              accessibilityLabel="Start workout"
-              accessibilityRole="button"
-            >
-              <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
-              <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
-            </TouchableOpacity>
-          </LiquidGlassContainer>
-
-          {/* Fuel Card */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Fuel</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  Track your nutrition
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  navigation.navigate('Nutrition');
-                }}
-                accessibilityLabel="Open nutrition"
-                accessibilityRole="button"
-              >
-                <Text style={styles.browseButtonText}>
-                  {nutritionProgress?.hasProfile ? 'Open' : 'Set Up'}
-                </Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            {nutritionProgress?.hasProfile ? (
-              <View style={styles.fuelProgressRow}>
-                <View style={styles.fuelProgressBarBg}>
-                  <View
-                    style={[
-                      styles.fuelProgressBarFill,
-                      {
-                        backgroundColor: theme.primary,
-                        width: `${Math.min(((nutritionProgress.consumed?.calories || 0) / (nutritionProgress.targets?.calories || 2000)) * 100, 100)}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={[styles.fuelProgressText, { color: textSecondaryColor }]}>
-                  {nutritionProgress.consumed?.calories || 0} / {nutritionProgress.targets?.calories || 0} cal
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.fuelSetupPrompt}>
-                <MaterialIcons name="restaurant-menu" size={20} color={textSecondaryColor} />
-                <Text style={[styles.fuelSetupText, { color: textSecondaryColor }]}>
-                  Set up your nutrition plan to track calories
-                </Text>
-              </View>
-            )}
-          </LiquidGlassContainer>
-
-          {/* Physique Card */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Physique</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  Body progress map
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  navigation.navigate('Physique');
-                }}
-                accessibilityLabel="View physique"
-                accessibilityRole="button"
-              >
-                <Text style={styles.browseButtonText}>View</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.exercisesPreview}>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.primary}20`,
-                borderColor: `${theme.primary}66`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="accessibility-new" size={32} color={theme.primary} />
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  Muscle Map
-                </Text>
-              </View>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.primary}20`,
-                borderColor: `${theme.primary}66`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="psychology" size={32} color={theme.primary} />
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  Balance Coach
-                </Text>
-              </View>
-            </View>
-          </LiquidGlassContainer>
-
-          {/* Exercises Card */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Exercises</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  Browse exercise library
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  navigation.navigate('Exercises');
-                }}
-                accessibilityLabel="Browse exercises"
-                accessibilityRole="button"
-              >
-                <Text style={styles.browseButtonText}>Browse</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.exercisesPreview}>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.primary}20`,
-                borderColor: `${theme.primary}60`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="fitness-center" size={32} color={theme.primary} />
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  128+ Exercises
-                </Text>
-              </View>
-              <View style={[styles.exercisePreviewItem, { 
-                backgroundColor: `${theme.success}20`,
-                borderColor: `${theme.success}60`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="category" size={32} color={theme.success} />
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  All Categories
-                </Text>
-              </View>
-            </View>
-          </LiquidGlassContainer>
-
-          {/* Workout History Card */}
-          <LiquidGlassContainer>
-            <View style={styles.exercisesHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Workout History</Text>
-                <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                  View your past sessions
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.browseButton, { backgroundColor: theme.primary }]}
-                onPress={() => {
-                  hapticFeedback.medium();
-                  navigation.navigate('GymHistory');
-                }}
-                accessibilityLabel="View workout history"
-                accessibilityRole="button"
-              >
-                <Text style={styles.browseButtonText}>View</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.exercisesPreview}>
-              <View style={[styles.exercisePreviewItem, {
-                backgroundColor: `${theme.primary}20`,
-                borderColor: `${theme.primary}66`,
-                borderWidth: 1,
-              }]}>
-                <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{workoutHistory.length}</Text>
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  {workoutHistory.length === 1 ? 'Workout' : 'Workouts'}
-                </Text>
-              </View>
-              <View style={[styles.exercisePreviewItem, {
-                backgroundColor: `${theme.success || '#10B981'}20`,
-                borderColor: `${theme.success || '#10B981'}66`,
-                borderWidth: 1,
-              }]}>
-                <MaterialIcons name="trending-up" size={32} color={theme.success || '#10B981'} />
-                <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>
-                  Progress
-                </Text>
-              </View>
-            </View>
-          </LiquidGlassContainer>
+                </LiquidGlassContainer>
+              );
+              case 'Exercises': return (
+                <LiquidGlassContainer key={id}>
+                  <View style={styles.exercisesHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Exercises</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>Browse exercise library</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                      onPress={() => { hapticFeedback.medium(); navigation.navigate('Exercises'); }}
+                      accessibilityLabel="Browse exercises"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.browseButtonText}>Browse</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.exercisesPreview}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}60`, borderWidth: 1 }]}>
+                      <MaterialIcons name="fitness-center" size={32} color={theme.primary} />
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>128+ Exercises</Text>
+                    </View>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success}20`, borderColor: `${theme.success}60`, borderWidth: 1 }]}>
+                      <MaterialIcons name="category" size={32} color={theme.success} />
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>All Categories</Text>
+                    </View>
+                  </View>
+                </LiquidGlassContainer>
+              );
+              case 'WorkoutHistory': return (
+                <LiquidGlassContainer key={id}>
+                  <View style={styles.exercisesHeader}>
+                    <View>
+                      <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Workout History</Text>
+                      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>View your past sessions</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                      onPress={() => { hapticFeedback.medium(); navigation.navigate('GymHistory'); }}
+                      accessibilityLabel="View workout history"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.browseButtonText}>View</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.exercisesPreview}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}20`, borderColor: `${theme.primary}66`, borderWidth: 1 }]}>
+                      <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{workoutHistory.length}</Text>
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>{workoutHistory.length === 1 ? 'Workout' : 'Workouts'}</Text>
+                    </View>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success || '#10B981'}20`, borderColor: `${theme.success || '#10B981'}66`, borderWidth: 1 }]}>
+                      <MaterialIcons name="trending-up" size={32} color={theme.success || '#10B981'} />
+                      <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Progress</Text>
+                    </View>
+                  </View>
+                </LiquidGlassContainer>
+              );
+              default: return null;
+            }
+          })}
 
           {/* Health disclaimer */}
           <Text style={{ fontSize: 11, color: textTertiaryColor, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16, lineHeight: 16 }}>

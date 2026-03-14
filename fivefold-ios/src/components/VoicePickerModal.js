@@ -25,9 +25,9 @@ import { getReferralCount } from '../services/referralService';
 import CustomLoadingIndicator from './CustomLoadingIndicator';
 
 // Tiers that are free (no referral needed)
-const FREE_TIERS = ['Studio'];
-// All other Google tiers require 1 referral to unlock
-const VOICE_REFERRAL_REQUIRED = 1;
+const FREE_TIERS = ['Neural2', 'WaveNet', 'Standard'];
+// Studio voices require 6 referrals to unlock
+const VOICE_REFERRAL_REQUIRED = 6;
 
 const VoicePickerModal = ({ visible, onClose }) => {
   const { theme, isDark } = useTheme();
@@ -328,7 +328,7 @@ const VoicePickerModal = ({ visible, onClose }) => {
                           {tierLocked && (
                             <View style={[styles.tierLockBadge, { backgroundColor: isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,165,0,0.1)' }]}>
                               <MaterialIcons name="person-add" size={10} color="#FFB300" />
-                              <Text style={styles.tierLockText}>1 referral</Text>
+                              <Text style={styles.tierLockText}>6 referrals</Text>
                             </View>
                           )}
                           {isTierFree(tier) && (
@@ -542,7 +542,7 @@ const VoicePickerModal = ({ visible, onClose }) => {
             <View style={[styles.tipCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <MaterialIcons name="lightbulb-outline" size={18} color={theme.primary} />
               <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-                Studio and Device voices are free. Refer 1 friend to unlock all other voices.
+                All voices are free except Studio. Refer 6 friends to unlock premium Studio voices.
               </Text>
             </View>
 
@@ -566,12 +566,12 @@ const VoicePickerModal = ({ visible, onClose }) => {
             <View style={{ flex: 1 }}>
               <Text style={[styles.lockedToastTitle, { color: theme.text }]}>Voice Locked</Text>
               <Text style={[styles.lockedToastDesc, { color: theme.textSecondary }]}>
-                Refer 1 friend to unlock all voices
+                Refer 6 friends to unlock Studio voices
               </Text>
             </View>
             <View style={[styles.lockedToastBadge, { backgroundColor: isDark ? 'rgba(255,215,0,0.15)' : 'rgba(255,165,0,0.1)' }]}>
               <MaterialIcons name="person-add" size={12} color="#FFB300" />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFB300' }}>1</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFB300' }}>6</Text>
             </View>
           </Animated.View>
         )}

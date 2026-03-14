@@ -46,6 +46,7 @@ const FeedbackModal = forwardRef((_, ref) => {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const dragY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -72,11 +73,12 @@ const FeedbackModal = forwardRef((_, ref) => {
   }, [keyboardOffset]);
 
   const animateIn = useCallback(() => {
+    dragY.setValue(0);
     Animated.parallel([
       Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.spring(sheetTranslateY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
     ]).start();
-  }, [overlayOpacity, sheetTranslateY]);
+  }, [overlayOpacity, sheetTranslateY, dragY]);
 
   const animateOut = useCallback((cb) => {
     Animated.parallel([
@@ -100,6 +102,7 @@ const FeedbackModal = forwardRef((_, ref) => {
       overlayOpacity.setValue(0);
       sheetTranslateY.setValue(SCREEN_HEIGHT);
       keyboardOffset.setValue(0);
+      dragY.setValue(0);
       setVisible(true);
     },
     hide: () => {
@@ -165,22 +168,24 @@ const FeedbackModal = forwardRef((_, ref) => {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, { dy }) => !submittingLock.current && dy > 5,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_, { dy }) => {
-        const clamped = Math.max(0, dy);
-        sheetTranslateY.setValue(clamped);
-        overlayOpacity.setValue(Math.max(0, 1 - clamped / 400));
-      },
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, { dy, dx }) =>
+        !submittingLock.current && dy > 8 && Math.abs(dy) > Math.abs(dx) * 1.2,
+      onPanResponderGrant: () => { dragY.setValue(0); },
+      onPanResponderMove: Animated.event(
+        [null, { dy: dragY }],
+        { useNativeDriver: false }
+      ),
       onPanResponderRelease: (_, { dy, vy }) => {
         if (dy > DISMISS_THRESHOLD || vy > 0.5) {
           dismissRef.current?.();
         } else {
-          Animated.parallel([
-            Animated.spring(sheetTranslateY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
-            Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-          ]).start();
+          Animated.spring(dragY, {
+            toValue: 0,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }).start();
         }
       },
     })
@@ -219,11 +224,22 @@ const FeedbackModal = forwardRef((_, ref) => {
       <TouchableWithoutFeedback onPress={handleDismiss}>
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
           <Animated.View
-            style={[styles.sheetWrap, { transform: [{ translateY: sheetTranslateY }, { translateY: keyboardOffset }] }]}
+            {...panResponder.panHandlers}
+            style={[styles.sheetWrap, {
+              transform: [
+                { translateY: sheetTranslateY },
+                { translateY: keyboardOffset },
+                { translateY: dragY.interpolate({
+                  inputRange: [-1, 0, 400],
+                  outputRange: [0, 0, 400],
+                  extrapolate: 'clamp',
+                })},
+              ],
+            }]}
             onStartShouldSetResponder={() => true}
           >
               <View style={[styles.sheet, { backgroundColor: bg, paddingBottom: BOTTOM_INSET + 20 }]}>
-                <View {...panResponder.panHandlers} style={styles.dragZone}>
+                <View style={styles.dragZone}>
                   <View style={styles.handle} />
                   <MaterialIcons name="chat-bubble" size={28} color={accentColor} />
                   <Text style={[styles.title, { color: textColor }]}>Rate your experience</Text>

@@ -208,6 +208,13 @@ const TodosTab = () => {
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
   const cardShimmer = useRef(new Animated.Value(0)).current;
 
+  const handleTodoAddRef = useRef(null);
+
+  // Card customisation config
+  const TODOS_DEFAULT_ORDER = ['Calendar', 'Habits', 'Vision', 'Tasks', 'History'];
+  const [cardOrder, setCardOrder] = useState(TODOS_DEFAULT_ORDER);
+  const [hiddenCards, setHiddenCards] = useState([]);
+
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
@@ -307,6 +314,17 @@ const TodosTab = () => {
       userStorage.getRaw('fivefold_loading_animation').then(v => {
         setSelectedLoadingAnim(v || 'default');
       }).catch(() => {});
+      userStorage.get('cardConfig_Todos').then(config => {
+        if (config) {
+          const saved = config.order || TODOS_DEFAULT_ORDER;
+          const merged = [
+            ...saved.filter(id => TODOS_DEFAULT_ORDER.includes(id)),
+            ...TODOS_DEFAULT_ORDER.filter(id => !saved.includes(id)),
+          ];
+          setCardOrder(merged);
+          setHiddenCards(config.hidden || []);
+        }
+      }).catch(() => {});
     }, [])
   );
 
@@ -338,7 +356,7 @@ const TodosTab = () => {
     // Listen for tasks scheduled from ScheduleTaskScreen
     const scheduleTaskListener = DeviceEventEmitter.addListener('scheduleTaskFromScreen', (task) => {
       console.log('📅 Task scheduled from screen:', task);
-      handleTodoAdd(task);
+      handleTodoAddRef.current?.(task);
     });
 
     return () => {
@@ -522,6 +540,7 @@ const TodosTab = () => {
     pushToCloud('todos', updatedTodos);
     updateTodoWidget().catch(() => {});
   }, [todos]);
+  handleTodoAddRef.current = handleTodoAdd;
 
   const handleTodoComplete = useCallback(async (todoId) => {
     // Find the task before completing it to show in celebration
@@ -1020,64 +1039,62 @@ const TodosTab = () => {
         {/* Animated spacer for refresh animation */}
         <Animated.View style={{ height: refreshSpacerHeight }} />
 
-        {/* Beautiful Calendar Header */}
-        <CalendarHeader />
-
-        {/* Habits Card */}
-        <HabitsCard
-          habits={habits}
-          onPress={() => navigation.navigate('Habits')}
-          onCheckIn={async (habit) => {
-            await habitCheckIn(habit.id);
-            const h = await loadHabits();
-            setHabits(h);
-          }}
-          liquidGlassEnabled={liquidGlassEnabled}
-          textColor={textColor}
-          textSecondaryColor={textSecondaryColor}
-          textOutlineStyle={textOutlineStyle}
-        />
-
-        {/* Vision Card */}
-        <VisionCard
-          visions={visions}
-          onPress={() => navigation.navigate('Vision')}
-          onSetup={() => setShowVisionSetup(true)}
-          liquidGlassEnabled={liquidGlassEnabled}
-          textColor={textColor}
-          textSecondaryColor={textSecondaryColor}
-          textOutlineStyle={textOutlineStyle}
-          isBiblelyMainWallpaper={isBiblelyMainWallpaper}
-        />
-
-        {/* Main Content - List or Calendar View */}
-        {viewMode === 'list' ? (
-          <>
-            {/* Todo List */}
-            <TodoList
-              todos={todos}
-              onTodoAdd={handleTodoAdd}
-              onTodoComplete={handleTodoComplete}
-              onTodoDelete={handleTodoDelete}
-              userStats={userStats}
-              onViewAll={() => navigation.navigate('TasksOverview')}
-            />
-
-            {/* Stats merged into CalendarHeader above */}
-
-            {/* Quick Add Suggestions */}
-            <HistorySection />
-          </>
-        ) : (
-          /* Calendar View */
-          <CalendarView
-            todos={todos}
-            onTodoAdd={handleTodoAdd}
-            onTodoComplete={handleTodoComplete}
-            onTodoDelete={handleTodoDelete}
-            onDateSelect={setSelectedDate}
-          />
-        )}
+        {cardOrder.filter(id => !hiddenCards.includes(id)).map(id => {
+          switch (id) {
+            case 'Calendar': return <CalendarHeader key={id} />;
+            case 'Habits': return (
+              <HabitsCard
+                key={id}
+                habits={habits}
+                onPress={() => navigation.navigate('Habits')}
+                onCheckIn={async (habit) => {
+                  await habitCheckIn(habit.id);
+                  const h = await loadHabits();
+                  setHabits(h);
+                }}
+                liquidGlassEnabled={liquidGlassEnabled}
+                textColor={textColor}
+                textSecondaryColor={textSecondaryColor}
+                textOutlineStyle={textOutlineStyle}
+              />
+            );
+            case 'Vision': return (
+              <VisionCard
+                key={id}
+                visions={visions}
+                onPress={() => navigation.navigate('Vision')}
+                onSetup={() => setShowVisionSetup(true)}
+                liquidGlassEnabled={liquidGlassEnabled}
+                textColor={textColor}
+                textSecondaryColor={textSecondaryColor}
+                textOutlineStyle={textOutlineStyle}
+                isBiblelyMainWallpaper={isBiblelyMainWallpaper}
+              />
+            );
+            case 'Tasks': return viewMode === 'list' ? (
+              <TodoList
+                key={id}
+                todos={todos}
+                onTodoAdd={handleTodoAdd}
+                onTodoComplete={handleTodoComplete}
+                onTodoDelete={handleTodoDelete}
+                userStats={userStats}
+                onViewAll={() => navigation.navigate('TasksOverview')}
+              />
+            ) : (
+              <CalendarView
+                key={id}
+                todos={todos}
+                onTodoAdd={handleTodoAdd}
+                onTodoComplete={handleTodoComplete}
+                onTodoDelete={handleTodoDelete}
+                onDateSelect={setSelectedDate}
+              />
+            );
+            case 'History': return viewMode === 'list' ? <HistorySection key={id} /> : null;
+            default: return null;
+          }
+        })}
       </Animated.ScrollView>
 
       {/* Schedule Task - now navigated via stack navigator for swipe-back support */}

@@ -250,6 +250,11 @@ const BiblePrayerTab = () => {
   const modalSlideAnim = useRef(new Animated.Value(50)).current;
   const cardShimmer = useRef(new Animated.Value(0)).current;
 
+  // Card customisation config
+  const BIBLE_DEFAULT_ORDER = ['Prayer', 'Bible', 'BibleStudy', 'PrayerBoard', 'Library'];
+  const [cardOrder, setCardOrder] = useState(BIBLE_DEFAULT_ORDER);
+  const [hiddenCards, setHiddenCards] = useState([]);
+
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
@@ -403,6 +408,17 @@ const BiblePrayerTab = () => {
       loadLiquidGlassSetting();
       userStorage.getRaw('fivefold_loading_animation').then(v => {
         setSelectedLoadingAnim(v || 'default');
+      }).catch(() => {});
+      userStorage.get('cardConfig_BiblePrayer').then(config => {
+        if (config) {
+          const saved = config.order || BIBLE_DEFAULT_ORDER;
+          const merged = [
+            ...saved.filter(id => BIBLE_DEFAULT_ORDER.includes(id)),
+            ...BIBLE_DEFAULT_ORDER.filter(id => !saved.includes(id)),
+          ];
+          setCardOrder(merged);
+          setHiddenCards(config.hidden || []);
+        }
       }).catch(() => {});
     }, [])
   );
@@ -1131,73 +1147,56 @@ const BiblePrayerTab = () => {
         Read, study, and grow in faith
       </Text>
       
-      <AnimatedBibleButton 
-        style={[styles.bibleButton, { 
-          backgroundColor: `${theme.primary}30`,
-          borderWidth: 0.8,
-          borderColor: `${theme.primary}99`,
-          borderRadius: 16,
-          shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 3,
-          elevation: 1,
-        }]}
-        onPress={() => {
-          hapticFeedback.medium();
-          navigation.navigate('BibleReader');
-        }}
-        accessibilityLabel="Open Bible"
-        accessibilityRole="button"
-      >
-        <MaterialIcons name="menu-book" size={24} color={iconColor} />
-        <View style={styles.bibleButtonContent}>
-          <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
-            Open Bible
-          </Text>
-          <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-            Simple English + Original text
-          </Text>
-        </View>
-        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-      </AnimatedBibleButton>
+      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+        <AnimatedBibleButton 
+          style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+          onPress={() => {
+            hapticFeedback.medium();
+            navigation.navigate('BibleReader');
+          }}
+          accessibilityLabel="Open Bible"
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="menu-book" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
+              Open Bible
+            </Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Simple English + Original text
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+        </AnimatedBibleButton>
+      </BlurView>
       
-      {/* Verse of the day - Force transparent styling */}
-      <TouchableOpacity
-        activeOpacity={0.4}
-        onPress={openVerseModal}
-        accessibilityLabel="Verse of the Day"
-        accessibilityRole="button"
-        style={[styles.transparentVerseOfDay, { 
-          backgroundColor: `${theme.primary}22`,
-          borderWidth: 0.8,
-          borderColor: `${theme.primary}65`,
-          borderRadius: 16,
-          shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 3,
-          elevation: 1,
-        }]}
-      >
-        <Text style={[styles.verseLabel, { color: textSecondaryColor, ...textOutlineStyle }]}>
-          {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
-        </Text>
-        <Text 
-          style={[styles.verseText, { color: textColor, ...textOutlineStyle }]}
-          selectable={false} // Disable selection for tappable area
-          allowFontScaling={true}
+      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+        <TouchableOpacity
+          activeOpacity={0.4}
+          onPress={openVerseModal}
+          accessibilityLabel="Verse of the Day"
+          accessibilityRole="button"
+          style={[styles.transparentVerseOfDay, { backgroundColor: 'transparent', borderRadius: 12 }]}
         >
-          "{dailyVerse.text}"
-        </Text>
-        <Text 
-          style={[styles.verseReference, { color: textSecondaryColor, ...textOutlineStyle }]}
-          selectable={false} // Disable selection for tappable area
-          allowFontScaling={true}
-        >
-          {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
-        </Text>
-      </TouchableOpacity>
+          <Text style={[styles.verseLabel, { color: textSecondaryColor, ...textOutlineStyle }]}>
+            {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
+          </Text>
+          <Text 
+            style={[styles.verseText, { color: textColor, ...textOutlineStyle }]}
+            selectable={false}
+            allowFontScaling={true}
+          >
+            "{dailyVerse.text}"
+          </Text>
+          <Text 
+            style={[styles.verseReference, { color: textSecondaryColor, ...textOutlineStyle }]}
+            selectable={false}
+            allowFontScaling={true}
+          >
+            {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </BlurView>
       </LiquidGlassBibleContainer>
     );
   };
@@ -1244,39 +1243,95 @@ const BiblePrayerTab = () => {
         Explore characters, timeline, maps & more
       </Text>
       
-      <AnimatedBibleButton 
-        style={[styles.bibleButton, { 
-          backgroundColor: `${theme.primary}30`,
-          borderWidth: 0.8,
-          borderColor: `${theme.primary}99`,
-          borderRadius: 16,
-          shadowColor: theme.primary,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 3,
-          elevation: 1,
-          marginBottom: 16,
-        }]}
-        onPress={() => {
-          hapticFeedback.medium();
-          navigation.navigate('BibleStudy');
-        }}
-        accessibilityLabel="Interactive Bible Study"
-        accessibilityRole="button"
-      >
-        <MaterialIcons name="school" size={24} color={iconColor} />
-        <View style={styles.bibleButtonContent}>
-          <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
-            Interactive Learning
-          </Text>
-          <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-            Characters, Timeline, Maps & Quizzes
-          </Text>
-        </View>
-        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-      </AnimatedBibleButton>
+      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
+        <AnimatedBibleButton 
+          style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+          onPress={() => {
+            hapticFeedback.medium();
+            navigation.navigate('BibleStudy');
+          }}
+          accessibilityLabel="Interactive Bible Study"
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="school" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
+              Interactive Learning
+            </Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Characters, Timeline, Maps & Quizzes
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+        </AnimatedBibleButton>
+      </BlurView>
 
       </LiquidGlassBibleStudyContainer>
+    );
+  };
+
+  const PrayerBoardSection = () => {
+    const LiquidGlassPrayerBoardContainer = ({ children }) => {
+      if (!isLiquidGlassSupported || !liquidGlassEnabled) {
+        return (
+          <BlurView 
+            intensity={18} 
+            tint={isDark ? "dark" : "light"} 
+            style={[styles.bibleCard, { 
+              backgroundColor: isDark 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : `${theme.primary}15`
+            }]}
+          >
+            {children}
+          </BlurView>
+        );
+      }
+
+      return (
+        <LiquidGlassView
+          interactive={true}
+          effect="clear"
+          colorScheme="system"
+          tintColor="rgba(255, 255, 255, 0.08)"
+          style={styles.liquidGlassBibleCard}
+        >
+          {children}
+        </LiquidGlassView>
+      );
+    };
+
+    return (
+      <LiquidGlassPrayerBoardContainer>
+      <Text style={[styles.sectionTitle, { color: textColor }]}>Prayer Board</Text>
+      <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+        Your personal space to pin prayers & praise
+      </Text>
+      
+      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
+        <AnimatedBibleButton 
+          style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+          onPress={() => {
+            hapticFeedback.medium();
+            navigation.navigate('PrayerBoard');
+          }}
+          accessibilityLabel="Open Prayer Board"
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="dashboard" size={24} color={iconColor} />
+          <View style={styles.bibleButtonContent}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
+              Open Prayer Board
+            </Text>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+              Prayers, stickers, photos & more
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+        </AnimatedBibleButton>
+      </BlurView>
+
+      </LiquidGlassPrayerBoardContainer>
     );
   };
 
@@ -1318,90 +1373,65 @@ const BiblePrayerTab = () => {
           Your saved content & reflections
         </Text>
 
-        <TouchableOpacity
-          style={[styles.bibleButton, {
-            backgroundColor: `${theme.primary}30`,
-            borderWidth: 0.8,
-            borderColor: `${theme.primary}99`,
-            borderRadius: 16,
-            shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 3,
-            elevation: 1,
-          }]}
-          activeOpacity={0.7}
-          onPress={() => {
-            hapticFeedback.light();
-            navigation.navigate('SavedVerses');
-          }}
-        >
-          <MaterialIcons name="bookmark-outline" size={24} color={iconColor} />
-          <View style={styles.bibleButtonContent}>
-            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Saved Verses</Text>
-            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-              Your bookmarked passages
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
+        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+          <TouchableOpacity
+            style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              hapticFeedback.light();
+              navigation.navigate('SavedVerses');
+            }}
+          >
+            <MaterialIcons name="bookmark-outline" size={24} color={iconColor} />
+            <View style={styles.bibleButtonContent}>
+              <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Saved Verses</Text>
+              <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+                Your bookmarked passages
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+          </TouchableOpacity>
+        </BlurView>
 
-        <TouchableOpacity
-          style={[styles.bibleButton, {
-            backgroundColor: `${theme.primary}30`,
-            borderWidth: 0.8,
-            borderColor: `${theme.primary}99`,
-            borderRadius: 16,
-            shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 3,
-            elevation: 1,
-          }]}
-          activeOpacity={0.7}
-          onPress={() => {
-            hapticFeedback.light();
-            navigation.navigate('Highlights');
-          }}
-        >
-          <MaterialIcons name="format-paint" size={24} color={iconColor} />
-          <View style={styles.bibleButtonContent}>
-            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Highlights</Text>
-            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-              Your coloured markings
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
+        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+          <TouchableOpacity
+            style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              hapticFeedback.light();
+              navigation.navigate('Highlights');
+            }}
+          >
+            <MaterialIcons name="format-paint" size={24} color={iconColor} />
+            <View style={styles.bibleButtonContent}>
+              <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Highlights</Text>
+              <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+                Your coloured markings
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+          </TouchableOpacity>
+        </BlurView>
 
-        <TouchableOpacity
-          style={[styles.bibleButton, {
-            backgroundColor: `${theme.primary}30`,
-            borderWidth: 0.8,
-            borderColor: `${theme.primary}99`,
-            borderRadius: 16,
-            shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 3,
-            elevation: 1,
-            marginBottom: 16,
-          }]}
-          activeOpacity={0.7}
-          onPress={() => {
-            hapticFeedback.light();
-            navigation.navigate('Journal');
-          }}
-        >
-          <MaterialIcons name="menu-book" size={24} color={iconColor} />
-          <View style={styles.bibleButtonContent}>
-            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Journal</Text>
-            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
-              Your personal reflections
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
+        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
+          <TouchableOpacity
+            style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              hapticFeedback.light();
+              navigation.navigate('Journal');
+            }}
+          >
+            <MaterialIcons name="menu-book" size={24} color={iconColor} />
+            <View style={styles.bibleButtonContent}>
+              <Text style={[styles.bibleButtonTitle, { color: textColor }]}>Journal</Text>
+              <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+                Your personal reflections
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
+          </TouchableOpacity>
+        </BlurView>
       </LiquidGlassLibraryContainer>
     );
   };
@@ -1525,19 +1555,16 @@ const BiblePrayerTab = () => {
         {/* Animated spacer for refresh animation */}
         <Animated.View style={{ height: refreshSpacerHeight }} />
 
-        {/* Simple Prayer Card */}
-        <SimplePrayerCard onNavigateToBible={handleNavigateToVerse} />
-
-
-
-        {/* Bible Section */}
-        <BibleSection />
-
-        {/* Bible Study Section */}
-        <BibleStudySection />
-
-        {/* My Library Section */}
-        <MyLibrarySection />
+        {cardOrder.filter(id => !hiddenCards.includes(id)).map(id => {
+          switch (id) {
+            case 'Prayer': return <SimplePrayerCard key={id} onNavigateToBible={handleNavigateToVerse} />;
+            case 'Bible': return <BibleSection key={id} />;
+            case 'BibleStudy': return <BibleStudySection key={id} />;
+            case 'PrayerBoard': return <PrayerBoardSection key={id} />;
+            case 'Library': return <MyLibrarySection key={id} />;
+            default: return null;
+          }
+        })}
       </Animated.ScrollView>
 
 
@@ -2525,15 +2552,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    // Background and border set dynamically in JSX using theme colors
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderRadius: 12,
+    marginBottom: 0,
+  },
+  innerBlurItem: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
   },
   bibleButtonContent: {
     flex: 1,
@@ -2616,15 +2641,7 @@ const styles = StyleSheet.create({
   },
   transparentVerseOfDay: {
     padding: 16,
-    borderRadius: 16,
-    marginTop: 16,
-    // Background and border set dynamically in JSX using theme colors
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderRadius: 12,
   },
   verseLabel: {
     fontSize: 12,

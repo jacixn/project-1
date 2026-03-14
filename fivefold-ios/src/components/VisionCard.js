@@ -33,7 +33,9 @@ const VisionCard = ({
   isBiblelyMainWallpaper,
 }) => {
   const { theme, isDark } = useTheme();
-  const active = getActiveVisions(visions || []);
+  const active = getActiveVisions(visions || []).sort(
+    (a, b) => new Date(a.targetDate) - new Date(b.targetDate)
+  );
   const visibleGoals = active.slice(0, MAX_VISIBLE);
   const remaining = active.length - MAX_VISIBLE;
 
@@ -79,7 +81,12 @@ const VisionCard = ({
       {visibleGoals.map((vision) => {
         const progress = getProgress(vision);
         return (
-          <View key={vision.id} style={styles.goalRow}>
+          <BlurView
+            key={vision.id}
+            intensity={18}
+            tint={isDark ? 'dark' : 'light'}
+            style={styles.goalRow}
+          >
             <Text
               style={[styles.goalTitle, { color: textColor, ...textOutlineStyle }]}
               numberOfLines={1}
@@ -105,7 +112,7 @@ const VisionCard = ({
                 {getTimeRemaining(vision)}
               </Text>
             </View>
-          </View>
+          </BlurView>
         );
       })}
 
@@ -197,7 +204,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   goalRow: {
-    marginBottom: 14,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
   goalTitle: {
     fontSize: 15,

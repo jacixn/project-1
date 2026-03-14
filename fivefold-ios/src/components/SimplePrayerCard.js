@@ -994,35 +994,20 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                   ? '• Available now'
                   : '';
             
-            // Individual Prayer Item Component - Fully transparent
-              const PrayerItemCard = ({ children, style, onPress }) => {
-              // Use regular View with completely transparent background - no white tint!
+            const PrayerItemCard = ({ children, style }) => {
               return (
-                <View
+                <BlurView
+                  intensity={18}
+                  tint={isDark ? 'dark' : 'light'}
                   style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: completedToday ? `${successColor}30` : `${theme.primary}30`,
-                    borderColor: completedToday ? `${successColor}99` : `${theme.primary}99`,
+                    backgroundColor: 'transparent',
+                    borderColor: completedToday ? `${successColor}60` : `${theme.primary}60`,
                     opacity: completedToday ? 1 : (canComplete ? 1 : 0.7),
-                    shadowColor: completedToday ? `${successColor}` : '#000'
                   }, style]}
                 >
                   {children}
-                </View>
+                </BlurView>
               );
-              
-              // Fallback with transparent background
-              /*
-              if (!isLiquidGlassSupported) {
-                return (
-                  <View style={[styles.prayerItem, { 
-                    backgroundColor: 'transparent', // No purple in fallback either!
-                    opacity: canComplete ? 1 : 0.7
-                  }, style]}>
-                    {children}
-                  </View>
-                );
-              }
-              */
             };
 
             return (
@@ -1359,15 +1344,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     marginBottom: 12,
-    // Background and border set dynamically in JSX using theme colors
-    borderWidth: 1.5,
-    padding: 4, // Add padding so border is visible
-    // Subtle shadow to lift it off the background
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 0.8,
+    padding: 4,
+    overflow: 'hidden',
   },
   prayerContent: {
     flex: 1,

@@ -83,8 +83,8 @@ const BADGE_REFERRAL_GATES = {
   biblely:  5,     // Biblely Badge — 5 referrals
 };
 
-// Voice referral gate — 1 referral unlocks all non-free voices
-const VOICE_REFERRAL_REQUIRED = 1;
+// Voice referral gate — 6 referrals unlock Studio voices
+const VOICE_REFERRAL_REQUIRED = 6;
 
 // ── Rarity tier helper ──────────────────────────────────────
 const getTier = (required) => {
@@ -638,13 +638,13 @@ const CustomisationScreen = () => {
                   </LinearGradient>
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={[st.badgeName, { color: tx }]}>Studio & Device</Text>
+                      <Text style={[st.badgeName, { color: tx }]}>All Voices</Text>
                       <View style={[st.tierBadgeSmall, { backgroundColor: freeTier.bg }]}>
                         <Text style={[st.tierTextSmall, { color: freeTier.color }]}>FREE</Text>
                       </View>
                     </View>
                     <Text style={[st.badgeDesc, { color: tx2 }]}>
-                      2 premium studio voices + all device voices
+                      Neural, WaveNet, Standard & Device voices
                     </Text>
                   </View>
                   <MaterialIcons name="check-circle" size={24} color="#10B981" />
@@ -661,14 +661,14 @@ const CustomisationScreen = () => {
                       <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
                     </LinearGradient>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                      <Text style={[st.badgeName, { color: tx, opacity: 0.5 }]}>Neural, WaveNet & More</Text>
+                      <Text style={[st.badgeName, { color: tx, opacity: 0.5 }]}>Studio Voices</Text>
                       <Text style={[st.badgeDesc, { color: tx2, opacity: 0.5 }]}>
-                        35+ extra voices with accents & styles
+                        2 premium studio-quality narration voices
                       </Text>
                     </View>
                     <View style={[st.badgeGateChip, { backgroundColor: vTier.bg, borderColor: vTier.color + '25', borderWidth: 1 }]}>
                       <MaterialIcons name="person-add" size={12} color={vTier.color} />
-                      <Text style={[st.badgeGateChipText, { color: vTier.color }]}>1 referral</Text>
+                      <Text style={[st.badgeGateChipText, { color: vTier.color }]}>6 referrals</Text>
                     </View>
                   </TouchableOpacity>
                 ) : (
@@ -678,13 +678,13 @@ const CustomisationScreen = () => {
                     </LinearGradient>
                     <View style={{ flex: 1, marginLeft: 16 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={[st.badgeName, { color: tx }]}>Neural, WaveNet & More</Text>
+                        <Text style={[st.badgeName, { color: tx }]}>Studio Voices</Text>
                         <View style={[st.tierBadgeSmall, { backgroundColor: vTier.bg }]}>
                           <Text style={[st.tierTextSmall, { color: vTier.color }]}>{vTier.label}</Text>
                         </View>
                       </View>
                       <Text style={[st.badgeDesc, { color: tx2 }]}>
-                        35+ extra voices unlocked
+                        2 premium studio voices unlocked
                       </Text>
                     </View>
                     <MaterialIcons name="check-circle" size={24} color="#60A5FA" />

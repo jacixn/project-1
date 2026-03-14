@@ -164,6 +164,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const versesScrollViewRef = useRef(null);
   const verseRefs = useRef({}); // Store refs to individual verses
   const versePositions = useRef({}); // Store Y positions of verses for audio auto-scroll
+  const windowHeightRef = useRef(windowHeight);
+  windowHeightRef.current = windowHeight;
   const [books, setBooks] = useState([]);
   const [currentBook, setCurrentBook] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -228,6 +230,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [highlightedVerses, setHighlightedVerses] = useState({}); // { verseId: color }
   const verseMenuSlideAnim = useRef(new Animated.Value(0)).current;
   const verseMenuFadeAnim = useRef(new Animated.Value(0)).current;
+  const verseMenuDragY = useRef(new Animated.Value(0)).current;
   
   // Range selection state for saving multiple verses
   const [rangeSelectionMode, setRangeSelectionMode] = useState(false);
@@ -1444,7 +1447,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     setSelectedVerseForMenu(verse);
     setShowVerseMenu(true);
     
-    // Animate verse menu in
+    verseMenuDragY.setValue(0);
     Animated.parallel([
       Animated.spring(verseMenuSlideAnim, {
         toValue: 1,
@@ -1460,7 +1463,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     ]).start();
   };
 
-  // Close verse menu
   const closeVerseMenu = () => {
     Animated.parallel([
       Animated.timing(verseMenuSlideAnim, {
@@ -1471,6 +1473,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       Animated.timing(verseMenuFadeAnim, {
         toValue: 0,
         duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseMenuDragY, {
+        toValue: 0,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -1902,27 +1909,38 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     
     bibleAudioService.onVerseChange = (verse, index) => {
       setCurrentAudioVerse(verse);
-      
-      // Auto-scroll to keep the currently-read verse visible above the audio player bar
-      // verse can be the full verse object or a number — extract the number either way
+
       const verseNum = parseInt(verse?.number || verse?.verse || verse);
-      if (verseNum && versesScrollViewRef.current) {
-        const storedY = versePositions.current[verseNum];
-        if (storedY !== undefined) {
-          // storedY is relative to youversionVersesContainer; add ~162 for paddingTop(170) + marginTop(-8)
-          const absoluteY = storedY + 162;
-          // Scroll so the verse appears ~200px from the top (just below the header)
-          versesScrollViewRef.current.scrollTo({
-            y: Math.max(0, absoluteY - 200),
-            animated: true,
-          });
-        } else if (index !== undefined) {
-          const estimatedY = (index * 100) + 162;
-          versesScrollViewRef.current.scrollTo({
-            y: Math.max(0, estimatedY - 200),
-            animated: true,
-          });
-        }
+      if (!verseNum || !versesScrollViewRef.current) return;
+
+      const centerOffset = Math.round(windowHeightRef.current / 2) - 60;
+      const verseRef = verseRefs.current[verseNum];
+
+      if (verseRef) {
+        verseRef.measureLayout(
+          versesScrollViewRef.current,
+          (x, y) => {
+            versesScrollViewRef.current?.scrollTo({
+              y: Math.max(0, y - centerOffset),
+              animated: true,
+            });
+          },
+          () => {
+            const storedY = versePositions.current[verseNum];
+            if (storedY !== undefined) {
+              versesScrollViewRef.current?.scrollTo({
+                y: Math.max(0, storedY + 162 - centerOffset),
+                animated: true,
+              });
+            }
+          }
+        );
+      } else if (index !== undefined) {
+        const estimatedY = (index * 100) + 162;
+        versesScrollViewRef.current.scrollTo({
+          y: Math.max(0, estimatedY - centerOffset),
+          animated: true,
+        });
       }
     };
     
@@ -2092,7 +2110,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     // Only reset temporary state, keep user's saved preferences (bg, layout, font, etc.)
     setShareCardControlsTab('bg');
     
-    // Close verse menu first
     Animated.parallel([
       Animated.timing(verseMenuSlideAnim, {
         toValue: 0,
@@ -2100,6 +2117,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         useNativeDriver: true,
       }),
       Animated.timing(verseMenuFadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(verseMenuDragY, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
@@ -3073,33 +3095,31 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     })
   ).current;
 
-  // PanResponder for verse menu swipe-to-dismiss
+  const closeVerseMenuRef = useRef(null);
+  closeVerseMenuRef.current = closeVerseMenu;
+
   const verseMenuPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5 && gestureState.dy > 0;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          // Update slide animation
-          verseMenuSlideAnim.setValue(Math.max(0, 1 - (gestureState.dy / 400)));
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+      onPanResponderGrant: () => { verseMenuDragY.setValue(0); },
+      onPanResponderMove: Animated.event(
+        [null, { dy: verseMenuDragY }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 100 || gs.vy > 0.5) {
           hapticFeedback.light();
-          closeVerseMenu();
+          closeVerseMenuRef.current?.();
         } else {
-          // Snap back
-          Animated.spring(verseMenuSlideAnim, {
-            toValue: 1,
-            useNativeDriver: true,
+          Animated.spring(verseMenuDragY, {
+            toValue: 0,
             tension: 65,
-            friction: 11
+            friction: 11,
+            useNativeDriver: true,
           }).start();
         }
-      }
+      },
     })
   ).current;
 
@@ -3717,7 +3737,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           style={[styles.content, { backgroundColor: theme.background, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: 170, paddingBottom: showAudioPlayer ? 300 : 40 }]}
+          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: 170, paddingBottom: showAudioPlayer ? Math.max(300, windowHeight * 0.6) : 40 }]}
           scrollEventThrottle={16}
           directionalLockEnabled={true}
         >
@@ -3763,6 +3783,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             }}
             onLongPress={() => handleVerseLongPress(verse)}
             delayLongPress={500}
+            onLayout={(e) => { versePositions.current[verseNumber] = e.nativeEvent.layout.y; }}
           >
             <View 
               style={[
@@ -3781,9 +3802,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   borderLeftColor: theme.primary,
                   paddingLeft: 12
                 },
-                // Highlight the verse currently being read aloud - subtle green border style
                 isCurrentlyBeingRead && {
-                  backgroundColor: `${theme.primary}15`, // Very subtle tint
+                  backgroundColor: `${theme.primary}15`,
                   borderRadius: 12,
                   borderWidth: 2,
                   borderColor: theme.primary,
@@ -3806,7 +3826,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 }
               ]}
               ref={(el) => (verseRefs.current[verseNumber] = el)}
-              onLayout={(e) => { versePositions.current[verseNumber] = e.nativeEvent.layout.y; }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
                 <Text style={[
@@ -4920,6 +4939,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               
               {/* Menu Content */}
               <Animated.View
+                {...verseMenuPanResponder.panHandlers}
                 style={{
                   position: 'absolute',
                   bottom: 0,
@@ -4934,19 +4954,25 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   shadowOpacity: 0.3,
                   shadowRadius: 12,
                   elevation: 10,
-                  transform: [{
-                    translateY: verseMenuSlideAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [600, 0],
-                    })
-                  }],
+                  transform: [
+                    {
+                      translateY: verseMenuSlideAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [600, 0],
+                      }),
+                    },
+                    {
+                      translateY: verseMenuDragY.interpolate({
+                        inputRange: [-1, 0, 300],
+                        outputRange: [0, 0, 300],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
                 }}
               >
-                {/* Drag Handle with PanHandlers */}
-                <View 
-                  {...verseMenuPanResponder.panHandlers}
-                  style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}
-                >
+                {/* Drag Handle */}
+                <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
                   <View style={{
                     width: 40,
                     height: 5,

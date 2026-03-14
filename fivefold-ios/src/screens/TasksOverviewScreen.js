@@ -16,7 +16,14 @@ import {
   StatusBar,
   DeviceEventEmitter,
   Alert,
+  LayoutAnimation,
+  UIManager,
+  Platform,
 } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,6 +50,13 @@ const TasksOverviewScreen = () => {
   const [todos, setTodos] = useState([]);
   const [userStats, setUserStats] = useState({ points: 0, level: 1, completedTasks: 0 });
   const [loading, setLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState({});
+
+  const toggleExpand = useCallback((todoId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.create(250, 'easeInEaseOut', 'opacity'));
+    setExpandedIds(prev => ({ ...prev, [todoId]: !prev[todoId] }));
+    hapticFeedback.light();
+  }, []);
 
   // Colors
   const bg = theme.background;
@@ -233,6 +247,7 @@ const TasksOverviewScreen = () => {
 
   const renderTaskCard = (todo, index) => {
     const tier = getTierConfig(todo.tier);
+    const isExpanded = !!expandedIds[todo.id];
 
     return (
       <Animated.View
@@ -244,11 +259,13 @@ const TasksOverviewScreen = () => {
           transform: [{ translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.15)) }],
         }]}
       >
-        {/* Priority accent */}
         <View style={[styles.taskAccent, { backgroundColor: tier.color }]} />
 
-        <View style={styles.taskInner}>
-          {/* Top row: checkbox + text + delete */}
+        <TouchableOpacity
+          style={styles.taskInner}
+          onPress={() => toggleExpand(todo.id)}
+          activeOpacity={0.8}
+        >
           <View style={styles.taskTopRow}>
             <TouchableOpacity
               style={[styles.checkBtn, { borderColor: tier.color }]}
@@ -261,67 +278,86 @@ const TasksOverviewScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.taskTextWrap}>
-              <Text style={[styles.taskText, { color: textPrimary }]} numberOfLines={3}>
+              <Text style={[styles.taskText, { color: textPrimary }]} numberOfLines={isExpanded ? undefined : 2}>
                 {todo.text}
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => handleTodoDelete(todo.id)}
-              activeOpacity={0.6}
-            >
-              <MaterialIcons name="delete-outline" size={18} color={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)'} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => handleTodoDelete(todo.id)}
+                activeOpacity={0.6}
+              >
+                <MaterialIcons name="delete-outline" size={18} color={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)'} />
+              </TouchableOpacity>
+              <MaterialIcons
+                name={isExpanded ? 'expand-less' : 'expand-more'}
+                size={20}
+                color={textTertiary}
+              />
+            </View>
           </View>
 
-          {/* Tags row */}
-          <View style={styles.tagsRow}>
-            <View style={[styles.tierChip, { backgroundColor: tier.color + '15' }]}>
-              <MaterialIcons name={tier.icon} size={12} color={tier.color} />
-              <Text style={[styles.tierChipText, { color: tier.color }]}>{tier.label}</Text>
-            </View>
-
-            <View style={[styles.pointsChip, { backgroundColor: `${theme.primary}12` }]}>
-              <MaterialIcons name="star" size={12} color={theme.primary} />
-              <Text style={[styles.pointsChipText, { color: theme.primary }]}>+{todo.points}</Text>
-            </View>
-
-            {todo.source === 'ai' && (
-              <View style={[styles.smartChip, { backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)' }]}>
-                <MaterialIcons name="auto-awesome" size={11} color="#8B5CF6" />
-                <Text style={[styles.smartChipText, { color: '#8B5CF6' }]}>Smart</Text>
+          {!isExpanded && (
+            <View style={[styles.tagsRow, { marginTop: 8 }]}>
+              <View style={[styles.tierChip, { backgroundColor: tier.color + '15' }]}>
+                <Text style={[styles.tierChipText, { color: tier.color }]}>{tier.label}</Text>
               </View>
-            )}
-
-            {todo.timeEstimate && todo.timeEstimate !== 'Unknown' && (
-              <View style={[styles.timeChip, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)' }]}>
-                <MaterialIcons name="schedule" size={11} color="#3B82F6" />
-                <Text style={[styles.timeChipText, { color: '#3B82F6' }]}>{todo.timeEstimate}</Text>
+              <View style={[styles.pointsChip, { backgroundColor: `${theme.primary}12` }]}>
+                <Text style={[styles.pointsChipText, { color: theme.primary }]}>+{todo.points}</Text>
               </View>
-            )}
-          </View>
-
-          {/* Analysis (collapsed — only show reasoning as a subtle note) */}
-          {todo.reasoning && (
-            <View style={[styles.insightRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
-              <MaterialIcons name="lightbulb-outline" size={13} color={textTertiary} />
-              <Text style={[styles.insightText, { color: textSecondary }]}>
-                {todo.reasoning}
-              </Text>
             </View>
           )}
 
-          {/* Confidence micro-bar */}
-          {todo.confidence && (
-            <View style={styles.confidenceRow}>
-              <View style={[styles.confTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F0F1F3' }]}>
-                <View style={[styles.confFill, { width: `${todo.confidence}%`, backgroundColor: theme.primary }]} />
+          {isExpanded && (
+            <>
+              <View style={styles.tagsRow}>
+                <View style={[styles.tierChip, { backgroundColor: tier.color + '15' }]}>
+                  <MaterialIcons name={tier.icon} size={12} color={tier.color} />
+                  <Text style={[styles.tierChipText, { color: tier.color }]}>{tier.label}</Text>
+                </View>
+
+                <View style={[styles.pointsChip, { backgroundColor: `${theme.primary}12` }]}>
+                  <MaterialIcons name="star" size={12} color={theme.primary} />
+                  <Text style={[styles.pointsChipText, { color: theme.primary }]}>+{todo.points}</Text>
+                </View>
+
+                {todo.source === 'ai' && (
+                  <View style={[styles.smartChip, { backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)' }]}>
+                    <MaterialIcons name="auto-awesome" size={11} color="#8B5CF6" />
+                    <Text style={[styles.smartChipText, { color: '#8B5CF6' }]}>Smart</Text>
+                  </View>
+                )}
+
+                {todo.timeEstimate && todo.timeEstimate !== 'Unknown' && (
+                  <View style={[styles.timeChip, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)' }]}>
+                    <MaterialIcons name="schedule" size={11} color="#3B82F6" />
+                    <Text style={[styles.timeChipText, { color: '#3B82F6' }]}>{todo.timeEstimate}</Text>
+                  </View>
+                )}
               </View>
-              <Text style={[styles.confLabel, { color: textTertiary }]}>{todo.confidence}%</Text>
-            </View>
+
+              {todo.reasoning && (
+                <View style={[styles.insightRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
+                  <MaterialIcons name="lightbulb-outline" size={13} color={textTertiary} />
+                  <Text style={[styles.insightText, { color: textSecondary }]}>
+                    {todo.reasoning}
+                  </Text>
+                </View>
+              )}
+
+              {todo.confidence && (
+                <View style={styles.confidenceRow}>
+                  <View style={[styles.confTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F0F1F3' }]}>
+                    <View style={[styles.confFill, { width: `${todo.confidence}%`, backgroundColor: theme.primary }]} />
+                  </View>
+                  <Text style={[styles.confLabel, { color: textTertiary }]}>{todo.confidence}%</Text>
+                </View>
+              )}
+            </>
           )}
-        </View>
+        </TouchableOpacity>
       </Animated.View>
     );
   };

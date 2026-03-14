@@ -103,6 +103,7 @@ User-generated content features (prayer wall, social feed, messaging) are modera
 
 ## Critical Reminders
 - **NEVER delete `fivefold-ios/ios/BiblelyVerseWidget/`** — this is the iOS widget extension. Protect it during all cleanup, refactoring, and cache-clearing operations.
+- **NEVER delete Xcode DerivedData** when freeing disk space — the user needs it for builds and deleting it just makes the next build take much longer for no benefit. When clearing disk space, skip DerivedData and focus on things that won't slow down development (old archives, Android/Gradle, unused simulators, etc.).
 
 ## Next Steps
 - Complete the 4 manual action items above

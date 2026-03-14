@@ -272,6 +272,8 @@ PODS:
     - Yoga
   - ExpoSecureStore (15.0.8):
     - ExpoModulesCore
+  - ExpoSensors (15.0.8):
+    - ExpoModulesCore
   - ExpoSpeech (14.0.8):
     - ExpoModulesCore
   - ExpoStoreReview (9.0.9):
@@ -2601,6 +2603,7 @@ DEPENDENCIES:
   - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
+  - ExpoSensors (from `../node_modules/expo-sensors/ios`)
   - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoStoreReview (from `../node_modules/expo-store-review/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
@@ -2762,6 +2765,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
+  ExpoSensors:
+    :path: "../node_modules/expo-sensors/ios"
   ExpoSpeech:
     :path: "../node_modules/expo-speech/ios"
   ExpoStoreReview:
@@ -2977,6 +2982,7 @@ SPEC CHECKSUMS:
   ExpoMediaLibrary: a3093b04365b245bb23b25b6eba84eb6ab55fecb
   ExpoModulesCore: 031cf9b42fab2e84dcf34087dbd12ae666c100e0
   ExpoSecureStore: d32f751874a2ceb5aaeebeb3578e165c1ba2b24a
+  ExpoSensors: 8f9fe9a9ffd36ca9c2f0fe40dafc0a063f844420
   ExpoSpeech: d22b56570ccfab5a27112dc9691f1ac83537de26
   ExpoStoreReview: 32bb43b6fae9c8db3e33cad69996dff3785eef5f
   EXUpdatesInterface: 5adf50cb41e079c861da6d9b4b954c3db9a50734

@@ -154,25 +154,19 @@ const NutritionScreen = () => {
   const modalSlideAnim = useRef(new Animated.Value(1)).current; // 1 = off-screen, 0 = visible
   const modalDragY = useRef(new Animated.Value(0)).current;    // tracks finger drag
 
-  // Swipe-to-dismiss pan responder
   const modalPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, gs) => {
-      // Only capture downward vertical drags (dy > 8 and mostly vertical)
-      return gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5;
-    },
+    onMoveShouldSetPanResponder: (_, gs) =>
+      gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
     onPanResponderGrant: () => {
       modalDragY.setValue(0);
     },
-    onPanResponderMove: (_, gs) => {
-      // Only allow dragging down (positive dy), clamp to 0 minimum
-      if (gs.dy > 0) {
-        modalDragY.setValue(gs.dy);
-      }
-    },
+    onPanResponderMove: Animated.event(
+      [null, { dy: modalDragY }],
+      { useNativeDriver: false }
+    ),
     onPanResponderRelease: (_, gs) => {
       if (gs.dy > 100 || gs.vy > 0.5) {
-        // Threshold reached — dismiss
         Animated.parallel([
           Animated.timing(modalDragY, {
             toValue: SCREEN_HEIGHT,
@@ -191,7 +185,6 @@ const NutritionScreen = () => {
           modalSlideAnim.setValue(1);
         });
       } else {
-        // Snap back
         Animated.spring(modalDragY, {
           toValue: 0,
           damping: 25,
@@ -1663,18 +1656,20 @@ const NutritionScreen = () => {
                         inputRange: [0, 1],
                         outputRange: [0, SCREEN_HEIGHT],
                       }),
-                      modalDragY,
+                      modalDragY.interpolate({
+                        inputRange: [-1, 0, SCREEN_HEIGHT],
+                        outputRange: [0, 0, SCREEN_HEIGHT],
+                        extrapolate: 'clamp',
+                      }),
                     ),
                   },
                 ],
               },
             ]}
           >
-            {/* Drag handle area — swipe down to dismiss */}
             <View {...modalPanResponder.panHandlers}>
               <View style={[styles.modalHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.12)' }]} />
 
-              {/* Header */}
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: textPrimary }]}>Add Food</Text>
                 <TouchableOpacity

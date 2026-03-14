@@ -82,7 +82,12 @@ const HabitsCard = ({
       {visibleHabits.map((habit) => {
         const checked = isCheckedInToday(habit);
         return (
-          <View key={habit.id} style={styles.habitRow}>
+          <BlurView
+            key={habit.id}
+            intensity={18}
+            tint={isDark ? 'dark' : 'light'}
+            style={styles.habitRow}
+          >
             <TouchableOpacity
               onPress={() => {
                 if (!checked) {
@@ -120,7 +125,7 @@ const HabitsCard = ({
                 </Text>
               </View>
             </View>
-          </View>
+          </BlurView>
         );
       })}
 
@@ -241,7 +246,10 @@ const styles = StyleSheet.create({
   habitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
   habitIcon: {
     width: 32,

@@ -16,9 +16,13 @@ When the user says **"time to connect phone"** (or similar), provide these full 
 2. **Select your iPhone in Xcode** — In the top device bar, change the destination from a simulator to your physical iPhone (it appears by name once plugged in).
 3. **Trust the computer** — If prompted on your iPhone, tap "Trust This Computer" and enter your passcode.
 4. **Build to device** — In Xcode, press **Cmd+R** (Product > Run) to build a debug version directly to your phone. This takes a few minutes the first time.
-5. **Start Metro** — In a terminal, navigate to `fivefold-ios/` and run: `npx expo start`
-6. **Connect Metro on your phone** — When the Expo dev client opens on your phone, enter your Mac's local IP in the URL field: `http://<mac-ip>:8081`. Find your Mac's IP by running `ipconfig getifaddr en0` in the terminal (last known IP was `192.168.1.158`).
+5. **Start Metro** — Tell the user to run in their terminal: `cd /Users/jz/Desktop/guthub/project-1/fivefold-ios && npx expo start`. **Wait for Metro to be running before proceeding to step 6.** You can verify by running `lsof -i :8081` — if nothing is listening, Metro is not running yet and the phone WILL fail to connect.
+6. **Connect Metro on your phone** — Once Metro is confirmed running, tap "Enter URL manually" on the phone and enter `http://<mac-ip>:8081`. **ALWAYS run `ipconfig getifaddr en0` yourself to get the current IP — never use a cached/old IP.** Provide the live result to the user.
 7. **Done** — The app loads via Metro. Code changes hot-reload instantly without rebuilding.
+
+## Troubleshooting
+- **"Failed to connect to http://IP:8081"** — Metro is not running. Start it first (step 5) and confirm port 8081 is listening before retrying on the phone.
+- **Phone connects but app doesn't load** — Make sure phone and Mac are on the same Wi-Fi network.
 
 ## Notes
 - This is for **debug/development** testing only (hot reload, console logs, etc.)

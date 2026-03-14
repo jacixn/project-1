@@ -80,6 +80,8 @@ import CountdownGame from '../screens/games/CountdownGame';
 import FlashCardsGame from '../screens/games/FlashCardsGame';
 import CustomisationScreen from '../screens/CustomisationScreen';
 import CustomiseTabBarScreen from '../screens/CustomiseTabBarScreen';
+import CustomiseCardsScreen from '../screens/CustomiseCardsScreen';
+import PrayerBoardScreen from '../screens/PrayerBoardScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1370,9 +1372,27 @@ const RootNavigator = () => {
       />
 
       {/* Customise Tab Bar Screen */}
-      <Stack.Screen 
-        name="CustomiseTabBar" 
+      <Stack.Screen
+        name="CustomiseTabBar"
         component={CustomiseTabBarScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Customise Cards Screen */}
+      <Stack.Screen
+        name="CustomiseCards"
+        component={CustomiseCardsScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Prayer Board Screen */}
+      <Stack.Screen
+        name="PrayerBoard"
+        component={PrayerBoardScreen}
         options={{
           animation: 'slide_from_right',
         }}
