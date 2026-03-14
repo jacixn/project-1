@@ -585,7 +585,7 @@ const GymTab = () => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday = 0
+    const startDayOfWeek = firstDay.getDay(); // Sunday = 0
     
     const days = [];
     const today = new Date();
@@ -1278,7 +1278,7 @@ const GymTab = () => {
 
               {/* Day Names Header */}
               <View style={styles.calendarDayNames}>
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
                   <Text key={index} style={[styles.calendarDayName, { color: textSecondaryColor }]}>
                     {day}
                   </Text>

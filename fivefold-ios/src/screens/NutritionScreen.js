@@ -724,7 +724,7 @@ const NutritionScreen = () => {
         mediaTypes: ['images'],
         quality: 0.7,
         base64: true,
-        allowsEditing: true,
+        allowsEditing: false,
       });
 
       if (result.canceled) return;
@@ -1612,6 +1612,10 @@ const NutritionScreen = () => {
 
         {/* Quick Add card removed */}
 
+        <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : textTertiary, textAlign: 'center', paddingHorizontal: 20, marginTop: 4, marginBottom: 8, lineHeight: 16 }}>
+          For informational purposes only. Nutritional estimates are approximations and not a substitute for professional medical or dietary advice. Consult a healthcare professional before making significant dietary changes.
+        </Text>
+
         <View style={{ height: 90 }} />
       </Animated.View>
     );
@@ -2352,12 +2356,6 @@ const NutritionScreen = () => {
         keyboardShouldPersistTaps="handled"
       >
         {showPlanResult ? renderPlanResult() : showSetup ? renderSetupForm() : renderDashboard()}
-
-        {!showSetup && !showPlanResult && (
-          <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : theme.textTertiary, textAlign: 'center', paddingHorizontal: 20, marginTop: -8, marginBottom: 8, lineHeight: 16 }}>
-            For informational purposes only. Nutritional estimates are approximations and not a substitute for professional medical or dietary advice. Consult a healthcare professional before making significant dietary changes.
-          </Text>
-        )}
       </ScrollView>
 
       {/* Floating Add Button */}

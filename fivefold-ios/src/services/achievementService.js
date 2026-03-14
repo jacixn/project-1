@@ -56,14 +56,6 @@ const ACHIEVEMENTS = [
   { id: 'timeline_5',  target: 6,   type: 'timelineErasViewed', title: 'History Seeker',    points: 661,   icon: 'timeline',          category: 'timeline' },
   { id: 'timeline_8',  target: 8,   type: 'timelineErasViewed', title: 'Timeline Master',   points: 1587,  icon: 'timeline',          category: 'timeline' },
 
-  // ── Verses Read ──────────────────────────────────────────
-  { id: 'read_1',      target: 10,  type: 'versesRead',       title: 'Page Turner',         points: 132,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_10',     target: 30,  type: 'versesRead',       title: 'Daily Reader',        points: 265,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_25',     target: 75,  type: 'versesRead',       title: 'Scripture Seeker',    points: 529,   icon: 'menu-book',         category: 'reading' },
-  { id: 'read_50',     target: 150, type: 'versesRead',       title: 'Bible Student',       points: 1058,  icon: 'menu-book',         category: 'reading' },
-  { id: 'read_100',    target: 300, type: 'versesRead',       title: 'Word Warrior',        points: 1984,  icon: 'menu-book',         category: 'reading' },
-  { id: 'read_250',    target: 500, type: 'versesRead',       title: 'Scripture Master',    points: 3968,  icon: 'menu-book',         category: 'reading' },
-
   // ── Bible Maps ───────────────────────────────────────────
   { id: 'maps_1',      target: 2,   type: 'mapsVisited',      title: 'Pilgrim',             points: 132,   icon: 'map',               category: 'maps' },
   { id: 'maps_3',      target: 5,   type: 'mapsVisited',      title: 'Holy Land Explorer',  points: 265,   icon: 'map',               category: 'maps' },

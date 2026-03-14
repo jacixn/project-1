@@ -494,7 +494,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
       });
       if (result.canceled || !result.assets?.length) return;
@@ -5814,10 +5814,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   return (
                     <View style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
                       <Text style={[versionStyle, { textAlign: 'left', fontSize: 13, letterSpacing: 0.3, textTransform: 'none', marginBottom: 4 }]}>
-                        Verse of the day
+                        {versionName}
                       </Text>
                       <Text style={[refStyle, { textAlign: 'left', fontSize: 16, marginBottom: 16 }]}>
-                        {verseRef} {versionName}
+                        {verseRef}
                       </Text>
                       <Text
                         style={[verseTextStyle, { textAlign: 'left', fontWeight: '700', fontSize: adjustedFontSize + 4, lineHeight: adjustedLineHeight + 6 }]}

@@ -10,6 +10,7 @@ const TEMPLATES_KEY = '@workout_templates';
 const FOLDERS_KEY = '@workout_folders';
 const SCHEDULED_WORKOUTS_KEY = '@scheduled_workouts';
 const SPLIT_PLAN_KEY = '@workout_split_plan';
+const USER_EQUIPMENT_KEY = '@user_available_equipment';
 
 // 90 days in milliseconds
 const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -600,6 +601,28 @@ class WorkoutService {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const today = days[new Date().getDay()];
     return plan[today] || null;
+  }
+
+  // ─── User Equipment ───
+
+  static async getUserEquipment() {
+    try {
+      const json = await userStorage.getRaw(USER_EQUIPMENT_KEY);
+      return json ? JSON.parse(json) : null;
+    } catch (error) {
+      console.warn('[WorkoutService] Error loading user equipment:', error);
+      return null;
+    }
+  }
+
+  static async saveUserEquipment(equipmentList) {
+    try {
+      await userStorage.setRaw(USER_EQUIPMENT_KEY, JSON.stringify(equipmentList));
+      pushToCloud('userEquipment', equipmentList);
+      console.log('[WorkoutService] User equipment saved:', equipmentList.length, 'items');
+    } catch (error) {
+      console.warn('[WorkoutService] Error saving user equipment:', error);
+    }
   }
 }
 

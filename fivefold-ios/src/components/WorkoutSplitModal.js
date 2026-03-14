@@ -30,18 +30,20 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Preset definitions ───
 const PRESETS = [
-  { key: 'push', label: 'Push', icon: 'fitness-center', muscles: ['chest', 'frontDelts', 'sideDelts', 'triceps'] },
+  { key: 'push', label: 'Push', icon: 'fitness-center', muscles: ['upperChest', 'midChest', 'lowerChest', 'frontDelts', 'sideDelts', 'triceps'] },
   { key: 'pull', label: 'Pull', icon: 'fitness-center', muscles: ['lats', 'upperBack', 'rearDelts', 'biceps', 'forearms'] },
   { key: 'legs', label: 'Legs', icon: 'directions-run', muscles: ['quads', 'hamstrings', 'glutes', 'calves'] },
-  { key: 'upper', label: 'Upper', icon: 'accessibility-new', muscles: ['chest', 'lats', 'upperBack', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps'] },
+  { key: 'upper', label: 'Upper', icon: 'accessibility-new', muscles: ['upperChest', 'midChest', 'lowerChest', 'lats', 'upperBack', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps'] },
   { key: 'lower', label: 'Lower', icon: 'directions-walk', muscles: ['quads', 'hamstrings', 'glutes', 'calves', 'lowerBack'] },
-  { key: 'fullBody', label: 'Full Body', icon: 'person', muscles: ['chest', 'lats', 'upperBack', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps', 'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques', 'lowerBack'] },
+  { key: 'fullBody', label: 'Full Body', icon: 'person', muscles: ['upperChest', 'midChest', 'lowerChest', 'lats', 'upperBack', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps', 'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques', 'lowerBack'] },
   { key: 'core', label: 'Core', icon: 'self-improvement', muscles: ['abs', 'obliques', 'lowerBack'] },
 ];
 
 // ─── Individual muscle chips ───
 const MUSCLE_CHIPS = [
-  { key: 'chest', label: 'Chest' },
+  { key: 'upperChest', label: 'Up. Chest' },
+  { key: 'midChest', label: 'Mid Chest' },
+  { key: 'lowerChest', label: 'Lo. Chest' },
   { key: 'lats', label: 'Back' },
   { key: 'frontDelts', label: 'Shoulders' },
   { key: 'biceps', label: 'Biceps' },
@@ -60,11 +62,75 @@ const MUSCLE_CHIPS = [
   { key: 'rearDelts', label: 'Rear Delts' },
 ];
 
-const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAY_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' };
 const DAY_SHORT = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
 const DEFAULT_DAY = { active: false, muscles: [], presets: [], exerciseCount: 4 };
+
+// ─── Equipment items ───
+const EQUIPMENT_LIST = [
+  { key: 'body_weight', label: 'Bodyweight', icon: 'accessibility-new' },
+  { key: 'barbell', label: 'Barbell', icon: 'fitness-center' },
+  { key: 'dumbbell', label: 'Dumbbells', icon: 'fitness-center' },
+  { key: 'cable', label: 'Cable Machine', icon: 'settings-ethernet' },
+  { key: 'machine', label: 'Machines', icon: 'precision-manufacturing' },
+  { key: 'smith_machine', label: 'Smith Machine', icon: 'vertical-align-center' },
+  { key: 'bench', label: 'Bench', icon: 'weekend' },
+  { key: 'pull_up_bar', label: 'Pull-up Bar', icon: 'hardware' },
+  { key: 'dip_station', label: 'Dip Station', icon: 'unfold-more' },
+  { key: 'kettlebell', label: 'Kettlebells', icon: 'fitness-center' },
+  { key: 'ez_barbell', label: 'EZ Curl Bar', icon: 'fitness-center' },
+  { key: 'resistance_band', label: 'Resistance Bands', icon: 'straighten' },
+  { key: 'medicine_ball', label: 'Medicine Ball', icon: 'sports-baseball' },
+  { key: 'stability_ball', label: 'Stability Ball', icon: 'circle' },
+  { key: 'foam_roller', label: 'Foam Roller', icon: 'view-column' },
+  { key: 'trx', label: 'TRX / Suspension', icon: 'link' },
+  { key: 'trap_bar', label: 'Trap Bar / Hex Bar', icon: 'fitness-center' },
+  { key: 'landmine', label: 'Landmine', icon: 'rotate-left' },
+  { key: 'box', label: 'Box / Step', icon: 'check-box-outline-blank' },
+  { key: 'jump_rope', label: 'Jump Rope', icon: 'timeline' },
+  { key: 'ab_wheel', label: 'Ab Wheel', icon: 'radio-button-unchecked' },
+  { key: 'sled', label: 'Sled', icon: 'arrow-forward' },
+  { key: 'rope', label: 'Battle Ropes', icon: 'waves' },
+];
+
+// Maps exercise .equipment field values to our EQUIPMENT_LIST keys
+const EQUIPMENT_FIELD_MAP = {
+  'body weight': 'body_weight',
+  'bodyweight': 'body_weight',
+  'barbell': 'barbell',
+  'dumbbell': 'dumbbell',
+  'cable': 'cable',
+  'machine': 'machine',
+  'smith machine': 'smith_machine',
+  'bench': 'bench',
+  'kettlebell': 'kettlebell',
+  'ez barbell': 'ez_barbell',
+  'ez curl bar': 'ez_barbell',
+  'resistance band': 'resistance_band',
+  'band': 'resistance_band',
+  'medicine ball': 'medicine_ball',
+  'stability ball': 'stability_ball',
+  'bosu ball': 'stability_ball',
+  'foam roller': 'foam_roller',
+  'roller': 'foam_roller',
+  'suspension': 'trx',
+  'trx': 'trx',
+  'trap bar': 'trap_bar',
+  'hex bar': 'trap_bar',
+  'landmine': 'landmine',
+  'box': 'box',
+  'step': 'box',
+  'jump rope': 'jump_rope',
+  'rope': 'rope',
+  'ab wheel': 'ab_wheel',
+  'sled': 'sled',
+  'pull-up bar': 'pull_up_bar',
+  'pull up bar': 'pull_up_bar',
+  'assisted': 'machine',
+  'leverage machine': 'machine',
+};
 
 const WorkoutSplitModal = ({ visible, onClose, onSave }) => {
   const { theme, isDark } = useTheme();
@@ -75,6 +141,8 @@ const WorkoutSplitModal = ({ visible, onClose, onSave }) => {
   const [plan, setPlan] = useState({});
   const [expandedDay, setExpandedDay] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedEquipment, setSelectedEquipment] = useState([]);
+  const [showEquipment, setShowEquipment] = useState(false);
 
   // Load existing plan on open
   useEffect(() => {
@@ -97,10 +165,13 @@ const WorkoutSplitModal = ({ visible, onClose, onSave }) => {
     if (existing) {
       setPlan(existing);
     } else {
-      // Default: empty plan, all rest days
       const empty = {};
       DAY_KEYS.forEach(day => { empty[day] = { ...DEFAULT_DAY }; });
       setPlan(empty);
+    }
+    const savedEquipment = await WorkoutService.getUserEquipment();
+    if (savedEquipment) {
+      setSelectedEquipment(savedEquipment);
     }
     setLoading(false);
   };
@@ -200,8 +271,25 @@ const WorkoutSplitModal = ({ visible, onClose, onSave }) => {
   const handleSave = async () => {
     hapticFeedback.success();
     await WorkoutService.saveSplitPlan(plan);
+    await WorkoutService.saveUserEquipment(selectedEquipment);
     if (onSave) onSave(plan);
     onClose();
+  };
+
+  const toggleEquipment = (key) => {
+    hapticFeedback.light();
+    setSelectedEquipment(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectAllEquipment = () => {
+    hapticFeedback.medium();
+    if (selectedEquipment.length === EQUIPMENT_LIST.length) {
+      setSelectedEquipment([]);
+    } else {
+      setSelectedEquipment(EQUIPMENT_LIST.map(e => e.key));
+    }
   };
 
   const activeDayCount = DAY_KEYS.filter(d => getDayConfig(d).active).length;
@@ -440,6 +528,89 @@ const WorkoutSplitModal = ({ visible, onClose, onSave }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Equipment Section */}
+          <TouchableOpacity
+            style={[styles.equipmentHeader, { backgroundColor: cardBg, borderColor: cardBorder }]}
+            onPress={() => { hapticFeedback.light(); setShowEquipment(!showEquipment); }}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+              <MaterialIcons name="fitness-center" size={18} color={theme.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.dayName, { color: theme.text }]}>Available Equipment</Text>
+                <Text style={[styles.daySummary, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }]}>
+                  {selectedEquipment.length === 0
+                    ? 'Tap to select your equipment'
+                    : `${selectedEquipment.length} item${selectedEquipment.length !== 1 ? 's' : ''} selected`}
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name={showEquipment ? 'expand-less' : 'expand-more'}
+              size={22}
+              color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'}
+            />
+          </TouchableOpacity>
+
+          {showEquipment && (
+            <View style={[styles.equipmentBody, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <TouchableOpacity onPress={selectAllEquipment} activeOpacity={0.7} style={{ marginBottom: 10 }}>
+                <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>
+                  {selectedEquipment.length === EQUIPMENT_LIST.length ? 'Deselect All' : 'Select All (Full Gym)'}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.muscleGrid}>
+                {EQUIPMENT_LIST.map(item => {
+                  const isSelected = selectedEquipment.includes(item.key);
+                  return (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={[
+                        styles.muscleChip,
+                        {
+                          backgroundColor: isSelected ? theme.primary + '15' : chipBg,
+                          borderColor: isSelected ? theme.primary + '40' : chipBorder,
+                        },
+                      ]}
+                      onPress={() => toggleEquipment(item.key)}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons
+                        name={item.icon}
+                        size={14}
+                        color={isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)')}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={[styles.muscleChipText, { color: isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)') }]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Equipment preview chips (when collapsed with selections) */}
+          {!showEquipment && selectedEquipment.length > 0 && (
+            <View style={[styles.equipmentPreview, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              {selectedEquipment.slice(0, 8).map(key => {
+                const item = EQUIPMENT_LIST.find(e => e.key === key);
+                if (!item) return null;
+                return (
+                  <View key={key} style={[styles.previewChip, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '25' }]}>
+                    <Text style={[styles.previewChipText, { color: theme.primary }]}>{item.label}</Text>
+                  </View>
+                );
+              })}
+              {selectedEquipment.length > 8 && (
+                <View style={[styles.previewChip, { backgroundColor: chipBg, borderColor: chipBorder }]}>
+                  <Text style={[styles.previewChipText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>+{selectedEquipment.length - 8}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {DAY_KEYS.map(day => renderDayCard(day))}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -637,6 +808,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  equipmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 2,
+  },
+  equipmentBody: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  equipmentPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 10,
+    gap: 6,
+  },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -659,4 +858,5 @@ const styles = StyleSheet.create({
   },
 });
 
+export { EQUIPMENT_LIST, EQUIPMENT_FIELD_MAP };
 export default WorkoutSplitModal;

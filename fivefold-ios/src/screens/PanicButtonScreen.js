@@ -10,7 +10,7 @@ import {
   StatusBar,
   Easing,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -68,6 +68,7 @@ const CONSEQUENCES = [
 const PanicButtonScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const [habits, setHabits] = useState([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [permission, requestPermission] = useCameraPermissions();
@@ -163,7 +164,7 @@ const PanicButtonScreen = () => {
               />
             </Animated.View>
             <View style={styles.cameraInner}>
-              {permission?.granted ? (
+              {permission?.granted && isFocused ? (
                 <CameraView
                   style={styles.camera}
                   facing="front"

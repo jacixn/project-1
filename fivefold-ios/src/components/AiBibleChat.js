@@ -376,6 +376,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         .replace(/\n\n+/g, '. ')
         .replace(/\n/g, ' ')
         .replace(/Friend:\s*/g, '')
+        .replace(/Coach:\s*/g, '')
         .trim();
       
       // Check if user has Google TTS selected
@@ -833,8 +834,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,
         quality: 0.8,
         base64: true,
       });
@@ -859,8 +859,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,
         quality: 0.8,
         base64: true,
       });

@@ -14,6 +14,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -310,71 +311,108 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const content = (
     <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Transparent Blurred Header - Exact copy from Bible Timeline */}
+        {/* Premium Transparent Header — matches Saved Verses */}
         <BlurView 
-          intensity={20} 
+          intensity={50} 
           tint={isDark ? 'dark' : 'light'} 
           style={{ 
             position: 'absolute', 
             top: 0, 
             left: 0, 
             right: 0, 
-            zIndex: 10,
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: 'hidden',
+            zIndex: 1000,
           }}
         >
-          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-          <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                onClose();
-              }}
-              style={{ 
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1,
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-              <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
-                {selectionMode ? 'New' : 'Exercises'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                setShowFilterMenu(!showFilterMenu);
-              }}
-              style={styles.threeDotsButton}
-            >
-              <View style={styles.threeDots}>
-                <View style={[styles.dot, { backgroundColor: theme.textSecondary }]} />
-                <View style={[styles.dot, { backgroundColor: theme.textSecondary }]} />
-                <View style={[styles.dot, { backgroundColor: theme.textSecondary }]} />
-              </View>
-            </TouchableOpacity>
-          </View>
+          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
           
-          {/* Search Bar - Fixed in Header */}
-          <View style={[styles.searchContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginBottom: 12 }]}>
-            <MaterialIcons name="search" size={20} color={theme.textSecondary} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search"
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+          <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+            {/* Title row */}
+            <View style={{ 
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  onClose();
+                }}
+                style={{ 
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              </TouchableOpacity>
+              
+              <View style={{ 
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+              }}>
+                <Text style={{ 
+                  color: theme.text, 
+                  fontSize: 17, 
+                  fontWeight: '700',
+                  letterSpacing: 0.3,
+                }}>
+                  {selectionMode ? 'New' : 'Exercises'}
+                </Text>
+              </View>
+            
+            <View style={{ width: 40 }} />
+          </View>
+            
+            {/* Search Bar */}
+            <View style={{
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              marginTop: 16,
+            }}>
+              <MaterialIcons name="search" size={20} color={theme.textTertiary || theme.textSecondary} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search"
+                placeholderTextColor={theme.textTertiary || theme.textSecondary}
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: theme.text,
+                  marginLeft: 10,
+                  paddingVertical: 2,
+                }}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialIcons name="close" size={14} color={theme.text} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </BlurView>
 
@@ -715,6 +753,34 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                     </Text>
                   </View>
                 </View>
+              </View>
+
+              {/* Watch Tutorial Button */}
+              <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    const query = encodeURIComponent(`${selectedExercise.name} exercise form tutorial`);
+                    Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    backgroundColor: '#FF000018',
+                    borderColor: '#FF000025',
+                    borderWidth: 1,
+                    borderRadius: 14,
+                    paddingVertical: 14,
+                  }}
+                >
+                  <MaterialIcons name="play-circle-fill" size={22} color="#FF0000" />
+                  <Text style={{ color: '#FF0000', fontSize: 15, fontWeight: '600' }}>
+                    Watch Tutorial
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {/* Instructions Section */}

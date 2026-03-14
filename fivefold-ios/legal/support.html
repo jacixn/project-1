@@ -9,129 +9,310 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafafa; padding: 20px; max-width: 720px; margin: 0 auto; }
     h1 { font-size: 28px; margin-bottom: 8px; }
     h2 { font-size: 20px; margin-top: 32px; margin-bottom: 12px; color: #6366F1; }
-    h3 { font-size: 16px; margin-top: 20px; margin-bottom: 8px; }
+    h3 { font-size: 17px; margin-top: 20px; margin-bottom: 8px; color: #1a1a2e; }
     p, li { font-size: 15px; margin-bottom: 12px; color: #444; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
-    .contact-box { background: #EDE9FE; border-radius: 12px; padding: 20px; margin-top: 24px; }
-    .contact-box p { color: #1a1a2e; }
+    ul { padding-left: 20px; }
+    .date { color: #888; font-size: 13px; margin-bottom: 24px; }
     a { color: #6366F1; }
+    details { margin-bottom: 16px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; background: white; }
+    summary { cursor: pointer; font-weight: 600; font-size: 15px; color: #1a1a2e; }
+    summary:hover { color: #6366F1; }
+    details p { margin-top: 8px; }
   </style>
 </head>
 <body>
-  <h1>Support</h1>
-  <p class="subtitle">We're here to help you get the most out of Biblely.</p>
+  <h1>Support &amp; FAQ</h1>
+  <p class="date">Last updated: March 14, 2026</p>
 
-  <h2>Account</h2>
+  <p>Welcome to Biblely Support. Below you'll find answers to the most frequently asked questions. If your question isn't covered here, please email us at <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a>.</p>
 
-  <h3>How do I create an account?</h3>
-  <p>Tap "Create Account" on the welcome screen. Enter your email, create a password, choose a display name and username, and you're all set. It takes less than a minute.</p>
+  <!-- ─── GETTING STARTED ────────────────────────────────────── -->
+  <h2>Getting Started</h2>
 
-  <h3>Do I need an account to use the app?</h3>
-  <p>Yes, a free account is required to use Biblely. Creating one takes just a few seconds with your email. Your account enables cloud sync so your data is safe and available across devices.</p>
+  <details>
+    <summary>How do I create an account?</summary>
+    <p>Open Biblely and tap "Sign Up". Enter your email address, name, username, age, and gender. You'll receive a verification code via email — enter it to complete registration. Your account lets you sync data across devices and access social features.</p>
+  </details>
 
-  <h3>I forgot my password. How do I reset it?</h3>
-  <p>On the sign-in screen, tap "Forgot Password?" and enter your email address. You'll receive a password reset link within a few minutes. Check your spam folder if you don't see it.</p>
+  <details>
+    <summary>Is Biblely free?</summary>
+    <p>Yes. Biblely is completely free to use with no subscriptions, no in-app purchases, and no ads. All features are available to every user. Some premium themes and loading animations can be unlocked through the referral system.</p>
+  </details>
 
-  <h3>How do I delete my account?</h3>
-  <p>Go to your Profile, tap the Settings gear icon, scroll down to "Danger Zone," and tap "Delete Account." You'll need to enter your password to confirm. This permanently removes all your data from our servers.</p>
+  <details>
+    <summary>How does data sync work?</summary>
+    <p>Your data is stored locally on your device and automatically synced to the cloud via Firebase. This means your data is available even when you're offline. When you reconnect, changes are synced automatically. On iOS, iCloud sync is also available if you're signed in to iCloud.</p>
+  </details>
 
-  <h3>How do I change my profile picture?</h3>
-  <p>Go to your Profile and tap on your profile photo or the camera icon. You can take a new photo or choose one from your photo library.</p>
+  <details>
+    <summary>How do I delete my account?</summary>
+    <p>Go to Settings (via your Profile tab) and tap "Delete Account". This permanently removes all your data from our servers and your device. This action cannot be undone.</p>
+  </details>
 
-  <h2>Privacy & Data</h2>
-
-  <h3>Is my data private?</h3>
-  <p>Yes. We do not sell or share your data with third parties for marketing. We do not use analytics or tracking SDKs. Your data is only used to provide app features. See our <a href="https://biblely.uk/privacy-policy">Privacy Policy</a> for full details.</p>
-
-  <h3>Does the app work offline?</h3>
-  <p>Yes. Your data is stored locally on your device, so you can read the Bible, view your prayers, check your tasks, and review workouts even without an internet connection. Data syncs when you're back online.</p>
-
-  <h3>My data isn't syncing across devices.</h3>
-  <p>Make sure you're signed in with the same account on both devices and that you have an internet connection. Try closing and reopening the app. Data syncs automatically when the app is in the foreground.</p>
-
+  <!-- ─── BIBLE ──────────────────────────────────────────────── -->
   <h2>Bible</h2>
 
-  <h3>How do I change my Bible translation?</h3>
-  <p>In the Bible reader, tap the translation name at the top to open the translation picker. Choose from over 40 available translations including KJV, NIV, ESV, NLT, and many more.</p>
+  <details>
+    <summary>How many Bible translations are available?</summary>
+    <p>Biblely offers 44+ Bible translations spanning multiple languages. You can switch translations at any time from the Bible reader settings. Translation data is downloaded and cached locally for offline reading.</p>
+  </details>
 
-  <h3>Can I listen to the Bible?</h3>
-  <p>Yes. Open any chapter in the Bible reader and tap the audio/play button. The text will be read aloud using natural text-to-speech. You can follow along as it reads.</p>
+  <details>
+    <summary>Can I listen to the Bible?</summary>
+    <p>Yes. The Bible reader includes a text-to-speech feature that reads passages aloud. You can choose from a selection of voice styles. Audio is generated using Google Cloud Text-to-Speech and cached locally so you can listen offline after the first playback.</p>
+  </details>
 
-  <h3>How do I save or highlight verses?</h3>
-  <p>While reading, tap and hold on a verse to see options. You can highlight it with different colours, save it to your collection, or share it with friends.</p>
+  <details>
+    <summary>How do I save and highlight verses?</summary>
+    <p>While reading, tap on a verse to select it. You'll see options to save, highlight (with multiple colour choices), bookmark, or add a personal note. All saved verses are accessible from the "Saved Verses" screen.</p>
+  </details>
 
+  <details>
+    <summary>What is Bible Friend?</summary>
+    <p>Bible Friend is a chat companion that helps you explore and understand scripture. You can ask questions about Bible passages, request explanations, or have a conversation about what you're reading. It supports both text and voice input (tap the microphone to speak your question).</p>
+  </details>
+
+  <details>
+    <summary>What is the Bible Quiz?</summary>
+    <p>The Bible Quiz lets you test your knowledge across six categories: New Testament, Old Testament, Life of Jesus, Miracles, Parables, and Women of the Bible. Questions range from beginner to advanced difficulty and earn you points toward achievements. Each question includes a detailed explanation with Bible references.</p>
+  </details>
+
+  <details>
+    <summary>What are Bible Timeline, Maps, and Characters?</summary>
+    <p>These are interactive study tools. The <strong>Timeline</strong> lets you explore key Biblical events in chronological order. <strong>Maps</strong> show the geographical locations of Biblical events. <strong>Characters</strong> provides detailed profiles of important people in the Bible. All are designed to deepen your understanding of scripture.</p>
+  </details>
+
+  <!-- ─── PRAYER ─────────────────────────────────────────────── -->
   <h2>Prayer</h2>
 
-  <h3>What is the Prayer Wall?</h3>
-  <p>The Prayer Wall is a community space where you can share prayer requests and pray for others. Your prayers can be anonymous or public. It's a way to support and encourage fellow believers.</p>
+  <details>
+    <summary>How do I track my prayers?</summary>
+    <p>Use the Prayer section to create, organise, and track your prayers. You can mark prayers as answered, set prayer reminders, and maintain a prayer streak. Your prayer history is stored locally and synced to the cloud.</p>
+  </details>
 
-  <h3>How do prayer reminders work?</h3>
-  <p>Go to your Profile settings and enable prayer reminders. You can choose the time of day you'd like to be reminded. The app will send you a gentle notification to take a moment for prayer.</p>
+  <details>
+    <summary>What are Prayer Boards?</summary>
+    <p>Prayer Boards are visual, customisable boards where you can organise your prayers creatively. You can create multiple boards, each with its own title and background colour or custom background image. Within each board, you can add folders and envelopes to group prayers, place stickers, add photos, and arrange items by dragging them around the board.</p>
+  </details>
 
-  <h2>Fitness & Nutrition</h2>
+  <details>
+    <summary>How do I customise a Prayer Board?</summary>
+    <p>Open a prayer board and use the editing tools to add folders, envelopes, stickers, and photos. You can change the board's background colour or set a custom background image. Tap the title to rename it. You can also save your board as an image to share with others.</p>
+  </details>
 
-  <h3>How does food scanning work?</h3>
-  <p>Tap the "+" button in the Fuel section, then choose Camera or Photo Library. Take or select a photo of your meal and the app will estimate its calories, protein, carbs, and fat. You can edit the values before saving.</p>
+  <details>
+    <summary>Can I delete a Prayer Board?</summary>
+    <p>Yes. Open the board you want to delete and use the delete option. This permanently removes the board and all its contents. Deleted boards cannot be recovered.</p>
+  </details>
 
-  <h3>How are my calorie targets calculated?</h3>
-  <p>Your daily targets are personalised based on your profile (age, height, weight, activity level, and goal). The app uses established nutrition science formulas to calculate your ideal intake.</p>
+  <details>
+    <summary>What is the Prayer Wall?</summary>
+    <p>The Prayer Wall is a community feature where users can share prayer requests and pray for one another. You can post your own requests (anonymously if desired) and tap to pray for others' requests.</p>
+  </details>
 
-  <h3>Are the body composition estimates accurate?</h3>
-  <p>Body composition values are estimated using established research formulas based on your profile data. They're useful for tracking trends over time, but may differ from clinical measurements. For medical accuracy, please consult a healthcare professional.</p>
+  <!-- ─── FITNESS & WORKOUTS ─────────────────────────────────── -->
+  <h2>Fitness &amp; Workouts</h2>
 
-  <h3>How do I start a workout?</h3>
-  <p>Go to the Gym tab and tap "Start Workout." You can choose from dozens of templates or create your own. During the workout, log your sets, reps, and weights for each exercise.</p>
+  <details>
+    <summary>How do I log a workout?</summary>
+    <p>Go to the Gym tab and start a new workout. You can choose from the exercise library (1300+ exercises), use a pre-built template, or generate a smart workout. During the workout, log your sets, reps, and weights for each exercise. The timer tracks your workout duration automatically.</p>
+  </details>
 
-  <h2>Tasks</h2>
+  <details>
+    <summary>What are workout templates?</summary>
+    <p>Templates are pre-built workout routines you can save and reuse. You can create your own templates from past workouts, or use the smart workout generator to create one based on your muscle split and available equipment.</p>
+  </details>
 
-  <h3>How does task scoring work?</h3>
-  <p>When you add a task, the app analyses its complexity and assigns it a point value. Quick tasks earn fewer points, while complex or time-intensive tasks earn more. Complete tasks to build your streak and earn points.</p>
+  <details>
+    <summary>How do I set up my workout split?</summary>
+    <p>Go to the Gym tab and open your workout split settings. You can assign muscle groups to each day of the week, set the number of exercises per day, and specify how many exercises per muscle group. This helps the smart workout generator create workouts tailored to your plan.</p>
+  </details>
 
-  <h3>Can I schedule tasks for future dates?</h3>
-  <p>Yes. Tap the calendar icon when creating or viewing a task to pick a specific date. Tasks are organised by date in the "View All" screen, with the closest deadlines shown first.</p>
+  <details>
+    <summary>How do I select my available equipment?</summary>
+    <p>In the workout split settings, you'll find an "Available Equipment" section. Tap to expand it and select the equipment you have access to (e.g., dumbbells, barbell, Smith machine, cables, resistance bands, etc.). When the smart workout generator creates a workout for you, it will only suggest exercises that use your selected equipment.</p>
+  </details>
 
-  <h2>Themes & Customisation</h2>
+  <details>
+    <summary>What is the Physique / Body Map feature?</summary>
+    <p>The Body Map is a visual representation of your muscle development. Based on your workout history, each muscle group is scored and colour-coded to show your relative development. The feature also provides balance suggestions to help you identify undertrained areas and create a more balanced physique.</p>
+  </details>
 
-  <h3>How do I change the app theme?</h3>
-  <p>Go to your Profile, then tap the Settings gear icon. Under "Appearance," you can choose from multiple beautiful themes including light mode, dark mode, and special themed styles.</p>
+  <details>
+    <summary>How do exercise tutorial videos work?</summary>
+    <p>When browsing the exercise library or during an active workout, you'll see a play button or "Watch Tutorial" link next to each exercise. Tapping it opens a YouTube search for that exercise's form tutorial, so you can watch how to perform the exercise correctly. These videos are hosted by third-party creators on YouTube — Biblely does not produce them.</p>
+  </details>
 
-  <h2>General</h2>
+  <details>
+    <summary>What is the Coach?</summary>
+    <p>The Coach is a fitness chat companion that provides personalised guidance. You can ask about exercise form, nutrition, workout programming, or send a gym photo for analysis and feedback. The Coach uses your profile data (age, gender, goals, workout history) to provide relevant advice. It supports both text and voice input.</p>
+  </details>
 
-  <h3>Is Biblely really free?</h3>
-  <p>Yes, completely free. No subscriptions, no in-app purchases, no hidden fees. Every feature is available to everyone.</p>
+  <!-- ─── NUTRITION ──────────────────────────────────────────── -->
+  <h2>Nutrition</h2>
 
-  <h3>How do I report a bug or suggest a feature?</h3>
-  <p>Email us at the address below. We read every message and appreciate your feedback. Include as much detail as possible so we can help quickly.</p>
+  <details>
+    <summary>How does food tracking work?</summary>
+    <p>You can log food in three ways: take a photo of your meal for automatic nutritional analysis, type a food description, or choose from your favourites. The app estimates calories, protein, carbohydrates, and fat. You can view your daily totals and track progress toward your personalised targets.</p>
+  </details>
 
-  <h2>Smart Features</h2>
+  <details>
+    <summary>How are my daily nutrition targets calculated?</summary>
+    <p>Your targets are calculated based on your height, weight, age, gender, and activity level using the Mifflin-St Jeor equation for Total Daily Energy Expenditure (TDEE). You can adjust your target based on your goal (lose weight, maintain, or gain weight).</p>
+  </details>
 
-  <h3>How do personalised features work?</h3>
-  <p>Some features use automated analysis to provide personalised insights, such as verse explanations, food photo estimates, workout suggestions, task scoring, and coaching feedback. These are generated using external services and are approximations — they are not a substitute for professional advice.</p>
+  <details>
+    <summary>How accurate are the nutritional estimates from food photos?</summary>
+    <p>Nutritional estimates from food photos are approximations generated by automated image analysis. They may vary from actual nutritional values. For precise dietary tracking or medical dietary requirements, we recommend using verified nutritional databases or consulting a registered dietitian. The estimates are intended as a convenient guide, not a clinical tool.</p>
+  </details>
 
-  <h3>Are food photo calorie estimates accurate?</h3>
-  <p>Calorie and macro estimates from food photos are approximations based on image analysis. They may vary from actual values. For precise dietary needs, consult a registered dietitian or nutritionist.</p>
+  <!-- ─── TASKS & PRODUCTIVITY ───────────────────────────────── -->
+  <h2>Tasks &amp; Productivity</h2>
 
-  <h3>How do I export my data?</h3>
-  <p>Your data is stored locally on your device and backed up to the cloud. You can access all your data within the app. For a full data export request, please contact us at the email below.</p>
+  <details>
+    <summary>How do I manage my tasks?</summary>
+    <p>Use the Todos tab to create tasks with descriptions, due dates, and priorities. Tasks can be scheduled for specific days and viewed in a calendar layout. Completing tasks earns you points and contributes to your streak.</p>
+  </details>
 
+  <details>
+    <summary>How does task scoring work?</summary>
+    <p>When you create a task, the app automatically analyses the description and assigns a difficulty/importance score. This helps you prioritise your tasks and earn appropriate points when completing them. Higher-scored tasks earn more points.</p>
+  </details>
+
+  <!-- ─── JOURNAL ────────────────────────────────────────────── -->
+  <h2>Journal</h2>
+
+  <details>
+    <summary>How do I use the Journal?</summary>
+    <p>The Journal lets you write personal reflections and entries. You can attach Bible verses to your entries for context. Entries are organised by date and viewable in a calendar layout. All journal data is stored locally and synced to the cloud.</p>
+  </details>
+
+  <!-- ─── VISION BOARD ───────────────────────────────────────── -->
+  <h2>Vision Board</h2>
+
+  <details>
+    <summary>What is the Vision Board?</summary>
+    <p>The Vision Board is a space to set and visualise your personal goals and aspirations. You can add items that represent your goals, helping you stay focused and motivated.</p>
+  </details>
+
+  <!-- ─── SOCIAL FEATURES ────────────────────────────────────── -->
+  <h2>Social Features</h2>
+
+  <details>
+    <summary>How do I add friends?</summary>
+    <p>Go to the Social section and search for other users by username. Send a friend request, and once accepted, you'll be connected. Friends can see each other's activity on the social feed and send direct messages.</p>
+  </details>
+
+  <details>
+    <summary>How do leaderboards work?</summary>
+    <p>Leaderboards rank users based on points earned from completing tasks, workouts, Bible reading, prayer streaks, quiz scores, and other activities. You can see how you compare to friends and the broader community. Leaderboard participation is automatic for all users.</p>
+  </details>
+
+  <details>
+    <summary>Can I report inappropriate content?</summary>
+    <p>Yes. If you see inappropriate content on the prayer wall, social feed, or in messages, you can report it using the in-app reporting tools. Reported content is reviewed and appropriate action is taken.</p>
+  </details>
+
+  <!-- ─── CUSTOMISATION & THEMES ─────────────────────────────── -->
+  <h2>Customisation &amp; Themes</h2>
+
+  <details>
+    <summary>How many themes are available?</summary>
+    <p>Biblely offers 25+ themes ranging from light and dark modes to unique visual styles with custom wallpapers and colour palettes. Some themes are available to all users, while others can be unlocked through the referral system.</p>
+  </details>
+
+  <details>
+    <summary>How do I change my theme?</summary>
+    <p>Go to your Profile tab and tap the customisation option. Browse available themes, preview them, and tap to apply. Your theme preference syncs across devices.</p>
+  </details>
+
+  <details>
+    <summary>What are loading animations?</summary>
+    <p>You can choose from different loading animations (Default, Running Cat, or Run Hamster) to personalise how the app looks while content is loading. Select your preferred animation in the Customisation settings. Some animations are unlocked through the referral system.</p>
+  </details>
+
+  <!-- ─── REFERRAL SYSTEM & ACHIEVEMENTS ─────────────────────── -->
+  <h2>Referrals &amp; Achievements</h2>
+
+  <details>
+    <summary>How does the referral system work?</summary>
+    <p>Every user has a unique referral code. Share your code with friends, and when they sign up using it, both of you earn rewards. Referrals unlock premium themes, loading animations, and other exclusive content. You can find your referral code in your Profile settings.</p>
+  </details>
+
+  <details>
+    <summary>What are achievements?</summary>
+    <p>Achievements are badges you earn by reaching milestones across all app features — such as completing workouts, maintaining prayer streaks, finishing Bible quizzes, logging food, completing tasks, and more. Each achievement awards points that contribute to your level and leaderboard ranking.</p>
+  </details>
+
+  <!-- ─── NOTIFICATIONS ──────────────────────────────────────── -->
+  <h2>Notifications</h2>
+
+  <details>
+    <summary>What notifications does the app send?</summary>
+    <p>Biblely can send notifications for prayer reminders, workout reminders, task reminders, and streak alerts. All notifications are opt-in — you control which types you receive through the app's settings. You can turn off all notifications at any time.</p>
+  </details>
+
+  <!-- ─── PRIVACY & DATA ─────────────────────────────────────── -->
+  <h2>Privacy &amp; Data</h2>
+
+  <details>
+    <summary>Where is my data stored?</summary>
+    <p>Your data is stored locally on your device and synced to Google Firebase servers in the United States. On iOS, data may also sync via Apple iCloud if enabled. We do not use any analytics or advertising SDKs.</p>
+  </details>
+
+  <details>
+    <summary>Does the app use my data for advertising?</summary>
+    <p>No. Biblely does not contain ads and does not share your data with advertisers. Your data is only used to provide app features and is only shared with the third-party services described in our <a href="https://biblely.uk/privacy-policy">Privacy Policy</a>.</p>
+  </details>
+
+  <details>
+    <summary>What data is sent to external services?</summary>
+    <p>Depending on which features you use: conversation messages may be sent to DeepSeek for personalised responses; food photos and gym photos may be sent to Google Gemini for analysis; Bible text and chat messages may be sent to Google Cloud for text-to-speech. Exercise tutorial links open YouTube in your browser. See our <a href="https://biblely.uk/privacy-policy">Privacy Policy</a> for full details.</p>
+  </details>
+
+  <details>
+    <summary>Can I use the app offline?</summary>
+    <p>Yes. Core features work offline since your data is stored locally. Bible translations are cached for offline reading. Features that require an internet connection include cloud sync, social features, chat features, food photo scanning, and text-to-speech audio generation (on first playback).</p>
+  </details>
+
+  <!-- ─── TROUBLESHOOTING ────────────────────────────────────── -->
   <h2>Troubleshooting</h2>
 
-  <h3>Bible translations aren't loading</h3>
-  <p>Make sure you have an active internet connection. Bible data is cached locally for 30 days, so it should work offline after the first download. If issues persist, try closing and reopening the app.</p>
+  <details>
+    <summary>The app isn't loading or is stuck on a loading screen</summary>
+    <p>Try closing the app completely and reopening it. If the problem persists, check your internet connection. If you're on cellular data, try switching to Wi-Fi. As a last resort, delete and reinstall the app — your data will be restored from the cloud once you sign back in.</p>
+  </details>
 
-  <h3>Audio Bible isn't playing</h3>
-  <p>Check that your device isn't on silent mode and that your volume is turned up. Audio requires an internet connection for the first play. If audio still doesn't work, restart the app.</p>
+  <details>
+    <summary>My data isn't syncing</summary>
+    <p>Ensure you have an active internet connection. Data syncs automatically when the app is open and connected. If sync seems stuck, try closing and reopening the app. Check that you're signed into the correct account.</p>
+  </details>
 
-  <h3>Push notifications aren't arriving</h3>
-  <p>Go to your device Settings > Notifications > Biblely and make sure notifications are enabled. Also check that your notification preferences are configured within the app under Profile > Settings.</p>
+  <details>
+    <summary>I forgot my password or can't sign in</summary>
+    <p>On the sign-in screen, use the "Forgot Password" option to receive a password reset email. Check your spam/junk folder if you don't see it. If you continue to have issues, email us at <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a>.</p>
+  </details>
 
-  <h2>Legal</h2>
-  <p><a href="https://biblely.uk/privacy-policy">Privacy Policy</a> | <a href="https://biblely.uk/terms-of-service">Terms of Service</a></p>
+  <details>
+    <summary>Bible translations aren't downloading</summary>
+    <p>Bible translations require an internet connection to download initially. Ensure you're connected to the internet. If a download fails, try switching to a different network (Wi-Fi vs. cellular). The app will retry automatically when connection is restored.</p>
+  </details>
 
-  <div class="contact-box">
-    <h2 style="margin-top: 0;">Contact Us</h2>
-    <p><strong>Email:</strong> <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a></p>
-    <p>We typically respond within 48 hours.</p>
-  </div>
+  <details>
+    <summary>Food photo scanning gives inaccurate results</summary>
+    <p>Photo-based nutritional analysis is an approximation. For better accuracy: use good lighting, photograph the food clearly from above, include all items in the frame, and avoid clutter. You can manually adjust the results after scanning. For precise tracking, use the manual text entry option instead.</p>
+  </details>
+
+  <details>
+    <summary>Notifications aren't working</summary>
+    <p>Check that you've enabled notifications for Biblely in your iPhone's Settings > Notifications > Biblely. Within the app, ensure the specific notification types you want are turned on. If notifications still don't arrive, try signing out and signing back in to refresh your push notification token.</p>
+  </details>
+
+  <!-- ─── CONTACT ────────────────────────────────────────────── -->
+  <h2>Contact Us</h2>
+  <p>If your question wasn't answered above, or you need further assistance, please don't hesitate to reach out:</p>
+  <p><strong>Email:</strong> <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a></p>
+  <p><strong>Website:</strong> <a href="https://biblely.uk">biblely.uk</a></p>
+  <p>We aim to respond to all support enquiries within 48 hours.</p>
 </body>
 </html>

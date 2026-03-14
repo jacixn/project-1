@@ -14,6 +14,7 @@ import {
   PanResponder,
   Image,
   Alert,
+  Linking,
   AppState,
   InteractionManager,
   DeviceEventEmitter,
@@ -1119,8 +1120,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [16, 9],
+      allowsEditing: false,
       quality: 0.8,
     });
 
@@ -1576,9 +1576,36 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
             <View key={exercise.id} style={[styles.exerciseCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               {/* Exercise Header */}
               <View style={styles.exerciseHeader}>
-                <Text style={[styles.exerciseName, { color: theme.primary }]}>
-                  {exercise.name}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.exerciseName, { color: theme.primary }]}>
+                    {exercise.name}
+                  </Text>
+                  {exercise.bodyPart ? (
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontSize: 13, fontWeight: '500', marginTop: 2 }}>
+                      {exercise.bodyPart}{exercise.equipment ? ` · ${exercise.equipment}` : ''}
+                    </Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    hapticFeedback.light();
+                    const query = encodeURIComponent(`${exercise.name} exercise form tutorial`);
+                    Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
+                  }}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    backgroundColor: '#FF000012',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: 8,
+                  }}
+                >
+                  <MaterialIcons name="play-circle-fill" size={18} color="#FF0000" />
+                </TouchableOpacity>
               </View>
 
               {/* Sets Table Header */}

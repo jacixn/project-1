@@ -28,7 +28,7 @@ import { MUSCLE_GROUPS } from "../data/exerciseMuscleMap";
 import { LinearGradient } from "expo-linear-gradient";
 import nutritionService from "../services/nutritionService";
 import bodyCompositionService from "../services/bodyCompositionService";
-import WorkoutSplitModal from "./WorkoutSplitModal";
+import WorkoutSplitModal, { EQUIPMENT_FIELD_MAP } from "./WorkoutSplitModal";
 import { useNavigation } from "@react-navigation/native";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
@@ -212,7 +212,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   // ─── Muscle-to-body-part mapping for exercise filtering ───
   const muscleToBodyParts = (muscleKey) => {
     const map = {
-      chest: ['Chest'],
+      upperChest: ['Chest'], midChest: ['Chest'], lowerChest: ['Chest'],
       frontDelts: ['Shoulders'], sideDelts: ['Shoulders'], rearDelts: ['Shoulders'],
       traps: ['Back', 'Shoulders'],
       lats: ['Back'], upperBack: ['Back'], lowerBack: ['Back', 'Core'],
@@ -248,7 +248,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
       const overallScore = physiqueService.getOverallScore();
       const scores = physiqueService.getScores();
 
-      const pushMuscles = ['chest', 'frontDelts', 'triceps'];
+      const pushMuscles = ['upperChest', 'midChest', 'lowerChest', 'frontDelts', 'triceps'];
       const pullMuscles = ['lats', 'upperBack', 'biceps', 'rearDelts'];
       const legMuscles  = ['quads', 'hamstrings', 'glutes', 'calves'];
       const coreMuscles = ['abs', 'obliques', 'lowerBack'];
@@ -269,7 +269,19 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
 
       // 2. Load exercises — filter based on split plan muscles or fallback to weak muscles
       const allExercises = await ExercisesService.getExercises();
-      const strengthExercises = allExercises.filter(ex => ex.category === 'Strength');
+      let strengthExercises = allExercises.filter(ex => ex.category === 'Strength');
+
+      // Filter by user's available equipment
+      const userEquipment = await WorkoutService.getUserEquipment();
+      if (userEquipment && userEquipment.length > 0) {
+        const userEquipmentSet = new Set(userEquipment);
+        strengthExercises = strengthExercises.filter(ex => {
+          const eqField = (ex.equipment || '').toLowerCase().trim();
+          const mappedKey = EQUIPMENT_FIELD_MAP[eqField];
+          if (!mappedKey) return true; // unknown equipment type — keep it
+          return userEquipmentSet.has(mappedKey);
+        });
+      }
 
       // Determine target muscles from split plan (if configured for today)
       const splitMuscles = (currentTodaySplit && currentTodaySplit.active && currentTodaySplit.muscles?.length > 0)

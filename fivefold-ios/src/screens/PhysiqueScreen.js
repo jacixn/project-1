@@ -131,7 +131,7 @@ const PhysiqueScreen = () => {
     try {
       setAiCoachLoading(true);
 
-      const pushMuscles = ['chest', 'frontDelts', 'triceps'];
+      const pushMuscles = ['upperChest', 'midChest', 'lowerChest', 'frontDelts', 'triceps'];
       const pullMuscles = ['lats', 'upperBack', 'biceps', 'rearDelts'];
       const legMuscles  = ['quads', 'hamstrings', 'glutes', 'calves'];
       const coreMuscles = ['abs', 'obliques', 'lowerBack'];

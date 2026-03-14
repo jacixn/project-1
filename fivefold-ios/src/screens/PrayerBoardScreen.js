@@ -26,6 +26,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Accelerometer } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -271,7 +272,13 @@ const BUILT_IN_STICKERS = {
 };
 
 const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-const createDefaultBoard = () => ({ id: generateId(), name: 'My Prayers', background: 'cork', items: [] });
+const createDefaultBoard = () => ({ id: generateId(), name: 'My Prayers', background: 'cork', items: [], answeredPrayers: [] });
+
+const ENVELOPE_COLORS = [
+  '#EC4899', '#FF6B6B', '#F59E0B', '#10B981', '#3B82F6',
+  '#8B5CF6', '#06B6D4', '#EF4444', '#84CC16', '#E879F9',
+  '#F97316', '#14B8A6', '#A855F7', '#FB923C', '#6366F1',
+];
 
 const CARD_COLORS = [
   '#FFFFFF', '#F8F9FA', '#FFF9C4', '#FFECB3', '#FFE0B2',
@@ -365,14 +372,22 @@ const isColorDark = (hex) => {
   return (r * 0.299 + g * 0.587 + b * 0.114) < 128;
 };
 
+const darkenHex = (hex, amount = 0.35) => {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * (1 - amount));
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * (1 - amount));
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * (1 - amount));
+  return `rgb(${r},${g},${b})`;
+};
+
 // ─── Draggable Board Item ───
-const DraggableItem = ({ item, onUpdate, onDelete, isDeleteMode, parallaxX, parallaxY }) => {
+const DraggableItem = ({ item, onUpdate, onDelete, onTap, isDeleteMode, parallaxX, parallaxY }) => {
   const posX = useSharedValue(item.x);
   const posY = useSharedValue(item.y);
   const savedX = useSharedValue(item.x);
   const savedY = useSharedValue(item.y);
   const itemScale = useSharedValue(1);
   const zIdx = useSharedValue(item.zIndex || 1);
+  const didDrag = useSharedValue(false);
 
   const layerMultiplier = item.layer === 0 ? 12 : item.layer === 2 ? 3 : 7;
 
@@ -382,24 +397,31 @@ const DraggableItem = ({ item, onUpdate, onDelete, isDeleteMode, parallaxX, para
       savedY.value = posY.value;
       itemScale.value = withSpring(1.08, { damping: 15 });
       zIdx.value = 999;
+      didDrag.value = false;
     })
     .onUpdate((e) => {
       posX.value = savedX.value + e.translationX;
       posY.value = savedY.value + e.translationY;
+      if (Math.abs(e.translationX) > 5 || Math.abs(e.translationY) > 5) {
+        didDrag.value = true;
+      }
     })
     .onEnd(() => {
       itemScale.value = withSpring(1, { damping: 15 });
       zIdx.value = item.zIndex || 1;
       runOnJS(onUpdate)(item.id, { x: posX.value, y: posY.value });
-    });
+    })
+    .minDistance(10);
 
   const tapGesture = Gesture.Tap().onEnd(() => {
     if (isDeleteMode) {
       runOnJS(onDelete)(item.id);
+    } else if ((item.type === 'folder' || item.type === 'answered') && onTap) {
+      runOnJS(onTap)(item);
     }
   });
 
-  const composed = Gesture.Simultaneous(panGesture, tapGesture);
+  const composed = Gesture.Exclusive(tapGesture, panGesture);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [
@@ -569,6 +591,64 @@ const DraggableItem = ({ item, onUpdate, onDelete, isDeleteMode, parallaxX, para
       );
     }
 
+    if (item.type === 'folder') {
+      const accentColor = item.color || '#EC4899';
+      const prayerCount = item.prayers?.length || 0;
+      const isDarkAccent = isColorDark(accentColor);
+      const flapColor = darkenHex(accentColor, 0.3);
+      return (
+        <View style={styles.envelopeContainer}>
+          <View style={[styles.envelopeBody, { backgroundColor: accentColor }]}>
+            <View style={[styles.envelopeInner, { backgroundColor: hexToRgba(accentColor, 0.18) }]}>
+              <Text style={[styles.envelopeName, { color: isDarkAccent ? '#fff' : '#1a1a1a' }]} numberOfLines={2}>
+                {item.name}
+              </Text>
+              <Text style={[styles.envelopeCount, { color: isDarkAccent ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)' }]}>
+                {prayerCount} prayer{prayerCount !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <View style={styles.envelopeFlapWrap}>
+              <View style={[styles.envelopeFlapDown, { borderTopColor: flapColor }]} />
+            </View>
+            <View style={styles.envelopeSealCenter}>
+              <View style={[styles.envelopeSealCircle, { backgroundColor: isDarkAccent ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)', borderColor: isDarkAccent ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
+                <MaterialIcons name="mail" size={16} color={isDarkAccent ? '#fff' : '#444'} />
+              </View>
+            </View>
+          </View>
+          {isDeleteMode && (
+            <View style={styles.deleteOverlayFolder}>
+              <MaterialIcons name="close" size={24} color="#FF3B30" />
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    if (item.type === 'answered') {
+      const answeredCount = item.count || 0;
+      return (
+        <View style={styles.envelopeContainer}>
+          <View style={[styles.envelopeBody, { backgroundColor: '#F59E0B' }]}>
+            <View style={[styles.envelopeInner, { backgroundColor: 'rgba(245,158,11,0.18)' }]}>
+              <Text style={[styles.envelopeName, { color: '#fff' }]}>Answered</Text>
+              <Text style={[styles.envelopeCount, { color: 'rgba(255,255,255,0.65)' }]}>
+                {answeredCount} prayer{answeredCount !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <View style={styles.envelopeFlapWrap}>
+              <View style={[styles.envelopeFlapDown, { borderTopColor: 'rgba(210,135,8,0.9)' }]} />
+            </View>
+            <View style={styles.envelopeSealCenter}>
+              <View style={[styles.envelopeSealCircle, { backgroundColor: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <MaterialIcons name="check" size={16} color="#fff" />
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     return null;
   };
 
@@ -592,15 +672,6 @@ const PrayerBoardScreen = ({ navigation }) => {
   const [showBoardSwitcher, setShowBoardSwitcher] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [noteCardColor, setNoteCardColor] = useState('#FFFFFF');
-  const [noteFontSize, setNoteFontSize] = useState('medium');
-  const [noteFontStyle, setNoteFontStyle] = useState('system');
-  const [noteBorderStyle, setNoteBorderStyle] = useState('none');
-  const [noteBorderColor, setNoteBorderColor] = useState('#EC4899');
-  const [noteCardShape, setNoteCardShape] = useState('rounded');
-  const [noteCardOpacity, setNoteCardOpacity] = useState('solid');
-  const [noteTextAlign, setNoteTextAlign] = useState('center');
   const [stickerTab, setStickerTab] = useState('faith');
 
   // Photo picker state
@@ -614,9 +685,18 @@ const PrayerBoardScreen = ({ navigation }) => {
   const [wordStickerColor, setWordStickerColor] = useState('#EC4899');
   const [showWordColorPicker, setShowWordColorPicker] = useState(false);
 
+  // Folder/envelope state
+  const [openFolderId, setOpenFolderId] = useState(null);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState('#EC4899');
+  const [showAnsweredModal, setShowAnsweredModal] = useState(false);
+  const [folderPrayerText, setFolderPrayerText] = useState('');
+  const [showAddPrayerInFolder, setShowAddPrayerInFolder] = useState(false);
+  const answeredPulse = useRef(new RNAnimated.Value(1)).current;
+
   const currentBoard = boards[currentBoardIndex] || boards[0] || createDefaultBoard();
 
-  // ─── Prayer editor modal ───
+  // ─── Create folder sheet modal ───
   const [noteMounted, setNoteMounted] = useState(false);
   const noteBackdropAnim = useRef(new RNAnimated.Value(0)).current;
   const noteSlideAnim = useRef(new RNAnimated.Value(1)).current;
@@ -638,7 +718,7 @@ const PrayerBoardScreen = ({ navigation }) => {
           setNoteMounted(false);
           noteDragY.setValue(0);
           noteSlideAnim.setValue(1);
-          setNoteText('');
+          setNewFolderName('');
         });
       } else {
         RNAnimated.spring(noteDragY, { toValue: 0, damping: 25, useNativeDriver: true }).start();
@@ -685,12 +765,38 @@ const PrayerBoardScreen = ({ navigation }) => {
       try {
         const savedBoards = await userStorage.get(BOARDS_STORAGE_KEY);
         if (savedBoards && Array.isArray(savedBoards) && savedBoards.length > 0) {
-          setBoards(savedBoards);
+          const migrated = savedBoards.map(board => {
+            if (!board.answeredPrayers) board.answeredPrayers = [];
+            const oldPrayers = board.items?.filter(it => it.type === 'prayer') || [];
+            if (oldPrayers.length > 0) {
+              const folder = {
+                id: generateId(),
+                type: 'folder',
+                name: 'My Prayers',
+                color: '#EC4899',
+                prayers: oldPrayers.map(p => ({
+                  id: generateId(),
+                  text: p.content,
+                  createdAt: Date.now(),
+                })),
+                x: oldPrayers[0].x,
+                y: oldPrayers[0].y,
+                rotation: 0,
+                scale: 1.0,
+                layer: 1,
+                zIndex: 1,
+              };
+              board.items = [...board.items.filter(it => it.type !== 'prayer'), folder];
+            }
+            return board;
+          });
+          setBoards(migrated);
+          await userStorage.set(BOARDS_STORAGE_KEY, migrated);
           return;
         }
         const oldData = await userStorage.get(OLD_STORAGE_KEY);
         if (oldData && oldData.items) {
-          const migrated = [{ id: generateId(), name: 'My Prayers', background: oldData.background || 'cork', items: oldData.items }];
+          const migrated = [{ id: generateId(), name: 'My Prayers', background: oldData.background || 'cork', items: oldData.items, answeredPrayers: [] }];
           setBoards(migrated);
           await userStorage.set(BOARDS_STORAGE_KEY, migrated);
           await userStorage.remove(OLD_STORAGE_KEY);
@@ -737,16 +843,9 @@ const PrayerBoardScreen = ({ navigation }) => {
   }, [parallaxX, parallaxY]);
 
   // ─── Modal open/close ───
-  const openNoteEditor = useCallback(() => {
-    setNoteText('');
-    setNoteCardColor('#FFFFFF');
-    setNoteFontSize('medium');
-    setNoteFontStyle('system');
-    setNoteBorderStyle('none');
-    setNoteBorderColor('#EC4899');
-    setNoteCardShape('rounded');
-    setNoteCardOpacity('solid');
-    setNoteTextAlign('center');
+  const openCreateFolder = useCallback(() => {
+    setNewFolderName('');
+    setNewFolderColor('#EC4899');
     noteDragY.setValue(0);
     setNoteMounted(true);
     requestAnimationFrame(() => {
@@ -757,7 +856,7 @@ const PrayerBoardScreen = ({ navigation }) => {
     });
   }, []);
 
-  const closeNoteEditor = useCallback(() => {
+  const closeCreateFolder = useCallback(() => {
     Keyboard.dismiss();
     RNAnimated.parallel([
       RNAnimated.timing(noteBackdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -766,7 +865,7 @@ const PrayerBoardScreen = ({ navigation }) => {
       setNoteMounted(false);
       noteDragY.setValue(0);
       noteSlideAnim.setValue(1);
-      setNoteText('');
+      setNewFolderName('');
     });
   }, []);
 
@@ -809,28 +908,21 @@ const PrayerBoardScreen = ({ navigation }) => {
     }));
   }, [updateCurrentBoard]);
 
-  const addPrayerNote = useCallback(() => {
-    if (!noteText.trim()) return;
+  const createFolder = useCallback(() => {
+    if (!newFolderName.trim()) return;
     hapticFeedback.success();
     const randomX = 30 + Math.random() * (CANVAS_WIDTH - 200);
     const randomY = 120 + Math.random() * (CANVAS_HEIGHT - 400);
-    const randomRotation = Math.floor(Math.random() * 11) - 5;
 
     const newItem = {
       id: generateId(),
-      type: 'prayer',
-      content: noteText.trim(),
-      cardColor: noteCardColor,
-      fontSize: noteFontSize,
-      fontStyle: noteFontStyle,
-      borderStyle: noteBorderStyle,
-      borderColor: noteBorderColor,
-      cardShape: noteCardShape,
-      cardOpacity: noteCardOpacity,
-      textAlign: noteTextAlign,
+      type: 'folder',
+      name: newFolderName.trim(),
+      color: newFolderColor,
+      prayers: [],
       x: randomX,
       y: randomY,
-      rotation: randomRotation,
+      rotation: 0,
       scale: 1.0,
       layer: 1,
       zIndex: (currentBoard.items?.length || 0) + 1,
@@ -840,8 +932,143 @@ const PrayerBoardScreen = ({ navigation }) => {
       ...board,
       items: [...board.items, newItem],
     }));
-    closeNoteEditor();
-  }, [noteText, noteCardColor, noteFontSize, noteFontStyle, noteBorderStyle, noteBorderColor, noteCardShape, noteCardOpacity, noteTextAlign, currentBoard, updateCurrentBoard, closeNoteEditor]);
+    closeCreateFolder();
+  }, [newFolderName, newFolderColor, currentBoard, updateCurrentBoard, closeCreateFolder]);
+
+  const openFolder = useCallback((item) => {
+    if (item.type === 'answered') {
+      hapticFeedback.light();
+      setShowAnsweredModal(true);
+    } else if (item.type === 'folder') {
+      hapticFeedback.light();
+      setOpenFolderId(item.id);
+    }
+  }, []);
+
+  const openFolderItem = useMemo(() => {
+    if (!openFolderId) return null;
+    return currentBoard.items.find(it => it.id === openFolderId) || null;
+  }, [openFolderId, currentBoard.items]);
+
+  const addPrayerToFolder = useCallback(() => {
+    if (!folderPrayerText.trim() || !openFolderId) return;
+    hapticFeedback.success();
+    const prayer = {
+      id: generateId(),
+      text: folderPrayerText.trim(),
+      createdAt: Date.now(),
+    };
+    updateCurrentBoard(board => ({
+      ...board,
+      items: board.items.map(item =>
+        item.id === openFolderId
+          ? { ...item, prayers: [...(item.prayers || []), prayer] }
+          : item
+      ),
+    }));
+    setFolderPrayerText('');
+    setShowAddPrayerInFolder(false);
+    Keyboard.dismiss();
+  }, [folderPrayerText, openFolderId, updateCurrentBoard]);
+
+  const markPrayerAnswered = useCallback((prayerId) => {
+    if (!openFolderId) return;
+    hapticFeedback.success();
+    const folder = currentBoard.items.find(it => it.id === openFolderId);
+    if (!folder) return;
+    const prayer = folder.prayers?.find(p => p.id === prayerId);
+    if (!prayer) return;
+
+    const answeredEntry = {
+      id: generateId(),
+      text: prayer.text,
+      folderId: openFolderId,
+      folderName: folder.name,
+      answeredAt: Date.now(),
+    };
+
+    updateCurrentBoard(board => ({
+      ...board,
+      items: board.items.map(item =>
+        item.id === openFolderId
+          ? { ...item, prayers: item.prayers.filter(p => p.id !== prayerId) }
+          : item
+      ),
+      answeredPrayers: [...(board.answeredPrayers || []), answeredEntry],
+    }));
+
+    RNAnimated.sequence([
+      RNAnimated.timing(answeredPulse, { toValue: 1.2, duration: 200, useNativeDriver: true }),
+      RNAnimated.spring(answeredPulse, { toValue: 1, damping: 8, useNativeDriver: true }),
+    ]).start();
+  }, [openFolderId, currentBoard.items, updateCurrentBoard, answeredPulse]);
+
+  const deletePrayerFromFolder = useCallback((prayerId) => {
+    if (!openFolderId) return;
+    Alert.alert('Delete Prayer', 'Remove this prayer?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: () => {
+          hapticFeedback.medium();
+          updateCurrentBoard(board => ({
+            ...board,
+            items: board.items.map(item =>
+              item.id === openFolderId
+                ? { ...item, prayers: item.prayers.filter(p => p.id !== prayerId) }
+                : item
+            ),
+          }));
+        },
+      },
+    ]);
+  }, [openFolderId, updateCurrentBoard]);
+
+  const renameFolder = useCallback((folderId) => {
+    const folder = currentBoard.items.find(it => it.id === folderId);
+    if (!folder) return;
+    Alert.prompt('Rename Folder', 'Enter a new name:', (name) => {
+      if (!name?.trim()) return;
+      updateCurrentBoard(board => ({
+        ...board,
+        items: board.items.map(item =>
+          item.id === folderId ? { ...item, name: name.trim() } : item
+        ),
+      }));
+    }, 'plain-text', folder.name, 'default');
+  }, [currentBoard.items, updateCurrentBoard]);
+
+  const answeredByFolder = useMemo(() => {
+    const groups = {};
+    (currentBoard.answeredPrayers || []).forEach(prayer => {
+      const key = prayer.folderName || 'Unknown';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(prayer);
+    });
+    return groups;
+  }, [currentBoard.answeredPrayers]);
+
+  const answeredItem = useMemo(() => ({
+    id: '__answered__',
+    type: 'answered',
+    count: (currentBoard.answeredPrayers || []).length,
+    x: currentBoard.answeredPosition?.x ?? 20,
+    y: currentBoard.answeredPosition?.y ?? 200,
+    rotation: 0,
+    scale: 1.0,
+    layer: 1,
+    zIndex: 0,
+  }), [currentBoard.answeredPrayers, currentBoard.answeredPosition]);
+
+  const updateAnsweredPosition = useCallback((id, updates) => {
+    if (id === '__answered__') {
+      updateCurrentBoard(board => ({
+        ...board,
+        answeredPosition: { x: updates.x, y: updates.y },
+      }));
+    } else {
+      updateItem(id, updates);
+    }
+  }, [updateCurrentBoard, updateItem]);
 
   const addSticker = useCallback((sticker, color) => {
     hapticFeedback.light();
@@ -904,8 +1131,7 @@ const PrayerBoardScreen = ({ navigation }) => {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
         quality: 0.6,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
@@ -1173,11 +1399,11 @@ const PrayerBoardScreen = ({ navigation }) => {
 
           {/* Canvas with items */}
           <View style={styles.canvas}>
-            {currentBoard.items.length === 0 && (
+            {currentBoard.items.length === 0 && (currentBoard.answeredPrayers || []).length === 0 && (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>{currentBoard.name}</Text>
                 <Text style={styles.emptySubtitle}>
-                  Tap the buttons below to add prayers, stickers, and photos to your board
+                  Tap "Folder" below to create prayer envelopes for your board
                 </Text>
               </View>
             )}
@@ -1187,11 +1413,25 @@ const PrayerBoardScreen = ({ navigation }) => {
                 item={item}
                 onUpdate={updateItem}
                 onDelete={deleteItem}
+                onTap={openFolder}
                 isDeleteMode={isDeleteMode}
                 parallaxX={parallaxX}
                 parallaxY={parallaxY}
               />
             ))}
+            {/* Answered Envelope */}
+            <RNAnimated.View style={{ transform: [{ scale: answeredPulse }] }}>
+              <DraggableItem
+                key="__answered__"
+                item={answeredItem}
+                onUpdate={updateAnsweredPosition}
+                onDelete={() => {}}
+                onTap={openFolder}
+                isDeleteMode={false}
+                parallaxX={parallaxX}
+                parallaxY={parallaxY}
+              />
+            </RNAnimated.View>
           </View>
 
           {/* Bottom Toolbar */}
@@ -1199,12 +1439,12 @@ const PrayerBoardScreen = ({ navigation }) => {
           <View style={[styles.toolbar, { paddingBottom: insets.bottom + 8 }]}>
             <TouchableOpacity
               style={styles.toolBtn}
-              onPress={() => { hapticFeedback.light(); openNoteEditor(); }}
+              onPress={() => { hapticFeedback.light(); openCreateFolder(); }}
             >
               <View style={[styles.toolIcon, { backgroundColor: '#EC489920' }]}>
-                <MaterialIcons name="note-add" size={22} color="#EC4899" />
+                <MaterialIcons name="folder" size={22} color="#EC4899" />
               </View>
-              <Text style={styles.toolLabel}>Prayer</Text>
+              <Text style={styles.toolLabel}>Folder</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1548,7 +1788,7 @@ const PrayerBoardScreen = ({ navigation }) => {
         </View>
       </GestureHandlerRootView>
 
-      {/* ─── Prayer Note Editor (outside GestureHandlerRootView) ─── */}
+      {/* ─── Create Folder Sheet (outside GestureHandlerRootView) ─── */}
       {noteMounted && (
         <View style={styles.sheetOverlay}>
           <RNAnimated.View
@@ -1560,7 +1800,7 @@ const PrayerBoardScreen = ({ navigation }) => {
               ),
             }]}
           >
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeNoteEditor} />
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeCreateFolder} />
           </RNAnimated.View>
 
           <KeyboardAvoidingView
@@ -1583,7 +1823,7 @@ const PrayerBoardScreen = ({ navigation }) => {
               <View {...notePanResponder.panHandlers}>
                 <View style={[styles.sheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.12)' }]} />
                 <View style={styles.sheetHeader}>
-                  <Text style={[styles.sheetTitle, { color: isDark ? '#fff' : '#000' }]}>Add Prayer</Text>
+                  <Text style={[styles.sheetTitle, { color: isDark ? '#fff' : '#000' }]}>Create Folder</Text>
                 </View>
               </View>
 
@@ -1598,21 +1838,45 @@ const PrayerBoardScreen = ({ navigation }) => {
                   style={[styles.noteInput, {
                     color: isDark ? '#fff' : '#000',
                     backgroundColor: isDark ? '#2C2C2E' : '#F5F5F5',
+                    minHeight: 50,
+                    maxHeight: 50,
                   }]}
-                  placeholder="Write your prayer..."
+                  placeholder="Folder name (e.g. Family, Health, Work...)"
                   placeholderTextColor={isDark ? '#888' : '#999'}
-                  value={noteText}
-                  onChangeText={setNoteText}
-                  multiline
-                  maxLength={300}
+                  value={newFolderName}
+                  onChangeText={setNewFolderName}
+                  maxLength={40}
                   autoFocus
                 />
 
-                {/* Card Colour */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Card Colour</Text>
+                {/* Envelope Preview */}
+                <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 12 }}>
+                  <View style={[styles.envelopeContainer, { transform: [{ scale: 0.9 }] }]}>
+                    <View style={[styles.envelopeBody, { backgroundColor: newFolderColor }]}>
+                      <View style={[styles.envelopeInner, { backgroundColor: hexToRgba(newFolderColor, 0.18) }]}>
+                        <Text style={[styles.envelopeName, { color: isColorDark(newFolderColor) ? '#fff' : '#1a1a1a' }]} numberOfLines={2}>
+                          {newFolderName.trim() || 'Preview'}
+                        </Text>
+                        <Text style={[styles.envelopeCount, { color: isColorDark(newFolderColor) ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)' }]}>
+                          0 prayers
+                        </Text>
+                      </View>
+                      <View style={styles.envelopeFlapWrap}>
+                        <View style={[styles.envelopeFlapDown, { borderTopColor: darkenHex(newFolderColor, 0.3) }]} />
+                      </View>
+                      <View style={styles.envelopeSealCenter}>
+                        <View style={[styles.envelopeSealCircle, { backgroundColor: isColorDark(newFolderColor) ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)', borderColor: isColorDark(newFolderColor) ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
+                          <MaterialIcons name="mail" size={16} color={isColorDark(newFolderColor) ? '#fff' : '#444'} />
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Envelope Colour</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerRow} contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingVertical: 4 }}>
-                  {CARD_COLORS.map(color => {
-                    const isSelected = noteCardColor === color;
+                  {ENVELOPE_COLORS.map(color => {
+                    const isSelected = newFolderColor === color;
                     const isDarkColor = isColorDark(color);
                     return (
                       <TouchableOpacity
@@ -1620,175 +1884,22 @@ const PrayerBoardScreen = ({ navigation }) => {
                         style={[
                           styles.colorCircle,
                           { backgroundColor: color, borderColor: isDarkColor ? '#555' : 'rgba(0,0,0,0.1)' },
-                          isSelected && { borderColor: '#EC4899', borderWidth: 2.5 },
+                          isSelected && { borderColor: '#fff', borderWidth: 2.5 },
                         ]}
-                        onPress={() => { hapticFeedback.selection(); setNoteCardColor(color); }}
+                        onPress={() => { hapticFeedback.selection(); setNewFolderColor(color); }}
                       >
-                        {isSelected && <MaterialIcons name="check" size={16} color={isDarkColor ? '#fff' : '#EC4899'} />}
+                        {isSelected && <MaterialIcons name="check" size={16} color={isDarkColor ? '#fff' : '#333'} />}
                       </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
 
-                {/* Text Alignment */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Alignment</Text>
-                <View style={styles.fontSizeRow}>
-                  {TEXT_ALIGNMENTS.map(align => (
-                    <TouchableOpacity
-                      key={align.id}
-                      style={[
-                        styles.fontSizeChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteTextAlign === align.id && styles.fontSizeChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteTextAlign(align.id); }}
-                    >
-                      <MaterialIcons name={align.icon} size={18} color={noteTextAlign === align.id ? '#fff' : (isDark ? '#ddd' : '#333')} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Font Size */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Font Size</Text>
-                <View style={styles.fontSizeRow}>
-                  {FONT_SIZES.map(size => (
-                    <TouchableOpacity
-                      key={size.id}
-                      style={[
-                        styles.fontSizeChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteFontSize === size.id && styles.fontSizeChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteFontSize(size.id); }}
-                    >
-                      <Text style={[
-                        styles.fontSizeLabel,
-                        { color: isDark ? '#ddd' : '#333', fontSize: size.value },
-                        noteFontSize === size.id && styles.fontSizeLabelActive,
-                      ]}>{size.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Font Style */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Font Style</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerRow} contentContainerStyle={{ gap: 8 }}>
-                  {FONT_STYLES.map(f => (
-                    <TouchableOpacity
-                      key={f.id}
-                      style={[
-                        styles.fontStyleChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteFontStyle === f.id && styles.fontStyleChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteFontStyle(f.id); }}
-                    >
-                      <Text style={[
-                        styles.fontStyleLabel,
-                        { color: isDark ? '#ddd' : '#333', fontFamily: f.fontFamily },
-                        noteFontStyle === f.id && styles.fontStyleLabelActive,
-                      ]}>{f.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Card Shape */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Card Shape</Text>
-                <View style={styles.fontSizeRow}>
-                  {CARD_SHAPES.map(shape => (
-                    <TouchableOpacity
-                      key={shape.id}
-                      style={[
-                        styles.fontStyleChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteCardShape === shape.id && styles.fontStyleChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteCardShape(shape.id); }}
-                    >
-                      <Text style={[
-                        styles.fontStyleLabel,
-                        { color: isDark ? '#ddd' : '#333' },
-                        noteCardShape === shape.id && styles.fontStyleLabelActive,
-                      ]}>{shape.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Card Opacity */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Opacity</Text>
-                <View style={styles.fontSizeRow}>
-                  {CARD_OPACITIES.map(op => (
-                    <TouchableOpacity
-                      key={op.id}
-                      style={[
-                        styles.fontStyleChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteCardOpacity === op.id && styles.fontStyleChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteCardOpacity(op.id); }}
-                    >
-                      <Text style={[
-                        styles.fontStyleLabel,
-                        { color: isDark ? '#ddd' : '#333' },
-                        noteCardOpacity === op.id && styles.fontStyleLabelActive,
-                      ]}>{op.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Border Style */}
-                <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Border</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerRow} contentContainerStyle={{ gap: 8 }}>
-                  {CARD_BORDERS.map(border => (
-                    <TouchableOpacity
-                      key={border.id}
-                      style={[
-                        styles.fontStyleChip,
-                        { backgroundColor: isDark ? '#2C2C2E' : '#F0F0F0' },
-                        noteBorderStyle === border.id && styles.fontStyleChipActive,
-                      ]}
-                      onPress={() => { hapticFeedback.selection(); setNoteBorderStyle(border.id); }}
-                    >
-                      <Text style={[
-                        styles.fontStyleLabel,
-                        { color: isDark ? '#ddd' : '#333' },
-                        noteBorderStyle === border.id && styles.fontStyleLabelActive,
-                      ]}>{border.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {/* Border Colour (shown if border !== 'none') */}
-                {noteBorderStyle !== 'none' && (
-                  <>
-                    <Text style={[styles.sectionLabel, { color: isDark ? '#aaa' : '#666' }]}>Border Colour</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerRow} contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingVertical: 4 }}>
-                      {BORDER_COLORS.map(color => {
-                        const isSelected = noteBorderColor === color;
-                        return (
-                          <TouchableOpacity
-                            key={color}
-                            style={[
-                              styles.colorCircle,
-                              { backgroundColor: color, borderColor: 'rgba(0,0,0,0.1)' },
-                              isSelected && { borderColor: '#fff', borderWidth: 2.5 },
-                            ]}
-                            onPress={() => { hapticFeedback.selection(); setNoteBorderColor(color); }}
-                          >
-                            {isSelected && <MaterialIcons name="check" size={16} color="#fff" />}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </>
-                )}
-
                 <TouchableOpacity
-                  style={[styles.addBoardBtn, !noteText.trim() && { opacity: 0.4 }]}
-                  onPress={addPrayerNote}
-                  disabled={!noteText.trim()}
+                  style={[styles.addBoardBtn, !newFolderName.trim() && { opacity: 0.4 }]}
+                  onPress={createFolder}
+                  disabled={!newFolderName.trim()}
                 >
-                  <Text style={styles.addBoardBtnText}>Add to Board</Text>
+                  <Text style={styles.addBoardBtnText}>Create Folder</Text>
                 </TouchableOpacity>
               </ScrollView>
             </RNAnimated.View>
@@ -1900,6 +2011,232 @@ const PrayerBoardScreen = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      {/* ─── Inside Folder Popup ─── */}
+      <Modal visible={!!openFolderId} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.7} onPress={() => { setOpenFolderId(null); setShowAddPrayerInFolder(false); setFolderPrayerText(''); }} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.popupKeyboard} pointerEvents="box-none">
+            <BlurView
+              intensity={isDark ? 45 : 70}
+              tint={isDark ? 'dark' : 'light'}
+              style={[styles.popupCard, { backgroundColor: isDark ? 'rgba(8,8,12,0.82)' : 'rgba(255,255,255,0.82)' }]}
+            >
+              <LinearGradient
+                colors={[`${openFolderItem?.color || '#EC4899'}33`, `${openFolderItem?.color || '#EC4899'}0A`, 'transparent']}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.popupHalo} />
+
+              {/* Header */}
+              <View style={styles.popupHeader}>
+                <View style={[styles.popupIconWrap, { borderColor: (openFolderItem?.color || '#EC4899') + '50', backgroundColor: (openFolderItem?.color || '#EC4899') + '18' }]}>
+                  <MaterialIcons name="mail" size={22} color={openFolderItem?.color || '#EC4899'} />
+                </View>
+                <View style={styles.popupHeaderContent}>
+                  <TouchableOpacity onPress={() => openFolderItem && renameFolder(openFolderItem.id)}>
+                    <Text style={[styles.popupTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>
+                      {openFolderItem?.name || 'Folder'}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.popupSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                    {openFolderItem?.prayers?.length || 0} prayer{(openFolderItem?.prayers?.length || 0) !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.popupCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+                  onPress={() => { setOpenFolderId(null); setShowAddPrayerInFolder(false); setFolderPrayerText(''); }}
+                >
+                  <MaterialIcons name="close" size={20} color={isDark ? '#aaa' : '#666'} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Prayer List */}
+              <ScrollView
+                style={styles.popupScroll}
+                contentContainerStyle={styles.popupScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {(!openFolderItem?.prayers || openFolderItem.prayers.length === 0) && !showAddPrayerInFolder && (
+                  <View style={styles.popupEmpty}>
+                    <MaterialIcons name="mail-outline" size={36} color={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)'} />
+                    <Text style={[styles.popupEmptyText, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }]}>No prayers yet</Text>
+                  </View>
+                )}
+                {(openFolderItem?.prayers || []).map((prayer) => (
+                  <View
+                    key={prayer.id}
+                    style={[styles.prayerListItem, {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    }]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.prayerListText, { color: isDark ? '#fff' : '#1a1a1a' }]}>
+                        {prayer.text}
+                      </Text>
+                      <Text style={[styles.prayerListDate, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }]}>
+                        {new Date(prayer.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.prayerListActions}>
+                      <TouchableOpacity
+                        style={[styles.prayerActionBtn, { backgroundColor: 'rgba(16,185,129,0.12)' }]}
+                        onPress={() => markPrayerAnswered(prayer.id)}
+                      >
+                        <MaterialIcons name="check-circle-outline" size={22} color="#10B981" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.prayerActionBtn, { backgroundColor: 'rgba(255,59,48,0.1)' }]}
+                        onPress={() => deletePrayerFromFolder(prayer.id)}
+                      >
+                        <MaterialIcons name="delete-outline" size={20} color="#FF3B30" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {showAddPrayerInFolder && (
+                  <View style={[styles.addPrayerInFolderCard, {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                  }]}>
+                    <TextInput
+                      style={[styles.folderPrayerInput, {
+                        color: isDark ? '#fff' : '#000',
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                      }]}
+                      placeholder="Write your prayer..."
+                      placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
+                      value={folderPrayerText}
+                      onChangeText={setFolderPrayerText}
+                      multiline
+                      maxLength={300}
+                      autoFocus
+                    />
+                    <View style={styles.addPrayerBtnRow}>
+                      <TouchableOpacity
+                        style={styles.addPrayerCancelBtn}
+                        onPress={() => { setShowAddPrayerInFolder(false); setFolderPrayerText(''); Keyboard.dismiss(); }}
+                      >
+                        <Text style={[styles.addPrayerCancelText, { color: isDark ? '#aaa' : '#666' }]}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.addPrayerConfirmBtn, !folderPrayerText.trim() && { opacity: 0.4 }]}
+                        onPress={addPrayerToFolder}
+                        disabled={!folderPrayerText.trim()}
+                      >
+                        <Text style={styles.addPrayerConfirmText}>Add Prayer</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Add Prayer Button */}
+              {!showAddPrayerInFolder && (
+                <TouchableOpacity
+                  style={[styles.popupAddBtn, {
+                    backgroundColor: openFolderItem?.color || '#EC4899',
+                    shadowColor: openFolderItem?.color || '#EC4899',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.28,
+                    shadowRadius: 14,
+                  }]}
+                  onPress={() => { hapticFeedback.light(); setShowAddPrayerInFolder(true); }}
+                >
+                  <MaterialIcons name="add" size={20} color="#fff" />
+                  <Text style={styles.popupAddBtnText}>Add Prayer</Text>
+                </TouchableOpacity>
+              )}
+            </BlurView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ─── Answered Prayers Popup ─── */}
+      <Modal visible={showAnsweredModal} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.7} onPress={() => setShowAnsweredModal(false)} />
+          <BlurView
+            intensity={isDark ? 45 : 70}
+            tint={isDark ? 'dark' : 'light'}
+            style={[styles.popupCard, { backgroundColor: isDark ? 'rgba(8,8,12,0.82)' : 'rgba(255,255,255,0.82)' }]}
+          >
+            <LinearGradient
+              colors={['rgba(245,158,11,0.2)', 'rgba(245,158,11,0.04)', 'transparent']}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.popupHalo} />
+
+            {/* Header */}
+            <View style={styles.popupHeader}>
+              <View style={[styles.popupIconWrap, { borderColor: '#F59E0B50', backgroundColor: '#F59E0B18' }]}>
+                <MaterialIcons name="check-circle" size={22} color="#F59E0B" />
+              </View>
+              <View style={styles.popupHeaderContent}>
+                <Text style={[styles.popupTitle, { color: '#F59E0B' }]}>Answered Prayers</Text>
+                <Text style={[styles.popupSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                  {(currentBoard.answeredPrayers || []).length} prayer{(currentBoard.answeredPrayers || []).length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.popupCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+                onPress={() => setShowAnsweredModal(false)}
+              >
+                <MaterialIcons name="close" size={20} color={isDark ? '#aaa' : '#666'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.popupScroll}
+              contentContainerStyle={styles.popupScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {(currentBoard.answeredPrayers || []).length === 0 && (
+                <View style={styles.popupEmpty}>
+                  <MaterialIcons name="check-circle" size={36} color={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)'} />
+                  <Text style={[styles.popupEmptyText, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }]}>No answered prayers yet</Text>
+                </View>
+              )}
+              {Object.entries(answeredByFolder).map(([folderName, prayers]) => (
+                <View key={folderName} style={{ marginBottom: 16 }}>
+                  <Text style={[styles.answeredGroupTitle, { color: isDark ? '#ddd' : '#333' }]}>
+                    {folderName}
+                  </Text>
+                  {prayers.map(prayer => (
+                    <View
+                      key={prayer.id}
+                      style={[styles.answeredPrayerItem, {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                      }]}
+                    >
+                      <MaterialIcons name="check-circle" size={18} color="#F59E0B" style={{ marginRight: 10, marginTop: 2 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.answeredPrayerText, { color: isDark ? '#fff' : '#1a1a1a' }]}>
+                          {prayer.text}
+                        </Text>
+                        <Text style={[styles.answeredPrayerDate, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }]}>
+                          Answered {new Date(prayer.answeredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          </BlurView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -2395,6 +2732,324 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FF3B30',
+  },
+  envelopeContainer: {
+    width: 130,
+    alignItems: 'center',
+  },
+  envelopeBody: {
+    width: 130,
+    height: 130,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
+    overflow: 'visible',
+    position: 'relative',
+  },
+  envelopeInner: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 14,
+    paddingTop: 58,
+  },
+  envelopeFlapWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  envelopeFlapDown: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 65,
+    borderRightWidth: 65,
+    borderTopWidth: 38,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  envelopeSealCenter: {
+    position: 'absolute',
+    top: 28,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 3,
+  },
+  envelopeSealCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  envelopeName: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  envelopeCount: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  deleteOverlayFolder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,59,48,0.15)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  folderModalContainer: {
+    flex: 1,
+  },
+  folderModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.2)',
+  },
+  folderModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  folderModalSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  folderPrayerList: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 100,
+  },
+  folderEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+  },
+  folderEmptyText: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16,
+  },
+  folderEmptySubtext: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    lineHeight: 20,
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  popupKeyboard: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 360,
+    maxHeight: SCREEN_HEIGHT * 0.65,
+    borderRadius: 24,
+    padding: 24,
+    paddingBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 18,
+  },
+  popupHalo: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    top: -60,
+    alignSelf: 'center',
+    opacity: 0.35,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  popupIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+  },
+  popupHeaderContent: {
+    flex: 1,
+  },
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  popupSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  popupCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  popupScroll: {
+    flexGrow: 0,
+  },
+  popupScrollContent: {
+    paddingBottom: 8,
+  },
+  popupEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  popupEmptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 10,
+  },
+  popupAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    gap: 6,
+    elevation: 12,
+  },
+  popupAddBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  prayerListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+  },
+  prayerListText: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+  prayerListDate: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 6,
+  },
+  prayerListActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 12,
+  },
+  prayerActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPrayerInFolderCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+  },
+  folderPrayerInput: {
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    fontWeight: '500',
+    minHeight: 80,
+    maxHeight: 150,
+    textAlignVertical: 'top',
+  },
+  addPrayerBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 12,
+  },
+  addPrayerCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  addPrayerCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addPrayerConfirmBtn: {
+    backgroundColor: '#EC4899',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  addPrayerConfirmText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  answeredGroupTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  answeredPrayerItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  answeredPrayerText: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  answeredPrayerDate: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 4,
   },
 });
 

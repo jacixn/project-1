@@ -7,7 +7,9 @@
 
 // All muscle group IDs used in the physique system
 export const MUSCLE_GROUPS = {
-  chest:      { id: 'chest',      name: 'Chest',       shortName: 'Chest',    view: 'front' },
+  upperChest: { id: 'upperChest', name: 'Upper Chest', shortName: 'Up. Chest', view: 'front' },
+  midChest:   { id: 'midChest',   name: 'Mid Chest',   shortName: 'Mid Chest', view: 'front' },
+  lowerChest: { id: 'lowerChest', name: 'Lower Chest', shortName: 'Lo. Chest', view: 'front' },
   frontDelts: { id: 'frontDelts', name: 'Front Delts', shortName: 'F. Delts', view: 'front' },
   sideDelts:  { id: 'sideDelts',  name: 'Side Delts',  shortName: 'S. Delts', view: 'both' },
   rearDelts:  { id: 'rearDelts',  name: 'Rear Delts',  shortName: 'R. Delts', view: 'back' },
@@ -57,9 +59,9 @@ export const getScoreLabel = (score) => {
  * Format: target -> { primary: [muscleIds], secondary: [muscleIds] }
  */
 const TARGET_TO_MUSCLES = {
-  'pectorals':      { primary: ['chest'],      secondary: ['frontDelts', 'triceps'] },
+  'pectorals':      { primary: ['midChest'],    secondary: ['upperChest', 'lowerChest', 'frontDelts', 'triceps'] },
   'biceps':         { primary: ['biceps'],      secondary: ['forearms'] },
-  'triceps':        { primary: ['triceps'],     secondary: ['chest', 'frontDelts'] },
+  'triceps':        { primary: ['triceps'],     secondary: ['midChest', 'frontDelts'] },
   'delts':          { primary: ['frontDelts', 'sideDelts'], secondary: ['traps'] },
   'abs':            { primary: ['abs'],         secondary: ['obliques'] },
   'quads':          { primary: ['quads'],       secondary: ['glutes', 'hamstrings'] },
@@ -72,7 +74,7 @@ const TARGET_TO_MUSCLES = {
   'traps':          { primary: ['traps'],       secondary: ['upperBack', 'rearDelts'] },
   'forearms':       { primary: ['forearms'],    secondary: ['biceps'] },
   'cardiovascular': { primary: [],              secondary: ['quads', 'hamstrings', 'calves'] },
-  'full body':      { primary: ['quads', 'chest', 'lats'], secondary: ['hamstrings', 'glutes', 'frontDelts', 'triceps', 'abs'] },
+  'full body':      { primary: ['quads', 'midChest', 'lats'], secondary: ['hamstrings', 'glutes', 'frontDelts', 'triceps', 'abs'] },
 };
 
 /**
@@ -80,16 +82,34 @@ const TARGET_TO_MUSCLES = {
  * Exercise names (lowercase) -> { primary, secondary }
  */
 const EXERCISE_NAME_OVERRIDES = {
-  // Chest
-  'bench press':          { primary: ['chest'], secondary: ['frontDelts', 'triceps'] },
-  'incline bench press':  { primary: ['chest', 'frontDelts'], secondary: ['triceps'] },
-  'decline bench press':  { primary: ['chest'], secondary: ['triceps'] },
-  'dumbbell fly':         { primary: ['chest'], secondary: ['frontDelts'] },
-  'cable crossover':      { primary: ['chest'], secondary: ['frontDelts'] },
-  'push-up':              { primary: ['chest'], secondary: ['frontDelts', 'triceps', 'abs'] },
-  'push up':              { primary: ['chest'], secondary: ['frontDelts', 'triceps', 'abs'] },
-  'chest dip':            { primary: ['chest'], secondary: ['triceps', 'frontDelts'] },
-  'dumbbell press':       { primary: ['chest'], secondary: ['frontDelts', 'triceps'] },
+  // Chest — Upper (incline movements)
+  'incline bench press':  { primary: ['upperChest'], secondary: ['frontDelts', 'triceps'] },
+  'incline dumbbell press': { primary: ['upperChest'], secondary: ['frontDelts', 'triceps'] },
+  'incline fly':          { primary: ['upperChest'], secondary: ['frontDelts'] },
+  'incline dumbbell fly': { primary: ['upperChest'], secondary: ['frontDelts'] },
+  'incline cable fly':    { primary: ['upperChest'], secondary: ['frontDelts'] },
+  'low to high cable fly':{ primary: ['upperChest'], secondary: ['frontDelts'] },
+  'landmine press':       { primary: ['upperChest'], secondary: ['frontDelts', 'triceps'] },
+  'reverse grip bench press': { primary: ['upperChest'], secondary: ['triceps'] },
+
+  // Chest — Mid (flat movements)
+  'bench press':          { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps'] },
+  'flat bench press':     { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps'] },
+  'dumbbell press':       { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps'] },
+  'dumbbell fly':         { primary: ['midChest'], secondary: ['upperChest', 'frontDelts'] },
+  'cable crossover':      { primary: ['midChest'], secondary: ['upperChest', 'lowerChest'] },
+  'push-up':              { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps', 'abs'] },
+  'push up':              { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps', 'abs'] },
+  'chest press':          { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps'] },
+  'machine chest press':  { primary: ['midChest'], secondary: ['upperChest', 'frontDelts', 'triceps'] },
+  'pec deck':             { primary: ['midChest'], secondary: ['upperChest'] },
+
+  // Chest — Lower (decline movements)
+  'decline bench press':  { primary: ['lowerChest'], secondary: ['midChest', 'triceps'] },
+  'decline dumbbell press': { primary: ['lowerChest'], secondary: ['midChest', 'triceps'] },
+  'chest dip':            { primary: ['lowerChest'], secondary: ['midChest', 'triceps', 'frontDelts'] },
+  'high to low cable fly':{ primary: ['lowerChest'], secondary: ['midChest'] },
+  'decline fly':          { primary: ['lowerChest'], secondary: ['midChest'] },
 
   // Back
   'pull-up':              { primary: ['lats'], secondary: ['biceps', 'upperBack'] },
@@ -124,8 +144,8 @@ const EXERCISE_NAME_OVERRIDES = {
   'tricep pushdown':      { primary: ['triceps'], secondary: [] },
   'tricep extension':     { primary: ['triceps'], secondary: [] },
   'skull crusher':        { primary: ['triceps'], secondary: [] },
-  'close grip bench':     { primary: ['triceps'], secondary: ['chest'] },
-  'dip':                  { primary: ['triceps', 'chest'], secondary: ['frontDelts'] },
+  'close grip bench':     { primary: ['triceps'], secondary: ['midChest'] },
+  'dip':                  { primary: ['triceps', 'lowerChest'], secondary: ['frontDelts'] },
   'wrist curl':           { primary: ['forearms'], secondary: [] },
 
   // Legs
@@ -174,7 +194,7 @@ const EXERCISE_NAME_OVERRIDES = {
   'clean':                { primary: ['quads', 'traps', 'glutes'], secondary: ['hamstrings', 'frontDelts', 'forearms'] },
   'clean and jerk':       { primary: ['quads', 'frontDelts', 'traps'], secondary: ['glutes', 'triceps'] },
   'snatch':               { primary: ['quads', 'traps', 'frontDelts'], secondary: ['glutes', 'hamstrings'] },
-  'burpee':               { primary: ['quads', 'chest'], secondary: ['triceps', 'abs', 'frontDelts'] },
+  'burpee':               { primary: ['quads', 'midChest'], secondary: ['triceps', 'abs', 'frontDelts'] },
   'thruster':             { primary: ['quads', 'frontDelts'], secondary: ['glutes', 'triceps'] },
   'kettlebell swing':     { primary: ['glutes', 'hamstrings'], secondary: ['lowerBack', 'abs', 'frontDelts'] },
 };
@@ -213,13 +233,13 @@ export const getMusclesForExercise = (exerciseName, target, bodyPart) => {
   // 3. Fallback: use bodyPart field
   const bodyPartLower = (bodyPart || '').toLowerCase().trim();
   const BODY_PART_FALLBACK = {
-    'chest':     { primary: ['chest'], secondary: ['frontDelts', 'triceps'] },
+    'chest':     { primary: ['midChest'], secondary: ['upperChest', 'lowerChest', 'frontDelts', 'triceps'] },
     'back':      { primary: ['lats', 'upperBack'], secondary: ['biceps'] },
     'shoulders': { primary: ['frontDelts', 'sideDelts'], secondary: ['traps'] },
     'arms':      { primary: ['biceps', 'triceps'], secondary: ['forearms'] },
     'legs':      { primary: ['quads', 'hamstrings'], secondary: ['glutes', 'calves'] },
     'core':      { primary: ['abs'], secondary: ['obliques'] },
-    'full body': { primary: ['quads', 'chest', 'lats'], secondary: ['abs', 'glutes'] },
+    'full body': { primary: ['quads', 'midChest', 'lats'], secondary: ['abs', 'glutes'] },
     'cardio':    { primary: [], secondary: ['quads', 'hamstrings', 'calves'] },
   };
   

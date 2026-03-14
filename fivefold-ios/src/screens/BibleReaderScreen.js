@@ -5,7 +5,6 @@
  */
 
 import React, { useCallback } from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import BibleReader from '../components/BibleReader';
 
 const BibleReaderScreen = ({ navigation, route }) => {
@@ -18,14 +17,7 @@ const BibleReaderScreen = ({ navigation, route }) => {
   }, [navigation]);
 
   const handleNavigateToAI = useCallback((verseContent) => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-    setTimeout(() => {
-      DeviceEventEmitter.emit('openAiChatFromBible', {
-        verseContent,
-      });
-    }, 100);
+    navigation.navigate('FriendChat', { initialVerse: verseContent });
   }, [navigation]);
 
   return (

@@ -58,7 +58,8 @@ function sc(s){
 
 // Per-muscle hue tint — stronger offsets so adjacent groups are clearly distinct
 var muscleTint={
-  chest:[0.05,-0.04,0.08], traps:[0.08,0.02,-0.06],
+  upperChest:[0.05,-0.04,0.08], midChest:[0.04,-0.03,0.07], lowerChest:[0.06,-0.05,0.09],
+  traps:[0.08,0.02,-0.06],
   frontDelts:[-0.06,0.06,0.04], rearDelts:[0.06,0.02,-0.07],
   sideDelts:[-0.04,0.07,0.0],
   biceps:[0.07,-0.05,0.02], triceps:[-0.07,0.04,0.06],
@@ -181,15 +182,15 @@ function muscleForVertex(x,y,z){
   if(ny>0.80){
     if(nz<-0.15)return'traps';
     if(anx>1.0)return nz>0?'frontDelts':'rearDelts';
-    return nz>0.15?'chest':'traps';
+    return nz>0.15?'upperChest':'traps';
   }
 
   // Upper chest (pecs) / upper back — nipple line to shoulders
   if(ny>0.68){
-    if(nz>0.15)return'chest';
+    if(nz>0.15)return'midChest';
     if(nz<-0.15)return'upperBack';
     if(anx>0.85)return'lats';
-    return nz>0?'chest':'upperBack';
+    return nz>0?'midChest':'upperBack';
   }
 
   // Abs / obliques / lower back — below pecs to hip crease

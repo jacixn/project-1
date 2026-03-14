@@ -19,7 +19,7 @@ const HIGHLIGHT_STROKE_WIDTH = 3;
  * For tapping we use context (front vs back view) to pick the right one.
  */
 const SLUG_MUSCLE_GROUPS = {
-  chest:        ['chest'],
+  chest:        ['upperChest', 'midChest', 'lowerChest'],
   biceps:       ['biceps'],
   triceps:      ['triceps'],
   deltoids:     ['frontDelts', 'sideDelts', 'rearDelts'],
@@ -48,7 +48,7 @@ Object.entries(SLUG_MUSCLE_GROUPS).forEach(([slug, muscleIds]) => {
 });
 
 const FRONT_TAP_MAP = {
-  chest: 'chest', biceps: 'biceps', deltoids: 'frontDelts',
+  chest: 'midChest', biceps: 'biceps', deltoids: 'frontDelts',
   forearm: 'forearms', abs: 'abs', obliques: 'obliques',
   quadriceps: 'quads', calves: 'calves', tibialis: 'calves',
   adductors: 'quads', knees: 'quads', trapezius: 'traps',
@@ -64,12 +64,16 @@ const BACK_TAP_MAP = {
 };
 
 function bestScore(scores, muscleIds) {
-  let best = -1;
+  let total = 0;
+  let count = 0;
   for (const id of muscleIds) {
     const d = scores[id];
-    if (d && d.score !== undefined && d.score > best) best = d.score;
+    if (d && d.score !== undefined) {
+      total += d.score;
+      count++;
+    }
   }
-  return best;
+  return count > 0 ? Math.round(total / count) : -1;
 }
 
 function buildData(scores, selectedMuscle) {

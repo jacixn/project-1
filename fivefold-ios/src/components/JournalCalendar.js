@@ -21,7 +21,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import verseByReferenceService from '../services/verseByReferenceService';
 
 const { width, height } = Dimensions.get('window');
-const DAY_SIZE = (width - 64) / 7;
 
 const JournalCalendar = ({ 
   journalNotes, 
@@ -401,8 +400,8 @@ const JournalCalendar = ({
                   disabled={!dayData.day}
                   activeOpacity={0.7}
                   style={{
-                    width: DAY_SIZE,
-                    height: DAY_SIZE,
+                    width: '14.285%',
+                    aspectRatio: 1,
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: 2,
@@ -410,9 +409,9 @@ const JournalCalendar = ({
                 >
                   {dayData.day && (
                     <View style={{
-                      width: DAY_SIZE - 8,
-                      height: DAY_SIZE - 8,
-                      borderRadius: (DAY_SIZE - 8) / 2,
+                      width: '85%',
+                      aspectRatio: 1,
+                      borderRadius: 999,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: today 

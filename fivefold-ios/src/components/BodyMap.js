@@ -36,8 +36,8 @@ const MALE_FRONT_MUSCLES = [
   { id: 'frontDelts', d: 'M44,84 Q46,76 54,74 Q62,72 68,76 L68,94 Q60,98 52,96 Q46,94 44,88 Z' },
   { id: 'frontDelts', d: 'M156,84 Q154,76 146,74 Q138,72 132,76 L132,94 Q140,98 148,96 Q154,94 156,88 Z' },
   // Chest
-  { id: 'chest', d: 'M72,86 Q80,82 94,84 L98,84 L98,126 Q92,130 84,128 Q76,124 72,114 Z' },
-  { id: 'chest', d: 'M128,86 Q120,82 106,84 L102,84 L102,126 Q108,130 116,128 Q124,124 128,114 Z' },
+  { id: 'midChest', d: 'M72,86 Q80,82 94,84 L98,84 L98,126 Q92,130 84,128 Q76,124 72,114 Z' },
+  { id: 'midChest', d: 'M128,86 Q120,82 106,84 L102,84 L102,126 Q108,130 116,128 Q124,124 128,114 Z' },
   // Biceps
   { id: 'biceps', type: 'ellipse', cx: 40, cy: 118, rx: 9, ry: 22 },
   { id: 'biceps', type: 'ellipse', cx: 160, cy: 118, rx: 9, ry: 22 },
@@ -111,8 +111,8 @@ const FEMALE_FRONT_MUSCLES = [
   { id: 'frontDelts', d: 'M50,82 Q52,75 58,73 Q66,70 72,74 L72,92 Q64,96 56,94 Q50,92 50,86 Z' },
   { id: 'frontDelts', d: 'M150,82 Q148,75 142,73 Q134,70 128,74 L128,92 Q136,96 144,94 Q150,92 150,86 Z' },
   // Chest (less pronounced, more unified)
-  { id: 'chest', d: 'M74,86 Q82,82 94,84 L98,84 L98,120 Q92,124 84,122 Q78,118 74,108 Z' },
-  { id: 'chest', d: 'M126,86 Q118,82 106,84 L102,84 L102,120 Q108,124 116,122 Q122,118 126,108 Z' },
+  { id: 'midChest', d: 'M74,86 Q82,82 94,84 L98,84 L98,120 Q92,124 84,122 Q78,118 74,108 Z' },
+  { id: 'midChest', d: 'M126,86 Q118,82 106,84 L102,84 L102,120 Q108,124 116,122 Q122,118 126,108 Z' },
   // Biceps
   { id: 'biceps', type: 'ellipse', cx: 46, cy: 116, rx: 8, ry: 20 },
   { id: 'biceps', type: 'ellipse', cx: 154, cy: 116, rx: 8, ry: 20 },
