@@ -207,7 +207,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
         });
       }, 16000);
     } catch (err) {
-      setError(err.message);
+      setError('Unable to connect to your scale. Please make sure it is turned on and nearby.');
       updatePhase('idle');
     }
   };

@@ -20,6 +20,7 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import userStorage from '../utils/userStorage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -689,13 +690,21 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
         
         hapticFeedback.success();
         
-        // If completing the set, start the rest timer ONLY if rest time > 0
+        // If completing the set, start the rest timer ONLY if rest time > 0 AND there are still uncompleted sets
         if (isCompleting) {
           // Use ?? instead of || to avoid treating 0 as falsy
           const restSeconds = updatedSets[setIndex].rest ?? 120; // Default to 2 minutes if not set
           
-          // Only show timer if rest time is greater than 0
-          if (restSeconds > 0) {
+          // Check if there are any uncompleted sets left across ALL exercises after this one is marked done
+          const hasRemainingSets = exercises.some(e => {
+            const sets = e.id === exerciseId ? updatedSets : e.sets;
+            return sets.some((s, i) => {
+              if (e.id === exerciseId && i === setIndex) return false; // skip the set we're completing now
+              return !s.completed;
+            });
+          });
+
+          if (restSeconds > 0 && hasRemainingSets) {
             startTimerWithTimestamp(restSeconds);
             setShowRestTimer(true);
             setShowTimerPicker(false);
@@ -2117,29 +2126,30 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
 
                   {/* Circular Progress Timer */}
                   <View style={styles.timerCircleContainer}>
-                    <View style={styles.timerCircle}>
-                      {/* Progress Ring */}
-                      <View style={styles.timerProgressRing}>
-                        <View
-                          style={[
-                            styles.timerProgressCircle,
-                            {
-                              borderColor: theme.primary,
-                              borderWidth: 10,
-                              width: 230,
-                              height: 230,
-                              borderRadius: 115,
-                              transform: [
-                                {
-                                  rotate: `${((restTimerDuration - restTimerRemaining) / restTimerDuration) * 360}deg`
-                                }
-                              ],
-                              borderTopColor: 'transparent',
-                              borderRightColor: 'transparent',
-                            }
-                          ]}
+                    <View style={[styles.timerCircle, { width: 220, height: 220, borderRadius: 110 }]}>
+                      {/* SVG Progress Ring */}
+                      <Svg width={220} height={220} style={{ position: 'absolute' }}>
+                        <SvgCircle
+                          cx={110}
+                          cy={110}
+                          r={97}
+                          stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                          strokeWidth={14}
+                          fill="none"
                         />
-                      </View>
+                        <SvgCircle
+                          cx={110}
+                          cy={110}
+                          r={97}
+                          stroke={theme.primary}
+                          strokeWidth={14}
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeDasharray={2 * Math.PI * 97}
+                          strokeDashoffset={2 * Math.PI * 97 * (1 - restTimerRemaining / restTimerDuration)}
+                          transform="rotate(-90 110 110)"
+                        />
+                      </Svg>
 
                       {/* Time Display */}
                       <View style={styles.timerDisplay}>

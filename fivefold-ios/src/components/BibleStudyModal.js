@@ -1135,12 +1135,12 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
 
         <View style={styles.comingSoonContainer}>
           <BlurView intensity={20} style={styles.comingSoonCard}>
-            <MaterialIcons name="build" size={32} color={section.color} />
+            <MaterialIcons name={section.icon} size={32} color={section.color} />
             <Text style={[styles.comingSoonTitle, { color: theme.text }]}>
-              {section.title} - In Development
+              {section.title}
             </Text>
             <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-              This section will include:
+              Explore what this section has to offer:
             </Text>
             
             <View style={styles.featuresList}>
@@ -1315,7 +1315,7 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
         <View style={[styles.content, { justifyContent: 'center', alignItems: 'center', padding: 40 }]}>
           <MaterialIcons name="person-outline" size={80} color={theme.textTertiary} />
           <Text style={[{ color: theme.text, fontSize: 18, marginTop: 20, textAlign: 'center' }]}>
-            {charactersLoading ? 'Loading character...' : 'Character profile not available yet'}
+            {charactersLoading ? 'Loading character...' : 'This character profile couldn\'t be loaded. Please check your connection and try again.'}
           </Text>
           <TouchableOpacity 
             onPress={() => setSelectedCharacter(null)}

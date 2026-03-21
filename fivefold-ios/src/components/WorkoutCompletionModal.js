@@ -9,6 +9,8 @@ import {
   Share,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -201,6 +203,10 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
           onPress={handleDismiss}
         />
         
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
         <Animated.View 
           style={[
             styles.container,
@@ -219,6 +225,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
               <ScrollView 
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
               >
             {/* Close Button */}
             <TouchableOpacity 
@@ -337,12 +344,13 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
               <View style={[styles.saveTemplateCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', borderColor: theme.primary + '30' }]}>
                 <Text style={[styles.saveTemplateLabel, { color: theme.text }]}>Template Name</Text>
                 <TextInput
-                  style={[styles.saveTemplateInput, { color: theme.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }]}
+                  style={[styles.saveTemplateInput, { color: theme.text, backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)', borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)' }]}
                   value={templateName}
                   onChangeText={setTemplateName}
                   placeholder="e.g. Push Day A"
                   placeholderTextColor={theme.textSecondary}
                   autoFocus
+                  selectionColor={theme.primary}
                 />
                 <View style={styles.saveTemplateActions}>
                   <TouchableOpacity
@@ -374,6 +382,7 @@ const WorkoutCompletionModal = ({ visible, onClose, workoutData, workoutCount = 
             </View>
           </BlurView>
         </Animated.View>
+        </KeyboardAvoidingView>
       </View>
   );
 };
@@ -387,6 +396,11 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+  },
+  keyboardAvoid: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   container: {
     width: '90%',
@@ -556,12 +570,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   saveTemplateInput: {
-    fontSize: 15,
+    fontSize: 16,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 12,
+    minHeight: 44,
   },
   saveTemplateActions: {
     flexDirection: 'row',

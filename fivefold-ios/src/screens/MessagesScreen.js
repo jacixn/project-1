@@ -27,6 +27,7 @@ import { subscribeToConversations, cleanupAllOldMessages } from '../services/mes
 import { getFriendsWithStats } from '../services/friendsService';
 import { getBlockedUsers, getBlockedByUsers } from '../services/reportService';
 import ReportBlockModal from '../components/ReportBlockModal';
+import AvatarDisplay from '../components/AvatarDisplay';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
 
@@ -34,7 +35,7 @@ const MessagesScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -121,15 +122,7 @@ const MessagesScreen = () => {
       style={[styles.friendChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFF' }]}
       onPress={() => handleNewMessage(item)}
     >
-      {item.profilePicture ? (
-        <Image source={{ uri: item.profilePicture }} style={styles.friendChipAvatar} />
-      ) : (
-        <View style={[styles.friendChipAvatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
-          <Text style={[styles.friendChipInitial, { color: theme.primary }]}>
-            {(item.displayName || 'F').charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
+      <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={32} />
       <Text style={[styles.friendChipName, { color: theme.text }]} numberOfLines={1}>
         {item.displayName?.split(' ')[0] || 'Friend'}
       </Text>
@@ -151,15 +144,7 @@ const MessagesScreen = () => {
         activeOpacity={0.7}
       >
         <View style={styles.avatarWrap}>
-          {item.otherUser?.profilePicture ? (
-            <Image source={{ uri: item.otherUser.profilePicture }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
-              <Text style={[styles.avatarInitial, { color: theme.primary }]}>
-                {(item.otherUser?.displayName || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <AvatarDisplay profilePicture={item.otherUser?.profilePicture} displayName={item.otherUser?.displayName} size={48} />
           {hasUnread && (
             <View style={[styles.unreadBadge, { backgroundColor: theme.primary }]}>
               <Text style={styles.unreadText}>{item.unreadCount}</Text>
@@ -201,7 +186,7 @@ const MessagesScreen = () => {
           </Text>
           <TouchableOpacity
             style={[styles.signInButton, { backgroundColor: theme.primary }]}
-            onPress={() => navigation.navigate('Auth')}
+            onPress={() => signOut()}
           >
             <Text style={styles.signInButtonText}>Sign In</Text>
           </TouchableOpacity>

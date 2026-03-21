@@ -73,7 +73,7 @@ const ICloudSyncStatus = () => {
             {isSyncing 
               ? 'Syncing...' 
               : error 
-                ? `Error: ${error}` 
+                ? 'Sync failed. Please try again.' 
                 : `Last synced: ${formatLastSync(lastSync)}`
             }
           </Text>

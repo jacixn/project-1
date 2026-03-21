@@ -133,7 +133,7 @@ const PrayerSection = () => {
         hapticFeedback.success();
         Alert.alert('Prayer Added! 🙏', `"${inputName}" has been added to your prayers.`);
       } else {
-        Alert.alert('Save Failed', result.error || 'Could not save prayer');
+        Alert.alert('Save Failed', 'Unable to save your prayer. Please try again.');
       }
     } catch (error) {
       console.error('❌ ERROR SAVING PRAYER:', error);
@@ -178,7 +178,7 @@ const PrayerSection = () => {
         hapticFeedback.success();
         Alert.alert('Time Updated! ⏰', `Prayer time changed to ${convertTime(selectedTime)}`);
       } else {
-        Alert.alert('Update Failed', result.error || 'Could not update time');
+        Alert.alert('Update Failed', 'Unable to update the prayer time. Please try again.');
       }
     } catch (error) {
       console.error('❌ ERROR UPDATING TIME:', error);
@@ -215,7 +215,7 @@ const PrayerSection = () => {
         hapticFeedback.success();
         Alert.alert('Name Updated! ✏️', `Prayer renamed to "${inputName}"`);
       } else {
-        Alert.alert('Update Failed', result.error || 'Could not update name');
+        Alert.alert('Update Failed', 'Unable to update the prayer name. Please try again.');
       }
     } catch (error) {
       console.error('❌ ERROR UPDATING NAME:', error);
@@ -243,7 +243,7 @@ const PrayerSection = () => {
                 hapticFeedback.success();
                 Alert.alert('Prayer Deleted! 🗑️', `"${prayer.name}" has been removed.`);
               } else {
-                Alert.alert('Delete Failed', result.error || 'Could not delete prayer');
+                Alert.alert('Delete Failed', 'Unable to delete this prayer. Please try again.');
               }
             } catch (error) {
               console.error('❌ ERROR DELETING PRAYER:', error);
@@ -294,7 +294,7 @@ const PrayerSection = () => {
           [{ text: 'Amen! 🙏', style: 'default' }]
         );
       } else {
-        Alert.alert('Complete Failed', result.error || 'Could not complete prayer');
+        Alert.alert('Complete Failed', 'Unable to complete this prayer. Please try again.');
       }
     } catch (error) {
       console.error('❌ ERROR COMPLETING PRAYER:', error);

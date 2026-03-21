@@ -30,6 +30,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { checkUsernameAvailability, resolveIdentifierToEmail } from '../services/authService';
 import { hapticFeedback } from '../utils/haptics';
+import profanityFilter from '../services/profanityFilterService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -164,7 +165,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         return;
       }
       hapticFeedback.error();
-      Alert.alert('Login Failed', error.message);
+      Alert.alert('Login Failed', 'Incorrect email or password. Please try again.');
     }
   };
   
@@ -186,7 +187,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
       setResolvedEmail('');
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Verification Failed', error.message);
+      Alert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
     } finally {
       setTwoFALoading(false);
     }
@@ -207,7 +208,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         setTwoFAResendCooldown(60);
       } else {
         hapticFeedback.error();
-        Alert.alert('Resend Failed', error.message);
+        Alert.alert('Resend Failed', 'Unable to resend the code. Please try again later.');
       }
     } finally {
       setTwoFALoading(false);
@@ -234,14 +235,19 @@ const AuthScreen = ({ onAuthSuccess }) => {
       Alert.alert('Username Unavailable', 'Please choose a different username.');
       return;
     }
-    
+
+    if (profanityFilter.containsProfanity(username) || profanityFilter.containsProfanity(displayName)) {
+      Alert.alert('Inappropriate Content', 'Please choose a different username or display name.');
+      return;
+    }
+
     try {
       hapticFeedback.light();
       await signUp({ email, password, username, displayName });
       hapticFeedback.success();
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Sign Up Failed', error.message);
+      Alert.alert('Sign Up Failed', 'Unable to create your account. The email or username may already be in use.');
     }
   };
   
@@ -261,7 +267,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         emailForReset = await resolveIdentifierToEmail(email);
       } catch (resolveError) {
         hapticFeedback.error();
-        Alert.alert('Reset Failed', resolveError.message);
+        Alert.alert('Reset Failed', 'We couldn\'t find an account with that email or username.');
         setResetLoading(false);
         return;
       }
@@ -280,7 +286,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
       setResendCooldown(60);
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Reset Failed', error.message);
+      Alert.alert('Reset Failed', 'Unable to send the reset code. Please try again later.');
     } finally {
       setResetLoading(false);
     }
@@ -320,7 +326,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
       );
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Reset Failed', error.message);
+      Alert.alert('Reset Failed', 'Unable to reset your password. Please check the code and try again.');
     } finally {
       setResetLoading(false);
     }
@@ -337,7 +343,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
       setResendCooldown(60);
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Resend Failed', error.message);
+      Alert.alert('Resend Failed', 'Unable to resend the code. Please try again later.');
     } finally {
       setResetLoading(false);
     }

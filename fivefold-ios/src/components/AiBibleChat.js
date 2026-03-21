@@ -15,6 +15,8 @@ import {
   Dimensions,
   Image,
   ActionSheetIOS,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
@@ -243,6 +245,16 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [gymUserData, setGymUserData] = useState(null);
   const scrollViewRef = useRef(null);
+  const micPulseAnim = useRef(new Animated.Value(1)).current;
+  const micGlowAnim = useRef(new Animated.Value(0)).current;
+  const micPulseLoop = useRef(null);
+  const micDragX = useRef(new Animated.Value(0)).current;
+  const micDragY = useRef(new Animated.Value(0)).current;
+  const micScaleAnim = useRef(new Animated.Value(1)).current;
+  const micRing2Anim = useRef(new Animated.Value(1)).current;
+  const micRing2Loop = useRef(null);
+  const isRecordingRef = useRef(false);
+  const isTranscribingRef = useRef(false);
   const chatInputRef = useRef(null);
   const messagesRef = useRef([]);
   const conversationIdRef = useRef(null);
@@ -290,16 +302,24 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     };
   }, [historyStorageKey]);
 
-  // Stop audio when modal closes
+  // Stop audio and recording when modal closes
   useEffect(() => {
     if (!visible) {
       chatterboxService.stop();
       googleTtsService.stop();
+      speechToTextService.cancelRecording();
+      stopMicAnimation();
+      isRecordingRef.current = false;
+      isTranscribingRef.current = false;
       setIsSpeaking(false);
       setSpeakingMessageId(null);
       setIsLoadingAudio(false);
       setLoadingAudioMessageId(null);
       setIsPaused(false);
+      setIsRecording(false);
+      setIsTranscribing(false);
+    } else {
+      speechToTextService.preWarm();
     }
   }, [visible]);
 
@@ -879,48 +899,119 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     setAttachedImage(null);
   };
 
-  // Voice input handlers
-  const handleVoiceStart = async () => {
-    hapticFeedback.medium();
-    const result = await speechToTextService.startRecording();
-    if (result.success) {
-      setIsRecording(true);
-    } else if (result.needsRebuild) {
-      // Voice input not available without rebuild - show friendly message
-      Alert.alert(
-        'Voice Input', 
-        'Voice input will be available in the next app update. For now, please type your message.',
-        [{ text: 'OK', style: 'default' }]
-      );
-    } else {
-      Alert.alert('Microphone Access', result.error || 'Could not start recording. Please check your microphone permissions.');
-    }
+  // Voice input — animation helpers
+  const startMicAnimation = () => {
+    micGlowAnim.setValue(0);
+    Animated.timing(micGlowAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+    Animated.spring(micScaleAnim, { toValue: 1.15, friction: 4, useNativeDriver: false }).start();
+
+    micPulseLoop.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(micPulseAnim, { toValue: 1.6, duration: 800, useNativeDriver: false }),
+        Animated.timing(micPulseAnim, { toValue: 1, duration: 800, useNativeDriver: false }),
+      ])
+    );
+    micPulseLoop.current.start();
+
+    micRing2Loop.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(micRing2Anim, { toValue: 1.9, duration: 1000, useNativeDriver: false }),
+        Animated.timing(micRing2Anim, { toValue: 1, duration: 1000, useNativeDriver: false }),
+      ])
+    );
+    micRing2Loop.current.start();
   };
 
-  const handleVoiceStop = async () => {
-    if (!isRecording) return;
-    
-    hapticFeedback.light();
-    setIsRecording(false);
-    setIsTranscribing(true);
-    
-    const result = await speechToTextService.stopRecording();
-    setIsTranscribing(false);
-    
-    if (result.success && result.text) {
-      // Set the transcribed text in the input field
-      setInputText(prev => prev ? `${prev} ${result.text}` : result.text);
-      hapticFeedback.success();
-    } else if (result.error) {
-      // Don't show alert for minor errors, just log
-      console.log('Voice transcription:', result.error);
-    }
+  const stopMicAnimation = () => {
+    if (micPulseLoop.current) micPulseLoop.current.stop();
+    if (micRing2Loop.current) micRing2Loop.current.stop();
+    micPulseAnim.setValue(1);
+    micRing2Anim.setValue(1);
+    micGlowAnim.setValue(0);
+    micScaleAnim.setValue(1);
+    micDragX.setValue(0);
+    micDragY.setValue(0);
   };
+
+  // Voice input — finalize recording after release.
+  // stopRecording() internally awaits _startPromise, so it's safe even
+  // if the user released their finger before startRecording() finished.
+  const finalizeRecording = async () => {
+    setIsTranscribing(true);
+    isTranscribingRef.current = true;
+    try {
+      const result = await speechToTextService.stopRecording();
+      if (result.success && result.text) {
+        setInputText(prev => prev ? `${prev} ${result.text}` : result.text);
+        hapticFeedback.success();
+      } else if (result.rateLimited) {
+        Alert.alert('Daily Limit Reached', 'You\'ve reached your daily limit for this feature. Please try again tomorrow.');
+      } else if (result.error) {
+        console.log('Voice transcription:', result.error);
+      }
+    } catch (e) {
+      console.log('Voice finalizeRecording error:', e);
+    }
+    setIsTranscribing(false);
+    isTranscribingRef.current = false;
+  };
+
+  // PanResponder for hold-to-record with drag support
+  const micPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        if (isRecordingRef.current || isTranscribingRef.current) return;
+        isRecordingRef.current = true;
+        hapticFeedback.medium();
+        startMicAnimation();
+        // Defer the state update so the JS thread stays free for drag events
+        requestAnimationFrame(() => { setIsRecording(true); });
+        // Defer native audio setup so the first drag frames render without bridge congestion
+        setTimeout(() => {
+          if (!isRecordingRef.current) return;
+          speechToTextService.startRecording().then(result => {
+            if (!result.success && !result.cancelled) {
+              isRecordingRef.current = false;
+              stopMicAnimation();
+              setIsRecording(false);
+              if (result.error) {
+                Alert.alert('Voice Input', 'Unable to start voice recording. Please check your microphone permissions.');
+              }
+            }
+          });
+        }, 250);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (!isRecordingRef.current) return;
+        micDragX.setValue(gestureState.dx * 0.3);
+        micDragY.setValue(gestureState.dy * 0.3);
+      },
+      onPanResponderRelease: () => {
+        if (!isRecordingRef.current && !isTranscribingRef.current) return;
+        hapticFeedback.light();
+        isRecordingRef.current = false;
+        stopMicAnimation();
+        setIsRecording(false);
+        finalizeRecording();
+      },
+      onPanResponderTerminate: () => {
+        if (!isRecordingRef.current && !isTranscribingRef.current) return;
+        hapticFeedback.light();
+        isRecordingRef.current = false;
+        stopMicAnimation();
+        setIsRecording(false);
+        finalizeRecording();
+      },
+    })
+  ).current;
 
   const handleVoiceCancel = async () => {
-    if (!isRecording) return;
-    
+    if (!isRecording && !isRecordingRef.current) return;
     hapticFeedback.light();
+    isRecordingRef.current = false;
+    stopMicAnimation();
     await speechToTextService.cancelRecording();
     setIsRecording(false);
   };
@@ -1100,14 +1191,18 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   const handleClose = async () => {
     hapticFeedback.light();
-    // Stop any playing audio before closing
+    // Stop any playing audio or active recording before closing
     await chatterboxService.stop();
     await googleTtsService.stop();
+    await speechToTextService.cancelRecording();
+    stopMicAnimation();
     setIsSpeaking(false);
     setSpeakingMessageId(null);
     setIsLoadingAudio(false);
     setLoadingAudioMessageId(null);
     setIsPaused(false);
+    setIsRecording(false);
+    setIsTranscribing(false);
     onClose();
   };
 
@@ -1483,49 +1578,23 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
                 />
               </TouchableOpacity>
 
-              {/* Voice Input Button */}
-              <TouchableOpacity
-                style={[
-                  styles.voiceButton,
-                  isRecording && styles.voiceButtonRecording,
-                  isRecording && { backgroundColor: '#FF4444' }
-                ]}
-                onPress={isRecording ? handleVoiceStop : handleVoiceStart}
-                onLongPress={handleVoiceStart}
-                disabled={isLoading || isTranscribing}
-              >
-                {isTranscribing ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <MaterialIcons 
-                    name={isRecording ? 'stop' : 'mic'} 
-                    size={22} 
-                    color={isRecording ? '#FFFFFF' : theme.textSecondary} 
-                  />
-                )}
-              </TouchableOpacity>
-              
               <TextInput
                 ref={chatInputRef}
                 style={[styles.textInput, { 
-                  color: theme.text || (isDark ? '#FFFFFF' : '#000000'), // Fallback colors
-                  backgroundColor: 'transparent' // Ensure background is transparent
+                  color: theme.text || (isDark ? '#FFFFFF' : '#000000'),
+                  backgroundColor: 'transparent'
                 }]}
                 placeholder={isRecording ? "Listening..." : isTranscribing ? "Processing voice..." : "Ask me anything..."}
                 placeholderTextColor={theme.textSecondary || (isDark ? '#AAAAAA' : '#666666')}
                 value={inputText}
                 onChangeText={(text) => {
-                  // Handle text input change
                   setInputText(text);
                 }}
                 onFocus={() => {
-                  console.log('💬 Text input focused');
-                  // Scroll to bottom when input is focused
                   setTimeout(() => {
                     scrollViewRef.current?.scrollToEnd({ animated: true });
                   }, 300);
                 }}
-                multiline
                 maxLength={1000}
                 onSubmitEditing={() => sendMessage()}
                 autoCorrect={true}
@@ -1533,13 +1602,73 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
                 returnKeyType="send"
                 blurOnSubmit={false}
               />
-              <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: (inputText.trim() || attachedImage) ? theme.primary : theme.textSecondary }]}
-                onPress={() => sendMessage()}
-                disabled={(!inputText.trim() && !attachedImage) || isLoading || isProcessingImage}
-              >
-                <MaterialIcons name="send" size={20} color="#ffffff" />
-              </TouchableOpacity>
+
+              {/* Voice Input Button — hold to record, drag anywhere */}
+              <View style={styles.micContainer}>
+                {/* Outer pulse ring (slow, large) — always mounted, visibility via animation */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.micPulseRingOuter,
+                    {
+                      borderColor: theme.primary,
+                      opacity: micGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] }),
+                      transform: [{ scale: micRing2Anim }],
+                    },
+                  ]}
+                />
+                {/* Inner pulse ring */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.micPulseRing,
+                    {
+                      borderColor: theme.primary,
+                      opacity: micGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.25] }),
+                      transform: [{ scale: micPulseAnim }],
+                    },
+                  ]}
+                />
+                {/* Glow backdrop */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.micGlowBackdrop,
+                    {
+                      backgroundColor: theme.primary,
+                      opacity: micGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.15] }),
+                    },
+                  ]}
+                />
+                {/* Draggable mic button */}
+                <Animated.View
+                  {...micPanResponder.panHandlers}
+                  style={[
+                    styles.voiceButton,
+                    {
+                      backgroundColor: micGlowAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['transparent', theme.primary || '#E91E63'],
+                      }),
+                      transform: [
+                        { translateX: micDragX },
+                        { translateY: micDragY },
+                        { scale: micScaleAnim },
+                      ],
+                    },
+                  ]}
+                >
+                  {isTranscribing ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <MaterialIcons
+                      name="mic"
+                      size={22}
+                      color={isRecording ? '#FFFFFF' : theme.textSecondary}
+                    />
+                  )}
+                </Animated.View>
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -1743,6 +1872,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       <BlurView 
         intensity={20} 
         tint={isDark ? 'dark' : 'light'} 
+        pointerEvents="box-none"
         style={{ 
           position: 'absolute', 
           top: 0, 
@@ -2079,16 +2209,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 4,
   },
+  micContainer: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    overflow: 'visible',
+  },
+  micPulseRing: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2.5,
+  },
+  micPulseRingOuter: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+  micGlowBackdrop: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
   voiceButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-  },
-  voiceButtonRecording: {
-    transform: [{ scale: 1.1 }],
   },
   attachedImageContainer: {
     marginBottom: 12,

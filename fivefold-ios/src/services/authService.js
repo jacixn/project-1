@@ -507,7 +507,7 @@ export const getAuthErrorMessage = (error) => {
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection.';
     default:
-      return error.message || 'An error occurred. Please try again.';
+      return 'An error occurred. Please try again.';
   }
 };
 

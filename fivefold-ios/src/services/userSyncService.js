@@ -591,14 +591,28 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded userPrayers from cloud');
     }
     
-    // Hub posting token data
-    if (cloudData.hubPostingToken) {
-      await userStorage.setRaw('hub_posting_token', JSON.stringify(cloudData.hubPostingToken));
-      console.log('[Sync] Downloaded hub_posting_token from cloud');
-    }
-    if (cloudData.hubTokenSchedule) {
-      await userStorage.setRaw('hub_token_schedule', JSON.stringify(cloudData.hubTokenSchedule));
-      console.log('[Sync] Downloaded hub_token_schedule from cloud');
+    // Hub posting token data — don't overwrite if local token was already consumed today
+    if (cloudData.hubPostingToken || cloudData.hubTokenSchedule) {
+      const today = new Date().toISOString().split('T')[0];
+      const localTokenStr = await userStorage.getRaw('hub_posting_token');
+      const localToken = localTokenStr ? JSON.parse(localTokenStr) : null;
+      const localScheduleStr = await userStorage.getRaw('hub_token_schedule');
+      const localSchedule = localScheduleStr ? JSON.parse(localScheduleStr) : null;
+      const tokenUsedLocally = (localToken?.date === today && localToken?.available === false) ||
+                               localSchedule?.tokenUsedDate === today;
+      
+      if (tokenUsedLocally) {
+        console.log('[Sync] Skipping hub token download — token already consumed locally today');
+      } else {
+        if (cloudData.hubPostingToken) {
+          await userStorage.setRaw('hub_posting_token', JSON.stringify(cloudData.hubPostingToken));
+          console.log('[Sync] Downloaded hub_posting_token from cloud');
+        }
+        if (cloudData.hubTokenSchedule) {
+          await userStorage.setRaw('hub_token_schedule', JSON.stringify(cloudData.hubTokenSchedule));
+          console.log('[Sync] Downloaded hub_token_schedule from cloud');
+        }
+      }
     }
     
     // Active todos/tasks - merge by ID, preserve local completion state
@@ -933,6 +947,30 @@ export const downloadAndMergeCloudData = async (userId) => {
     if (cloudData.visions && Array.isArray(cloudData.visions)) {
       const merged = await mergeArraysById('visions', cloudData.visions);
       console.log(`[Sync] Merged visions: ${merged?.length || 0} total`);
+    }
+
+    // Reminders — merge by ID, keep local-only additions
+    if (cloudData.user_reminders && cloudData.user_reminders.reminders && Array.isArray(cloudData.user_reminders.reminders)) {
+      const localStr = await userStorage.getRaw('fivefold_user_reminders');
+      const localData = localStr ? JSON.parse(localStr) : { reminders: [] };
+      const localReminders = localData.reminders || [];
+
+      const localMap = new Map();
+      localReminders.forEach(r => { if (r.id) localMap.set(r.id, r); });
+
+      cloudData.user_reminders.reminders.forEach(r => {
+        if (r.id) localMap.set(r.id, r);
+      });
+
+      localReminders.forEach(r => {
+        if (r.id && !cloudData.user_reminders.reminders.find(c => c.id === r.id)) {
+          localMap.set(r.id, r);
+        }
+      });
+
+      const mergedReminders = Array.from(localMap.values());
+      await userStorage.setRaw('fivefold_user_reminders', JSON.stringify({ reminders: mergedReminders }));
+      console.log(`[Sync] Merged reminders: ${mergedReminders.length} total`);
     }
 
     // Habits — merge habits array by ID, keep local-only additions
@@ -1559,6 +1597,13 @@ export const syncAllHistoryToCloud = async (userId) => {
     if (habitsStr) {
       updateData.user_habits = JSON.parse(habitsStr);
       console.log(`[Sync] Including habits (${updateData.user_habits.habits?.length || 0}) in upload`);
+    }
+
+    // Reminders
+    const remindersStr = await userStorage.getRaw('fivefold_user_reminders');
+    if (remindersStr) {
+      updateData.user_reminders = JSON.parse(remindersStr);
+      console.log(`[Sync] Including reminders (${updateData.user_reminders.reminders?.length || 0}) in upload`);
     }
 
     // Daily verse data (verse of the day - per user)

@@ -389,6 +389,13 @@ const DraggableItem = ({ item, onUpdate, onDelete, onTap, isDeleteMode, parallax
   const zIdx = useSharedValue(item.zIndex || 1);
   const didDrag = useSharedValue(false);
 
+  useEffect(() => {
+    posX.value = item.x;
+    posY.value = item.y;
+    savedX.value = item.x;
+    savedY.value = item.y;
+  }, [item.x, item.y]);
+
   const layerMultiplier = item.layer === 0 ? 12 : item.layer === 2 ? 3 : 7;
 
   const panGesture = Gesture.Pan()
@@ -2739,7 +2746,7 @@ const styles = StyleSheet.create({
   },
   envelopeBody: {
     width: 130,
-    height: 130,
+    height: 95,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -2756,7 +2763,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 14,
-    paddingTop: 58,
+    paddingTop: 66,
   },
   envelopeFlapWrap: {
     position: 'absolute',

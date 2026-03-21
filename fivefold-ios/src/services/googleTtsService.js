@@ -616,7 +616,7 @@ class GoogleTtsService {
         if (!rl.allowed) {
           this.isLoading = false;
           this._notifyStateChange('stopped');
-          if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message);
+          if (!rl.alertShown) Alert.alert('Daily Limit Reached', 'You\'ve reached your daily limit for audio playback. Please try again tomorrow.');
           return false;
         }
         await aiRateLimiter.increment('voice');

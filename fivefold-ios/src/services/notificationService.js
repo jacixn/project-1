@@ -825,8 +825,8 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Test Notification',
-          body: 'This is a test from Biblely! Your notifications are working perfectly.',
+          title: 'Biblely',
+          body: 'Your notifications are working perfectly.',
           data: { type: 'test' },
           sound: true,
         },

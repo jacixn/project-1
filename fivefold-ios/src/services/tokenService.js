@@ -57,16 +57,29 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
       const localScheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
       const localSchedule = localScheduleData ? JSON.parse(localScheduleData) : null;
       
-      // If arrival time changed, this is a NEW schedule - reset everything
+      // If arrival time changed, this is a NEW schedule - reset notification flag
       if (!localSchedule || localSchedule.arrivalMinutes !== firebaseSchedule.arrivalMinutes) {
-        // Clear notification sent flag
         await userStorage.remove(NOTIFICATION_SENT_KEY);
-        // Clear the old token so button isn't green
-        await userStorage.remove(TOKEN_STORAGE_KEY);
-        console.log('[Token] New schedule detected - cleared old token and notification flag');
+        
+        // Only clear the token if it was NOT already consumed today
+        const curTokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
+        const curToken = curTokenData ? JSON.parse(curTokenData) : null;
+        const wasUsedToday = (curToken?.date === today && curToken?.available === false) ||
+                             localSchedule?.tokenUsedDate === today;
+        if (!wasUsedToday) {
+          await userStorage.remove(TOKEN_STORAGE_KEY);
+          console.log('[Token] New schedule detected - cleared old token and notification flag');
+        } else {
+          console.log('[Token] New schedule detected but token was already used today - keeping consumed state');
+        }
       }
       
-      // Use Firebase schedule
+      // Read local schedule to preserve tokenUsedDate
+      const localScheduleRaw = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
+      const localScheduleParsed = localScheduleRaw ? JSON.parse(localScheduleRaw) : null;
+      const localTokenUsed = localScheduleParsed?.tokenUsedDate === today;
+      
+      // Use Firebase schedule, but preserve local tokenUsedDate if set
       const schedule = {
         date: firebaseSchedule.date,
         userId: userId,
@@ -76,53 +89,84 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
         tokenDelivered: firebaseSchedule.tokenDelivered || false,
         timezoneOffsetMinutes: firebaseSchedule.timezoneOffsetMinutes ?? new Date().getTimezoneOffset(),
         useServerNotifications: firebaseSchedule.useServerNotifications ?? true,
+        ...(localTokenUsed ? { tokenUsedDate: today } : {}),
       };
       
-      // Check if token should be delivered now based on Firebase time
-      let token = null;
-      console.log(`[Token] Time check - current: ${currentMinutes} min (${now.toLocaleTimeString()}), arrival: ${schedule.arrivalMinutes} min (${schedule.arrivalTime})`);
+      // Also read existing local token to check consumed state
+      const existingTokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
+      const existingToken = existingTokenData ? JSON.parse(existingTokenData) : null;
+      const tokenAlreadyConsumed = existingToken?.date === today && existingToken?.available === false;
       
-      if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
-        console.log('[Token] Time has passed! Delivering token now...');
-        token = {
+      let token = null;
+      console.log(`[Token] Time check - current: ${currentMinutes} min (${now.toLocaleTimeString()}), arrival: ${schedule.arrivalMinutes} min (${schedule.arrivalTime}), localTokenUsed: ${localTokenUsed}, tokenAlreadyConsumed: ${tokenAlreadyConsumed}`);
+      
+      if (localTokenUsed || tokenAlreadyConsumed) {
+        // Token was already used today — never re-create it
+        console.log('[Token] Token already used today - keeping consumed state');
+        token = existingToken?.date === today ? existingToken : {
           date: today,
-          available: true,
-          deliveredAt: new Date().toISOString(),
+          available: false,
+          usedAt: existingToken?.usedAt || new Date().toISOString(),
         };
-        schedule.tokenDelivered = true;
+        if (!existingToken || existingToken.date !== today) {
+          await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
+        }
+      } else if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
+        // Check Firestore as a final guard before delivering
+        let firestoreUsedToday = false;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', userId));
+          if (userDoc.exists() && userDoc.data().tokenUsedDate === today) {
+            firestoreUsedToday = true;
+          }
+        } catch (e) {
+          console.warn('[Token] Could not check tokenUsedDate:', e.message);
+        }
         
-        await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
-        
-        // Update Firebase to show delivered
-        await saveScheduleToFirebase(userId, schedule);
-        
-        // Send immediate notification that token has arrived
-        await sendTokenArrivedNotification();
-        
-        console.log('[Token] Token delivered from Firebase sync at:', new Date().toLocaleTimeString());
+        if (firestoreUsedToday) {
+          console.log('[Token] Firestore says token already used today - not delivering');
+          token = { date: today, available: false, usedAt: new Date().toISOString() };
+          await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
+        } else {
+          console.log('[Token] Time has passed! Delivering token now...');
+          token = {
+            date: today,
+            available: true,
+            deliveredAt: new Date().toISOString(),
+          };
+          schedule.tokenDelivered = true;
+          
+          await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
+          
+          // Update Firebase to show delivered
+          await saveScheduleToFirebase(userId, schedule);
+          
+          // Send immediate notification that token has arrived
+          await sendTokenArrivedNotification();
+          
+          console.log('[Token] Token delivered from Firebase sync at:', new Date().toLocaleTimeString());
+        }
       } else if (schedule.tokenDelivered) {
-        // Token was already delivered (possibly by the server Cloud Function)
-        const tokenData = await userStorage.getRaw(TOKEN_STORAGE_KEY);
-        token = tokenData ? JSON.parse(tokenData) : null;
+        token = existingToken;
         
-        // FIX: If Firebase says token was delivered but it doesn't exist locally
-        // (race condition: server marked tokenDelivered=true before client created it),
-        // create the token now so the user can actually post.
-        // But first check if the user already used their token today (don't re-create consumed tokens).
-        if (!token || token.date !== today) {
-          // Check if the token was already used today via Firestore
+        // Check Firestore if token is missing, stale, OR appears available
+        // (available tokens could be stale from cloud sync overwriting a consumed one)
+        if (!token || token.date !== today || token.available === true) {
           let alreadyUsedToday = false;
           try {
             const userDoc = await getDoc(doc(db, 'users', userId));
             if (userDoc.exists() && userDoc.data().tokenUsedDate === today) {
               alreadyUsedToday = true;
-              console.log('[Token] Token was already used today - not re-creating');
+              console.log('[Token] Token was already used today (Firestore confirmed)');
             }
           } catch (e) {
             console.warn('[Token] Could not check tokenUsedDate:', e.message);
           }
           
-          if (!alreadyUsedToday) {
+          if (alreadyUsedToday) {
+            token = { date: today, available: false, usedAt: new Date().toISOString() };
+            await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
+          } else if (!token || token.date !== today) {
             console.log('[Token] Firebase says delivered but token missing locally - creating now');
             token = {
               date: today,
@@ -130,15 +174,8 @@ export const forceRefreshTokenFromFirebase = async (userId, username = null) => 
               deliveredAt: new Date().toISOString(),
             };
             await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
-          } else {
-            // Token was used - create a consumed token record so state is consistent
-            token = {
-              date: today,
-              available: false,
-              usedAt: new Date().toISOString(),
-            };
-            await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
           }
+          // else: token exists, is today, is available, and Firestore says not used → keep it
         }
       }
       
@@ -314,9 +351,9 @@ export const getTokenStatus = async (userId, username = null) => {
     }
     
     // Check if token should be delivered now.
-    // Guard: schedule must be for TODAY *and* arrival time must have passed.
-    if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered) {
-      // Deliver the token!
+    // Guard: schedule must be for TODAY *and* arrival time must have passed *and* not already used.
+    const alreadyUsedLocally = schedule.tokenUsedDate === today || (token?.date === today && token?.available === false);
+    if (schedule.date === today && isArrivalTimeReached(schedule.arrivalMinutes) && !schedule.tokenDelivered && !alreadyUsedLocally) {
       token = {
         date: today,
         available: true,
@@ -365,20 +402,30 @@ export const useToken = async (userId, username = null) => {
       return { success: false, error: 'No token available' };
     }
     
+    const today = getTodayString();
+    
     // Consume the token
     const token = {
-      date: getTodayString(),
+      date: today,
       available: false,
       usedAt: new Date().toISOString(),
     };
     
     await userStorage.setRaw(TOKEN_STORAGE_KEY, JSON.stringify(token));
     
-    // Also update in Firestore for cross-device sync
+    // Also mark the schedule as used so re-delivery can't happen
+    const scheduleData = await userStorage.getRaw(TOKEN_SCHEDULE_KEY);
+    if (scheduleData) {
+      const schedule = JSON.parse(scheduleData);
+      schedule.tokenUsedDate = today;
+      await userStorage.setRaw(TOKEN_SCHEDULE_KEY, JSON.stringify(schedule));
+    }
+    
+    // Update Firestore for cross-device sync
     if (userId) {
       await setDoc(doc(db, 'users', userId), {
         lastTokenUsed: serverTimestamp(),
-        tokenUsedDate: getTodayString(),
+        tokenUsedDate: today,
       }, { merge: true });
     }
     

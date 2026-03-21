@@ -33,12 +33,13 @@ import {
   cleanupOldChallenges,
 } from '../services/challengeService';
 import * as Haptics from 'expo-haptics';
+import AvatarDisplay from '../components/AvatarDisplay';
 
 const ChallengesScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [challenges, setChallenges] = useState({ pending: [], active: [], completed: [] });
   const [stats, setStats] = useState({ wins: 0, losses: 0, winRate: 0 });
@@ -187,13 +188,7 @@ const ChallengesScreen = () => {
 
         <View style={styles.cardMain}>
           <View style={styles.oppSection}>
-            {opp.pic ? (
-              <Image source={{ uri: opp.pic }} style={styles.oppAvatar} />
-            ) : (
-              <View style={[styles.oppAvatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
-                <Text style={[styles.oppInitial, { color: theme.primary }]}>{(opp.name || 'F').charAt(0)}</Text>
-              </View>
-            )}
+            <AvatarDisplay profilePicture={opp.pic} displayName={opp.name} size={40} />
             <View>
               <Text style={[styles.oppLabel, { color: theme.textSecondary }]}>
                 {isPending ? 'From' : item.isChallenger ? 'You vs' : 'vs'}
@@ -260,7 +255,7 @@ const ChallengesScreen = () => {
           </View>
           <Text style={[styles.signInTitle, { color: theme.text }]}>Challenges</Text>
           <Text style={[styles.signInSubtitle, { color: theme.textSecondary }]}>Sign in to compete</Text>
-          <TouchableOpacity style={[styles.signInButton, { backgroundColor: theme.primary }]} onPress={() => navigation.navigate('Auth')}>
+          <TouchableOpacity style={[styles.signInButton, { backgroundColor: theme.primary }]} onPress={() => signOut()}>
             <Text style={styles.signInButtonText}>Sign In</Text>
           </TouchableOpacity>
         </View>

@@ -34,26 +34,23 @@ import {
   subscribeToMessages,
   sendTextMessage,
   sendEncouragementMessage,
-  sendImageMessage,
   markAsRead,
   getConversationId,
   cleanupOldMessages,
 } from '../services/messageService';
 import EncouragementPicker from '../components/EncouragementPicker';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../services/storageService';
 import profanityFilter from '../services/profanityFilterService';
 import userStorage from '../utils/userStorage';
 import { setActiveChatUser, clearActiveChatUser } from '../services/notificationService';
 import { BlurView } from 'expo-blur';
 import ReportBlockModal from '../components/ReportBlockModal';
+import AvatarDisplay from '../components/AvatarDisplay';
 import { isRestricted } from '../services/restrictionService';
 import { isEitherBlocked } from '../services/reportService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
 
 // ── First-Time Messaging Disclaimer ──
 const MessagingDisclaimer = ({ visible, onAccept, theme, isDark }) => {
@@ -333,7 +330,6 @@ const ChatScreen = () => {
   const [chatBlocked, setChatBlocked] = useState(false);
   const [sending, setSending] = useState(false);
   const [showEncouragements, setShowEncouragements] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -611,70 +607,6 @@ const ChatScreen = () => {
     }
   };
 
-  const handlePickImage = async () => {
-    if (uploadingImage) return;
-
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photos to send images.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 0.7,
-      });
-
-      if (result.canceled || !result.assets?.[0]) return;
-
-      const asset = result.assets[0];
-      setUploadingImage(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      let activeConversationId = conversationId;
-      if (!activeConversationId) {
-        if (!user?.uid || !otherUserId) {
-          Alert.alert('Unable to Send', 'Please try again later.');
-          setUploadingImage(false);
-          return;
-        }
-        const conversation = await createOrGetConversation(
-          user.uid,
-          userProfile,
-          otherUserId,
-          otherUser
-        );
-        activeConversationId = conversation.id;
-        setConversationId(conversation.id);
-      }
-
-      const imagePath = `chat-images/${activeConversationId}/${user.uid}_${Date.now()}.jpg`;
-      const imageUrl = await uploadImage(imagePath, asset.uri);
-
-      await sendImageMessage(
-        activeConversationId,
-        user.uid,
-        userProfile?.displayName || 'User',
-        imageUrl,
-        asset.width,
-        asset.height,
-        otherUserId
-      );
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-
-    } catch (error) {
-      console.error('Error sending image:', error);
-      Alert.alert('Error', 'Failed to send image. Please try again.');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   // Helper: get just the time string
   const getTimeOnly = (timestamp) => {
     if (!timestamp) return '';
@@ -752,23 +684,9 @@ const ChatScreen = () => {
     const showTimestamp = shouldShowTimestamp(index);
     const isEncouragement = item.type === 'encouragement';
     const isVerse = item.type === 'verse';
-    const isImage = item.type === 'image';
 
-    // Only show avatar on the LAST message in a consecutive group from the same sender
-    // (next message is from a different sender, or this is the last message, or next has a timestamp gap)
     const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
     const isLastInGroup = !nextMsg || nextMsg.senderId !== item.senderId || shouldShowTimestamp(index + 1);
-
-    // Calculate image dimensions
-    const getImageDimensions = () => {
-      if (!item.metadata?.width || !item.metadata?.height) {
-        return { width: MAX_IMAGE_WIDTH, height: MAX_IMAGE_WIDTH * 0.75 };
-      }
-      const aspectRatio = item.metadata.width / item.metadata.height;
-      const width = Math.min(MAX_IMAGE_WIDTH, item.metadata.width);
-      const height = width / aspectRatio;
-      return { width, height: Math.min(height, 300) };
-    };
 
     const showDayHeader = isDifferentDay(index);
     const msgDate = item.createdAt?.toDate?.() || new Date(item.createdAt);
@@ -790,13 +708,7 @@ const ChatScreen = () => {
         ]}>
           {/* Only show avatar on the last message in a consecutive group */}
           {!isMe && isLastInGroup && (
-            otherUser?.profilePicture ? (
-              <Image source={{ uri: otherUser.profilePicture }} style={styles.messageAvatar} />
-            ) : (
-              <View style={[styles.messageAvatarPlaceholder, { backgroundColor: theme.primary + '30' }]}>
-                <MaterialIcons name="person" size={14} color={theme.primary} />
-              </View>
-            )
+            <AvatarDisplay profilePicture={otherUser?.profilePicture} displayName={otherUser?.displayName} size={24} />
           )}
           {/* Invisible spacer to keep alignment when avatar is hidden */}
           {!isMe && !isLastInGroup && (
@@ -808,7 +720,6 @@ const ChatScreen = () => {
             isMe && [styles.messageBubbleMe, { backgroundColor: theme.primary }],
             !isMe && [styles.messageBubbleOther, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }],
             isEncouragement && styles.encouragementBubble,
-            isImage && styles.imageBubble,
           ]}>
             {isEncouragement && (
               <View style={styles.encouragementIcon}>
@@ -834,25 +745,13 @@ const ChatScreen = () => {
               </View>
             )}
             
-            {/* Image message */}
-            {isImage && item.metadata?.imageUrl && (
-              <Image 
-                source={{ uri: item.metadata.imageUrl }} 
-                style={[styles.messageImage, getImageDimensions()]}
-                resizeMode="cover"
-              />
-            )}
-            
-            {/* Text content (hide for image messages) */}
-            {!isImage && (
-              <Text style={[
+            <Text style={[
                 styles.messageText,
                 { color: isMe ? '#FFF' : theme.text },
                 isEncouragement && styles.encouragementText,
               ]}>
                 {item.content}
               </Text>
-            )}
             
             {isVerse && item.metadata?.note && (
               <Text style={[styles.verseNote, { color: isMe ? 'rgba(255,255,255,0.7)' : theme.textSecondary }]}>
@@ -962,15 +861,7 @@ const ChatScreen = () => {
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         
-        {otherUser?.profilePicture ? (
-          <Image source={{ uri: otherUser.profilePicture }} style={styles.headerAvatar} />
-        ) : (
-          <View style={[styles.headerAvatarPlaceholder, { backgroundColor: theme.primary + '15' }]}>
-            <Text style={[styles.headerAvatarText, { color: theme.primary }]}>
-              {(otherUser?.displayName || 'F').charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <AvatarDisplay profilePicture={otherUser?.profilePicture} displayName={otherUser?.displayName} size={32} style={styles.headerAvatar} />
         
         <View style={styles.headerInfo}>
           <View style={styles.headerNameRow}>
@@ -1294,15 +1185,6 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: 9,
     fontWeight: '500',
-  },
-  // Image messages
-  imageBubble: {
-    padding: 4,
-    overflow: 'hidden',
-  },
-  messageImage: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(128,128,128,0.2)',
   },
   // Input
   inputContainer: {

@@ -10,21 +10,21 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
 
-// Reduced from 20 to 12 for performance
 const CONFETTI_COUNT = 12;
 
 const TaskCompletionCelebration = ({ visible, task, onClose }) => {
   const { theme, isDark } = useTheme();
   
-  // Animation values
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const checkScaleAnim = useRef(new Animated.Value(0)).current;
   const pointsScaleAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
   const confettiAnims = useRef(
     Array.from({ length: CONFETTI_COUNT }, () => ({
       y: new Animated.Value(-100),
@@ -34,9 +34,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
     }))
   ).current;
 
-  // Track ALL timeouts so we can clear them on cleanup
   const timersRef = useRef([]);
-  // Track if close has already been called to prevent double-fires
   const closingRef = useRef(false);
 
   const safeTimeout = useCallback((fn, delay) => {
@@ -54,6 +52,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
     scaleAnim.stopAnimation();
     checkScaleAnim.stopAnimation();
     pointsScaleAnim.stopAnimation();
+    shimmerAnim.stopAnimation();
     confettiAnims.forEach(anim => {
       anim.y.stopAnimation();
       anim.rotation.stopAnimation();
@@ -61,48 +60,34 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
     });
   }, []);
 
-  // Stable handleClose that ALWAYS calls onClose, never depends on animation callback
   const handleClose = useCallback(() => {
-    if (closingRef.current) return; // Prevent double-close
+    if (closingRef.current) return;
     closingRef.current = true;
-
-    // Stop everything
     clearAllTimers();
     stopAllAnimations();
-
-    // Quick exit animation — but call onClose on a timer as a safety net
-    // so even if the animation gets interrupted, onClose still fires
     Animated.timing(scaleAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
     }).start();
-
-    // ALWAYS call onClose after a short delay, regardless of animation state
-    setTimeout(() => {
-      onClose();
-    }, 180);
+    setTimeout(() => { onClose(); }, 180);
   }, [onClose, clearAllTimers, stopAllAnimations]);
 
   useEffect(() => {
     if (visible && task) {
-      // Reset closing flag for new celebration
       closingRef.current = false;
-
-      // Success haptic
       hapticFeedback.success();
       
-      // Reset animations
       scaleAnim.setValue(0);
       checkScaleAnim.setValue(0);
       pointsScaleAnim.setValue(0);
+      shimmerAnim.setValue(0);
       confettiAnims.forEach(anim => {
         anim.y.setValue(-100);
         anim.opacity.setValue(1);
         anim.rotation.setValue(0);
       });
 
-      // Card entrance
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 50,
@@ -110,25 +95,13 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
         useNativeDriver: true,
       }).start();
 
-      // Check mark animation
       safeTimeout(() => {
         Animated.sequence([
-          Animated.spring(checkScaleAnim, {
-            toValue: 1.2,
-            tension: 100,
-            friction: 3,
-            useNativeDriver: true,
-          }),
-          Animated.spring(checkScaleAnim, {
-            toValue: 1,
-            tension: 100,
-            friction: 5,
-            useNativeDriver: true,
-          }),
+          Animated.spring(checkScaleAnim, { toValue: 1.15, tension: 100, friction: 3, useNativeDriver: true }),
+          Animated.spring(checkScaleAnim, { toValue: 1, tension: 100, friction: 5, useNativeDriver: true }),
         ]).start();
       }, 200);
 
-      // Points animation
       safeTimeout(() => {
         Animated.spring(pointsScaleAnim, {
           toValue: 1,
@@ -138,67 +111,40 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
         }).start();
       }, 400);
 
-      // Confetti animation
+      Animated.loop(
+        Animated.timing(shimmerAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+      ).start();
+
       safeTimeout(() => {
         confettiAnims.forEach((anim) => {
           Animated.parallel([
-            Animated.timing(anim.y, {
-              toValue: height + 100,
-              duration: 2000 + Math.random() * 1000,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim.rotation, {
-              toValue: Math.random() * 720 - 360,
-              duration: 2000 + Math.random() * 1000,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim.opacity, {
-              toValue: 0,
-              duration: 2000,
-              useNativeDriver: true,
-            }),
+            Animated.timing(anim.y, { toValue: height + 100, duration: 2000 + Math.random() * 1000, useNativeDriver: true }),
+            Animated.timing(anim.rotation, { toValue: Math.random() * 720 - 360, duration: 2000 + Math.random() * 1000, useNativeDriver: true }),
+            Animated.timing(anim.opacity, { toValue: 0, duration: 2000, useNativeDriver: true }),
           ]).start();
         });
       }, 300);
 
-      // Auto dismiss after 2.5 seconds
-      safeTimeout(() => {
-        handleClose();
-      }, 2500);
+      safeTimeout(() => { handleClose(); }, 2500);
 
-      return () => {
-        clearAllTimers();
-        stopAllAnimations();
-      };
+      return () => { clearAllTimers(); stopAllAnimations(); };
     }
   }, [visible, task, handleClose, safeTimeout, clearAllTimers, stopAllAnimations]);
 
   if (!task) return null;
 
-  const getTierColor = (tier) => {
-    switch (tier) {
-      case 'low': return '#22c55e';
-      case 'mid': return '#f59e0b';
-      case 'high': return '#ef4444';
-      default: return theme.primary;
-    }
+  const tierConfig = {
+    low: { colors: ['#34d399', '#10b981'], label: 'Quick Win', icon: 'flash-on' },
+    mid: { colors: ['#fbbf24', '#f59e0b'], label: 'Solid Work', icon: 'trending-up' },
+    high: { colors: ['#f87171', '#ef4444'], label: 'Major Task', icon: 'whatshot' },
   };
+  const tier = tierConfig[task.tier] || tierConfig.mid;
 
   const confettiColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={handleClose}
-      >
-        {/* Confetti */}
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
         {confettiAnims.map((anim, index) => (
           <Animated.View
             key={index}
@@ -209,10 +155,7 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
                 transform: [
                   { translateX: anim.x },
                   { translateY: anim.y },
-                  { rotate: anim.rotation.interpolate({
-                    inputRange: [0, 360],
-                    outputRange: ['0deg', '360deg']
-                  })},
+                  { rotate: anim.rotation.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) },
                 ],
                 opacity: anim.opacity,
               },
@@ -220,76 +163,63 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
           />
         ))}
 
-        {/* Main Card */}
-        <Animated.View
-          style={[
-            styles.cardContainer,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.card}>
-            {/* Success Check Mark */}
-            <Animated.View
-              style={[
-                styles.checkContainer,
-                { 
-                  backgroundColor: getTierColor(task.tier),
-                  transform: [{ scale: checkScaleAnim }],
-                },
-              ]}
-            >
-              <MaterialIcons name="check" size={48} color="#fff" />
-            </Animated.View>
+        <Animated.View style={[styles.cardContainer, { transform: [{ scale: scaleAnim }] }]}>
+          <BlurView
+            intensity={isDark ? 50 : 80}
+            tint={isDark ? 'dark' : 'light'}
+            style={styles.card}
+          >
+            <View style={[styles.cardInner, { backgroundColor: isDark ? 'rgba(15,15,25,0.5)' : 'rgba(255,255,255,0.75)' }]}>
+              {/* Top accent line */}
+              <LinearGradient
+                colors={['transparent', ...tier.colors, 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.topAccent}
+              />
 
-            {/* Task Completed Text */}
-            <Text style={[styles.title, { color: theme.text }]}>
-              Task Completed
-            </Text>
+              {/* Check circle */}
+              <Animated.View style={{ transform: [{ scale: checkScaleAnim }] }}>
+                <LinearGradient colors={tier.colors} style={styles.checkCircle}>
+                  <MaterialIcons name="check" size={32} color="#fff" />
+                </LinearGradient>
+              </Animated.View>
 
-            {/* Task Name */}
-            <Text style={[styles.taskName, { color: theme.textSecondary }]} numberOfLines={2}>
-              {task.text}
-            </Text>
+              <Text style={[styles.title, { color: isDark ? '#fff' : '#111' }]}>
+                Done
+              </Text>
 
-            {/* Points Earned */}
-            <Animated.View
-              style={[
-                styles.pointsContainer,
-                {
-                  transform: [{ scale: pointsScaleAnim }],
-                },
-              ]}
-            >
-              <View style={[styles.pointsBadge, { backgroundColor: `${getTierColor(task.tier)}20` }]}>
-                <MaterialIcons name="stars" size={32} color={getTierColor(task.tier)} />
-                <Text style={[styles.pointsText, { color: getTierColor(task.tier) }]}>
-                  +{task.points}
-                </Text>
-                <Text style={[styles.pointsLabel, { color: getTierColor(task.tier) }]}>
-                  points
-                </Text>
-              </View>
-            </Animated.View>
+              <Text
+                style={[styles.taskName, { color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }]}
+                numberOfLines={2}
+              >
+                {task.text}
+              </Text>
 
-            {/* Tier Badge */}
-            <View style={[styles.tierBadge, { backgroundColor: getTierColor(task.tier) }]}>
-              <Text style={styles.tierText}>
-                {task.tier?.toUpperCase()} TIER
+              {/* Divider */}
+              <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
+
+              {/* Points + Tier row */}
+              <Animated.View style={[styles.rewardRow, { transform: [{ scale: pointsScaleAnim }] }]}>
+                <View style={[styles.pointsPill, { backgroundColor: tier.colors[0] + '18' }]}>
+                  <MaterialIcons name="star" size={18} color={tier.colors[0]} />
+                  <Text style={[styles.pointsValue, { color: tier.colors[0] }]}>
+                    +{task.points}
+                  </Text>
+                </View>
+
+                <View style={[styles.tierPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                  <MaterialIcons name={tier.icon} size={14} color={tier.colors[0]} />
+                  <Text style={[styles.tierLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>
+                    {tier.label}
+                  </Text>
+                </View>
+              </Animated.View>
+
+              <Text style={[styles.dismissHint, { color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)' }]}>
+                Tap anywhere to dismiss
               </Text>
             </View>
-
-            {/* Tap to Continue */}
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={handleClose}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.continueText, { color: theme.textSecondary }]}>
-                Tap to continue
-              </Text>
-            </TouchableOpacity>
           </BlurView>
         </Animated.View>
       </TouchableOpacity>
@@ -300,90 +230,101 @@ const TaskCompletionCelebration = ({ visible, task, onClose }) => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   confetti: {
     position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   cardContainer: {
-    width: width * 0.85,
-    maxWidth: 400,
+    width: width * 0.82,
+    maxWidth: 360,
   },
   card: {
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
+    borderRadius: 28,
     overflow: 'hidden',
   },
-  checkContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    justifyContent: 'center',
+  cardInner: {
+    borderRadius: 28,
+    overflow: 'hidden',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
+    paddingHorizontal: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  topAccent: {
+    height: 3,
+    width: '120%',
+    marginBottom: 28,
+  },
+  checkCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
     elevation: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 16,
+    letterSpacing: -0.3,
   },
   taskName: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  pointsContainer: {
-    marginBottom: 20,
-  },
-  pointsBadge: {
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    borderRadius: 20,
-    alignItems: 'center',
-    gap: 4,
-  },
-  pointsText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    lineHeight: 52,
-  },
-  pointsLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  tierBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  tierText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  continueButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  continueText: {
     fontSize: 14,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    marginVertical: 20,
+  },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pointsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+  },
+  pointsValue: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  tierPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+  },
+  tierLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dismissHint: {
+    fontSize: 12,
     fontWeight: '500',
+    marginTop: 18,
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import {
@@ -9,6 +9,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
+import profanityFilter from '../services/profanityFilterService';
 
 // Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
@@ -57,14 +58,44 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
   } : {};
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [pendingTasks, setPendingTasks] = useState([]); // Queue for tasks being analyzed
+  const [pendingTasks, setPendingTasks] = useState([]);
+  const [floatingPoints, setFloatingPoints] = useState([]);
+  const floatingIdRef = useRef(0);
+
+  const showFloatingPoints = useCallback((points, tierColor) => {
+    const id = ++floatingIdRef.current;
+    const opacity = new Animated.Value(1);
+    const translateY = new Animated.Value(0);
+    const scale = new Animated.Value(0.5);
+
+    setFloatingPoints(prev => [...prev, { id, points, tierColor, opacity, translateY, scale }]);
+
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: -60, duration: 1200, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.2, tension: 200, friction: 8, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(opacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    ]).start(() => {
+      setFloatingPoints(prev => prev.filter(f => f.id !== id));
+    });
+  }, []);
 
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return;
     
-    hapticFeedback.light(); // Light feedback when starting to add
+    if (profanityFilter.containsProfanity(newTodo.trim())) {
+      hapticFeedback.error();
+      Alert.alert('Inappropriate Content', 'Please keep your tasks clean and appropriate.');
+      return;
+    }
     
-    // Create pending task immediately
+    hapticFeedback.light();
+    
     const pendingTask = {
       id: Date.now().toString(),
       text: newTodo.trim(),
@@ -106,7 +137,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
       // Remove from pending on error
       setPendingTasks(prev => prev.filter(t => t.id !== pendingTask.id));
       hapticFeedback.error(); // Error feedback when something goes wrong
-      Alert.alert('Smart Features Error', error.message || 'Failed to score task. Please check smart features settings.');
+      Alert.alert('Task Scoring Unavailable', 'Unable to score this task right now. Please try again later.');
     }
   };
 
@@ -217,7 +248,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
             <ActivityIndicator size={20} color={theme.primary} />
           </View>
           <View style={styles.todoContent}>
-            <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]}>{task.text}</Text>
+            <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]} numberOfLines={2}>{task.text}</Text>
             <View style={styles.todoMetaRow}>
               <View style={styles.todoMeta}>
                 <View style={[styles.tierBadge, { backgroundColor: theme.textSecondary }]}>
@@ -270,13 +301,17 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
                     onPress={(e) => {
                       e.stopPropagation();
                       hapticFeedback.success();
+                      const getTierColor = (t) => {
+                        switch (t) { case 'low': return '#22c55e'; case 'high': return '#ef4444'; default: return '#f59e0b'; }
+                      };
+                      showFloatingPoints(todo.points || 0, getTierColor(todo.tier));
                       onTodoComplete(todo.id);
                     }}
                   >
                     <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
                   </TouchableOpacity>
                   <View style={styles.todoContent}>
-                    <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]}>{todo.text}</Text>
+                    <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]} numberOfLines={2}>{todo.text}</Text>
                     <View style={styles.todoMetaRow}>
                       <View style={styles.todoMeta}>
                         <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>
@@ -308,6 +343,19 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
           )}
         </>
       )}
+      {floatingPoints.map(fp => (
+        <Animated.Text
+          key={fp.id}
+          pointerEvents="none"
+          style={[styles.floatingPoints, {
+            color: fp.tierColor,
+            opacity: fp.opacity,
+            transform: [{ translateY: fp.translateY }, { scale: fp.scale }],
+          }]}
+        >
+          +{fp.points} pts
+        </Animated.Text>
+      ))}
     </LiquidGlassTodoContainer>
   );
 };
@@ -503,6 +551,17 @@ const styles = StyleSheet.create({
   viewMoreText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  floatingPoints: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '40%',
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
 

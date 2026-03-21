@@ -51,6 +51,7 @@ import userStorage from '../utils/userStorage';
 import { getReferralCount } from '../services/referralService';
 import profanityFilter from '../services/profanityFilterService';
 import ReportBlockModal from '../components/ReportBlockModal';
+import AvatarDisplay from '../components/AvatarDisplay';
 import { getBlockedUsers } from '../services/reportService';
 import { isRestricted } from '../services/restrictionService';
 import { subscribeToPendingRequests } from '../services/friendsService';
@@ -418,11 +419,10 @@ const HubTab = () => {
     }
   }, [refreshing, selectedLoadingAnim]);
   
-  const handleFabPress = () => {
+  const handleFabPress = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     if (!tokenStatus.hasToken) {
-      // Show friendly message about token
       if (tokenStatus.tokenDelivered) {
         Alert.alert(
           'Come Back Tomorrow',
@@ -436,6 +436,19 @@ const HubTab = () => {
           [{ text: 'Sounds good' }]
         );
       }
+      return;
+    }
+    
+    // Double-check token is actually available (guards against stale React state)
+    const nameToCheck = userProfile?.username || userProfile?.displayName || null;
+    const freshStatus = await getTokenStatus(user.uid, nameToCheck);
+    if (!freshStatus.hasToken) {
+      setTokenStatus(freshStatus);
+      Alert.alert(
+        'Come Back Tomorrow',
+        'You\'ve already shared today. Your next token will arrive sometime tomorrow - keep an eye out for the notification!',
+        [{ text: 'Got it' }]
+      );
       return;
     }
     
@@ -540,10 +553,13 @@ const HubTab = () => {
     const tokenResult = await useToken(user.uid, username);
     if (!tokenResult.success) {
       spinLoop.stop();
-      Alert.alert('Error', tokenResult.error || 'Failed to use token');
+      Alert.alert('Unable to Post', 'Something went wrong. Please try again later.');
       setPosting(false);
       return;
     }
+    
+    // Immediately mark token as used in state so FAB goes grey right away
+    setTokenStatus(prev => ({ ...prev, hasToken: false, tokenDelivered: true }));
     
     // Use cached profile from AuthContext (no extra Firestore read needed)
     const profileToUse = userProfile;
@@ -585,7 +601,7 @@ const HubTab = () => {
       }).start();
       await new Promise(resolve => setTimeout(resolve, 200));
       setPosting(false);
-      Alert.alert('Error', result.error || 'Failed to create post');
+      Alert.alert('Unable to Post', 'Your post couldn\'t be created. Please try again.');
     }
 
     } finally {
@@ -745,26 +761,12 @@ const HubTab = () => {
         {/* Author Row */}
         <View style={styles.postHeader}>
           <View style={styles.authorInfo}>
-            {/* Use enriched data (already merged by feedService), with own-profile fallback */}
-            {(() => {
-              // For own posts, also check live userProfile as an extra fallback
-              const photoUrl = isOwner
-                ? (item.authorPhoto || userProfile?.profilePicture)
-                : item.authorPhoto;
-              return photoUrl ? (
-                <Image source={{ uri: photoUrl }} style={styles.authorAvatar} />
-              ) : null;
-            })()}
-            {!(isOwner ? (item.authorPhoto || userProfile?.profilePicture) : item.authorPhoto) && (
-              <LinearGradient
-                colors={['#8B5CF6', '#6366F1']}
-                style={styles.authorAvatar}
-              >
-                <Text style={styles.avatarText}>
-                  {(item.authorName || 'A').charAt(0).toUpperCase()}
-                </Text>
-              </LinearGradient>
-            )}
+            <AvatarDisplay
+              profilePicture={isOwner ? (item.authorPhoto || userProfile?.profilePicture) : item.authorPhoto}
+              displayName={item.authorName}
+              size={40}
+              style={styles.authorAvatar}
+            />
             <View style={styles.authorDetails}>
               {/* Time above name */}
               <Text style={[styles.postTimeTop, { color: theme.textTertiary }]}>
@@ -1178,18 +1180,12 @@ const HubTab = () => {
             {/* User Profile Section */}
             <View style={styles.composerProfileSection}>
               <View style={[styles.composerAvatarRing, { borderColor: theme.primary + '40' }]}>
-                {userProfile?.profilePicture ? (
-                  <Image source={{ uri: userProfile.profilePicture }} style={styles.composerAvatarLarge} />
-                ) : (
-                  <LinearGradient
-                    colors={[theme.primary, theme.primary + 'AA']}
-                    style={styles.composerAvatarLarge}
-                  >
-                    <Text style={styles.composerAvatarLetter}>
-                      {(userProfile?.displayName || 'A').charAt(0).toUpperCase()}
-                    </Text>
-                  </LinearGradient>
-                )}
+                <AvatarDisplay
+                  profilePicture={userProfile?.profilePicture}
+                  displayName={userProfile?.displayName}
+                  size={56}
+                  style={styles.composerAvatarLarge}
+                />
               </View>
               <View style={styles.composerProfileInfo}>
                 <Text style={[styles.composerProfileName, { color: theme.text }]}>
@@ -1419,18 +1415,12 @@ const HubTab = () => {
             
             {/* Author section */}
             <View style={styles.expandedHeader}>
-              {expandedPost.authorPhoto ? (
-                <Image source={{ uri: expandedPost.authorPhoto }} style={styles.expandedAvatar} />
-              ) : (
-                <LinearGradient
-                  colors={['#8B5CF6', '#6366F1']}
-                  style={styles.expandedAvatar}
-                >
-                  <Text style={styles.expandedAvatarText}>
-                    {(expandedPost.authorName || 'A').charAt(0).toUpperCase()}
-                  </Text>
-                </LinearGradient>
-              )}
+              <AvatarDisplay
+                profilePicture={expandedPost.authorPhoto}
+                displayName={expandedPost.authorName}
+                size={44}
+                style={styles.expandedAvatar}
+              />
               <View style={styles.expandedAuthorInfo}>
                 <Text style={[styles.expandedAuthorName, { color: theme.text }]}>
                   {expandedPost.authorName} {expandedPost.authorCountry}

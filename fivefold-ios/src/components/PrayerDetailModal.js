@@ -12,8 +12,10 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleAudioService from '../services/bibleAudioService';
@@ -36,7 +38,8 @@ const PrayerDetailModal = ({
   timeUntilAvailable,
   fetchedVerses = {},
   bibleVersion = 'KJV',
-  loadingVerses = false
+  loadingVerses = false,
+  asScreen = false,
 }) => {
   const { theme, isDark } = useTheme();
   
@@ -280,6 +283,12 @@ const PrayerDetailModal = ({
   const handleGoToVersePress = (verseRef) => {
     hapticFeedback.medium();
     stopAllAudio();
+
+    if (asScreen) {
+      onNavigateToBible(verseRef);
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -370,67 +379,30 @@ const PrayerDetailModal = ({
 
   const accentGradient = [theme.primary, theme.primaryLight || theme.primary];
 
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleBackdropClose}
-      statusBarTranslucent={true}
-    >
-      <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-        <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim }}>
-          <TouchableOpacity 
-            style={styles.backdrop}
-            activeOpacity={0.7}
-            onPress={handleBackdropClose}
-          />
-        </Animated.View>
-
-        <Animated.View 
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{ translateY: combinedTranslateY }],
-              opacity: fadeAnim,
-              backgroundColor: theme.background,
-            }
-          ]}
-        >
-          {/* Drag Handle */}
-          <View {...panResponder.panHandlers} style={styles.dragArea}>
-            <View style={[styles.dragHandle, { 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)' 
-            }]} />
-          </View>
-
-          <ScrollView 
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            bounces={true}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Header */}
-            <View style={styles.headerSection}>
-              <LinearGradient
-                colors={[`${theme.primary}18`, `${theme.primary}08`, 'transparent']}
-                style={styles.headerGradientBg}
-              />
-              <View style={[styles.headerIconCircle, { backgroundColor: `${theme.primary}15` }]}>
-                <MaterialIcons name="favorite" size={28} color={theme.primary} />
-              </View>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>
-                {prayer.name}
-              </Text>
-              <View style={styles.headerMeta}>
-                <View style={[styles.headerTimePill, { backgroundColor: `${theme.primary}12`, borderColor: `${theme.primary}30` }]}>
-                  <MaterialIcons name="schedule" size={14} color={theme.primary} />
-                  <Text style={[styles.headerTimeText, { color: theme.primary }]}>
-                    {prayer.time}
-                  </Text>
+  const scrollInner = (
+    <>
+            {!asScreen && (
+              <View style={styles.headerSection}>
+                <LinearGradient
+                  colors={[`${theme.primary}18`, `${theme.primary}08`, 'transparent']}
+                  style={styles.headerGradientBg}
+                />
+                <View style={[styles.headerIconCircle, { backgroundColor: `${theme.primary}15` }]}>
+                  <MaterialIcons name="favorite" size={28} color={theme.primary} />
+                </View>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>
+                  {prayer.name}
+                </Text>
+                <View style={styles.headerMeta}>
+                  <View style={[styles.headerTimePill, { backgroundColor: `${theme.primary}12`, borderColor: `${theme.primary}30` }]}>
+                    <MaterialIcons name="schedule" size={14} color={theme.primary} />
+                    <Text style={[styles.headerTimeText, { color: theme.primary }]}>
+                      {prayer.time}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
 
             {/* Verses Section */}
             <View style={styles.sectionContainer}>
@@ -528,6 +500,7 @@ const PrayerDetailModal = ({
                           }]}
                           onPress={(e) => {
                             if (e) e.stopPropagation();
+                            hapticFeedback.medium();
                             const displayedText = loadingVerses
                               ? ''
                               : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
@@ -732,6 +705,111 @@ const PrayerDetailModal = ({
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+    </>
+  );
+
+  if (asScreen) {
+    return (
+      <>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: Platform.OS === 'ios' ? 100 : 80 }]}
+          >
+            {scrollInner}
+          </ScrollView>
+        </SafeAreaView>
+
+        {/* Blurred Header */}
+        <BlurView
+          intensity={20}
+          tint={isDark ? 'dark' : 'light'}
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            backgroundColor: 'transparent',
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+            </TouchableOpacity>
+
+            <View style={{ position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                <MaterialIcons name="favorite" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text }}>
+                {prayer?.name || 'Prayer'}
+              </Text>
+            </View>
+
+            <View style={{ width: 40 }} />
+          </View>
+        </BlurView>
+      </>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="none"
+      onRequestClose={handleBackdropClose}
+      statusBarTranslucent={true}
+    >
+      <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+        <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={styles.backdrop}
+            activeOpacity={0.7}
+            onPress={handleBackdropClose}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{ translateY: combinedTranslateY }],
+              opacity: fadeAnim,
+              backgroundColor: theme.background,
+            }
+          ]}
+        >
+          <View {...panResponder.panHandlers} style={styles.dragArea}>
+            <View style={[styles.dragHandle, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)'
+            }]} />
+          </View>
+
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {scrollInner}
           </ScrollView>
         </Animated.View>
       </View>

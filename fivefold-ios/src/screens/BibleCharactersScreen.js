@@ -317,7 +317,7 @@ const BibleCharactersScreen = ({ navigation }) => {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
           <MaterialIcons name="person-outline" size={80} color={theme.textTertiary} />
           <Text style={{ color: theme.text, fontSize: 18, marginTop: 20, textAlign: 'center' }}>
-            {charactersLoading ? 'Loading character...' : 'Character profile not available yet'}
+            {charactersLoading ? 'Loading character...' : 'This character profile couldn\'t be loaded. Please check your connection and try again.'}
           </Text>
           <TouchableOpacity onPress={() => setSelectedCharacter(null)} style={{ marginTop: 20, padding: 12, backgroundColor: theme.primary, borderRadius: 12 }}>
             <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Go Back</Text>

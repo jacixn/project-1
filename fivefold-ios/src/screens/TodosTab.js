@@ -39,7 +39,6 @@ import TodoList from '../components/TodoList';
 import CalendarView from '../components/CalendarView';
 import FullCalendarModal from '../components/FullCalendarModal';
 // TasksOverviewModal removed — now a stack screen (TasksOverviewScreen)
-import TaskCompletionCelebration from '../components/TaskCompletionCelebration';
 import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
@@ -57,6 +56,8 @@ import VisionSetupModal from '../components/VisionSetupModal';
 import { loadVisions } from '../services/visionService';
 import HabitsCard from '../components/HabitsCard';
 import { loadHabits, checkIn as habitCheckIn } from '../services/habitsService';
+import RemindersCard from '../components/RemindersCard';
+import { loadReminders, completeReminder } from '../services/reminderService';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -184,13 +185,12 @@ const TodosTab = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   // showTasksOverview removed — now navigates to TasksOverview screen
-  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
-  const [completedTask, setCompletedTask] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   const [visions, setVisions] = useState([]);
   const [showVisionSetup, setShowVisionSetup] = useState(false);
   const [habits, setHabits] = useState([]);
+  const [reminders, setReminders] = useState([]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -211,7 +211,7 @@ const TodosTab = () => {
   const handleTodoAddRef = useRef(null);
 
   // Card customisation config
-  const TODOS_DEFAULT_ORDER = ['Calendar', 'Habits', 'Vision', 'Tasks', 'History'];
+  const TODOS_DEFAULT_ORDER = ['Calendar', 'Reminders', 'Habits', 'Vision', 'Tasks'];
   const [cardOrder, setCardOrder] = useState(TODOS_DEFAULT_ORDER);
   const [hiddenCards, setHiddenCards] = useState([]);
 
@@ -333,6 +333,7 @@ const TodosTab = () => {
     useCallback(() => {
       loadVisions().then((v) => setVisions(v));
       loadHabits().then((h) => setHabits(h));
+      loadReminders().then((r) => setReminders(r));
     }, [])
   );
 
@@ -440,9 +441,12 @@ const TodosTab = () => {
           const storedStats = await getStoredData('userStats') || { points: 0, level: 1, completedTasks: 0, streak: 0 };
           setUserStats(storedStats);
         })(),
+        loadVisions().then((v) => setVisions(v)),
+        loadHabits().then((h) => setHabits(h)),
+        loadReminders().then((r) => setReminders(r)),
       ]);
 
-      const labels = ['Todos', 'User Stats'];
+      const labels = ['Todos', 'User Stats', 'Visions', 'Habits', 'Reminders'];
       results.forEach((r, i) => {
         if (r.status === 'rejected') {
           console.error(`❌ Tasks refresh failed: ${labels[i]}`, r.reason);
@@ -594,16 +598,7 @@ const TodosTab = () => {
         });
       }
 
-      // Show the celebration FIRST with just the task points (what the user expects).
-      // This must happen before checkAchievements, which may present its own Modal
-      // (AchievementToast). Two Modals presenting simultaneously causes an iOS
-      // UIKit deadlock, so the celebration must be fully up before any toast.
-      setCompletedTask(taskToComplete);
-      setShowCompletionCelebration(true);
-
-      // Check achievements in background AFTER the celebration is showing.
-      // If achievements unlock, the AchievementToast will appear on top of the
-      // celebration (which auto-dismisses after 2.5s), clearly showing the bonus.
+      // Check achievements in background (non-blocking)
       addSeasonalPoints(pointsEarned).catch(() => {});
       Promise.race([
         AchievementService.checkAchievements(updatedStats),
@@ -624,6 +619,32 @@ const TodosTab = () => {
       console.warn('[TodosTab] handleTodoComplete error:', error?.message);
     }
   }, [todos, userStats]);
+
+  const handleMiscPoints = useCallback((pointsEarned) => {
+    try {
+      const oldTotal = userStats.totalPoints || userStats.points || 0;
+      const updatedStats = {
+        ...userStats,
+        totalPoints: oldTotal + pointsEarned,
+        points: oldTotal + pointsEarned,
+        level: AchievementService.getLevelFromPoints(oldTotal + pointsEarned),
+      };
+      setUserStats(updatedStats);
+      saveData('userStats', updatedStats).catch(() => {});
+      userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
+      addSeasonalPoints(pointsEarned).catch(() => {});
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          totalPoints: updatedStats.totalPoints,
+          level: updatedStats.level,
+          lastActive: serverTimestamp(),
+        }, { merge: true }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[TodosTab] handleMiscPoints error:', e?.message);
+    }
+  }, [userStats]);
 
   const handleTodoDelete = useCallback(async (todoId) => {
     const updatedTodos = todos.filter(todo => todo.id !== todoId);
@@ -776,125 +797,6 @@ const TodosTab = () => {
     );
   };
 
-  // Quick add suggestions
-  const HistorySection = () => {
-    // Get completed todos from the last 7 days, sorted by most recent
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-
-    const completedHistory = todos
-      .filter(todo => {
-        if (!todo.completed) return false;
-        const doneAt = new Date(todo.completedAt || todo.createdAt);
-        return doneAt >= sevenDaysAgo;
-      })
-      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
-
-    // Liquid Glass Container for History
-    const LiquidGlassHistoryContainer = ({ children }) => {
-      // Use BlurView if: device doesn't support liquid glass OR user disabled it
-      const userPrefersBlur = global.liquidGlassUserPreference === false || liquidGlassEnabled === false;
-      
-      if (!isLiquidGlassSupported || userPrefersBlur) {
-        return (
-          <BlurView 
-            intensity={18} 
-            tint={isDark ? "dark" : "light"} 
-            style={[styles.suggestionsCard, { 
-              backgroundColor: isDark 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : `${theme.primary}15`
-            }]}
-          >
-            {children}
-          </BlurView>
-        );
-      }
-
-      // Use Liquid Glass if: device supports it AND user enabled it
-      return (
-        <LiquidGlassView
-          interactive={true}
-          effect="clear"
-          colorScheme="system"
-          tintColor="rgba(255, 255, 255, 0.08)"
-          style={styles.liquidGlassHistoryCard}
-        >
-          {children}
-        </LiquidGlassView>
-      );
-    };
-
-    if (completedHistory.length === 0) {
-      return (
-        <LiquidGlassHistoryContainer>
-          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
-          <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-            Your completed tasks will appear here
-          </Text>
-          <View 
-            style={[styles.emptyHistory, { 
-              backgroundColor: `${theme.primary}30`,
-              borderColor: `${theme.primary}99`,
-              borderWidth: 1.5,
-            }]}
-          >
-            <MaterialIcons name="history" size={40} color={theme.textTertiary} />
-            <Text style={[styles.emptyHistoryText, { color: textSecondaryColor }]}>
-              No completed tasks yet
-            </Text>
-          </View>
-        </LiquidGlassHistoryContainer>
-      );
-    }
-
-    return (
-      <LiquidGlassHistoryContainer>
-        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>History</Text>
-        <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-          Last 5 completed
-        </Text>
-        
-        <View style={styles.suggestionsList}>
-          {completedHistory.slice(0, 5).map((todo) => (
-              <View
-              key={todo.id}
-              style={[styles.historyItem, { 
-                backgroundColor: `${theme.primary}30`,
-                borderColor: `${theme.primary}99`,
-                borderWidth: 1.5,
-              }]}
-            >
-              <MaterialIcons name="check-circle" size={20} color={theme.success} />
-              <View style={styles.historyContent}>
-                <Text style={[styles.historyText, { 
-                  color: textSecondaryColor,
-                  textDecorationLine: 'line-through'
-                }]} numberOfLines={1}>
-                  {todo.text}
-                </Text>
-                <Text style={[styles.historyTime, { color: theme.textTertiary }]}>
-                  {todo.completedAt ? (() => {
-                    const d = new Date(todo.completedAt);
-                    const now = new Date();
-                    const isToday = d.toDateString() === now.toDateString();
-                    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                    const isYesterday = d.toDateString() === yesterday.toDateString();
-                    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    if (isToday) return time;
-                    if (isYesterday) return `Yesterday, ${time}`;
-                    return `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}, ${time}`;
-                  })() : 'Earlier'}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </LiquidGlassHistoryContainer>
-    );
-  };
-
   // Show loading screen with beautiful animation
   if (loading) {
     return (
@@ -1042,6 +944,23 @@ const TodosTab = () => {
         {cardOrder.filter(id => !hiddenCards.includes(id)).map(id => {
           switch (id) {
             case 'Calendar': return <CalendarHeader key={id} />;
+            case 'Reminders': return (
+              <RemindersCard
+                key={id}
+                reminders={reminders}
+                onPress={() => navigation.navigate('Reminders')}
+                onComplete={async (reminder, dateStr) => {
+                  await completeReminder(reminder.id, dateStr);
+                  const r = await loadReminders();
+                  setReminders(r);
+                }}
+                onPointsEarned={handleMiscPoints}
+                liquidGlassEnabled={liquidGlassEnabled}
+                textColor={textColor}
+                textSecondaryColor={textSecondaryColor}
+                textOutlineStyle={textOutlineStyle}
+              />
+            );
             case 'Habits': return (
               <HabitsCard
                 key={id}
@@ -1052,6 +971,7 @@ const TodosTab = () => {
                   const h = await loadHabits();
                   setHabits(h);
                 }}
+                onPointsEarned={handleMiscPoints}
                 liquidGlassEnabled={liquidGlassEnabled}
                 textColor={textColor}
                 textSecondaryColor={textSecondaryColor}
@@ -1091,7 +1011,6 @@ const TodosTab = () => {
                 onDateSelect={setSelectedDate}
               />
             );
-            case 'History': return viewMode === 'list' ? <HistorySection key={id} /> : null;
             default: return null;
           }
         })}
@@ -1107,16 +1026,6 @@ const TodosTab = () => {
         onClose={() => setShowVisionSetup(false)}
         onComplete={() => {
           loadVisions().then((v) => setVisions(v));
-        }}
-      />
-
-      {/* Task Completion Celebration */}
-      <TaskCompletionCelebration
-        visible={showCompletionCelebration}
-        task={completedTask}
-        onClose={() => {
-          setShowCompletionCelebration(false);
-          setCompletedTask(null);
         }}
       />
 

@@ -94,13 +94,13 @@ const NotificationSettings = ({ visible, onClose }) => {
     try {
       const ok = await notificationService.testNotification();
       if (ok) {
-        Alert.alert('Test Sent', 'A test notification was scheduled to send immediately.');
+        Alert.alert('Notification Sent', 'A sample notification has been scheduled.');
       } else {
-        Alert.alert('Test Failed', 'The app could not schedule a test notification.');
+        Alert.alert('Unable to Send', 'The notification could not be scheduled. Please check your notification permissions.');
       }
     } catch (error) {
       console.error('Failed to send test notification:', error);
-      Alert.alert('Test Failed', 'Unexpected error while sending a test notification.');
+      Alert.alert('Unable to Send', 'Something went wrong. Please try again.');
     }
   };
 
@@ -120,7 +120,7 @@ const NotificationSettings = ({ visible, onClose }) => {
       );
     } catch (error) {
       console.error('Failed to debug scheduled notifications:', error);
-      Alert.alert('Debug Failed', 'Could not read scheduled notifications.');
+      Alert.alert('Unable to Load', 'Could not read scheduled notifications.');
     }
   };
 

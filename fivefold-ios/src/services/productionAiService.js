@@ -1004,10 +1004,11 @@ CRITICAL INSTRUCTIONS FOR CONTINUING CONVERSATION:
 5. If the user asks for a specific word count, match it exactly
 6. Reference the user's actual fitness data when relevant to give personalised advice
 7. You help with: workouts, exercise form, nutrition, diet, body composition, recovery, flexibility, general health and wellness
+8. Keep your response around 3 to 5 sentences. Be concise and direct but still warm and helpful. Do not write long paragraphs or essays
 
 The user said: "${userMessage}"
 
-Answer their question directly as part of the ongoing conversation. Be knowledgeable, supportive, and motivating.`;
+Answer their question directly as part of the ongoing conversation. Be concise, knowledgeable, and motivating.`;
       } else {
         prompt = `You are Coach, a knowledgeable and motivating fitness coach in a workout app.${userDataBlock}
 
@@ -1019,10 +1020,11 @@ CRITICAL INSTRUCTIONS:
 5. If the user asks for a specific word count, match it exactly
 6. Reference the user's actual fitness data when relevant to give personalised advice
 7. You help with: workouts, exercise form, nutrition, diet, body composition, recovery, flexibility, general health and wellness
+8. Keep your response around 3 to 5 sentences. Be concise and direct but still warm and helpful. Do not write long paragraphs or essays
 
 The user said: "${userMessage}"
 
-Answer their question directly. Be knowledgeable, supportive, and motivating. Keep it conversational.
+Answer their question directly. Be concise, knowledgeable, and motivating. Keep it conversational.
 
 IMPORTANT: You are ONLY here to help with fitness, gym, workouts, nutrition, diet, body composition, and health/wellness topics. If someone asks about something completely unrelated (homework, coding, etc.), politely redirect them and suggest they ask a fitness or health question instead.`;
       }
@@ -1043,8 +1045,8 @@ IMPORTANT: You are ONLY here to help with fitness, gym, workouts, nutrition, die
       cleanResponse = cleanResponse.replace(/•/g, '');
 
       const sentences = cleanResponse.split(/[.!?]+/).filter(s => s.trim().length > 0);
-      if (sentences.length > 8) {
-        cleanResponse = sentences.slice(0, 8).join('. ') + '.';
+      if (sentences.length > 6) {
+        cleanResponse = sentences.slice(0, 6).join('. ') + '.';
       }
 
       cleanResponse = cleanResponse.replace(/\n\n+/g, '\n\n');

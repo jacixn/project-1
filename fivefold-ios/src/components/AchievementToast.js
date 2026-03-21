@@ -141,13 +141,10 @@ const AchievementToast = forwardRef((props, ref) => {
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
       DeviceEventEmitter.emit('popupDismissed');
+      DeviceEventEmitter.emit('achievementToastDismissed');
     });
   }, [clearPendingTimeouts]);
 
-  // Listen for force-dismiss events from other modals.
-  // When a parent Modal (e.g. WorkoutModal) needs to dismiss, it emits this
-  // event so the AchievementToast hides FIRST — preventing the iOS UIKit
-  // deadlock that occurs when two Modals dismiss simultaneously.
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('dismissAchievementToast', () => {
       clearPendingTimeouts();
@@ -156,6 +153,7 @@ const AchievementToast = forwardRef((props, ref) => {
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
       DeviceEventEmitter.emit('popupDismissed');
+      DeviceEventEmitter.emit('achievementToastDismissed');
     });
     return () => sub.remove();
   }, [clearPendingTimeouts]);
@@ -396,7 +394,7 @@ const AchievementToast = forwardRef((props, ref) => {
 const st = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },

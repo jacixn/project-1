@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useNavigation } from '@react-navigation/native';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -26,10 +27,8 @@ import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import notificationService from '../services/notificationService';
-import AiBibleChat from './AiBibleChat';
 import AddPrayerModal from './AddPrayerModal';
 import EditPrayerModal from './EditPrayerModal';
-import PrayerDetailModal from './PrayerDetailModal';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
 import AchievementService from '../services/achievementService';
@@ -113,6 +112,7 @@ const AnimatedPrayerCard = ({ children, onPress, style, ...props }) => {
 };
 
 const SimplePrayerCard = ({ onNavigateToBible }) => {
+  const navigation = useNavigation();
   const { theme, isDark, isBlushTheme, isCresviaTheme, isEternaTheme, isFaithTheme, isBiblelyTheme } = useTheme();
   
   // For Biblely theme with wallpaper, use white text for better readability
@@ -152,8 +152,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [bibleVersion, setBibleVersion] = useState('KJV');
   
   // Discussion states
-  const [showDiscussModal, setShowDiscussModal] = useState(false);
-  const [verseToDiscuss, setVerseToDiscuss] = useState(null);
 
   const isSameDay = (dateA, dateB) => {
     return (
@@ -196,6 +194,17 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       subscription.remove();
     };
   }, [selectedPrayer]); // Re-subscribe if selectedPrayer changes
+
+  // Listen for prayer completion from PrayerDetailScreen
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('prayerCompleteFromScreen', ({ prayerId }) => {
+      const prayer = prayers.find(p => p.id === prayerId);
+      if (prayer) {
+        completePrayer(prayer);
+      }
+    });
+    return () => sub.remove();
+  }, [prayers]);
 
   // Listen for user data downloaded (after sign-in) to reload prayers from cloud
   useEffect(() => {
@@ -612,17 +621,11 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     }
   };
 
-  // Open discussion with AI about verse
   const discussVerse = (verse) => {
     hapticFeedback.light();
-    setVerseToDiscuss({
-      text: verse.text,
-      reference: verse.reference
+    navigation.navigate('FriendChat', {
+      initialVerse: { text: verse.text, reference: verse.reference },
     });
-    setShowPrayerModal(false); // Close prayer modal first
-    setTimeout(() => {
-      setShowDiscussModal(true); // Then open discussion modal
-    }, 300);
   };
 
   // Check if prayer is within time window (30 minutes before/after)
@@ -707,14 +710,12 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       return;
     }
 
-    // FIXED: Set prayer first, THEN show modal after a small delay to ensure state is set
     setSelectedPrayer(prayer);
     hapticFeedback.light();
-    // Fetch verses in background (don't block UI)
-    loadPrayerVerses(prayer);
-    // Use requestAnimationFrame to ensure prayer state is set before showing modal
-    requestAnimationFrame(() => {
-      setShowPrayerModal(true);
+    navigation.navigate('PrayerDetail', {
+      prayer,
+      canComplete: canCompletePrayer(prayer),
+      timeUntilAvailable: getTimeUntilAvailable(prayer),
     });
   };
 
@@ -1139,23 +1140,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         </Modal>
       )}
 
-      {/* Prayer Detail Modal */}
-      <PrayerDetailModal
-        visible={showPrayerModal}
-        onClose={() => setShowPrayerModal(false)}
-        prayer={selectedPrayer}
-        canComplete={selectedPrayer ? canCompletePrayer(selectedPrayer) : false}
-        onComplete={() => selectedPrayer && completePrayer(selectedPrayer)}
-        onSimplify={handleSimplifyVerse}
-        onDiscuss={discussVerse}
-        onNavigateToBible={onNavigateToBible}
-        simpleVerseText={simpleVerseText}
-        loadingSimple={loadingSimple}
-        timeUntilAvailable={selectedPrayer ? getTimeUntilAvailable(selectedPrayer) : null}
-        fetchedVerses={fetchedVerses}
-        bibleVersion={bibleVersion}
-        loadingVerses={loadingVerses}
-      />
 
       {/* Completed Today card */}
       {showCompletedCard && completedPrayer && (
@@ -1224,23 +1208,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         prayer={editingPrayer}
       />
 
-      {/* AI Discussion Modal */}
-      {showDiscussModal && verseToDiscuss && (
-        <AiBibleChat
-          visible={showDiscussModal}
-          onClose={() => {
-            setShowDiscussModal(false);
-            setVerseToDiscuss(null);
-            // Reopen prayer modal after discussion
-            setTimeout(() => {
-              setShowPrayerModal(true);
-            }, 300);
-          }}
-          initialVerse={verseToDiscuss}
-          onNavigateToBible={onNavigateToBible}
-          title="Discuss This Verse"
-        />
-      )}
 
       {/* Add Prayer Modal */}
       <AddPrayerModal

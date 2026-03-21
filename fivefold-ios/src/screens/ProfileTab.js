@@ -50,7 +50,11 @@ import userStorage from '../utils/userStorage';
 import { countries } from '../data/countries';
 import { resetOnboardingForTesting } from '../utils/onboardingReset';
 import AchievementsModal from '../components/AchievementsModal';
-import ProfilePhotoPicker from '../components/ProfilePhotoPicker';
+import AvatarDisplay from '../components/AvatarDisplay';
+import AvatarPicker from '../components/AvatarPicker';
+import * as ImagePicker from 'expo-image-picker';
+import { moderateProfileImage, setUploadCooldown } from '../services/profileImageModeration';
+import { uploadProfilePicture } from '../services/storageService';
 import NotificationSettings from '../components/NotificationSettings';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
 import { GlassCard, GlassHeader } from '../components/GlassEffect';
@@ -287,7 +291,6 @@ const ProfileTab = () => {
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showProfileImageViewer, setShowProfileImageViewer] = useState(false);
   const [editName, setEditName] = useState('Faithful Friend');
   const [profilePicture, setProfilePictureRaw] = useState(null);
   const profilePictureRef = useRef(null);
@@ -860,25 +863,42 @@ const ProfileTab = () => {
       const streakData = await AppStreakManager.trackAppOpen();
       setAppStreak(streakData.currentStreak);
       setStreakOpenDates(streakData.openDates || []);
-      // Sync app streak into userStats via AchievementService so streak achievements trigger
+
+      let achievementUnlocked = false;
+      const achievementSub = DeviceEventEmitter.addListener('achievementsUnlockedBatch', () => {
+        achievementUnlocked = true;
+      });
+
       await AchievementService.setStat('appStreak', streakData.currentStreak);
+
+      achievementSub.remove();
+
       setUserStats(prev => ({
         ...prev,
         streak: streakData.currentStreak,
         appStreak: streakData.currentStreak,
       }));
       
-      // Clear milestone flag if any
       if (streakData.milestoneReached) {
         await AppStreakManager.clearMilestoneFlag();
       }
       
-      // Show streak modal once per day
       const today = new Date().toDateString();
       const lastShown = await userStorage.getRaw('fivefold_streak_modal_last_shown');
       if (lastShown !== today) {
         await userStorage.setRaw('fivefold_streak_modal_last_shown', today);
-        showStreakModal();
+        if (achievementUnlocked) {
+          const toastSub = DeviceEventEmitter.addListener('achievementToastDismissed', () => {
+            toastSub.remove();
+            setTimeout(() => showStreakModal(), 400);
+          });
+          setTimeout(() => {
+            toastSub.remove();
+            if (!streakVisibleRef.current) showStreakModal();
+          }, 15000);
+        } else {
+          showStreakModal();
+        }
       }
     } catch (error) {
       console.error('Error loading app streak:', error);
@@ -2127,37 +2147,25 @@ const ProfileTab = () => {
         setUserName(profile.displayName || profile.name || 'Faithful Friend');
         setEditName(profile.displayName || profile.name || 'Faithful Friend');
         
-        // Load profile picture - handle both cloud URLs and local files
         if (profile.profilePicture) {
-          // Cloud URLs (https://) are always valid - use directly
-          if (profile.profilePicture.startsWith('http://') || profile.profilePicture.startsWith('https://')) {
-            console.log('[Profile] Using cloud profile picture URL:', profile.profilePicture);
+          if (profile.profilePicture.startsWith('avatar_') ||
+              profile.profilePicture.startsWith('preset_') ||
+              profile.profilePicture.startsWith('http://') ||
+              profile.profilePicture.startsWith('https://')) {
             setProfilePicture(profile.profilePicture);
           } else {
-            // Local file - check if it exists
             try {
               const fileInfo = await FileSystem.getInfoAsync(profile.profilePicture);
               if (fileInfo.exists) {
                 setProfilePicture(profile.profilePicture);
-                console.log('[Profile] Profile picture loaded:', profile.profilePicture);
+              } else if (profile.profilePicture.startsWith('file://')) {
+                setProfilePicture(profile.profilePicture);
               } else {
-                // File doesn't exist - but DON'T clear it yet, could be a temporary issue
-                // Only clear if we're certain the file path is invalid (not starting with file://)
-                console.log('[Profile] Profile picture file not found:', profile.profilePicture);
-                if (!profile.profilePicture.startsWith('file://')) {
-                  console.log('[Profile] Invalid file path format, clearing');
-                  setProfilePicture(null);
-                  profile.profilePicture = null;
-                  await userStorage.setRaw('userProfile', JSON.stringify(profile));
-                } else {
-                  // Still use the stored path - React Native Image component may handle it
-                  console.log('[Profile] Keeping stored path, may be accessible later');
-                  setProfilePicture(profile.profilePicture);
-                }
+                setProfilePicture(null);
+                profile.profilePicture = null;
+                await userStorage.setRaw('userProfile', JSON.stringify(profile));
               }
             } catch (fileError) {
-              // On error, still try to use the stored path
-              console.log('[Profile] Error checking profile picture, using stored path:', fileError.message);
               setProfilePicture(profile.profilePicture);
             }
           }
@@ -2189,22 +2197,18 @@ const ProfileTab = () => {
         setUserName(storedName);
         setEditName(storedName);
         
-        // Use old format photo - be tolerant of file check issues
         if (storedPhoto) {
-          try {
-            const fileInfo = await FileSystem.getInfoAsync(storedPhoto);
-            if (fileInfo.exists) {
-              setProfilePicture(storedPhoto);
-              console.log('[Profile] Old format profile picture loaded:', storedPhoto);
-            } else if (storedPhoto.startsWith('file://')) {
-              // Still try to use it - might work
-              console.log('[Profile] Old format file not found but using path:', storedPhoto);
+          if (storedPhoto.startsWith('avatar_') || storedPhoto.startsWith('preset_') || storedPhoto.startsWith('http')) {
+            setProfilePicture(storedPhoto);
+          } else {
+            try {
+              const fileInfo = await FileSystem.getInfoAsync(storedPhoto);
+              if (fileInfo.exists || storedPhoto.startsWith('file://')) {
+                setProfilePicture(storedPhoto);
+              }
+            } catch (e) {
               setProfilePicture(storedPhoto);
             }
-          } catch (e) {
-            // On error, still try to use the stored photo
-            console.log('[Profile] Error checking old photo, using anyway:', storedPhoto);
-            setProfilePicture(storedPhoto);
           }
         }
       }
@@ -2485,86 +2489,114 @@ const ProfileTab = () => {
     }
   };
 
-  const handleProfilePhotoSelected = async (imageUri) => {
+  const handleAvatarSelected = async (avatarId) => {
     try {
-      console.log('[ProfilePhoto] Saving new profile picture:', imageUri);
-      
-      // Set state immediately for UI (show local file first for instant feedback)
-      setProfilePicture(imageUri);
-      hapticFeedback.photoCapture();
-      
-      let finalUri = imageUri;
-      
-      // If user is signed in, upload to Firebase Storage for cloud access
+      const value = avatarId || '';
+      setProfilePicture(value);
+      hapticFeedback.buttonPress();
+
       if (user) {
         try {
-          console.log('[ProfilePhoto] Uploading to Firebase Storage...');
-          const { uploadProfilePicture } = await import('../services/storageService');
-          const downloadURL = await uploadProfilePicture(user.uid, imageUri);
-          finalUri = downloadURL;
-          console.log('[ProfilePhoto] Upload successful:', downloadURL);
-          
-          // Update UI with cloud URL
-          setProfilePicture(downloadURL);
-          
-          // Sync to Firestore so other users can see it
           const { updateAndSyncProfile } = await import('../services/userSyncService');
-          await updateAndSyncProfile(user.uid, { profilePicture: downloadURL });
-          console.log('[ProfilePhoto] Synced profile picture URL to Firestore');
-          
-          // Also update the AuthContext's cached profile so it's immediately available
+          await updateAndSyncProfile(user.uid, { profilePicture: value });
+
           if (updateLocalProfile) {
-            await updateLocalProfile({ profilePicture: downloadURL });
-            console.log('[ProfilePhoto] Updated AuthContext profile cache');
+            await updateLocalProfile({ profilePicture: value });
           }
-          
-          // Notify other screens (HubTab etc.) that profile image changed
-          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: downloadURL });
-        } catch (uploadError) {
-          console.error('[ProfilePhoto] Upload failed, using local file:', uploadError);
-          // Keep using local file if upload fails
-          finalUri = imageUri;
-          
-          // CRITICAL: Still update AuthContext with local file URI so it doesn't
-          // get overwritten by stale data when switching tabs
-          if (updateLocalProfile) {
-            await updateLocalProfile({ profilePicture: imageUri });
-            console.log('[ProfilePhoto] Updated AuthContext with local file URI (upload failed)');
-          }
-          
-          // Still notify other screens even on upload failure
-          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: imageUri });
+
+          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: value });
+        } catch (syncError) {
+          console.error('[Avatar] Sync failed:', syncError);
         }
       }
-      
-      // Save to legacy storage for backwards compatibility
-      await saveData('profilePicture', finalUri);
-      
-      // CRITICAL: Always save to userProfile (create if doesn't exist)
+
+      await saveData('profilePicture', value);
+
       let profile;
       const storedProfile = await userStorage.getRaw('userProfile');
       if (storedProfile) {
-        profile = JSON.parse(storedProfile);
+        try { profile = JSON.parse(storedProfile); } catch { profile = {}; }
       } else {
-        // Create new profile if it doesn't exist
-        profile = {
-          name: userName || 'Faithful Friend',
-          joinedDate: new Date().toISOString(),
-        };
+        profile = { name: userName || 'Faithful Friend', joinedDate: new Date().toISOString() };
       }
-      
-      // Update the profile picture with final URI (cloud URL if uploaded, local otherwise)
-      profile.profilePicture = finalUri;
-      
-      // Save immediately and await completion
+      profile.profilePicture = value;
       await userStorage.setRaw('userProfile', JSON.stringify(profile));
-      
-      // Update local state to match
       setUserProfile(profile);
-      
-      console.log('[ProfilePhoto] Profile picture saved successfully:', finalUri);
     } catch (error) {
-      console.error('[ProfilePhoto] Failed to save profile picture:', error);
+      console.error('[Avatar] Failed to save avatar:', error);
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    try {
+      const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permResult.granted) {
+        Alert.alert('Permission Needed', 'Please allow access to your photo library to upload a profile picture.');
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets?.[0]?.uri) return;
+
+      const uri = pickerResult.assets[0].uri;
+      const previousPicture = profilePicture;
+
+      setProfilePicture(uri);
+
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const { approved, reason } = await moderateProfileImage(base64);
+
+      if (!approved) {
+        setProfilePicture(previousPicture);
+        await setUploadCooldown(user.uid);
+        hapticFeedback.error();
+        Alert.alert(
+          'Image Not Accepted',
+          `${reason}\n\nYou can try uploading a different photo in 24 hours.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const downloadURL = await uploadProfilePicture(user.uid, uri);
+
+      setProfilePicture(downloadURL);
+      hapticFeedback.success();
+
+      if (user) {
+        try {
+          const { updateAndSyncProfile } = await import('../services/userSyncService');
+          await updateAndSyncProfile(user.uid, { profilePicture: downloadURL });
+          if (updateLocalProfile) {
+            await updateLocalProfile({ profilePicture: downloadURL });
+          }
+          DeviceEventEmitter.emit('profileImageChanged', { profilePicture: downloadURL });
+        } catch (syncError) {
+          console.error('[Upload] Sync failed:', syncError);
+        }
+      }
+
+      await saveData('profilePicture', downloadURL);
+
+      let profile;
+      const storedProfile = await userStorage.getRaw('userProfile');
+      if (storedProfile) {
+        try { profile = JSON.parse(storedProfile); } catch { profile = {}; }
+      } else {
+        profile = { name: userName || 'Faithful Friend', joinedDate: new Date().toISOString() };
+      }
+      profile.profilePicture = downloadURL;
+      await userStorage.setRaw('userProfile', JSON.stringify(profile));
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('[Upload] Failed:', error);
+      Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
     }
   };
 
@@ -2736,29 +2768,9 @@ const ProfileTab = () => {
         </TouchableOpacity>
       </FluidButton>
 
-      <TouchableOpacity 
-        style={[styles.avatarContainer, { backgroundColor: theme.primary }]}
-        onPress={() => { if (profilePicture) setShowProfileImageViewer(true); }}
-        accessibilityLabel="View profile picture"
-        accessibilityRole="button"
-      >
-        {profilePicture ? (
-          <Image 
-            source={{ uri: profilePicture }} 
-            style={styles.profileImage}
-            onError={() => {
-              // Only log the error — do NOT clear the stored URL.
-              // Transient network issues or slow loads should not permanently
-              // nuke the user's profile picture from all local storage.
-              // The URL in Firestore/AsyncStorage is still valid and will
-              // work again on next load.
-              console.log('[Profile] Image failed to load (may be transient):', profilePicture);
-            }}
-          />
-        ) : (
-          <MaterialIcons name="person" size={40} color="#FFFFFF" />
-        )}
-      </TouchableOpacity>
+      <View style={[styles.avatarContainer, { backgroundColor: 'transparent' }]}>
+        <AvatarDisplay profilePicture={profilePicture} displayName={userName} size={80} />
+      </View>
       
       <View style={{ alignItems: 'center' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -3072,12 +3084,12 @@ const ProfileTab = () => {
     try {
       const result = await submitReferral(referralUsername.trim());
       if (result.success) {
-        Alert.alert('Referral Saved', result.message);
+        Alert.alert('Referral Saved', 'Your referral has been applied successfully!');
         setReferralUsername('');
         await loadReferralInfo();
         setShowReferralModal(false);
       } else {
-        Alert.alert('Referral Failed', result.message);
+        Alert.alert('Referral Failed', 'That referral code is invalid or has already been used.');
       }
     } catch (error) {
       console.error('[Referral] Error submitting referral:', error);
@@ -3410,28 +3422,6 @@ const ProfileTab = () => {
         {/* AboutSection removed */}
       </Animated.ScrollView>
 
-      {/* Profile Image Viewer */}
-      <Modal
-        visible={showProfileImageViewer}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowProfileImageViewer(false)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setShowProfileImageViewer(false)}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}
-        >
-          {profilePicture && (
-            <Image
-              source={{ uri: profilePicture }}
-              style={{ width: Dimensions.get('window').width - 40, height: Dimensions.get('window').width - 40, borderRadius: 20 }}
-              resizeMode="cover"
-            />
-          )}
-        </TouchableOpacity>
-      </Modal>
-
       {/* Edit Profile Modal */}
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
@@ -3457,25 +3447,20 @@ const ProfileTab = () => {
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.editSection}>
-              <Text style={[styles.editLabel, { color: textColor, ...textOutlineStyle }]}>Profile Picture</Text>
+              <Text style={[styles.editLabel, { color: textColor, ...textOutlineStyle }]}>Avatar</Text>
               
-              {/* Current profile picture preview */}
+              {/* Current avatar preview */}
               <View style={styles.photoPreviewContainer}>
-                <View style={[styles.photoPreview, { backgroundColor: theme.primary + '20' }]}>
-                  {profilePicture ? (
-                    <Image
-                      source={{ uri: profilePicture }}
-                      style={styles.previewImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <MaterialIcons name="person" size={40} color={theme.primary} />
-                  )}
-                </View>
+                <AvatarDisplay profilePicture={profilePicture} displayName={userName} size={80} />
               </View>
               
-              {/* Photo picker component */}
-              <ProfilePhotoPicker onImageSelected={handleProfilePhotoSelected} />
+              {/* Avatar picker */}
+              <AvatarPicker
+                currentAvatar={profilePicture}
+                displayName={userName}
+                onAvatarSelected={handleAvatarSelected}
+                onUploadPhoto={handleUploadPhoto}
+              />
             </View>
 
             <View style={styles.editSection}>
@@ -4596,7 +4581,7 @@ const ProfileTab = () => {
                             if (errMsg.includes('not-found') || errMsg.includes('NOT_FOUND')) {
                               Alert.alert('Service Unavailable', 'Two-factor authentication is being set up. Please try again shortly.');
                             } else {
-                              Alert.alert('Error', errMsg || 'Failed to disable two-factor authentication.');
+                              Alert.alert('Unable to Disable', 'Something went wrong. Please try again later.');
                             }
                           }
                         }},
@@ -4619,7 +4604,7 @@ const ProfileTab = () => {
                         if (errMsg.includes('not-found') || errMsg.includes('NOT_FOUND')) {
                           Alert.alert('Service Unavailable', 'Two-factor authentication is being set up. Please try again shortly.');
                         } else {
-                          Alert.alert('Error', errMsg || 'Failed to send setup code. Please try again.');
+                          Alert.alert('Unable to Send Code', 'Something went wrong. Please try again later.');
                         }
                       } finally {
                         setTwoFASetupLoading(false);
@@ -5618,7 +5603,7 @@ const ProfileTab = () => {
                       setTwoFAResendCooldown(60);
                     } catch (err) {
                       hapticFeedback.error();
-                      Alert.alert('Error', err.message || 'Failed to resend code.');
+                      Alert.alert('Unable to Resend', 'Something went wrong. Please try again later.');
                     } finally {
                       setTwoFASetupLoading(false);
                     }
@@ -5656,7 +5641,7 @@ const ProfileTab = () => {
                     );
                   } catch (err) {
                     hapticFeedback.error();
-                    Alert.alert('Verification Failed', err.message || 'Incorrect code. Please try again.');
+                    Alert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
                   } finally {
                     setTwoFASetupLoading(false);
                   }
@@ -8661,16 +8646,16 @@ const ProfileTab = () => {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           {showLegalModal === 'privacy' && (
             <>
-              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: March 14, 2026</Text>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: March 21, 2026</Text>
               <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
                 Biblely, developed and operated by Jason ("we", "our", or "the app") is a faith, fitness, and productivity companion available at biblely.uk. Your privacy matters to us. This policy explains what data we collect, how we use it, who we share it with, and your rights.
               </Text>
 
               {[
-                { title: '1. Data We Collect', content: '1.1 Account Information\nWhen you create an account, we collect your email address, display name, username, name, age, gender, and optional profile photo.\n\n1.2 User-Generated Content\nContent you create within the app, including: prayers, prayer boards (including folders/envelopes, stickers, photos, backgrounds, and custom board layouts), prayer wall posts, journal entries and personal notes attached to Bible verses, to-do items, task descriptions, and task schedules, saved and highlighted Bible verses, bookmarks, and verse notes, workout logs, workout templates, and workout split plans, nutrition data including food logs and favourite meals, vision board content, social feed posts and direct messages, and custom exercises created by you.\n\n1.3 Health and Fitness Data\nWorkout history, exercise logs (sets, reps, weights), workout split plans (training days, muscle groups, exercise counts), available equipment preferences, nutrition tracking (food logs, calorie and macronutrient data, food text descriptions), and body composition information including height, weight, age, gender, BMI, body fat percentage, muscle mass, visceral fat, body water percentage, and body age. Physique scoring data (individual muscle group scores, balance suggestions, training frequency analysis) is calculated locally from your workout history. This data is used solely to provide personalised fitness and nutrition features within the app.\n\n1.4 Conversation and Chat Data\nMessages sent through the Bible Friend chat feature, the Coach (fitness) chat feature, and direct messaging between users. Both chat features support text input and voice input (speech-to-text via your device microphone).\n\n1.5 Usage Data\nApp interaction data such as streaks, points, achievement progress, quiz scores, Bible timeline exploration, Bible map visits, Bible character reading progress, and feature usage \u2014 used to provide achievements, leaderboards, and personalised experiences.\n\n1.6 Device Information and Push Notification Tokens\nWe access device information (via Expo Device) solely for push notification delivery. We collect Expo push notification tokens to deliver notifications you have opted into. We do not collect or store device identifiers for tracking purposes.\n\n1.7 Photos and Camera\nIf you choose to use the camera or photo library, images are processed for profile pictures, food nutritional analysis, gym/physique analysis via the Coach feature, or prayer board customisation. Photos used for food scanning or the Coach feature are sent to Google Gemini for analysis and are not stored on our servers.\n\n1.8 Preferences and Customisation\nYour app preferences including selected theme (from 25+ available themes), loading animation choice, Bible translation preference, notification settings, weight unit preference (kg/lbs), and referral status. These are stored locally on your device and synced to the cloud for cross-device access.' },
-                { title: '2. How We Use Your Data', content: '\u2022 To provide and personalise app features (Bible reading, prayer tracking, prayer boards, workouts, nutrition, physique tracking, todos, journal)\n\u2022 To sync your data across devices via Firebase and iCloud\n\u2022 To send push notifications (prayer reminders, workout reminders, task reminders, streak alerts) that you opt into\n\u2022 To generate personalised insights and responses using external services (see Section 4)\n\u2022 To suggest workouts based on your muscle split plan, available equipment, and physique scoring data\n\u2022 To enable social features (prayer wall, direct messaging, friend connections, leaderboards)\n\u2022 To provide text-to-speech audio playback of Bible passages and chat responses\n\u2022 To convert voice input to text for chat features (speech-to-text)\n\u2022 To recognise text from images (OCR) for supported features\n\u2022 To track achievements, points, and progress across Bible, fitness, and productivity features\n\u2022 To link to external exercise tutorial videos on YouTube based on exercise names' },
+                { title: '1. Data We Collect', content: '1.1 Account Information\nWhen you create an account, we collect your email address, display name, username, name, age, gender, and profile avatar selection. You can choose from preset avatar images or, if your email is verified, upload a custom profile photo.\n\n1.2 User-Generated Content\nContent you create within the app, including: prayers, prayer boards (including folders/envelopes, stickers, photos, backgrounds, and custom board layouts), journal entries and personal notes attached to Bible verses, to-do items, task descriptions, and task schedules, saved and highlighted Bible verses, bookmarks, and verse notes, workout logs, workout templates, and workout split plans, nutrition data including food logs and favourite meals, social feed posts and direct messages, and custom exercises created by you.\n\n1.3 Health and Fitness Data\nWorkout history, exercise logs (sets, reps, weights), workout split plans (training days, muscle groups, exercise counts), available equipment preferences, nutrition tracking (food logs, calorie and macronutrient data, food text descriptions), and body composition information including height, weight, age, gender, BMI, body fat percentage, muscle mass, visceral fat, body water percentage, and body age. Physique scoring data (individual muscle group scores, balance suggestions, training frequency analysis) is calculated locally from your workout history. This data is used solely to provide personalised fitness and nutrition features within the app.\n\n1.4 Conversation and Chat Data\nMessages sent through the Bible Friend chat feature, the Coach (fitness) chat feature, and direct messaging between users. Both chat features support text input and voice input (speech-to-text via your device microphone).\n\n1.5 Usage Data\nApp interaction data such as streaks, points, achievement progress, quiz scores, Bible timeline exploration, Bible map visits, Bible character reading progress, and feature usage \u2014 used to provide achievements, leaderboards, and personalised experiences.\n\n1.6 Device Information and Push Notification Tokens\nWe access device information (via Expo Device) solely for push notification delivery. We collect Expo push notification tokens to deliver notifications you have opted into. We do not collect or store device identifiers for tracking purposes.\n\n1.7 Photos and Camera\nIf you choose to use the camera or photo library, images are processed for profile pictures, food nutritional analysis, gym/physique analysis via the Coach feature, or prayer board customisation. Photos used for food scanning or the Coach feature are sent to Google Gemini for analysis and are not stored on our servers.\n\nProfile picture uploads: If you are an email-verified user and choose to upload a custom profile photo, the image is sent to Google Gemini for automated content moderation before it is accepted. If the image passes moderation, it is uploaded to Firebase Storage. If it does not pass, no image is stored and a 24-hour cooldown is applied.\n\n1.8 Preferences and Customisation\nYour app preferences including selected theme (from 25+ available themes), loading animation choice, Bible translation preference, notification settings, weight unit preference (kg/lbs), and referral status. These are stored locally on your device and synced to the cloud for cross-device access.' },
+                { title: '2. How We Use Your Data', content: '\u2022 To provide and personalise app features (Bible reading, prayer tracking, prayer boards, workouts, nutrition, physique tracking, todos, journal)\n\u2022 To sync your data across devices via Firebase and iCloud\n\u2022 To send push notifications (prayer reminders, workout reminders, task reminders, streak alerts) that you opt into\n\u2022 To generate personalised insights and responses using external services (see Section 4)\n\u2022 To suggest workouts based on your muscle split plan, available equipment, and physique scoring data\n\u2022 To enable social features (direct messaging, friend connections, leaderboards, social feed)\n\u2022 To provide text-to-speech audio playback of Bible passages and chat responses\n\u2022 To convert voice input to text for chat features (speech-to-text)\n\u2022 To recognise text from images (OCR) for supported features\n\u2022 To track achievements, points, and progress across Bible, fitness, and productivity features\n\u2022 To link to external exercise tutorial videos on YouTube based on exercise names' },
                 { title: '3. Data Storage and Retention', content: '3.1 Local Storage\nYour data is stored locally on your device using AsyncStorage, so the app works offline. Food logs older than 90 days and workout history older than 90 days are automatically cleaned from local storage. Exercise data is cached locally for up to 30 days.\n\n3.2 Local Caches\n\u2022 Bible cache: Downloaded Bible translation data is cached locally for up to 30 days for offline reading.\n\u2022 Text-to-speech audio cache: Generated audio files are cached locally for up to 1 year to reduce repeated processing.\n\u2022 Exercise database cache: Exercise data is cached locally for up to 30 days.\n\n3.3 Cloud Storage (Firebase)\nYour data is synced to Google Firebase (Firestore) servers located in the United States to enable cross-device access and social features. Cloud data is retained for as long as your account exists. When you delete your account, all associated cloud data is permanently removed.\n\n3.4 iCloud Sync\nOn iOS, your data may be synced via Apple iCloud (CloudKit) if you are signed into iCloud.' },
-                { title: '4. Third-Party Services', content: '\u2022 Google Firebase \u2014 authentication, cloud database, and file storage\n\u2022 Apple iCloud / CloudKit \u2014 data sync on iOS devices\n\u2022 DeepSeek \u2014 text-based analysis for personalised insights, Bible study responses, prayer guidance, nutrition advice, workout suggestions, physique coaching, and task scoring. Note: DeepSeek is operated by a company based in the People\'s Republic of China. Data sent to DeepSeek may be transmitted to and processed on servers located in China.\n\u2022 Google Gemini \u2014 food photo nutritional analysis and gym/physique photo analysis via the Coach feature\n\u2022 Google Cloud Text-to-Speech \u2014 audio Bible reading and chat response playback\n\u2022 OCR.space \u2014 text recognition from images\n\u2022 GitHub \u2014 Bible translation data, exercise data, and quiz question data hosting\n\u2022 Resend \u2014 email delivery for verification codes\n\u2022 Expo Push Notification Service \u2014 push notification delivery\n\u2022 YouTube \u2014 exercise tutorial video links (the app opens YouTube search; no personal data is sent)' },
+                { title: '4. Third-Party Services', content: '\u2022 Google Firebase \u2014 authentication, cloud database, and file storage\n\u2022 Apple iCloud / CloudKit \u2014 data sync on iOS devices\n\u2022 DeepSeek \u2014 text-based analysis for personalised insights, Bible study responses, prayer guidance, nutrition advice, workout suggestions, physique coaching, and task scoring. Note: DeepSeek is operated by a company based in the People\'s Republic of China. Data sent to DeepSeek may be transmitted to and processed on servers located in China.\n\u2022 Google Gemini \u2014 food photo nutritional analysis, gym/physique photo analysis via the Coach feature, and profile picture content moderation\n\u2022 Google Cloud Text-to-Speech \u2014 audio Bible reading and chat response playback\n\u2022 OCR.space \u2014 text recognition from images\n\u2022 GitHub \u2014 Bible translation data, exercise data, and quiz question data hosting\n\u2022 Resend \u2014 email delivery for verification codes\n\u2022 Expo Push Notification Service \u2014 push notification delivery\n\u2022 YouTube \u2014 exercise tutorial video links (the app opens YouTube search; no personal data is sent)' },
                 { title: '5. International Data Transfers', content: 'Your data may be transferred to and processed in countries outside your country of residence, including:\n\n\u2022 United States: Firebase (Google) servers for cloud storage, authentication, and database services.\n\u2022 People\'s Republic of China: DeepSeek servers for text-based analysis and personalised insights.\n\nWe rely on the data protection practices of our service providers and limit the data shared to what is necessary for each feature.' },
                 { title: '6. Data Sharing', content: 'We do not sell, rent, or share your personal data with third parties for marketing or advertising purposes. Data is only shared with the third-party services listed in Section 4, solely to provide app functionality.' },
                 { title: '7. Analytics and Tracking', content: 'We do not use any analytics or tracking SDKs. We do not track you across apps or websites. No advertising identifiers are collected.' },
@@ -8690,16 +8675,16 @@ const ProfileTab = () => {
 
           {showLegalModal === 'terms' && (
             <>
-              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: March 14, 2026</Text>
+              <Text style={{ fontSize: 12, color: isDark ? '#888' : '#999', marginBottom: 20 }}>Last updated: March 21, 2026</Text>
               <Text style={{ fontSize: 14, color: isDark ? '#CCC' : '#444', lineHeight: 22, marginBottom: 16 }}>
                 Welcome to Biblely. By using the app, you agree to these Terms of Service. If you do not agree, please do not use the app.
               </Text>
 
               {[
-                { title: '1. Description of Service', content: 'Biblely is a faith, fitness, and productivity companion app that provides:\n\n\u2022 Bible: Bible reading with 44+ translations, verse saving, highlighting, bookmarking, notes, text-to-speech audio, Bible quiz, Bible timeline, Bible maps, Bible characters, and thematic study guides\n\u2022 Prayer: Personal prayer tracking, prayer boards with customisable folders/envelopes, stickers, photos, and backgrounds, community prayer wall, and prayer reminders\n\u2022 Fitness: Workout logging with sets/reps/weights, 1300+ exercise library with video tutorial links, workout templates, weekly split planning with muscle group and equipment configuration, physique tracking with body map and muscle group scoring, and a Coach chat for fitness guidance\n\u2022 Nutrition: Food logging with camera-based scanning, calorie and macronutrient tracking, favourite meals, personalised daily targets, and body composition estimates\n\u2022 Productivity: Task management with scheduling, priority scoring, calendar views, and streaks\n\u2022 Social: Friend connections, direct messaging, social feed, leaderboards, and community prayer wall\n\u2022 Customisation: 25+ visual themes, wallpapers, custom loading animations, and personalisation options\n\u2022 Achievements: Points system, level progression, and achievement badges across all app features\n\u2022 Journal: Personal journaling with calendar view and verse-linked notes\n\u2022 Vision: Vision board for personal goals and aspirations\n\nThe app is provided free of charge with no subscriptions or in-app purchases.' },
+                { title: '1. Description of Service', content: 'Biblely is a faith, fitness, and productivity companion app that provides:\n\n\u2022 Bible: Bible reading with 44+ translations, verse saving, highlighting, bookmarking, notes, text-to-speech audio, Bible quiz, Bible timeline, Bible maps, Bible characters, and thematic study guides\n\u2022 Prayer: Personal prayer tracking, prayer boards with customisable folders/envelopes, stickers, photos, and backgrounds, and prayer reminders\n\u2022 Fitness: Workout logging with sets/reps/weights, 1300+ exercise library with video tutorial links, workout templates, weekly split planning with muscle group and equipment configuration, physique tracking with body map and muscle group scoring, and a Coach chat for fitness guidance\n\u2022 Nutrition: Food logging with camera-based scanning, calorie and macronutrient tracking, favourite meals, personalised daily targets, and body composition estimates\n\u2022 Productivity: Task management with scheduling, priority scoring, calendar views, and streaks\n\u2022 Social: Friend connections, direct messaging, social feed, and leaderboards\n\u2022 Customisation: 25+ visual themes, wallpapers, custom loading animations, and personalisation options\n\u2022 Achievements: Points system, level progression, and achievement badges across all app features\n\u2022 Journal: Personal journaling with calendar view and verse-linked notes\n\nThe app is provided free of charge with no subscriptions or in-app purchases.' },
                 { title: '2. Eligibility and Account Registration', content: 'You must be at least 12 years of age to use Biblely. If you are under 18, you represent that you have your parent\'s or legal guardian\'s permission to use the app.\n\nTo access certain features (cloud sync, social features, messaging), you must create an account with a valid email address. You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.' },
-                { title: '3. Acceptable Use', content: 'You agree not to:\n\n\u2022 Use the app for any unlawful purpose\n\u2022 Post offensive, hateful, or inappropriate content on the prayer wall or social features\n\u2022 Harass, bully, or threaten other users through messaging or social features\n\u2022 Attempt to interfere with or disrupt the app\'s services\n\u2022 Create multiple accounts for deceptive purposes\n\u2022 Scrape, copy, or redistribute Bible translations or app content\n\u2022 Exploit the referral system through fraudulent or deceptive means' },
-                { title: '4. User Content and Content Moderation', content: 'You retain ownership of content you create (prayers, journal entries, todos, posts, prayer boards, vision boards). By posting content to social features (prayer wall, feed), you grant us a non-exclusive license to display that content to other users within the app. You can delete your content at any time.\n\nWe employ automated profanity filtering and community reporting features to maintain a safe environment. We reserve the right to review, remove, or restrict any user-generated content if it violates these terms.' },
+                { title: '3. Acceptable Use', content: 'You agree not to:\n\n\u2022 Use the app for any unlawful purpose\n\u2022 Post offensive, hateful, or inappropriate content on social features\n\u2022 Harass, bully, or threaten other users through messaging or social features\n\u2022 Attempt to interfere with or disrupt the app\'s services\n\u2022 Create multiple accounts for deceptive purposes\n\u2022 Scrape, copy, or redistribute Bible translations or app content\n\u2022 Exploit the referral system through fraudulent or deceptive means' },
+                { title: '4. User Content and Content Moderation', content: 'You retain ownership of content you create (prayers, journal entries, todos, posts, prayer boards). By posting content to social features (social feed), you grant us a non-exclusive license to display that content to other users within the app. You can delete your content at any time.\n\nWe employ automated profanity filtering and community reporting features to maintain a safe environment. We reserve the right to review, remove, or restrict any user-generated content if it violates these terms. Custom profile picture uploads are automatically scanned by Google Gemini for inappropriate content before being accepted. Rejected images are not stored, and a 24-hour cooldown is applied before you can attempt another upload.' },
                 { title: '5. Bible Content', content: 'Bible translations available in the app are provided for personal, non-commercial use only. You may not redistribute, sell, or commercially use Bible text obtained through the app. Bible quiz questions, timeline content, character profiles, and map data are provided for educational and personal reflection purposes.' },
                 { title: '6. Automated Content and Disclaimer', content: 'Biblely uses automated systems, including third-party services such as DeepSeek and Google Gemini, to generate certain content within the app. This includes:\n\n\u2022 Nutrition plans and dietary suggestions\n\u2022 Workout and exercise plans, including suggestions based on your weekly split, available equipment, and physique data\n\u2022 Bible verse explanations and interpretations\n\u2022 Fitness and physique coaching advice via the Coach feature\n\u2022 Calorie and nutritional estimates from food photos\n\u2022 Task priority scoring and suggestions\n\u2022 Physique scores, muscle group balance analysis, and training recommendations\n\u2022 Body composition estimates (BMI, body fat, muscle mass, visceral fat, body water, body age)\n\nThis automatically generated content may contain errors, inaccuracies, or omissions. You should not solely rely on this content for making important decisions regarding your health, diet, fitness, or spiritual life.' },
                 { title: '7. Bible Interpretation Disclaimer', content: 'Bible verse explanations, study notes, quiz explanations, character profiles, timeline descriptions, and interpretive content provided within the app are generated by automated systems and are intended for personal reflection and educational purposes only. This content does not constitute pastoral counselling, theological advice, or doctrinal instruction.' },
@@ -8745,8 +8730,10 @@ const ProfileTab = () => {
                 { q: 'What are Prayer Boards?', a: 'Prayer Boards are visual, customisable boards where you can organise your prayers creatively. You can create multiple boards, each with its own title and background colour or custom background image. Within each board, you can add folders, envelopes, stickers, and photos.' },
                 { q: 'How do I customise a Prayer Board?', a: 'Open a prayer board and use the editing tools to add folders, envelopes, stickers, and photos. You can change the board\'s background colour or set a custom background image. Tap the title to rename it. You can also save your board as an image to share.' },
                 { q: 'Can I delete a Prayer Board?', a: 'Yes. Open the board you want to delete and use the delete option. This permanently removes the board and all its contents.' },
-                { q: 'What is the Prayer Wall?', a: 'The Prayer Wall is a community feature where users can share prayer requests and pray for one another. You can post your own requests (anonymously if desired) and tap to pray for others\' requests.' },
                 { q: 'How do prayer reminders work?', a: 'Go to your Profile settings and enable prayer reminders. You can choose the time of day you\'d like to be reminded. The app will send you a gentle notification to take a moment for prayer.' },
+                { q: 'How do I set my profile picture?', a: 'You can choose from 25 preset avatar images or use your initials as your avatar. Go to your Profile tab, tap "Edit Profile", and select an avatar from the grid.' },
+                { q: 'Can I upload my own profile photo?', a: 'Yes, but only if your email address is verified. Once verified, you\'ll see an "Upload Your Own Photo" button below the preset avatars. Your photo will be automatically checked to ensure it\'s appropriate before it\'s accepted.' },
+                { q: 'Why was my profile picture rejected?', a: 'Uploaded photos are automatically scanned to ensure they\'re appropriate for a family-friendly app. Photos may be rejected if they contain nudity, violence, hate symbols, offensive text, or other inappropriate content. You can try uploading a different photo after 24 hours.' },
                 // Fitness
                 { q: 'How do I log a workout?', a: 'Go to the Gym tab and start a new workout. You can choose from the exercise library (1300+ exercises), use a pre-built template, or generate a smart workout. During the workout, log your sets, reps, and weights for each exercise.' },
                 { q: 'How do I set up my workout split?', a: 'Go to the Gym tab and open your workout split settings. You can assign muscle groups to each day of the week, set the number of exercises per day, and specify how many exercises per muscle group.' },

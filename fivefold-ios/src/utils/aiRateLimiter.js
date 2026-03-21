@@ -17,6 +17,7 @@ const LIMITS = {
   task: 30,
   generation: 10,
   voice: 35,
+  speechToText: 25,
 };
 
 const LIMIT_MESSAGES = {
@@ -26,6 +27,7 @@ const LIMIT_MESSAGES = {
   task: "You've reached your daily task analysis limit (30 uses). Your limit resets at midnight — try again tomorrow!",
   generation: "You've reached your daily generation limit (10 uses). Your limit resets at midnight — try again tomorrow!",
   voice: "You've reached your daily voice limit (35 uses). Your limit resets at midnight — try again tomorrow!",
+  speechToText: "You've reached your daily voice input limit (25 uses). Your limit resets at midnight — try again tomorrow!",
 };
 
 function todayKey() {

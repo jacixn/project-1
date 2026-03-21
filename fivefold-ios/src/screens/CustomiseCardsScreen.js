@@ -41,10 +41,10 @@ const CARD_META = {
   },
   Todos: {
     Calendar:   { label: 'This Week',    icon: 'calendar-today', color: '#3B82F6' },
+    Reminders:  { label: 'Reminders',    icon: 'notifications-active', color: '#EC4899' },
     Habits:     { label: 'Habits',       icon: 'loop',           color: '#8B5CF6' },
     Vision:     { label: 'Vision',       icon: 'visibility',     color: '#F59E0B' },
     Tasks:      { label: 'Tasks',        icon: 'check-circle',   color: '#10B981' },
-    History:    { label: 'History',       icon: 'history',        color: '#6B7280' },
   },
   Gym: {
     WeeklyCalendar:  { label: 'This Week',        icon: 'calendar-today',  color: '#3B82F6' },
@@ -59,7 +59,7 @@ const CARD_META = {
 
 const DEFAULT_ORDERS = {
   BiblePrayer: ['Prayer', 'Bible', 'BibleStudy', 'PrayerBoard', 'Library'],
-  Todos: ['Calendar', 'Habits', 'Vision', 'Tasks', 'History'],
+  Todos: ['Calendar', 'Reminders', 'Habits', 'Vision', 'Tasks'],
   Gym: ['WeeklyCalendar', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'],
 };
 

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -21,12 +22,35 @@ const HabitsCard = ({
   habits,
   onPress,
   onCheckIn,
+  onPointsEarned,
   liquidGlassEnabled,
   textColor,
   textSecondaryColor,
   textOutlineStyle = {},
 }) => {
   const { theme, isDark } = useTheme();
+  const [floatingPoints, setFloatingPoints] = useState([]);
+  const floatingIdRef = useRef(0);
+
+  const showFloatingPoints = useCallback((points, color) => {
+    const id = ++floatingIdRef.current;
+    const opacity = new Animated.Value(1);
+    const translateY = new Animated.Value(0);
+    const scale = new Animated.Value(0.5);
+    setFloatingPoints(prev => [...prev, { id, points, color, opacity, translateY, scale }]);
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: -60, duration: 1200, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.2, tension: 200, friction: 8, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(opacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    ]).start(() => setFloatingPoints(prev => prev.filter(f => f.id !== id)));
+  }, []);
+
   const visibleHabits = (habits || []).slice(0, MAX_VISIBLE);
   const remaining = (habits || []).length - MAX_VISIBLE;
   const totalActiveStreak = (habits || []).reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
@@ -92,6 +116,9 @@ const HabitsCard = ({
               onPress={() => {
                 if (!checked) {
                   hapticFeedback.success();
+                  const pts = 15 + Math.floor(Math.random() * 16);
+                  showFloatingPoints(pts, habit.color || '#4CAF50');
+                  onPointsEarned?.(pts);
                   onCheckIn?.(habit);
                 }
               }}
@@ -134,6 +161,19 @@ const HabitsCard = ({
           +{remaining} more habit{remaining !== 1 ? 's' : ''}
         </Text>
       )}
+      {floatingPoints.map(fp => (
+        <Animated.Text
+          key={fp.id}
+          pointerEvents="none"
+          style={[styles.floatingPoints, {
+            color: fp.color,
+            opacity: fp.opacity,
+            transform: [{ translateY: fp.translateY }, { scale: fp.scale }],
+          }]}
+        >
+          +{fp.points} pts
+        </Animated.Text>
+      ))}
     </View>
   );
 
@@ -285,6 +325,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 4,
+  },
+  floatingPoints: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    fontSize: 22,
+    fontWeight: '800',
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -30,6 +31,8 @@ import {
   HABIT_COLORS,
 } from '../services/habitsService';
 import notificationService from '../services/notificationService';
+import userStorage from '../utils/userStorage';
+import AchievementService from '../services/achievementService';
 
 const HabitsScreen = () => {
   const navigation = useNavigation();
@@ -39,12 +42,38 @@ const HabitsScreen = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [checkingIn, setCheckingIn] = useState(null);
+  const [floatingPoints, setFloatingPoints] = useState([]);
+  const floatingIdRef = useRef(0);
 
   const textPrimary = isDark ? '#FFFFFF' : theme.text;
   const textSecondary = isDark ? 'rgba(255,255,255,0.6)' : '#6B7280';
   const textTertiary = isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF';
   const cardBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  const MAX_ANIM_CARDS = 10;
+  const cardSlideAnims = useRef(Array.from({ length: MAX_ANIM_CARDS }, () => new Animated.Value(30))).current;
+  const cardFadeAnims = useRef(Array.from({ length: MAX_ANIM_CARDS }, () => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const anims = cardSlideAnims.map((anim, i) =>
+      Animated.parallel([
+        Animated.timing(cardFadeAnims[i], {
+          toValue: 1,
+          duration: 400,
+          delay: i * 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 400,
+          delay: i * 80,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    Animated.stagger(0, anims).start();
+  }, []);
 
   const refresh = useCallback(async () => {
     const h = await loadHabits();
@@ -53,10 +82,49 @@ const HabitsScreen = () => {
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
+  const showFloatingPts = useCallback((points, color) => {
+    const id = ++floatingIdRef.current;
+    const opacity = new Animated.Value(1);
+    const translateY = new Animated.Value(0);
+    const scale = new Animated.Value(0.5);
+    setFloatingPoints(prev => [...prev, { id, points, color, opacity, translateY, scale }]);
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: -80, duration: 1200, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.2, tension: 200, friction: 8, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(opacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    ]).start(() => setFloatingPoints(prev => prev.filter(f => f.id !== id)));
+  }, []);
+
+  const awardPoints = useCallback(async (pts) => {
+    try {
+      const raw = await userStorage.getRaw('userStats');
+      const stats = raw ? JSON.parse(raw) : {};
+      const oldTotal = stats.totalPoints || stats.points || 0;
+      const updated = {
+        ...stats,
+        totalPoints: oldTotal + pts,
+        points: oldTotal + pts,
+        level: AchievementService.getLevelFromPoints(oldTotal + pts),
+      };
+      await userStorage.setRaw('userStats', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('[HabitsScreen] awardPoints error:', e?.message);
+    }
+  }, []);
+
   const handleCheckIn = async (habit) => {
     if (isCheckedInToday(habit) || checkingIn) return;
     setCheckingIn(habit.id);
     hapticFeedback.success();
+    const pts = 15 + Math.floor(Math.random() * 16);
+    showFloatingPts(pts, habit.color || '#4CAF50');
+    awardPoints(pts);
     await checkIn(habit.id);
     await refresh();
     setTimeout(() => setCheckingIn(null), 600);
@@ -82,15 +150,16 @@ const HabitsScreen = () => {
   const longestActiveStreak = habits.reduce((max, h) => Math.max(max, h.currentStreak), 0);
   const totalCheckIns = habits.reduce((sum, h) => sum + (h.checkIns?.length || 0), 0);
 
-  const renderHabitCard = (habit) => {
+  const renderHabitCard = (habit, index) => {
     const checked = isCheckedInToday(habit);
     const dots = getWeekDots(habit);
     const isAnimating = checkingIn === habit.id;
+    const animIdx = Math.min(index + 1, MAX_ANIM_CARDS - 1);
 
     return (
-      <View
+      <Animated.View
         key={habit.id}
-        style={[styles.habitCard, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow) }]}
+        style={[styles.habitCard, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow), opacity: cardFadeAnims[animIdx], transform: [{ translateY: cardSlideAnims[animIdx] }] }]}
       >
         <TouchableOpacity
           activeOpacity={0.85}
@@ -171,7 +240,7 @@ const HabitsScreen = () => {
             Streak lost — start again today!
           </Text>
         )}
-      </View>
+      </Animated.View>
     );
   };
 
@@ -346,7 +415,7 @@ const HabitsScreen = () => {
 
         {/* Stats Bar */}
         {habits.length > 0 && (
-          <View style={[styles.statsBar, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow) }]}>
+          <Animated.View style={[styles.statsBar, { backgroundColor: cardBg, borderColor: cardBorder, ...(!isDark && styles.cardShadow), opacity: cardFadeAnims[0], transform: [{ translateY: cardSlideAnims[0] }] }]}>
             {[
               { icon: 'repeat', value: habits.length, label: 'Active', color: theme.primary },
               { icon: 'local-fire-department', value: longestActiveStreak, label: 'Top Streak', color: '#FF6B35' },
@@ -360,7 +429,7 @@ const HabitsScreen = () => {
                 <Text style={[styles.statsBarLabel, { color: textTertiary }]}>{s.label}</Text>
               </View>
             ))}
-          </View>
+          </Animated.View>
         )}
 
         {/* Habits List */}
@@ -382,7 +451,7 @@ const HabitsScreen = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          habits.map(renderHabitCard)
+          habits.map((habit, index) => renderHabitCard(habit, index))
         )}
 
       </ScrollView>
@@ -411,6 +480,20 @@ const HabitsScreen = () => {
       )}
 
       {/* Add Habit Modal */}
+      {floatingPoints.map(fp => (
+        <Animated.Text
+          key={fp.id}
+          pointerEvents="none"
+          style={[styles.floatingPts, {
+            color: fp.color,
+            opacity: fp.opacity,
+            transform: [{ translateY: fp.translateY }, { scale: fp.scale }],
+          }]}
+        >
+          +{fp.points} pts
+        </Animated.Text>
+      ))}
+
       <AddHabitModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -975,6 +1058,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  floatingPts: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '45%',
+    fontSize: 28,
+    fontWeight: '800',
+    zIndex: 999,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
 

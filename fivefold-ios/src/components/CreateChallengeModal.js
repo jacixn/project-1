@@ -26,6 +26,7 @@ import { sendChallenge } from '../services/challengeService';
 import quizService from '../services/quizService';
 import CustomLoadingIndicator from './CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
+import AvatarDisplay from './AvatarDisplay';
 
 const { width } = Dimensions.get('window');
 const QUESTION_COUNTS = [5, 10, 15, 20];
@@ -195,18 +196,7 @@ const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChalleng
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Friend Card */}
           <View style={[styles.friendCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF' }]}>
-            {friend.profilePicture ? (
-              <Image source={{ uri: friend.profilePicture }} style={styles.friendAvatar} />
-            ) : (
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                style={styles.friendAvatarPlaceholder}
-              >
-                <Text style={styles.friendInitial}>
-                  {(friend.displayName || 'F').charAt(0).toUpperCase()}
-                </Text>
-              </LinearGradient>
-            )}
+            <AvatarDisplay profilePicture={friend.profilePicture} displayName={friend.displayName} size={48} />
             <View style={styles.friendInfo}>
               <Text style={[styles.challengingLabel, { color: theme.textSecondary }]}>Challenging</Text>
               <Text style={[styles.friendName, { color: theme.text }]}>{friend.displayName || 'Friend'}</Text>

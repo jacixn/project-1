@@ -21,6 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { scoreTask } from '../utils/todoScorer';
 import { getStoredData } from '../utils/localStorage';
+import profanityFilter from '../services/profanityFilterService';
 
 const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -158,6 +159,12 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
       return;
     }
 
+    if (profanityFilter.containsProfanity(taskText.trim())) {
+      hapticFeedback.error();
+      Alert.alert('Inappropriate Content', 'Please keep your tasks clean and appropriate.');
+      return;
+    }
+
     if (!selectedDate) {
       Alert.alert('Error', 'Please select a date');
       return;
@@ -220,7 +227,7 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
     } catch (error) {
       console.error('Error creating task:', error);
       setIsAnalyzing(false);
-      Alert.alert('Error', error.message || 'Failed to create task. Please try again.');
+      Alert.alert('Task Not Created', 'Something went wrong. Please try again.');
     }
   };
 

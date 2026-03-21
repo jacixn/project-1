@@ -21,19 +21,18 @@ import AchievementService from '../services/achievementService';
 import { pushToCloud } from '../services/userSyncService';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-// LiquidGlassView/BlurView removed from map overlays — causes native crashes with MapView
+import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 
-// =============================================
-// Map overlay container — uses a plain semi-transparent View
-// instead of BlurView to avoid native crashes on MapView overlays.
-// BlurView + MapView marker re-renders is a known iOS crash source.
-// =============================================
-const MapGlassContainer = React.memo(({ children, style, bgColor = 'rgba(255,255,255,0.85)' }) => (
-  <View style={[style, { backgroundColor: bgColor }]}>
+const MapGlassContainer = React.memo(({ children, style }) => (
+  <BlurView
+    intensity={50}
+    tint="systemUltraThinMaterialLight"
+    style={[style, { overflow: 'hidden' }]}
+  >
     {children}
-  </View>
+  </BlurView>
 ));
 
 // Remote Bible Maps Configuration
@@ -491,7 +490,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     })
   ).current;
 
-  // MapGlassContainer defined at top of file — plain View, no BlurView
+  // MapGlassContainer defined at top of file — semi-transparent View (BlurView causes artifacts with MapView)
 
   // =============================================
   // LOADING STATE
@@ -642,7 +641,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       <View style={styles.overlayContainer} pointerEvents="box-none">
         <View style={styles.safeAreaContainer} pointerEvents="box-none">
           {/* Header */}
-          <MapGlassContainer style={[styles.headerBlur, { marginTop: insets.top + 8 }]} bgColor="rgba(255,255,255,0.92)">
+          <MapGlassContainer style={[styles.headerBlur, { marginTop: insets.top + 8 }]}>
             <View style={styles.headerContent}>
               <TouchableOpacity
                 onPress={onClose}
@@ -659,7 +658,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
           </MapGlassContainer>
 
           {/* Era Filters */}
-          <MapGlassContainer style={styles.eraFiltersBlur} bgColor="rgba(255,255,255,0.88)">
+          <MapGlassContainer style={styles.eraFiltersBlur}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -702,7 +701,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
           </MapGlassContainer>
 
           {/* Thematic Filters */}
-          <MapGlassContainer style={styles.thematicFiltersBlur} bgColor="rgba(255,255,255,0.88)">
+          <MapGlassContainer style={styles.thematicFiltersBlur}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -774,7 +773,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
           </MapGlassContainer>
 
           {/* Journey Controls — pinned at bottom */}
-          <MapGlassContainer style={styles.journeyControlsBlur} bgColor="rgba(255,255,255,0.92)">
+          <MapGlassContainer style={styles.journeyControlsBlur}>
             <View style={[styles.journeyControlsContent, { paddingBottom: Math.max(insets.bottom, 15) }]}>
               <View style={styles.journeyHeaderRow}>
                 <Text style={[styles.journeyTitle, { color: overlayText }]}>

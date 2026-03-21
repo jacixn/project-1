@@ -226,8 +226,7 @@ const EmailVerificationScreen = ({ onDismiss, email: emailProp }) => {
       Alert.alert('Code Sent', `A new code has been sent to ${result.maskedEmail || maskedEmail}.`);
     } catch (error) {
       console.log('[EmailVerification] Resend failed:', error?.message || error);
-      const msg = error?.message || 'Failed to send code. Please try again.';
-      Alert.alert('Error', msg);
+      Alert.alert('Unable to Send Code', 'Something went wrong. Please try again later.');
     } finally {
       setSending(false);
     }

@@ -565,7 +565,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       Animated.timing(premiumBgFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } catch (err) {
       console.log('[CustomBg] Fatal error:', err);
-      Alert.alert('Error', `Failed to set background: ${err.message || 'Unknown error'}`);
+      Alert.alert('Background Failed', 'Unable to set the background image. Please try again.');
     }
   };
 

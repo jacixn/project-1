@@ -38,7 +38,7 @@ export function useICloudSync() {
           break;
         case 'sync_error':
           setIsSyncing(false);
-          setError(data.error);
+          setError('Sync failed. Please try again.');
           break;
       }
     });
@@ -50,7 +50,7 @@ export function useICloudSync() {
     setError(null);
     const result = await iCloudSyncService.syncAllToCloud();
     if (!result.success) {
-      setError(result.error || result.reason);
+      setError('Sync failed. Please try again.');
     }
     return result;
   }, []);
@@ -59,7 +59,7 @@ export function useICloudSync() {
     setError(null);
     const result = await iCloudSyncService.syncFromCloud();
     if (!result.success) {
-      setError(result.error || result.reason);
+      setError('Could not load from iCloud. Please try again.');
     }
     return result;
   }, []);

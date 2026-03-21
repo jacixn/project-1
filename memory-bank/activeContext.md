@@ -45,11 +45,13 @@ All code-side changes for App Store submission have been implemented. The follow
 ```
 This is a wellness/fitness tracker and Bible reading app, NOT a medical device. No in-app purchases. No subscriptions. The app is completely free.
 
+ACCOUNT REQUIRED: Account creation is required because the app provides a personalised experience. Bible reading progress, saved verses, journal notes, prayer tracking, habit streaks, workout logs, and nutrition data are all tied to the user's account. The app also includes social features (friends, leaderboards, shared prayer requests, messaging) and iCloud sync, which require user identity. All sign-up is done via email — no third-party login is required.
+
 HEALTH & FITNESS DISCLAIMER: The app provides body composition estimates (BMI, body fat %, muscle mass, body water %, visceral fat, bone mass, body age, Health Score) using standard research-based formulas (Mifflin-St Jeor, BMI calculations). These are for informational and wellness tracking purposes only — they are NOT clinical measurements and are NOT intended to diagnose, treat, or prevent any medical condition. The app clearly states this in multiple places: the App Store description, in-app disclaimers on the Physique screen, Nutrition screen, Gym screen, and in the Terms of Service (Section 8). Users are advised to consult healthcare professionals for medical accuracy.
 
 The app uses DeepSeek for text-based analysis features (Bible study responses, task scoring, workout suggestions, nutrition insights). Users are explicitly informed about this data transfer during onboarding and in the Privacy Policy (Section 4.3 & 5), which clearly states data may be processed on servers in China. No account credentials or authentication tokens are sent to DeepSeek. Users must accept the privacy terms before using the app.
 
-User-generated content features (prayer wall, social feed, messaging) are moderated with automated profanity filtering, user reporting, and user blocking mechanisms.
+User-generated content features (social feed, messaging) are moderated with automated profanity filtering, user reporting, and user blocking mechanisms.
 ```
 
 ### 5. Remaining Code Issues to Fix Before Submission
@@ -104,6 +106,8 @@ User-generated content features (prayer wall, social feed, messaging) are modera
 ## Critical Reminders
 - **NEVER delete `fivefold-ios/ios/BiblelyVerseWidget/`** — this is the iOS widget extension. Protect it during all cleanup, refactoring, and cache-clearing operations.
 - **NEVER delete Xcode DerivedData** when freeing disk space — the user needs it for builds and deleting it just makes the next build take much longer for no benefit. When clearing disk space, skip DerivedData and focus on things that won't slow down development (old archives, Android/Gradle, unused simulators, etc.).
+- **NEVER run Metro in CI mode** — CI mode disables hot reload / fast refresh, which silently prevents code changes from applying to the running app. This caused a major debugging nightmare where changes appeared to have no effect. Always start Metro normally (`npx expo start`) without `--ci` or `CI=true` flags.
+- **When user asks to test on a physical iPhone, always open Xcode immediately** by running `open "/Users/jz/Desktop/guthub/project-1/fivefold-ios/ios/Biblely.xcworkspace"` before giving the remaining connection steps.
 
 ## Next Steps
 - Complete the 4 manual action items above

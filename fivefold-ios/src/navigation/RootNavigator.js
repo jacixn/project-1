@@ -18,12 +18,11 @@ import TabNavigator, { preloadTabConfig } from './TabNavigator';
 import AuthScreen from '../screens/AuthScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
-import PrayerWallScreen from '../screens/PrayerWallScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ChallengesScreen from '../screens/ChallengesScreen';
 import ChallengeQuizScreen from '../screens/ChallengeQuizScreen';
-import TasksDoneScreen from '../screens/TasksDoneScreen';
+
 import SavedVersesScreen from '../screens/SavedVersesScreen';
 import HighlightsScreen from '../screens/HighlightsScreen';
 import JournalScreen from '../screens/JournalScreen';
@@ -57,6 +56,7 @@ import FriendChatScreen from '../screens/FriendChatScreen';
 import CoachChatScreen from '../screens/CoachChatScreen';
 import VisionScreen from '../screens/VisionScreen';
 import HabitsScreenWrapper from '../screens/HabitsScreen';
+import RemindersScreenWrapper from '../screens/RemindersScreen';
 import PanicButtonScreen from '../screens/PanicButtonScreen';
 import RelapsedScreen from '../screens/RelapsedScreen';
 import DistractionGamesScreen from '../screens/DistractionGamesScreen';
@@ -83,6 +83,8 @@ import CustomiseTabBarScreen from '../screens/CustomiseTabBarScreen';
 import CustomiseCardsScreen from '../screens/CustomiseCardsScreen';
 import PrayerBoardScreen from '../screens/PrayerBoardScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
+
+import PrayerDetailScreen from '../screens/PrayerDetailScreen';
 import SimpleOnboarding from '../components/SimpleOnboarding';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -1111,15 +1113,6 @@ const RootNavigator = () => {
         }}
       />
       
-      {/* Prayer Wall Screen */}
-      <Stack.Screen 
-        name="PrayerWall" 
-        component={PrayerWallScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
       {/* Messages Screen */}
       <Stack.Screen 
         name="Messages" 
@@ -1147,15 +1140,6 @@ const RootNavigator = () => {
         }}
       />
       
-      {/* Tasks Done Screen */}
-      <Stack.Screen 
-        name="TasksDone" 
-        component={TasksDoneScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
       {/* Vision Screen */}
       <Stack.Screen 
         name="Vision" 
@@ -1169,6 +1153,15 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Habits"
         component={HabitsScreenWrapper}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Reminders Screen */}
+      <Stack.Screen
+        name="Reminders"
+        component={RemindersScreenWrapper}
         options={{
           animation: 'slide_from_right',
         }}
@@ -1384,6 +1377,15 @@ const RootNavigator = () => {
       <Stack.Screen
         name="CustomiseCards"
         component={CustomiseCardsScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Prayer Detail Screen */}
+      <Stack.Screen
+        name="PrayerDetail"
+        component={PrayerDetailScreen}
         options={{
           animation: 'slide_from_right',
         }}

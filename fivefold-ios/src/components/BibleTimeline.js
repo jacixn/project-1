@@ -419,7 +419,25 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   // =============================================
   // Bottom sheet logic
   // =============================================
+  const isEraUnlocked = useCallback((eraId) => {
+    const idx = timelineData.findIndex(e => e.id === eraId);
+    if (idx <= 0) return true;
+    return viewedEras.has(timelineData[idx - 1].id);
+  }, [viewedEras, timelineData]);
+
   const openSheet = useCallback(async (era) => {
+    const idx = timelineData.findIndex(e => e.id === era.id);
+    if (idx > 0 && !viewedEras.has(timelineData[idx - 1].id)) {
+      hapticFeedback.error();
+      const prevEra = timelineData[idx - 1];
+      Alert.alert(
+        'Era Locked',
+        `Complete "${prevEra.title}" first to unlock this era.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     hapticFeedback.medium();
     setSelectedEra(era);
 
@@ -439,7 +457,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       Animated.spring(sheetY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
       Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-  }, [viewedEras]);
+  }, [viewedEras, timelineData]);
 
   const closeSheet = useCallback(() => {
     hapticFeedback.light();
@@ -560,13 +578,11 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
 
   const renderEraItem = (era, index) => {
     const isViewed = viewedEras.has(era.id);
-    // Expand the "active" zone so the user feels they are interacting with the timeline
-    // The closest item to the center is active
+    const unlocked = isEraUnlocked(era.id);
     const isActive = index === activeIndex;
     const isLeft = index % 2 === 0;
     
-    // We want the inactive items to be slightly faded out to emphasize the active one
-    const fadeOpacity = isActive ? 1 : 0.45;
+    const fadeOpacity = !unlocked ? 0.3 : (isActive ? 1 : 0.45);
     
     const anim = cardAnims[index] || new Animated.Value(1);
     const cardTranslateY = anim.interpolate({ inputRange: [0, 1], outputRange: [60, 0] });
@@ -614,7 +630,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
 
           <View style={[styles.nodeShadow, { shadowColor: era.color }]} />
           
-          <View style={[styles.node, { backgroundColor: isViewed ? era.color : (isDark ? '#222' : '#FFF') }]}>
+          <View style={[styles.node, { backgroundColor: isViewed ? era.color : unlocked ? (isDark ? '#222' : '#FFF') : (isDark ? '#1a1a1a' : '#e8e8e8') }]}>
             <Svg width={NODE_SIZE} height={NODE_SIZE} style={{ position: 'absolute' }}>
               <Circle
                 cx={NODE_SIZE / 2}
@@ -628,7 +644,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
                 cx={NODE_SIZE / 2}
                 cy={NODE_SIZE / 2}
                 r={(NODE_SIZE - 6) / 2}
-                stroke={isViewed ? 'rgba(255,255,255,0.3)' : era.color}
+                stroke={isViewed ? 'rgba(255,255,255,0.3)' : unlocked ? era.color : 'transparent'}
                 strokeWidth={5}
                 fill="none"
                 strokeDasharray={ringCircumference}
@@ -640,8 +656,10 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
 
             {isViewed ? (
               <FontAwesome5 name="check" size={18} color="#FFF" />
+            ) : unlocked ? (
+              <FontAwesome5 name="lock-open" size={14} color={era.color} />
             ) : (
-              <FontAwesome5 name="lock" size={16} color={era.color} />
+              <FontAwesome5 name="lock" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} />
             )}
           </View>
         </Animated.View>

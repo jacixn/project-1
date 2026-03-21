@@ -32,6 +32,7 @@ import {
   sendVerseMessage,
 } from '../services/messageService';
 import * as Haptics from 'expo-haptics';
+import AvatarDisplay from './AvatarDisplay';
 
 const ShareVerseModal = ({ 
   visible, 
@@ -152,16 +153,7 @@ const ShareVerseModal = ({
         onPress={() => toggleFriend(item.uid)}
         activeOpacity={0.7}
       >
-        {item.profilePicture ? (
-          <Image source={{ uri: item.profilePicture }} style={styles.friendAvatar} />
-        ) : (
-          <LinearGradient
-            colors={[theme.primary + '60', theme.primary + '30']}
-            style={styles.friendAvatarPlaceholder}
-          >
-            <MaterialIcons name="person" size={20} color={theme.primary} />
-          </LinearGradient>
-        )}
+        <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={36} />
         
         <Text style={[styles.friendName, { color: theme.text }]} numberOfLines={1}>
           {item.displayName?.split(' ')[0] || 'Friend'}

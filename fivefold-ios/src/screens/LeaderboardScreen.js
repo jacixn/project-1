@@ -21,6 +21,7 @@ import {
   Dimensions,
   Animated,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +41,8 @@ import {
 import { db } from '../config/firebase';
 import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
+import ReportBlockModal from '../components/ReportBlockModal';
+import AvatarDisplay from '../components/AvatarDisplay';
 import AchievementService from '../services/achievementService';
 import { getReferralCount } from '../services/referralService';
 import { getCurrentSeason, getDaysRemaining, getSeasonalPoints, getSeasonalPointsForUser, checkSeasonReset } from '../services/seasonService';
@@ -62,7 +65,7 @@ const { width, height } = Dimensions.get('window');
 
 const LeaderboardScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   
   // Badge toggles for current user
@@ -105,6 +108,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
   
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -433,7 +437,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
     
     const gradientColors = rankColors[item.rank] || [theme.primary, theme.primary];
     
-    return (
+    const cardContent = (
       <Animated.View
         key={item.uid}
         style={[
@@ -470,16 +474,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         
         {/* Avatar */}
         <View style={[styles.cardAvatar, { borderColor: gradientColors[0] }]}>
-          {item.profilePicture ? (
-            <Image source={{ uri: item.profilePicture }} style={styles.cardAvatarImage} />
-          ) : (
-            <LinearGradient
-              colors={[theme.primary + '40', theme.primary + '20']}
-              style={styles.cardAvatarPlaceholder}
-            >
-              <MaterialIcons name="person" size={28} color={theme.primary} />
-            </LinearGradient>
-          )}
+          <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={48} />
         </View>
         
         {/* Info */}
@@ -540,6 +535,29 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         </View>
       </Animated.View>
     );
+
+    if (item.isCurrentUser) return cardContent;
+
+    return (
+      <TouchableOpacity
+        key={item.uid}
+        activeOpacity={0.8}
+        onLongPress={() => {
+          hapticFeedback.light();
+          Alert.alert(
+            item.displayName || 'User',
+            null,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Report / Block', style: 'destructive', onPress: () => setReportTarget(item) },
+            ]
+          );
+        }}
+        delayLongPress={500}
+      >
+        {cardContent}
+      </TouchableOpacity>
+    );
   };
   
   // Render podium (only when 3+ users)
@@ -589,13 +607,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
               style={styles.podiumAvatarBorder}
             >
               <View style={[styles.podiumAvatar, styles.podiumAvatarSmall]}>
-                {second.profilePicture ? (
-                  <Image source={{ uri: second.profilePicture }} style={styles.podiumAvatarImage} />
-                ) : (
-                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#C0C0C0' + '30' }]}>
-                    <MaterialIcons name="person" size={26} color="#C0C0C0" />
-                  </View>
-                )}
+                <AvatarDisplay profilePicture={second.profilePicture} displayName={second.displayName} size={48} />
               </View>
             </LinearGradient>
             <View style={styles.podiumMedalContainer}>
@@ -652,13 +664,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
               style={[styles.podiumAvatarBorder, styles.podiumAvatarBorderFirst]}
             >
               <View style={[styles.podiumAvatar, styles.podiumAvatarFirst]}>
-                {first.profilePicture ? (
-                  <Image source={{ uri: first.profilePicture }} style={styles.podiumAvatarImage} />
-                ) : (
-                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#FFD700' + '30' }]}>
-                    <MaterialIcons name="person" size={36} color="#FFD700" />
-                  </View>
-                )}
+                <AvatarDisplay profilePicture={first.profilePicture} displayName={first.displayName} size={60} />
               </View>
             </LinearGradient>
             <View style={styles.podiumMedalContainer}>
@@ -712,13 +718,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
               style={styles.podiumAvatarBorder}
             >
               <View style={[styles.podiumAvatar, styles.podiumAvatarSmall]}>
-                {third.profilePicture ? (
-                  <Image source={{ uri: third.profilePicture }} style={styles.podiumAvatarImage} />
-                ) : (
-                  <View style={[styles.podiumAvatarPlaceholder, { backgroundColor: '#CD7F32' + '30' }]}>
-                    <MaterialIcons name="person" size={26} color="#CD7F32" />
-                  </View>
-                )}
+                <AvatarDisplay profilePicture={third.profilePicture} displayName={third.displayName} size={48} />
               </View>
             </LinearGradient>
             <View style={styles.podiumMedalContainer}>
@@ -826,7 +826,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
         {activeTab !== 'friends' && (
           <TouchableOpacity
             style={styles.emptyButton}
-            onPress={() => navigation?.navigate('Profile')}
+            onPress={() => navigation?.navigate('Main', { screen: 'Profile' })}
           >
             <LinearGradient
               colors={[theme.primary, theme.primary + 'DD']}
@@ -866,7 +866,7 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           </Text>
           <TouchableOpacity
             style={styles.signInButton}
-            onPress={() => navigation.navigate('Auth')}
+            onPress={() => signOut()}
           >
             <LinearGradient
               colors={[theme.primary, theme.primary + 'DD']}
@@ -1074,6 +1074,20 @@ const LeaderboardScreen = ({ navigation, onClose }) => {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
+
+      <ReportBlockModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        contentType="user"
+        reportedUserId={reportTarget?.uid}
+        currentUserId={user?.uid}
+        displayName={reportTarget?.displayName || 'this user'}
+        onBlock={() => {
+          setFriendsLeaderboard(prev => prev.filter(u => u.uid !== reportTarget?.uid));
+          setGlobalLeaderboard(prev => prev.filter(u => u.uid !== reportTarget?.uid));
+          setReportTarget(null);
+        }}
+      />
     </View>
   );
 };

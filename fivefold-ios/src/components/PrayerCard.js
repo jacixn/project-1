@@ -19,6 +19,7 @@ import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { deletePrayer } from '../services/prayerSocialService';
 import * as Haptics from 'expo-haptics';
+import AvatarDisplay from './AvatarDisplay';
 
 const PrayerCard = ({ 
   prayer, 
@@ -135,18 +136,7 @@ const PrayerCard = ({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          {prayer.profilePicture ? (
-            <Image source={{ uri: prayer.profilePicture }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={[theme.primary, theme.primary + 'AA']}
-              style={styles.avatarPlaceholder}
-            >
-              <Text style={styles.avatarInitial}>
-                {(prayer.displayName || 'A').charAt(0).toUpperCase()}
-              </Text>
-            </LinearGradient>
-          )}
+          <AvatarDisplay profilePicture={prayer.profilePicture} displayName={prayer.displayName} size={36} />
           <View style={styles.nameContainer}>
             <View style={styles.nameRow}>
               <Text style={[styles.displayName, { color: theme.text }]} numberOfLines={1}>

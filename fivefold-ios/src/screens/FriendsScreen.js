@@ -42,6 +42,7 @@ import {
   getFriendshipStatus,
 } from '../services/friendsService';
 import { hapticFeedback } from '../utils/haptics';
+import AvatarDisplay from '../components/AvatarDisplay';
 import CreateChallengeModal from '../components/CreateChallengeModal';
 import ReportBlockModal from '../components/ReportBlockModal';
 import { getConversations } from '../services/messageService';
@@ -55,7 +56,7 @@ const { width, height } = Dimensions.get('window');
 
 const FriendsScreen = ({ navigation, onClose }) => {
   const { theme, isDark } = useTheme();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   
   // State
@@ -334,7 +335,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
           )
         );
       } else {
-        Alert.alert('Oops', result.message);
+        Alert.alert('Oops', 'Unable to send the friend request. Please try again.');
       }
     } catch (error) {
       hapticFeedback.error();
@@ -354,11 +355,11 @@ const FriendsScreen = ({ navigation, onClose }) => {
         hapticFeedback.success();
         loadData();
       } else {
-        Alert.alert('Error', result.message);
+        Alert.alert('Request Failed', 'Unable to accept the request. Please try again.');
       }
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Error', 'Failed to accept request');
+      Alert.alert('Request Failed', 'Something went wrong. Please try again.');
     } finally {
       setActionLoading(prev => ({ ...prev, [fromUserId]: false }));
     }
@@ -374,11 +375,11 @@ const FriendsScreen = ({ navigation, onClose }) => {
         hapticFeedback.success();
         setPendingRequests(prev => prev.filter(r => r.fromUserId !== fromUserId));
       } else {
-        Alert.alert('Error', result.message);
+        Alert.alert('Request Failed', 'Unable to decline the request. Please try again.');
       }
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Error', 'Failed to decline request');
+      Alert.alert('Request Failed', 'Something went wrong. Please try again.');
     } finally {
       setActionLoading(prev => ({ ...prev, [fromUserId]: false }));
     }
@@ -403,7 +404,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
                 hapticFeedback.success();
                 setFriends(prev => prev.filter(f => f.uid !== friendId));
               } else {
-                Alert.alert('Error', result.message);
+                Alert.alert('Remove Failed', 'Unable to remove this friend. Please try again.');
               }
             } catch (error) {
               hapticFeedback.error();
@@ -461,16 +462,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {item.profilePicture ? (
-            <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={[theme.primary + '60', theme.primary + '30']}
-              style={styles.avatarPlaceholder}
-            >
-              <MaterialIcons name="person" size={32} color={theme.primary} />
-            </LinearGradient>
-          )}
+          <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={48} />
         </View>
         
         {/* Info */}
@@ -583,17 +575,8 @@ const FriendsScreen = ({ navigation, onClose }) => {
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {userData.profilePicture ? (
-            <Image source={{ uri: userData.profilePicture }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={[theme.primary + '60', theme.primary + '30']}
-              style={styles.avatarPlaceholder}
-            >
-              <MaterialIcons name="person" size={32} color={theme.primary} />
-            </LinearGradient>
-          )}
-                </View>
+          <AvatarDisplay profilePicture={userData.profilePicture} displayName={userData.displayName} size={48} />
+        </View>
         
         {/* Info */}
         <View style={styles.requestInfo}>
@@ -659,17 +642,8 @@ const FriendsScreen = ({ navigation, onClose }) => {
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {item.profilePicture ? (
-            <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={[theme.primary + '60', theme.primary + '30']}
-              style={styles.avatarPlaceholder}
-            >
-              <MaterialIcons name="person" size={32} color={theme.primary} />
-            </LinearGradient>
-          )}
-                </View>
+          <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={48} />
+        </View>
         
         {/* Info */}
         <View style={styles.friendInfo}>
@@ -793,16 +767,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          {item.profilePicture ? (
-            <Image source={{ uri: item.profilePicture }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={['#EF444440', '#EF444420']}
-              style={styles.avatarPlaceholder}
-            >
-              <MaterialIcons name="person" size={32} color="#EF4444" />
-            </LinearGradient>
-          )}
+          <AvatarDisplay profilePicture={item.profilePicture} displayName={item.displayName} size={48} />
         </View>
 
         {/* Info */}
@@ -918,7 +883,7 @@ const FriendsScreen = ({ navigation, onClose }) => {
           <Text style={[styles.signInSubtitle, { color: theme.textSecondary }]}>
             Sign in to add friends and compete on leaderboards together
           </Text>
-          <TouchableOpacity onPress={() => navigation?.navigate('Auth')}>
+          <TouchableOpacity onPress={() => signOut()}>
             <LinearGradient
               colors={[theme.primary, theme.primary + 'CC']}
               style={styles.signInButton}

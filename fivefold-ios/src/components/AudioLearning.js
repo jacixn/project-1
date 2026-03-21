@@ -468,7 +468,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
       if (!story.audioUrl) {
         Alert.alert(
           'Audio Not Available',
-          'The audio file for this story hasn\'t been uploaded yet. Please check back later!'
+          'Audio is not available for this story. Try another story or check your internet connection.'
         );
         return;
       }

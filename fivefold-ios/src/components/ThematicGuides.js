@@ -148,21 +148,21 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       ],
       thematicGuides: [
         {
-          id: 'faith-sample',
-          title: 'Faith – Sample Guide',
-          hook: 'Loading guides from remote...',
+          id: 'faith-foundation',
+          title: 'The Foundation of Faith',
+          hook: 'What does it truly mean to have faith?',
           theme: 'faith',
           timeMinutes: 3,
           passage: 'Hebrews 11:1',
           anchorVerse: 'Now faith is confidence in what we hope for',
           verseRef: 'Hebrews 11:1',
-          intro: 'Thematic guides are loading from remote source...',
-          story: ['Please check your internet connection and try refreshing.'],
+          intro: 'Faith is described in Hebrews as the foundation of our relationship with God — a deep confidence in His promises even when we cannot see them fulfilled.',
+          story: ['The Bible is filled with stories of men and women who trusted God against all odds. Abraham left his homeland not knowing where he was going. Moses led an entire nation through the wilderness. David faced a giant with nothing but a sling and a stone. Each of them chose to believe that God was faithful, even when the path ahead was uncertain.'],
           keyVerses: [{ verse: 'Hebrews 11:1', text: 'Now faith is confidence in what we hope for and assurance about what we do not see' }],
-          insights: ['Remote data loading in progress...'],
-          reflectQuestions: ['How is your connection?'],
-          practice: 'Please wait while we load the complete guides.',
-          prayer: 'Lord, help us connect to Your wisdom. Amen.',
+          insights: ['Faith is not the absence of doubt, but the choice to trust God in the midst of it.'],
+          reflectQuestions: ['What area of your life requires more trust in God right now?'],
+          practice: 'Spend a few minutes in prayer, surrendering one area of uncertainty to God today.',
+          prayer: 'Lord, strengthen my faith. Help me to trust You even when I cannot see the way ahead. Amen.',
           relatedGuides: []
         }
       ]
@@ -687,44 +687,39 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   }, [selectedGuide]);
 
   // Pan gesture handler for guide detail modal
+  const lastPanDy = useRef(0);
   const guidePanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-      },
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) =>
+        gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5,
+      onMoveShouldSetPanResponderCapture: (_, gs) =>
+        gs.dy > 14 && Math.abs(gs.dy) > Math.abs(gs.dx) * 2,
       onPanResponderGrant: () => {
-        hapticFeedback.light();
+        lastPanDy.current = 0;
       },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          guidePanY.setValue(gestureState.dy);
-        }
+      onPanResponderMove: (_, gs) => {
+        const dy = Math.max(0, gs.dy);
+        lastPanDy.current = gs.dy;
+        guidePanY.setValue(dy);
       },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+      onPanResponderRelease: (_, gs) => {
+        if (lastPanDy.current > 120 || gs.vy > 0.4) {
           hapticFeedback.success();
-          Animated.parallel([
-            Animated.timing(guideSlideAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true,
-            }),
-            Animated.timing(guideFadeAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
+          Animated.timing(guidePanY, {
+            toValue: 1000,
+            duration: 200,
+            useNativeDriver: false,
+          }).start(() => {
             setSelectedGuide(null);
           });
         } else {
           hapticFeedback.light();
           Animated.spring(guidePanY, {
             toValue: 0,
-            tension: 65,
-            friction: 11,
-            useNativeDriver: true,
+            tension: 170,
+            friction: 12,
+            useNativeDriver: false,
           }).start();
         }
       },
@@ -737,18 +732,19 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       guideSlideAnim.setValue(0);
       guideFadeAnim.setValue(0);
       
+      guidePanY.setValue(0);
       requestAnimationFrame(() => {
         Animated.parallel([
           Animated.spring(guideSlideAnim, {
             toValue: 1,
             tension: 65,
             friction: 11,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(guideFadeAnim, {
             toValue: 1,
             duration: 250,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start();
       });
@@ -770,20 +766,19 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       inputRange: [0, 1],
       outputRange: [1000, 0],
     });
-
     const combinedTranslateY = Animated.add(modalTranslateY, guidePanY);
 
     const handleBackdropClose = () => {
       Animated.parallel([
-        Animated.timing(guideSlideAnim, {
-          toValue: 0,
+        Animated.timing(guidePanY, {
+          toValue: 1000,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(guideFadeAnim, {
           toValue: 0,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start(() => {
         setSelectedGuide(null);
@@ -876,8 +871,9 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
             <View style={styles.guideDetailSafeArea}>
               {/* Drag Handle */}
               <View
-                style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}
+                style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 12 }}
                 {...guidePanResponder.panHandlers}
+                hitSlop={{ top: 15, bottom: 15, left: 30, right: 30 }}
               >
                 <View style={{
                   width: 48,
@@ -1082,51 +1078,60 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
                   <SectionCard icon="menu-book" title="Key Verses" accent>
                     {selectedGuide.keyVerses.map((verseItem, index) => (
                       <View key={index} style={{
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : `${themeColor}08`,
-                        borderRadius: 16,
-                        padding: 18,
-                        marginBottom: index < selectedGuide.keyVerses.length - 1 ? 14 : 0,
-                        borderLeftWidth: 4,
-                        borderLeftColor: themeColor,
+                        marginBottom: index < selectedGuide.keyVerses.length - 1 ? 16 : 0,
                       }}>
-                        <Text style={{
-                          fontSize: 17,
-                          color: theme.text,
-                          lineHeight: 28,
-                          fontStyle: 'italic',
-                          marginBottom: 12,
-                        }}>
-                          "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verseItem.verse]?.text || verseItem.text)}"
-                        </Text>
-                        <View style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}>
-                          <Text style={{
-                            fontSize: 15,
-                            fontWeight: '700',
-                            color: themeColor,
-                          }}>
-                            {verseItem.verse}
-                          </Text>
+                        <BlurView
+                          intensity={isDark ? 15 : 40}
+                          tint={isDark ? 'dark' : 'light'}
+                          style={{
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                          }}
+                        >
                           <View style={{
-                            backgroundColor: `${themeColor}20`,
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 8,
+                            padding: 18,
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.6)',
                           }}>
                             <Text style={{
-                              fontSize: 11,
-                              fontWeight: '700',
-                              color: themeColor,
-                              textTransform: 'uppercase',
-                              letterSpacing: 0.5,
+                              fontSize: 16,
+                              color: isDark ? 'rgba(255,255,255,0.85)' : '#333',
+                              lineHeight: 26,
+                              fontStyle: 'italic',
                             }}>
-                              {bibleVersion}
+                              "{loadingDynamicVerses ? 'Loading...' : (fetchedVerses[verseItem.verse]?.text || verseItem.text)}"
                             </Text>
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginTop: 14,
+                            }}>
+                              <Text style={{
+                                fontSize: 14,
+                                fontWeight: '700',
+                                color: themeColor,
+                              }}>
+                                {verseItem.verse}
+                              </Text>
+                              <View style={{
+                                backgroundColor: `${themeColor}15`,
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                borderRadius: 6,
+                              }}>
+                                <Text style={{
+                                  fontSize: 10,
+                                  fontWeight: '700',
+                                  color: themeColor,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: 0.5,
+                                }}>
+                                  {bibleVersion}
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                        </View>
+                        </BlurView>
                       </View>
                     ))}
                   </SectionCard>

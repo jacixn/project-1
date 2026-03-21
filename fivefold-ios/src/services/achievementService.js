@@ -94,13 +94,6 @@ const ACHIEVEMENTS = [
   { id: 'app_streak_15', target: 14, type: 'appStreak', title: 'Two Week Fire',       points: 1058,  icon: 'local-fire-department', category: 'streak' },
   { id: 'app_streak_30', target: 30, type: 'appStreak', title: 'Monthly Devotion',    points: 2645,  icon: 'local-fire-department', category: 'streak' },
 
-  // ── Points Goals ──────────────────────────────────────
-  { id: 'points_1k',   target: 1000,   type: 'totalPoints',   title: 'First 1K',            points: 132,   icon: 'star',              category: 'goals' },
-  { id: 'points_5k',   target: 5000,   type: 'totalPoints',   title: '5K Club',             points: 265,   icon: 'star',              category: 'goals' },
-  { id: 'points_10k',  target: 10000,  type: 'totalPoints',   title: 'Five Figures',        points: 661,   icon: 'star',              category: 'goals' },
-  { id: 'points_25k',  target: 25000,  type: 'totalPoints',   title: '25K Legend',           points: 1323,  icon: 'star',              category: 'goals' },
-  { id: 'points_50k',  target: 50000,  type: 'totalPoints',   title: '50K Champion',        points: 2645,  icon: 'star',              category: 'goals' },
-
   // ── Workouts ────────────────────────────────────────────
   { id: 'workout_1',   target: 3,   type: 'workoutsCompleted', title: 'Getting Consistent',  points: 132,   icon: 'fitness-center',    category: 'workouts' },
   { id: 'workout_3',   target: 7,   type: 'workoutsCompleted', title: 'Gym Regular',         points: 265,   icon: 'fitness-center',    category: 'workouts' },

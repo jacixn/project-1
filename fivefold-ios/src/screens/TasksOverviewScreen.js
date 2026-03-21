@@ -51,6 +51,31 @@ const TasksOverviewScreen = () => {
   const [userStats, setUserStats] = useState({ points: 0, level: 1, completedTasks: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState({});
+  const [floatingPoints, setFloatingPoints] = useState([]);
+  const floatingIdRef = useRef(0);
+
+  const showFloatingPoints = useCallback((points, tierColor) => {
+    const id = ++floatingIdRef.current;
+    const opacity = new Animated.Value(1);
+    const translateY = new Animated.Value(0);
+    const scale = new Animated.Value(0.5);
+
+    setFloatingPoints(prev => [...prev, { id, points, tierColor, opacity, translateY, scale }]);
+
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: -80, duration: 1200, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.2, tension: 200, friction: 8, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(opacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    ]).start(() => {
+      setFloatingPoints(prev => prev.filter(f => f.id !== id));
+    });
+  }, []);
 
   const toggleExpand = useCallback((todoId) => {
     LayoutAnimation.configureNext(LayoutAnimation.create(250, 'easeInEaseOut', 'opacity'));
@@ -269,7 +294,10 @@ const TasksOverviewScreen = () => {
           <View style={styles.taskTopRow}>
             <TouchableOpacity
               style={[styles.checkBtn, { borderColor: tier.color }]}
-              onPress={() => handleTodoComplete(todo.id)}
+              onPress={() => {
+                showFloatingPoints(todo.points || 0, tier.color);
+                handleTodoComplete(todo.id);
+              }}
               activeOpacity={0.6}
             >
               <View style={[styles.checkInner, { backgroundColor: tier.color + '15' }]}>
@@ -449,6 +477,20 @@ const TasksOverviewScreen = () => {
           })
         )}
       </Animated.ScrollView>
+
+      {floatingPoints.map(fp => (
+        <Animated.Text
+          key={fp.id}
+          pointerEvents="none"
+          style={[styles.floatingPoints, {
+            color: fp.tierColor,
+            opacity: fp.opacity,
+            transform: [{ translateY: fp.translateY }, { scale: fp.scale }],
+          }]}
+        >
+          +{fp.points} pts
+        </Animated.Text>
+      ))}
     </View>
   );
 };
@@ -571,6 +613,20 @@ const styles = StyleSheet.create({
   confTrack: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
   confFill: { height: '100%', borderRadius: 2 },
   confLabel: { fontSize: 10, fontWeight: '700', width: 28, textAlign: 'right' },
+
+  // Empty state
+  floatingPoints: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '45%',
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+    zIndex: 999,
+  },
 
   // Empty state
   emptyState: {

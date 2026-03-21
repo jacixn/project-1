@@ -23,7 +23,12 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import userStorage from '../utils/userStorage';
+import AvatarDisplay from './AvatarDisplay';
+import AvatarPicker from './AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { moderateProfileImage, setUploadCooldown } from '../services/profileImageModeration';
+import { uploadProfilePicture } from '../services/storageService';
 import * as Notifications from 'expo-notifications';
 import notificationService from '../services/notificationService';
 import { useTheme } from '../contexts/ThemeContext';
@@ -31,13 +36,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { hapticFeedback } from '../utils/haptics';
 import { countries } from '../data/countries';
 import { bibleVersions } from '../data/bibleVersions';
-import { persistProfileImage } from '../utils/profileImageStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { uploadProfilePicture } from '../services/storageService';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup } from '../services/authService';
 import { submitReferral } from '../services/referralService';
+import profanityFilter from '../services/profanityFilterService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -641,7 +645,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [userName, setUserName] = useState(
     user?.displayName || userProfile?.displayName || userProfile?.username || user?.username || 'Friend'
   );
-  const [profileImage, setProfileImage] = useState(null);
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedPainPoint, setSelectedPainPoint] = useState(null);
   const [selectedAttribution, setSelectedAttribution] = useState(null);
@@ -842,6 +846,56 @@ const SimpleOnboarding = ({ onComplete }) => {
   const totalScreens = screens.length;
   const progress = (currentScreen + 1) / totalScreens;
 
+  const handleUploadPhoto = async () => {
+    try {
+      const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permResult.granted) {
+        Alert.alert('Permission Needed', 'Please allow access to your photo library to upload a profile picture.');
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets?.[0]?.uri) return;
+
+      const uri = pickerResult.assets[0].uri;
+      const previousAvatar = selectedAvatar;
+
+      setSelectedAvatar(uri);
+
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const { approved, reason } = await moderateProfileImage(base64);
+
+      if (!approved) {
+        setSelectedAvatar(previousAvatar);
+        if (user?.uid) await setUploadCooldown(user.uid);
+        hapticFeedback.error();
+        Alert.alert(
+          'Image Not Accepted',
+          `${reason}\n\nYou can try uploading a different photo in 24 hours.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      if (user?.uid) {
+        const downloadURL = await uploadProfilePicture(user.uid, uri);
+        setSelectedAvatar(downloadURL);
+        hapticFeedback.success();
+      } else {
+        Alert.alert('Not Signed In', 'Please complete sign-up first to upload a photo.');
+      }
+    } catch (error) {
+      console.error('[Onboarding Upload] Failed:', error);
+      Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
+    }
+  };
+
   const handleNext = async () => {
     hapticFeedback.selection();
     
@@ -951,14 +1005,14 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   const finishOnboarding = async () => {
-    // Build the list of setup steps based on what the user configured
+    if (userName && profanityFilter.containsProfanity(userName.trim())) {
+      Alert.alert('Inappropriate Content', 'Please choose a different name.');
+      return;
+    }
+
     const steps = [];
     
     steps.push({ id: 'profile', label: `Setting up your profile${userName ? `, ${userName.trim()}` : ''}...`, icon: 'person', done: false });
-    
-    if (profileImage) {
-      steps.push({ id: 'photo', label: 'Uploading your profile photo...', icon: 'photo-camera', done: false });
-    }
     
     if (selectedCountry) {
       steps.push({ id: 'country', label: `Setting location to ${selectedCountry.flag || ''} ${selectedCountry.name}...`, icon: 'public', done: false });
@@ -1000,7 +1054,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         if (step.id === 'profile') {
           const profileData = {
             name: userName.trim() || 'Friend',
-            profilePicture: profileImage || null,
+            profilePicture: selectedAvatar || '',
             country: selectedCountry?.name || null,
             countryCode: selectedCountry?.code || null,
             countryFlag: selectedCountry?.flag || null,
@@ -1016,23 +1070,6 @@ const SimpleOnboarding = ({ onComplete }) => {
             userStorage.setRaw('userProfile', JSON.stringify(profileData)),
             minDelay,
           ]);
-        } else if (step.id === 'photo') {
-          let uploadedUrl = null;
-          if (profileImage && user?.uid) {
-            try {
-              // profileImage is already a permanent URI (persisted in pickImage)
-              // — no need to call persistProfileImage again (double-persist would
-              //   trigger cleanup that deletes the file profileImage points to).
-              uploadedUrl = await uploadProfilePicture(user.uid, profileImage);
-              console.log('[Setup] Photo uploaded to cloud:', uploadedUrl);
-            } catch (e) {
-              console.warn('[Setup] Photo upload failed, using local file:', e.message);
-              // Upload failed but the local permanent file still exists
-            }
-          }
-          await minDelay;
-          // Store for later sync step
-          step._uploadedUrl = uploadedUrl;
         } else if (step.id === 'country') {
           // Country saved as part of profile, just visual
           await minDelay;
@@ -1066,9 +1103,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           // Sync everything to Firebase
           if (user?.uid) {
             try {
-              const uploadedPhotoUrl = steps.find(s => s.id === 'photo')?._uploadedUrl;
-              const finalPicture = uploadedPhotoUrl || profileImage || null;
-              console.log('[Setup] Syncing profile picture to Firestore:', finalPicture ? (finalPicture.startsWith('http') ? 'cloud URL' : 'local file') : 'none');
+              const finalPicture = selectedAvatar || '';
               const userRef = doc(db, 'users', user.uid);
               await Promise.all([
                 updateDoc(userRef, {
@@ -1168,32 +1203,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Photo Access Required',
-          'Please allow access to your photo library so you can set a profile picture.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (!result.canceled) {
-        const tempUri = result.assets[0].uri;
-        const permanentUri = await persistProfileImage(tempUri);
-        setProfileImage(permanentUri);
-      }
-    } catch (error) {
-      console.error('Image picker error:', error);
-    }
-  };
 
   // Gift hold state
   const [holdProgress, setHoldProgress] = useState(0);
@@ -2489,100 +2498,55 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   // ============================================
-  // SCREEN: Profile Photo
+  // SCREEN: Avatar Selection
   // ============================================
   const PhotoScreen = () => {
     const screenTheme = SCREEN_THEMES.photo;
-    
-    const pickImage = async () => {
-      try {
-        // Request permission first — Apple requires this prompt
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Photo Access Required',
-            'Please allow access to your photo library so you can set a profile picture. You can enable this in Settings.',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-        
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        });
-        
-        if (!result.canceled && result.assets && result.assets[0]) {
-          const tempUri = result.assets[0].uri;
-          // Persist to a permanent location so the file survives app restarts
-          const permanentUri = await persistProfileImage(tempUri);
-          setProfileImage(permanentUri);
-          hapticFeedback.success();
-        }
-      } catch (error) {
-        console.error('Image picker error:', error);
-      }
-    };
-    
+
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
         <ProgressBar screenTheme={screenTheme} />
-        
+
         <View style={styles.photoScreenContent}>
           <View style={styles.photoTopSection}>
             <Text style={[styles.screenTitle, { color: '#333' }]}>
-              Add a profile photo, {userName}
+              Choose an avatar, {userName}
             </Text>
-            
+
             <Text style={[styles.screenSubtitle, { color: '#666' }]}>
               Make your profile feel more personal
             </Text>
-            
-            <TouchableOpacity 
-              style={styles.photoPickerContainer}
-              onPress={pickImage}
-            >
-              {profileImage ? (
-                <Image 
-                  source={{ uri: profileImage }} 
-                  style={styles.profileImagePreview}
-                />
-              ) : (
-                <View style={[styles.photoPlaceholder, { borderColor: screenTheme.accent }]}>
-                  <MaterialIcons name="add-a-photo" size={40} color={screenTheme.accent} />
-                  <Text style={[styles.photoPlaceholderText, { color: screenTheme.accent }]}>
-                    Tap to add photo
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            
-            {profileImage && (
-              <TouchableOpacity 
-                onPress={() => setProfileImage(null)}
-                style={styles.removePhotoButton}
-              >
-                <Text style={styles.removePhotoText}>Remove photo</Text>
-              </TouchableOpacity>
-            )}
+
+            <View style={styles.photoPickerContainer}>
+              <AvatarDisplay
+                profilePicture={selectedAvatar}
+                displayName={userName}
+                size={140}
+              />
+            </View>
+
+            <AvatarPicker
+              currentAvatar={selectedAvatar}
+              displayName={userName}
+              onAvatarSelected={setSelectedAvatar}
+              onUploadPhoto={handleUploadPhoto}
+            />
           </View>
-          
+
           <View style={styles.bottomMascot}>
-            <Image 
-              source={require('../../assets/logo.png')} 
+            <Image
+              source={require('../../assets/logo.png')}
               style={styles.smallMascot}
               resizeMode="contain"
             />
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={handleNext}
           style={[styles.mainButton, { backgroundColor: '#333' }]}
         >
-          <Text style={styles.mainButtonText}>{profileImage ? 'Next' : 'Skip for now'}</Text>
+          <Text style={styles.mainButtonText}>Next</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
         </TouchableOpacity>
       </SafeAreaView>
@@ -3019,7 +2983,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                     setResendCooldown(60);
                   } catch (err) {
                     hapticFeedback.error();
-                    Alert.alert('Error', err.message || 'Failed to resend code.');
+                    Alert.alert('Unable to Resend', 'Something went wrong. Please try again later.');
                   } finally {
                     setTwoFALoading(false);
                   }
@@ -3065,7 +3029,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                     );
                   } catch (err) {
                     hapticFeedback.error();
-                    Alert.alert('Verification Failed', err.message || 'Incorrect code. Please try again.');
+                    Alert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
                   } finally {
                     setTwoFALoading(false);
                   }
@@ -3197,7 +3161,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                 setShow2FAVerify(true);
               } catch (err) {
                 hapticFeedback.error();
-                Alert.alert('Error', err.message || 'Failed to send code. You can set this up later in Settings.');
+                Alert.alert('Unable to Send Code', 'Something went wrong. You can set this up later in Settings.');
               } finally {
                 setTwoFALoading(false);
               }
@@ -3455,7 +3419,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                   }
                 } catch (err) {
                   hapticFeedback.error();
-                  setReferralError(err.message || 'Something went wrong. Please try again.');
+                  setReferralError('Something went wrong. Please try again.');
                 } finally {
                   setReferralLoading(false);
                 }

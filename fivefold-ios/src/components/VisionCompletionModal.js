@@ -295,7 +295,7 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
                     activeOpacity={0.7}
                   >
                     <MaterialIcons name="close" size={18} color={subtleText} />
-                    <Text style={[styles.secondaryBtnText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)' }]}>Not yet</Text>
+                    <Text style={[styles.secondaryBtnText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)' }]}>Maybe later</Text>
                   </TouchableOpacity>
                 </View>
               </>
