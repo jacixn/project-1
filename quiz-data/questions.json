@@ -1,12 +1,1112 @@
 {
   "new-testament": {
     "multiple-choice": {
-      "beginner": [],
-      "intermediate": []
+      "beginner": [
+        {
+          "id": "nt-mc-b-1",
+          "question": "Who is the mother of Jesus?",
+          "options": [
+            "Martha",
+            "Mary",
+            "Ruth",
+            "Sarah"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mary was chosen by God to be the mother of Jesus. The angel Gabriel appeared to her and told her she would give birth to the Son of God.",
+          "reference": "Luke 1:26-31",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-2",
+          "question": "In which town was Jesus born?",
+          "options": [
+            "Nazareth",
+            "Jerusalem",
+            "Bethlehem",
+            "Jericho"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born in Bethlehem. Mary and Joseph had travelled there because the Roman emperor ordered a census and everyone had to return to their family's hometown.",
+          "reference": "Luke 2:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-3",
+          "question": "How many disciples did Jesus choose to follow Him closely?",
+          "options": [
+            "3",
+            "7",
+            "10",
+            "12"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Jesus chose 12 men to be His closest followers, known as the apostles. They travelled with Him, learned from Him, and later spread His teachings across the world.",
+          "reference": "Luke 6:13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-4",
+          "question": "At a wedding in Cana, Jesus performed His first miracle. What did He turn into wine?",
+          "options": [
+            "Milk",
+            "Water",
+            "Juice",
+            "Oil"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When the wine ran out at a wedding feast in Cana, Jesus told the servants to fill jars with water. When they poured it out, it had become wine. This was Jesus' very first recorded miracle.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-5",
+          "question": "Who baptised Jesus in the River Jordan?",
+          "options": [
+            "Peter",
+            "Paul",
+            "John the Baptist",
+            "Moses"
+          ],
+          "correctAnswer": 2,
+          "explanation": "John the Baptist baptised Jesus in the River Jordan. When Jesus came up out of the water, the heavens opened, the Holy Spirit descended like a dove, and God's voice said 'This is my Son, whom I love.'",
+          "reference": "Matthew 3:13-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-6",
+          "question": "What is the first book of the New Testament?",
+          "options": [
+            "Mark",
+            "Luke",
+            "John",
+            "Matthew"
+          ],
+          "correctAnswer": 3,
+          "explanation": "The Gospel of Matthew is the first book of the New Testament. It tells the story of Jesus' life, starting with His family tree and birth.",
+          "reference": "Matthew 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-7",
+          "question": "Which disciple betrayed Jesus for 30 pieces of silver?",
+          "options": [
+            "Peter",
+            "Judas",
+            "Thomas",
+            "James"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Judas Iscariot, one of the 12 disciples, agreed to hand Jesus over to the religious leaders in exchange for 30 pieces of silver. He identified Jesus to the soldiers by greeting Him with a kiss.",
+          "reference": "Matthew 26:14-16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-8",
+          "question": "According to the Bible, how many days after His death did Jesus rise from the dead?",
+          "options": [
+            "1 day",
+            "2 days",
+            "3 days",
+            "7 days"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus rose from the dead on the third day after His crucifixion, just as He had told His disciples He would. This event -- the resurrection -- is the foundation of the Christian faith.",
+          "reference": "1 Corinthians 15:4",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-9",
+          "question": "Jesus miraculously fed over 5,000 people using just a small amount of food. What food was it?",
+          "options": [
+            "Bread and grapes",
+            "Bread and fish",
+            "Rice and meat",
+            "Bread and cheese"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A boy had five small loaves of bread and two fish. Jesus took them, gave thanks, and the disciples distributed the food to over 5,000 people -- with 12 baskets of leftovers.",
+          "reference": "John 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-10",
+          "question": "In which city was Jesus crucified?",
+          "options": [
+            "Bethlehem",
+            "Nazareth",
+            "Jerusalem",
+            "Rome"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was crucified just outside the walls of Jerusalem, at a place called Golgotha (which means 'the place of the skull'). He had travelled to Jerusalem for the Passover festival.",
+          "reference": "John 19:17-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-11",
+          "question": "Which disciple denied knowing Jesus three times before a rooster crowed?",
+          "options": [
+            "John",
+            "James",
+            "Peter",
+            "Andrew"
+          ],
+          "correctAnswer": 2,
+          "explanation": "After Jesus was arrested, Peter was asked three times if he knew Jesus, and each time he denied it. When the rooster crowed, Peter remembered Jesus' warning and wept bitterly.",
+          "reference": "Luke 22:54-62",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-12",
+          "question": "What is the last book of the New Testament?",
+          "options": [
+            "Jude",
+            "Acts",
+            "Hebrews",
+            "Revelation"
+          ],
+          "correctAnswer": 3,
+          "explanation": "The book of Revelation is the last book of the New Testament and the entire Bible. Written by the apostle John, it contains visions about the end times and the ultimate victory of God.",
+          "reference": "Revelation 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-13",
+          "question": "What event does Easter celebrate in the Christian faith?",
+          "options": [
+            "Jesus' birth",
+            "Jesus' baptism",
+            "Jesus' resurrection from the dead",
+            "Jesus' ascension to heaven"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Easter celebrates the resurrection of Jesus Christ -- the day He rose from the dead, three days after His crucifixion. It is the most important celebration in the Christian calendar.",
+          "reference": "Matthew 28:5-6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-14",
+          "question": "What event does Christmas celebrate?",
+          "options": [
+            "Jesus' resurrection",
+            "Jesus' birth",
+            "Jesus' baptism",
+            "Jesus' first miracle"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Christmas celebrates the birth of Jesus Christ in Bethlehem. According to the Gospels, Jesus was born to Mary and placed in a manger because there was no room at the inn.",
+          "reference": "Luke 2:6-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-15",
+          "question": "Who was Jesus' earthly father (His guardian who raised Him)?",
+          "options": [
+            "Joseph",
+            "David",
+            "Abraham",
+            "Zechariah"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Joseph was engaged to Mary and raised Jesus as his own son. He was a carpenter from Nazareth, and an angel appeared to him in a dream telling him not to be afraid to take Mary as his wife.",
+          "reference": "Matthew 1:18-24",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-16",
+          "question": "What was Jesus' job before He began His public ministry?",
+          "options": [
+            "Fisherman",
+            "Carpenter",
+            "Farmer",
+            "Shepherd"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus grew up in Nazareth where Joseph was a carpenter (or craftsman). Jesus would have learned and practised this trade during His early adult life before beginning His ministry around age 30.",
+          "reference": "Mark 6:3",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-17",
+          "question": "On Palm Sunday, Jesus rode into Jerusalem. What animal did He ride?",
+          "options": [
+            "A horse",
+            "A chariot",
+            "A donkey",
+            "A camel"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus rode into Jerusalem on a donkey while crowds laid palm branches and cloaks on the road and shouted 'Hosanna!' This humble entry fulfilled an Old Testament prophecy.",
+          "reference": "Matthew 21:1-9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-18",
+          "question": "Which disciple refused to believe Jesus had risen until he could see and touch Jesus' wounds?",
+          "options": [
+            "Peter",
+            "John",
+            "Thomas",
+            "Matthew"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Thomas said he would not believe unless he could see the nail marks and put his hand in Jesus' side. When Jesus later appeared and invited him to do so, Thomas declared 'My Lord and my God!' This is why he is sometimes called 'Doubting Thomas.'",
+          "reference": "John 20:24-29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-19",
+          "question": "What was placed on Jesus' head before His crucifixion to mock Him?",
+          "options": [
+            "A golden crown",
+            "A crown of thorns",
+            "A helmet",
+            "A laurel wreath"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Roman soldiers twisted together a crown of thorns and pressed it onto Jesus' head to mock Him as 'King of the Jews.' It was meant to cause pain and humiliation.",
+          "reference": "Matthew 27:29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-20",
+          "question": "Who visited baby Jesus and brought gifts of gold, frankincense, and myrrh?",
+          "options": [
+            "Shepherds",
+            "Angels",
+            "Wise men (Magi)",
+            "Priests"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Wise men (also called Magi) from the East followed a star to find the newborn king. They brought three precious gifts: gold (for a king), frankincense (for God), and myrrh (foreshadowing His burial).",
+          "reference": "Matthew 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-21",
+          "question": "What was the name of the garden where Jesus prayed on the night before He was arrested?",
+          "options": [
+            "Garden of Eden",
+            "Garden of Gethsemane",
+            "Garden of Olives",
+            "Garden of Paradise"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus went to the Garden of Gethsemane with His disciples on the night He was betrayed. There He prayed in deep anguish, asking God if there was another way, but ultimately accepting God's will.",
+          "reference": "Matthew 26:36-46",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-22",
+          "question": "How did Jesus die?",
+          "options": [
+            "He was stoned",
+            "He was crucified on a cross",
+            "He drowned",
+            "He was beheaded"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus was crucified -- nailed to a wooden cross by Roman soldiers -- on a hill called Golgotha outside Jerusalem. Crucifixion was a common Roman method of execution at the time.",
+          "reference": "Mark 15:24-37",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-23",
+          "question": "Who wrote many of the letters (epistles) found in the New Testament?",
+          "options": [
+            "Peter",
+            "John",
+            "Paul",
+            "Luke"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The apostle Paul wrote at least 13 of the 21 letters in the New Testament, including Romans, Corinthians, Galatians, and Philippians. He wrote them to encourage and instruct early churches.",
+          "reference": "Romans 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-24",
+          "question": "Where did Jesus grow up as a child?",
+          "options": [
+            "Bethlehem",
+            "Jerusalem",
+            "Nazareth",
+            "Jericho"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Although Jesus was born in Bethlehem, He grew up in the small town of Nazareth in the region of Galilee. That is why He is often called 'Jesus of Nazareth.'",
+          "reference": "Luke 2:39-40",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-25",
+          "question": "Jesus drove people out of the Temple in Jerusalem. Why was He angry?",
+          "options": [
+            "They were praying too loudly",
+            "They were buying and selling things in God's house",
+            "They were fighting each other",
+            "They would not let Him in"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus found merchants selling animals and money changers doing business inside the Temple courts. He overturned their tables and said 'My house shall be called a house of prayer, but you are making it a den of robbers.'",
+          "reference": "Matthew 21:12-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-26",
+          "question": "On the night Jesus was born, who did angels appear to in the fields to announce His birth?",
+          "options": [
+            "Wise men",
+            "Shepherds",
+            "Priests",
+            "Fishermen"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Angels appeared to shepherds watching their flocks at night near Bethlehem. The angel said 'Do not be afraid. I bring you good news of great joy -- today a Saviour has been born to you.'",
+          "reference": "Luke 2:8-14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-27",
+          "question": "Who was the Roman governor that sentenced Jesus to be crucified?",
+          "options": [
+            "Caesar Augustus",
+            "King Herod",
+            "Pontius Pilate",
+            "Governor Felix"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Pontius Pilate was the Roman governor of Judea. Although he said he found no fault in Jesus, he gave in to the crowd's demands and sentenced Jesus to be crucified.",
+          "reference": "Matthew 27:24-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-28",
+          "question": "Jesus taught His disciples a famous prayer. What is it commonly called?",
+          "options": [
+            "The Apostles' Prayer",
+            "The Lord's Prayer",
+            "The Disciples' Prayer",
+            "The Holy Prayer"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Lord's Prayer is found in Matthew 6:9-13. It begins 'Our Father, who art in heaven, hallowed be thy name...' Jesus taught it as a model for how to pray.",
+          "reference": "Matthew 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-29",
+          "question": "Jesus calmed a storm while His frightened disciples were in a boat. On which body of water did this happen?",
+          "options": [
+            "The Red Sea",
+            "The Dead Sea",
+            "The Sea of Galilee",
+            "The Mediterranean Sea"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus and His disciples were crossing the Sea of Galilee when a fierce storm arose. Jesus was asleep in the boat. When the terrified disciples woke Him, He simply said 'Quiet! Be still!' and the wind and waves obeyed.",
+          "reference": "Mark 4:35-41",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-30",
+          "question": "In the parable of the Prodigal Son, what did the father do when his son came home after wasting all his money?",
+          "options": [
+            "Turned him away",
+            "Welcomed him with open arms and threw a party",
+            "Made him work as a servant",
+            "Ignored him"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The father ran to his son, embraced him, put a robe and ring on him, and threw a great feast to celebrate his return. Jesus told this parable to show how much God loves and forgives those who come back to Him.",
+          "reference": "Luke 15:20-24",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-31",
+          "question": "When Jesus was born, where was He laid because there was no room at the inn?",
+          "options": [
+            "A bed",
+            "A manger (feeding trough)",
+            "A basket",
+            "The floor"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mary wrapped baby Jesus in cloths and placed Him in a manger -- a feeding trough for animals -- because there was no guest room available for them in Bethlehem.",
+          "reference": "Luke 2:7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-32",
+          "question": "What was Simon Peter's job before he followed Jesus?",
+          "options": [
+            "Tax collector",
+            "Carpenter",
+            "Fisherman",
+            "Shepherd"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter (also called Simon) was a fisherman on the Sea of Galilee. Jesus called him and his brother Andrew saying 'Come, follow me, and I will make you fishers of men.'",
+          "reference": "Matthew 4:18-20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-33",
+          "question": "How many Gospels (books about Jesus' life) are in the New Testament?",
+          "options": [
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "correctAnswer": 2,
+          "explanation": "There are four Gospels: Matthew, Mark, Luke, and John. Each one tells the story of Jesus' life, death, and resurrection from a slightly different perspective.",
+          "reference": "Matthew, Mark, Luke, John",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-34",
+          "question": "Which of these is NOT one of the four Gospels?",
+          "options": [
+            "Matthew",
+            "Acts",
+            "Mark",
+            "John"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Acts (or 'The Acts of the Apostles') is not a Gospel -- it is the story of the early church after Jesus ascended to heaven. The four Gospels are Matthew, Mark, Luke, and John.",
+          "reference": "Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-35",
+          "question": "Who appeared to Mary to tell her she would give birth to Jesus?",
+          "options": [
+            "A prophet",
+            "King David",
+            "The angel Gabriel",
+            "Moses"
+          ],
+          "correctAnswer": 2,
+          "explanation": "God sent the angel Gabriel to Mary in the town of Nazareth. Gabriel told her 'Do not be afraid, Mary, you have found favour with God. You will give birth to a son, and you are to call him Jesus.'",
+          "reference": "Luke 1:26-33",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-36",
+          "question": "During the Last Supper, what did Jesus share with His disciples to remember Him by?",
+          "options": [
+            "Fish and water",
+            "Bread and wine",
+            "Lamb and bread",
+            "Fruit and honey"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus took bread, broke it, and said 'This is my body given for you.' Then He took a cup of wine and said 'This is my blood of the new covenant.' Christians still share bread and wine (communion) to remember Him.",
+          "reference": "Luke 22:19-20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-37",
+          "question": "According to the Gospels, who was the first person to find Jesus' tomb empty on Easter morning?",
+          "options": [
+            "Peter",
+            "Roman soldiers",
+            "Mary Magdalene",
+            "John"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Mary Magdalene went to Jesus' tomb early on Sunday morning and found the stone rolled away and the tomb empty. An angel told her 'He is not here; He has risen!'",
+          "reference": "John 20:1-2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-38",
+          "question": "In the Christmas story, who told Joseph in a dream to name the baby 'Jesus'?",
+          "options": [
+            "A prophet",
+            "A priest",
+            "An angel",
+            "Mary"
+          ],
+          "correctAnswer": 2,
+          "explanation": "An angel of the Lord appeared to Joseph in a dream and said 'Do not be afraid to take Mary home as your wife. She will give birth to a son, and you are to give him the name Jesus, because he will save his people from their sins.'",
+          "reference": "Matthew 1:20-21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-39",
+          "question": "What was Matthew's job before he became one of Jesus' disciples?",
+          "options": [
+            "Fisherman",
+            "Carpenter",
+            "Tax collector",
+            "Shepherd"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Matthew (also called Levi) was a tax collector before Jesus called him. Tax collectors were disliked because they often cheated people and worked for the Roman occupiers. Jesus calling him showed that no one is beyond God's love.",
+          "reference": "Matthew 9:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-40",
+          "question": "According to the Gospels, what did Jesus do when parents brought their children to Him?",
+          "options": [
+            "Sent them away",
+            "Blessed them",
+            "Ignored them",
+            "Tested them"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When the disciples tried to keep children away, Jesus said 'Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these.' He then blessed the children.",
+          "reference": "Matthew 19:13-15",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-41",
+          "question": "In one of His most famous miracles, what did Jesus walk on?",
+          "options": [
+            "Fire",
+            "Sand",
+            "Water",
+            "Clouds"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus walked on the water of the Sea of Galilee to reach His disciples' boat during a storm. When they saw Him, they were terrified, but He said 'Take courage! It is I. Don't be afraid.'",
+          "reference": "Matthew 14:25-27",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-42",
+          "question": "Jesus raised a man from the dead who had been in a tomb for four days. What was this man's name?",
+          "options": [
+            "Lazarus",
+            "Moses",
+            "Elijah",
+            "Stephen"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Lazarus of Bethany was a close friend of Jesus. When Lazarus died, Jesus wept. Then He went to the tomb and called out 'Lazarus, come out!' -- and Lazarus walked out alive, still wrapped in burial cloths.",
+          "reference": "John 11:38-44",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-43",
+          "question": "In which river was Jesus baptised?",
+          "options": [
+            "The Nile",
+            "The Jordan",
+            "The Euphrates",
+            "The Tigris"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus was baptised by John the Baptist in the River Jordan. The Jordan is a major river in the land of Israel and an important location throughout the Bible.",
+          "reference": "Mark 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-44",
+          "question": "According to the Gospels, about how old was Jesus when He began His public ministry?",
+          "options": [
+            "About 20",
+            "About 25",
+            "About 30",
+            "About 40"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Gospel of Luke tells us 'Jesus himself was about thirty years old when he began his ministry.' Before that, He lived quietly in Nazareth working as a carpenter.",
+          "reference": "Luke 3:23",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-45",
+          "question": "What was baby Jesus wrapped in when He was born?",
+          "options": [
+            "A blanket",
+            "Swaddling cloths (strips of cloth)",
+            "A coat",
+            "Nothing"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mary wrapped baby Jesus in swaddling cloths -- strips of cloth that were traditionally used to snugly wrap newborn babies -- and laid Him in a manger.",
+          "reference": "Luke 2:7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-46",
+          "question": "What guided the Wise Men to find baby Jesus?",
+          "options": [
+            "A map",
+            "A star",
+            "An angel",
+            "A dream"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Wise Men (Magi) saw a special star in the sky that they believed announced the birth of a new king. They followed the star from the East all the way to Bethlehem where it stopped over the place where Jesus was.",
+          "reference": "Matthew 2:1-2, 9-10",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-47",
+          "question": "Jesus told a famous story about a kind stranger who helped a beaten man on the road. What is this story called?",
+          "options": [
+            "The Prodigal Son",
+            "The Good Samaritan",
+            "The Lost Sheep",
+            "The Sower"
+          ],
+          "correctAnswer": 1,
+          "explanation": "In the Parable of the Good Samaritan, a man was robbed and left for dead. A priest and a Levite walked past without helping, but a Samaritan stopped, bandaged his wounds, and took him to an inn. Jesus told this to teach that everyone is our neighbour.",
+          "reference": "Luke 10:25-37",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-48",
+          "question": "After Jesus rose from the dead and spent time with His disciples, what happened to Him next?",
+          "options": [
+            "He stayed on earth",
+            "He went to Rome",
+            "He ascended (went up) into heaven",
+            "He disappeared into the desert"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Forty days after His resurrection, Jesus ascended into heaven from the Mount of Olives while His disciples watched. Two angels appeared and told them Jesus would one day return in the same way.",
+          "reference": "Acts 1:9-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-49",
+          "question": "Jesus said the two greatest commandments are to love God and to do what?",
+          "options": [
+            "Keep the Sabbath",
+            "Build churches",
+            "Love your neighbour as yourself",
+            "Read the Scriptures"
+          ],
+          "correctAnswer": 2,
+          "explanation": "When asked which commandment was the greatest, Jesus said to love God with all your heart, soul, and mind, and that the second is like it: 'Love your neighbour as yourself.' He said all of God's law hangs on these two.",
+          "reference": "Matthew 22:37-40",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-50",
+          "question": "What did Jesus tell His followers to do just before He ascended to heaven?",
+          "options": [
+            "Build a temple",
+            "Go and make disciples of all nations",
+            "Stay in Jerusalem forever",
+            "Write His story down"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Go and make disciples of all nations, baptising them in the name of the Father and of the Son and of the Holy Spirit.' This command is known as the Great Commission.",
+          "reference": "Matthew 28:19-20",
+          "points": 10
+        }
+      ]
     },
     "true-false": {
-      "beginner": [],
-      "intermediate": []
+      "beginner": [
+        {
+          "id": "nt-tf-b-1",
+          "question": "Jesus was born in Bethlehem.",
+          "correctAnswer": true,
+          "explanation": "Yes -- Jesus was born in Bethlehem, a small town south of Jerusalem. Mary and Joseph had travelled there for a Roman census because Joseph was from the family line of King David.",
+          "reference": "Luke 2:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-2",
+          "question": "Jesus had 12 disciples.",
+          "correctAnswer": true,
+          "explanation": "Jesus chose 12 men to be His closest followers. They are sometimes called the 'twelve apostles' and included Peter, James, John, Andrew, Matthew, and others.",
+          "reference": "Luke 6:13-16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-3",
+          "question": "Jesus turned water into wine at a wedding.",
+          "correctAnswer": true,
+          "explanation": "At a wedding feast in Cana, the wine ran out. Jesus told servants to fill six stone jars with water, and when they poured it out, it had become wine. This was His first miracle.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-4",
+          "question": "The New Testament is the first part of the Bible.",
+          "correctAnswer": false,
+          "explanation": "The New Testament is the second part of the Bible. The first part is the Old Testament, which covers creation, the history of Israel, the prophets, and more. The New Testament begins with the birth of Jesus.",
+          "reference": "General Bible structure",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-5",
+          "question": "Jesus walked on water.",
+          "correctAnswer": true,
+          "explanation": "Jesus walked on the Sea of Galilee during a storm to reach His disciples' boat. When they saw Him walking on the water, they were terrified until He told them not to be afraid.",
+          "reference": "Matthew 14:25-27",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-6",
+          "question": "Jesus was baptised by John the Baptist.",
+          "correctAnswer": true,
+          "explanation": "Jesus went to the River Jordan and was baptised by John the Baptist. When He came up out of the water, the sky opened, the Spirit of God came down like a dove, and God's voice said 'This is my Son, whom I love.'",
+          "reference": "Matthew 3:13-17",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-7",
+          "question": "Judas betrayed Jesus.",
+          "correctAnswer": true,
+          "explanation": "Judas Iscariot, one of the 12 disciples, betrayed Jesus by handing Him over to the religious authorities for 30 pieces of silver. He identified Jesus with a kiss in the Garden of Gethsemane.",
+          "reference": "Matthew 26:47-50",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-8",
+          "question": "Peter denied knowing Jesus three times.",
+          "correctAnswer": true,
+          "explanation": "After Jesus was arrested, Peter was asked three times if he knew Jesus. Each time, Peter said he did not. Then a rooster crowed, and Peter remembered Jesus' warning. He broke down and wept.",
+          "reference": "Luke 22:54-62",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-9",
+          "question": "Jesus rose from the dead on the third day.",
+          "correctAnswer": true,
+          "explanation": "Jesus was crucified on a Friday and rose from the dead on Sunday -- the third day. His empty tomb was discovered by women who had come to anoint His body, and angels told them He had risen.",
+          "reference": "Luke 24:1-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-10",
+          "question": "Jesus was born in Jerusalem.",
+          "correctAnswer": false,
+          "explanation": "Jesus was not born in Jerusalem -- He was born in Bethlehem. Mary and Joseph travelled to Bethlehem for the Roman census, and Jesus was born there and laid in a manger.",
+          "reference": "Luke 2:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-11",
+          "question": "The last book of the New Testament is Revelation.",
+          "correctAnswer": true,
+          "explanation": "Revelation (also called the Apocalypse) is the final book of the New Testament and the entire Bible. It was written by the apostle John and describes visions of the end of the world and the return of Jesus.",
+          "reference": "Revelation 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-12",
+          "question": "Jesus fed over 5,000 people with five loaves of bread and two fish.",
+          "correctAnswer": true,
+          "explanation": "A boy offered five small loaves and two fish. Jesus gave thanks, broke the food, and the disciples distributed it to over 5,000 people. Everyone ate their fill, and 12 baskets of leftovers were collected.",
+          "reference": "John 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-13",
+          "question": "Jesus grew up in a town called Nazareth.",
+          "correctAnswer": true,
+          "explanation": "After Jesus' family returned from Egypt, they settled in the small town of Nazareth in the region of Galilee. Jesus grew up there, which is why He is often called 'Jesus of Nazareth.'",
+          "reference": "Matthew 2:23",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-14",
+          "question": "Christmas celebrates the resurrection of Jesus.",
+          "correctAnswer": false,
+          "explanation": "Christmas celebrates the birth of Jesus, not His resurrection. Easter is the holiday that celebrates Jesus rising from the dead.",
+          "reference": "Luke 2:6-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-15",
+          "question": "Easter celebrates the resurrection of Jesus.",
+          "correctAnswer": true,
+          "explanation": "Easter is the Christian celebration of Jesus' resurrection -- when He rose from the dead three days after being crucified. It is the most important event in the Christian faith.",
+          "reference": "Matthew 28:5-6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-16",
+          "question": "Mary was the mother of Jesus.",
+          "correctAnswer": true,
+          "explanation": "Mary was a young woman from Nazareth who was chosen by God to be the mother of Jesus. The angel Gabriel appeared to her and told her she would give birth to the Son of God.",
+          "reference": "Luke 1:30-31",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-17",
+          "question": "Joseph (Jesus' earthly father) was a fisherman by trade.",
+          "correctAnswer": false,
+          "explanation": "Joseph was a carpenter (or craftsman), not a fisherman. It was Jesus' disciples Peter, Andrew, James, and John who were fishermen before they followed Jesus.",
+          "reference": "Matthew 13:55",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-18",
+          "question": "Jesus was crucified on a cross.",
+          "correctAnswer": true,
+          "explanation": "Jesus was sentenced to death by the Roman governor Pontius Pilate and was crucified -- nailed to a wooden cross -- at a place called Golgotha outside Jerusalem.",
+          "reference": "Mark 15:24-25",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-19",
+          "question": "Jesus rode into Jerusalem on a horse on Palm Sunday.",
+          "correctAnswer": false,
+          "explanation": "Jesus did not ride a horse -- He rode a donkey. This humble choice fulfilled an Old Testament prophecy and showed that He came in peace, not as a conquering warrior.",
+          "reference": "Matthew 21:1-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-20",
+          "question": "The Wise Men brought gifts of gold, frankincense, and myrrh to baby Jesus.",
+          "correctAnswer": true,
+          "explanation": "Wise Men (Magi) from the East followed a star to find the newborn Jesus. They presented three gifts: gold (fit for a king), frankincense (used in worship), and myrrh (a burial spice foreshadowing His death).",
+          "reference": "Matthew 2:11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-21",
+          "question": "Jesus calmed a storm on the Sea of Galilee.",
+          "correctAnswer": true,
+          "explanation": "While crossing the Sea of Galilee with His disciples, a violent storm arose. Jesus was sleeping in the boat. When the terrified disciples woke Him, He stood up and commanded the wind and waves to be still -- and they obeyed immediately.",
+          "reference": "Mark 4:37-39",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-22",
+          "question": "Paul wrote many of the letters in the New Testament.",
+          "correctAnswer": true,
+          "explanation": "The apostle Paul wrote at least 13 of the 27 books of the New Testament. These are letters (epistles) written to churches and individuals, such as Romans, Corinthians, Galatians, and Philippians.",
+          "reference": "Romans 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-23",
+          "question": "Matthew was a fisherman before he followed Jesus.",
+          "correctAnswer": false,
+          "explanation": "Matthew was a tax collector, not a fisherman. Tax collectors were disliked because they worked for the Roman Empire and often cheated people. Jesus called Matthew to follow Him anyway, showing His love for everyone.",
+          "reference": "Matthew 9:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-24",
+          "question": "Jesus taught a prayer known as 'The Lord's Prayer.'",
+          "correctAnswer": true,
+          "explanation": "Jesus taught His disciples how to pray with a model prayer that begins 'Our Father, who art in heaven, hallowed be thy name...' It is called the Lord's Prayer and is one of the most recited prayers in the world.",
+          "reference": "Matthew 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-25",
+          "question": "John the Baptist was Jesus' earthly father.",
+          "correctAnswer": false,
+          "explanation": "John the Baptist was not Jesus' father -- Joseph was Jesus' earthly father. John the Baptist was a prophet and a relative of Jesus (their mothers were related). He prepared the way for Jesus' ministry and baptised Him.",
+          "reference": "Luke 1:36, Matthew 3:13-17",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-26",
+          "question": "There are four Gospels in the New Testament: Matthew, Mark, Luke, and John.",
+          "correctAnswer": true,
+          "explanation": "The four Gospels -- Matthew, Mark, Luke, and John -- are the first four books of the New Testament. Each tells the story of Jesus' life, death, and resurrection from a unique perspective.",
+          "reference": "Matthew, Mark, Luke, John",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-27",
+          "question": "Jesus was tempted by the devil in the desert.",
+          "correctAnswer": true,
+          "explanation": "After being baptised, Jesus spent 40 days fasting in the desert, where the devil tempted Him three times. Jesus resisted every temptation by quoting Scripture.",
+          "reference": "Matthew 4:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-28",
+          "question": "A crown of thorns was placed on Jesus' head before His crucifixion.",
+          "correctAnswer": true,
+          "explanation": "Roman soldiers twisted together a crown of thorns and pushed it onto Jesus' head to mock Him as 'King of the Jews.' This was part of the suffering He endured before being crucified.",
+          "reference": "John 19:2",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-29",
+          "question": "Jesus healed blind people during His ministry.",
+          "correctAnswer": true,
+          "explanation": "Jesus healed several blind people throughout the Gospels. One well-known example is Bartimaeus, a blind beggar who called out to Jesus by the roadside. Jesus said 'Go, your faith has healed you,' and immediately Bartimaeus could see.",
+          "reference": "Mark 10:46-52",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-30",
+          "question": "Pontius Pilate sentenced Jesus to be crucified.",
+          "correctAnswer": true,
+          "explanation": "Pontius Pilate was the Roman governor of Judea who presided over Jesus' trial. Despite saying he found no fault in Jesus, Pilate gave in to the crowd and ordered Jesus to be crucified.",
+          "reference": "Matthew 27:24-26",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-31",
+          "question": "Jesus was raised as a child in the town of Bethlehem.",
+          "correctAnswer": false,
+          "explanation": "Jesus was born in Bethlehem but was raised in Nazareth. After a brief time in Egypt (fleeing King Herod), Mary and Joseph settled in Nazareth, where Jesus grew up.",
+          "reference": "Matthew 2:23",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-32",
+          "question": "Jesus performed His first miracle at a funeral.",
+          "correctAnswer": false,
+          "explanation": "Jesus' first miracle was at a wedding, not a funeral. At the wedding feast in Cana, He turned water into wine when the hosts ran out.",
+          "reference": "John 2:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-33",
+          "question": "An angel told Mary she would give birth to the Son of God.",
+          "correctAnswer": true,
+          "explanation": "The angel Gabriel was sent by God to Mary in Nazareth. He told her 'You will conceive and give birth to a son, and you are to call him Jesus. He will be great and will be called the Son of the Most High.'",
+          "reference": "Luke 1:30-33",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-34",
+          "question": "The disciples were afraid when they saw Jesus walking on water.",
+          "correctAnswer": true,
+          "explanation": "When the disciples saw Jesus walking toward them on the Sea of Galilee, they were terrified and cried out in fear, thinking He was a ghost. Jesus said 'Take courage! It is I. Don't be afraid.'",
+          "reference": "Matthew 14:26-27",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-35",
+          "question": "Shepherds visited baby Jesus on the night He was born.",
+          "correctAnswer": true,
+          "explanation": "After angels announced Jesus' birth to shepherds in the fields near Bethlehem, they hurried to find the baby. They found Mary, Joseph, and the baby lying in a manger, just as the angel had described.",
+          "reference": "Luke 2:15-16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-36",
+          "question": "Jesus said 'Love your neighbour as yourself.'",
+          "correctAnswer": true,
+          "explanation": "When asked about the greatest commandment, Jesus said to love God with all your heart and to love your neighbour as yourself. He said all the Law and the Prophets hang on these two commandments.",
+          "reference": "Matthew 22:39",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-37",
+          "question": "The book of Acts tells the story of Jesus' birth.",
+          "correctAnswer": false,
+          "explanation": "The book of Acts tells the story of the early church after Jesus ascended to heaven -- not His birth. The birth of Jesus is told in the Gospels of Matthew and Luke.",
+          "reference": "Acts 1:1-2",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-38",
+          "question": "Peter was one of Jesus' closest disciples.",
+          "correctAnswer": true,
+          "explanation": "Peter was one of Jesus' inner circle of three closest disciples (along with James and John). He was often the first to speak, and Jesus called him 'the rock' on which He would build His church.",
+          "reference": "Matthew 16:18",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-39",
+          "question": "Jesus was about 30 years old when He began His public ministry.",
+          "correctAnswer": true,
+          "explanation": "The Gospel of Luke tells us 'Jesus himself was about thirty years old when he began his ministry.' Before that, He lived in Nazareth and worked as a carpenter.",
+          "reference": "Luke 3:23",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-40",
+          "question": "Jesus never performed any miracles.",
+          "correctAnswer": false,
+          "explanation": "Jesus performed many miracles throughout His ministry -- healing the sick, giving sight to the blind, feeding thousands, calming storms, walking on water, and even raising the dead.",
+          "reference": "John 21:25",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-41",
+          "question": "The angel Gabriel appeared to Mary.",
+          "correctAnswer": true,
+          "explanation": "God sent the angel Gabriel to Mary in Nazareth to tell her she had been chosen to give birth to Jesus, the Son of God. Mary responded 'I am the Lord's servant. May it be to me as you have said.'",
+          "reference": "Luke 1:26-38",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-42",
+          "question": "Jesus said 'I am the way, the truth, and the life.'",
+          "correctAnswer": true,
+          "explanation": "Jesus spoke these words to His disciple Thomas during the Last Supper. The full statement is: 'I am the way and the truth and the life. No one comes to the Father except through me.'",
+          "reference": "John 14:6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-43",
+          "question": "Bread and wine were shared at the Last Supper.",
+          "correctAnswer": true,
+          "explanation": "At the Last Supper -- His final meal with the disciples -- Jesus took bread and wine and told them to eat and drink in remembrance of Him. This act is the basis for the Christian practice of communion.",
+          "reference": "Luke 22:19-20",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-44",
+          "question": "Jesus was buried in a cave-like tomb carved out of rock.",
+          "correctAnswer": true,
+          "explanation": "After the crucifixion, a man named Joseph of Arimathea placed Jesus' body in his own new tomb, which had been cut out of rock. A large stone was rolled across the entrance.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-45",
+          "question": "The New Testament contains 27 books.",
+          "correctAnswer": true,
+          "explanation": "The New Testament has 27 books in total: 4 Gospels, the book of Acts, 21 letters (epistles), and the book of Revelation.",
+          "reference": "General Bible structure",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-46",
+          "question": "Jesus raised a man named Lazarus from the dead.",
+          "correctAnswer": true,
+          "explanation": "Lazarus had been dead for four days when Jesus arrived at his tomb. Jesus called out 'Lazarus, come out!' and Lazarus walked out alive, still wrapped in burial cloths. This was one of Jesus' most dramatic miracles.",
+          "reference": "John 11:38-44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-47",
+          "question": "Jesus was baptised in the River Nile.",
+          "correctAnswer": false,
+          "explanation": "Jesus was baptised in the River Jordan, not the Nile. The River Nile is in Egypt. The River Jordan flows through Israel and is where John the Baptist was baptising people.",
+          "reference": "Mark 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-48",
+          "question": "Jesus told many parables (stories with a lesson).",
+          "correctAnswer": true,
+          "explanation": "Jesus was a master storyteller who used parables -- simple stories with deeper spiritual meanings -- to teach about God's kingdom. Famous parables include the Good Samaritan, the Prodigal Son, and the Sower.",
+          "reference": "Matthew 13:34",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-49",
+          "question": "Paul was one of the original 12 disciples who walked with Jesus.",
+          "correctAnswer": false,
+          "explanation": "Paul was not one of the original 12 disciples. He became a follower of Jesus after a dramatic encounter on the road to Damascus, well after Jesus' death and resurrection. Before that, he had been persecuting Christians.",
+          "reference": "Acts 9:1-19",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-50",
+          "question": "After His resurrection, Jesus appeared to His disciples before ascending to heaven.",
+          "correctAnswer": true,
+          "explanation": "After rising from the dead, Jesus appeared to His disciples multiple times over a period of 40 days. He ate with them, taught them, and gave them instructions before ascending to heaven from the Mount of Olives.",
+          "reference": "Acts 1:3-9",
+          "points": 10
+        }
+      ]
     }
   },
   "old-testament": {
