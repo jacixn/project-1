@@ -4,6 +4,11 @@
 - Always read `memory-bank/*.md` at the start of work.
 - Prefer small, safe diffs and verify files are non-empty due to prior repo corruption incidents.
 
+## Dependencies (CRITICAL — dev vs production)
+- **`expo-dev-client` must ALWAYS stay in `devDependencies`**, never in `dependencies`. It is only needed for development builds and adds unnecessary size to production binaries.
+- When adding new packages, consider whether they are dev-only (testing, linting, building tools) or runtime (used in the app). Place them in the correct section.
+- **NEVER move dev-only packages into `dependencies`** — this bloats the production app.
+
 ## Firebase / Cloud Functions (CRITICAL)
 - Cloud Functions live in the repo root at `functions/` (e.g. `functions/index.js`).
 - **Whenever you add or change any Cloud Function, you MUST run the deploy yourself** — do not just tell the user to run it. Run from project root: `firebase deploy --only functions`.
@@ -12,6 +17,7 @@
 ## Hot Reload / Code Changes
 - The user manages Metro and the simulator themselves. **NEVER kill Metro, restart the app, or run start scripts** — the user handles this in their own terminal.
 - After making code changes, just tell the user what was changed. They will reload the app themselves.
+- **NEVER start Metro in CI mode.** CI mode (`CI=true`) disables hot reload / fast refresh, which silently prevents code changes from applying. If you must start Metro, always use `CI=false npx expo start` to ensure watch mode is active. Never pass `--ci` or set `CI=true`.
 
 ## iOS Widget (CRITICAL — DO NOT DELETE)
 - The app has an iOS widget: `fivefold-ios/ios/BiblelyVerseWidget/`.
@@ -102,14 +108,47 @@
 - **ID format**: `{category-prefix}-{mc|tf}-{b|i|a}-{number}` (e.g., `nt-mc-b-1`, `ot-tf-a-30`)
 - After adding/modifying questions, always `git push` to GitHub so the app can fetch the updated data.
 
-## Legal / App Store / Website (CRITICAL — keep in sync)
-- The **source of truth** for legal pages is `fivefold-ios/legal/` (privacy-policy.html, terms-of-service.html, support.html).
-- The **live website** (biblely.uk) is served from `docs/` via GitHub Pages (deployed automatically on push to `main` when `docs/**` changes).
-- **Whenever you change any legal page in `fivefold-ios/legal/`, you MUST also copy the updated file to `docs/` and the repo root**, then push to deploy. There are three copies that must stay in sync:
-  1. `fivefold-ios/legal/<file>.html` — source of truth (used in-app)
-  2. `docs/<file>.html` — live website (GitHub Pages serves this)
-  3. `<file>.html` (repo root) — legacy copy, keep in sync
-- **Whenever you add a new feature or significantly change existing features**, check if the Privacy Policy, Terms of Service, or Support pages need updating (e.g. new data collection, new third-party services, new feature descriptions in support FAQ). If so, update `fivefold-ios/legal/` first, then copy to `docs/` and repo root.
+## Modal Pull-Down-to-Dismiss (CRITICAL — smooth gesture pattern)
+- When a modal uses a drag handle to dismiss by pulling down, follow this pattern to avoid laggy/janky gestures:
+  1. **`onStartShouldSetPanResponder: () => false`** — never greedily capture touches on start; let scrolling work
+  2. **`onMoveShouldSetPanResponder`** — only capture when `dy > 8` AND vertical bias exceeds horizontal (`dy > dx * 1.5`)
+  3. **`onPanResponderMove`** — set pan value directly with `Math.max(0, gs.dy)` to clamp downward only
+  4. **`onPanResponderRelease`** — dismiss if `dy > 120 || vy > 0.4`; otherwise spring back with high tension (170) / friction (12)
+  5. **Consistent `useNativeDriver`** — if the pan value is combined with other Animated values via `Animated.add`, ALL animations touching those values must use the same driver (all `false` or all `true`). Mixing causes crashes or silent failures.
+  6. **Expanded drag handle** — use `hitSlop={{ top: 15, bottom: 15, left: 30, right: 30 }}` so users don't have to precisely tap the tiny bar
+- Reference implementation: `ThematicGuides.js` guide detail modal (`guidePanResponder`)
+- Apply this same fix whenever the user reports a laggy modal pull-down
+
+## Authentication (CRITICAL — no guest access)
+- The app **requires account creation** (email/password). There is NO guest/anonymous access and this is intentional.
+- **Do NOT add guest access or anonymous browsing.** The decision was made to justify forced login in App Store review notes instead, because nearly every feature (Bible progress, saved verses, journal, prayers, habits, workouts, nutrition, friends, leaderboards, iCloud sync) depends on a user account.
+- The justification is included in the App Store review notes in `memory-bank/activeContext.md`.
+- If Apple ever asks about this during review, the explanation is: all data is personalised and tied to user identity, social features require authentication, and iCloud sync needs a user account.
+
+## Version Numbers (CRITICAL — keep in sync)
+- Three files must always have the **same version**: `fivefold-ios/app.json` (`expo.version`), `fivefold-ios/package.json` (`version`), and `fivefold-ios/ios/Biblely/Info.plist` (`CFBundleShortVersionString`).
+- The build number in `app.json` (`expo.ios.buildNumber`) and `Info.plist` (`CFBundleVersion`) must also match.
+- **Whenever you bump the version or build number in any of these files, you MUST update all three immediately.**
+
+## Privacy & Data Disclosures (CRITICAL — keep ALL in sync)
+- **Whenever you add a new third-party service, API call, or data collection to the app**, you MUST update ALL of the following:
+  1. `fivefold-ios/legal/privacy-policy.html` — add the service to Section 4 (Third-Party Services)
+  2. `fivefold-ios/ios/Biblely/PrivacyInfo.xcprivacy` — add any new collected data types
+  3. App Store Connect — App Privacy declarations (remind the user)
+- **Currently declared data types in PrivacyInfo.xcprivacy**: EmailAddress, Name, UserID, PhotosorVideos, OtherUserContent, Fitness, Health, OtherUsageData, AudioData. If a new feature collects a new category (e.g. location, contacts, financial), add it.
+- **Currently disclosed third-party services in Privacy Policy**: Firebase, iCloud/CloudKit, DeepSeek, Google Gemini, Google Cloud TTS, Google Cloud STT, OCR.space, GitHub, Resend, Expo Push, YouTube, Open Food Facts. If you integrate a new service, add it.
+- After updating the privacy policy, **always copy to `docs/` and repo root** (3 copies must stay in sync).
+
+## Legal / App Store / Website (CRITICAL — keep ALL 4 locations in sync)
+- **Whenever you add a new feature, remove a feature, or significantly change existing features**, you MUST check and update ALL of the following legal locations if necessary. Do NOT wait to be asked — proactively check and update them:
+  1. `fivefold-ios/legal/privacy-policy.html` — source of truth for website
+  2. `fivefold-ios/legal/terms-of-service.html` — source of truth for website
+  3. `fivefold-ios/legal/support.html` — source of truth for website
+  4. `fivefold-ios/legal/app-store-copy.md` — App Store marketing copy and age rating notes
+  5. **`ProfileTab.js` hardcoded legal text** (~lines 8645-8785) — the in-app Privacy Policy, Terms of Service, and Support FAQ are rendered as **hardcoded inline text** in ProfileTab.js, NOT loaded from the HTML files. This MUST also be updated whenever legal content changes, or the in-app pages will be out of date.
+- After updating the HTML files, **ALWAYS copy to `docs/` and repo root** (3 copies per file must stay in sync):
+  - `fivefold-ios/legal/<file>.html` → `docs/<file>.html` + `<file>.html` (repo root)
+- The **live website** (biblely.uk) is served from `docs/` via GitHub Pages (deployed automatically on push to `main`).
+- Things that require legal updates include: adding/removing features, adding/removing third-party services, changing data collection, changing moderation policies, changing user-facing content descriptions.
 - Links to these pages are in the Settings/Profile screen under "Legal".
 - The onboarding and hub also link to `https://biblely.uk/privacy-policy` and `https://biblely.uk/terms-of-service`.
-- App Store marketing copy is in `fivefold-ios/legal/app-store-copy.md`.

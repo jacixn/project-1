@@ -24,7 +24,6 @@ BIBLE READING
 PRAYER & DEVOTION
 • Write and track personal prayers with timestamps
 • Mark prayers as answered and reflect on God's faithfulness
-• Community prayer wall to share and support others
 • Prayer reminders at times you choose
 • Simplified verse explanations to deepen your understanding
 
@@ -81,4 +80,4 @@ Lifestyle
 Health & Fitness
 
 ## Age Rating Notes
-Contains Bible/religious content. Minimum age: 12. User-generated content features include a community prayer wall, social feed, direct messaging between friends, and friend connections. All UGC is text-based and moderated with profanity filtering, user reporting, and user blocking mechanisms. The app provides fitness, nutrition, and wellness estimates using automated analysis — these are informational only and not medical advice. No violence, gambling, or mature themes.
+Contains Bible/religious content. Minimum age: 12. User-generated content features include a social feed, direct messaging between friends, friend connections, and custom profile picture uploads. Text-based UGC is moderated with profanity filtering, user reporting, and user blocking mechanisms. Profile picture uploads are automatically scanned by Google Gemini for inappropriate content before acceptance, with a 24-hour cooldown after rejection. The app provides fitness, nutrition, and wellness estimates using automated analysis — these are informational only and not medical advice. No violence, gambling, or mature themes.
