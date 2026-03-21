@@ -18,9 +18,9 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: February 21, 2026</p>
+  <p class="date">Last updated: March 14, 2026</p>
 
-  <p>Biblely, developed and operated by Jacin ("we", "our", or "the app") is a faith and productivity companion available at <a href="https://biblely.uk">biblely.uk</a>. Your privacy matters to us. This policy explains what data we collect, how we use it, who we share it with, and your rights.</p>
+  <p>Biblely, developed and operated by Jason ("we", "our", or "the app") is a faith, fitness, and productivity companion available at <a href="https://biblely.uk">biblely.uk</a>. Your privacy matters to us. This policy explains what data we collect, how we use it, who we share it with, and your rights.</p>
 
   <h2>1. Data We Collect</h2>
 
@@ -28,43 +28,62 @@
   <p>When you create an account, we collect your email address, display name, username, name, age, gender, and optional profile photo.</p>
 
   <h3>1.2 User-Generated Content</h3>
-  <p>Prayers, journal entries, to-do items and task descriptions, saved Bible verses, workout logs, nutrition data, social feed posts, and direct messages you choose to create within the app.</p>
+  <p>Content you create within the app, including:</p>
+  <ul>
+    <li>Prayers, prayer boards (including folders/envelopes, stickers, photos, backgrounds, and custom board layouts), and prayer wall posts</li>
+    <li>Journal entries and personal notes attached to Bible verses</li>
+    <li>To-do items, task descriptions, and task schedules</li>
+    <li>Saved and highlighted Bible verses, bookmarks, and verse notes</li>
+    <li>Workout logs, workout templates, and workout split plans</li>
+    <li>Nutrition data including food logs and favourite meals</li>
+    <li>Vision board content</li>
+    <li>Social feed posts and direct messages</li>
+    <li>Custom exercises created by you</li>
+  </ul>
 
   <h3>1.3 Health and Fitness Data</h3>
-  <p>Workout history, nutrition tracking (food logs, calorie and macronutrient data, food text descriptions), and body composition information including height, weight, age, gender, BMI, body fat percentage, muscle mass, visceral fat, body water percentage, and body age. This data is used solely to provide personalised fitness and nutrition features within the app.</p>
+  <p>Workout history, exercise logs (sets, reps, weights), workout split plans (training days, muscle groups, exercise counts), available equipment preferences, nutrition tracking (food logs, calorie and macronutrient data, food text descriptions), and body composition information including height, weight, age, gender, BMI, body fat percentage, muscle mass, visceral fat, body water percentage, and body age. Physique scoring data (individual muscle group scores, balance suggestions, training frequency analysis) is calculated locally from your workout history. This data is used solely to provide personalised fitness and nutrition features within the app.</p>
 
   <h3>1.4 Conversation and Chat Data</h3>
-  <p>Messages sent through the Bible chat feature, the Coach feature, and direct messaging between users. Conversation messages sent to external services for personalised responses are described in Section 4.</p>
+  <p>Messages sent through the Bible Friend chat feature, the Coach (fitness) chat feature, and direct messaging between users. Both chat features support text input and voice input (speech-to-text via your device microphone). Conversation messages sent to external services for personalised responses are described in Section 4.</p>
 
   <h3>1.5 Usage Data</h3>
-  <p>App interaction data such as streaks, points, quiz scores, and feature usage — used to provide achievements and personalised experiences.</p>
+  <p>App interaction data such as streaks, points, achievement progress, quiz scores, Bible timeline exploration, Bible map visits, Bible character reading progress, and feature usage — used to provide achievements, leaderboards, and personalised experiences.</p>
 
   <h3>1.6 Device Information and Push Notification Tokens</h3>
   <p>We access device information (via Expo Device) solely for push notification delivery. We collect Expo push notification tokens to deliver notifications you have opted into (such as prayer reminders, workout reminders, task reminders, and streak alerts). We do not collect or store device identifiers for tracking purposes.</p>
 
-  <h3>1.7 Photos</h3>
-  <p>If you choose to use the camera or photo library, images are processed for profile pictures, food nutritional analysis, or gym/physique analysis via the Coach feature. Photos used for food scanning or the Coach feature are sent to Google Gemini for analysis and are not stored on our servers.</p>
+  <h3>1.7 Photos and Camera</h3>
+  <p>If you choose to use the camera or photo library, images are processed for profile pictures, food nutritional analysis, gym/physique analysis via the Coach feature, or prayer board customisation. Photos used for food scanning or the Coach feature are sent to Google Gemini for analysis and are not stored on our servers. Photos added to prayer boards are stored locally on your device.</p>
+
+  <h3>1.8 Preferences and Customisation</h3>
+  <p>Your app preferences including selected theme (from 25+ available themes), loading animation choice, Bible translation preference, notification settings, weight unit preference (kg/lbs), and referral status. These are stored locally on your device and synced to the cloud for cross-device access.</p>
 
   <h2>2. How We Use Your Data</h2>
   <ul>
-    <li>To provide and personalise app features (Bible reading, prayer tracking, workouts, nutrition, todos)</li>
+    <li>To provide and personalise app features (Bible reading, prayer tracking, prayer boards, workouts, nutrition, physique tracking, todos, journal)</li>
     <li>To sync your data across devices via Firebase and iCloud</li>
     <li>To send push notifications (prayer reminders, workout reminders, task reminders, streak alerts) that you opt into</li>
     <li>To generate personalised insights and responses using external services (see Section 4)</li>
-    <li>To enable social features (prayer wall, direct messaging, friend connections)</li>
-    <li>To provide text-to-speech audio playback of Bible passages</li>
+    <li>To suggest workouts based on your muscle split plan, available equipment, and physique scoring data</li>
+    <li>To enable social features (prayer wall, direct messaging, friend connections, leaderboards)</li>
+    <li>To provide text-to-speech audio playback of Bible passages and chat responses</li>
+    <li>To convert voice input to text for chat features (speech-to-text)</li>
     <li>To recognise text from images (OCR) for supported features</li>
+    <li>To track achievements, points, and progress across Bible, fitness, and productivity features</li>
+    <li>To link to external exercise tutorial videos on YouTube based on exercise names</li>
   </ul>
 
   <h2>3. Data Storage and Retention</h2>
 
   <h3>3.1 Local Storage</h3>
-  <p>Your data is stored locally on your device using AsyncStorage, so the app works offline. Food logs older than 90 days are automatically cleaned from local storage.</p>
+  <p>Your data is stored locally on your device using AsyncStorage, so the app works offline. Food logs older than 90 days and workout history older than 90 days are automatically cleaned from local storage. Exercise data is cached locally for up to 30 days.</p>
 
   <h3>3.2 Local Caches</h3>
   <ul>
     <li><strong>Bible cache:</strong> Downloaded Bible translation data is cached locally on your device for up to 30 days for offline reading.</li>
-    <li><strong>Text-to-speech audio cache:</strong> Generated audio files for Bible passages are cached locally on your device for up to 1 year to reduce repeated processing.</li>
+    <li><strong>Text-to-speech audio cache:</strong> Generated audio files for Bible passages and chat responses are cached locally on your device for up to 1 year to reduce repeated processing.</li>
+    <li><strong>Exercise database cache:</strong> Exercise data is cached locally for up to 30 days.</li>
   </ul>
 
   <h3>3.3 Cloud Storage (Firebase)</h3>
@@ -85,7 +104,7 @@
   <p><a href="https://www.apple.com/privacy/">Apple Privacy Policy</a></p>
 
   <h3>4.3 DeepSeek</h3>
-  <p>Used for text-based analysis to provide personalised insights, Bible study responses, prayer guidance, nutrition advice, and coaching. The following data may be sent to DeepSeek depending on the feature used: prayer content, body composition and health data (including BMI, body fat percentage, muscle mass, visceral fat, body water percentage, body age), nutrition data (including food logs, calorie and macronutrient information, gender, age, height, weight), conversation messages, task descriptions, name, age, and gender.</p>
+  <p>Used for text-based analysis to provide personalised insights, Bible study responses, prayer guidance, nutrition advice, workout suggestions, physique coaching, and task scoring. The following data may be sent to DeepSeek depending on the feature used: prayer content, body composition and health data (including BMI, body fat percentage, muscle mass, visceral fat, body water percentage, body age), nutrition data (including food logs, calorie and macronutrient information, gender, age, height, weight), physique scores and muscle group data, conversation messages, task descriptions, name, age, and gender.</p>
   <p><strong>Important:</strong> DeepSeek is operated by a company based in the People's Republic of China. Data sent to DeepSeek may be transmitted to and processed on servers located in China. Prompts and responses are processed to generate results and are not permanently stored by Biblely. DeepSeek's own data handling is governed by their privacy policy. By using features powered by DeepSeek, you acknowledge this international data transfer.</p>
   <p><a href="https://chat.deepseek.com/downloads/DeepSeek%20Privacy%20Policy.html">DeepSeek Privacy Policy</a></p>
 
@@ -94,7 +113,7 @@
   <p><a href="https://policies.google.com/privacy">Google Privacy Policy</a></p>
 
   <h3>4.5 Google Cloud Text-to-Speech</h3>
-  <p>Used to generate audio for Bible passage reading. Bible text is sent to Google Cloud for speech synthesis. Text is processed and discarded after audio generation.</p>
+  <p>Used to generate audio for Bible passage reading and chat response playback. Bible text and chat message text are sent to Google Cloud for speech synthesis. Text is processed and discarded after audio generation.</p>
   <p><a href="https://cloud.google.com/text-to-speech/docs/data-usage">Google Cloud TTS Data Usage Policy</a></p>
 
   <h3>4.6 OCR.space</h3>
@@ -102,7 +121,7 @@
   <p><a href="https://ocr.space/privacypolicy">OCR.space Privacy Policy</a></p>
 
   <h3>4.7 GitHub</h3>
-  <p>Bible translation data is fetched from GitHub servers. Your device connects to GitHub to download Bible text files. No personal data is sent to GitHub as part of this process.</p>
+  <p>Bible translation data, exercise data, and quiz question data are fetched from GitHub servers. Your device connects to GitHub to download these data files. No personal data is sent to GitHub as part of this process.</p>
   <p><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a></p>
 
   <h3>4.8 Resend</h3>
@@ -112,6 +131,10 @@
   <h3>4.9 Expo Push Notification Service</h3>
   <p>Used for push notification delivery. Your Expo push token and notification content are shared with Expo to deliver notifications.</p>
   <p><a href="https://expo.dev/privacy">Expo Privacy Policy</a></p>
+
+  <h3>4.10 YouTube</h3>
+  <p>The app provides links to YouTube for exercise tutorial videos. When you tap a tutorial link, your device opens YouTube (the YouTube app or website) with a search query based on the exercise name. No personal data is sent to YouTube by the app — the link simply opens a YouTube search page. Your interaction with YouTube after tapping the link is governed by YouTube's own policies.</p>
+  <p><a href="https://policies.google.com/privacy">YouTube (Google) Privacy Policy</a></p>
 
   <h2>5. International Data Transfers</h2>
   <p>Your data may be transferred to and processed in countries outside your country of residence, including:</p>
@@ -145,7 +168,7 @@
     <li><strong>Legal basis for processing:</strong> We process your personal data on the following legal bases:
       <ul>
         <li><em>Legitimate interest:</em> For core app functionality such as syncing data, delivering notifications, and providing Bible reading features.</li>
-        <li><em>Consent:</em> For optional features such as sending data to DeepSeek or Google Gemini for personalised insights, food analysis, and coaching. You can withdraw consent at any time by stopping use of the relevant feature.</li>
+        <li><em>Consent:</em> For optional features such as sending data to DeepSeek or Google Gemini for personalised insights, food analysis, workout suggestions, and coaching. You can withdraw consent at any time by stopping use of the relevant feature.</li>
         <li><em>Contract performance:</em> To provide the services you have requested when you create an account.</li>
       </ul>
     </li>
@@ -161,7 +184,7 @@
     <li><strong>Right to opt-out of sale:</strong> We do <strong>not</strong> sell your personal information. We have never sold personal information and have no plans to do so.</li>
     <li><strong>Non-discrimination:</strong> We will not discriminate against you for exercising any of your CCPA rights.</li>
   </ul>
-  <p><strong>Categories of personal information we collect:</strong> Identifiers (name, email, username), health and fitness data (body composition, nutrition logs, workout data), user-generated content (prayers, messages, tasks), device information (push notification tokens), and photos (when you choose to use the camera or photo library).</p>
+  <p><strong>Categories of personal information we collect:</strong> Identifiers (name, email, username), health and fitness data (body composition, nutrition logs, workout data, physique scores, equipment preferences), user-generated content (prayers, prayer boards, messages, tasks, journal entries, vision boards), device information (push notification tokens), and photos (when you choose to use the camera or photo library).</p>
   <p><strong>"Do Not Sell My Personal Information":</strong> Biblely does not sell, and has never sold, the personal information of its users to any third party for monetary or other valuable consideration.</p>
 
   <h2>9. Children's Privacy</h2>

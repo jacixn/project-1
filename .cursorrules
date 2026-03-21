@@ -102,8 +102,14 @@
 - **ID format**: `{category-prefix}-{mc|tf}-{b|i|a}-{number}` (e.g., `nt-mc-b-1`, `ot-tf-a-30`)
 - After adding/modifying questions, always `git push` to GitHub so the app can fetch the updated data.
 
-## Legal / App Store
-- Privacy Policy, Terms of Service, and Support pages are in `fivefold-ios/legal/`.
-- These HTML files must be hosted (e.g. GitHub Pages) and the URLs added to App Store Connect.
+## Legal / App Store / Website (CRITICAL — keep in sync)
+- The **source of truth** for legal pages is `fivefold-ios/legal/` (privacy-policy.html, terms-of-service.html, support.html).
+- The **live website** (biblely.uk) is served from `docs/` via GitHub Pages (deployed automatically on push to `main` when `docs/**` changes).
+- **Whenever you change any legal page in `fivefold-ios/legal/`, you MUST also copy the updated file to `docs/` and the repo root**, then push to deploy. There are three copies that must stay in sync:
+  1. `fivefold-ios/legal/<file>.html` — source of truth (used in-app)
+  2. `docs/<file>.html` — live website (GitHub Pages serves this)
+  3. `<file>.html` (repo root) — legacy copy, keep in sync
+- **Whenever you add a new feature or significantly change existing features**, check if the Privacy Policy, Terms of Service, or Support pages need updating (e.g. new data collection, new third-party services, new feature descriptions in support FAQ). If so, update `fivefold-ios/legal/` first, then copy to `docs/` and repo root.
 - Links to these pages are in the Settings/Profile screen under "Legal".
+- The onboarding and hub also link to `https://biblely.uk/privacy-policy` and `https://biblely.uk/terms-of-service`.
 - App Store marketing copy is in `fivefold-ios/legal/app-store-copy.md`.
