@@ -701,6 +701,1406 @@
           "explanation": "Jesus said 'Go and make disciples of all nations, baptising them in the name of the Father and of the Son and of the Holy Spirit.' This command is known as the Great Commission.",
           "reference": "Matthew 28:19-20",
           "points": 10
+        },
+        {
+          "id": "nt-mc-b-51",
+          "question": "When Jesus was being arrested in the garden, what did Judas do to show the soldiers which man was Jesus?",
+          "options": [
+            "Pointed at Him",
+            "Kissed Him on the cheek",
+            "Called out His name",
+            "Handed Him a letter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Judas had arranged a signal with the soldiers — he would kiss the person they should arrest. He went up to Jesus and said 'Greetings, Rabbi!' and kissed Him. This is known as 'the kiss of betrayal.'",
+          "reference": "Matthew 26:48-49",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-52",
+          "question": "After being baptised, Jesus went into the wilderness to fast and pray. How many days did He spend there?",
+          "options": [
+            "7 days",
+            "20 days",
+            "40 days",
+            "100 days"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus spent 40 days and 40 nights fasting in the wilderness. During this time, the devil came and tempted Him three times, but Jesus resisted each temptation by quoting Scripture.",
+          "reference": "Matthew 4:1-2",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-53",
+          "question": "When Jesus was baptised, the Holy Spirit came down from heaven and landed on Him. What did it look like?",
+          "options": [
+            "A flame of fire",
+            "A dove",
+            "A bright cloud",
+            "A beam of light"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When Jesus came up out of the water after being baptised, the Holy Spirit descended on Him in the form of a dove. At the same time, God's voice from heaven said 'This is my Son, whom I love.'",
+          "reference": "Matthew 3:16-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-54",
+          "question": "In a famous story, a short tax collector climbed a tree just to see Jesus as He passed through town. What was this man's name?",
+          "options": [
+            "Matthew",
+            "Zacchaeus",
+            "Levi",
+            "Nicodemus"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Zacchaeus was a chief tax collector in Jericho who was too short to see over the crowd, so he climbed a sycamore-fig tree. Jesus looked up and said 'Zacchaeus, come down immediately. I must stay at your house today.'",
+          "reference": "Luke 19:1-6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-55",
+          "question": "Pontius Pilate agreed to let the crowd have Jesus crucified. What did Pilate do with his hands to show he was not responsible?",
+          "options": [
+            "Raised them in the air",
+            "Covered his face",
+            "Washed them with water",
+            "Clapped them together"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Pilate took water and washed his hands in front of the crowd, saying 'I am innocent of this man's blood. It is your responsibility!' This gesture showed he didn't want to be blamed for Jesus' death.",
+          "reference": "Matthew 27:24",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-56",
+          "question": "When soldiers came to arrest Jesus, one of His disciples drew a sword and cut off a servant's ear. What did Jesus do next?",
+          "options": [
+            "Praised the disciple",
+            "Ran away",
+            "Healed the servant's ear",
+            "Fought back"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Peter drew his sword and cut off the ear of the high priest's servant. But Jesus told Peter to put his sword away, then touched the servant's ear and healed it — showing compassion even to those arresting Him.",
+          "reference": "Luke 22:50-51",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-57",
+          "question": "'Jesus wept' is one of the most well-known verses because it is the shortest in the Bible. Why was Jesus crying?",
+          "options": [
+            "He was hungry",
+            "His friend Lazarus had died",
+            "He was lost",
+            "The disciples disobeyed Him"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus wept when He arrived at the tomb of His dear friend Lazarus. Even though Jesus knew He was about to raise Lazarus from the dead, He was deeply moved by the grief of Lazarus' sisters and the mourners.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-58",
+          "question": "Jesus healed 10 men who had a skin disease called leprosy. How many of them came back to say thank you?",
+          "options": [
+            "None",
+            "1",
+            "5",
+            "All 10"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Out of 10 lepers that Jesus healed, only one returned to thank Him — and he was a Samaritan. Jesus asked 'Were not all ten cleansed? Where are the other nine?'",
+          "reference": "Luke 17:11-19",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-59",
+          "question": "When Jesus called His first disciples (Peter and Andrew), what did He say He would make them?",
+          "options": [
+            "Kings of Israel",
+            "Fishers of men",
+            "Builders of churches",
+            "Rulers of nations"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus saw Peter and Andrew casting their fishing nets into the Sea of Galilee and said 'Come, follow me, and I will make you fishers of men.' They immediately left their nets and followed Him.",
+          "reference": "Matthew 4:19",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-60",
+          "question": "One of the most famous verses in the Bible is John 3:16. It begins with which words?",
+          "options": [
+            "'In the beginning was the Word'",
+            "'The Lord is my shepherd'",
+            "'For God so loved the world'",
+            "'Love is patient, love is kind'"
+          ],
+          "correctAnswer": 2,
+          "explanation": "John 3:16 reads: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.' It is one of the most quoted verses in the entire Bible.",
+          "reference": "John 3:16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-61",
+          "question": "Jesus taught what many people call the 'Golden Rule.' What does it say?",
+          "options": [
+            "'An eye for an eye'",
+            "'Do to others what you would have them do to you'",
+            "'The first shall be last'",
+            "'Money is the root of all evil'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "In the Sermon on the Mount, Jesus taught: 'So in everything, do to others what you would have them do to you.' This simple rule about treating others the way you want to be treated is called the Golden Rule.",
+          "reference": "Matthew 7:12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-62",
+          "question": "In the parable of the Lost Sheep, a shepherd had 100 sheep and one went missing. What did the shepherd do?",
+          "options": [
+            "Forgot about it",
+            "Left the 99 to search for the one lost sheep",
+            "Bought a new sheep",
+            "Sent someone else to look"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus told this parable to show how much God cares about every single person. Just like the shepherd left the 99 safe sheep to search for the one that was lost, God seeks out those who have strayed.",
+          "reference": "Luke 15:3-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-63",
+          "question": "At the Last Supper, Jesus shocked His disciples by doing a task usually done by the lowest servant. What did He do?",
+          "options": [
+            "Cooked the meal",
+            "Washed their feet",
+            "Cleaned the room",
+            "Served the drinks"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus wrapped a towel around His waist, poured water into a basin, and washed His disciples' feet. He told them 'I have set you an example that you should do as I have done for you' — teaching them about humble service.",
+          "reference": "John 13:4-15",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-64",
+          "question": "After Jesus was buried, what was rolled in front of His tomb to seal it?",
+          "options": [
+            "A wooden door",
+            "A large stone",
+            "A metal gate",
+            "A curtain"
+          ],
+          "correctAnswer": 1,
+          "explanation": "After Jesus' body was placed in the tomb, a very large stone was rolled across the entrance. On Easter morning, the women found the stone had been rolled away and the tomb was empty.",
+          "reference": "Mark 15:46",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-65",
+          "question": "Before he became a Christian and changed his name to Paul, what was this famous apostle originally called?",
+          "options": [
+            "Simon",
+            "Saul",
+            "Samuel",
+            "Seth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Paul was originally called Saul. He persecuted Christians before his dramatic conversion on the road to Damascus, where Jesus appeared to him in a blinding light and changed his life forever.",
+          "reference": "Acts 13:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-66",
+          "question": "On the road to Damascus, something dramatic happened to Saul (Paul) that changed his life. What happened?",
+          "options": [
+            "An earthquake struck",
+            "A bright light from heaven blinded him and Jesus spoke to him",
+            "He found a hidden scroll",
+            "An angel gave him a sword"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A bright light from heaven flashed around Saul, and he fell to the ground. He heard Jesus say 'Saul, Saul, why do you persecute me?' Saul was blinded for three days until God sent a man named Ananias to restore his sight.",
+          "reference": "Acts 9:3-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-67",
+          "question": "When King Herod heard that a new 'King of the Jews' had been born, what did he secretly plan to do?",
+          "options": [
+            "Worship the baby",
+            "Give the baby gifts",
+            "Kill the baby",
+            "Make the baby a prince"
+          ],
+          "correctAnswer": 2,
+          "explanation": "King Herod felt threatened by the news of a newborn king and secretly planned to kill the child. God warned Joseph in a dream, so Joseph took Mary and baby Jesus and fled to Egypt to escape.",
+          "reference": "Matthew 2:13-14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-68",
+          "question": "To escape King Herod's plot to kill baby Jesus, where did Joseph take Mary and the child?",
+          "options": [
+            "Rome",
+            "Nazareth",
+            "Egypt",
+            "Babylon"
+          ],
+          "correctAnswer": 2,
+          "explanation": "An angel warned Joseph in a dream to flee to Egypt because Herod wanted to kill Jesus. The family stayed in Egypt until Herod died, then they returned and settled in Nazareth.",
+          "reference": "Matthew 2:13-15",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-69",
+          "question": "Jesus taught a famous sermon from a mountainside that includes the Beatitudes and the Lord's Prayer. What is it called?",
+          "options": [
+            "The Sermon by the Sea",
+            "The Sermon on the Mount",
+            "The Temple Sermon",
+            "The Galilean Sermon"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Sermon on the Mount, found in Matthew chapters 5 to 7, is one of Jesus' most important teachings. It includes the Beatitudes ('Blessed are the poor in spirit...'), the Lord's Prayer, and the Golden Rule.",
+          "reference": "Matthew 5-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-70",
+          "question": "When the devil first tempted Jesus in the desert, he told Jesus to turn what into bread?",
+          "options": [
+            "Sand",
+            "Stones",
+            "Water",
+            "Dust"
+          ],
+          "correctAnswer": 1,
+          "explanation": "After Jesus had fasted for 40 days and was very hungry, the devil said 'If you are the Son of God, tell these stones to become bread.' Jesus refused, saying 'Man shall not live on bread alone, but on every word that comes from God.'",
+          "reference": "Matthew 4:3-4",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-71",
+          "question": "After Jesus fed over 5,000 people with five loaves and two fish, how many baskets of leftover food were collected?",
+          "options": [
+            "3 baskets",
+            "7 baskets",
+            "12 baskets",
+            "20 baskets"
+          ],
+          "correctAnswer": 2,
+          "explanation": "After everyone had eaten their fill, the disciples collected 12 full baskets of leftovers — showing the incredible abundance of Jesus' miracle.",
+          "reference": "Matthew 14:20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-72",
+          "question": "Jesus used many 'I am' statements to describe Himself. Which of these did He say?",
+          "options": [
+            "'I am the good shepherd'",
+            "'I am the king of Israel'",
+            "'I am the greatest prophet'",
+            "'I am the last angel'"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Jesus said 'I am the good shepherd. The good shepherd lays down his life for the sheep.' This was one of several 'I am' statements where Jesus revealed His identity and mission.",
+          "reference": "John 10:11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-73",
+          "question": "When Jesus was baptised, a voice spoke from heaven. What did it say?",
+          "options": [
+            "'Behold the Lamb of God'",
+            "'This is my Son, whom I love'",
+            "'Worship the Lord your God'",
+            "'The kingdom of heaven is near'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When Jesus was baptised and came up out of the water, God's voice from heaven said 'This is my Son, whom I love; with him I am well pleased.'",
+          "reference": "Matthew 3:17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-74",
+          "question": "Lazarus, the man Jesus raised from the dead, had two sisters. What were their names?",
+          "options": [
+            "Ruth and Naomi",
+            "Mary and Martha",
+            "Sarah and Rebekah",
+            "Elizabeth and Anna"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mary and Martha were sisters of Lazarus. They all lived together in the village of Bethany and were close friends of Jesus. When Lazarus died, both sisters told Jesus they believed he would not have died if Jesus had been there.",
+          "reference": "John 11:1-3",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-75",
+          "question": "A religious leader named Nicodemus came to Jesus at night. Jesus told him that to see God's kingdom, a person must be what?",
+          "options": [
+            "Very wealthy",
+            "Born again",
+            "A priest",
+            "Without sin"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus told Nicodemus 'No one can see the kingdom of God unless they are born again.' He was talking about a spiritual rebirth — starting a new life through faith in God.",
+          "reference": "John 3:3",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-76",
+          "question": "Where was Jesus standing when He was taken up into heaven (the Ascension)?",
+          "options": [
+            "The Temple",
+            "The Sea of Galilee",
+            "The Mount of Olives",
+            "The Garden of Gethsemane"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus ascended to heaven from the Mount of Olives, near Jerusalem. His disciples watched as He was taken up into a cloud, and two angels told them He would return in the same way one day.",
+          "reference": "Acts 1:9-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-77",
+          "question": "On the day of Pentecost, the Holy Spirit came upon the disciples. What appeared above each of their heads?",
+          "options": [
+            "Stars",
+            "Halos",
+            "Tongues of fire",
+            "Doves"
+          ],
+          "correctAnswer": 2,
+          "explanation": "On the day of Pentecost, the disciples heard a sound like a rushing wind, and what looked like tongues of fire appeared and rested on each of them. They were filled with the Holy Spirit and began speaking in other languages.",
+          "reference": "Acts 2:1-4",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-78",
+          "question": "When pregnant Mary visited her relative Elizabeth, what happened to Elizabeth's baby (John the Baptist) inside her?",
+          "options": [
+            "The baby was born early",
+            "The baby leaped for joy",
+            "Nothing happened",
+            "Elizabeth felt tired"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When Elizabeth heard Mary's greeting, the baby inside her leaped for joy. Elizabeth was filled with the Holy Spirit and said 'Blessed are you among women, and blessed is the child you will bear!'",
+          "reference": "Luke 1:41-44",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-79",
+          "question": "The angel who appeared to the shepherds on the night Jesus was born started by saying what?",
+          "options": [
+            "'Run and hide!'",
+            "'Do not be afraid'",
+            "'Go to the Temple'",
+            "'Prepare for war'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The angel said 'Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Saviour has been born to you; he is the Messiah, the Lord.'",
+          "reference": "Luke 2:10-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-80",
+          "question": "While Jesus was on the cross, the sky went dark in the middle of the day. How long did the darkness last?",
+          "options": [
+            "30 minutes",
+            "1 hour",
+            "3 hours",
+            "All day"
+          ],
+          "correctAnswer": 2,
+          "explanation": "From noon until 3 o'clock in the afternoon, darkness covered the whole land while Jesus hung on the cross. This supernatural darkness lasted three hours.",
+          "reference": "Matthew 27:45",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-81",
+          "question": "Jesus had an inner circle of three disciples who were closest to Him. Who were they?",
+          "options": [
+            "Matthew, Thomas, and Judas",
+            "Peter, James, and John",
+            "Andrew, Philip, and Bartholomew",
+            "Simon, Thaddaeus, and James"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Peter, James, and John were Jesus' three closest disciples. They were present at special events like the Transfiguration and were the ones Jesus took deeper into the Garden of Gethsemane to pray.",
+          "reference": "Mark 9:2, Mark 14:33",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-82",
+          "question": "What is the second book of the New Testament, right after Matthew?",
+          "options": [
+            "Luke",
+            "Mark",
+            "John",
+            "Acts"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The order of the first five books of the New Testament is: Matthew, Mark, Luke, John, then Acts. Mark is the shortest of the four Gospels.",
+          "reference": "Mark 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-83",
+          "question": "Jesus said 'I am the vine, you are the...' what?",
+          "options": [
+            "Roots",
+            "Flowers",
+            "Branches",
+            "Seeds"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said 'I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit; apart from me you can do nothing.' He was teaching that staying connected to Him is essential.",
+          "reference": "John 15:5",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-84",
+          "question": "In Jesus' parable of the wise and foolish builders, what did the wise man build his house on?",
+          "options": [
+            "Sand",
+            "Rock",
+            "Wood",
+            "Grass"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The wise man built his house on rock, so when the storms came, his house stood firm. The foolish man built on sand, and when the storms came, his house collapsed. Jesus used this to teach about obeying His words.",
+          "reference": "Matthew 7:24-27",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-85",
+          "question": "People tried to trick Jesus by asking if they should pay taxes to the Roman emperor, Caesar. What was Jesus' famous reply?",
+          "options": [
+            "'Do not pay taxes'",
+            "'Give to Caesar what is Caesar's, and to God what is God's'",
+            "'Taxes are sinful'",
+            "'Only pay if you are rich'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus asked them to show Him a coin and asked whose face was on it. They said 'Caesar's.' Jesus replied with this brilliant answer that teaches both civic duty and devotion to God.",
+          "reference": "Matthew 22:19-21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-86",
+          "question": "What was written on the sign that was placed above Jesus on the cross?",
+          "options": [
+            "'Son of God'",
+            "'King of the Jews'",
+            "'The Messiah'",
+            "'A Criminal'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Pontius Pilate had a sign written and fastened to the cross. It read 'JESUS OF NAZARETH, THE KING OF THE JEWS.' The religious leaders objected, but Pilate said 'What I have written, I have written.'",
+          "reference": "John 19:19-22",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-87",
+          "question": "Before His crucifixion, the Roman soldiers dressed Jesus in a robe to mock Him as a king. What colour was the robe?",
+          "options": [
+            "White",
+            "Blue",
+            "Purple (or scarlet)",
+            "Green"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The soldiers stripped Jesus and put a scarlet or purple robe on Him — purple being the colour of royalty. They were mocking Him as 'King of the Jews' before beating Him and leading Him to be crucified.",
+          "reference": "Matthew 27:28",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-88",
+          "question": "After Jesus died, a wealthy man offered his own tomb for Jesus' burial. What was this man's name?",
+          "options": [
+            "Nicodemus",
+            "Simon",
+            "Joseph of Arimathea",
+            "Barnabas"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Joseph of Arimathea was a wealthy member of the Jewish council who was secretly a follower of Jesus. He asked Pilate for Jesus' body, wrapped it in clean linen, and placed it in his own new tomb cut from rock.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-89",
+          "question": "Jesus spoke to a woman at a well, which shocked His disciples because she was a Samaritan. Where was this well?",
+          "options": [
+            "Jerusalem",
+            "Bethlehem",
+            "Samaria",
+            "Galilee"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus met a Samaritan woman at Jacob's well in Samaria. Jews and Samaritans normally avoided each other, but Jesus spoke to her about 'living water' and revealed that He was the Messiah.",
+          "reference": "John 4:4-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-90",
+          "question": "When Jesus fed the 5,000, how many loaves of bread and fish did He start with?",
+          "options": [
+            "3 loaves and 3 fish",
+            "5 loaves and 2 fish",
+            "7 loaves and 5 fish",
+            "10 loaves and 10 fish"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A young boy had five small barley loaves and two small fish. Jesus took them, gave thanks to God, and miraculously multiplied them to feed over 5,000 people with 12 baskets left over.",
+          "reference": "John 6:9-13",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-91",
+          "question": "When Jesus died on the cross, what happened to the large curtain inside the Temple?",
+          "options": [
+            "It caught fire",
+            "It was torn in two from top to bottom",
+            "It turned white",
+            "Nothing happened to it"
+          ],
+          "correctAnswer": 1,
+          "explanation": "At the moment Jesus died, the thick curtain in the Temple — which separated the Holy of Holies from the rest of the Temple — was torn in two from top to bottom, symbolising that everyone now had direct access to God.",
+          "reference": "Matthew 27:51",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-92",
+          "question": "When the crowd was given a choice between freeing Jesus or a criminal, who did they choose to release?",
+          "options": [
+            "Jesus",
+            "Barabbas",
+            "Peter",
+            "Judas"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Pontius Pilate offered to release one prisoner as was the custom at Passover. The crowd chose Barabbas — a notorious criminal — and demanded that Jesus be crucified.",
+          "reference": "Matthew 27:20-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-93",
+          "question": "While hanging on the cross, Jesus prayed for the people who were crucifying Him. What did He ask God to do?",
+          "options": [
+            "Punish them",
+            "Forgive them",
+            "Destroy the city",
+            "Send angels to rescue Him"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Father, forgive them, for they do not know what they are doing.' Even while suffering on the cross, Jesus showed love and forgiveness toward those who were putting Him to death.",
+          "reference": "Luke 23:34",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-94",
+          "question": "When Jesus appeared to Thomas after the resurrection, what did Thomas say when he finally believed?",
+          "options": [
+            "'It really is you!'",
+            "'My Lord and my God!'",
+            "'I was wrong!'",
+            "'How is this possible?'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When Thomas saw Jesus' wounds, he immediately believed and exclaimed 'My Lord and my God!' Jesus replied 'Because you have seen me, you have believed; blessed are those who have not seen and yet have believed.'",
+          "reference": "John 20:28-29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-95",
+          "question": "Jesus said 'I am the light of the...' what?",
+          "options": [
+            "Temple",
+            "World",
+            "Church",
+            "Kingdom"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus declared 'I am the light of the world. Whoever follows me will never walk in darkness, but will have the light of life.' This is one of His most famous 'I am' statements.",
+          "reference": "John 8:12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-96",
+          "question": "At the wedding in Cana, who told Jesus that the wine had run out?",
+          "options": [
+            "A servant",
+            "A disciple",
+            "His mother Mary",
+            "The host"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Mary, Jesus' mother, noticed the wine had run out and told Jesus. He initially said 'My hour has not yet come,' but Mary told the servants 'Do whatever he tells you.' Jesus then turned water into wine.",
+          "reference": "John 2:3-5",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-97",
+          "question": "How many days after His resurrection did Jesus ascend (go up) into heaven?",
+          "options": [
+            "3 days",
+            "7 days",
+            "40 days",
+            "50 days"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus appeared to His disciples over a period of 40 days after His resurrection, teaching them and giving them instructions. On the 40th day, He ascended into heaven from the Mount of Olives.",
+          "reference": "Acts 1:3-9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-98",
+          "question": "Some friends brought a paralysed man to Jesus, but the house was too crowded. How did they get him to Jesus?",
+          "options": [
+            "They waited outside",
+            "They lowered him through the roof",
+            "They shouted through the window",
+            "They pushed through the crowd"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Four friends carried the paralysed man up to the roof, made an opening, and lowered him down on his mat right in front of Jesus. Jesus was so impressed by their faith that He healed the man.",
+          "reference": "Mark 2:1-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-99",
+          "question": "In the parable of the mustard seed, Jesus compared God's kingdom to a tiny seed that grows into what?",
+          "options": [
+            "A small flower",
+            "A huge tree",
+            "A vine",
+            "A bush"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said the kingdom of God is like a mustard seed — the smallest of all seeds — but when planted, it grows into the largest of garden plants, big enough for birds to perch in its branches.",
+          "reference": "Matthew 13:31-32",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-100",
+          "question": "As Jesus was dying on the cross, what were among His final words?",
+          "options": [
+            "'I will return'",
+            "'Remember me'",
+            "'It is finished'",
+            "'Farewell'"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said 'It is finished' just before He died. These words meant that His mission — to save humanity through His sacrifice — was complete. He had done everything He came to do.",
+          "reference": "John 19:30",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-101",
+          "question": "The book that comes right after the four Gospels in the New Testament is called what?",
+          "options": [
+            "Romans",
+            "Acts",
+            "Hebrews",
+            "Psalms"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The book of Acts (also called 'The Acts of the Apostles') comes right after John and tells the story of the early church — how the disciples spread Jesus' message after He ascended to heaven.",
+          "reference": "Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-102",
+          "question": "When Jesus was 12 years old, His parents lost track of Him during a trip to Jerusalem. Where did they find Him?",
+          "options": [
+            "In the marketplace",
+            "In the Temple, talking with teachers",
+            "At a friend's house",
+            "By the river"
+          ],
+          "correctAnswer": 1,
+          "explanation": "After searching for three days, Mary and Joseph found the young Jesus sitting in the Temple among the teachers, listening to them and asking questions. Everyone was amazed at His understanding.",
+          "reference": "Luke 2:41-50",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-103",
+          "question": "The crowd chose to release a criminal instead of Jesus. What was the criminal's name?",
+          "options": [
+            "Barabbas",
+            "Barnabas",
+            "Bartholomew",
+            "Balthazar"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Barabbas was a notorious prisoner. Pontius Pilate gave the crowd a choice between Jesus and Barabbas. Stirred up by the religious leaders, the crowd shouted for Barabbas to be released and for Jesus to be crucified.",
+          "reference": "Matthew 27:20-21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-104",
+          "question": "After meeting Jesus, Zacchaeus the tax collector promised to give how much of his possessions to the poor?",
+          "options": [
+            "A tenth",
+            "A quarter",
+            "Half",
+            "Everything"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Zacchaeus stood up and said 'Look, Lord! Here and now I give half of my possessions to the poor, and if I have cheated anybody out of anything, I will pay back four times the amount.' Jesus said salvation had come to his house.",
+          "reference": "Luke 19:8-9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-105",
+          "question": "When Peter tried to walk on water like Jesus, he became frightened and started sinking. What did Jesus say to him?",
+          "options": [
+            "'Try again'",
+            "'You of little faith, why did you doubt?'",
+            "'Never do that again'",
+            "'Swim back to the boat'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Peter stepped out of the boat and actually walked on water toward Jesus. But when he noticed the strong wind and waves, he became afraid and began to sink. He cried out 'Lord, save me!' and Jesus immediately reached out and caught him.",
+          "reference": "Matthew 14:29-31",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-106",
+          "question": "How many criminals were crucified alongside Jesus, one on each side of Him?",
+          "options": [
+            "None",
+            "One",
+            "Two",
+            "Three"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Two criminals were crucified with Jesus — one on His right and one on His left. One of them mocked Jesus, but the other defended Him and asked Jesus to remember him.",
+          "reference": "Luke 23:32-33",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-107",
+          "question": "One of the criminals on the cross asked Jesus to remember him. What did Jesus promise him?",
+          "options": [
+            "'I will avenge you'",
+            "'You will be remembered forever'",
+            "'Today you will be with me in paradise'",
+            "'Your family will be blessed'"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The repentant criminal said 'Jesus, remember me when you come into your kingdom.' Jesus replied with one of the most beautiful promises in Scripture: 'Truly I tell you, today you will be with me in paradise.'",
+          "reference": "Luke 23:42-43",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-108",
+          "question": "On Easter morning, who rolled away the heavy stone from Jesus' tomb?",
+          "options": [
+            "The disciples",
+            "The Roman soldiers",
+            "An angel",
+            "Joseph of Arimathea"
+          ],
+          "correctAnswer": 2,
+          "explanation": "There was a violent earthquake, and an angel of the Lord came down from heaven, rolled back the stone from the entrance of the tomb, and sat on it. The guards were so afraid they shook and became like dead men.",
+          "reference": "Matthew 28:2-4",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-109",
+          "question": "The word 'Gospel' means what?",
+          "options": [
+            "Holy book",
+            "Good news",
+            "God's word",
+            "Old story"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The word 'Gospel' comes from an old word meaning 'good news.' In the New Testament, the 'good news' is the message about Jesus Christ — that God sent His Son to save the world through His life, death, and resurrection.",
+          "reference": "Mark 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-110",
+          "question": "The title 'Christ' that is given to Jesus means what?",
+          "options": [
+            "Teacher",
+            "King",
+            "The Anointed One (Messiah)",
+            "Prophet"
+          ],
+          "correctAnswer": 2,
+          "explanation": "'Christ' comes from the Greek word 'Christos,' meaning 'The Anointed One.' It is the Greek equivalent of the Hebrew word 'Messiah.' So 'Jesus Christ' means 'Jesus the Anointed One' — the promised Saviour.",
+          "reference": "Matthew 16:16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-111",
+          "question": "Jesus described Himself as 'the bread of...' what?",
+          "options": [
+            "Heaven",
+            "Life",
+            "The world",
+            "The kingdom"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'I am the bread of life. Whoever comes to me will never go hungry, and whoever believes in me will never be thirsty.' He meant that He alone can satisfy the deepest needs of the human soul.",
+          "reference": "John 6:35",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-112",
+          "question": "When Jesus raised Lazarus from the dead, what did He call out at the tomb?",
+          "options": [
+            "'Rise up!'",
+            "'Lazarus, come out!'",
+            "'In God's name, live!'",
+            "'Open the tomb!'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus stood before the opened tomb and cried out in a loud voice 'Lazarus, come out!' And the dead man walked out, still wrapped in strips of linen. Everyone who witnessed it was amazed.",
+          "reference": "John 11:43-44",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-113",
+          "question": "In the parable of the wise and foolish builders, what did the foolish man build his house on?",
+          "options": [
+            "Rock",
+            "Sand",
+            "Clay",
+            "Water"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The foolish man built his house on sand. When rain, floods, and wind came, the house on sand collapsed completely. Jesus told this story to show that anyone who hears His words but doesn't obey them is like that foolish builder.",
+          "reference": "Matthew 7:26-27",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-114",
+          "question": "Paul travelled to many different countries to tell people about Jesus. What are these trips commonly called?",
+          "options": [
+            "Holy pilgrimages",
+            "Missionary journeys",
+            "Royal tours",
+            "Prayer walks"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Paul went on at least three major missionary journeys across the Roman Empire — through modern-day Turkey, Greece, and eventually to Rome — establishing churches and spreading the message of Jesus wherever he went.",
+          "reference": "Acts 13-28",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-115",
+          "question": "In the Sermon on the Mount, Jesus said 'You are the salt of the earth' and 'You are the...' what of the world?",
+          "options": [
+            "Hope",
+            "Strength",
+            "Light",
+            "Foundation"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus told His followers 'You are the light of the world. A town built on a hill cannot be hidden.' He was saying that His followers should shine brightly for others to see through their good deeds.",
+          "reference": "Matthew 5:13-14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-116",
+          "question": "After Saul (Paul) was blinded on the road to Damascus, how many days was he without sight?",
+          "options": [
+            "1 day",
+            "3 days",
+            "7 days",
+            "40 days"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Saul was blind for three days and did not eat or drink anything. Then God sent a man named Ananias to lay hands on him. Something like scales fell from Saul's eyes and he could see again.",
+          "reference": "Acts 9:9-18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-117",
+          "question": "Who was the first person to be killed (martyred) for being a Christian?",
+          "options": [
+            "Peter",
+            "Paul",
+            "Stephen",
+            "James"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Stephen was a faithful follower of Jesus who was arrested and brought before the Jewish council. After giving a powerful speech about Jesus, the angry crowd dragged him out of the city and stoned him to death.",
+          "reference": "Acts 7:54-60",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-118",
+          "question": "Jesus fell asleep in a boat during a terrible storm. When the scared disciples woke Him, what did He do?",
+          "options": [
+            "He told them to swim",
+            "He calmed the storm with His words",
+            "He prayed for an hour",
+            "He steered the boat to shore"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus stood up and rebuked the wind and the waves, saying 'Quiet! Be still!' Immediately the storm stopped and everything was completely calm. The amazed disciples asked each other 'Who is this? Even the wind and waves obey him!'",
+          "reference": "Mark 4:38-41",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-119",
+          "question": "Jesus healed people on the Sabbath (the Jewish day of rest). How did the religious leaders react?",
+          "options": [
+            "They praised Him",
+            "They were angry because they said it broke the rules",
+            "They ignored it",
+            "They asked Him to teach them"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Pharisees and religious leaders were furious because they believed healing counted as 'work' and working on the Sabbath was forbidden. But Jesus said the Sabbath was made for people, not people for the Sabbath.",
+          "reference": "Mark 3:1-6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-120",
+          "question": "Jesus was born during the time of which king?",
+          "options": [
+            "King David",
+            "King Solomon",
+            "King Herod",
+            "King Saul"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus was born during the reign of King Herod the Great, who ruled Judea under Roman authority. When Herod heard about the birth of a new 'King of the Jews,' he tried to have the child killed.",
+          "reference": "Matthew 2:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-121",
+          "question": "In the parable of the Prodigal Son, what job did the younger son end up doing after he spent all his money?",
+          "options": [
+            "Working in a shop",
+            "Feeding pigs",
+            "Building houses",
+            "Fishing"
+          ],
+          "correctAnswer": 1,
+          "explanation": "After wasting all his inheritance, the son was so poor and hungry that he took a job feeding pigs — one of the lowest jobs imaginable for a Jewish person. He was so hungry he wished he could eat the pigs' food.",
+          "reference": "Luke 15:15-16",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-122",
+          "question": "How many temptations did the devil present to Jesus in the desert?",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "7"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The devil tempted Jesus three times: first to turn stones into bread, then to throw Himself off the Temple, and finally to worship the devil in exchange for all the kingdoms of the world. Jesus refused all three.",
+          "reference": "Matthew 4:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-123",
+          "question": "After His resurrection, Jesus told Peter to take care of His followers using what phrase?",
+          "options": [
+            "'Build my temple'",
+            "'Feed my sheep'",
+            "'Write my words'",
+            "'Guard my tomb'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus asked Peter three times 'Do you love me?' Each time Peter said yes, Jesus responded 'Feed my lambs' and 'Feed my sheep' — meaning Peter should care for and lead Jesus' followers after He was gone.",
+          "reference": "John 21:15-17",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-124",
+          "question": "Jesus once said 'Where two or three gather in my name, there am I...' what?",
+          "options": [
+            "'...watching from heaven'",
+            "'...with them'",
+            "'...sending blessings'",
+            "'...judging them'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus promised His followers 'For where two or three gather in my name, there am I with them.' This means that whenever believers come together to pray or worship, Jesus is spiritually present with them.",
+          "reference": "Matthew 18:20",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-125",
+          "question": "Who wrote the book of Acts, which tells the story of the early church?",
+          "options": [
+            "Paul",
+            "Peter",
+            "Luke",
+            "John"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Luke, who was a doctor and a companion of Paul, wrote both the Gospel of Luke and the book of Acts. Acts picks up where Luke's Gospel ends — with Jesus' ascension — and tells how the early church grew.",
+          "reference": "Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-126",
+          "question": "Paul and Silas were thrown in prison for preaching about Jesus. At midnight, what did they do?",
+          "options": [
+            "They escaped",
+            "They sang hymns and prayed",
+            "They fell asleep",
+            "They argued with the guards"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Despite being beaten and chained in prison, Paul and Silas prayed and sang hymns to God at midnight. Suddenly a violent earthquake shook the prison, the doors flew open, and everyone's chains came loose.",
+          "reference": "Acts 16:25-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-127",
+          "question": "Jesus said 'I am the resurrection and the...' what?",
+          "options": [
+            "Truth",
+            "Way",
+            "Life",
+            "Light"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said to Martha (Lazarus' sister) 'I am the resurrection and the life. The one who believes in me will live, even though they die.' He said this just before raising her brother Lazarus from the dead.",
+          "reference": "John 11:25",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-128",
+          "question": "What was the name of the island where the apostle John wrote the book of Revelation?",
+          "options": [
+            "Cyprus",
+            "Crete",
+            "Patmos",
+            "Malta"
+          ],
+          "correctAnswer": 2,
+          "explanation": "John was exiled to the small island of Patmos because of his faith. While there, he received visions from God about the future, which he wrote down as the book of Revelation.",
+          "reference": "Revelation 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-129",
+          "question": "In the Beatitudes, Jesus said 'Blessed are the meek, for they will inherit...' what?",
+          "options": [
+            "The kingdom",
+            "The earth",
+            "Eternal life",
+            "Wealth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "In the Sermon on the Mount, Jesus taught 'Blessed are the meek, for they will inherit the earth.' The 'meek' are those who are humble and gentle, not aggressive or power-hungry.",
+          "reference": "Matthew 5:5",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-130",
+          "question": "Jesus said 'Ask, and it will be given to you; seek, and you will...' what?",
+          "options": [
+            "Be wealthy",
+            "Find",
+            "Rest",
+            "Be forgiven"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus taught 'Ask and it will be given to you; seek and you will find; knock and the door will be opened to you.' He was encouraging His followers to pray with confidence and persistence.",
+          "reference": "Matthew 7:7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-131",
+          "question": "What did Jesus say about children and the kingdom of heaven?",
+          "options": [
+            "Children cannot enter",
+            "'The kingdom of heaven belongs to such as these'",
+            "Only adults can understand",
+            "Children must wait until they grow up"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these.' He valued children's simple trust and faith as an example for everyone.",
+          "reference": "Matthew 19:14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-132",
+          "question": "In the parable of the sower, some seeds fell on good soil. What happened to those seeds?",
+          "options": [
+            "Birds ate them",
+            "They withered",
+            "They grew and produced a large crop",
+            "They were washed away"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The seeds on good soil represent people who hear God's word, understand it, and live it out. These people produce fruit — 30, 60, or even 100 times what was sown. The other soils represent people who reject or forget the message.",
+          "reference": "Matthew 13:8, 23",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-133",
+          "question": "How many brothers did Jesus have, according to the Gospels?",
+          "options": [
+            "None",
+            "2",
+            "At least 4",
+            "12"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Gospels name four brothers of Jesus: James, Joseph, Simon, and Judas. He also had sisters. These were younger siblings born to Mary and Joseph after Jesus' birth.",
+          "reference": "Matthew 13:55-56",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-134",
+          "question": "What does the name 'Jesus' mean?",
+          "options": [
+            "King of Kings",
+            "Son of God",
+            "The Lord saves",
+            "Prince of Peace"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The name 'Jesus' comes from the Hebrew name 'Yeshua,' which means 'The Lord saves' or 'God is salvation.' The angel told Joseph to name the baby Jesus 'because he will save his people from their sins.'",
+          "reference": "Matthew 1:21",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-135",
+          "question": "What did Jesus do just before He was arrested in the Garden of Gethsemane?",
+          "options": [
+            "He ate dinner",
+            "He prayed in deep anguish",
+            "He slept",
+            "He healed someone"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus prayed so intensely that His sweat was like drops of blood falling to the ground. He asked God 'Father, if you are willing, take this cup from me; yet not my will, but yours be done.'",
+          "reference": "Luke 22:41-44",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-136",
+          "question": "What is the famous love chapter of the Bible that says 'Love is patient, love is kind'?",
+          "options": [
+            "John 3",
+            "Romans 8",
+            "1 Corinthians 13",
+            "Psalm 23"
+          ],
+          "correctAnswer": 2,
+          "explanation": "1 Corinthians 13 is often called 'the love chapter.' Written by Paul, it describes the qualities of true love: patient, kind, not envious, not boastful. It is one of the most popular readings at weddings.",
+          "reference": "1 Corinthians 13:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-137",
+          "question": "What did Jesus say is the narrow path that leads to?",
+          "options": [
+            "Wealth",
+            "Life",
+            "Wisdom",
+            "Power"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said 'Enter through the narrow gate. For wide is the gate and broad is the road that leads to destruction, and many enter through it. But small is the gate and narrow the road that leads to life, and only a few find it.'",
+          "reference": "Matthew 7:13-14",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-138",
+          "question": "When Jesus healed the paralysed man lowered through the roof, what did He say first?",
+          "options": [
+            "'Get up and walk'",
+            "'Your sins are forgiven'",
+            "'Have faith'",
+            "'Touch my hand'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Before healing the man's body, Jesus first said 'Son, your sins are forgiven.' When the religious leaders questioned this, Jesus healed the man physically as well — proving He had authority to forgive sins.",
+          "reference": "Mark 2:5-12",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-139",
+          "question": "What animal did the Holy Spirit look like when it descended on Jesus at His baptism?",
+          "options": [
+            "An eagle",
+            "A dove",
+            "A lamb",
+            "A lion"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The Holy Spirit descended on Jesus in bodily form like a dove. The dove is a symbol of peace and purity, and this moment marked the beginning of Jesus' public ministry.",
+          "reference": "Luke 3:22",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-140",
+          "question": "Jesus said 'I am the way and the truth and the life. No one comes to the Father except through...' whom?",
+          "options": [
+            "The prophets",
+            "The church",
+            "Me",
+            "Good works"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Jesus said 'I am the way and the truth and the life. No one comes to the Father except through me.' He was telling His disciples that He is the only way to God and eternal life.",
+          "reference": "John 14:6",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-141",
+          "question": "Which part of the Bible tells the story of the early church and how Christianity spread?",
+          "options": [
+            "The Gospel of John",
+            "The book of Revelation",
+            "The book of Acts",
+            "The book of Romans"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The book of Acts (Acts of the Apostles) tells how Christianity spread from Jerusalem throughout the Roman Empire. It covers events like Pentecost, Paul's conversion, and the apostles' missionary journeys.",
+          "reference": "Acts 1:8",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-142",
+          "question": "Jesus called Peter 'the rock.' What did He say He would build on this rock?",
+          "options": [
+            "A temple",
+            "His church",
+            "A city",
+            "A kingdom on earth"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus said to Peter 'You are Peter (which means rock), and on this rock I will build my church, and the gates of death will not overcome it.' This is one of the most important statements about the founding of the church.",
+          "reference": "Matthew 16:18",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-143",
+          "question": "Who said 'Behold the Lamb of God, who takes away the sin of the world' when he saw Jesus?",
+          "options": [
+            "Peter",
+            "Paul",
+            "John the Baptist",
+            "Moses"
+          ],
+          "correctAnswer": 2,
+          "explanation": "John the Baptist said this when he saw Jesus coming toward him at the River Jordan. By calling Jesus the 'Lamb of God,' he was pointing to Jesus as the ultimate sacrifice for the sins of the world.",
+          "reference": "John 1:29",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-144",
+          "question": "When Jesus healed the blind man named Bartimaeus, what had Bartimaeus been doing by the roadside?",
+          "options": [
+            "Sleeping",
+            "Selling goods",
+            "Begging",
+            "Preaching"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Bartimaeus was a blind beggar sitting by the roadside near Jericho. When he heard Jesus was passing by, he cried out 'Jesus, Son of David, have mercy on me!' Jesus healed him and said 'Go, your faith has healed you.'",
+          "reference": "Mark 10:46-52",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-145",
+          "question": "After Jesus ascended to heaven, who did the disciples choose to replace Judas as the 12th apostle?",
+          "options": [
+            "Paul",
+            "Barnabas",
+            "Matthias",
+            "Stephen"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The disciples cast lots (a form of drawing names) and Matthias was chosen to take Judas' place, bringing the number of apostles back to 12. This happened before the day of Pentecost.",
+          "reference": "Acts 1:23-26",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-146",
+          "question": "In the story of the Good Samaritan, who were the first two people to walk past the beaten man without helping?",
+          "options": [
+            "Two farmers",
+            "A priest and a Levite",
+            "Two soldiers",
+            "Two merchants"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A priest and a Levite (a Temple worker) both saw the wounded man but crossed to the other side of the road without stopping. It was the Samaritan — someone the Jews looked down on — who stopped to help.",
+          "reference": "Luke 10:31-33",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-147",
+          "question": "What did the Prodigal Son's father give him when he returned home?",
+          "options": [
+            "A lecture about money",
+            "A robe, a ring, and sandals",
+            "A list of chores",
+            "Nothing"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The overjoyed father told his servants 'Quick! Bring the best robe and put it on him. Put a ring on his finger and sandals on his feet. Bring the fattened calf and kill it. Let's have a feast and celebrate!'",
+          "reference": "Luke 15:22-23",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-148",
+          "question": "On the day of Pentecost, after Peter preached, about how many people believed in Jesus and were baptised?",
+          "options": [
+            "About 100",
+            "About 500",
+            "About 3,000",
+            "About 10,000"
+          ],
+          "correctAnswer": 2,
+          "explanation": "After Peter's powerful sermon on the day of Pentecost, about 3,000 people believed in Jesus and were baptised that very day. This was the explosive beginning of the Christian church.",
+          "reference": "Acts 2:41",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-149",
+          "question": "Jesus said to love not only your friends, but also your what?",
+          "options": [
+            "Possessions",
+            "Enemies",
+            "Work",
+            "Country"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus taught 'Love your enemies and pray for those who persecute you.' This radical teaching was one of the most challenging things Jesus ever said — calling people to love even those who do them harm.",
+          "reference": "Matthew 5:44",
+          "points": 10
+        },
+        {
+          "id": "nt-mc-b-150",
+          "question": "What were the very last words Jesus spoke to His disciples before ascending to heaven?",
+          "options": [
+            "'Goodbye'",
+            "'You will receive power when the Holy Spirit comes on you'",
+            "'Build a church in Jerusalem'",
+            "'Do not forget me'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jesus' final words before ascending were 'But you will receive power when the Holy Spirit comes on you; and you will be my witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.'",
+          "reference": "Acts 1:8",
+          "points": 10
         }
       ]
     },
@@ -1104,6 +2504,806 @@
           "correctAnswer": true,
           "explanation": "After rising from the dead, Jesus appeared to His disciples multiple times over a period of 40 days. He ate with them, taught them, and gave them instructions before ascending to heaven from the Mount of Olives.",
           "reference": "Acts 1:3-9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-51",
+          "question": "Jesus spent 40 days in the desert being tempted by the devil.",
+          "correctAnswer": true,
+          "explanation": "After His baptism, Jesus was led by the Spirit into the wilderness where He fasted for 40 days and 40 nights. The devil tempted Him three times, but Jesus resisted each temptation by quoting Scripture.",
+          "reference": "Matthew 4:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-52",
+          "question": "Zacchaeus was a tall man who could easily see over the crowd.",
+          "correctAnswer": false,
+          "explanation": "Zacchaeus was actually a short man — that's why he had to climb a sycamore-fig tree to see Jesus over the crowd. Despite being a wealthy chief tax collector, his small stature meant he couldn't see past the people.",
+          "reference": "Luke 19:3",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-53",
+          "question": "Judas identified Jesus to the soldiers by kissing Him.",
+          "correctAnswer": true,
+          "explanation": "Judas had arranged a signal with the soldiers — he would greet the man they should arrest with a kiss. He went to Jesus and said 'Greetings, Rabbi!' and kissed Him, leading to Jesus' arrest.",
+          "reference": "Matthew 26:48-49",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-54",
+          "question": "Pontius Pilate washed his hands to show he didn't want to be responsible for Jesus' death.",
+          "correctAnswer": true,
+          "explanation": "Pilate took water and washed his hands in front of the crowd, saying 'I am innocent of this man's blood. It is your responsibility!' Despite this gesture, he still allowed Jesus to be crucified.",
+          "reference": "Matthew 27:24",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-55",
+          "question": "Peter cut off a soldier's ear when Jesus was being arrested.",
+          "correctAnswer": true,
+          "explanation": "Peter drew his sword and struck the high priest's servant, cutting off his right ear. Jesus told Peter to put his sword away and then healed the servant's ear — His last miracle before the crucifixion.",
+          "reference": "John 18:10, Luke 22:51",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-56",
+          "question": "'Jesus wept' is the longest verse in the Bible.",
+          "correctAnswer": false,
+          "explanation": "'Jesus wept' (John 11:35) is actually the shortest verse in the Bible, not the longest. It consists of just two words and describes Jesus crying at the tomb of His friend Lazarus.",
+          "reference": "John 11:35",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-57",
+          "question": "Jesus healed 10 lepers and all 10 came back to thank Him.",
+          "correctAnswer": false,
+          "explanation": "Only one of the 10 healed lepers returned to thank Jesus — and he was a Samaritan. Jesus asked 'Were not all ten cleansed? Where are the other nine?' This story teaches about gratitude.",
+          "reference": "Luke 17:11-19",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-58",
+          "question": "Jesus washed His disciples' feet at the Last Supper.",
+          "correctAnswer": true,
+          "explanation": "Before the meal, Jesus got up, wrapped a towel around His waist, poured water into a basin, and washed His disciples' feet — a task normally done by the lowest servant. He was teaching them about humble service.",
+          "reference": "John 13:4-5",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-59",
+          "question": "A large stone was rolled in front of Jesus' tomb after His burial.",
+          "correctAnswer": true,
+          "explanation": "Joseph of Arimathea placed Jesus' body in a tomb cut from rock, and a very large stone was rolled across the entrance. The religious leaders also asked Pilate to post guards at the tomb.",
+          "reference": "Matthew 27:60, 66",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-60",
+          "question": "Paul was originally called Saul before he became a Christian.",
+          "correctAnswer": true,
+          "explanation": "Saul was a devout Jew who persecuted Christians before his dramatic conversion on the road to Damascus. After encountering Jesus, he became the apostle Paul — one of the most important figures in the early church.",
+          "reference": "Acts 13:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-61",
+          "question": "Saul (Paul) was converted on the road to Bethlehem.",
+          "correctAnswer": false,
+          "explanation": "Saul's conversion happened on the road to Damascus, not Bethlehem. A bright light from heaven blinded him and Jesus spoke to him, completely transforming his life from persecutor of Christians to apostle.",
+          "reference": "Acts 9:1-6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-62",
+          "question": "King Herod wanted to protect baby Jesus.",
+          "correctAnswer": false,
+          "explanation": "King Herod did not want to protect Jesus — he wanted to kill Him. He felt threatened by the news of a newborn 'King of the Jews' and even ordered the killing of all baby boys in Bethlehem under two years old.",
+          "reference": "Matthew 2:16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-63",
+          "question": "Joseph took Mary and Jesus to Egypt to escape King Herod.",
+          "correctAnswer": true,
+          "explanation": "An angel warned Joseph in a dream to flee to Egypt because Herod was searching for the child to kill Him. The family stayed in Egypt until King Herod died, then returned to Israel.",
+          "reference": "Matthew 2:13-15",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-64",
+          "question": "The Sermon on the Mount is found in the Old Testament.",
+          "correctAnswer": false,
+          "explanation": "The Sermon on the Mount is found in the New Testament, in Matthew chapters 5 to 7. It is one of Jesus' most famous teachings and includes the Beatitudes, the Lord's Prayer, and the Golden Rule.",
+          "reference": "Matthew 5-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-65",
+          "question": "When the devil tempted Jesus in the desert, he told Jesus to turn stones into bread.",
+          "correctAnswer": true,
+          "explanation": "After 40 days of fasting, Jesus was hungry. The devil said 'If you are the Son of God, tell these stones to become bread.' Jesus refused, saying 'Man shall not live on bread alone, but on every word that comes from God.'",
+          "reference": "Matthew 4:3-4",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-66",
+          "question": "After the feeding of the 5,000, the disciples collected 12 baskets of leftover food.",
+          "correctAnswer": true,
+          "explanation": "After everyone had eaten their fill from just five loaves and two fish, the disciples picked up 12 full baskets of broken pieces that were left over — showing the miraculous abundance of Jesus' provision.",
+          "reference": "Matthew 14:20",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-67",
+          "question": "Jesus said 'I am the good shepherd.'",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'I am the good shepherd. The good shepherd lays down his life for the sheep.' He was describing how He cares for His followers and would ultimately give His own life for them.",
+          "reference": "John 10:11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-68",
+          "question": "At Jesus' baptism, God's voice from heaven said 'This is my Son, whom I love.'",
+          "correctAnswer": true,
+          "explanation": "When Jesus came up out of the water after being baptised by John, heaven opened, the Spirit descended like a dove, and God spoke from heaven saying 'This is my Son, whom I love; with him I am well pleased.'",
+          "reference": "Matthew 3:17",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-69",
+          "question": "Lazarus was the brother of Mary and Martha.",
+          "correctAnswer": true,
+          "explanation": "Lazarus lived in the village of Bethany with his two sisters, Mary and Martha. All three were close friends of Jesus, and Jesus often visited their home.",
+          "reference": "John 11:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-70",
+          "question": "Jesus told Nicodemus he must be 'born again' to see God's kingdom.",
+          "correctAnswer": true,
+          "explanation": "Nicodemus, a Pharisee and religious leader, came to Jesus at night. Jesus told him 'Very truly I tell you, no one can see the kingdom of God unless they are born again,' meaning a spiritual rebirth through faith.",
+          "reference": "John 3:3",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-71",
+          "question": "The Holy Spirit descended on Jesus like an eagle at His baptism.",
+          "correctAnswer": false,
+          "explanation": "The Holy Spirit descended on Jesus like a dove, not an eagle. The dove is a symbol of peace and gentleness, and this moment at Jesus' baptism marked the beginning of His public ministry.",
+          "reference": "Matthew 3:16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-72",
+          "question": "On the day of Pentecost, tongues of fire appeared above the disciples' heads.",
+          "correctAnswer": true,
+          "explanation": "When the Holy Spirit came at Pentecost, what looked like tongues of fire separated and rested on each of the disciples. They were all filled with the Holy Spirit and began speaking in other languages.",
+          "reference": "Acts 2:3-4",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-73",
+          "question": "Mary visited her relative Elizabeth before Jesus was born.",
+          "correctAnswer": true,
+          "explanation": "After the angel Gabriel told Mary she would give birth to Jesus, Mary went to visit Elizabeth, who was also miraculously pregnant with John the Baptist. Mary stayed with Elizabeth for about three months.",
+          "reference": "Luke 1:39-56",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-74",
+          "question": "Elizabeth's baby (John the Baptist) leaped for joy inside her when Mary arrived.",
+          "correctAnswer": true,
+          "explanation": "When Elizabeth heard Mary's greeting, the baby inside her leaped. Elizabeth was filled with the Holy Spirit and exclaimed 'Blessed are you among women, and blessed is the child you will bear!'",
+          "reference": "Luke 1:41-44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-75",
+          "question": "Jesus said 'Blessed are the peacemakers, for they will be called children of God.'",
+          "correctAnswer": true,
+          "explanation": "This is one of the Beatitudes from the Sermon on the Mount. Jesus was teaching that those who work for peace and reconciliation hold a special place in God's family.",
+          "reference": "Matthew 5:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-76",
+          "question": "The sky went dark for three hours while Jesus was on the cross.",
+          "correctAnswer": true,
+          "explanation": "From noon until three in the afternoon, darkness came over the whole land while Jesus hung on the cross. This supernatural darkness lasted three hours, ending when Jesus cried out and gave up His spirit.",
+          "reference": "Matthew 27:45",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-77",
+          "question": "Peter, James, and John were Jesus' three closest disciples.",
+          "correctAnswer": true,
+          "explanation": "Peter, James, and John formed Jesus' inner circle. They were present at key moments others missed — like the Transfiguration (where Jesus' appearance changed on a mountain) and His deepest prayer in Gethsemane.",
+          "reference": "Mark 9:2, Mark 14:33",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-78",
+          "question": "Mark is the second book of the New Testament.",
+          "correctAnswer": true,
+          "explanation": "The order of the first four books (the Gospels) is Matthew, Mark, Luke, and John. Mark is the shortest Gospel and is known for its fast-paced, action-oriented telling of Jesus' story.",
+          "reference": "Mark 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-79",
+          "question": "Jesus said 'I am the vine, you are the branches.'",
+          "correctAnswer": true,
+          "explanation": "Jesus used this image to teach that His followers must stay connected to Him to bear spiritual fruit. 'If you remain in me and I in you, you will bear much fruit; apart from me you can do nothing.'",
+          "reference": "John 15:5",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-80",
+          "question": "In Jesus' parable, the wise man built his house on sand.",
+          "correctAnswer": false,
+          "explanation": "The wise man built his house on rock, not sand. It was the foolish man who built on sand. When storms came, the house on rock stood firm while the house on sand collapsed.",
+          "reference": "Matthew 7:24-27",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-81",
+          "question": "Jesus said 'Give to Caesar what is Caesar's, and to God what is God's.'",
+          "correctAnswer": true,
+          "explanation": "When people tried to trap Jesus with a question about paying taxes to the Roman emperor, He asked whose image was on the coin. They said 'Caesar's.' So He gave this brilliant answer about duty to both government and God.",
+          "reference": "Matthew 22:21",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-82",
+          "question": "The sign above Jesus' cross read 'King of the Jews.'",
+          "correctAnswer": true,
+          "explanation": "Pontius Pilate had a sign prepared that read 'JESUS OF NAZARETH, THE KING OF THE JEWS.' It was written in three languages — Aramaic, Latin, and Greek — so everyone could read it.",
+          "reference": "John 19:19-20",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-83",
+          "question": "Roman soldiers put a purple robe on Jesus to mock Him as a king.",
+          "correctAnswer": true,
+          "explanation": "The soldiers dressed Jesus in a purple (or scarlet) robe — purple being the colour of royalty — to make fun of His claim to be a king. They also pressed a crown of thorns on His head and struck Him.",
+          "reference": "Mark 15:17",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-84",
+          "question": "Joseph of Arimathea provided his own tomb for Jesus' burial.",
+          "correctAnswer": true,
+          "explanation": "Joseph of Arimathea, a wealthy and respected member of the Jewish council, went to Pilate and asked for Jesus' body. He wrapped it in clean linen and placed it in his own new tomb, carved out of rock.",
+          "reference": "Matthew 27:57-60",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-85",
+          "question": "Jesus spoke to a Samaritan woman at a well and offered her 'living water.'",
+          "correctAnswer": true,
+          "explanation": "Jesus met a Samaritan woman at Jacob's well and asked her for a drink. He then told her about 'living water' — a spiritual water that would give eternal life. She became one of the first people to spread the news about Jesus.",
+          "reference": "John 4:7-14",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-86",
+          "question": "Five loaves of bread and two fish were used to feed the 5,000.",
+          "correctAnswer": true,
+          "explanation": "A young boy had five small barley loaves and two small fish. Jesus took them, gave thanks, and miraculously multiplied them to feed over 5,000 men, plus women and children.",
+          "reference": "John 6:9-10",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-87",
+          "question": "The temple curtain was torn from top to bottom when Jesus died.",
+          "correctAnswer": true,
+          "explanation": "At the exact moment Jesus died, the massive curtain in the Temple — which separated the Holy of Holies from the rest — was torn in two from top to bottom, symbolising that everyone now had direct access to God.",
+          "reference": "Mark 15:38",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-88",
+          "question": "The crowd chose to free Barabbas instead of Jesus.",
+          "correctAnswer": true,
+          "explanation": "Pilate offered to release one prisoner during Passover. Stirred up by the religious leaders, the crowd chose Barabbas — a criminal — and demanded that Jesus be crucified.",
+          "reference": "Mark 15:11-15",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-89",
+          "question": "On the cross, Jesus said 'Father, forgive them, for they do not know what they are doing.'",
+          "correctAnswer": true,
+          "explanation": "Even while suffering on the cross, Jesus prayed for forgiveness for those who were crucifying Him. This extraordinary prayer shows the depth of Jesus' love and mercy.",
+          "reference": "Luke 23:34",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-90",
+          "question": "Thomas declared 'My Lord and my God!' when he saw the risen Jesus.",
+          "correctAnswer": true,
+          "explanation": "Thomas had refused to believe Jesus was alive until he could see and touch the wounds. When Jesus appeared and showed him, Thomas immediately believed and made this powerful declaration of faith.",
+          "reference": "John 20:28",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-91",
+          "question": "Jesus said 'I am the light of the world.'",
+          "correctAnswer": true,
+          "explanation": "Jesus declared 'I am the light of the world. Whoever follows me will never walk in darkness, but will have the light of life.' This is one of seven famous 'I am' statements found in John's Gospel.",
+          "reference": "John 8:12",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-92",
+          "question": "At the wedding in Cana, a servant told Jesus the wine had run out.",
+          "correctAnswer": false,
+          "explanation": "It was Jesus' mother Mary, not a servant, who told Him the wine had run out. Mary then told the servants 'Do whatever he tells you,' and Jesus performed His first miracle by turning water into wine.",
+          "reference": "John 2:3-5",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-93",
+          "question": "Jesus ascended to heaven 40 days after His resurrection.",
+          "correctAnswer": true,
+          "explanation": "After rising from the dead, Jesus appeared to His disciples over a period of 40 days. On the 40th day, He was taken up into heaven from the Mount of Olives while they watched.",
+          "reference": "Acts 1:3-9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-94",
+          "question": "Peter briefly walked on water before becoming afraid and sinking.",
+          "correctAnswer": true,
+          "explanation": "When Peter saw Jesus walking on water, he asked to come to Him. Jesus said 'Come.' Peter stepped out of the boat and walked on water, but when he saw the wind and waves, he became afraid and began to sink.",
+          "reference": "Matthew 14:28-31",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-95",
+          "question": "Two criminals were crucified alongside Jesus.",
+          "correctAnswer": true,
+          "explanation": "Two criminals were crucified with Jesus — one on His right and one on His left. One mocked Jesus, but the other asked Jesus to remember him, and Jesus promised him paradise.",
+          "reference": "Luke 23:32-33",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-96",
+          "question": "One of the criminals on the cross asked Jesus to remember him, and Jesus promised he would be with Him in paradise.",
+          "correctAnswer": true,
+          "explanation": "The repentant criminal said 'Jesus, remember me when you come into your kingdom.' Jesus replied 'Truly I tell you, today you will be with me in paradise' — one of the most beautiful promises in the Bible.",
+          "reference": "Luke 23:42-43",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-97",
+          "question": "An angel rolled away the stone from Jesus' tomb on Easter morning.",
+          "correctAnswer": true,
+          "explanation": "There was a violent earthquake, and an angel of the Lord descended from heaven, rolled back the stone, and sat on it. His appearance was like lightning, and the guards were so afraid they shook and became like dead men.",
+          "reference": "Matthew 28:2-4",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-98",
+          "question": "The word 'Gospel' means 'bad news.'",
+          "correctAnswer": false,
+          "explanation": "The word 'Gospel' means 'good news,' not bad news. It refers to the good news about Jesus Christ — that God sent His Son to save the world through His life, death, and resurrection.",
+          "reference": "Mark 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-99",
+          "question": "Friends lowered a paralysed man through a roof to get him to Jesus.",
+          "correctAnswer": true,
+          "explanation": "Four friends carried a paralysed man to the house where Jesus was teaching, but it was too crowded to get in. So they went up on the roof, made a hole, and lowered him down on his mat right in front of Jesus.",
+          "reference": "Mark 2:1-5",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-100",
+          "question": "In the parable of the mustard seed, a tiny seed grows into a large plant.",
+          "correctAnswer": true,
+          "explanation": "Jesus compared the kingdom of God to a mustard seed — one of the smallest seeds — that grows into the largest of garden plants, big enough for birds to rest in its branches.",
+          "reference": "Matthew 13:31-32",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-101",
+          "question": "Jesus' final words on the cross included 'It is finished.'",
+          "correctAnswer": true,
+          "explanation": "Just before dying, Jesus said 'It is finished.' These words declared that His mission to save humanity through His sacrifice was complete. He had accomplished everything He came to do.",
+          "reference": "John 19:30",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-102",
+          "question": "The book of Acts comes right after the four Gospels in the New Testament.",
+          "correctAnswer": true,
+          "explanation": "The order is: Matthew, Mark, Luke, John, then Acts. Acts picks up where Luke's Gospel ends and tells the story of how the early church grew and spread after Jesus ascended to heaven.",
+          "reference": "Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-103",
+          "question": "When Jesus was 12 years old, He was found in the Temple talking with teachers.",
+          "correctAnswer": true,
+          "explanation": "During a visit to Jerusalem for the Passover, the young Jesus stayed behind in the Temple. His parents searched for three days before finding Him sitting among the teachers, listening and asking questions.",
+          "reference": "Luke 2:46-47",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-104",
+          "question": "The crowd released Jesus and crucified Barabbas.",
+          "correctAnswer": false,
+          "explanation": "It was the opposite — the crowd released Barabbas (the criminal) and demanded that Jesus be crucified. Pilate gave in to their demands despite finding no fault in Jesus.",
+          "reference": "Matthew 27:26",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-105",
+          "question": "Zacchaeus promised to give half of his possessions to the poor after meeting Jesus.",
+          "correctAnswer": true,
+          "explanation": "Zacchaeus was so changed by his encounter with Jesus that he stood up and said 'Here and now I give half of my possessions to the poor, and if I have cheated anybody, I will pay back four times the amount.'",
+          "reference": "Luke 19:8",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-106",
+          "question": "Jesus said 'You of little faith, why did you doubt?' to Peter when he was sinking in the water.",
+          "correctAnswer": true,
+          "explanation": "After Peter stepped out of the boat and briefly walked on water, he became afraid of the wind and started sinking. He cried 'Lord, save me!' and Jesus reached out, caught him, and said these words.",
+          "reference": "Matthew 14:31",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-107",
+          "question": "Paul travelled to many different countries to tell people about Jesus.",
+          "correctAnswer": true,
+          "explanation": "Paul made at least three major missionary journeys across the Roman Empire — through modern-day Turkey, Greece, and eventually to Rome — establishing churches and spreading the message of Jesus everywhere he went.",
+          "reference": "Acts 13-28",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-108",
+          "question": "The title 'Christ' means 'The Anointed One' or 'Messiah.'",
+          "correctAnswer": true,
+          "explanation": "'Christ' is not Jesus' last name — it is a title from the Greek 'Christos,' meaning 'The Anointed One.' It is the Greek equivalent of the Hebrew word 'Messiah' — the promised Saviour of the world.",
+          "reference": "Matthew 16:16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-109",
+          "question": "Peter is often considered the leader of the early church.",
+          "correctAnswer": true,
+          "explanation": "Jesus told Peter 'On this rock I will build my church.' After Jesus ascended, Peter became the main spokesperson for the apostles. He preached the first sermon at Pentecost and led the early church in Jerusalem.",
+          "reference": "Matthew 16:18, Acts 2:14",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-110",
+          "question": "Jesus said 'You are the salt of the earth.'",
+          "correctAnswer": true,
+          "explanation": "In the Sermon on the Mount, Jesus told His followers 'You are the salt of the earth.' Salt was used to preserve food and add flavour — Jesus meant that His followers should have a positive, preserving influence on the world.",
+          "reference": "Matthew 5:13",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-111",
+          "question": "Jesus described Himself as 'the bread of life.'",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'I am the bread of life. Whoever comes to me will never go hungry, and whoever believes in me will never be thirsty.' He meant that He alone satisfies the deepest hunger of the human soul.",
+          "reference": "John 6:35",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-112",
+          "question": "When Jesus raised Lazarus, He called out 'Lazarus, come out!'",
+          "correctAnswer": true,
+          "explanation": "Jesus stood before the opened tomb and cried out in a loud voice 'Lazarus, come out!' And the dead man came out, his hands and feet wrapped in strips of linen and a cloth around his face.",
+          "reference": "John 11:43-44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-113",
+          "question": "In the parable of the wise and foolish builders, both houses survived the storm.",
+          "correctAnswer": false,
+          "explanation": "Only the house built on rock survived. The house built on sand fell with a great crash when the rain, floods, and wind beat against it. Jesus used this to teach about the importance of obeying His words.",
+          "reference": "Matthew 7:24-27",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-114",
+          "question": "Stephen was the first Christian to be killed for his faith.",
+          "correctAnswer": true,
+          "explanation": "Stephen was a faithful believer who was arrested and brought before the Jewish council. After giving a bold speech about Jesus, the angry crowd dragged him out and stoned him to death, making him the first Christian martyr.",
+          "reference": "Acts 7:54-60",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-115",
+          "question": "Jesus once fell asleep in a boat during a storm.",
+          "correctAnswer": true,
+          "explanation": "While crossing the Sea of Galilee, a furious storm arose but Jesus was sleeping peacefully in the stern of the boat. The terrified disciples woke Him, and He calmed the storm with just His words.",
+          "reference": "Mark 4:37-38",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-116",
+          "question": "The New Testament was originally written in Latin.",
+          "correctAnswer": false,
+          "explanation": "The New Testament was originally written in Greek — specifically Koine (common) Greek, which was the widely spoken language across the Roman Empire in the first century. Latin was the official language of Rome, but Greek was the common tongue.",
+          "reference": "General NT scholarship",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-117",
+          "question": "Jesus healed people on the Sabbath (the day of rest), which upset the religious leaders.",
+          "correctAnswer": true,
+          "explanation": "Jesus healed people on the Sabbath multiple times, which angered the Pharisees who believed healing counted as 'work' forbidden on the Sabbath. Jesus said 'The Sabbath was made for man, not man for the Sabbath.'",
+          "reference": "Mark 3:1-6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-118",
+          "question": "Jesus was born during the reign of King Herod.",
+          "correctAnswer": true,
+          "explanation": "Matthew's Gospel tells us 'After Jesus was born in Bethlehem in Judea, during the time of King Herod...' Herod the Great ruled Judea under Roman authority at the time of Jesus' birth.",
+          "reference": "Matthew 2:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-119",
+          "question": "In the parable of the Prodigal Son, the younger son ended up feeding pigs after he spent all his money.",
+          "correctAnswer": true,
+          "explanation": "After wasting all his inheritance on wild living, the son was so desperate he took a job feeding pigs — one of the most degrading jobs for a Jewish person. He was so hungry he longed to eat the pig food.",
+          "reference": "Luke 15:15-16",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-120",
+          "question": "The devil tempted Jesus only once in the desert.",
+          "correctAnswer": false,
+          "explanation": "The devil tempted Jesus three times, not once: first to turn stones into bread, then to throw Himself off the Temple, and finally to worship the devil in exchange for all the kingdoms of the world. Jesus refused all three.",
+          "reference": "Matthew 4:1-11",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-121",
+          "question": "After His resurrection, Jesus told Peter to 'Feed my sheep.'",
+          "correctAnswer": true,
+          "explanation": "Jesus asked Peter three times 'Do you love me?' and each time Peter said yes, Jesus said 'Feed my lambs' or 'Feed my sheep.' This reinstated Peter after his three denials and gave him the mission to care for Jesus' followers.",
+          "reference": "John 21:15-17",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-122",
+          "question": "Jesus said 'Where two or three gather in my name, there am I with them.'",
+          "correctAnswer": true,
+          "explanation": "Jesus promised that whenever even a small group of believers comes together in His name, He is spiritually present with them. This encourages Christians to gather together in faith.",
+          "reference": "Matthew 18:20",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-123",
+          "question": "Luke wrote both the Gospel of Luke and the book of Acts.",
+          "correctAnswer": true,
+          "explanation": "Luke, who was a doctor and a companion of Paul, is credited with writing both books. He addressed both to a man named Theophilus. Together they make up about a quarter of the New Testament.",
+          "reference": "Luke 1:1-4, Acts 1:1",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-124",
+          "question": "Paul and Silas sang hymns in prison, and an earthquake opened the doors.",
+          "correctAnswer": true,
+          "explanation": "Despite being beaten and chained, Paul and Silas prayed and sang hymns at midnight. A violent earthquake shook the prison, the doors flew open, and everyone's chains came loose. The jailer and his whole family became believers.",
+          "reference": "Acts 16:25-34",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-125",
+          "question": "Jesus said 'I am the resurrection and the life.'",
+          "correctAnswer": true,
+          "explanation": "Jesus said this to Martha just before raising her brother Lazarus from the dead: 'I am the resurrection and the life. The one who believes in me will live, even though they die.'",
+          "reference": "John 11:25",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-126",
+          "question": "The apostle John wrote the book of Revelation while on the island of Patmos.",
+          "correctAnswer": true,
+          "explanation": "John was exiled to the small island of Patmos because of his faith in Jesus. While there, he received visions from God about the end times, which he recorded as the book of Revelation.",
+          "reference": "Revelation 1:9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-127",
+          "question": "Jesus said 'Ask, and it will be given to you; seek, and you will find.'",
+          "correctAnswer": true,
+          "explanation": "In the Sermon on the Mount, Jesus encouraged His followers to pray confidently: 'Ask and it will be given to you; seek and you will find; knock and the door will be opened to you.'",
+          "reference": "Matthew 7:7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-128",
+          "question": "1 Corinthians 13 is known as the 'love chapter' of the Bible.",
+          "correctAnswer": true,
+          "explanation": "Written by Paul, 1 Corinthians 13 describes the nature of true love: 'Love is patient, love is kind. It does not envy, it does not boast.' It is one of the most popular readings at weddings.",
+          "reference": "1 Corinthians 13:4-7",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-129",
+          "question": "Jesus taught that the road to life is wide and easy.",
+          "correctAnswer": false,
+          "explanation": "Jesus taught the opposite: 'Wide is the gate and broad is the road that leads to destruction. But small is the gate and narrow the road that leads to life, and only a few find it.'",
+          "reference": "Matthew 7:13-14",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-130",
+          "question": "Before healing the paralysed man lowered through the roof, Jesus first said 'Your sins are forgiven.'",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'Son, your sins are forgiven' before telling him to get up and walk. This shocked the religious leaders, but Jesus healed the man physically to prove He had authority to forgive sins too.",
+          "reference": "Mark 2:5-12",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-131",
+          "question": "Jesus called Peter 'the rock' and said He would build His church on this rock.",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'You are Peter (which means rock), and on this rock I will build my church, and the gates of death will not overcome it.' This gave Peter a central role in the founding of the Christian church.",
+          "reference": "Matthew 16:18",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-132",
+          "question": "John the Baptist called Jesus 'the Lamb of God.'",
+          "correctAnswer": true,
+          "explanation": "When John the Baptist saw Jesus coming toward him at the Jordan River, he said 'Behold, the Lamb of God, who takes away the sin of the world!' This title pointed to Jesus as the ultimate sacrifice.",
+          "reference": "John 1:29",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-133",
+          "question": "About 3,000 people were baptised on the day of Pentecost.",
+          "correctAnswer": true,
+          "explanation": "After Peter's powerful sermon on the day of Pentecost, about 3,000 people believed and were baptised. This was the explosive beginning of the Christian church.",
+          "reference": "Acts 2:41",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-134",
+          "question": "Jesus said to love not only your friends, but also your enemies.",
+          "correctAnswer": true,
+          "explanation": "Jesus taught 'Love your enemies and pray for those who persecute you.' This radical teaching called people to love even those who do them harm — going far beyond what was expected.",
+          "reference": "Matthew 5:44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-135",
+          "question": "The name 'Jesus' means 'The Lord saves.'",
+          "correctAnswer": true,
+          "explanation": "The name 'Jesus' comes from the Hebrew 'Yeshua,' meaning 'The Lord saves' or 'God is salvation.' The angel told Joseph to name Him Jesus 'because he will save his people from their sins.'",
+          "reference": "Matthew 1:21",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-136",
+          "question": "Saul was blinded for three days after his encounter with Jesus on the road to Damascus.",
+          "correctAnswer": true,
+          "explanation": "After the blinding light from heaven, Saul could not see for three days. He did not eat or drink anything. Then God sent Ananias to lay hands on him, and something like scales fell from Saul's eyes.",
+          "reference": "Acts 9:9-18",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-137",
+          "question": "In the story of the Good Samaritan, a priest was the first person to stop and help the wounded man.",
+          "correctAnswer": false,
+          "explanation": "The priest did NOT stop to help — he saw the wounded man and walked past on the other side of the road. A Levite also passed by. It was the Samaritan — the least expected person — who stopped to help.",
+          "reference": "Luke 10:31-33",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-138",
+          "question": "The Prodigal Son's father gave him a robe, a ring, and sandals when he returned home.",
+          "correctAnswer": true,
+          "explanation": "The overjoyed father called his servants to bring the best robe, put a ring on his son's finger, and sandals on his feet. He also ordered a feast to celebrate his son's return.",
+          "reference": "Luke 15:22-23",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-139",
+          "question": "Jesus had at least four brothers.",
+          "correctAnswer": true,
+          "explanation": "The Gospels name four brothers of Jesus: James, Joseph (Joses), Simon, and Judas (not Judas Iscariot). He also had sisters. These were younger siblings born to Mary and Joseph.",
+          "reference": "Matthew 13:55-56",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-140",
+          "question": "Jesus prayed so intensely in Gethsemane that His sweat was like drops of blood.",
+          "correctAnswer": true,
+          "explanation": "In the Garden of Gethsemane, Jesus was in such anguish as He prayed about His coming suffering that His sweat was like drops of blood falling to the ground. An angel from heaven appeared to strengthen Him.",
+          "reference": "Luke 22:43-44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-141",
+          "question": "Paul was one of the original 12 apostles who walked with Jesus during His ministry.",
+          "correctAnswer": false,
+          "explanation": "Paul was NOT one of the original 12. He became a follower of Jesus later, after the resurrection, through a dramatic encounter on the road to Damascus. Before that, he had been persecuting Christians.",
+          "reference": "Acts 9:1-19",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-142",
+          "question": "Jesus said 'I am the way, the truth, and the life.'",
+          "correctAnswer": true,
+          "explanation": "Jesus made this declaration to His disciple Thomas: 'I am the way and the truth and the life. No one comes to the Father except through me.' It is one of the most well-known verses in the Bible.",
+          "reference": "John 14:6",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-143",
+          "question": "The book of Acts tells the story of how the early church grew and spread.",
+          "correctAnswer": true,
+          "explanation": "Acts describes how Christianity spread from a small group of believers in Jerusalem to communities throughout the Roman Empire, through the work of the apostles — especially Peter and Paul.",
+          "reference": "Acts 1:8",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-144",
+          "question": "Bartimaeus was a blind beggar who cried out to Jesus for healing.",
+          "correctAnswer": true,
+          "explanation": "Bartimaeus sat by the roadside begging near Jericho. When he heard Jesus was passing, he shouted 'Jesus, Son of David, have mercy on me!' Despite people telling him to be quiet, he kept calling out, and Jesus healed him.",
+          "reference": "Mark 10:46-52",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-145",
+          "question": "Matthias was chosen to replace Judas as the 12th apostle.",
+          "correctAnswer": true,
+          "explanation": "After Judas' death, the remaining apostles chose his replacement by casting lots. Matthias was selected, restoring the number of apostles to 12 before the day of Pentecost.",
+          "reference": "Acts 1:23-26",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-146",
+          "question": "In the parable of the sower, all the seeds grew into healthy plants.",
+          "correctAnswer": false,
+          "explanation": "Only the seeds that fell on good soil grew and produced a crop. Seeds on the path were eaten by birds, seeds on rocky ground withered, and seeds among thorns were choked. Only good soil produced fruit.",
+          "reference": "Matthew 13:3-8",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-147",
+          "question": "Jesus told a sleeping storm to 'Be still' and it immediately obeyed.",
+          "correctAnswer": false,
+          "explanation": "It was Jesus who was sleeping during the storm, not the storm that was sleeping. When the disciples woke Him, He stood up and told the wind and waves 'Quiet! Be still!' and the storm stopped immediately.",
+          "reference": "Mark 4:38-39",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-148",
+          "question": "Jesus taught 'Love your enemies and pray for those who persecute you.'",
+          "correctAnswer": true,
+          "explanation": "This radical teaching from the Sermon on the Mount went far beyond what was expected. Jesus called His followers not just to tolerate their enemies, but to actively love them and pray for them.",
+          "reference": "Matthew 5:44",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-149",
+          "question": "The last words Jesus spoke before ascending to heaven were about receiving the Holy Spirit.",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'You will receive power when the Holy Spirit comes on you; and you will be my witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.' Then He was taken up to heaven.",
+          "reference": "Acts 1:8-9",
+          "points": 10
+        },
+        {
+          "id": "nt-tf-b-150",
+          "question": "Jesus came to earth to save the world, not to condemn it.",
+          "correctAnswer": true,
+          "explanation": "Jesus said 'For God did not send his Son into the world to condemn the world, but to save the world through him.' This is one of the most hopeful statements in the entire Bible.",
+          "reference": "John 3:17",
           "points": 10
         }
       ]
