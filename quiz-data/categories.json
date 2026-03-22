@@ -4,7 +4,10 @@
     "title": "All Categories",
     "icon": "ALL",
     "color": "#673AB7",
-    "gradient": ["#673AB7", "#512DA8"],
+    "gradient": [
+      "#673AB7",
+      "#512DA8"
+    ],
     "totalQuizzes": 145,
     "description": "Mixed questions from all Bible categories"
   },
@@ -13,7 +16,10 @@
     "title": "New Testament",
     "icon": "NT",
     "color": "#2196F3",
-    "gradient": ["#2196F3", "#1976D2"],
+    "gradient": [
+      "#2196F3",
+      "#1976D2"
+    ],
     "totalQuizzes": 27,
     "description": "Explore the life of Jesus and early church"
   },
@@ -22,7 +28,10 @@
     "title": "Old Testament",
     "icon": "OT",
     "color": "#FF9800",
-    "gradient": ["#FF9800", "#F57C00"],
+    "gradient": [
+      "#FF9800",
+      "#F57C00"
+    ],
     "totalQuizzes": 35,
     "description": "Journey through ancient Israel and the prophets"
   },
@@ -31,7 +40,10 @@
     "title": "Life of Jesus",
     "icon": "J",
     "color": "#4CAF50",
-    "gradient": ["#4CAF50", "#388E3C"],
+    "gradient": [
+      "#4CAF50",
+      "#388E3C"
+    ],
     "totalQuizzes": 30,
     "description": "Discover the ministry and teachings of Christ"
   },
@@ -40,7 +52,10 @@
     "title": "Miracles",
     "icon": "M",
     "color": "#9C27B0",
-    "gradient": ["#9C27B0", "#7B1FA2"],
+    "gradient": [
+      "#9C27B0",
+      "#7B1FA2"
+    ],
     "totalQuizzes": 20,
     "description": "Divine interventions throughout Scripture"
   },
@@ -49,7 +64,10 @@
     "title": "Parables",
     "icon": "P",
     "color": "#E91E63",
-    "gradient": ["#E91E63", "#C2185B"],
+    "gradient": [
+      "#E91E63",
+      "#C2185B"
+    ],
     "totalQuizzes": 15,
     "description": "Stories with deeper spiritual meanings"
   },
@@ -58,9 +76,119 @@
     "title": "Women of the Bible",
     "icon": "W",
     "color": "#F44336",
-    "gradient": ["#F44336", "#D32F2F"],
+    "gradient": [
+      "#F44336",
+      "#D32F2F"
+    ],
     "totalQuizzes": 18,
     "description": "Remarkable women of faith"
+  },
+  {
+    "id": "kings-and-kingdoms",
+    "title": "Kings & Kingdoms",
+    "icon": "KK",
+    "color": "#FF5722",
+    "gradient": [
+      "#FF5722",
+      "#E64A19"
+    ],
+    "totalQuizzes": 300,
+    "description": "Rulers, thrones, and the rise and fall of nations"
+  },
+  {
+    "id": "prophets",
+    "title": "Prophets",
+    "icon": "PR",
+    "color": "#00BCD4",
+    "gradient": [
+      "#00BCD4",
+      "#00838F"
+    ],
+    "totalQuizzes": 300,
+    "description": "God's messengers and their bold proclamations"
+  },
+  {
+    "id": "angels-and-demons",
+    "title": "Angels & Demons",
+    "icon": "AD",
+    "color": "#7C4DFF",
+    "gradient": [
+      "#7C4DFF",
+      "#651FFF"
+    ],
+    "totalQuizzes": 300,
+    "description": "Heavenly beings and spiritual battles"
+  },
+  {
+    "id": "bible-animals",
+    "title": "Bible Animals",
+    "icon": "BA",
+    "color": "#8BC34A",
+    "gradient": [
+      "#8BC34A",
+      "#689F38"
+    ],
+    "totalQuizzes": 300,
+    "description": "Creatures great and small throughout Scripture"
+  },
+  {
+    "id": "famous-verses",
+    "title": "Famous Verses",
+    "icon": "FV",
+    "color": "#FFD600",
+    "gradient": [
+      "#FFD600",
+      "#F9A825"
+    ],
+    "totalQuizzes": 300,
+    "description": "The most well-known passages in the Bible"
+  },
+  {
+    "id": "bible-basics",
+    "title": "Bible Basics",
+    "icon": "BB",
+    "color": "#009688",
+    "gradient": [
+      "#009688",
+      "#00796B"
+    ],
+    "totalQuizzes": 300,
+    "description": "How the Bible is structured and who wrote it"
+  },
+  {
+    "id": "places-in-bible",
+    "title": "Places in the Bible",
+    "icon": "PL",
+    "color": "#795548",
+    "gradient": [
+      "#795548",
+      "#5D4037"
+    ],
+    "totalQuizzes": 300,
+    "description": "Lands, cities, and journeys across Scripture"
+  },
+  {
+    "id": "heroes-of-faith",
+    "title": "Heroes of Faith",
+    "icon": "HF",
+    "color": "#3F51B5",
+    "gradient": [
+      "#3F51B5",
+      "#303F9F"
+    ],
+    "totalQuizzes": 300,
+    "description": "Brave men and women who trusted God"
+  },
+  {
+    "id": "jesus-disciples",
+    "title": "Jesus' Disciples",
+    "icon": "JD",
+    "color": "#00897B",
+    "gradient": [
+      "#00897B",
+      "#00695C"
+    ],
+    "totalQuizzes": 300,
+    "description": "The twelve and those who followed"
   }
 ]
-

@@ -21,6 +21,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import { useTheme } from '../contexts/ThemeContext';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { includeQuizQuestion } from '../utils/quizPoolFilter';
 
 const CATEGORY_ICON_FALLBACK = {
   all: 'ALL',
@@ -30,6 +31,15 @@ const CATEGORY_ICON_FALLBACK = {
   miracles: 'M',
   parables: 'P',
   'women-of-bible': 'W',
+  'kings-and-kingdoms': 'KK',
+  prophets: 'PR',
+  'angels-and-demons': 'AD',
+  'bible-animals': 'BA',
+  'famous-verses': 'FV',
+  'bible-basics': 'BB',
+  'places-in-bible': 'PL',
+  'heroes-of-faith': 'HF',
+  'jesus-disciples': 'JD',
 };
 
 const QuizGames = ({ visible, onClose, asScreen = false }) => {
@@ -127,6 +137,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
         if (categoryQuestions) {
           Object.keys(categoryQuestions).forEach(quizType => {
             Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+              if (!includeQuizQuestion(categoryId, difficulty)) return;
               const qs = categoryQuestions[quizType][difficulty] || [];
               allQuestions.push(...qs);
             });
@@ -139,6 +150,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
       if (categoryQuestions) {
         Object.keys(categoryQuestions).forEach(quizType => {
           Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+            if (!includeQuizQuestion(selectedCategory.id, difficulty)) return;
             const qs = categoryQuestions[quizType][difficulty] || [];
             allQuestions.push(...qs);
           });
@@ -397,6 +409,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
         if (categoryQuestions) {
           Object.keys(categoryQuestions).forEach(quizType => {
             Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+              if (!includeQuizQuestion(categoryId, difficulty)) return;
               const qs = categoryQuestions[quizType][difficulty] || [];
               totalQuestions += qs.length;
             });
@@ -409,6 +422,7 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
       if (categoryQuestions) {
         Object.keys(categoryQuestions).forEach(quizType => {
           Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+            if (!includeQuizQuestion(selectedCategory.id, difficulty)) return;
             const qs = categoryQuestions[quizType][difficulty] || [];
             totalQuestions += qs.length;
           });
