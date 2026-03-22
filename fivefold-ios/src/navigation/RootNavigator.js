@@ -383,7 +383,7 @@ const AnimatedLoadingScreen = () => {
           opacity: titleOpacity,
           transform: [{ scale: titleScale }],
         }]}>
-          <Text style={ls.title}>Biblely</Text>
+          <Text style={ls.title}>Faith</Text>
         </Animated.View>
 
         {/* ── TAGLINE ── */}
@@ -392,7 +392,7 @@ const AnimatedLoadingScreen = () => {
           transform: [{ translateY: tagSlide }],
           marginBottom: splashAnim ? 24 : 48,
         }}>
-          <Text style={ls.tagline}>Your Faith Journey</Text>
+          <Text style={ls.tagline}>Grow Deeper, Live Stronger</Text>
         </Animated.View>
 
         {/* ── USER'S SELECTED LOADING ANIMATION ── */}

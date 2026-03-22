@@ -428,14 +428,6 @@ const PrayerDetailModal = ({
                     backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FAFBFF',
                     borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}18`,
                   }]}>
-                    {/* Accent strip */}
-                    <LinearGradient
-                      colors={accentGradient}
-                      style={styles.verseAccentStrip}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                    />
-
                     <View style={styles.verseInner}>
                       {/* Verse header */}
                       <View style={styles.verseHeader}>
@@ -934,13 +926,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
-    flexDirection: 'row',
-  },
-  verseAccentStrip: {
-    width: 4,
   },
   verseInner: {
-    flex: 1,
     padding: 18,
   },
   verseHeader: {

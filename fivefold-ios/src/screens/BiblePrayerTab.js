@@ -1492,9 +1492,9 @@ const BiblePrayerTab = () => {
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Biblely</Text>
+            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Faith</Text>
             <Text style={[styles.headerSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
-              Faith & Focus, Every Day
+              Grow Deeper, Live Stronger
             </Text>
           </View>
           

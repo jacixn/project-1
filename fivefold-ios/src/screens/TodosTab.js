@@ -13,6 +13,7 @@ import {
   Image,
   DeviceEventEmitter,
   Modal,
+  KeyboardAvoidingView,
   Easing,
   ActivityIndicator,
 } from 'react-native';
@@ -211,7 +212,7 @@ const TodosTab = () => {
   const handleTodoAddRef = useRef(null);
 
   // Card customisation config
-  const TODOS_DEFAULT_ORDER = ['Calendar', 'Reminders', 'Habits', 'Vision', 'Tasks'];
+  const TODOS_DEFAULT_ORDER = ['Reminders', 'Habits', 'Vision', 'Tasks'];
   const [cardOrder, setCardOrder] = useState(TODOS_DEFAULT_ORDER);
   const [hiddenCards, setHiddenCards] = useState([]);
 
@@ -823,6 +824,11 @@ const TodosTab = () => {
       fadeOnScroll={false}
       scaleOnScroll={true}
     >
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
       <View style={[styles.container, { backgroundColor: (currentTheme && currentTheme !== 'light' && currentTheme !== 'dark') ? 'transparent' : theme.background }]}>
         <StatusBar 
           barStyle={isDark ? "light-content" : "dark-content"} 
@@ -880,9 +886,9 @@ const TodosTab = () => {
           
           {/* Centered text content */}
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Tasks & Goals</Text>
+            <Text style={[styles.headerTitle, { color: textColor, ...textOutlineStyle }]}>Focus</Text>
             <Text style={[styles.headerSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
-              Stay focused and earn points
+              Focus and achieve goals
             </Text>
           </View>
         </View>
@@ -924,6 +930,7 @@ const TodosTab = () => {
         style={styles.twitterContent} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
+        keyboardShouldPersistTaps="handled"
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
@@ -1266,6 +1273,7 @@ const TodosTab = () => {
         </LinearGradient>
       </Modal>
     </View>
+    </KeyboardAvoidingView>
     </AnimatedWallpaper>
   );
 };

@@ -40,6 +40,129 @@ import { pushToCloud } from '../services/userSyncService';
 
 const { width: SW } = Dimensions.get('window');
 
+const WeekCalendar = ({ todos, theme, isDark, textPrimary, textSecondary, navigation }) => {
+  const today = new Date();
+  const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const currentDayOfWeek = today.getDay();
+  const sundayOfWeek = new Date(today);
+  sundayOfWeek.setDate(today.getDate() - currentDayOfWeek);
+
+  const calendarDays = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(sundayOfWeek);
+    date.setDate(sundayOfWeek.getDate() + i);
+    const isToday = date.toDateString() === today.toDateString();
+    const dayTodos = todos.filter(t => {
+      if (!t.completedAt) return false;
+      return new Date(t.completedAt).toDateString() === date.toDateString();
+    });
+    calendarDays.push({ day: date.getDate(), isToday, hasActivity: dayTodos.length > 0 });
+  }
+
+  const cardBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  const cardBorder = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+
+  return (
+    <View style={[weekStyles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+      <View style={weekStyles.headerRow}>
+        <Text style={[weekStyles.title, { color: textPrimary }]}>This Week</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('ScheduleTask')}
+          style={[weekStyles.scheduleBtn, { backgroundColor: theme.primary }]}
+        >
+          <Text style={weekStyles.scheduleBtnText}>Schedule</Text>
+          <MaterialIcons name="arrow-forward" size={14} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <View style={weekStyles.daysRow}>
+        {calendarDays.map((d, i) => (
+          <View key={i} style={weekStyles.dayCol}>
+            <Text style={[weekStyles.dayLabel, { color: textSecondary }]}>{daysOfWeek[i]}</Text>
+            <View style={[
+              weekStyles.dayCircle,
+              d.isToday && { backgroundColor: theme.primary },
+              d.hasActivity && !d.isToday && { backgroundColor: `${theme.primary}15` },
+            ]}>
+              <Text style={[
+                weekStyles.dayNum,
+                { color: d.isToday ? '#fff' : textPrimary },
+                d.hasActivity && !d.isToday && { color: theme.primary, fontWeight: '600' },
+              ]}>{d.day}</Text>
+            </View>
+            {d.hasActivity && (
+              <View style={[weekStyles.dot, { backgroundColor: d.isToday ? theme.primary : theme.primary }]} />
+            )}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const weekStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  scheduleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+  },
+  scheduleBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dayLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNum: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 4,
+  },
+});
+
 const TasksOverviewScreen = () => {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation();
@@ -433,6 +556,9 @@ const TasksOverviewScreen = () => {
             </View>
           )}
         </Animated.View>
+
+        {/* This Week Calendar */}
+        <WeekCalendar todos={todos} theme={theme} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} navigation={navigation} />
 
         {/* Content */}
         {groupedTasks.length === 0 ? (

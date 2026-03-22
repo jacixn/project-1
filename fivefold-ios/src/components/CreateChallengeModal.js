@@ -27,6 +27,7 @@ import quizService from '../services/quizService';
 import CustomLoadingIndicator from './CustomLoadingIndicator';
 import * as Haptics from 'expo-haptics';
 import AvatarDisplay from './AvatarDisplay';
+import { includeQuizQuestion } from '../utils/quizPoolFilter';
 
 const { width } = Dimensions.get('window');
 const QUESTION_COUNTS = [5, 10, 15, 20];
@@ -96,6 +97,7 @@ const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChalleng
         if (categoryQuestions) {
           Object.keys(categoryQuestions).forEach(quizType => {
             Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+              if (!includeQuizQuestion(catId, difficulty)) return;
               const qs = categoryQuestions[quizType][difficulty] || [];
               allQuestions.push(...qs.map((q, idx) => ({ ...q, _id: `${catId}_${quizType}_${difficulty}_${idx}` })));
             });
@@ -107,6 +109,7 @@ const CreateChallengeModal = ({ visible, onClose, onCloseAll, friend, onChalleng
       if (categoryQuestions) {
         Object.keys(categoryQuestions).forEach(quizType => {
           Object.keys(categoryQuestions[quizType]).forEach(difficulty => {
+            if (!includeQuizQuestion(categoryId, difficulty)) return;
             const qs = categoryQuestions[quizType][difficulty] || [];
             allQuestions.push(...qs.map((q, idx) => ({ ...q, _id: `${categoryId}_${quizType}_${difficulty}_${idx}` })));
           });

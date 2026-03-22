@@ -33,15 +33,15 @@ const DEFAULT_ORDER = ['BiblePrayer', 'Todos', 'Gym', 'Hub', 'Profile'];
 const TAB_DEFINITIONS = {
   BiblePrayer: {
     component: BiblePrayerTab,
-    title: 'Bible',
+    title: 'Faith',
     icon: 'book.fill',
-    accessibilityLabel: 'Bible tab',
+    accessibilityLabel: 'Faith tab',
   },
   Todos: {
     component: TodosTab,
-    title: 'Tasks',
+    title: 'Focus',
     icon: 'checkmark.circle.fill',
-    accessibilityLabel: 'Tasks tab',
+    accessibilityLabel: 'Focus tab',
   },
   Gym: {
     component: GymTab,

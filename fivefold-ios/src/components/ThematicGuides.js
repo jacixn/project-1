@@ -888,6 +888,19 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
                 showsVerticalScrollIndicator={false} 
                 bounces={true}
                 contentContainerStyle={{ paddingBottom: 40 }}
+                onScrollEndDrag={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  if (y < -80) {
+                    hapticFeedback.success();
+                    Animated.timing(guidePanY, {
+                      toValue: 1000,
+                      duration: 200,
+                      useNativeDriver: false,
+                    }).start(() => {
+                      setSelectedGuide(null);
+                    });
+                  }
+                }}
               >
                 {/* Hero Header with Gradient */}
                 <LinearGradient

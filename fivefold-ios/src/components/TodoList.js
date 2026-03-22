@@ -170,22 +170,20 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     <LiquidGlassTodoContainer isDark={isDark} theme={theme}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Tasks</Text>
-        {totalActiveTasks > 0 && (
-          <TouchableOpacity 
-            style={[styles.viewAllButton, { backgroundColor: `${theme.primary}20` }]}
-            onPress={() => {
-              hapticFeedback.light();
-              onViewAll();
-            }}
-            accessibilityLabel="View all tasks"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.viewAllText, { color: theme.primary }]}>
-              View All {hiddenTasksCount > 0 && `(${totalActiveTasks})`}
-            </Text>
-            <MaterialIcons name="arrow-forward" size={16} color={theme.primary} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={[styles.viewAllButton, { backgroundColor: `${theme.primary}20` }]}
+          onPress={() => {
+            hapticFeedback.light();
+            onViewAll();
+          }}
+          accessibilityLabel="View all tasks"
+          accessibilityRole="button"
+        >
+          <Text style={[styles.viewAllText, { color: theme.primary }]}>
+            View all {totalActiveTasks > 0 && hiddenTasksCount > 0 ? `(${totalActiveTasks})` : ''}
+          </Text>
+          <MaterialIcons name="arrow-forward" size={16} color={theme.primary} />
+        </TouchableOpacity>
       </View>
       
       {!isAdding ? (
