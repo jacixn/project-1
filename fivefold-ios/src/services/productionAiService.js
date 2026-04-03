@@ -1251,7 +1251,6 @@ Provide a detailed, helpful analysis. Write in flowing sentences, no bullet poin
       );
     }
   }
-}
 
   async generateBibleCharacterProfile(characterName) {
     try {
