@@ -5144,7 +5144,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={listenToVerse}
+                      onPress={() => { hapticFeedback.light(); listenToVerse(); }}
                     >
                       <View style={{
                         width: 40,
@@ -5179,7 +5179,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={discussVerse}
+                      onPress={() => { hapticFeedback.light(); discussVerse(); }}
                     >
                       <View style={{
                         width: 40,
@@ -5214,7 +5214,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={addNoteToVerse}
+                      onPress={() => { hapticFeedback.light(); addNoteToVerse(); }}
                     >
                       <View style={{
                         width: 40,
@@ -5249,7 +5249,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={() => setShowColorPicker(true)}
+                      onPress={() => { hapticFeedback.light(); setShowColorPicker(true); }}
                     >
                       <View style={{
                         width: 40,
@@ -5285,12 +5285,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         marginBottom: 12
                       }}
                       onPress={() => {
+                        hapticFeedback.light();
                         const verseNum = parseInt(selectedVerseForMenu?.number || selectedVerseForMenu?.verse);
                         const verseId = `${currentBook?.id}_${currentChapter?.number}_${verseNum}`;
                         const isAlreadySaved = savedVerses.has(verseId);
                         
                         if (isAlreadySaved) {
-                          hapticFeedback.light();
                           Alert.alert('Already Saved', 'This verse is already in your saved verses');
                           closeVerseMenu();
                           return;
@@ -5352,7 +5352,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                         borderRadius: 12,
                         marginBottom: 12
                       }}
-                      onPress={shareVerse}
+                      onPress={() => { hapticFeedback.light(); shareVerse(); }}
                     >
                       <View style={{
                         width: 40,

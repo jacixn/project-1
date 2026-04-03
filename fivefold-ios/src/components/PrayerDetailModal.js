@@ -64,6 +64,15 @@ const PrayerDetailModal = ({
     }
   }, [visible]);
 
+  useEffect(() => {
+    return () => {
+      try {
+        chatterboxService.stop();
+        googleTtsService.stop();
+      } catch (e) {}
+    };
+  }, []);
+
   // TTS state listeners
   useEffect(() => {
     const handleChatterboxState = (state) => {
@@ -466,27 +475,51 @@ const PrayerDetailModal = ({
                       <View style={[styles.verseActions, {
                         borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                       }]}>
-                        {/* Listen */}
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { 
-                            backgroundColor: (isSpeaking && speakingVerseIndex === index)
-                              ? theme.primary
-                              : (isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`),
-                          }]}
-                          onPress={() => speakVerse(verseDisplayText, verse.reference, index)}
-                          activeOpacity={0.7}
-                        >
-                          <MaterialIcons 
-                            name={(isSpeaking && speakingVerseIndex === index) ? 'graphic-eq' : 'volume-up'} 
-                            size={16} 
-                            color={(isSpeaking && speakingVerseIndex === index) ? '#fff' : theme.primary} 
-                          />
-                          <Text style={[styles.actionBtnText, { 
-                            color: (isSpeaking && speakingVerseIndex === index) ? '#fff' : theme.primary
-                          }]}>
-                            Listen
-                          </Text>
-                        </TouchableOpacity>
+                        {/* Listen / Pause / Resume */}
+                        {(isSpeaking && speakingVerseIndex === index) ? (
+                          <View style={{ flexDirection: 'row', flex: 1, gap: 6 }}>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { backgroundColor: theme.primary, flex: 1 }]}
+                              onPress={isPaused ? resumeAudio : pauseAudio}
+                              activeOpacity={0.7}
+                            >
+                              <MaterialIcons name={isPaused ? 'play-arrow' : 'pause'} size={16} color="#fff" />
+                              <Text style={[styles.actionBtnText, { color: '#fff' }]}>
+                                {isPaused ? 'Resume' : 'Pause'}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                                flex: 0, paddingHorizontal: 14,
+                              }]}
+                              onPress={stopAudio}
+                              activeOpacity={0.7}
+                            >
+                              <MaterialIcons name="stop" size={16} color={theme.text} />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (isLoadingAudio && loadingAudioVerseIndex === index) ? (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: theme.primary }]}
+                            onPress={stopAudio}
+                            activeOpacity={0.7}
+                          >
+                            <ActivityIndicator size={14} color="#fff" />
+                            <Text style={[styles.actionBtnText, { color: '#fff' }]}>Loading...</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { 
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
+                            }]}
+                            onPress={() => speakVerse(verseDisplayText, verse.reference, index)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="volume-up" size={16} color={theme.primary} />
+                            <Text style={[styles.actionBtnText, { color: theme.primary }]}>Listen</Text>
+                          </TouchableOpacity>
+                        )}
 
                         {/* Discuss */}
                         <TouchableOpacity
@@ -535,12 +568,6 @@ const PrayerDetailModal = ({
                         </TouchableOpacity>
                       </View>
 
-                      {/* Audio playback controls */}
-                      {((isSpeaking && speakingVerseIndex === index) || (isLoadingAudio && loadingAudioVerseIndex === index)) && (
-                        <View style={styles.audioControlsRow}>
-                          {renderAudioButton(index)}
-                        </View>
-                      )}
                     </View>
                   </View>
                 );
@@ -589,61 +616,49 @@ const PrayerDetailModal = ({
                       <View style={[styles.reflectionActions, {
                         borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                       }]}>
-                        <TouchableOpacity
-                          style={[styles.reflectionListenBtn, {
-                            backgroundColor: (isSpeaking && speakingVerseIndex === 'reflection')
-                              ? theme.primary
-                              : (isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`),
-                          }]}
-                          onPress={() => speakVerse(reflection, 'What to Learn', 'reflection')}
-                          activeOpacity={0.7}
-                        >
-                          <MaterialIcons
-                            name={(isSpeaking && speakingVerseIndex === 'reflection') ? 'graphic-eq' : 'volume-up'}
-                            size={16}
-                            color={(isSpeaking && speakingVerseIndex === 'reflection') ? '#fff' : theme.primary}
-                          />
-                          <Text style={[styles.actionBtnText, {
-                            color: (isSpeaking && speakingVerseIndex === 'reflection') ? '#fff' : theme.primary
-                          }]}>
-                            {(isSpeaking && speakingVerseIndex === 'reflection') ? 'Playing' : 'Listen'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        {((isSpeaking && speakingVerseIndex === 'reflection') || (isLoadingAudio && loadingAudioVerseIndex === 'reflection')) && (
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            {isLoadingAudio && loadingAudioVerseIndex === 'reflection' ? (
-                              <TouchableOpacity
-                                onPress={stopAudio}
-                                style={[styles.audioButton, { backgroundColor: theme.primary }]}
-                                activeOpacity={0.7}
-                              >
-                                <ActivityIndicator size={14} color="#fff" />
-                                <Text style={styles.audioButtonTextActive}>Loading...</Text>
-                              </TouchableOpacity>
-                            ) : (
-                              <>
-                                <TouchableOpacity
-                                  onPress={isPaused ? resumeAudio : pauseAudio}
-                                  style={[styles.audioButton, { backgroundColor: theme.primary }]}
-                                  activeOpacity={0.7}
-                                >
-                                  <MaterialIcons name={isPaused ? 'play-arrow' : 'pause'} size={15} color="#fff" />
-                                  <Text style={styles.audioButtonTextActive}>{isPaused ? 'Resume' : 'Pause'}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={stopAudio}
-                                  style={[styles.audioButton, {
-                                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                                  }]}
-                                  activeOpacity={0.7}
-                                >
-                                  <MaterialIcons name="stop" size={15} color={theme.text} />
-                                  <Text style={[styles.audioButtonText, { color: theme.text }]}>Stop</Text>
-                                </TouchableOpacity>
-                              </>
-                            )}
+                        {(isSpeaking && speakingVerseIndex === 'reflection') ? (
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                              style={[styles.reflectionListenBtn, { backgroundColor: theme.primary, flex: 1 }]}
+                              onPress={isPaused ? resumeAudio : pauseAudio}
+                              activeOpacity={0.7}
+                            >
+                              <MaterialIcons name={isPaused ? 'play-arrow' : 'pause'} size={16} color="#fff" />
+                              <Text style={[styles.actionBtnText, { color: '#fff' }]}>
+                                {isPaused ? 'Resume' : 'Pause'}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.reflectionListenBtn, {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                                paddingHorizontal: 14,
+                              }]}
+                              onPress={stopAudio}
+                              activeOpacity={0.7}
+                            >
+                              <MaterialIcons name="stop" size={16} color={theme.text} />
+                            </TouchableOpacity>
                           </View>
+                        ) : (isLoadingAudio && loadingAudioVerseIndex === 'reflection') ? (
+                          <TouchableOpacity
+                            style={[styles.reflectionListenBtn, { backgroundColor: theme.primary }]}
+                            onPress={stopAudio}
+                            activeOpacity={0.7}
+                          >
+                            <ActivityIndicator size={14} color="#fff" />
+                            <Text style={[styles.actionBtnText, { color: '#fff' }]}>Loading...</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={[styles.reflectionListenBtn, {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
+                            }]}
+                            onPress={() => speakVerse(reflection, 'What to Learn', 'reflection')}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="volume-up" size={16} color={theme.primary} />
+                            <Text style={[styles.actionBtnText, { color: theme.primary }]}>Listen</Text>
+                          </TouchableOpacity>
                         )}
                       </View>
                     </>

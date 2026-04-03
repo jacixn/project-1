@@ -115,6 +115,7 @@ const BibleCharactersScreen = ({ navigation }) => {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [generatingProfile, setGeneratingProfile] = useState(false);
   const [generationFailed, setGenerationFailed] = useState(false);
+  const [charImageFailed, setCharImageFailed] = useState(false);
   
   // Audio state
   const [characterSound, setCharacterSound] = useState(null);
@@ -170,6 +171,7 @@ const BibleCharactersScreen = ({ navigation }) => {
   useEffect(() => {
     setGeneratingProfile(false);
     setGenerationFailed(false);
+    setCharImageFailed(false);
 
     if (!selectedCharacter) return;
     const character = characterProfiles[selectedCharacter];
@@ -371,10 +373,10 @@ const BibleCharactersScreen = ({ navigation }) => {
           <View style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 20 }}>
             <LinearGradient colors={[themeColor + 'F2', themeColor + 'E6', themeColor + 'D9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 28, alignItems: 'center' }}>
               <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                {character.image ? (
-                  <Image source={character.image} style={{ width: 90, height: 90, borderRadius: 45 }} resizeMode="cover" />
+                {character.image && !charImageFailed ? (
+                  <Image source={character.image} style={{ width: 90, height: 90, borderRadius: 45 }} resizeMode="cover" onError={() => setCharImageFailed(true)} />
                 ) : (
-                  <MaterialIcons name="person" size={60} color="rgba(255,255,255,0.5)" />
+                  <MaterialIcons name="person" size={50} color="rgba(255,255,255,0.6)" />
                 )}
               </View>
               <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', marginBottom: 4, textAlign: 'center' }}>{(character.name || selectedCharacter).split(' - ')[0]}</Text>

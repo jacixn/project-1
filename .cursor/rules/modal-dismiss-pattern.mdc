@@ -1,0 +1,38 @@
+---
+description: Pull-down-to-dismiss pattern for bottom sheet modals
+globs: fivefold-ios/src/**/*.js
+alwaysApply: false
+---
+
+# Modal Pull-Down Dismiss Pattern
+
+All bottom sheet modals must be dismissible by grabbing the drag handle bar at the top and pulling down, **regardless of scroll position**.
+
+## Architecture
+
+The drag handle and ScrollView must be **siblings**, never nested:
+
+```
+<Animated.View> {/* modal container with translateY */}
+  <View {...panResponder.panHandlers}> {/* drag handle — PanResponder here */}
+    <View style={handleBarStyle} />
+  </View>
+  <ScrollView bounces={true}> {/* scroll content — separate from handle */}
+    ...
+  </ScrollView>
+</Animated.View>
+```
+
+## Key Rules
+
+1. **PanResponder goes ONLY on the drag handle View** — never on a parent wrapping the ScrollView (ScrollView's native gestures will always win)
+2. **`onStartShouldSetPanResponder: () => true`** — so the handle immediately claims the touch
+3. **Dismiss threshold**: pull > 100px OR velocity > 0.4
+4. **Visual feedback**: the modal must slide down in real-time as the user drags (`guidePanY.setValue(dy)`)
+5. **Snap back**: if not enough pull, spring animate back to 0
+
+## Don't
+
+- Don't put PanResponder on a parent View that also contains a ScrollView
+- Don't rely on ScrollView bounce (`contentOffset.y < 0`) for dismiss — user must scroll to top first
+- Don't make the handle touch target smaller than ~30pt tall

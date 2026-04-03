@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrayerDetailModal from '../components/PrayerDetailModal';
 import { hapticFeedback } from '../utils/haptics';
 import verseByReferenceService from '../services/verseByReferenceService';
+import chatterboxService from '../services/chatterboxService';
+import googleTtsService from '../services/googleTtsService';
 
 const REFLECTION_CACHE_KEY = 'prayer_reflection_cache';
 
@@ -114,6 +116,16 @@ const PrayerDetailScreen = ({ navigation, route }) => {
     });
     return () => sub.remove();
   }, [prayer?.id]);
+
+  useEffect(() => {
+    const unsubBlur = navigation.addListener('blur', () => {
+      try {
+        chatterboxService.stop();
+        googleTtsService.stop();
+      } catch (e) {}
+    });
+    return unsubBlur;
+  }, [navigation]);
 
   const handleClose = useCallback(() => {
     navigation.goBack();

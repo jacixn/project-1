@@ -1486,6 +1486,14 @@ const PrayerBoardScreen = ({ navigation }) => {
     ],
   }));
 
+  const customBgStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1.08 },
+      { translateX: parallaxX.value * 18 },
+      { translateY: parallaxY.value * 18 },
+    ],
+  }));
+
   return (
     <View style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -1494,13 +1502,21 @@ const PrayerBoardScreen = ({ navigation }) => {
           collapsable={false}
           style={[styles.container, { backgroundColor: isCustomBg ? '#000' : currentBg.colors[0] }]}
         >
-          {/* Custom background image */}
+          {/* Custom background image with parallax */}
           {isCustomBg && currentBoard.backgroundImage && (
-            <Image
-              source={{ uri: currentBoard.backgroundImage }}
-              style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
-            />
+            <Animated.View style={[StyleSheet.absoluteFillObject, { overflow: 'hidden' }]}>
+              <Animated.Image
+                source={{ uri: currentBoard.backgroundImage }}
+                style={[{
+                  position: 'absolute',
+                  top: -SCREEN_HEIGHT * 0.05,
+                  left: -SCREEN_WIDTH * 0.05,
+                  width: SCREEN_WIDTH * 1.1,
+                  height: SCREEN_HEIGHT * 1.1,
+                }, customBgStyle]}
+                resizeMode="cover"
+              />
+            </Animated.View>
           )}
 
           {/* Gradient background */}

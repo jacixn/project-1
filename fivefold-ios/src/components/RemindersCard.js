@@ -90,15 +90,15 @@ const RemindersCard = ({
   textOutlineStyle = {},
 }) => {
   const { theme, isDark } = useTheme();
+  const [pendingIds, setPendingIds] = useState(new Set());
+  useEffect(() => { setPendingIds(new Set()); }, [reminders]);
+
   const today = new Date().getDay();
   const dateStr = todayDateStr();
   const todayReminders = getRemindersForDay(reminders || [], today, dateStr);
   const visibleReminders = todayReminders.slice(0, MAX_VISIBLE);
   const remaining = todayReminders.length - MAX_VISIBLE;
   const completedCount = todayReminders.filter(r => r.completions?.[dateStr] || pendingIds.has(r.id)).length;
-
-  const [pendingIds, setPendingIds] = useState(new Set());
-  useEffect(() => { setPendingIds(new Set()); }, [reminders]);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
 

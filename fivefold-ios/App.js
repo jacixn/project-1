@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LogBox, Linking, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { StatusBar, View, Text, Image, Animated, DeviceEventEmitter } from 'react-native';
+import { StatusBar, View, Image, Animated, Easing, DeviceEventEmitter } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
@@ -73,78 +74,9 @@ if (global.ErrorUtils && !global.__ERROR_HANDLER_INSTALLED__) {
 // Silence noisy warnings while debugging
 LogBox.ignoreLogs(['ReferenceError: Property']);
 
-// Splash Screen Component (dark theme — used during Bible version reload)
-import LottieView from 'lottie-react-native';
+ExpoSplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.setOptions({ fade: true, duration: 300 });
 
-const SPLASH_ANIM_SOURCES = {
-  cat: require('./assets/Running-Cat.json'),
-  hamster: require('./assets/Run-Hamster.json'),
-};
-
-const SplashScreen = () => {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-  const [loadingAnim, setLoadingAnim] = useState(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem('app_splash_loading_animation')
-      .then(val => { if (val) setLoadingAnim(val); })
-      .catch(() => {});
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 40,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const lottieSource = SPLASH_ANIM_SOURCES[loadingAnim];
-  const lottieSize = loadingAnim === 'hamster' ? 80 : 120;
-
-  return (
-    <View style={{
-      flex: 1,
-      backgroundColor: '#09090B',
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-      <Animated.View style={{
-        opacity: fadeAnim,
-        transform: [{ scale: scaleAnim }],
-        alignItems: 'center',
-      }}>
-        <Image 
-          source={require('./assets/logo.png')} 
-          style={{
-            width: 100,
-            height: 100,
-            marginBottom: 20,
-          }}
-          resizeMode="contain"
-        />
-        <Text style={{
-          fontSize: 28,
-          fontWeight: '700',
-          color: '#FAFAFA',
-          marginBottom: 24,
-        }}>Biblely</Text>
-        {lottieSource ? (
-          <LottieView source={lottieSource} autoPlay loop style={{ width: lottieSize, height: lottieSize }} />
-        ) : (
-          <View style={{ height: lottieSize }} />
-        )}
-      </Animated.View>
-    </View>
-  );
-};
 
 // Import bible audio service to track audio state
 import bibleAudioService from './src/services/bibleAudioService';
@@ -444,23 +376,65 @@ const ThemedApp = () => {
   const { theme, isDark, reloadTheme } = useTheme();
   const { user } = useAuth();
   const [isReloading, setIsReloading] = useState(false);
-  const [appKey, setAppKey] = useState(0); // Used to force remount
+  const [appKey, setAppKey] = useState(0);
   const navigationRef = useRef(null);
-  const pendingNavigationRef = useRef(null); // Store pending navigation if nav isn't ready
-  const prevUserIdRef = useRef(undefined); // Start as undefined, not null
+  const pendingNavigationRef = useRef(null);
+  const prevUserIdRef = useRef(undefined);
   const [currentRoute, setCurrentRoute] = useState(null);
   const inAppNotifRef = useRef(null);
   const prevUnreadMapRef = useRef({});
   const prevFriendReqCountRef = useRef(-1);
   const prevChallengeIdsRef = useRef(null);
 
-  // Run 90-day history cleanup and season check once on app startup
+  // X/Twitter-style splash zoom reveal
+  const [splashDone, setSplashDone] = useState(false);
+  const splashScale = useRef(new Animated.Value(1)).current;
+  const splashOpacity = useRef(new Animated.Value(1)).current;
+  const splashZoomRan = useRef(false);
+
+  const runSplashZoom = useCallback(() => {
+    if (splashZoomRan.current) return;
+    splashZoomRan.current = true;
+
+    ExpoSplashScreen.hideAsync().catch(() => {});
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(splashScale, {
+          toValue: 30,
+          duration: 700,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(splashOpacity, {
+          toValue: 0,
+          duration: 500,
+          delay: 200,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setSplashDone(true);
+      });
+    }, 300);
+  }, []);
+
+  // Safety: if onReady never fires, force-hide the native splash after 5s
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!splashZoomRan.current) {
+        ExpoSplashScreen.hideAsync().catch(() => {});
+        setSplashDone(true);
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     runHistoryCleanup();
     import('./src/services/seasonService').then(m => m.checkSeasonReset()).catch(() => {});
   }, []);
-  
-  // Listen for userDataDownloaded event to reload theme after sign-in sync
+
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('userDataDownloaded', () => {
       console.log('[App] Received userDataDownloaded event, reloading theme...');
@@ -1210,9 +1184,12 @@ const ThemedApp = () => {
     };
   }, []);
   
-  // Show splash screen during reload
   if (isReloading) {
-    return <SplashScreen />;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
+        <Image source={require('./assets/logo.png')} style={{ width: 120, height: 120 }} resizeMode="contain" />
+      </View>
+    );
   }
   
   return (
@@ -1250,26 +1227,24 @@ const ThemedApp = () => {
               setCurrentRoute(routeName);
             }}
             onReady={() => {
-              // Set initial route
               const state = navigationRef.current?.getRootState?.();
               if (state) setCurrentRoute(getActiveRouteName(state));
 
-              // Handle any pending navigation from notification tap
               if (pendingNavigationRef.current) {
                 console.log('📱 Processing pending notification navigation');
                 handleNotificationNavigation(pendingNavigationRef.current);
                 pendingNavigationRef.current = null;
               }
               
-              // Handle any pending widget verse navigation (cold launch)
               if (pendingWidgetVerseRef.current) {
                 console.log('📱 Processing pending widget verse:', pendingWidgetVerseRef.current);
-                // Extra delay to ensure BiblePrayerTab is mounted and listener is active
                 setTimeout(() => {
                   processWidgetVerse(pendingWidgetVerseRef.current);
                   pendingWidgetVerseRef.current = null;
                 }, 1000);
               }
+
+              runSplashZoom();
             }}
           >
             <CurrentRouteContext.Provider value={currentRoute}>
@@ -1279,7 +1254,6 @@ const ThemedApp = () => {
         </WorkoutProvider>
       </ErrorBoundary>
 
-      {/* In-App Notification Banner (foreground push notifications) */}
       <InAppNotification
         ref={inAppNotifRef}
         onPress={(data) => {
@@ -1287,6 +1261,30 @@ const ThemedApp = () => {
           if (payload) handleNotificationNavigation(payload);
         }}
       />
+
+      {!splashDone && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: '#111827',
+            justifyContent: 'center',
+            alignItems: 'center',
+            opacity: splashOpacity,
+          }}
+        >
+          <Animated.Image
+            source={require('./assets/logo.png')}
+            style={{
+              width: 120,
+              height: 120,
+              transform: [{ scale: splashScale }],
+            }}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      )}
     </>
   );
 };

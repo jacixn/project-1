@@ -27,8 +27,8 @@ const { width, height } = Dimensions.get('window');
 
 const MapGlassContainer = React.memo(({ children, style }) => (
   <BlurView
-    intensity={50}
-    tint="systemUltraThinMaterialLight"
+    intensity={40}
+    tint="systemUltraThinMaterialDark"
     style={[style, { overflow: 'hidden' }]}
   >
     {children}
@@ -518,9 +518,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
   // =============================================
   // OVERLAY TEXT COLOR — adapts to map brightness
   // =============================================
-  // Map is always light-colored, so overlay text must always be dark for readability
-  const overlayText = '#1A1A2E';
-  const overlayTextMuted = '#3A3A4A';
+  const overlayText = '#FFFFFF';
+  const overlayTextMuted = 'rgba(255,255,255,0.7)';
 
   // =============================================
   // MAIN RENDER
@@ -670,8 +669,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   style={[
                     styles.eraTab,
                     {
-                      backgroundColor: activeEra === era.id ? (era.color || theme.primary) + '25' : 'rgba(0,0,0,0.06)',
-                      borderColor: activeEra === era.id ? (era.color || theme.primary) : 'rgba(0,0,0,0.15)',
+                      backgroundColor: activeEra === era.id ? (era.color || theme.primary) + '25' : 'rgba(255,255,255,0.1)',
+                      borderColor: activeEra === era.id ? (era.color || theme.primary) : 'rgba(255,255,255,0.2)',
                     },
                   ]}
                   onPress={() => {
@@ -713,8 +712,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                   style={[
                     styles.filterTab,
                     {
-                      backgroundColor: activeFilter === filter.id ? (filter.color || theme.primary) + '25' : 'rgba(0,0,0,0.06)',
-                      borderColor: activeFilter === filter.id ? (filter.color || theme.primary) : 'rgba(0,0,0,0.15)',
+                      backgroundColor: activeFilter === filter.id ? (filter.color || theme.primary) + '25' : 'rgba(255,255,255,0.1)',
+                      borderColor: activeFilter === filter.id ? (filter.color || theme.primary) : 'rgba(255,255,255,0.2)',
                     },
                   ]}
                   onPress={() => {
@@ -800,8 +799,8 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
                     style={[
                       styles.journeyButton,
                       {
-                        backgroundColor: selectedJourney?.id === journey.id ? (journey.color || theme.primary) + '25' : 'rgba(0,0,0,0.06)',
-                        borderColor: selectedJourney?.id === journey.id ? (journey.color || theme.primary) : 'rgba(0,0,0,0.15)',
+                        backgroundColor: selectedJourney?.id === journey.id ? (journey.color || theme.primary) + '25' : 'rgba(255,255,255,0.1)',
+                        borderColor: selectedJourney?.id === journey.id ? (journey.color || theme.primary) : 'rgba(255,255,255,0.2)',
                       },
                     ]}
                     onPress={() => showJourneyDetails(journey)}

@@ -46,6 +46,7 @@
     "expo-secure-store": "~15.0.8",
     "expo-sensors": "~15.0.8",
     "expo-speech": "^14.0.8",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-store-review": "~9.0.9",
     "firebase": "^12.8.0",
@@ -75,9 +76,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "expo-dev-client": "~6.0.20",
     "@types/react": "~19.1.10",
     "babel-plugin-transform-remove-console": "^6.9.4",
+    "expo-dev-client": "~6.0.20",
     "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },

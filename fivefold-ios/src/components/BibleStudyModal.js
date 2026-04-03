@@ -486,6 +486,7 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [generatingProfile, setGeneratingProfile] = useState(false);
   const [generationFailed, setGenerationFailed] = useState(false);
+  const [charImageFailed, setCharImageFailed] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
   
   // Ref for character detail ScrollView
@@ -585,6 +586,7 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   useEffect(() => {
     setGeneratingProfile(false);
     setGenerationFailed(false);
+    setCharImageFailed(false);
 
     if (!selectedCharacter) return;
     const character = characterProfiles[selectedCharacter];
@@ -1435,19 +1437,19 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
                   colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.15)']}
                   style={styles.characterImageRingGradient}
                 >
-                  {character.image ? (
+                  {character.image && !charImageFailed ? (
                     <Image
                       source={character.image}
                       style={styles.characterImage}
                       resizeMode="cover"
-                      onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
+                      onError={() => setCharImageFailed(true)}
                     />
                   ) : (
                     <MaterialIcons name="person" size={80} color="rgba(255, 255, 255, 0.5)" />
                   )}
                 </LinearGradient>
-                    </View>
-                  </View>
+              </View>
+            </View>
             
             {/* Character Info */}
             <View style={styles.characterInfo}>

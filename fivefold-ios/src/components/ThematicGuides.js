@@ -94,6 +94,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   const guideSlideAnim = useRef(new Animated.Value(0)).current;
   const guideFadeAnim = useRef(new Animated.Value(0)).current;
   const guidePanY = useRef(new Animated.Value(0)).current;
+  const isPanDismissing = useRef(false);
 
   // Cache management functions
   const isCacheValid = async () => {
@@ -679,32 +680,28 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
     );
   };
 
-  // Reset panY when modal closes
+  // Reset panY and scroll tracking when modal closes
   useEffect(() => {
     if (!selectedGuide) {
       guidePanY.setValue(0);
+      isPanDismissing.current = false;
     }
   }, [selectedGuide]);
 
-  // Pan gesture handler for guide detail modal
-  const lastPanDy = useRef(0);
-  const guidePanResponder = useRef(
+  const handleDragPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gs) =>
-        gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5,
-      onMoveShouldSetPanResponderCapture: (_, gs) =>
-        gs.dy > 14 && Math.abs(gs.dy) > Math.abs(gs.dx) * 2,
+        gs.dy > 5 && Math.abs(gs.dy) > Math.abs(gs.dx),
       onPanResponderGrant: () => {
-        lastPanDy.current = 0;
+        isPanDismissing.current = true;
       },
       onPanResponderMove: (_, gs) => {
         const dy = Math.max(0, gs.dy);
-        lastPanDy.current = gs.dy;
         guidePanY.setValue(dy);
       },
       onPanResponderRelease: (_, gs) => {
-        if (lastPanDy.current > 120 || gs.vy > 0.4) {
+        if (gs.dy > 100 || gs.vy > 0.4) {
           hapticFeedback.success();
           Animated.timing(guidePanY, {
             toValue: 1000,
@@ -714,7 +711,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
             setSelectedGuide(null);
           });
         } else {
-          hapticFeedback.light();
+          isPanDismissing.current = false;
           Animated.spring(guidePanY, {
             toValue: 0,
             tension: 170,
@@ -869,11 +866,10 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
             ]}
           >
             <View style={styles.guideDetailSafeArea}>
-              {/* Drag Handle */}
+              {/* Drag Handle — always on top, grabs pull-down gesture */}
               <View
-                style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 12 }}
-                {...guidePanResponder.panHandlers}
-                hitSlop={{ top: 15, bottom: 15, left: 30, right: 30 }}
+                {...handleDragPanResponder.panHandlers}
+                style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 14 }}
               >
                 <View style={{
                   width: 48,
@@ -888,19 +884,6 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
                 showsVerticalScrollIndicator={false} 
                 bounces={true}
                 contentContainerStyle={{ paddingBottom: 40 }}
-                onScrollEndDrag={(e) => {
-                  const y = e.nativeEvent.contentOffset.y;
-                  if (y < -80) {
-                    hapticFeedback.success();
-                    Animated.timing(guidePanY, {
-                      toValue: 1000,
-                      duration: 200,
-                      useNativeDriver: false,
-                    }).start(() => {
-                      setSelectedGuide(null);
-                    });
-                  }
-                }}
               >
                 {/* Hero Header with Gradient */}
                 <LinearGradient
