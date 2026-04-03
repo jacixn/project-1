@@ -57,18 +57,25 @@ class CharacterAudioService {
 
     try {
       const fileInfo = await FileSystem.getInfoAsync(localPath);
-      if (fileInfo.exists && fileInfo.size > 0) {
+      if (fileInfo.exists && fileInfo.size > 1000) {
         return localPath;
+      }
+      if (fileInfo.exists && fileInfo.size <= 1000) {
+        await FileSystem.deleteAsync(localPath, { idempotent: true });
       }
 
       if (audioUrl) {
         try {
-          await FileSystem.downloadAsync(audioUrl, localPath);
-          const afterInfo = await FileSystem.getInfoAsync(localPath);
-          if (afterInfo.exists && afterInfo.size > 0) {
-            return localPath;
+          const dl = await FileSystem.downloadAsync(audioUrl, localPath);
+          if (dl.status >= 200 && dl.status < 300) {
+            const afterInfo = await FileSystem.getInfoAsync(localPath);
+            if (afterInfo.exists && afterInfo.size > 1000) {
+              return localPath;
+            }
           }
+          await FileSystem.deleteAsync(localPath, { idempotent: true });
         } catch (downloadErr) {
+          await FileSystem.deleteAsync(localPath, { idempotent: true }).catch(() => {});
           console.log('[CharacterAudio] GitHub download failed, using TTS fallback:', downloadErr?.message);
         }
       }
