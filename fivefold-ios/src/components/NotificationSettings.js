@@ -23,10 +23,15 @@ import WorkoutService from '../services/workoutService';
 const SETTING_TO_TAB = {
   prayerReminders: 'BiblePrayer',
   taskReminders: 'Todos',
+  reminderNotifications: 'Todos',
+  habitReminders: 'Todos',
   visionExpiryReminders: 'Todos',
   workoutReminders: 'Gym',
   weeklyBodyCheckIn: 'Gym',
   tokenArrival: 'Hub',
+  messageNotifications: 'Hub',
+  friendRequestNotifications: 'Hub',
+  challengeNotifications: 'Hub',
 };
 
 const NotificationSettings = ({ visible, onClose }) => {
@@ -34,10 +39,15 @@ const NotificationSettings = ({ visible, onClose }) => {
   const [settings, setSettings] = useState({
     prayerReminders: true,
     taskReminders: true,
+    reminderNotifications: true,
+    habitReminders: true,
     visionExpiryReminders: true,
     workoutReminders: true,
     weeklyBodyCheckIn: true,
     tokenArrival: true,
+    messageNotifications: true,
+    friendRequestNotifications: true,
+    challengeNotifications: true,
     achievementNotifications: true,
     streakReminders: true,
     pushNotifications: true,
@@ -328,6 +338,25 @@ const NotificationSettings = ({ visible, onClose }) => {
       await notificationService.rescheduleAllVisionExpiryNotifications();
     }
 
+    // When toggling reminder notifications ON, reschedule all reminders
+    if (key === 'reminderNotifications' && isTogglingOn && newSettings.pushNotifications) {
+      await notificationService.rescheduleAllReminderNotifications();
+    }
+
+    // When toggling habit reminders ON, reschedule for all active habits
+    if (key === 'habitReminders' && isTogglingOn && newSettings.pushNotifications) {
+      try {
+        const storedHabits = await userStorage.getRaw('fivefold_user_habits');
+        if (storedHabits) {
+          const parsed = JSON.parse(storedHabits);
+          const habits = parsed.habits || [];
+          await notificationService.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
+        }
+      } catch (err) {
+        console.error('Failed to reschedule habit reminders:', err);
+      }
+    }
+
     // When toggling main push notifications ON, reschedule all enabled notification types
     if (key === 'pushNotifications' && isTogglingOn) {
       // Task notifications
@@ -338,42 +367,68 @@ const NotificationSettings = ({ visible, onClose }) => {
       if (newSettings.workoutReminders) {
         await rescheduleWorkoutNotifications(newSettings.sound);
       }
+      // Reminder notifications
+      if (newSettings.reminderNotifications) {
+        await notificationService.rescheduleAllReminderNotifications();
+      }
+      // Habit notifications
+      if (newSettings.habitReminders) {
+        try {
+          const storedHabits = await userStorage.getRaw('fivefold_user_habits');
+          if (storedHabits) {
+            const parsed = JSON.parse(storedHabits);
+            const habits = parsed.habits || [];
+            await notificationService.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
+          }
+        } catch (err) {
+          console.error('Failed to reschedule habit reminders:', err);
+        }
+      }
       // Prayer notifications are handled by notificationService.updateSettings
     }
   };
 
 
-  const NotificationToggle = ({ title, subtitle, icon, settingKey, iconColor }) => (
-    <View style={[styles.settingItem, { borderBottomColor: theme.border }]}>
-      <View style={styles.settingLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-          <MaterialIcons name={icon} size={20} color={iconColor} />
-        </View>
-        <View style={styles.settingTextContainer}>
-          <Text style={[styles.settingTitle, { color: theme.text }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text style={[styles.settingSubtitle, { color: theme.textSecondary }]}>
-              {subtitle}
+  const pushOff = !settings.pushNotifications;
+
+  const NotificationToggle = ({ title, subtitle, icon, settingKey, iconColor }) => {
+    const isMaster = settingKey === 'pushNotifications';
+    const disabled = !isMaster && pushOff;
+    const dimmed = disabled ? 0.35 : 1;
+
+    return (
+      <View style={[styles.settingItem, { borderBottomColor: theme.border, opacity: dimmed }]}>
+        <View style={styles.settingLeft}>
+          <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
+            <MaterialIcons name={icon} size={20} color={iconColor} />
+          </View>
+          <View style={styles.settingTextContainer}>
+            <Text style={[styles.settingTitle, { color: theme.text }]}>
+              {title}
             </Text>
-          )}
+            {subtitle && (
+              <Text style={[styles.settingSubtitle, { color: theme.textSecondary }]}>
+                {subtitle}
+              </Text>
+            )}
+          </View>
         </View>
+        <Switch
+          value={disabled ? false : settings[settingKey]}
+          onValueChange={() => toggleSetting(settingKey)}
+          disabled={disabled}
+          trackColor={{ false: theme.border, true: '#34C75940' }}
+          thumbColor={(settings[settingKey] && !disabled) ? '#34C759' : theme.surface}
+          ios_backgroundColor={theme.border}
+        />
       </View>
-      <Switch
-        value={settings[settingKey]}
-        onValueChange={() => toggleSetting(settingKey)}
-        trackColor={{ false: theme.border, true: '#34C75940' }}
-        thumbColor={settings[settingKey] ? '#34C759' : theme.surface}
-        ios_backgroundColor={theme.border}
-      />
-    </View>
-  );
+    );
+  };
 
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity 
@@ -425,17 +480,27 @@ const NotificationSettings = ({ visible, onClose }) => {
             </View>
           )}
 
-          {/* Task & Fitness — show section if at least one toggle is visible */}
-          {(!isSettingHidden('taskReminders') || !isSettingHidden('workoutReminders')) && (
+          {/* Focus — Reminders, Tasks, Habits, Visions */}
+          {(!isSettingHidden('reminderNotifications') || !isSettingHidden('taskReminders') || !isSettingHidden('habitReminders') || !isSettingHidden('visionExpiryReminders')) && (
             <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Task & Fitness</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Focus</Text>
               <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Get reminded about your scheduled tasks and workouts
+                Stay on top of your reminders, tasks, habits, and visions
               </Text>
+
+              {!isSettingHidden('reminderNotifications') && (
+                <NotificationToggle
+                  title="Reminders"
+                  subtitle="Get notified at your scheduled reminder times"
+                  icon="alarm"
+                  settingKey="reminderNotifications"
+                  iconColor="#3B82F6"
+                />
+              )}
               
               {!isSettingHidden('taskReminders') && (
                 <NotificationToggle
-                  title="Task Reminders"
+                  title="Tasks"
                   subtitle="Get notified about upcoming scheduled tasks"
                   icon="check-circle"
                   settingKey="taskReminders"
@@ -443,15 +508,35 @@ const NotificationSettings = ({ visible, onClose }) => {
                 />
               )}
 
+              {!isSettingHidden('habitReminders') && (
+                <NotificationToggle
+                  title="Habits"
+                  subtitle="Daily check-in reminders for your habits"
+                  icon="loop"
+                  settingKey="habitReminders"
+                  iconColor="#2196F3"
+                />
+              )}
+
               {!isSettingHidden('visionExpiryReminders') && (
                 <NotificationToggle
-                  title="Vision Expiry"
+                  title="Visions"
                   subtitle="Get notified when a vision reaches its target date"
                   icon="visibility"
                   settingKey="visionExpiryReminders"
                   iconColor="#F59E0B"
                 />
               )}
+            </View>
+          )}
+
+          {/* Fitness */}
+          {(!isSettingHidden('workoutReminders') || !isSettingHidden('weeklyBodyCheckIn')) && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Fitness</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Get reminded about your workouts and check-ins
+              </Text>
               
               {!isSettingHidden('workoutReminders') && (
                 <NotificationToggle
@@ -475,11 +560,14 @@ const NotificationSettings = ({ visible, onClose }) => {
             </View>
           )}
 
-          {/* App Features */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>App Features</Text>
-            
-            {!isSettingHidden('tokenArrival') && (
+          {/* Hub — hidden when Hub tab is hidden */}
+          {!isSettingHidden('tokenArrival') && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Hub</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Social and community notifications
+              </Text>
+
               <NotificationToggle
                 title="Token Arrival"
                 subtitle="Get notified when your daily Hub token arrives"
@@ -487,7 +575,36 @@ const NotificationSettings = ({ visible, onClose }) => {
                 settingKey="tokenArrival"
                 iconColor="#eab308"
               />
-            )}
+
+              <NotificationToggle
+                title="Messages"
+                subtitle="Get notified when someone messages you"
+                icon="chat"
+                settingKey="messageNotifications"
+                iconColor="#3B82F6"
+              />
+
+              <NotificationToggle
+                title="Friend Requests"
+                subtitle="Get notified when someone sends a friend request"
+                icon="person-add"
+                settingKey="friendRequestNotifications"
+                iconColor="#8B5CF6"
+              />
+
+              <NotificationToggle
+                title="Challenges"
+                subtitle="Get notified about challenge invites and updates"
+                icon="emoji-events"
+                settingKey="challengeNotifications"
+                iconColor="#F59E0B"
+              />
+            </View>
+          )}
+
+          {/* App Features */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>App Features</Text>
             
             <NotificationToggle
               title="Achievement Unlocked"
@@ -506,28 +623,8 @@ const NotificationSettings = ({ visible, onClose }) => {
             />
           </View>
 
-          {/* Notification Style */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Notification Style</Text>
-            
-            <NotificationToggle
-              title="Sound"
-              subtitle="Play sound for notifications"
-              icon="volume-up"
-              settingKey="sound"
-              iconColor="#2196F3"
-            />
-            
-            <NotificationToggle
-              title="Vibration"
-              subtitle="Vibrate when receiving notifications"
-              icon="vibration"
-              settingKey="vibration"
-              iconColor="#2196F3"
-            />
-          </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };

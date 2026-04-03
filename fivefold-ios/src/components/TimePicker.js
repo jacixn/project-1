@@ -14,7 +14,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
-const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) => {
+const DEFAULT_PRESETS = [
+  { time: '05:30', label: 'Dawn', desc: '5:30 AM' },
+  { time: '06:00', label: 'Morning', desc: '6:00 AM' },
+  { time: '07:00', label: 'Breakfast', desc: '7:00 AM' },
+  { time: '12:00', label: 'Noon', desc: '12:00 PM' },
+  { time: '17:30', label: 'Sunset', desc: '5:30 PM' },
+  { time: '18:00', label: 'Evening', desc: '6:00 PM' },
+  { time: '20:00', label: 'Night', desc: '8:00 PM' },
+  { time: '21:00', label: 'Bedtime', desc: '9:00 PM' },
+];
+
+const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title, subtitle, presets }) => {
   const { theme } = useTheme();
   const [selectedHour, setSelectedHour] = useState(parseInt(currentTime.split(':')[0]));
   const [selectedMinute, setSelectedMinute] = useState(parseInt(currentTime.split(':')[1]));
@@ -23,11 +34,12 @@ const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) =>
 
   useEffect(() => {
     if (visible) {
-      // Reset animations
+      setSelectedHour(parseInt(currentTime.split(':')[0]));
+      setSelectedMinute(parseInt(currentTime.split(':')[1]));
+
       fadeAnim.setValue(0);
       slideAnim.setValue(300);
 
-      // Start animations
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -41,7 +53,7 @@ const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) =>
         }),
       ]).start();
     }
-  }, [visible, fadeAnim, slideAnim]);
+  }, [visible]);
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const minutes = Array.from({ length: 60 }, (_, i) => i);
@@ -69,6 +81,7 @@ const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) =>
       <ScrollView 
         style={[styles.picker, { backgroundColor: theme.surface }]}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         contentContainerStyle={styles.pickerContent}
       >
         {items.map((item) => (
@@ -126,7 +139,7 @@ const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) =>
               <View style={styles.headerCenter}>
                 <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
                 <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                  Tap to select prayer time
+                  {subtitle || 'Tap to select time'}
                 </Text>
               </View>
               <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
@@ -134,76 +147,69 @@ const TimePicker = ({ visible, onClose, onTimeSelected, currentTime, title }) =>
               </TouchableOpacity>
             </View>
 
-            {/* Enhanced Time Display */}
-            <View style={[styles.timeDisplayContainer, { backgroundColor: theme.card + '95' }]}>
-              <View style={styles.timeDisplay}>
-                <MaterialIcons name="schedule" size={28} color={theme.primary} />
-                <View style={styles.timeDisplayContent}>
-                  <Text style={[styles.timeText, { color: theme.text }]}>
-                    {formatDisplayTime(selectedHour, selectedMinute)}
-                  </Text>
-                  <Text style={[styles.timeSubtext, { color: theme.textSecondary }]}>
-                    {formatTimeForDisplay(selectedHour, selectedMinute)} • 24h format
-                  </Text>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {/* Enhanced Time Display */}
+              <View style={[styles.timeDisplayContainer, { backgroundColor: theme.card + '95' }]}>
+                <View style={styles.timeDisplay}>
+                  <MaterialIcons name="schedule" size={28} color={theme.primary} />
+                  <View style={styles.timeDisplayContent}>
+                    <Text style={[styles.timeText, { color: theme.text }]}>
+                      {formatDisplayTime(selectedHour, selectedMinute)}
+                    </Text>
+                    <Text style={[styles.timeSubtext, { color: theme.textSecondary }]}>
+                      {formatTimeForDisplay(selectedHour, selectedMinute)} • 24h format
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-        {/* Time Pickers */}
-        <View style={styles.pickersContainer}>
-          <NumberPicker
-            items={hours}
-            selectedValue={selectedHour}
-            onValueChange={setSelectedHour}
-            label="Hour"
-          />
-          
-          <View style={[styles.separator, { backgroundColor: theme.border }]} />
-          
-          <NumberPicker
-            items={minutes}
-            selectedValue={selectedMinute}
-            onValueChange={setSelectedMinute}
-            label="Minute"
-          />
-        </View>
-
-            {/* Enhanced Time Presets */}
-            <View style={styles.presetsContainer}>
-              <Text style={[styles.presetsTitle, { color: theme.text }]}>📅 Common Prayer Times</Text>
-              <View style={styles.presetsGrid}>
-                {[
-                  { time: '05:30', label: 'Dawn', desc: '5:30 AM' },
-                  { time: '06:00', label: 'Morning', desc: '6:00 AM' },
-                  { time: '07:00', label: 'Breakfast', desc: '7:00 AM' },
-                  { time: '12:00', label: 'Noon', desc: '12:00 PM' },
-                  { time: '17:30', label: 'Sunset', desc: '5:30 PM' },
-                  { time: '18:00', label: 'Evening', desc: '6:00 PM' },
-                  { time: '20:00', label: 'Night', desc: '8:00 PM' },
-                  { time: '21:00', label: 'Bedtime', desc: '9:00 PM' },
-                ].map((preset) => (
-                  <TouchableOpacity
-                    key={preset.time}
-                    style={[
-                      styles.presetButton,
-                      {
-                        backgroundColor: theme.surface + '90',
-                        borderColor: theme.border + '30'
-                      }
-                    ]}
-                    onPress={() => {
-                      const [hour, minute] = preset.time.split(':').map(Number);
-                      setSelectedHour(hour);
-                      setSelectedMinute(minute);
-                      hapticFeedback.light();
-                    }}
-                  >
-                    <Text style={[styles.presetLabel, { color: theme.primary }]}>{preset.label}</Text>
-                    <Text style={[styles.presetDesc, { color: theme.textSecondary }]}>{preset.desc}</Text>
-                  </TouchableOpacity>
-                ))}
+              {/* Time Pickers */}
+              <View style={styles.pickersContainer}>
+                <NumberPicker
+                  items={hours}
+                  selectedValue={selectedHour}
+                  onValueChange={setSelectedHour}
+                  label="Hour"
+                />
+                
+                <View style={[styles.separator, { backgroundColor: theme.border }]} />
+                
+                <NumberPicker
+                  items={minutes}
+                  selectedValue={selectedMinute}
+                  onValueChange={setSelectedMinute}
+                  label="Minute"
+                />
               </View>
-            </View>
+
+              {/* Quick Presets */}
+              <View style={styles.presetsContainer}>
+                <Text style={[styles.presetsTitle, { color: theme.text }]}>Quick Presets</Text>
+                <View style={styles.presetsGrid}>
+                  {(presets || DEFAULT_PRESETS).map((preset) => (
+                    <TouchableOpacity
+                      key={preset.time}
+                      style={[
+                        styles.presetButton,
+                        {
+                          backgroundColor: theme.surface + '90',
+                          borderColor: theme.border + '30'
+                        }
+                      ]}
+                      onPress={() => {
+                        const [hour, minute] = preset.time.split(':').map(Number);
+                        setSelectedHour(hour);
+                        setSelectedMinute(minute);
+                        hapticFeedback.light();
+                      }}
+                    >
+                      <Text style={[styles.presetLabel, { color: theme.primary }]}>{preset.label}</Text>
+                      <Text style={[styles.presetDesc, { color: theme.textSecondary }]}>{preset.desc}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
           </SafeAreaView>
         </Animated.View>
       </Animated.View>

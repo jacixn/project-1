@@ -277,6 +277,52 @@ Write only the simplified verse, nothing else.`;
     }
   }
 
+  async generatePrayerReflection(verse1Text, verse1Ref, verse2Text, verse2Ref) {
+    try {
+      const rl = await aiRateLimiter.checkLimit('reflection');
+      if (!rl.allowed) return { rateLimited: true, message: rl.message };
+      await aiRateLimiter.increment('reflection');
+      console.log('🙏 Prayer reflection request for:', verse1Ref, '&', verse2Ref);
+
+      const prompt = `You are a warm, caring Bible teacher writing for everyday people. You are given two Bible verses from someone's daily prayer. Write a short reflection (about 120 words) on what these two verses teach together. Connect the themes and give the reader something meaningful to take into their day.
+
+Rules:
+- Write in simple, warm language that a teenager could understand
+- No dashes of any kind (no hyphens, en dashes, or em dashes). Use commas instead
+- No bullet points, no lists, no headings, no labels, no emojis
+- Do not start with "These two verses" or "In these verses" or anything generic. Start with something engaging
+- Write flowing paragraphs, not fragmented sentences
+- Make it feel personal, like a friend explaining what these verses mean for your life
+- Keep it around 120 words, never more than 140
+- Do not quote the verses back word for word, just reference the ideas
+- Do not include the verse references in your text
+
+Verse 1: "${verse1Text}" (${verse1Ref})
+Verse 2: "${verse2Text}" (${verse2Ref})
+
+Write the reflection now.`;
+
+      const response = await this.simpleSmartChat(prompt);
+
+      if (response) {
+        let cleaned = response
+          .replace(/—/g, ', ')
+          .replace(/–/g, ', ')
+          .replace(/\s*-\s*/g, ' ')
+          .replace(/•/g, '')
+          .replace(/^\s*["']/g, '')
+          .replace(/["']\s*$/g, '')
+          .trim();
+        return cleaned;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Prayer reflection error:', error);
+      return null;
+    }
+  }
+
   // Chat with Smart (for future Bible chat feature)
   async chat(messages, stream = true) {
     try {
@@ -506,7 +552,7 @@ Respond with ONLY a JSON object:
    * @param {Array}   params.exerciseNames   – list of available exercise names (pre-filtered)
    * @returns {Promise<Object|null>} { name, reason, exercises: [{name, sets, reps}] }
    */
-  async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseCount, targetMuscles, gender, bodyFatPercent, dailyCalories, goal, currentWeight, targetWeight }) {
+  async generateSmartWorkout({ overallScore, weakestMuscles, strongestMuscles, groupAverages, totalWorkouts, exerciseNames, exerciseHistory, exerciseCount, trainingStyle, targetMuscles, gender, userAge, bodyFatPercent, dailyCalories, goal, currentWeight, targetWeight }) {
     try {
       const rl = await aiRateLimiter.checkLimit('generation');
       if (!rl.allowed) { if (!rl.alertShown) Alert.alert('Daily Limit Reached', rl.message); return null; }
@@ -515,13 +561,23 @@ Respond with ONLY a JSON object:
 
       const hasNutrition = dailyCalories && goal;
       const hasTargetMuscles = targetMuscles && targetMuscles.length > 0;
+      const hasExerciseHistory = exerciseHistory && exerciseHistory.length > 0;
 
       const nutritionRule = hasNutrition
-        ? `\n- The user's nutrition data is provided. Consider their calorie intake and weight goal when suggesting intensity. For users losing weight (calorie deficit), favor moderate weights with higher reps (10-15) to preserve muscle. For users gaining weight (calorie surplus), favor progressive overload with heavier weights and lower reps (6-10).`
+        ? `\n- The user's nutrition data is provided. Consider their calorie intake and weight goal when suggesting intensity. For users losing weight (calorie deficit), favor moderate weights with higher reps (12-15) to preserve muscle. For users gaining weight (calorie surplus), favor progressive overload with heavier weights and moderate reps (8-10).`
         : '';
 
-      const weightRule = hasNutrition
+      const includeWeight = hasNutrition || hasExerciseHistory;
+      const weightRule = includeWeight
         ? `,"weight":"<suggested weight in kg as string, e.g. '20' or '40'>"`
+        : '';
+
+      const progressiveOverloadRule = hasExerciseHistory
+        ? `\n- The user's recent lifting history is provided (newest session first). Use it to suggest appropriate weights:
+  * If the trend is increasing (user is progressing), apply a small bump: ~2.5% more weight OR 1-2 extra reps.
+  * If the trend is FLAT or DECREASING (user is stalling or struggling), do NOT increase weight. Keep the same weight and reps, or slightly reduce to help them rebuild confidence.
+  * Never blindly increase — always look at the pattern across multiple sessions before suggesting heavier weight.
+  * For exercises without history, suggest a conservative starting weight based on their overall score and experience.`
         : '';
 
       const exerciseCountRule = exerciseCount
@@ -550,17 +606,41 @@ Respond with ONLY a JSON object:
         bodyFatRule = `\n- The user's body fat is ${bodyFatPercent}%. Factor this into exercise selection: higher body fat users benefit from more metabolic/compound movements; leaner users can focus more on isolation and hypertrophy.`;
       }
 
+      // Age-aware safety
+      let ageRule = '';
+      if (userAge) {
+        if (userAge < 18) {
+          ageRule = `\n- This user is ${userAge} years old (minor). Prioritise bodyweight and light dumbbell exercises. Avoid very heavy compound lifts. Focus on form, moderate reps (10-15), and joint-friendly movements.`;
+        } else if (userAge >= 50) {
+          ageRule = `\n- This user is ${userAge} years old. Favour joint-friendly exercises, moderate loads, and higher reps (10-15). Include warm-up-friendly compound movements and avoid excessive spinal loading.`;
+        }
+      }
+
+      // Beginner safety
+      const beginnerRule = (!hasExerciseHistory && totalWorkouts < 5)
+        ? `\n- IMPORTANT: This user is a beginner with very few or no completed workouts. Suggest LIGHT weights only. Focus on learning movements with manageable loads. Do not suggest heavy weights. If suggesting weights, keep them very conservative (e.g. empty bar or light dumbbells). Safety and form come first.`
+        : '';
+
+      // Training style
+      const isFailureStyle = trainingStyle === 'failure';
+      const setsFormat = isFailureStyle ? `"sets":2` : `"sets":<number 3-4>`;
+      const repsFormat = `"reps":"<single number, e.g. '10' or '12'>"`;
+      const trainingStyleRule = isFailureStyle
+        ? `\n- TRAINING STYLE: The user trains with 2 sets to failure. Every exercise MUST have exactly 2 sets. Each set is performed to muscular failure. Suggest a weight the user can handle for about 10 reps before reaching failure.`
+        : '';
+
       const systemPrompt = `You are a smart workout planner inside a fitness app. Your job is to create a single, focused workout session tailored to the user's goals, body, and training plan.
 
 Rules:
 - Return ONLY valid JSON, no markdown, no explanation, no backticks.
-- JSON format: {"name":"<workout name>","reason":"<1 sentence why this workout is good for them, 15-25 words, encouraging>","exercises":[{"name":"<exact exercise name from the provided list>","sets":<number 3-4>,"reps":"<reps as string, e.g. '10' or '8-12'>"${weightRule}}]}
+- JSON format: {"name":"<workout name>","reason":"<1 sentence why this workout is good for them, 15-25 words, encouraging>","exercises":[{"name":"<exact exercise name from the provided list>",${setsFormat},${repsFormat}${weightRule}}]}
 ${exerciseCountRule}
 ${targetMuscleRule}
+- Reps MUST be a single number (e.g. '10', '12', '15'), NEVER a range like '8-10' or '10-12'. Minimum is 8.
 - Mix compound and isolation movements.
 - Order exercises logically: big compound movements first, isolation later.
 - The workout name should be short and catchy (2-4 words), like "Back & Bicep Blast" or "Leg Day Focus".
-- The reason should feel personal and motivating, no dashes, no emojis.${nutritionRule}${genderRule}${bodyFatRule}`;
+- The reason should feel personal and motivating, no dashes, no emojis.${trainingStyleRule}${beginnerRule}${progressiveOverloadRule}${nutritionRule}${genderRule}${ageRule}${bodyFatRule}`;
 
       let nutritionBlock = '';
       if (hasNutrition) {
@@ -568,15 +648,20 @@ ${targetMuscleRule}
       }
 
       let genderBlock = gender ? `\nGender: ${gender}` : '';
+      let ageBlock = userAge ? `\nAge: ${userAge}` : '';
       let bodyFatBlock = bodyFatPercent ? `\nBody fat: ${bodyFatPercent}%` : '';
+
+      const historyBlock = hasExerciseHistory
+        ? `\nRecent lifting history (newest first, best set per session):\n${exerciseHistory}\n`
+        : '';
 
       const userPrompt = `User physique data:
 Overall score: ${overallScore}/100
-Total workouts: ${totalWorkouts}${genderBlock}${bodyFatBlock}
+Total workouts: ${totalWorkouts}${genderBlock}${ageBlock}${bodyFatBlock}
 Weakest muscles: ${weakestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
 Strongest muscles: ${strongestMuscles.map(m => `${m.name} (${m.score})`).join(', ') || 'None'}
 Group averages: Push ${groupAverages.push}, Pull ${groupAverages.pull}, Legs ${groupAverages.legs}, Core ${groupAverages.core}${nutritionBlock}
-${hasTargetMuscles ? `\nToday's target muscles (from weekly split): ${targetMuscles.join(', ')}` : ''}
+${hasTargetMuscles ? `\nToday's target muscles (from weekly split): ${targetMuscles.join(', ')}` : ''}${historyBlock}
 Available exercises (pick ONLY from this list):
 ${exerciseNames.join('\n')}
 
@@ -589,7 +674,7 @@ Generate a workout JSON.`;
           { role: 'user',   content: userPrompt },
         ],
         temperature: 0.8,
-        max_tokens: 500,
+        max_tokens: 600,
       }));
 
       if (!response.ok) {
@@ -1164,6 +1249,66 @@ Provide a detailed, helpful analysis. Write in flowing sentences, no bullet poin
         conversationContext,
         userData
       );
+    }
+  }
+}
+
+  async generateBibleCharacterProfile(characterName) {
+    try {
+      const prompt = `You are a biblical scholar writing for a Bible study app. Generate an accurate, detailed profile for the Bible character "${characterName}".
+
+CRITICAL RULES:
+- Every fact must come from actual Scripture. Cite real books, chapters, and events.
+- The story must describe SPECIFIC events this character was involved in, with real details from the text.
+- Themes must reference actual biblical events and teachings related to this character.
+- Verses must be real references where this character appears or is mentioned.
+- If the character is a group (e.g. "Pharisees"), describe their role, beliefs, and key interactions with Jesus or other figures.
+- Do NOT use vague phrases like "appears in the biblical narrative" or "part of the story of redemption."
+- Write in warm, accessible language suitable for everyday readers.
+- No dashes of any kind. Use commas instead.
+- No emojis.
+
+Return ONLY valid JSON (no markdown, no backticks) in this exact format:
+{
+  "name": "${characterName} - [a short descriptive subtitle, e.g. 'Mother of Israel' or 'The Brave Judge']",
+  "story": "[2-3 paragraphs describing who they were, what they did, key events from Scripture. Be SPECIFIC. Include names, places, and what happened.]",
+  "themes": [
+    "[Theme title]: [1-2 sentence explanation tied to specific biblical events]",
+    "[Theme title]: [1-2 sentence explanation tied to specific biblical events]",
+    "[Theme title]: [1-2 sentence explanation tied to specific biblical events]"
+  ],
+  "culturalImpact": "[1-2 sentences about how this figure has influenced art, literature, theology, or everyday expressions. Be specific.]",
+  "verses": ["[Book Chapter:Verse]", "[Book Chapter:Verse]", "[Book Chapter:Verse]", "[Book Chapter:Verse]"]
+}`;
+
+      const response = await deepseekFetchWithFallback(JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1500,
+      }));
+
+      if (!response.ok) {
+        console.warn(`[BibleChar] API error: ${response.status}`);
+        return null;
+      }
+
+      const result = await response.json();
+      const text = result.choices?.[0]?.message?.content;
+      if (!text) return null;
+
+      const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (!parsed.name || !parsed.story || !parsed.themes || !parsed.verses) {
+        console.warn('[BibleChar] Incomplete response for', characterName);
+        return null;
+      }
+
+      return parsed;
+    } catch (error) {
+      console.warn('[BibleChar] Generation failed for', characterName, error.message);
+      return null;
     }
   }
 }

@@ -18,6 +18,7 @@ const LIMITS = {
   generation: 10,
   voice: 35,
   speechToText: 25,
+  reflection: 15,
 };
 
 const LIMIT_MESSAGES = {
@@ -28,6 +29,7 @@ const LIMIT_MESSAGES = {
   generation: "You've reached your daily generation limit (10 uses). Your limit resets at midnight — try again tomorrow!",
   voice: "You've reached your daily voice limit (35 uses). Your limit resets at midnight — try again tomorrow!",
   speechToText: "You've reached your daily voice input limit (25 uses). Your limit resets at midnight — try again tomorrow!",
+  reflection: "You've reached your daily reflection limit (15 prayers). Your reflections will refresh tomorrow!",
 };
 
 function todayKey() {

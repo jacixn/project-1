@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,62 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { isCheckedInToday } from '../services/habitsService';
 
+const AnimatedCheck = ({ done, onPress }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const bgScale = useRef(new Animated.Value(1)).current;
+  const tappedRef = useRef(false);
+
+  useEffect(() => {
+    if (done) tappedRef.current = true;
+  }, [done]);
+
+  const handlePress = useCallback(() => {
+    if (tappedRef.current || done) return;
+    tappedRef.current = true;
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 0.15, duration: 100, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1.25, tension: 300, friction: 6, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, tension: 200, friction: 10, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(rotate, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(rotate, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(bgScale, { toValue: 1.6, duration: 250, useNativeDriver: true }),
+        Animated.timing(bgScale, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]),
+    ]).start();
+
+    onPress?.();
+  }, [done, onPress, scale, rotate, bgScale]);
+
+  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      disabled={done}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      activeOpacity={0.7}
+      style={styles.checkOuter}
+    >
+      <Animated.View style={[
+        styles.checkPulse,
+        { backgroundColor: done ? '#4CAF5020' : '#FF3B3020', transform: [{ scale: bgScale }] },
+      ]} />
+      <Animated.View style={{ transform: [{ scale }, { rotate: spin }] }}>
+        <View style={[styles.miniCheckBtn, { backgroundColor: done ? '#4CAF5020' : '#FF3B3020' }]}>
+          <MaterialIcons name="check-circle" size={28} color={done ? '#4CAF50' : '#FF3B30'} />
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 const MAX_VISIBLE = 3;
 
 const HabitsCard = ({
@@ -29,6 +85,8 @@ const HabitsCard = ({
   textOutlineStyle = {},
 }) => {
   const { theme, isDark } = useTheme();
+  const [pendingIds, setPendingIds] = useState(new Set());
+  useEffect(() => { setPendingIds(new Set()); }, [habits]);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
 
@@ -104,7 +162,7 @@ const HabitsCard = ({
 
       {/* Habit Rows */}
       {visibleHabits.map((habit) => {
-        const checked = isCheckedInToday(habit);
+        const done = isCheckedInToday(habit) || pendingIds.has(habit.id);
         return (
           <BlurView
             key={habit.id}
@@ -112,31 +170,17 @@ const HabitsCard = ({
             tint={isDark ? 'dark' : 'light'}
             style={styles.habitRow}
           >
-            <TouchableOpacity
+            <AnimatedCheck
+              done={done}
               onPress={() => {
-                if (!checked) {
-                  hapticFeedback.success();
-                  const pts = 15 + Math.floor(Math.random() * 16);
-                  showFloatingPoints(pts, habit.color || '#4CAF50');
-                  onPointsEarned?.(pts);
-                  onCheckIn?.(habit);
-                }
+                setPendingIds(prev => new Set(prev).add(habit.id));
+                hapticFeedback.success();
+                const pts = 15 + Math.floor(Math.random() * 16);
+                showFloatingPoints(pts, habit.color || '#4CAF50');
+                onPointsEarned?.(pts);
+                onCheckIn?.(habit);
               }}
-              disabled={checked}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={[
-                styles.miniCheckBtn,
-                checked
-                  ? { backgroundColor: (habit.color || '#4CAF50') + '20' }
-                  : { backgroundColor: habit.color || '#4CAF50' },
-              ]}
-            >
-              <MaterialIcons
-                name={checked ? 'check-circle' : 'check'}
-                size={16}
-                color={checked ? habit.color || '#4CAF50' : '#fff'}
-              />
-            </TouchableOpacity>
+            />
             <View style={{ flex: 1 }} />
             <View style={[styles.habitIcon, { backgroundColor: (habit.color || '#4CAF50') + '20' }]}>
               <MaterialIcons name={habit.icon || 'flag'} size={16} color={habit.color || '#4CAF50'} />
@@ -312,6 +356,18 @@ const styles = StyleSheet.create({
   miniStreakText: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  checkOuter: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkPulse: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   miniCheckBtn: {
     width: 32,

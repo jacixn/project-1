@@ -156,22 +156,61 @@ export const getCompletionRate = (habit) => {
 };
 
 export const HABIT_ICONS = [
+  // Breaking bad habits
   { name: 'smoke-free', label: 'No Smoking' },
   { name: 'no-drinks', label: 'No Alcohol' },
+  // Fitness & health
   { name: 'fitness-center', label: 'Exercise' },
-  { name: 'menu-book', label: 'Reading' },
+  { name: 'directions-run', label: 'Running' },
+  { name: 'directions-bike', label: 'Cycling' },
+  { name: 'pool', label: 'Swimming' },
   { name: 'self-improvement', label: 'Meditation' },
-  { name: 'bedtime', label: 'Sleep' },
+  { name: 'spa', label: 'Wellness' },
+  { name: 'favorite', label: 'Health' },
+  { name: 'local-hospital', label: 'Medical' },
+  { name: 'psychology', label: 'Mental Health' },
+  { name: 'monitor-weight', label: 'Weight' },
+  // Daily essentials
   { name: 'local-drink', label: 'Water' },
   { name: 'restaurant', label: 'Diet' },
-  { name: 'directions-run', label: 'Running' },
-  { name: 'spa', label: 'Wellness' },
+  { name: 'bedtime', label: 'Sleep' },
+  { name: 'alarm', label: 'Wake Up' },
+  { name: 'wb-sunny', label: 'Morning' },
+  { name: 'nightlight', label: 'Night' },
+  // Learning & productivity
+  { name: 'menu-book', label: 'Reading' },
+  { name: 'school', label: 'Study' },
+  { name: 'laptop', label: 'Work' },
   { name: 'code', label: 'Coding' },
+  { name: 'lightbulb', label: 'Ideas' },
+  { name: 'timer', label: 'Focus' },
+  { name: 'edit', label: 'Writing' },
+  { name: 'translate', label: 'Language' },
+  // Creative & hobbies
   { name: 'music-note', label: 'Music' },
   { name: 'brush', label: 'Art' },
+  { name: 'camera-alt', label: 'Photography' },
+  { name: 'sports-esports', label: 'Gaming' },
+  // Lifestyle & social
+  { name: 'cleaning-services', label: 'Cleaning' },
+  { name: 'shopping-cart', label: 'Shopping' },
+  { name: 'pets', label: 'Pets' },
+  { name: 'groups', label: 'Social' },
+  { name: 'volunteer-activism', label: 'Giving' },
+  { name: 'church', label: 'Spiritual' },
+  { name: 'emoji-events', label: 'Goals' },
+  // Nature & outdoors
+  { name: 'eco', label: 'Nature' },
+  { name: 'park', label: 'Outdoors' },
+  { name: 'hiking', label: 'Hiking' },
+  // Finance
   { name: 'savings', label: 'Saving' },
+  { name: 'account-balance-wallet', label: 'Budget' },
+  { name: 'trending-up', label: 'Growth' },
+  // General
   { name: 'flag', label: 'General' },
-  { name: 'favorite', label: 'Health' },
+  { name: 'star', label: 'Starred' },
+  { name: 'check-circle', label: 'Complete' },
 ];
 
 export const HABIT_COLORS = [

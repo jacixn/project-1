@@ -21,6 +21,10 @@ import {
 import { Platform, AppState } from 'react-native';
 import userStorage from '../utils/userStorage';
 
+// AsyncStorage stores raw strings. Only stringify objects/arrays; plain strings
+// must be stored as-is to avoid double-serialization (e.g. '"nlt"' instead of 'nlt').
+const toStorageValue = (val) => (typeof val === 'string' ? val : JSON.stringify(val));
+
 // Keys that should be synced to iCloud
 const SYNC_KEYS = [
   'verse_data',           // Verse annotations (notes, highlights, bookmarks)
@@ -253,7 +257,7 @@ class ICloudSyncService {
                 const merged = await this.mergeData(key, localParsed, cloudParsed.data);
                 
                 // Save merged data locally
-                await userStorage.setRaw(key, JSON.stringify(merged.data));
+                await userStorage.setRaw(key, toStorageValue(merged.data));
                 
                 // Upload merged data to cloud
                 await this.syncToCloud(key, merged.data);
@@ -375,10 +379,10 @@ class ICloudSyncService {
             const resolved = await this.resolveConflict(key, localParsed, cloudParsed);
             
             if (resolved.action === 'use_cloud') {
-              await userStorage.setRaw(key, JSON.stringify(cloudParsed.data));
+              await userStorage.setRaw(key, toStorageValue(cloudParsed.data));
               syncedCount++;
             } else if (resolved.action === 'merge') {
-              await userStorage.setRaw(key, JSON.stringify(resolved.data));
+              await userStorage.setRaw(key, toStorageValue(resolved.data));
               conflictCount++;
             }
             // If action is 'keep_local', we don't change anything

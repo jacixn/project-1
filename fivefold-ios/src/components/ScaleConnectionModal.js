@@ -433,6 +433,12 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       };
     };
 
+    if (readings.length === 2) {
+      const [a, b] = readings;
+      if (agrees(a, b)) return avgOf([a, b]);
+      return readings[readings.length - 1];
+    }
+
     if (readings.length >= 3) {
       const [a, b, c] = readings;
       const ab = agrees(a, b);
@@ -562,14 +568,28 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
 
   startNextAttemptRef.current = startNextAttempt;
 
-  useEffect(() => {
-    if (phase === 'attemptDone') {
-      autoProceedRef.current = setTimeout(() => {
-        startNextAttemptRef.current?.();
-      }, 3000);
-      return () => { if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; } };
-    }
-  }, [phase]);
+  const handleGoodToGo = () => {
+    if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; }
+    if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+
+    const currentAttempts = attemptsRef.current;
+    const best = pickConsensusReading(currentAttempts);
+    setStableReading(best);
+    updatePhase('done');
+    pulseLoop.current?.stop();
+    Animated.parallel([
+      Animated.timing(ringProgress, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.spring(successScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+    ]).start();
+    saveReading(best);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleNextAttempt = useCallback(() => {
+    if (autoProceedRef.current) { clearTimeout(autoProceedRef.current); autoProceedRef.current = null; }
+    startNextAttemptRef.current?.();
+  }, []);
 
   const handleCloseRef = useRef(null);
 
@@ -899,11 +919,20 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
           </View>
         )}
 
-        <View style={[styles.autoProceedRow, { backgroundColor: ACCENT + '12' }]}>
-          <ActivityIndicator size="small" color={ACCENT} />
-          <Text style={[styles.autoProceedText, { color: ACCENT }]}>
-            Next reading starting shortly...
-          </Text>
+        <View style={styles.attemptDoneBtns}>
+          <TouchableOpacity style={styles.nextAttemptBtn} onPress={handleNextAttempt} activeOpacity={0.8}>
+            <LinearGradient colors={[ACCENT, ACCENT_END || ACCENT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goodToGoBtnGrad}>
+              <MaterialIcons name="refresh" size={18} color="#FFF" />
+              <Text style={styles.goodToGoBtnText}>Next</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.goodToGoBtn} onPress={handleGoodToGo} activeOpacity={0.8}>
+            <LinearGradient colors={[SUCCESS, SUCCESS_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goodToGoBtnGrad}>
+              <MaterialIcons name="check" size={18} color="#FFF" />
+              <Text style={styles.goodToGoBtnText}>Good to Go</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -950,7 +979,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
           ) : null}
         </View>
 
-        {attempts.length >= TOTAL_ATTEMPTS && (
+        {attempts.length > 1 && (
           <View style={styles.allAttemptsSection}>
             <Text style={[styles.allAttemptsTitle, { color: textTertiary }]}>All Readings</Text>
             {attempts.map((a, i) => {
@@ -975,7 +1004,7 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
         <View style={[styles.savedBadge, { backgroundColor: SUCCESS + '14' }]}>
           <MaterialIcons name="check-circle" size={16} color={SUCCESS} />
           <Text style={[styles.savedBadgeText, { color: SUCCESS }]}>
-            {attempts.length >= TOTAL_ATTEMPTS ? 'Best reading saved & profile updated' : 'Reading saved & profile updated'}
+            {attempts.length > 1 ? 'Best reading saved & profile updated' : 'Reading saved & profile updated'}
           </Text>
         </View>
 
@@ -1097,8 +1126,13 @@ const styles = StyleSheet.create({
   attemptLabel: { fontSize: 13, fontWeight: '700', letterSpacing: 0.3, marginBottom: 16, textTransform: 'uppercase' },
 
   // Auto-proceed
-  autoProceedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14, marginTop: 12 },
-  autoProceedText: { fontSize: 14, fontWeight: '600' },
+
+  // Good to go
+  attemptDoneBtns: { flexDirection: 'row', width: '100%', gap: 10, marginTop: 16 },
+  nextAttemptBtn: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  goodToGoBtn: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  goodToGoBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
+  goodToGoBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 
   // Attempt done card
   attemptResultCard: { width: '100%', borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 12 },

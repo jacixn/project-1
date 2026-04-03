@@ -1,5 +1,6 @@
 import { getStoredData, saveData } from '../utils/localStorage';
 import { pushToCloud } from './userSyncService';
+import notificationService from './notificationService';
 
 const STORAGE_KEY = 'user_reminders';
 
@@ -38,6 +39,7 @@ export const addReminder = async ({ title, time, type, days, icon, color }) => {
   };
   reminders.push(newReminder);
   await persist(reminders);
+  notificationService.scheduleReminderNotification(newReminder).catch(() => {});
   return newReminder;
 };
 
@@ -45,15 +47,24 @@ export const updateReminder = async (id, updates) => {
   const reminders = await loadReminders();
   const idx = reminders.findIndex(r => r.id === id);
   if (idx === -1) return null;
-  reminders[idx] = { ...reminders[idx], ...updates };
+  const oldReminder = reminders[idx];
+  reminders[idx] = { ...oldReminder, ...updates };
   await persist(reminders);
+  notificationService.cancelReminderNotification(id).catch(() => {});
+  if (reminders[idx].enabled) {
+    notificationService.scheduleReminderNotification(reminders[idx]).catch(() => {});
+  }
   return reminders[idx];
 };
 
 export const deleteReminder = async (id) => {
-  let reminders = await loadReminders();
-  reminders = reminders.filter(r => r.id !== id);
-  await persist(reminders);
+  const reminders = await loadReminders();
+  const existing = reminders.find(r => r.id === id);
+  const filtered = reminders.filter(r => r.id !== id);
+  await persist(filtered);
+  if (existing) {
+    notificationService.cancelReminderNotification(id).catch(() => {});
+  }
 };
 
 export const toggleReminder = async (id) => {
@@ -62,26 +73,42 @@ export const toggleReminder = async (id) => {
   if (idx === -1) return;
   reminders[idx].enabled = !reminders[idx].enabled;
   await persist(reminders);
+  if (reminders[idx].enabled) {
+    notificationService.scheduleReminderNotification(reminders[idx]).catch(() => {});
+  } else {
+    notificationService.cancelReminderNotification(id).catch(() => {});
+  }
   return reminders[idx];
 };
 
 export const completeReminder = async (id, dateStr) => {
-  const reminders = await loadReminders();
-  const idx = reminders.findIndex(r => r.id === id);
-  if (idx === -1) return;
-  if (!reminders[idx].completions) reminders[idx].completions = {};
-  reminders[idx].completions[dateStr] = true;
-  await persist(reminders);
+  try {
+    const reminders = await loadReminders();
+    const idx = reminders.findIndex(r => r.id === id);
+    if (idx === -1) {
+      console.warn(`[Reminders] completeReminder: id "${id}" not found in ${reminders.length} reminders`);
+      return;
+    }
+    if (!reminders[idx].completions) reminders[idx].completions = {};
+    reminders[idx].completions[dateStr] = true;
+    await persist(reminders);
+  } catch (e) {
+    console.error('[Reminders] completeReminder failed:', e);
+  }
 };
 
 export const uncompleteReminder = async (id, dateStr) => {
-  const reminders = await loadReminders();
-  const idx = reminders.findIndex(r => r.id === id);
-  if (idx === -1) return;
-  if (reminders[idx].completions) {
-    delete reminders[idx].completions[dateStr];
+  try {
+    const reminders = await loadReminders();
+    const idx = reminders.findIndex(r => r.id === id);
+    if (idx === -1) return;
+    if (reminders[idx].completions) {
+      delete reminders[idx].completions[dateStr];
+    }
+    await persist(reminders);
+  } catch (e) {
+    console.error('[Reminders] uncompleteReminder failed:', e);
   }
-  await persist(reminders);
 };
 
 export const getRemindersForDay = (reminders, dayIndex, dateStr) => {

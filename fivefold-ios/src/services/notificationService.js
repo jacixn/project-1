@@ -12,8 +12,8 @@ const TAB_NOTIFICATION_MAP = {
     notificationTypes: ['prayer_reminder', 'custom_prayer', 'missed_prayer'],
   },
   Todos: {
-    settingsKeys: ['taskReminders', 'visionExpiryReminders'],
-    notificationTypes: ['task_reminder', 'vision_expiry'],
+    settingsKeys: ['taskReminders', 'habitReminders', 'visionExpiryReminders', 'reminderNotifications'],
+    notificationTypes: ['task_reminder', 'habit_reminder', 'vision_expiry', 'user_reminder'],
   },
   Gym: {
     settingsKeys: ['workoutReminders', 'weeklyBodyCheckIn'],
@@ -242,6 +242,10 @@ class NotificationService {
 
   // Set up notification listeners
   setupNotificationListeners() {
+    // Remove previous subscriptions to prevent duplicates
+    if (this.notificationListener) { this.notificationListener.remove(); this.notificationListener = null; }
+    if (this.responseListener) { this.responseListener.remove(); this.responseListener = null; }
+
     // Listener for notifications received while app is foregrounded
     this.notificationListener = Notifications.addNotificationReceivedListener(async (notification) => {
       console.log('Notification received:', notification);
@@ -773,22 +777,46 @@ class NotificationService {
       }
 
       if (settings.streakReminders) {
-        await this.scheduleDailyStreakReminder(8, 0);
+        await this.scheduleDailyStreakReminder(20, 0);
       } else {
         await this.cancelNotificationsByType('daily_streak');
       }
 
-      // Cancel task notifications if disabled
+      // Task notifications
       if (settings.taskReminders === false) {
         await this.cancelNotificationsByType('task_reminder');
         console.log('Task reminders disabled - cancelled all task notifications');
+      } else {
+        await this._rescheduleTaskNotifications();
       }
 
-      // Cancel workout notifications if disabled
+      // Workout notifications
       if (settings.workoutReminders === false) {
         await this.cancelNotificationsByType('workout_reminder');
         await this.cancelNotificationsByType('workout_overdue');
         console.log('Workout reminders disabled - cancelled all workout notifications');
+      } else {
+        await this._rescheduleWorkoutNotifications();
+      }
+
+      // Habit reminders
+      if (settings.habitReminders === false) {
+        await this.cancelNotificationsByType('habit_reminder');
+        console.log('Habit reminders disabled - cancelled all habit notifications');
+      } else {
+        try {
+          const raw = await userStorage.getRaw('fivefold_user_habits');
+          const habits = raw ? JSON.parse(raw) : [];
+          await this.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
+        } catch (_) {}
+      }
+
+      // Cancel/reschedule user reminder notifications
+      if (settings.reminderNotifications === false) {
+        await this.cancelNotificationsByType('user_reminder');
+        console.log('Reminder notifications disabled - cancelled all');
+      } else if (settings.reminderNotifications !== false) {
+        await this.rescheduleAllReminderNotifications();
       }
 
       // Cancel token arrival notifications if disabled
@@ -817,6 +845,58 @@ class NotificationService {
       console.log('Notification settings updated');
     } catch (error) {
       console.error('Failed to update notification settings:', error);
+    }
+  }
+
+  // Refresh all recurring notifications (call on app foreground to ensure nothing is lost)
+  async refreshAllScheduledNotifications() {
+    try {
+      const settings = await getStoredData('notificationSettings');
+      if (!settings || settings.pushNotifications === false) return;
+
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const scheduledTypes = new Set(scheduled.map(n => n.content?.data?.type).filter(Boolean));
+
+      // Re-schedule types that should exist but are missing
+      if (settings.prayerReminders !== false && !scheduledTypes.has('prayer_reminder')) {
+        await this.scheduleStoredPrayerReminders();
+      }
+
+      if (settings.streakReminders !== false && !scheduledTypes.has('daily_streak')) {
+        await this.scheduleDailyStreakReminder(20, 0);
+      }
+
+      if (settings.reminderNotifications !== false && !scheduledTypes.has('user_reminder')) {
+        await this.rescheduleAllReminderNotifications();
+      }
+
+      if (settings.taskReminders !== false && !scheduledTypes.has('task_reminder')) {
+        await this._rescheduleTaskNotifications();
+      }
+
+      if (settings.workoutReminders !== false && !scheduledTypes.has('workout_reminder')) {
+        await this._rescheduleWorkoutNotifications();
+      }
+
+      if (settings.habitReminders !== false && !scheduledTypes.has('habit_reminder')) {
+        try {
+          const raw = await userStorage.getRaw('fivefold_user_habits');
+          const habits = raw ? JSON.parse(raw) : [];
+          await this.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
+        } catch (_) {}
+      }
+
+      if (settings.visionExpiryReminders !== false && !scheduledTypes.has('vision_expiry')) {
+        await this.rescheduleAllVisionExpiryNotifications();
+      }
+
+      if (settings.weeklyBodyCheckIn !== false && !scheduledTypes.has('weekly_body_checkin')) {
+        await this.scheduleWeeklyBodyCheckIn();
+      }
+
+      console.log('[Notifications] Foreground refresh complete');
+    } catch (error) {
+      console.warn('[Notifications] Foreground refresh failed:', error.message);
     }
   }
 
@@ -1277,8 +1357,9 @@ class NotificationService {
 
   async scheduleHabitReminder(habit) {
     try {
-      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true, habitReminders: true };
       if (settings.pushNotifications === false) return;
+      if (settings.habitReminders === false) return;
 
       const notifId = `habit_reminder_${habit.id}`;
       await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
@@ -1323,6 +1404,124 @@ class NotificationService {
       }
     } catch (error) {
       console.error('Failed to reschedule habit reminders:', error);
+    }
+  }
+
+  async scheduleReminderNotification(reminder) {
+    try {
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true, reminderNotifications: true };
+      console.log(`[Notif] scheduleReminder "${reminder.title}" — push=${settings.pushNotifications}, reminderNotif=${settings.reminderNotifications}, enabled=${reminder.enabled}, type=${reminder.type}, days=${JSON.stringify(reminder.days)}`);
+      if (settings.pushNotifications === false) return;
+      if (settings.reminderNotifications === false) return;
+      if (!reminder.enabled) return;
+
+      const [hourStr, minuteStr] = (reminder.time || '08:00').split(':');
+      const hour = parseInt(hourStr, 10);
+      const minute = parseInt(minuteStr, 10);
+      const soundSetting = settings.sound ? 'default' : false;
+
+      const notifContent = {
+        title: reminder.title || 'Reminder',
+        body: `Time for: ${reminder.title}`,
+        data: { type: 'user_reminder', reminderId: reminder.id },
+        sound: soundSetting,
+      };
+
+      if (reminder.type === 'one-time') {
+        const notifId = `reminder_${reminder.id}_once`;
+        await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+
+        let triggerDate;
+        if (reminder.date) {
+          const [year, month, dayNum] = reminder.date.split('-').map(Number);
+          triggerDate = new Date(year, month - 1, dayNum, hour, minute, 0, 0);
+        } else {
+          triggerDate = this.getNextOccurrenceDate(hour, minute);
+        }
+
+        if (triggerDate > new Date()) {
+          await Notifications.scheduleNotificationAsync({
+            identifier: notifId,
+            content: notifContent,
+            trigger: { type: 'date', date: triggerDate },
+          });
+          console.log(`[Notif] Scheduled one-time reminder "${reminder.title}" for ${triggerDate.toISOString()}`);
+        }
+      } else {
+        const notifId = `reminder_${reminder.id}_next`;
+        await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
+
+        const now = new Date();
+        const reminderDays = reminder.days || [];
+
+        if (reminderDays.length === 0) return;
+
+        let nextFireDate = null;
+
+        for (let offset = 0; offset <= 7; offset++) {
+          const candidate = new Date(now);
+          candidate.setDate(candidate.getDate() + offset);
+          candidate.setHours(hour, minute, 0, 0);
+
+          const candidateDayIndex = candidate.getDay();
+
+          if (reminderDays.includes(candidateDayIndex) && candidate > now) {
+            nextFireDate = candidate;
+            break;
+          }
+        }
+
+        if (nextFireDate) {
+          await Notifications.scheduleNotificationAsync({
+            identifier: notifId,
+            content: notifContent,
+            trigger: { type: 'date', date: nextFireDate },
+          });
+          console.log(`[Notif] Scheduled reminder "${reminder.title}" for ${nextFireDate.toISOString()} (date trigger)`);
+        } else {
+          console.log(`[Notif] No upcoming date found for reminder "${reminder.title}"`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to schedule reminder notification:', error);
+    }
+  }
+
+  async cancelReminderNotification(reminderId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(`reminder_${reminderId}_once`).catch(() => {});
+      await Notifications.cancelScheduledNotificationAsync(`reminder_${reminderId}_next`).catch(() => {});
+      for (let d = 0; d < 7; d++) {
+        await Notifications.cancelScheduledNotificationAsync(`reminder_${reminderId}_${d}`).catch(() => {});
+      }
+    } catch (error) {
+      console.error('Failed to cancel reminder notification:', error);
+    }
+  }
+
+  async rescheduleAllReminderNotifications() {
+    try {
+      await this.cancelNotificationsByType('user_reminder');
+      await this.cancelNotificationsByType('custom_reminder');
+
+      const settings = await getStoredData('notificationSettings') || { pushNotifications: true, reminderNotifications: true };
+      console.log(`[Notif] rescheduleAllReminders — push=${settings.pushNotifications}, reminderNotif=${settings.reminderNotifications}`);
+      if (settings.pushNotifications === false || settings.reminderNotifications === false) return;
+
+      const data = await getStoredData('user_reminders');
+      console.log(`[Notif] rescheduleAllReminders — found ${data?.reminders?.length ?? 0} reminders in storage`);
+      if (!data || !data.reminders) return;
+
+      let scheduled = 0;
+      for (const reminder of data.reminders) {
+        if (reminder.enabled) {
+          await this.scheduleReminderNotification(reminder);
+          scheduled++;
+        }
+      }
+      console.log(`[Notif] Rescheduled ${scheduled} reminder notifications`);
+    } catch (error) {
+      console.error('Failed to reschedule all reminder notifications:', error);
     }
   }
 
@@ -1387,6 +1586,21 @@ class NotificationService {
         if (tabName === 'Todos' && newSettings.taskReminders) {
           await this._rescheduleTaskNotifications(newSettings.sound);
         }
+        if (tabName === 'Todos' && newSettings.habitReminders) {
+          try {
+            const storedHabits = await userStorage.getRaw('fivefold_user_habits');
+            if (storedHabits) {
+              const parsed = JSON.parse(storedHabits);
+              const habits = parsed.habits || [];
+              await this.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
+            }
+          } catch (err) {
+            console.error('Failed to reschedule habit reminders on tab restore:', err);
+          }
+        }
+        if (tabName === 'Todos' && newSettings.reminderNotifications) {
+          await this.rescheduleAllReminderNotifications();
+        }
         if (tabName === 'Gym' && newSettings.workoutReminders) {
           await this._rescheduleWorkoutNotifications(newSettings.sound);
         }
@@ -1400,6 +1614,10 @@ class NotificationService {
 
   async _rescheduleTaskNotifications(soundEnabled) {
     try {
+      if (soundEnabled === undefined) {
+        const s = await getStoredData('notificationSettings');
+        soundEnabled = s?.sound !== false;
+      }
       const storedTodos = await userStorage.getRaw('fivefold_todos');
       if (!storedTodos) return;
 
@@ -1433,7 +1651,7 @@ class NotificationService {
         });
         count++;
       }
-      console.log(`[Notif] Rescheduled ${count} task notifications (tab restore)`);
+      console.log(`[Notif] Rescheduled ${count} task notifications`);
     } catch (error) {
       console.error('Failed to reschedule task notifications:', error);
     }
@@ -1441,6 +1659,10 @@ class NotificationService {
 
   async _rescheduleWorkoutNotifications(soundEnabled) {
     try {
+      if (soundEnabled === undefined) {
+        const s = await getStoredData('notificationSettings');
+        soundEnabled = s?.sound !== false;
+      }
       const schedules = await WorkoutService.getScheduledWorkouts();
       if (!schedules || schedules.length === 0) return;
 

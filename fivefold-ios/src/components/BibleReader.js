@@ -14,6 +14,7 @@ import {
   Share,
   StatusBar,
   Animated,
+  Easing,
   PanResponder,
   KeyboardAvoidingView,
   DeviceEventEmitter,
@@ -202,6 +203,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const noteModalSlideAnim = useRef(new Animated.Value(600)).current;
   const noteModalFadeAnim = useRef(new Animated.Value(0)).current;
   const noteScrollRef = useRef(null);
+
+  // Books view entrance animation (staggered fade + slide for testament cards)
+  const NUM_BOOK_ANIM_ITEMS = 3;
+  const bookSlideAnims = useRef(Array.from({ length: NUM_BOOK_ANIM_ITEMS }, () => new Animated.Value(40))).current;
+  const bookFadeAnims = useRef(Array.from({ length: NUM_BOOK_ANIM_ITEMS }, () => new Animated.Value(0))).current;
 
   // Testament dropdown state
   const [expandedTestament, setExpandedTestament] = useState(null); // 'old', 'new', or null
@@ -433,6 +439,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     loadShareCardPrefs();
     checkPremiumUnlock();
   }, []);
+
+  // Books view entrance animation -- wait for loading to finish so native views exist
+  useEffect(() => {
+    if (view === 'books' && !loading) {
+      bookSlideAnims.forEach(a => a.setValue(40));
+      bookFadeAnims.forEach(a => a.setValue(0));
+      requestAnimationFrame(() => {
+        Animated.stagger(120, bookSlideAnims.map((slide, i) =>
+          Animated.parallel([
+            Animated.timing(bookFadeAnims[i], { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.timing(slide, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          ])
+        )).start();
+      });
+    }
+  }, [view, loading]);
 
   // Preload premium background images in the background when share card opens
   useEffect(() => {
@@ -3411,6 +3433,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       <View style={{ gap: 16 }}>
         
         {/* Old Testament Card */}
+        <Animated.View style={{ opacity: bookFadeAnims[0], transform: [{ translateY: bookSlideAnims[0] }] }}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => {
@@ -3538,8 +3561,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             ))}
           </View>
         )}
+        </Animated.View>
 
         {/* New Testament Card */}
+        <Animated.View style={{ opacity: bookFadeAnims[1], transform: [{ translateY: bookSlideAnims[1] }] }}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => {
@@ -3667,6 +3692,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             ))}
           </View>
         )}
+        </Animated.View>
         
       </View>
     </ScrollView>
@@ -4881,7 +4907,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         
         {/* Smart Assistant Button - Fixed at bottom */}
         {view === 'books' && (
-          <View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+          <Animated.View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border, opacity: bookFadeAnims[2], transform: [{ translateY: bookSlideAnims[2] }] }]}>
             <TouchableOpacity
               style={[styles.aiAssistantButton, { backgroundColor: theme.card, borderColor: theme.border }]}
               activeOpacity={0.7}
@@ -4891,8 +4917,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   hapticFeedback.medium();
                   
                   if (onNavigateToAI) {
-                    onNavigateToAI(null); // null means general chat
-                    // Don't call onClose when using onNavigateToAI - it already handles navigation
+                    onNavigateToAI(null);
                   } else {
                     onClose();
                   }
@@ -4910,7 +4935,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
           </View>
           

@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -40,6 +40,9 @@ const PrayerDetailModal = ({
   bibleVersion = 'KJV',
   loadingVerses = false,
   asScreen = false,
+  reflection = null,
+  loadingReflection = false,
+  reflectionLimited = false,
 }) => {
   const { theme, isDark } = useTheme();
   
@@ -544,6 +547,111 @@ const PrayerDetailModal = ({
               })}
             </View>
 
+            {/* What to Learn Section */}
+            {(reflection || loadingReflection || reflectionLimited) && (
+              <View style={styles.sectionContainer}>
+                <View style={[styles.reflectionCard, {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FAFBFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}18`,
+                }]}>
+                  <View style={styles.reflectionHeader}>
+                    <LinearGradient
+                      colors={accentGradient}
+                      style={styles.sectionIconBg}
+                    >
+                      <MaterialIcons name="auto-awesome" size={16} color="#fff" />
+                    </LinearGradient>
+                    <Text style={[styles.reflectionTitle, { color: theme.text }]}>
+                      What to Learn
+                    </Text>
+                  </View>
+
+                  {loadingReflection ? (
+                    <View style={styles.reflectionLoadingContainer}>
+                      <ActivityIndicator size="small" color={theme.primary} />
+                      <Text style={[styles.reflectionLoadingText, { color: theme.textSecondary }]}>
+                        Reflecting on today's verses...
+                      </Text>
+                    </View>
+                  ) : reflectionLimited ? (
+                    <View style={styles.reflectionLoadingContainer}>
+                      <MaterialIcons name="schedule" size={18} color={theme.textSecondary} />
+                      <Text style={[styles.reflectionLoadingText, { color: theme.textSecondary }]}>
+                        Daily reflections will refresh tomorrow
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={[styles.reflectionText, { color: isDark ? 'rgba(255,255,255,0.85)' : '#2D3748' }]}>
+                        {reflection}
+                      </Text>
+
+                      <View style={[styles.reflectionActions, {
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                      }]}>
+                        <TouchableOpacity
+                          style={[styles.reflectionListenBtn, {
+                            backgroundColor: (isSpeaking && speakingVerseIndex === 'reflection')
+                              ? theme.primary
+                              : (isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`),
+                          }]}
+                          onPress={() => speakVerse(reflection, 'What to Learn', 'reflection')}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons
+                            name={(isSpeaking && speakingVerseIndex === 'reflection') ? 'graphic-eq' : 'volume-up'}
+                            size={16}
+                            color={(isSpeaking && speakingVerseIndex === 'reflection') ? '#fff' : theme.primary}
+                          />
+                          <Text style={[styles.actionBtnText, {
+                            color: (isSpeaking && speakingVerseIndex === 'reflection') ? '#fff' : theme.primary
+                          }]}>
+                            {(isSpeaking && speakingVerseIndex === 'reflection') ? 'Playing' : 'Listen'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {((isSpeaking && speakingVerseIndex === 'reflection') || (isLoadingAudio && loadingAudioVerseIndex === 'reflection')) && (
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            {isLoadingAudio && loadingAudioVerseIndex === 'reflection' ? (
+                              <TouchableOpacity
+                                onPress={stopAudio}
+                                style={[styles.audioButton, { backgroundColor: theme.primary }]}
+                                activeOpacity={0.7}
+                              >
+                                <ActivityIndicator size={14} color="#fff" />
+                                <Text style={styles.audioButtonTextActive}>Loading...</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <>
+                                <TouchableOpacity
+                                  onPress={isPaused ? resumeAudio : pauseAudio}
+                                  style={[styles.audioButton, { backgroundColor: theme.primary }]}
+                                  activeOpacity={0.7}
+                                >
+                                  <MaterialIcons name={isPaused ? 'play-arrow' : 'pause'} size={15} color="#fff" />
+                                  <Text style={styles.audioButtonTextActive}>{isPaused ? 'Resume' : 'Pause'}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  onPress={stopAudio}
+                                  style={[styles.audioButton, {
+                                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                                  }]}
+                                  activeOpacity={0.7}
+                                >
+                                  <MaterialIcons name="stop" size={15} color={theme.text} />
+                                  <Text style={[styles.audioButtonText, { color: theme.text }]}>Stop</Text>
+                                </TouchableOpacity>
+                              </>
+                            )}
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            )}
+
             {/* Prayer Guide Section */}
             <View style={styles.sectionContainer}>
               {/* Guide toggle pills */}
@@ -703,16 +811,16 @@ const PrayerDetailModal = ({
   if (asScreen) {
     return (
       <>
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
           <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             bounces={true}
-            contentContainerStyle={[styles.scrollContent, { paddingTop: Platform.OS === 'ios' ? 100 : 80 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: Platform.OS === 'ios' ? 130 : 110 }]}
           >
             {scrollInner}
           </ScrollView>
-        </SafeAreaView>
+        </View>
 
         {/* Blurred Header */}
         <BlurView
@@ -1021,6 +1129,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#fff',
+  },
+
+  // Reflection
+  reflectionCard: {
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  reflectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  reflectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  reflectionText: {
+    fontSize: 15,
+    lineHeight: 24,
+    letterSpacing: 0.15,
+  },
+  reflectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  reflectionListenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  reflectionLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  reflectionLoadingText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   // Guide pills

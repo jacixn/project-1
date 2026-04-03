@@ -113,6 +113,8 @@ const BibleCharactersScreen = ({ navigation }) => {
   const [charactersRefreshing, setCharactersRefreshing] = useState(false);
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [generatingProfile, setGeneratingProfile] = useState(false);
+  const [generationFailed, setGenerationFailed] = useState(false);
   
   // Audio state
   const [characterSound, setCharacterSound] = useState(null);
@@ -163,6 +165,36 @@ const BibleCharactersScreen = ({ navigation }) => {
     if (selectedCharacter && characterDetailScrollRef.current) {
       setTimeout(() => characterDetailScrollRef.current?.scrollTo({ y: 0, animated: true }), 100);
     }
+  }, [selectedCharacter]);
+
+  useEffect(() => {
+    if (!selectedCharacter) return;
+    const character = characterProfiles[selectedCharacter];
+    if (!character || !bibleCharactersService.isGenericProfile(character)) return;
+
+    let cancelled = false;
+    setGeneratingProfile(true);
+    setGenerationFailed(false);
+
+    (async () => {
+      const enhanced = await bibleCharactersService.getEnhancedCharacter(selectedCharacter);
+      if (!cancelled && enhanced && !bibleCharactersService.isGenericProfile(enhanced)) {
+        setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...enhanced } }));
+        setGeneratingProfile(false);
+        return;
+      }
+
+      const profile = await bibleCharactersService.generateAndCacheProfile(selectedCharacter);
+      if (cancelled) return;
+      if (profile) {
+        setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...profile } }));
+      } else {
+        setGenerationFailed(true);
+      }
+      setGeneratingProfile(false);
+    })();
+
+    return () => { cancelled = true; };
   }, [selectedCharacter]);
 
   useEffect(() => {
@@ -343,8 +375,8 @@ const BibleCharactersScreen = ({ navigation }) => {
                   <MaterialIcons name="person" size={60} color="rgba(255,255,255,0.5)" />
                 )}
               </View>
-              <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', marginBottom: 4, textAlign: 'center' }}>{character.name.split(' - ')[0]}</Text>
-              {character.name.split(' - ')[1] && <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 12 }}>{character.name.split(' - ')[1]}</Text>}
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', marginBottom: 4, textAlign: 'center' }}>{(character.name || selectedCharacter).split(' - ')[0]}</Text>
+              {(character.name || '').split(' - ')[1] && <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 12 }}>{character.name.split(' - ')[1]}</Text>}
               
               {(character.audioUrl || character.story) && (
                 <TouchableOpacity onPress={() => {
@@ -359,63 +391,96 @@ const BibleCharactersScreen = ({ navigation }) => {
             </LinearGradient>
           </View>
 
-          {/* Story */}
-          <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                <MaterialIcons name="auto-stories" size={18} color={themeColor} />
-              </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Biblical Story</Text>
+          {generatingProfile ? (
+            <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 28, marginBottom: 14, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={themeColor} style={{ marginBottom: 16 }} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: isDark ? '#FFFFFF' : theme.text, marginBottom: 6 }}>Generating accurate profile...</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, textAlign: 'center' }}>Sourcing biblical details for {selectedCharacter}</Text>
             </View>
-            <Text selectable style={{ fontSize: 15, color: isDark ? 'rgba(255,255,255,0.9)' : theme.text, lineHeight: 24 }}>{character.story}</Text>
-          </View>
-
-          {/* Themes */}
-          <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                <MaterialIcons name="psychology" size={18} color={themeColor} />
-              </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Key Themes</Text>
+          ) : generationFailed ? (
+            <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 28, marginBottom: 14, alignItems: 'center' }}>
+              <MaterialIcons name="wifi-off" size={40} color={theme.textTertiary} style={{ marginBottom: 12 }} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: isDark ? '#FFFFFF' : theme.text, marginBottom: 6 }}>Couldn't load profile</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, textAlign: 'center', marginBottom: 16 }}>Check your connection and try again.</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setGeneratingProfile(true);
+                  setGenerationFailed(false);
+                  bibleCharactersService.generateAndCacheProfile(selectedCharacter).then(profile => {
+                    if (profile) {
+                      setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...profile } }));
+                    } else {
+                      setGenerationFailed(true);
+                    }
+                    setGeneratingProfile(false);
+                  });
+                }}
+                style={{ backgroundColor: themeColor, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 }}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Retry</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {character.themes.map((t, i) => (
-                <View key={i} style={{ backgroundColor: themeColor + '20', borderColor: themeColor + '40', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: themeColor, marginRight: 8 }} />
-                  <Text selectable style={{ fontSize: 14, color: isDark ? '#FFFFFF' : theme.text }}>{t}</Text>
+          ) : (
+            <>
+              {/* Story */}
+              <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <MaterialIcons name="auto-stories" size={18} color={themeColor} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Biblical Story</Text>
                 </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Cultural Impact */}
-          <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                <MaterialIcons name="palette" size={18} color={themeColor} />
+                <Text selectable style={{ fontSize: 15, color: isDark ? 'rgba(255,255,255,0.9)' : theme.text, lineHeight: 24 }}>{character.story}</Text>
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Cultural Impact</Text>
-            </View>
-            <Text selectable style={{ fontSize: 15, color: isDark ? 'rgba(255,255,255,0.9)' : theme.text, lineHeight: 24 }}>{character.culturalImpact}</Text>
-          </View>
 
-          {/* Key Verses */}
-          <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                <MaterialIcons name="menu-book" size={18} color={themeColor} />
-              </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Key Verses</Text>
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {character.verses.map((v, i) => (
-                <View key={i} style={{ backgroundColor: themeColor + '20', borderColor: themeColor + '40', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
-                  <MaterialIcons name="bookmark" size={14} color={themeColor} style={{ marginRight: 6 }} />
-                  <Text style={{ fontSize: 14, color: isDark ? '#FFFFFF' : theme.text }}>{v}</Text>
+              {/* Themes */}
+              <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <MaterialIcons name="psychology" size={18} color={themeColor} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Key Themes</Text>
                 </View>
-              ))}
-            </View>
-          </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {character.themes.map((t, i) => (
+                    <View key={i} style={{ backgroundColor: themeColor + '20', borderColor: themeColor + '40', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: themeColor, marginRight: 8 }} />
+                      <Text selectable style={{ fontSize: 14, color: isDark ? '#FFFFFF' : theme.text }}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Cultural Impact */}
+              <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <MaterialIcons name="palette" size={18} color={themeColor} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Cultural Impact</Text>
+                </View>
+                <Text selectable style={{ fontSize: 15, color: isDark ? 'rgba(255,255,255,0.9)' : theme.text, lineHeight: 24 }}>{character.culturalImpact}</Text>
+              </View>
+
+              {/* Key Verses */}
+              <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: themeColor + '15', borderRadius: 12, padding: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: themeColor + '25', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <MaterialIcons name="menu-book" size={18} color={themeColor} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : theme.text }}>Key Verses</Text>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {character.verses.map((v, i) => (
+                    <View key={i} style={{ backgroundColor: themeColor + '20', borderColor: themeColor + '40', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
+                      <MaterialIcons name="bookmark" size={14} color={themeColor} style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 14, color: isDark ? '#FFFFFF' : theme.text }}>{v}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>

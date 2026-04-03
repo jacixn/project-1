@@ -1024,6 +1024,11 @@ const ThemedApp = () => {
         if (notificationSettings.pushNotifications !== false && notificationSettings.streakReminders) {
           await notificationService.scheduleDailyStreakReminder(20, 0);
         }
+
+        if (notificationSettings.pushNotifications !== false && notificationSettings.reminderNotifications !== false) {
+          await notificationService.rescheduleAllReminderNotifications();
+        }
+
         await notificationService.debugListScheduledNotifications('after-daily-checkin');
 
         console.log('Notifications initialized successfully');
@@ -1142,6 +1147,9 @@ const ThemedApp = () => {
         updateHabitsWidget().catch(() => {});
         updateVisionWidget().catch(() => {});
         updateBodyCompWidget().catch(() => {});
+
+        // Refresh any single-shot notifications that may have fired while backgrounded
+        notificationService.refreshAllScheduledNotifications().catch(() => {});
       }
       if (nextState === 'active' && userId) {
         const now = Date.now();

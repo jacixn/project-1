@@ -101,11 +101,12 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
       }
       await Notifications.cancelScheduledNotificationAsync(schedule.id).catch(() => {});
       
-      // Also cancel any stale workout reminder notifications from previous schedules
+      // Cancel only notifications belonging to THIS schedule (stale day slots)
       try {
         const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
         for (const notif of allScheduled) {
-          if (notif.content?.data?.type === 'workout_reminder') {
+          if (notif.content?.data?.type === 'workout_reminder' &&
+              notif.content?.data?.scheduleId === schedule.id) {
             await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {});
           }
         }
@@ -177,7 +178,7 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
               data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
               sound: soundSetting,
             },
-            trigger: notifyTime,
+            trigger: { type: 'date', date: notifyTime },
           });
         } else {
           console.log(`⏭️ Skipping notification - notify time ${notifyTime.toLocaleString()} is in the past`);

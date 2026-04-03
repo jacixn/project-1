@@ -11,6 +11,8 @@ const FOLDERS_KEY = '@workout_folders';
 const SCHEDULED_WORKOUTS_KEY = '@scheduled_workouts';
 const SPLIT_PLAN_KEY = '@workout_split_plan';
 const USER_EQUIPMENT_KEY = '@user_available_equipment';
+const TRAINING_STYLE_KEY = '@workout_training_style';
+const EXERCISE_COUNT_KEY = '@workout_exercise_count';
 
 // 90 days in milliseconds
 const HISTORY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -623,6 +625,37 @@ class WorkoutService {
     } catch (error) {
       console.warn('[WorkoutService] Error saving user equipment:', error);
     }
+  }
+
+  static async getTrainingStyle() {
+    try {
+      const val = await userStorage.getRaw(TRAINING_STYLE_KEY);
+      return val || 'balanced';
+    } catch (_) {
+      return 'balanced';
+    }
+  }
+
+  static async saveTrainingStyle(style) {
+    try {
+      await userStorage.setRaw(TRAINING_STYLE_KEY, style);
+    } catch (_) {}
+  }
+
+  static async getExerciseCountPref() {
+    try {
+      const val = await userStorage.getRaw(EXERCISE_COUNT_KEY);
+      if (!val) return null;
+      return JSON.parse(val);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static async saveExerciseCountPref(count) {
+    try {
+      await userStorage.setRaw(EXERCISE_COUNT_KEY, JSON.stringify(count));
+    } catch (_) {}
   }
 }
 

@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { hapticFeedback } from '../utils/haptics';
 import { isEmailVerified } from '../services/authService';
-import { checkUploadCooldown } from '../services/profileImageModeration';
+import { checkUploadCooldown, getCachedCustomPhoto } from '../services/profileImageModeration';
 import AvatarDisplay, { PRESET_IDS } from './AvatarDisplay';
 
 const COLUMNS = 5;
@@ -15,17 +15,19 @@ const GAP = 6;
 const BORDER_SPACE = 8;
 const AVATAR_SIZE = Math.floor((SCREEN_WIDTH - 64 - GRID_PADDING * 2 - GAP * (COLUMNS - 1) - BORDER_SPACE * COLUMNS) / COLUMNS);
 
-const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPhoto }) => {
+const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPhoto, cooldownRefreshKey }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const [cooldownDate, setCooldownDate] = useState(null);
   const [checkingCooldown, setCheckingCooldown] = useState(false);
+  const [cachedPhotoUrl, setCachedPhotoUrl] = useState(null);
 
   useEffect(() => {
     if (user?.uid) {
       checkCooldown();
+      loadCachedPhoto();
     }
-  }, [user?.uid]);
+  }, [user?.uid, cooldownRefreshKey]);
 
   const checkCooldown = async () => {
     if (!user?.uid) return;
@@ -37,6 +39,16 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
       // noop
     }
     setCheckingCooldown(false);
+  };
+
+  const loadCachedPhoto = async () => {
+    if (!user?.uid) return;
+    try {
+      const cached = await getCachedCustomPhoto(user.uid);
+      setCachedPhotoUrl(cached?.abandonedAt ? cached.url : null);
+    } catch (e) {
+      // noop
+    }
   };
 
   const handleSelect = (avatarId) => {
@@ -84,6 +96,23 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
           </TouchableOpacity>
         )}
 
+        {/* Cached custom photo (abandoned but within 24h grace period) */}
+        {cachedPhotoUrl && cachedPhotoUrl !== currentAvatar && (
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.buttonPress();
+              if (onAvatarSelected) onAvatarSelected(cachedPhotoUrl);
+            }}
+            style={[styles.option, styles.cachedOption]}
+            activeOpacity={0.7}
+          >
+            <AvatarDisplay profilePicture={cachedPhotoUrl} displayName={displayName} size={AVATAR_SIZE} />
+            <View style={styles.cachedBadge}>
+              <MaterialIcons name="history" size={10} color="#FFF" />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* 25 image presets */}
         {PRESET_IDS.map((id) => (
           <TouchableOpacity
@@ -107,9 +136,9 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
             </Text>
           </View>
         ) : inCooldown ? (
-          <View style={[styles.uploadBanner, { backgroundColor: 'rgba(231,76,60,0.08)' }]}>
-            <MaterialIcons name="schedule" size={18} color="#E74C3C" />
-            <Text style={[styles.uploadBannerText, { color: '#E74C3C' }]}>
+          <View style={[styles.uploadBanner, { backgroundColor: `${theme.primary}10` }]}>
+            <MaterialIcons name="schedule" size={18} color={theme.textSecondary} />
+            <Text style={[styles.uploadBannerText, { color: theme.textSecondary }]}>
               You can upload again on {formatCooldownDate(cooldownDate)}
             </Text>
           </View>
@@ -151,6 +180,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     padding: 2,
+  },
+  cachedOption: {
+    borderColor: 'rgba(99,102,241,0.4)',
+  },
+  cachedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(99,102,241,0.85)',
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   uploadSection: {
     marginTop: 14,

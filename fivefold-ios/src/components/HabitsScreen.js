@@ -31,6 +31,7 @@ import {
   HABIT_COLORS,
 } from '../services/habitsService';
 import notificationService from '../services/notificationService';
+import TimePicker from './TimePicker';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
 
@@ -521,6 +522,7 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
   const [selectedColor, setSelectedColor] = useState('#4CAF50');
   const [reminderHour, setReminderHour] = useState(22);
   const [reminderMinute, setReminderMinute] = useState(0);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const textColor = isDark ? '#fff' : '#111';
   const secondaryColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
@@ -532,6 +534,7 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
       setSelectedColor('#4CAF50');
       setReminderHour(22);
       setReminderMinute(0);
+      setShowTimePicker(false);
     }
   }, [visible]);
 
@@ -552,9 +555,10 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
     return `${h}:${String(reminderMinute).padStart(2, '0')} ${ampm}`;
   };
 
-  const cycleHour = () => {
-    setReminderHour((prev) => (prev + 1) % 24);
-    hapticFeedback.light();
+  const handleTimeSelected = (timeStr) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    setReminderHour(h);
+    setReminderMinute(m);
   };
 
   return (
@@ -643,7 +647,7 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
             {/* Reminder Time */}
             <Text style={[styles.modalLabel, { color: secondaryColor, marginTop: 24 }]}>DAILY REMINDER</Text>
             <TouchableOpacity
-              onPress={cycleHour}
+              onPress={() => setShowTimePicker(true)}
               style={[styles.timePickerBtn, {
                 backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                 borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
@@ -654,6 +658,25 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
               <Text style={[styles.timePickerHint, { color: secondaryColor }]}>Tap to change</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          <TimePicker
+            visible={showTimePicker}
+            onClose={() => setShowTimePicker(false)}
+            onTimeSelected={handleTimeSelected}
+            currentTime={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
+            title="Reminder Time"
+            subtitle="When should we remind you?"
+            presets={[
+              { time: '06:00', label: 'Morning', desc: '6:00 AM' },
+              { time: '07:30', label: 'Breakfast', desc: '7:30 AM' },
+              { time: '12:00', label: 'Lunch', desc: '12:00 PM' },
+              { time: '15:00', label: 'Afternoon', desc: '3:00 PM' },
+              { time: '18:00', label: 'Evening', desc: '6:00 PM' },
+              { time: '20:00', label: 'Night', desc: '8:00 PM' },
+              { time: '21:00', label: 'Bedtime', desc: '9:00 PM' },
+              { time: '22:00', label: 'Late Night', desc: '10:00 PM' },
+            ]}
+          />
         </KeyboardAvoidingView>
       </View>
     </Modal>

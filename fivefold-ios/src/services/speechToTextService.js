@@ -1,5 +1,6 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { AppState } from 'react-native';
 import { GOOGLE_TTS_CONFIG } from '../../googleTts.config';
 import aiRateLimiter from '../utils/aiRateLimiter';
 
@@ -86,6 +87,10 @@ class SpeechToTextService {
 
   async _doStart() {
     try {
+      if (AppState.currentState !== 'active') {
+        return { success: false, error: 'App is not in the foreground.' };
+      }
+
       if (!this.isAvailable()) {
         return { success: false, error: 'Speech service not configured.' };
       }
@@ -105,6 +110,10 @@ class SpeechToTextService {
         if (this._cancelled) return { success: false, cancelled: true };
       }
 
+      if (AppState.currentState !== 'active') {
+        return { success: false, error: 'App moved to background.' };
+      }
+
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -118,12 +127,18 @@ class SpeechToTextService {
 
       for (let attempt = 0; attempt < 3; attempt++) {
         if (this._cancelled) return { success: false, cancelled: true };
+        if (AppState.currentState !== 'active') {
+          return { success: false, error: 'App moved to background.' };
+        }
         try {
           const result = await Audio.Recording.createAsync(RECORDING_OPTIONS);
           recording = result.recording;
           break;
         } catch (err) {
           lastError = err;
+          if (AppState.currentState !== 'active') {
+            return { success: false, error: 'App moved to background.' };
+          }
           console.log(`[STT] createAsync attempt ${attempt + 1} failed:`, err.message);
           await this._releaseNativeRecorder();
           await new Promise(r => setTimeout(r, 100 * (attempt + 1)));

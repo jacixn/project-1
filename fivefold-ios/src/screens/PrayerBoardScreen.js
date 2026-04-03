@@ -28,6 +28,10 @@ import { Accelerometer } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as FileSystem from 'expo-file-system';
+import { uploadPrayerBoardImage } from '../services/storageService';
+import { pushToCloud } from '../services/userSyncService';
+import { auth } from '../config/firebase';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -308,6 +312,28 @@ const FONT_STYLES = [
   { id: 'rounded', label: 'Round', fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : undefined },
 ];
 
+const TITLE_FONTS = [
+  { id: 'system', label: 'Clean', fontFamily: Platform.OS === 'ios' ? 'System' : undefined, fontWeight: '800' },
+  { id: 'serif', label: 'Serif', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '700' },
+  { id: 'script', label: 'Script', fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : undefined, fontWeight: '700' },
+  { id: 'mono', label: 'Mono', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontWeight: '700' },
+  { id: 'rounded', label: 'Round', fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : undefined, fontWeight: '700' },
+  { id: 'condensed', label: 'Narrow', fontFamily: Platform.OS === 'ios' ? 'AvenirNextCondensed-Bold' : undefined, fontWeight: '700' },
+];
+
+const TITLE_SIZES = [
+  { id: 'small', label: 'S', size: 14 },
+  { id: 'medium', label: 'M', size: 20 },
+  { id: 'large', label: 'L', size: 28 },
+  { id: 'xlarge', label: 'XL', size: 38 },
+];
+
+const TITLE_POSITIONS = [
+  { id: 'left', label: 'Left', align: 'flex-start' },
+  { id: 'center', label: 'Center', align: 'center' },
+  { id: 'right', label: 'Right', align: 'flex-end' },
+];
+
 const CARD_BORDERS = [
   { id: 'none', label: 'None' },
   { id: 'thin', label: 'Thin', width: 1, style: 'solid' },
@@ -381,6 +407,7 @@ const darkenHex = (hex, amount = 0.35) => {
 
 // ─── Draggable Board Item ───
 const DraggableItem = ({ item, onUpdate, onDelete, onTap, isDeleteMode, parallaxX, parallaxY }) => {
+  const [imgBroken, setImgBroken] = useState(false);
   const posX = useSharedValue(item.x);
   const posY = useSharedValue(item.y);
   const savedX = useSharedValue(item.x);
@@ -586,9 +613,15 @@ const DraggableItem = ({ item, onUpdate, onDelete, onTap, isDeleteMode, parallax
         imageStyles.borderRadius = 6;
       }
 
+      if (!item.content || imgBroken) return null;
+
       return (
         <View style={[{ width: sz, height: photoFrame === 'polaroid' ? sz + 18 : sz }, frameStyles]}>
-          <Image source={{ uri: item.content }} style={imageStyles} />
+          <Image
+            source={{ uri: item.content }}
+            style={imageStyles}
+            onError={() => setImgBroken(true)}
+          />
           {isDeleteMode && (
             <View style={styles.deleteBadge}>
               <MaterialIcons name="close" size={14} color="#fff" />
@@ -678,6 +711,8 @@ const PrayerBoardScreen = ({ navigation }) => {
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showBoardSwitcher, setShowBoardSwitcher] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [chromeHidden, setChromeHidden] = useState(false);
+  const [showTitleEditor, setShowTitleEditor] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [stickerTab, setStickerTab] = useState('faith');
 
@@ -772,7 +807,10 @@ const PrayerBoardScreen = ({ navigation }) => {
       try {
         const savedBoards = await userStorage.get(BOARDS_STORAGE_KEY);
         if (savedBoards && Array.isArray(savedBoards) && savedBoards.length > 0) {
-          const migrated = savedBoards.map(board => {
+          let needsSave = false;
+          const migrated = [];
+          for (const rawBoard of savedBoards) {
+            const board = { ...rawBoard };
             if (!board.answeredPrayers) board.answeredPrayers = [];
             const oldPrayers = board.items?.filter(it => it.type === 'prayer') || [];
             if (oldPrayers.length > 0) {
@@ -795,10 +833,57 @@ const PrayerBoardScreen = ({ navigation }) => {
               };
               board.items = [...board.items.filter(it => it.type !== 'prayer'), folder];
             }
-            return board;
-          });
+
+            // Remove photo items with broken/missing content (each check is individually safe)
+            if (board.items) {
+              const cleanedItems = [];
+              for (const item of board.items) {
+                if (item.type === 'photo') {
+                  if (!item.content) {
+                    console.log('[PrayerBoard] Removing photo with no content:', item.id);
+                    needsSave = true;
+                    continue;
+                  }
+                  if (item.content.startsWith('file://')) {
+                    try {
+                      const info = await FileSystem.getInfoAsync(item.content);
+                      if (!info.exists) {
+                        console.log('[PrayerBoard] Removing photo with missing file:', item.id);
+                        needsSave = true;
+                        continue;
+                      }
+                    } catch (fsErr) {
+                      console.log('[PrayerBoard] Cannot check photo file, keeping item:', item.id, fsErr.message);
+                    }
+                  }
+                }
+                cleanedItems.push(item);
+              }
+              if (cleanedItems.length !== board.items.length) {
+                board.items = cleanedItems;
+              }
+            }
+
+            // Clear broken background images
+            if (board.backgroundImage?.startsWith('file://')) {
+              try {
+                const bgInfo = await FileSystem.getInfoAsync(board.backgroundImage);
+                if (!bgInfo.exists) {
+                  board.backgroundImage = null;
+                  needsSave = true;
+                }
+              } catch (fsErr) {
+                console.log('[PrayerBoard] Cannot check bg file, keeping reference:', fsErr.message);
+              }
+            }
+
+            migrated.push(board);
+          }
           setBoards(migrated);
-          await userStorage.set(BOARDS_STORAGE_KEY, migrated);
+          if (needsSave) {
+            await userStorage.set(BOARDS_STORAGE_KEY, migrated);
+            console.log('[PrayerBoard] Cleaned up broken image references on load');
+          }
           return;
         }
         const oldData = await userStorage.get(OLD_STORAGE_KEY);
@@ -815,9 +900,86 @@ const PrayerBoardScreen = ({ navigation }) => {
     })();
   }, []);
 
+  // One-time migration: upload any local file:// URIs to Firebase Storage
+  const migrationRanRef = useRef(false);
+  useEffect(() => {
+    if (migrationRanRef.current || boards.length === 0) return;
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const hasLocalUris = boards.some(b =>
+      (b.backgroundImage && b.backgroundImage.startsWith('file://')) ||
+      b.items?.some(it => it.type === 'photo' && it.content?.startsWith('file://'))
+    );
+    if (!hasLocalUris) return;
+    migrationRanRef.current = true;
+
+    (async () => {
+      console.log('[PrayerBoard] Migrating local images to cloud...');
+      let updated = [...boards];
+      let changed = false;
+
+      for (let bi = 0; bi < updated.length; bi++) {
+        const board = { ...updated[bi], items: [...(updated[bi].items || [])] };
+
+        if (board.backgroundImage && board.backgroundImage.startsWith('file://')) {
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(board.backgroundImage);
+            if (!fileInfo.exists) {
+              console.warn('[PrayerBoard] Removing broken bg reference:', board.backgroundImage);
+              board.backgroundImage = null;
+              changed = true;
+            } else {
+              try {
+                const url = await uploadPrayerBoardImage(userId, board.backgroundImage, `bg_${board.id}`);
+                board.backgroundImage = url;
+                changed = true;
+              } catch (e) { console.warn('[PrayerBoard] Migration: bg upload failed:', e.message); }
+            }
+          } catch (fsErr) {
+            console.warn('[PrayerBoard] Migration: bg file check failed:', fsErr.message);
+          }
+        }
+
+        for (let ii = 0; ii < board.items.length; ii++) {
+          const item = board.items[ii];
+          if (item && item.type === 'photo' && item.content?.startsWith('file://')) {
+            try {
+              const fileInfo = await FileSystem.getInfoAsync(item.content);
+              if (!fileInfo.exists) {
+                console.warn('[PrayerBoard] Removing broken photo:', item.id);
+                board.items[ii] = null;
+                changed = true;
+              } else {
+                try {
+                  const url = await uploadPrayerBoardImage(userId, item.content, `photo_${item.id}`);
+                  board.items[ii] = { ...item, content: url };
+                  changed = true;
+                } catch (e) { console.warn('[PrayerBoard] Migration: photo upload failed:', e.message); }
+              }
+            } catch (fsErr) {
+              console.warn('[PrayerBoard] Migration: photo file check failed:', fsErr.message);
+            }
+          }
+        }
+
+        board.items = board.items.filter(Boolean);
+        updated[bi] = board;
+      }
+
+      if (changed) {
+        setBoards(updated);
+        await userStorage.set(BOARDS_STORAGE_KEY, updated);
+        pushToCloud('prayerBoards', updated, 1000);
+        console.log('[PrayerBoard] Migration complete — cleaned up broken refs and uploaded valid images');
+      }
+    })();
+  }, [boards]);
+
   const saveBoards = useCallback(async (data) => {
     try {
       await userStorage.set(BOARDS_STORAGE_KEY, data);
+      pushToCloud('prayerBoards', data, 3000);
     } catch (e) {
       console.log('Error saving prayer boards:', e);
     }
@@ -1108,9 +1270,10 @@ const PrayerBoardScreen = ({ navigation }) => {
     const randomX = 40 + Math.random() * (CANVAS_WIDTH - 120);
     const randomY = 120 + Math.random() * (CANVAS_HEIGHT - 300);
     const randomRotation = Math.floor(Math.random() * 21) - 10;
+    const imageId = generateId();
 
     const newItem = {
-      id: generateId(),
+      id: imageId,
       type: 'photo',
       content: uri,
       photoSize: size,
@@ -1127,7 +1290,21 @@ const PrayerBoardScreen = ({ navigation }) => {
       ...board,
       items: [...board.items, newItem],
     }));
-  }, [currentBoard, updateCurrentBoard]);
+
+    const userId = auth.currentUser?.uid;
+    if (userId && uri.startsWith('file://')) {
+      uploadPrayerBoardImage(userId, uri, `photo_${imageId}`).then(cloudUrl => {
+        setBoards(prev => {
+          const next = prev.map(b => ({
+            ...b,
+            items: b.items.map(it => it.id === imageId ? { ...it, content: cloudUrl } : it),
+          }));
+          saveBoards(next);
+          return next;
+        });
+      }).catch(err => console.warn('[PrayerBoard] Photo upload failed:', err.message));
+    }
+  }, [currentBoard, updateCurrentBoard, saveBoards]);
 
   const importPhoto = useCallback(async () => {
     try {
@@ -1174,18 +1351,34 @@ const PrayerBoardScreen = ({ navigation }) => {
         quality: 0.8,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
+        const localUri = result.assets[0].uri;
         hapticFeedback.success();
         updateCurrentBoard(board => ({
           ...board,
           background: 'custom',
-          backgroundImage: result.assets[0].uri,
+          backgroundImage: localUri,
         }));
         setShowBgPicker(false);
+
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const bgId = `bg_${generateId()}`;
+          uploadPrayerBoardImage(userId, localUri, bgId).then(cloudUrl => {
+            setBoards(prev => {
+              const next = prev.map((b, i) => i === currentBoardIndex
+                ? { ...b, backgroundImage: cloudUrl }
+                : b
+              );
+              saveBoards(next);
+              return next;
+            });
+          }).catch(err => console.warn('[PrayerBoard] Background upload failed:', err.message));
+        }
       }
     } catch (e) {
       console.log('Error importing background:', e);
     }
-  }, [updateCurrentBoard]);
+  }, [updateCurrentBoard, currentBoardIndex, saveBoards]);
 
   const changeBackground = useCallback((bgId) => {
     hapticFeedback.light();
@@ -1351,17 +1544,9 @@ const PrayerBoardScreen = ({ navigation }) => {
             </Animated.View>
           )}
 
-          {/* Big title visible during save */}
-          {isSaving && (
-            <View style={[styles.saveTitleContainer, { paddingTop: insets.top + 20 }]}>
-              <Text style={styles.saveTitle}>{currentBoard.name}</Text>
-            </View>
-          )}
-
           {/* Header */}
-          {!isSaving && (
           <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-            <View style={styles.headerLeft}>
+            <View style={[styles.headerLeft, { opacity: (chromeHidden || isSaving) ? 0 : 1 }]} pointerEvents={(chromeHidden || isSaving) ? 'none' : 'auto'}>
               <TouchableOpacity
                 style={styles.headerBtn}
                 onPress={() => navigation.goBack()}
@@ -1370,39 +1555,75 @@ const PrayerBoardScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={() => { if (boards.length > 1) { hapticFeedback.light(); setShowBoardSwitcher(true); } else { renameCurrentBoard(); } }}
-              activeOpacity={0.7}
-              style={styles.headerCenter}
-            >
-              <Text style={styles.headerTitle} numberOfLines={1}>{currentBoard.name}</Text>
-              {boards.length > 1 && (
-                <View style={styles.headerSubRow}>
-                  <Text style={styles.headerBoardCount}>{currentBoardIndex + 1} of {boards.length}</Text>
-                  <MaterialIcons name="unfold-more" size={14} color="rgba(255,255,255,0.5)" />
-                </View>
-              )}
-            </TouchableOpacity>
+            {(() => {
+              const tf = TITLE_FONTS.find(f => f.id === currentBoard.titleFont) || TITLE_FONTS[0];
+              const ts = TITLE_SIZES.find(s => s.id === currentBoard.titleSize) || TITLE_SIZES[1];
+              const tp = TITLE_POSITIONS.find(p => p.id === currentBoard.titlePosition) || TITLE_POSITIONS[1];
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (chromeHidden) return;
+                    if (boards.length > 1) { hapticFeedback.light(); setShowBoardSwitcher(true); } else { renameCurrentBoard(); }
+                  }}
+                  onLongPress={() => { hapticFeedback.medium(); setShowTitleEditor(true); }}
+                  activeOpacity={(chromeHidden || isSaving) ? 1 : 0.7}
+                  style={[styles.headerCenter, { alignItems: tp.align }]}
+                >
+                  <Text
+                    style={[
+                      styles.headerTitle,
+                      {
+                        fontSize: ts.size,
+                        fontFamily: tf.id === 'system' ? undefined : tf.fontFamily,
+                        fontWeight: tf.fontWeight,
+                        textAlign: tp.id,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {currentBoard.name}
+                  </Text>
+                  {!chromeHidden && !isSaving && boards.length > 1 && (
+                    <View style={styles.headerSubRow}>
+                      <Text style={styles.headerBoardCount}>{currentBoardIndex + 1} of {boards.length}</Text>
+                      <MaterialIcons name="unfold-more" size={14} color="rgba(255,255,255,0.5)" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
 
-            <View style={styles.headerRight}>
+            <View style={[styles.headerRight, { opacity: isSaving ? 0 : 1 }]} pointerEvents={isSaving ? 'none' : 'auto'}>
+              <View style={{ opacity: chromeHidden ? 0 : 1, flexDirection: 'row', gap: 6 }} pointerEvents={chromeHidden ? 'none' : 'auto'}>
+                <TouchableOpacity
+                  style={styles.headerBtn}
+                  onPress={addNewBoard}
+                >
+                  <MaterialIcons name="add" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.headerBtn, isDeleteMode && styles.headerBtnActive]}
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setIsDeleteMode(!isDeleteMode);
+                  }}
+                >
+                  <MaterialIcons name={isDeleteMode ? 'check' : 'delete-outline'} size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
                 style={styles.headerBtn}
-                onPress={addNewBoard}
-              >
-                <MaterialIcons name="add" size={24} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.headerBtn, isDeleteMode && styles.headerBtnActive]}
                 onPress={() => {
                   hapticFeedback.light();
-                  setIsDeleteMode(!isDeleteMode);
+                  if (isDeleteMode) setIsDeleteMode(false);
+                  setChromeHidden(prev => !prev);
                 }}
+                activeOpacity={0.7}
               >
-                <MaterialIcons name={isDeleteMode ? 'check' : 'delete-outline'} size={22} color="#fff" />
+                <MaterialIcons name={chromeHidden ? 'visibility' : 'visibility-off'} size={18} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
-          )}
 
           {/* Canvas with items */}
           <View style={styles.canvas}>
@@ -1442,8 +1663,7 @@ const PrayerBoardScreen = ({ navigation }) => {
           </View>
 
           {/* Bottom Toolbar */}
-          {!isSaving && (
-          <View style={[styles.toolbar, { paddingBottom: insets.bottom + 8 }]}>
+          <View style={[styles.toolbar, { paddingBottom: insets.bottom + 8, opacity: (chromeHidden || isSaving) ? 0 : 1 }]} pointerEvents={(chromeHidden || isSaving) ? 'none' : 'auto'}>
             <TouchableOpacity
               style={styles.toolBtn}
               onPress={() => { hapticFeedback.light(); openCreateFolder(); }}
@@ -1494,7 +1714,72 @@ const PrayerBoardScreen = ({ navigation }) => {
               <Text style={styles.toolLabel}>Save</Text>
             </TouchableOpacity>
           </View>
-          )}
+
+          {/* Title Style Editor */}
+          <Modal visible={showTitleEditor} transparent animationType="fade">
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowTitleEditor(false)}
+            >
+              <View style={[styles.titleEditorSheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', paddingBottom: insets.bottom + 20 }]}>
+                <TouchableOpacity activeOpacity={1}>
+                  <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000', marginBottom: 16 }]}>Title Style</Text>
+
+                  <Text style={[styles.titleEditorLabel, { color: isDark ? '#aaa' : '#666' }]}>Font</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                    {TITLE_FONTS.map(f => {
+                      const active = (currentBoard.titleFont || 'system') === f.id;
+                      return (
+                        <TouchableOpacity
+                          key={f.id}
+                          style={[styles.titleEditorChip, active && styles.titleEditorChipActive]}
+                          onPress={() => { hapticFeedback.light(); updateCurrentBoard(b => ({ ...b, titleFont: f.id })); }}
+                        >
+                          <Text style={[
+                            styles.titleEditorChipText,
+                            { fontFamily: f.id === 'system' ? undefined : f.fontFamily, color: active ? '#fff' : (isDark ? '#ddd' : '#333') },
+                          ]}>{f.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <Text style={[styles.titleEditorLabel, { color: isDark ? '#aaa' : '#666' }]}>Size</Text>
+                  <View style={styles.titleEditorRow}>
+                    {TITLE_SIZES.map(s => {
+                      const active = (currentBoard.titleSize || 'medium') === s.id;
+                      return (
+                        <TouchableOpacity
+                          key={s.id}
+                          style={[styles.titleEditorChip, active && styles.titleEditorChipActive, { flex: 1 }]}
+                          onPress={() => { hapticFeedback.light(); updateCurrentBoard(b => ({ ...b, titleSize: s.id })); }}
+                        >
+                          <Text style={[styles.titleEditorChipText, { color: active ? '#fff' : (isDark ? '#ddd' : '#333') }]}>{s.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.titleEditorLabel, { color: isDark ? '#aaa' : '#666', marginTop: 16 }]}>Position</Text>
+                  <View style={styles.titleEditorRow}>
+                    {TITLE_POSITIONS.map(p => {
+                      const active = (currentBoard.titlePosition || 'center') === p.id;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={[styles.titleEditorChip, active && styles.titleEditorChipActive, { flex: 1 }]}
+                          onPress={() => { hapticFeedback.light(); updateCurrentBoard(b => ({ ...b, titlePosition: p.id })); }}
+                        >
+                          <Text style={[styles.titleEditorChipText, { color: active ? '#fff' : (isDark ? '#ddd' : '#333') }]}>{p.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Board Switcher */}
           <Modal visible={showBoardSwitcher} transparent animationType="fade">
@@ -2280,14 +2565,11 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   saveTitle: {
-    fontSize: 32,
-    fontWeight: '900',
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
     letterSpacing: 0.5,
-    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -2314,7 +2596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   headerLeft: {
-    width: 84,
+    width: 130,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -2340,7 +2622,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
   },
   headerRight: {
-    width: 84,
+    width: 130,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
@@ -2677,6 +2959,39 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  titleEditorSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  titleEditorLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  titleEditorRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  titleEditorChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(128,128,128,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  titleEditorChipActive: {
+    backgroundColor: '#007AFF',
+  },
+  titleEditorChipText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   boardSwitcherItem: {
     flexDirection: 'row',

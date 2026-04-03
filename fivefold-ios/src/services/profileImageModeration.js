@@ -3,7 +3,7 @@
  *
  * Scans user-uploaded profile pictures using Gemini Vision API
  * to ensure they are appropriate for a family-friendly Bible app.
- * Implements a 7-day cooldown after rejection to prevent spam.
+ * Implements a cooldown (expires midnight next day) after each upload to prevent spam.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,8 +18,6 @@ try {
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const MODERATION_PROMPT = `You are a content moderation system for a family-friendly Bible app. A user wants to use this image as their profile picture.
 
@@ -79,7 +77,7 @@ function extractResponseText(result) {
 }
 
 /**
- * Check if the user is in the 7-day upload cooldown.
+ * Check if the user is in the upload cooldown (expires midnight next day).
  * @returns {{ allowed: boolean, retryDate: Date|null }}
  */
 export async function checkUploadCooldown(userId) {
@@ -87,16 +85,15 @@ export async function checkUploadCooldown(userId) {
     const raw = await AsyncStorage.getItem(`pfp_rejected_at_${userId}`);
     if (!raw) return { allowed: true, retryDate: null };
 
-    const rejectedAt = parseInt(raw, 10);
-    const retryAt = rejectedAt + COOLDOWN_MS;
+    const expiresAt = parseInt(raw, 10);
     const now = Date.now();
 
-    if (now >= retryAt) {
+    if (now >= expiresAt) {
       await AsyncStorage.removeItem(`pfp_rejected_at_${userId}`);
       return { allowed: true, retryDate: null };
     }
 
-    return { allowed: false, retryDate: new Date(retryAt) };
+    return { allowed: false, retryDate: new Date(expiresAt) };
   } catch (e) {
     console.warn('[ProfileModeration] Failed to check cooldown:', e);
     return { allowed: true, retryDate: null };
@@ -104,13 +101,77 @@ export async function checkUploadCooldown(userId) {
 }
 
 /**
- * Store a cooldown after a rejected upload.
+ * Store a cooldown that expires at midnight (00:00) the next day.
  */
 export async function setUploadCooldown(userId) {
   try {
-    await AsyncStorage.setItem(`pfp_rejected_at_${userId}`, String(Date.now()));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    await AsyncStorage.setItem(`pfp_rejected_at_${userId}`, String(tomorrow.getTime()));
   } catch (e) {
     console.warn('[ProfileModeration] Failed to set cooldown:', e);
+  }
+}
+
+// ── Cached custom photo (24-hour grace period) ──
+
+const PHOTO_CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+export async function cacheCustomPhoto(userId, url) {
+  try {
+    await AsyncStorage.setItem(
+      `pfp_cached_photo_${userId}`,
+      JSON.stringify({ url, abandonedAt: null })
+    );
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to cache photo:', e);
+  }
+}
+
+export async function abandonCachedPhoto(userId) {
+  try {
+    const raw = await AsyncStorage.getItem(`pfp_cached_photo_${userId}`);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data.url) return;
+    data.abandonedAt = Date.now();
+    await AsyncStorage.setItem(`pfp_cached_photo_${userId}`, JSON.stringify(data));
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to abandon cached photo:', e);
+  }
+}
+
+export async function getCachedCustomPhoto(userId) {
+  try {
+    const raw = await AsyncStorage.getItem(`pfp_cached_photo_${userId}`);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.url) return null;
+
+    if (data.abandonedAt && Date.now() - data.abandonedAt >= PHOTO_CACHE_EXPIRY_MS) {
+      await AsyncStorage.removeItem(`pfp_cached_photo_${userId}`);
+      return null;
+    }
+
+    return data;
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to get cached photo:', e);
+    return null;
+  }
+}
+
+export async function restoreCachedPhoto(userId) {
+  try {
+    const raw = await AsyncStorage.getItem(`pfp_cached_photo_${userId}`);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    data.abandonedAt = null;
+    await AsyncStorage.setItem(`pfp_cached_photo_${userId}`, JSON.stringify(data));
+    return data.url;
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to restore cached photo:', e);
+    return null;
   }
 }
 

@@ -458,7 +458,7 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
       console.log('[Delete] Cloud profile cleanup:', e.message);
     }
 
-    // ── Step 5: Delete profile pictures from Storage ──
+    // ── Step 5: Delete profile pictures and prayer board images from Storage ──
     progress(5);
     try {
       if (storage) {
@@ -468,6 +468,13 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
           await deleteObject(item);
         }
         console.log('[Delete] Deleted', list.items.length, 'profile pictures');
+
+        const prayerBoardRef = ref(storage, `prayer-boards/${uid}`);
+        const pbList = await listAll(prayerBoardRef);
+        for (const item of pbList.items) {
+          await deleteObject(item);
+        }
+        console.log('[Delete] Deleted', pbList.items.length, 'prayer board images');
       }
     } catch (e) {
       console.log('[Delete] Storage cleanup:', e.message);

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,62 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { getRemindersForDay, formatTime, DAY_SHORT } from '../services/reminderService';
+
+const AnimatedCheck = ({ done, onPress }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const bgScale = useRef(new Animated.Value(1)).current;
+  const tappedRef = useRef(false);
+
+  useEffect(() => {
+    if (done) tappedRef.current = true;
+  }, [done]);
+
+  const handlePress = useCallback(() => {
+    if (tappedRef.current || done) return;
+    tappedRef.current = true;
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 0.15, duration: 100, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1.25, tension: 300, friction: 6, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, tension: 200, friction: 10, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(rotate, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(rotate, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(bgScale, { toValue: 1.6, duration: 250, useNativeDriver: true }),
+        Animated.timing(bgScale, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]),
+    ]).start();
+
+    onPress?.();
+  }, [done, onPress, scale, rotate, bgScale]);
+
+  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      disabled={done}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      activeOpacity={0.7}
+      style={styles.checkOuter}
+    >
+      <Animated.View style={[
+        styles.checkPulse,
+        { backgroundColor: done ? '#4CAF5020' : '#FF3B3020', transform: [{ scale: bgScale }] },
+      ]} />
+      <Animated.View style={{ transform: [{ scale }, { rotate: spin }] }}>
+        <View style={[styles.checkDone, { backgroundColor: done ? '#4CAF5020' : '#FF3B3020' }]}>
+          <MaterialIcons name="check-circle" size={28} color={done ? '#4CAF50' : '#FF3B30'} />
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const MAX_VISIBLE = 3;
 
@@ -39,8 +95,10 @@ const RemindersCard = ({
   const todayReminders = getRemindersForDay(reminders || [], today, dateStr);
   const visibleReminders = todayReminders.slice(0, MAX_VISIBLE);
   const remaining = todayReminders.length - MAX_VISIBLE;
-  const completedCount = todayReminders.filter(r => r.completions?.[dateStr]).length;
+  const completedCount = todayReminders.filter(r => r.completions?.[dateStr] || pendingIds.has(r.id)).length;
 
+  const [pendingIds, setPendingIds] = useState(new Set());
+  useEffect(() => { setPendingIds(new Set()); }, [reminders]);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
 
@@ -110,7 +168,7 @@ const RemindersCard = ({
 
       {/* Reminder Rows */}
       {visibleReminders.map((reminder) => {
-        const isCompleted = reminder.completions?.[dateStr];
+        const done = !!reminder.completions?.[dateStr] || pendingIds.has(reminder.id);
         const rColor = reminder.color || '#3B82F6';
         return (
           <BlurView
@@ -119,23 +177,17 @@ const RemindersCard = ({
             tint={isDark ? 'dark' : 'light'}
             style={styles.reminderRow}
           >
-            {isCompleted ? (
-              <View style={[styles.checkDone, { backgroundColor: rColor + '20' }]}>
-                <MaterialIcons name="check-circle" size={16} color={rColor} />
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.success();
-                  const pts = 10 + Math.floor(Math.random() * 11);
-                  showFloatingPoints(pts, rColor);
-                  onPointsEarned?.(pts);
-                  onComplete?.(reminder, dateStr);
-                }}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={[styles.reminderDot, { backgroundColor: rColor }]}
-              />
-            )}
+            <AnimatedCheck
+              done={done}
+              onPress={() => {
+                setPendingIds(prev => new Set(prev).add(reminder.id));
+                hapticFeedback.success();
+                const pts = 10 + Math.floor(Math.random() * 11);
+                showFloatingPoints(pts, rColor);
+                onPointsEarned?.(pts);
+                onComplete?.(reminder, dateStr);
+              }}
+            />
             <View style={{ flex: 1 }} />
             <View style={[styles.iconBubble, { backgroundColor: rColor + '20' }]}>
               <MaterialIcons name={reminder.icon || 'notifications'} size={16} color={rColor} />
@@ -145,7 +197,7 @@ const RemindersCard = ({
                 style={[
                   styles.reminderName,
                   { color: textColor, ...textOutlineStyle },
-                  isCompleted && { textDecorationLine: 'line-through', opacity: 0.5 },
+                  done && { textDecorationLine: 'line-through', opacity: 0.5 },
                 ]}
                 numberOfLines={1}
               >
@@ -257,6 +309,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  checkOuter: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkPulse: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   checkDone: {
     width: 32,

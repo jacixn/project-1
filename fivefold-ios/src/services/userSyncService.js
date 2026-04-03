@@ -949,7 +949,7 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log(`[Sync] Merged visions: ${merged?.length || 0} total`);
     }
 
-    // Reminders — merge by ID, keep local-only additions
+    // Reminders — merge by ID, preserve local completions
     if (cloudData.user_reminders && cloudData.user_reminders.reminders && Array.isArray(cloudData.user_reminders.reminders)) {
       const localStr = await userStorage.getRaw('fivefold_user_reminders');
       const localData = localStr ? JSON.parse(localStr) : { reminders: [] };
@@ -959,11 +959,12 @@ export const downloadAndMergeCloudData = async (userId) => {
       localReminders.forEach(r => { if (r.id) localMap.set(r.id, r); });
 
       cloudData.user_reminders.reminders.forEach(r => {
-        if (r.id) localMap.set(r.id, r);
-      });
-
-      localReminders.forEach(r => {
-        if (r.id && !cloudData.user_reminders.reminders.find(c => c.id === r.id)) {
+        if (!r.id) return;
+        const local = localMap.get(r.id);
+        if (local) {
+          const mergedCompletions = { ...(r.completions || {}), ...(local.completions || {}) };
+          localMap.set(r.id, { ...r, completions: mergedCompletions });
+        } else {
           localMap.set(r.id, r);
         }
       });
@@ -1004,6 +1005,12 @@ export const downloadAndMergeCloudData = async (userId) => {
         await userStorage.setRaw('@workout_split_plan', JSON.stringify(cloudData.splitPlan));
         console.log('[Sync] Downloaded workout split plan from cloud');
       }
+    }
+
+    // Prayer boards — cloud wins (contains cloud image URLs that work on any device)
+    if (cloudData.prayerBoards && Array.isArray(cloudData.prayerBoards) && cloudData.prayerBoards.length > 0) {
+      await userStorage.set('prayerBoards_list', cloudData.prayerBoards);
+      console.log(`[Sync] Downloaded ${cloudData.prayerBoards.length} prayer boards from cloud`);
     }
 
     return {
@@ -1622,6 +1629,13 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including daily verse data in upload');
     }
     
+    // Prayer boards (full board data with cloud image URLs)
+    const prayerBoardsData = await userStorage.get('prayerBoards_list');
+    if (prayerBoardsData && Array.isArray(prayerBoardsData) && prayerBoardsData.length > 0) {
+      updateData.prayerBoards = prayerBoardsData;
+      console.log(`[Sync] Including prayer boards (${prayerBoardsData.length} boards) in upload`);
+    }
+
     // Seasonal points
     const seasonalPointsStr = await userStorage.getRaw('seasonal_points');
     const currentSeasonStr = await userStorage.getRaw('current_season');

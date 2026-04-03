@@ -53,7 +53,7 @@ import AchievementsModal from '../components/AchievementsModal';
 import AvatarDisplay from '../components/AvatarDisplay';
 import AvatarPicker from '../components/AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
-import { moderateProfileImage, setUploadCooldown } from '../services/profileImageModeration';
+import { moderateProfileImage, setUploadCooldown, cacheCustomPhoto, abandonCachedPhoto, restoreCachedPhoto } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import NotificationSettings from '../components/NotificationSettings';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
@@ -303,6 +303,7 @@ const ProfileTab = () => {
       setProfilePictureRaw(uri);
     }
   }, []);
+  const [uploadCooldownKey, setUploadCooldownKey] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
@@ -2492,7 +2493,20 @@ const ProfileTab = () => {
   const handleAvatarSelected = async (avatarId) => {
     try {
       const value = avatarId || '';
+      const oldValue = profilePicture || '';
+      const isOldCustom = oldValue.startsWith('http://') || oldValue.startsWith('https://');
+      const isNewCustom = value.startsWith('http://') || value.startsWith('https://');
+
+      if (isOldCustom && !isNewCustom && user?.uid) {
+        await abandonCachedPhoto(user.uid).catch(() => {});
+      }
+
+      if (isNewCustom && user?.uid) {
+        await restoreCachedPhoto(user.uid).catch(() => {});
+      }
+
       setProfilePicture(value);
+      setUploadCooldownKey(prev => prev + 1);
       hapticFeedback.buttonPress();
 
       if (user) {
@@ -2555,6 +2569,7 @@ const ProfileTab = () => {
       if (!approved) {
         setProfilePicture(previousPicture);
         await setUploadCooldown(user.uid);
+        setUploadCooldownKey(prev => prev + 1);
         hapticFeedback.error();
         Alert.alert(
           'Image Not Accepted',
@@ -2594,8 +2609,14 @@ const ProfileTab = () => {
       profile.profilePicture = downloadURL;
       await userStorage.setRaw('userProfile', JSON.stringify(profile));
       setUserProfile(profile);
+
+      await cacheCustomPhoto(user.uid, downloadURL);
+      await setUploadCooldown(user.uid);
+      setUploadCooldownKey(prev => prev + 1);
     } catch (error) {
       console.error('[Upload] Failed:', error);
+      await setUploadCooldown(user.uid).catch(() => {});
+      setUploadCooldownKey(prev => prev + 1);
       Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
     }
   };
@@ -3460,6 +3481,7 @@ const ProfileTab = () => {
                 displayName={userName}
                 onAvatarSelected={handleAvatarSelected}
                 onUploadPhoto={handleUploadPhoto}
+                cooldownRefreshKey={uploadCooldownKey}
               />
             </View>
 

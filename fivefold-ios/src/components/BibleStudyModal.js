@@ -10,6 +10,7 @@ import {
   Image,
   StatusBar,
   Animated,
+  Easing,
   Dimensions,
   RefreshControl,
   ActivityIndicator,
@@ -31,7 +32,7 @@ import QuizGames from './QuizGames';
 import AudioLearning from './AudioLearning';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
-const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) => {
+const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index, entranceOpacity, entranceTranslateY }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -55,7 +56,8 @@ const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index }) =>
   return (
     <Animated.View
       style={{
-        transform: [{ scale: scaleAnim }],
+        transform: [{ scale: scaleAnim }, ...(entranceTranslateY ? [{ translateY: entranceTranslateY }] : [])],
+        ...(entranceOpacity ? { opacity: entranceOpacity } : {}),
       }}
     >
       <TouchableOpacity
@@ -482,6 +484,8 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   const [selectedSection, setSelectedSection] = useState('main');
   const [selectedCharacterGroup, setSelectedCharacterGroup] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [generatingProfile, setGeneratingProfile] = useState(false);
+  const [generationFailed, setGenerationFailed] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
   
   // Ref for character detail ScrollView
@@ -507,6 +511,11 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
   
+  // Main menu entrance animation (staggered fade + slide for section cards)
+  const NUM_SECTION_ANIM_ITEMS = 8;
+  const sectionSlideAnims = useRef(Array.from({ length: NUM_SECTION_ANIM_ITEMS }, () => new Animated.Value(40))).current;
+  const sectionFadeAnims = useRef(Array.from({ length: NUM_SECTION_ANIM_ITEMS }, () => new Animated.Value(0))).current;
+
   // Character audio state
   const [characterSound, setCharacterSound] = useState(null);
   const [isCharacterAudioPlaying, setIsCharacterAudioPlaying] = useState(false);
@@ -567,11 +576,40 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   // Scroll to top when character is selected
   useEffect(() => {
     if (selectedCharacter && characterDetailScrollRef.current) {
-      // Add a small delay to ensure ScrollView and content are fully mounted
       setTimeout(() => {
         characterDetailScrollRef.current?.scrollTo({ y: 0, animated: true });
       }, 100);
     }
+  }, [selectedCharacter]);
+
+  useEffect(() => {
+    if (!selectedCharacter) return;
+    const character = characterProfiles[selectedCharacter];
+    if (!character || !bibleCharactersService.isGenericProfile(character)) return;
+
+    let cancelled = false;
+    setGeneratingProfile(true);
+    setGenerationFailed(false);
+
+    (async () => {
+      const enhanced = await bibleCharactersService.getEnhancedCharacter(selectedCharacter);
+      if (!cancelled && enhanced && !bibleCharactersService.isGenericProfile(enhanced)) {
+        setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...enhanced } }));
+        setGeneratingProfile(false);
+        return;
+      }
+
+      const profile = await bibleCharactersService.generateAndCacheProfile(selectedCharacter);
+      if (cancelled) return;
+      if (profile) {
+        setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...profile } }));
+      } else {
+        setGenerationFailed(true);
+      }
+      setGeneratingProfile(false);
+    })();
+
+    return () => { cancelled = true; };
   }, [selectedCharacter]);
 
   // Always start group detail at the top (prevents inheriting prior scroll position)
@@ -583,6 +621,22 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
       }, 50);
     }
   }, [selectedCharacterGroup]);
+
+  // Main menu entrance animation
+  useEffect(() => {
+    if (selectedSection === 'main') {
+      sectionSlideAnims.forEach(a => a.setValue(40));
+      sectionFadeAnims.forEach(a => a.setValue(0));
+      requestAnimationFrame(() => {
+        Animated.stagger(80, sectionSlideAnims.map((slide, i) =>
+          Animated.parallel([
+            Animated.timing(sectionFadeAnims[i], { toValue: 1, duration: 350, useNativeDriver: true }),
+            Animated.timing(slide, { toValue: 0, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          ])
+        )).start();
+      });
+    }
+  }, [selectedSection]);
 
   // Pull to refresh handler for Bible Characters
   const onRefreshCharacters = async () => {
@@ -936,6 +990,8 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
             isDark={isDark}
             theme={theme}
             onPress={() => handleSectionPress(section.id)}
+            entranceOpacity={sectionFadeAnims[index]}
+            entranceTranslateY={sectionSlideAnims[index]}
           />
         ))}
       </View>
@@ -1395,10 +1451,10 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
             <View style={styles.characterInfo}>
               <View style={styles.characterDivider} />
               <Text style={styles.characterDetailName}>
-                {character.name.split(' - ')[0]}
+                {(character.name || selectedCharacter).split(' - ')[0]}
               </Text>
               <Text style={styles.characterDetailSubtitle}>
-                {character.name.split(' - ')[1]}
+                {(character.name || '').split(' - ')[1]}
               </Text>
               <View style={styles.characterDivider} />
             </View>
@@ -1467,120 +1523,158 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
 
         {/* Modern Content Cards */}
         <View style={styles.modernContentContainer}>
-          {/* Story Card */}
-          <View style={[styles.modernCard, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
-            shadowColor: themeColor,
-          }]}>
-            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
-              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
-                <MaterialIcons name="auto-stories" size={22} color={themeColor} />
-                </View>
-              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
-                  Biblical Story
-                </Text>
-              </View>
-              
-              <Text 
-              style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
-                selectable={true}
+          {generatingProfile ? (
+            <View style={[styles.modernCard, {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+              alignItems: 'center', padding: 28,
+            }]}>
+              <ActivityIndicator size="large" color={themeColor} style={{ marginBottom: 16 }} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: isDark ? '#FFFFFF' : theme.text, marginBottom: 6 }}>Generating accurate profile...</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, textAlign: 'center' }}>Sourcing biblical details for {selectedCharacter}</Text>
+            </View>
+          ) : generationFailed ? (
+            <View style={[styles.modernCard, {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+              alignItems: 'center', padding: 28,
+            }]}>
+              <MaterialIcons name="wifi-off" size={40} color={theme.textTertiary} style={{ marginBottom: 12 }} />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: isDark ? '#FFFFFF' : theme.text, marginBottom: 6 }}>Couldn't load profile</Text>
+              <Text style={{ fontSize: 13, color: theme.textSecondary, textAlign: 'center', marginBottom: 16 }}>Check your connection and try again.</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setGeneratingProfile(true);
+                  setGenerationFailed(false);
+                  bibleCharactersService.generateAndCacheProfile(selectedCharacter).then(profile => {
+                    if (profile) {
+                      setCharacterProfiles(prev => ({ ...prev, [selectedCharacter]: { ...prev[selectedCharacter], ...profile } }));
+                    } else {
+                      setGenerationFailed(true);
+                    }
+                    setGeneratingProfile(false);
+                  });
+                }}
+                style={{ backgroundColor: themeColor, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 }}
               >
-                {character.story}
-              </Text>
-        </View>
-
-          {/* Themes Card */}
-          <View style={[styles.modernCard, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
-            shadowColor: themeColor,
-          }]}>
-            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
-              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
-                <MaterialIcons name="psychology" size={22} color={themeColor} />
-                </View>
-              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
-                  Key Themes
-                </Text>
-              </View>
-              
-            <View style={styles.modernThemesGrid}>
-                {character.themes.map((themeText, index) => (
-                <View key={index} style={[styles.modernThemeTag, { 
-                  backgroundColor: themeColor + '20',
-                  borderColor: themeColor + '40',
-                }]}>
-                  <View style={[styles.modernThemeDot, { backgroundColor: themeColor }]} />
-                    <Text 
-                    style={[styles.modernThemeText, { color: isDark ? '#FFFFFF' : theme.text }]}
-                      selectable={true}
-                    >
-                      {themeText}
+                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {/* Story Card */}
+              <View style={[styles.modernCard, {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+                shadowColor: themeColor,
+              }]}>
+                <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+                  <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                    <MaterialIcons name="auto-stories" size={22} color={themeColor} />
+                    </View>
+                  <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
+                      Biblical Story
                     </Text>
                   </View>
-                ))}
-          </View>
-        </View>
-
-        {/* Cultural Impact Card */}
-          <View style={[styles.modernCard, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
-            shadowColor: themeColor,
-          }]}>
-            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
-              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
-                <MaterialIcons name="palette" size={22} color={themeColor} />
-                </View>
-              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
-                  Cultural Impact
-                </Text>
-              </View>
-              
-              <Text 
-              style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
-                selectable={true}
-              >
-                {character.culturalImpact}
-              </Text>
-        </View>
-
-          {/* Key Verses Card */}
-          <View style={[styles.modernCard, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
-            shadowColor: themeColor,
-          }]}>
-            <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
-              <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
-                <MaterialIcons name="menu-book" size={22} color={themeColor} />
-                </View>
-              <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
-                  Key Verses
-                </Text>
-              </View>
-              
-            <View style={styles.modernVersesContainer}>
-                {character.verses.map((verse, index) => (
-                  <TouchableOpacity
-                    key={index}
-                  style={[styles.modernVerseChip, { 
-                    backgroundColor: themeColor + '20',
-                    borderColor: themeColor + '40',
-                  }]}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      // Future: Navigate to Bible verse
-                    }}
-                    activeOpacity={0.7}
+                  
+                  <Text 
+                  style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
+                    selectable={true}
                   >
-                  <View style={[styles.modernVerseIconCircle, { backgroundColor: themeColor + '30' }]}>
-                    <MaterialIcons name="bookmark" size={14} color={themeColor} />
-                  </View>
-                  <Text style={[styles.modernVerseText, { color: isDark ? '#FFFFFF' : theme.text }]}>
-                      {verse}
+                    {character.story}
+                  </Text>
+            </View>
+
+              {/* Themes Card */}
+              <View style={[styles.modernCard, {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+                shadowColor: themeColor,
+              }]}>
+                <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+                  <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                    <MaterialIcons name="psychology" size={22} color={themeColor} />
+                    </View>
+                  <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
+                      Key Themes
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                  </View>
+                  
+                <View style={styles.modernThemesGrid}>
+                    {character.themes.map((themeText, index) => (
+                    <View key={index} style={[styles.modernThemeTag, { 
+                      backgroundColor: themeColor + '20',
+                      borderColor: themeColor + '40',
+                    }]}>
+                      <View style={[styles.modernThemeDot, { backgroundColor: themeColor }]} />
+                        <Text 
+                        style={[styles.modernThemeText, { color: isDark ? '#FFFFFF' : theme.text }]}
+                          selectable={true}
+                        >
+                          {themeText}
+                        </Text>
+                      </View>
+                    ))}
               </View>
-          </View>
+            </View>
+
+            {/* Cultural Impact Card */}
+              <View style={[styles.modernCard, {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+                shadowColor: themeColor,
+              }]}>
+                <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+                  <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                    <MaterialIcons name="palette" size={22} color={themeColor} />
+                    </View>
+                  <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
+                      Cultural Impact
+                    </Text>
+                  </View>
+                  
+                  <Text 
+                  style={[styles.modernStoryText, { color: isDark ? 'rgba(255, 255, 255, 0.9)' : theme.text }]}
+                    selectable={true}
+                  >
+                    {character.culturalImpact}
+                  </Text>
+            </View>
+
+              {/* Key Verses Card */}
+              <View style={[styles.modernCard, {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
+                shadowColor: themeColor,
+              }]}>
+                <View style={[styles.modernCardHeader, { backgroundColor: themeColor + '15' }]}>
+                  <View style={[styles.modernIconCircle, { backgroundColor: themeColor + '25' }]}>
+                    <MaterialIcons name="menu-book" size={22} color={themeColor} />
+                    </View>
+                  <Text style={[styles.modernCardTitle, { color: isDark ? '#FFFFFF' : theme.text }]}>
+                      Key Verses
+                    </Text>
+                  </View>
+                  
+                <View style={styles.modernVersesContainer}>
+                    {character.verses.map((verse, index) => (
+                      <TouchableOpacity
+                        key={index}
+                      style={[styles.modernVerseChip, { 
+                        backgroundColor: themeColor + '20',
+                        borderColor: themeColor + '40',
+                      }]}
+                        onPress={() => {
+                          hapticFeedback.light();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                      <View style={[styles.modernVerseIconCircle, { backgroundColor: themeColor + '30' }]}>
+                        <MaterialIcons name="bookmark" size={14} color={themeColor} />
+                      </View>
+                      <Text style={[styles.modernVerseText, { color: isDark ? '#FFFFFF' : theme.text }]}>
+                          {verse}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Bottom Spacing */}

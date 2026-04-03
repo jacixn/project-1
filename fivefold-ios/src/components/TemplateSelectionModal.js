@@ -72,6 +72,8 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const smartWorkoutFadeAnim = useRef(new Animated.Value(0)).current;
   const [exerciseCountPref, setExerciseCountPref] = useState(null); // null = auto, or 3/4/5/6
   const exerciseCountPrefRef = useRef(null);
+  const [trainingStyle, setTrainingStyle] = useState('balanced'); // 'balanced' or 'failure'
+  const trainingStyleRef = useRef('balanced');
 
   // Split plan state
   const [splitPlan, setSplitPlan] = useState(null);
@@ -137,11 +139,23 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
       const today = await WorkoutService.getTodaySplit();
       setTodaySplit(today);
 
-      // If there's a split plan and today has a configured exercise count, use it
+      // If there's a split plan and today has a configured exercise count, use it;
+      // otherwise load the user's saved preference
       if (today && today.active && today.exerciseCount) {
         setExerciseCountPref(today.exerciseCount);
         exerciseCountPrefRef.current = today.exerciseCount;
+      } else {
+        const savedCount = await WorkoutService.getExerciseCountPref();
+        if (savedCount !== null) {
+          setExerciseCountPref(savedCount);
+          exerciseCountPrefRef.current = savedCount;
+        }
       }
+
+      // Load saved training style preference
+      const savedStyle = await WorkoutService.getTrainingStyle();
+      setTrainingStyle(savedStyle);
+      trainingStyleRef.current = savedStyle;
 
       // Don't auto-generate — user taps to generate
     } catch (e) {
@@ -329,7 +343,29 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
         exerciseNames = pool.slice(0, 60).map(ex => ex.name);
       }
 
-      // 2b. Load nutrition profile + body composition (optional)
+      // 2b. Build per-exercise history from last 14 sessions for progressive overload
+      const exerciseNameSet = new Set(exerciseNames.map(n => n.toLowerCase()));
+      const recentSessions = history.slice(0, 14);
+      const exerciseHistoryMap = {};
+
+      for (const session of recentSessions) {
+        if (!session.exercises) continue;
+        for (const ex of session.exercises) {
+          const key = ex.name?.toLowerCase();
+          if (!key || !exerciseNameSet.has(key)) continue;
+          const completedSets = (ex.sets || []).filter(s => s.completed && s.weight > 0);
+          if (completedSets.length === 0) continue;
+          const best = completedSets.reduce((a, b) => (Number(b.weight) > Number(a.weight) ? b : a));
+          if (!exerciseHistoryMap[ex.name]) exerciseHistoryMap[ex.name] = [];
+          exerciseHistoryMap[ex.name].push(`${best.weight}kg×${best.reps}`);
+        }
+      }
+
+      const exerciseHistoryLines = Object.entries(exerciseHistoryMap)
+        .map(([name, entries]) => `${name}: ${entries.join(', ')}`)
+        .join('\n');
+
+      // 2c. Load nutrition profile + body composition (optional)
       let nutritionParams = {};
       let userGender = null;
       let bodyCompData = null;
@@ -344,6 +380,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             targetWeight: nutritionProfile.targetWeightKg,
           };
           userGender = nutritionProfile.gender || null;
+          if (nutritionProfile.age) nutritionParams.userAge = nutritionProfile.age;
 
           // Calculate body composition
           if (nutritionProfile.weightKg && nutritionProfile.heightCm) {
@@ -369,7 +406,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
         },
         totalWorkouts: history.length,
         exerciseNames,
+        exerciseHistory: exerciseHistoryLines || '',
         exerciseCount: exerciseCountPrefRef.current,
+        trainingStyle: trainingStyleRef.current,
         targetMuscles: targetMuscleNames,
         gender: userGender,
         bodyFatPercent: bodyCompData?.bodyFat || null,
@@ -792,6 +831,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                         hapticFeedback.light();
                         setExerciseCountPref(count);
                         exerciseCountPrefRef.current = count;
+                        WorkoutService.saveExerciseCountPref(count);
                         if (!smartWorkoutLoading) {
                           setSmartWorkout(null);
                           setTimeout(() => generateSmartWorkout(), 50);
@@ -813,6 +853,48 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                         color: isSelected ? '#FFF' : theme.textSecondary,
                       }}>
                         {count === null ? 'Auto' : count}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Training style preference pills */}
+            {(smartWorkout || smartWorkoutLoading) && !(smartWorkout && smartWorkout.isRestDay) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 6 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 4 }}>Style:</Text>
+                {[{ key: 'balanced', label: 'Balanced' }, { key: 'failure', label: 'To Failure' }].map(opt => {
+                  const isSelected = trainingStyle === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setTrainingStyle(opt.key);
+                        trainingStyleRef.current = opt.key;
+                        WorkoutService.saveTrainingStyle(opt.key);
+                        if (!smartWorkoutLoading) {
+                          setSmartWorkout(null);
+                          setTimeout(() => generateSmartWorkout(), 50);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor: isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                        borderWidth: 1,
+                        borderColor: isSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: isSelected ? '700' : '500',
+                        color: isSelected ? '#FFF' : theme.textSecondary,
+                      }}>
+                        {opt.label}
                       </Text>
                     </TouchableOpacity>
                   );

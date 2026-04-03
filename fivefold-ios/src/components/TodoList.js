@@ -9,7 +9,6 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
-import profanityFilter from '../services/profanityFilterService';
 
 // Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
@@ -88,12 +87,6 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return;
     
-    if (profanityFilter.containsProfanity(newTodo.trim())) {
-      hapticFeedback.error();
-      Alert.alert('Inappropriate Content', 'Please keep your tasks clean and appropriate.');
-      return;
-    }
-    
     hapticFeedback.light();
     
     const pendingTask = {
@@ -169,7 +162,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
   return (
     <LiquidGlassTodoContainer isDark={isDark} theme={theme}>
       <View style={styles.headerRow}>
-        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>Tasks</Text>
+        <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>To Do</Text>
         <TouchableOpacity 
           style={[styles.viewAllButton, { backgroundColor: `${theme.primary}20` }]}
           onPress={() => {
@@ -285,43 +278,32 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
             };
 
             return (
-              <TouchableOpacity
-                key={todo.id}
-                activeOpacity={0.7}
-                onPress={() => {
-                  hapticFeedback.light();
-                  onViewAll();
-                }}
-              >
-                <BlurView intensity={18} tint="light" style={styles.todoItem}>
-                  <TouchableOpacity 
-                    style={styles.checkButton} 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      hapticFeedback.success();
-                      const getTierColor = (t) => {
-                        switch (t) { case 'low': return '#22c55e'; case 'high': return '#ef4444'; default: return '#f59e0b'; }
-                      };
-                      showFloatingPoints(todo.points || 0, getTierColor(todo.tier));
-                      onTodoComplete(todo.id);
-                    }}
-                  >
-                    <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
-                  </TouchableOpacity>
-                  <View style={styles.todoContent}>
-                    <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]} numberOfLines={2}>{todo.text}</Text>
-                    <View style={styles.todoMetaRow}>
-                      <View style={styles.todoMeta}>
-                        <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>
-                          <Text style={styles.tierText}>{getTierLabel(todo.tier)}</Text>
-                        </View>
-                        <Text style={[styles.pointsText, { color: theme.primary }]}>+{todo.points} pts</Text>
+              <BlurView key={todo.id} intensity={18} tint="light" style={styles.todoItem}>
+                <TouchableOpacity 
+                  style={styles.checkButton} 
+                  onPress={() => {
+                    hapticFeedback.success();
+                    const getTierColor = (t) => {
+                      switch (t) { case 'low': return '#22c55e'; case 'high': return '#ef4444'; default: return '#f59e0b'; }
+                    };
+                    showFloatingPoints(todo.points || 0, getTierColor(todo.tier));
+                    onTodoComplete(todo.id);
+                  }}
+                >
+                  <MaterialIcons name="radio-button-unchecked" size={24} color={theme.primary} />
+                </TouchableOpacity>
+                <View style={styles.todoContent}>
+                  <Text style={[styles.todoText, { color: textColor, ...textOutlineStyle }]} numberOfLines={2}>{todo.text}</Text>
+                  <View style={styles.todoMetaRow}>
+                    <View style={styles.todoMeta}>
+                      <View style={[styles.tierBadge, { backgroundColor: getTierColor(todo.tier) }]}>
+                        <Text style={styles.tierText}>{getTierLabel(todo.tier)}</Text>
                       </View>
-                      <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                      <Text style={[styles.pointsText, { color: theme.primary }]}>+{todo.points} pts</Text>
                     </View>
                   </View>
-                </BlurView>
-              </TouchableOpacity>
+                </View>
+              </BlurView>
             );
           })}
           {activeTodos.length > 3 && (

@@ -1,8 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrayerDetailModal from '../components/PrayerDetailModal';
 import { hapticFeedback } from '../utils/haptics';
 import verseByReferenceService from '../services/verseByReferenceService';
+
+const REFLECTION_CACHE_KEY = 'prayer_reflection_cache';
 
 const PrayerDetailScreen = ({ navigation, route }) => {
   const {
@@ -18,6 +21,11 @@ const PrayerDetailScreen = ({ navigation, route }) => {
   const [timeUntilAvailable, setTimeUntilAvailable] = useState(initialTimeUntilAvailable);
   const [simpleVerseText, setSimpleVerseText] = useState({});
   const [loadingSimple, setLoadingSimple] = useState({});
+
+  const [reflection, setReflection] = useState(null);
+  const [loadingReflection, setLoadingReflection] = useState(false);
+  const [reflectionLimited, setReflectionLimited] = useState(false);
+  const reflectionRequested = useRef(false);
 
   useEffect(() => {
     if (!prayer?.verses) return;
@@ -47,6 +55,55 @@ const PrayerDetailScreen = ({ navigation, route }) => {
 
     loadVerses();
   }, [prayer?.id]);
+
+  useEffect(() => {
+    if (loadingVerses || !prayer?.verses || prayer.verses.length < 2 || reflectionRequested.current) return;
+    reflectionRequested.current = true;
+
+    const verse1 = prayer.verses[0];
+    const verse2 = prayer.verses[1];
+    const v1Text = (fetchedVerses[verse1.reference]?.text || verse1.text || '').replace(/\s+/g, ' ').trim();
+    const v2Text = (fetchedVerses[verse2.reference]?.text || verse2.text || '').replace(/\s+/g, ' ').trim();
+
+    if (!v1Text || !v2Text) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const cacheKey = `${prayer.id}_${today}`;
+
+    const loadReflection = async () => {
+      try {
+        const cached = await AsyncStorage.getItem(REFLECTION_CACHE_KEY);
+        if (cached) {
+          const cacheMap = JSON.parse(cached);
+          if (cacheMap[cacheKey]) {
+            setReflection(cacheMap[cacheKey]);
+            return;
+          }
+        }
+
+        setLoadingReflection(true);
+        const productionAiService = require('../services/productionAiService').default;
+        const result = await productionAiService.generatePrayerReflection(
+          v1Text, verse1.reference, v2Text, verse2.reference
+        );
+
+        if (result && result.rateLimited) {
+          setReflectionLimited(true);
+        } else if (result) {
+          setReflection(result);
+          const existing = cached ? JSON.parse(cached) : {};
+          existing[cacheKey] = result;
+          await AsyncStorage.setItem(REFLECTION_CACHE_KEY, JSON.stringify(existing));
+        }
+      } catch (err) {
+        console.error('PrayerDetailScreen: Reflection error', err);
+      } finally {
+        setLoadingReflection(false);
+      }
+    };
+
+    loadReflection();
+  }, [loadingVerses, fetchedVerses, prayer?.id]);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('prayerCompletionStateChanged', (data) => {
@@ -136,6 +193,9 @@ const PrayerDetailScreen = ({ navigation, route }) => {
       fetchedVerses={fetchedVerses}
       bibleVersion={bibleVersion}
       loadingVerses={loadingVerses}
+      reflection={reflection}
+      loadingReflection={loadingReflection}
+      reflectionLimited={reflectionLimited}
     />
   );
 };

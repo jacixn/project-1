@@ -26,7 +26,6 @@ import {
   DAY_SHORT,
 } from '../services/reminderService';
 import CreateReminderModal from './CreateReminderModal';
-import * as Notifications from 'expo-notifications';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
 
@@ -84,7 +83,6 @@ const RemindersScreen = ({ navigation }) => {
       await addReminder(data);
     }
     await refresh();
-    scheduleAllReminderNotifications();
     setEditingReminder(null);
   };
 
@@ -136,79 +134,6 @@ const RemindersScreen = ({ navigation }) => {
       await completeReminder(reminder.id, dateStr);
     }
     await refresh();
-  };
-
-  const ensureNotificationPermissions = async () => {
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    if (existing === 'granted') return true;
-    const { status } = await Notifications.requestPermissionsAsync();
-    return status === 'granted';
-  };
-
-  const scheduleAllReminderNotifications = async () => {
-    const granted = await ensureNotificationPermissions();
-    if (!granted) {
-      console.log('[Reminders] notification permissions not granted');
-      return;
-    }
-    const all = await loadReminders();
-    for (const r of all) {
-      await cancelReminderNotifications(r.id);
-      if (!r.enabled) continue;
-      const [h, m] = (r.time || '08:00').split(':').map(Number);
-      const notifContent = {
-        title: r.title,
-        body: `Time for: ${r.title}`,
-        data: { type: 'custom_reminder', reminderId: r.id },
-        sound: 'default',
-      };
-
-      if (r.type === 'one-time') {
-        const now = new Date();
-        const fireDate = new Date();
-        fireDate.setHours(h, m, 0, 0);
-        if (fireDate <= now) fireDate.setDate(fireDate.getDate() + 1);
-        try {
-          await Notifications.scheduleNotificationAsync({
-            identifier: `reminder_${r.id}_once`,
-            content: notifContent,
-            trigger: { type: 'date', date: fireDate },
-          });
-        } catch (e) {
-          console.log('[Reminders] one-time notification error:', e.message);
-        }
-      } else {
-        const reminderDays = r.days || [];
-        for (const day of reminderDays) {
-          try {
-            await Notifications.scheduleNotificationAsync({
-              identifier: `reminder_${r.id}_${day}`,
-              content: notifContent,
-              trigger: {
-                type: 'weekly',
-                weekday: day + 1,
-                hour: h,
-                minute: m,
-                repeats: true,
-              },
-            });
-          } catch (e) {
-            console.log('[Reminders] weekly notification error:', e.message);
-          }
-        }
-      }
-    }
-  };
-
-  const cancelReminderNotifications = async (reminderId) => {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(`reminder_${reminderId}_once`);
-    } catch (e) { /* ignore */ }
-    for (let d = 0; d < 7; d++) {
-      try {
-        await Notifications.cancelScheduledNotificationAsync(`reminder_${reminderId}_${d}`);
-      } catch (e) { /* ignore */ }
-    }
   };
 
   const dayPages = Array.from({ length: DAY_RANGE }, (_, i) => i);
@@ -288,7 +213,6 @@ const RemindersScreen = ({ navigation }) => {
                           text: 'Delete',
                           style: 'destructive',
                           onPress: async () => {
-                            await cancelReminderNotifications(reminder.id);
                             await deleteReminder(reminder.id);
                             await refresh();
                           },

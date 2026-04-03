@@ -18,16 +18,18 @@ const getBibleService = (versionId) => {
 // NOTE: "simplify" is only available in the Holy Bible reader, not in other sections
 export const getPreferredVersion = async () => {
   try {
-    const version = await userStorage.getRaw('selectedBibleVersion');
-    // If user has "simplify" selected, use NIV instead (simplify only works in Bible Reader)
-    // If no version selected, default to NIV
+    let version = await userStorage.getRaw('selectedBibleVersion');
+    // Strip surrounding quotes from iCloud double-serialization bug
+    if (version && version.startsWith('"') && version.endsWith('"')) {
+      version = version.slice(1, -1);
+    }
     if (!version || version === 'simplify') {
       return 'niv';
     }
     return version;
   } catch (error) {
     console.error('Error loading preferred Bible version:', error);
-    return 'niv'; // Default to NIV
+    return 'niv';
   }
 };
 

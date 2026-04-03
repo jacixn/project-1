@@ -1,10 +1,21 @@
 import userStorage from '../utils/userStorage';
 import errorHandler from '../utils/errorHandler';
+import productionAiService from './productionAiService';
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/jacixn/project-1/main/fivefold-ios/bible-characters.json';
 const CACHE_KEY = 'bible_characters_data';
 const CACHE_EXPIRY_KEY = 'bible_characters_expiry';
+const OVERRIDES_KEY = 'bible_character_overrides';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+const GENERIC_MARKERS = [
+  'appears in the biblical narrative',
+  'part of the rich tapestry of Scripture',
+  'They lived in the world of the Bible',
+  'Biblical Figure',
+  'This figure is part of the',
+  'Their role and significance are recorded',
+];
 
 class BibleCharactersService {
   constructor() {
@@ -208,6 +219,58 @@ class BibleCharactersService {
     } catch (error) {
       errorHandler.silent('Bible Characters Cache Clear', error);
     }
+  }
+
+  isGenericProfile(character) {
+    if (!character) return true;
+    const blob = [character.story || '', character.name || '', ...(character.themes || [])].join(' ');
+    return GENERIC_MARKERS.some(m => blob.includes(m));
+  }
+
+  async _loadOverrides() {
+    try {
+      const raw = await userStorage.getRaw(OVERRIDES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async _saveOverride(name, profile) {
+    try {
+      const overrides = await this._loadOverrides();
+      overrides[name] = profile;
+      await userStorage.setRaw(OVERRIDES_KEY, JSON.stringify(overrides));
+    } catch (e) {
+      console.warn('[BibleChar] Failed to save override:', e.message);
+    }
+  }
+
+  async generateAndCacheProfile(name) {
+    try {
+      const profile = await productionAiService.generateBibleCharacterProfile(name);
+      if (!profile) return null;
+
+      await this._saveOverride(name, profile);
+
+      if (this.characters && this.characters[name]) {
+        this.characters[name] = { ...this.characters[name], ...profile };
+      }
+
+      return profile;
+    } catch (e) {
+      console.warn('[BibleChar] generateAndCacheProfile error:', e.message);
+      return null;
+    }
+  }
+
+  async getEnhancedCharacter(name) {
+    const overrides = await this._loadOverrides();
+    if (overrides[name]) {
+      const base = this.characters?.[name] || {};
+      return { ...base, ...overrides[name] };
+    }
+    return this.characters?.[name] || null;
   }
 }
 
