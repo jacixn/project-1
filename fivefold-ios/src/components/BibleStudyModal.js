@@ -583,13 +583,15 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   }, [selectedCharacter]);
 
   useEffect(() => {
+    setGeneratingProfile(false);
+    setGenerationFailed(false);
+
     if (!selectedCharacter) return;
     const character = characterProfiles[selectedCharacter];
     if (!character || !bibleCharactersService.isGenericProfile(character)) return;
 
     let cancelled = false;
     setGeneratingProfile(true);
-    setGenerationFailed(false);
 
     (async () => {
       const enhanced = await bibleCharactersService.getEnhancedCharacter(selectedCharacter);
