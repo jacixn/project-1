@@ -327,6 +327,7 @@ const AppNavigation = () => {
       {hasActiveWorkout && user && (
         <MiniWorkoutPlayer 
           onPress={handleMiniPlayerPress} 
+          hidden={currentRoute === 'BibleReader'}
           bottomOffset={
             // Only offset for the audio bar if it's actually visible (not hidden on BibleReader)
             (isAudioPlayerVisible && currentRoute !== 'BibleReader')

@@ -1,0 +1,23 @@
+---
+description: No emojis in any push notifications — titles or body text
+alwaysApply: true
+---
+
+# No Emojis in Notifications
+
+**Strict rule:** Never use emojis in any notification content — not in the `title`, not in the `body`, not anywhere the user sees a push notification banner.
+
+## Applies to
+
+- `notificationService.js` — schedule lineup notifications
+- `trackingService.js` — new episode / chapter / release notifications
+- Any future file that calls `Notifications.scheduleNotificationAsync` or similar
+
+## Examples
+
+- Bad: `title: '📺 New Episode!'`
+- Good: `title: 'New Episode'`
+- Bad: `title: '🎬 Release Day!'`
+- Good: `title: 'Release Day'`
+
+Keep notification text **clean, plain, professional** — no emojis, ever.

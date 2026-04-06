@@ -2507,8 +2507,12 @@ const SimpleOnboarding = ({ onComplete }) => {
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
         <ProgressBar screenTheme={screenTheme} />
 
-        <View style={styles.photoScreenContent}>
-          <View style={styles.photoTopSection}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 30 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ alignItems: 'center', paddingTop: 30, paddingHorizontal: 20 }}>
             <Text style={[styles.screenTitle, { color: '#333' }]}>
               Choose an avatar, {userName}
             </Text>
@@ -2517,14 +2521,6 @@ const SimpleOnboarding = ({ onComplete }) => {
               Make your profile feel more personal
             </Text>
 
-            <View style={styles.photoPickerContainer}>
-              <AvatarDisplay
-                profilePicture={selectedAvatar}
-                displayName={userName}
-                size={140}
-              />
-            </View>
-
             <AvatarPicker
               currentAvatar={selectedAvatar}
               displayName={userName}
@@ -2532,15 +2528,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               onUploadPhoto={handleUploadPhoto}
             />
           </View>
-
-          <View style={styles.bottomMascot}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={styles.smallMascot}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
+        </ScrollView>
 
         <TouchableOpacity
           onPress={handleNext}

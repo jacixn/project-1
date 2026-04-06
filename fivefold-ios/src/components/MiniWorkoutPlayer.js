@@ -21,12 +21,22 @@ import {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85 }) => {
+const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85, hidden = false }) => {
   const { theme, isDark } = useTheme();
   const { activeWorkout, elapsedTime, hasActiveWorkout } = useWorkout();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const dotAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.4)).current;
+  const hideAnim = useRef(new Animated.Value(hidden ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(hideAnim, {
+      toValue: hidden ? 1 : 0,
+      tension: 60,
+      friction: 12,
+      useNativeDriver: true,
+    }).start();
+  }, [hidden]);
 
   useEffect(() => {
     if (hasActiveWorkout) {
@@ -135,11 +145,28 @@ const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85 }) => {
     );
   };
 
+  const slideDown = hideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 160],
+  });
+  const fadeOut = hideAnim.interpolate({
+    inputRange: [0, 0.6],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   return (
-    <Animated.View style={[
-      styles.wrapper, 
-      { bottom: bottomOffset, transform: [{ scale: pulseAnim }] }
-    ]}>
+    <Animated.View 
+      pointerEvents={hidden ? 'none' : 'auto'}
+      style={[
+        styles.wrapper, 
+        { 
+          bottom: bottomOffset, 
+          transform: [{ scale: pulseAnim }, { translateY: slideDown }],
+          opacity: fadeOut,
+        },
+      ]}
+    >
       <TouchableOpacity
         style={[styles.container, { width: maxWidth }]}
         onPress={() => {

@@ -1,6 +1,6 @@
 {
   "name": "fivefold-ios",
-  "version": "1.0.71",
+  "version": "1.0.75",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -25,6 +25,7 @@
     "axios": "^1.11.0",
     "babel-preset-expo": "^54.0.10",
     "expo": "~54.0.33",
+    "expo-alternate-app-icons": "^8.0.0",
     "expo-av": "^16.0.8",
     "expo-blur": "~15.0.8",
     "expo-build-properties": "~1.0.10",

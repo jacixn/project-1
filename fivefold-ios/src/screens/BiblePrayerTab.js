@@ -2328,16 +2328,16 @@ const BiblePrayerTab = () => {
                     >
                       <MaterialIcons name="school" size={14} color={theme.primary} />
                       <Text style={[styles.badgeText, { color: theme.primary }]}>
-                        CS Student
-                      </Text>
-                    </LinearGradient>
-                    <LinearGradient
-                      colors={[theme.success + '40', theme.success + '20']}
-                      style={styles.badge}
-                    >
-                      <MaterialIcons name="code" size={14} color={theme.success} />
-                      <Text style={[styles.badgeText, { color: theme.success }]}>
-                        Developer
+                      CS & CF Graduate
+                    </Text>
+                  </LinearGradient>
+                  <LinearGradient
+                    colors={[theme.success + '40', theme.success + '20']}
+                    style={styles.badge}
+                  >
+                    <MaterialIcons name="code" size={14} color={theme.success} />
+                    <Text style={[styles.badgeText, { color: theme.success }]}>
+                      Software Engineer
                       </Text>
                     </LinearGradient>
                   </View>
@@ -2367,7 +2367,7 @@ const BiblePrayerTab = () => {
                 </LinearGradient>
                 
                 <Text style={[styles.storyText, { color: textColor }]}>
-                  I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
+                  I'm Jason, a CS and CF graduate and Software Engineer who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
                 </Text>
                 
                 <Text style={[styles.storyText, { color: textColor }]}>

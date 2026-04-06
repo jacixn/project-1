@@ -27,6 +27,7 @@ import { getReferralCount } from '../services/referralService';
 import { pushToCloud } from '../services/userSyncService';
 import { updateLoadingAnimCache } from '../components/CustomLoadingIndicator';
 import { PREMIUM_BG_REFERRAL_REQUIRED } from '../data/premiumBackgrounds';
+import { setAlternateAppIcon, getAppIconName } from 'expo-alternate-app-icons';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -125,6 +126,27 @@ const LOADING_ANIM_REFERRAL_GATES = {
   hamster:  3,      // Run Hamster — 3 referrals
 };
 
+// ── App icon definitions ─────────────────────────────────────
+const APP_ICON_KEY = 'fivefold_selected_app_icon';
+const APP_ICONS = [
+  { id: 'default', name: 'Classic',  source: require('../../assets/icon.png'),             colors: ['#F5C842', '#E5A100'] },
+  { id: 'sketch',  name: 'Sketch',   source: require('../../assets/app-icon-sketch.png'),  colors: ['#F5D833', '#D4A900'] },
+  { id: 'pixel',   name: 'Pixel',    source: require('../../assets/app-icon-pixel.png'),   colors: ['#334155', '#64748B'] },
+  { id: 'gradient', name: 'Glow',    source: require('../../assets/app-icon-gradient.png'), colors: ['#F472B6', '#A78BFA'] },
+];
+const APP_ICON_REFERRAL_GATES = {
+  default:  null,
+  sketch:   1,
+  gradient: 5,
+  pixel:    2,
+};
+const APP_ICON_NATIVE_NAMES = {
+  default:  null,
+  sketch:   'Sketch',
+  gradient: 'Gradient',
+  pixel:    'Pixel',
+};
+
 // ═══════════════════════════════════════════════════════════════
 const CustomisationScreen = () => {
   const navigation = useNavigation();
@@ -139,6 +161,7 @@ const CustomisationScreen = () => {
 
   const [selectedAnim, setSelectedAnim] = useState('fire1');
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
+  const [selectedAppIcon, setSelectedAppIcon] = useState('default');
   const [badgeToggles, setBadgeToggles] = useState({});
   const [referralCount, setReferralCount] = useState(0);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -181,14 +204,24 @@ const CustomisationScreen = () => {
 
   const load = async () => {
     try {
-      const [animId, loadingAnimId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
+      const [animId, loadingAnimId, appIconId, badgeTogglesRaw, oldBtVal, count] = await Promise.all([
         userStorage.getRaw(STREAK_ANIM_KEY),
         userStorage.getRaw(LOADING_ANIM_KEY),
+        userStorage.getRaw(APP_ICON_KEY),
         userStorage.getRaw('fivefold_badge_toggles'),
         userStorage.getRaw(BLUETICK_ENABLED_KEY),
         getReferralCount(),
       ]);
       setReferralCount(count);
+      if (appIconId) {
+        setSelectedAppIcon(appIconId);
+      } else {
+        try {
+          const nativeIcon = getAppIconName();
+          const match = Object.entries(APP_ICON_NATIVE_NAMES).find(([, v]) => v === nativeIcon);
+          if (match) setSelectedAppIcon(match[0]);
+        } catch (_) {}
+      }
 
       // Validate stored streak animation — reset to free default if locked
       if (animId) {
@@ -293,6 +326,24 @@ const CustomisationScreen = () => {
     await userStorage.setRaw(LOADING_ANIM_KEY, id);
     AsyncStorage.setItem('app_splash_loading_animation', id).catch(() => {});
     pushToCloud('selectedLoadingAnimation', id);
+  };
+
+  const pickAppIcon = async (id) => {
+    const required = APP_ICON_REFERRAL_GATES[id];
+    if (!isItemUnlocked(required)) {
+      const icon = APP_ICONS.find(i => i.id === id);
+      showLockedPopup(icon?.name || 'App Icon', required);
+      return;
+    }
+    setSelectedAppIcon(id);
+    await userStorage.setRaw(APP_ICON_KEY, id);
+    pushToCloud('selectedAppIcon', id);
+    try {
+      const nativeName = APP_ICON_NATIVE_NAMES[id];
+      await setAlternateAppIcon(nativeName);
+    } catch (e) {
+      console.warn('[Customisation] setAlternateAppIcon error:', e);
+    }
   };
 
   const toggleBadge = async (badgeId, val) => {
@@ -816,33 +867,65 @@ const CustomisationScreen = () => {
         <AnimSection anim={sections[7]}>
           <SectionHeader icon="phone-iphone" iconBg="#6366F120" iconColor="#6366F1" title="App Icon" subtitle="Customise your home screen icon" textColor={tx} subtitleColor={tx2} />
 
-          <View style={{
-            backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
-            borderRadius: 22,
-            borderWidth: 1,
-            borderColor: bdr,
-            padding: 28,
-            alignItems: 'center',
-          }}>
-            <View style={{
-              width: 80,
-              height: 80,
-              borderRadius: 20,
-              backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 18,
-            }}>
-              <Image
-                source={require('../../assets/logo.png')}
-                style={{ width: 56, height: 56, borderRadius: 14 }}
-                resizeMode="contain"
-              />
-            </View>
+          <View style={st.animGrid}>
+            {APP_ICONS.map((icon) => {
+              const required = APP_ICON_REFERRAL_GATES[icon.id];
+              const unlocked = isItemUnlocked(required);
+              const active = selectedAppIcon === icon.id;
+              const tier = getTier(required);
 
-            <Text style={{ color: tx2, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
-              Your app icon
-            </Text>
+              return (
+                <TouchableOpacity
+                  key={icon.id}
+                  activeOpacity={0.8}
+                  onPress={() => pickAppIcon(icon.id)}
+                  style={[st.animCard, {
+                    borderColor: active && unlocked ? icon.colors[0] : bdr,
+                    borderWidth: active && unlocked ? 2.5 : 1,
+                    backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
+                  }]}
+                >
+                  <LinearGradient colors={active && unlocked ? icon.colors : [bdr, bdr]} style={st.animStrip} />
+
+                  <View style={{ paddingTop: 16, paddingBottom: 8, alignItems: 'center', justifyContent: 'center' }}>
+                    <Image
+                      source={icon.source}
+                      style={{ width: 80, height: 80, borderRadius: 20 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+
+                  <Text style={[st.animName, { color: tx }]} numberOfLines={1}>{icon.name}</Text>
+
+                  <View style={[st.tierBadge, { backgroundColor: tier.bg }]}>
+                    <Text style={[st.tierText, { color: tier.color }]}>{tier.label}</Text>
+                  </View>
+
+                  {!unlocked && (
+                    <View style={st.animLockWrap}>
+                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
+                        <View style={st.lockIconCircle}>
+                          <MaterialIcons name="lock" size={20} color="#fff" />
+                        </View>
+                      </LinearGradient>
+                      <View style={st.animGateBadge}>
+                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
+                        <Text style={st.animGateText}>{required} referrals</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {active && unlocked && (
+                    <View style={st.animActiveWrap}>
+                      <LinearGradient colors={icon.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.activeBadge}>
+                        <MaterialIcons name="check" size={12} color="#fff" />
+                        <Text style={st.activeText}>Active</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </AnimSection>
 

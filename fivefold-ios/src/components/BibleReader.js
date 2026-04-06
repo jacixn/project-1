@@ -25,7 +25,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import ViewShot from 'react-native-view-shot';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -6620,6 +6620,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
               presentationStyle="fullScreen"
               onRequestClose={() => setShowTextSelectionModal(false)}
             >
+              <SafeAreaProvider>
               <View style={{ flex: 1, backgroundColor: '#000' }}>
                 <SafeAreaView style={{ flex: 1 }}>
                   {/* Header */}
@@ -6714,6 +6715,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                   </ScrollView>
                 </SafeAreaView>
               </View>
+              </SafeAreaProvider>
             </Modal>
           )}
           

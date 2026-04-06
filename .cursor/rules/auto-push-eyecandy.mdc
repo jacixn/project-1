@@ -1,0 +1,24 @@
+---
+description: Auto-commit and push every change to the EyeCandy GitHub repo
+alwaysApply: true
+---
+
+# Auto-Push EyeCandy Changes to GitHub
+
+After **every set of file edits** to the `eyecandy/` directory (no matter how small), you **must** commit and push before ending your turn or moving to the next task.
+
+## Procedure
+
+1. `cd /Users/jz/Desktop/guthub/eyecandy`
+2. `git add -A`
+3. `git status` — verify what's staged, make sure nothing unexpected is included
+4. `git commit -m "<concise message>"` — short, descriptive message of what changed
+5. `git push origin main`
+
+## Rules
+
+- **Every edit gets pushed.** Even a one-line fix. No accumulating uncommitted work.
+- **Do not batch unrelated changes** into one giant commit. If you just did a UI fix and then a bug fix, those are two separate commits.
+- **Never skip the push.** The commit alone is not enough — it must reach GitHub (`origin/main`).
+- **Check `git status` after push** to confirm `working tree clean` and `up to date with 'origin/main'`.
+- If a push fails (auth, network), tell the user immediately.

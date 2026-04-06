@@ -9000,7 +9000,7 @@ const ProfileTab = () => {
                   >
                     <MaterialIcons name="school" size={14} color={theme.primary} />
                     <Text style={[styles.badgeText, { color: theme.primary }]}>
-                      CS Student
+                      CS & CF Graduate
                     </Text>
                   </LinearGradient>
                   <LinearGradient
@@ -9009,7 +9009,7 @@ const ProfileTab = () => {
                   >
                     <MaterialIcons name="code" size={14} color={theme.success} />
                     <Text style={[styles.badgeText, { color: theme.success }]}>
-                      Developer
+                      Software Engineer
                     </Text>
                   </LinearGradient>
                 </View>
@@ -9039,7 +9039,7 @@ const ProfileTab = () => {
               </LinearGradient>
               
               <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
-                I'm Jason, a computer science student who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
+                I'm Jason, a CS and CF graduate and Software Engineer who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
               </Text>
               
               <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>

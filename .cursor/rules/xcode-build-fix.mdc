@@ -1,0 +1,45 @@
+---
+description: Fix Xcode PhaseScriptExecution build failures caused by spaces in file paths
+alwaysApply: true
+---
+
+# Xcode PhaseScriptExecution Failed — Diagnosis & Fix
+
+When an Xcode build fails with **"Command PhaseScriptExecution failed"** (especially on `EXConstants`, but applies to any pod), the most common root cause is **spaces in the resolved file path**.
+
+## Why it happens
+
+Expo/React Native pod script phases (e.g. `get-app-config-ios.sh`) pass `$PODS_TARGET_SRCROOT` unquoted to `bash -l -c`. If Xcode resolves the project path through a symlink to a volume or directory whose name contains a space (e.g. `/Volumes/Crucial X9/…`), the shell word-splits the path and the script fails.
+
+## Diagnosis checklist
+
+1. **Check the real path** — Run `readlink /Users/jz/Desktop/guthub` (or whatever the workspace symlink is). If the resolved path contains a space, that's the cause.
+2. **Check `find` errors in pod install output** — Lines like `find: /Volumes/Crucial: No such file or directory` confirm path-splitting.
+3. **Check `.xcode.env.local`** — Ensure `NODE_BINARY` points to a valid, space-free path (e.g. `/Users/jz/.nvm/versions/node/v20.19.5/bin/node`).
+
+## Fix procedure
+
+1. **Rename the volume/directory** to remove spaces:
+   ```bash
+   diskutil rename <disk-identifier> "NewNameNoSpaces"
+   ```
+2. **Update the symlink**:
+   ```bash
+   rm /Users/jz/Desktop/guthub
+   ln -s /Volumes/NewNameNoSpaces/MacData/Desktop/guthub /Users/jz/Desktop/guthub
+   ```
+3. **Full clean rebuild**:
+   ```bash
+   rm -rf ios/Pods ios/Podfile.lock ios/build
+   rm -rf ~/Library/Developer/Xcode/DerivedData/ProjectName-*
+   cd ios && pod install
+   ```
+4. **Kill and reopen Xcode** — `killall Xcode` then `open ios/Project.xcworkspace`.
+
+## Current state (April 2026)
+
+- External drive is `/Volumes/CrucialX9` (renamed from `Crucial X9`).
+- Symlink: `/Users/jz/Desktop/guthub` → `/Volumes/CrucialX9/MacData/Desktop/guthub`.
+- `NODE_BINARY` in `.xcode.env.local`: `/Users/jz/.nvm/versions/node/v20.19.5/bin/node`.
+
+If the error recurs, always check for spaces in the resolved path first before doing anything else.
