@@ -1,0 +1,67 @@
+# Liquid Glass Transparency Control
+
+When the user says **"make the liquid glass X% transparency"** (or "opacity"), they are referring to the `LiquidGlassView` components from `@callstack/liquid-glass` used in the EyeCandy app (`/Users/jz/Desktop/guthub/eyecandy`).
+
+## How it works
+
+`LiquidGlassView` has a `tintColor` prop that controls how opaque the glass appears. We use a dark tint (`rgba(0,0,0,<alpha>)`) to reduce how see-through the glass is.
+
+**Transparency** = how see-through the element is. 100% = invisible, 0% = fully solid.
+
+### Conversion formula
+
+To achieve a target transparency percentage on a `LiquidGlassView effect="clear"`:
+
+| Transparency | tintColor alpha | Fallback BlurView intensity |
+|---|---|---|
+| ~65% (very see-through) | 0.00 (no tint) | 50 |
+| ~55% | 0.12 | 60 |
+| ~45% | 0.24 | 70 |
+| ~41% | 0.28 | 75 |
+| ~35% | 0.35 | 80 |
+| ~25% | 0.45 | 90 |
+| ~15% (nearly solid) | 0.55 | 95 |
+
+Interpolate linearly between these values for in-between percentages.
+
+### Fallback
+
+When `LiquidGlassView` is not available (or `isLiquidGlassSupported` is false), use `BlurView` from `expo-blur` with `tint="dark"` instead. Adjust its `intensity` prop to roughly match (see table above). **Never** use a plain `View` with `backgroundColor` as the fallback — it will look solid and opaque.
+
+## CRITICAL: Animated Opacity Kills LiquidGlassView
+
+**NEVER** wrap a `LiquidGlassView` in a parent view that has animated `opacity` (e.g. `Animated.View` or `Reanimated` with `opacity` in its animated style). When React Native applies `opacity < 1` to a parent, the entire subtree is rendered into an **offscreen buffer** first, then composited. This means the `LiquidGlassView` blurs the empty offscreen buffer instead of the actual app content — making it look completely solid/opaque with zero glass effect.
+
+**Safe animations for parent views of LiquidGlassView:**
+- `transform: [{ scale }]` — OK
+- `transform: [{ translateX / translateY }]` — OK
+- `opacity` — **NEVER** (breaks the glass blur)
+
+If you need a fade-in entrance, use `scale` alone (e.g. 0.85 → 1 with spring). The backdrop can still have its own independent opacity animation since it's a sibling, not a parent.
+
+## Correct import pattern
+
+```javascript
+let LiquidGlassView;
+let isLiquidGlassSupported = false;
+try {
+  const lg = require('@callstack/liquid-glass');
+  LiquidGlassView = lg.LiquidGlassView;
+  isLiquidGlassSupported = lg.isLiquidGlassSupported;
+} catch {
+  LiquidGlassView = null;
+}
+```
+
+Check **both** `!!LiquidGlassView && isLiquidGlassSupported` before rendering the glass path.
+
+## Where LiquidGlassView is used in EyeCandy
+
+- **Search header** — `SearchTab.js` glass header at top
+- **Floating category bar** — `SearchTab.js` floating bar above tab navigator
+- **Scroll-to-top button** — `SearchTab.js` round button
+- **Search screen header** — `SearchScreen.js`
+- **Home header** — `HomeTab.js` glass header at top
+- **Schedule popup** — `ScheduleItemSheet.js` (long-press popup on scheduled items)
+
+If the user doesn't specify which element, ask them.

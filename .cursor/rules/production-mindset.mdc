@@ -1,0 +1,25 @@
+---
+description: Always design for 10,000 active users — never make decisions assuming a single developer user
+alwaysApply: true
+---
+
+# Production Mindset: 10,000 Active Users
+
+**Always assume 10,000 active users** when making any technical decision. Never optimize for "just one person" or suggest deferring scalability.
+
+## What this means
+
+- **API rate limits**: Calculate whether the free tier survives 10K users. If not, flag it immediately and design around it (proxy, caching, paid plan).
+- **Shared resources**: API keys are shared across all users. 500 requests/day ÷ 10,000 users = 0.05 per user. That's not viable — say so.
+- **Caching**: Always implement aggressive caching (client + server). Shared Firestore cache via proxy so identical requests from different users don't hit upstream APIs.
+- **API key security**: Keys must never live in client code. Use Firebase Cloud Functions proxy.
+- **Cost estimation**: When adding a new service/API, estimate monthly cost at 10K users before building.
+
+## Decision framework
+
+When evaluating an API, library, or architecture choice, ask:
+
+1. Does this work at 10,000 concurrent users?
+2. What's the cost at 10,000 users?
+3. Is there a rate limit that breaks before 10K?
+4. Should this go through the Firebase proxy?
