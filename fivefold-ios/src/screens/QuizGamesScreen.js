@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import hapticFeedback from '../utils/haptics';
+import ScreenHeader from '../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -35,18 +36,8 @@ const QuizGamesScreen = () => {
   const subtextColor = isDark ? 'rgba(255,255,255,0.5)' : '#6B7280';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => { hapticFeedback.light(); navigation.goBack(); }}
-          style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <MaterialIcons name="arrow-back" size={22} color={textColor} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Quiz & Games</Text>
-        <View style={styles.backBtn} />
-      </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScreenHeader title="Quiz & Games" onBack={() => navigation.goBack()} />
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Text style={[styles.subtitle, { color: subtextColor }]}>

@@ -27,7 +27,7 @@ import AvatarDisplay from './AvatarDisplay';
 import AvatarPicker from './AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { moderateProfileImage, setUploadCooldown } from '../services/profileImageModeration';
+import { moderateProfileImage, setUploadCooldown, recordRejection, resetRejectionCount } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import * as Notifications from 'expo-notifications';
 import notificationService from '../services/notificationService';
@@ -873,11 +873,17 @@ const SimpleOnboarding = ({ onComplete }) => {
 
       if (!approved) {
         setSelectedAvatar(previousAvatar);
-        if (user?.uid) await setUploadCooldown(user.uid);
+        let tail = 'You can try uploading a different photo in 24 hours.';
+        if (user?.uid) {
+          const { cooledDown, remaining } = await recordRejection(user.uid);
+          tail = cooledDown
+            ? "You've reached the limit. You can try again in 24 hours."
+            : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a 24-hour cooldown.`;
+        }
         hapticFeedback.error();
         Alert.alert(
           'Image Not Accepted',
-          `${reason}\n\nYou can try uploading a different photo in 24 hours.`,
+          `${reason}\n\n${tail}`,
           [{ text: 'OK' }]
         );
         return;
@@ -886,6 +892,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       if (user?.uid) {
         const downloadURL = await uploadProfilePicture(user.uid, uri);
         setSelectedAvatar(downloadURL);
+        await resetRejectionCount(user.uid);
         hapticFeedback.success();
       } else {
         Alert.alert('Not Signed In', 'Please complete sign-up first to upload a photo.');

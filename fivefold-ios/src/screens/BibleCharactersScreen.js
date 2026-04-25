@@ -28,6 +28,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import ScreenHeader from '../components/ScreenHeader';
 import bibleCharactersService from '../services/bibleCharactersService';
 import AchievementService from '../services/achievementService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
@@ -508,26 +509,8 @@ const BibleCharactersScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <ScreenHeader title="Bible Characters" onBack={handleBack} />
       {renderContent()}
-
-      {/* Header */}
-      <BlurView intensity={30} tint={isDark ? 'dark' : 'light'}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: 'hidden' }}
-      >
-        <View style={{ height: Platform.OS === 'ios' ? 60 : 30 }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <TouchableOpacity onPress={handleBack}
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-          </TouchableOpacity>
-          <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600' }}>Bible Characters</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-      </BlurView>
     </View>
   );
 };

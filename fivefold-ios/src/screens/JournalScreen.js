@@ -28,6 +28,7 @@ import { hapticFeedback } from '../utils/haptics';
 import VerseDataManager from '../utils/verseDataManager';
 import verseByReferenceService from '../services/verseByReferenceService';
 import JournalCalendar from '../components/JournalCalendar';
+import ScreenHeader, { StaticBackButton, ScrollingTitle } from '../components/ScreenHeader';
 
 const JournalScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
@@ -170,15 +171,15 @@ const JournalScreen = ({ navigation }) => {
       />
       
       {/* Journal Calendar View */}
-      <ScrollView 
-        style={{ flex: 1 }} 
+      <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           paddingBottom: 120,
-          paddingTop: Platform.OS === 'ios' ? 130 : 100,
         }}
         scrollEventThrottle={16}
       >
+        <ScrollingTitle title="Journal" />
         {journalLoading ? (
           <View style={styles.emptyState}>
             <MaterialIcons name="hourglass-bottom" size={48} color={theme.textTertiary} />
@@ -444,50 +445,12 @@ const JournalScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       )}
 
-      {/* Premium Transparent Header */}
-      <BlurView 
-        intensity={50} 
-        tint={isDark ? 'dark' : 'light'} 
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }}
-      >
-        <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                setIsAddingEntry(false);
-                navigation.goBack();
-              }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-            
-            <View style={{ 
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              alignItems: 'center',
-            }}>
-              <Text style={{ color: textColor, fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
-                Journal
-              </Text>
-              <View style={{ width: 20, height: 3, backgroundColor: theme.primary, borderRadius: 2, marginTop: 4 }} />
-            </View>
-
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
-      </BlurView>
+      <StaticBackButton
+        onBack={() => {
+          setIsAddingEntry(false);
+          navigation.goBack();
+        }}
+      />
     </View>
   );
 };

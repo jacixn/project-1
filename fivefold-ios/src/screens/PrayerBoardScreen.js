@@ -28,7 +28,7 @@ import { Accelerometer } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { uploadPrayerBoardImage } from '../services/storageService';
 import { pushToCloud } from '../services/userSyncService';
 import { auth } from '../config/firebase';

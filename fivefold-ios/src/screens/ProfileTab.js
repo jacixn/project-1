@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { performFullSync, updateAndSyncProfile, pushToCloud } from '../services/userSyncService';
@@ -53,7 +54,7 @@ import AchievementsModal from '../components/AchievementsModal';
 import AvatarDisplay from '../components/AvatarDisplay';
 import AvatarPicker from '../components/AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
-import { moderateProfileImage, setUploadCooldown, cacheCustomPhoto, abandonCachedPhoto, restoreCachedPhoto } from '../services/profileImageModeration';
+import { moderateProfileImage, setUploadCooldown, clearUploadCooldown, recordRejection, resetRejectionCount, cacheCustomPhoto, abandonCachedPhoto, restoreCachedPhoto } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import NotificationSettings from '../components/NotificationSettings';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
@@ -304,6 +305,8 @@ const ProfileTab = () => {
     }
   }, []);
   const [uploadCooldownKey, setUploadCooldownKey] = useState(0);
+  // null | 'analyzing' | 'uploading' — drives the profile-picture progress overlay
+  const [photoUploadStatus, setPhotoUploadStatus] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
@@ -691,6 +694,8 @@ const ProfileTab = () => {
 
   // 🌸 Scroll animation for wallpaper
   const wallpaperScrollY = useRef(new Animated.Value(0)).current;
+  const mainScrollRef = useRef(null);
+  useTabBarScrollToTop(mainScrollRef);
 
   const loadSavedVerses = async (refreshAll = false) => {
     try {
@@ -2562,23 +2567,29 @@ const ProfileTab = () => {
       const previousPicture = profilePicture;
 
       setProfilePicture(uri);
+      setPhotoUploadStatus('analyzing');
 
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       const { approved, reason } = await moderateProfileImage(base64);
 
       if (!approved) {
+        setPhotoUploadStatus(null);
         setProfilePicture(previousPicture);
-        await setUploadCooldown(user.uid);
+        const { cooledDown, remaining } = await recordRejection(user.uid);
         setUploadCooldownKey(prev => prev + 1);
         hapticFeedback.error();
+        const tail = cooledDown
+          ? "You've reached the limit. You can try again in 24 hours."
+          : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a 24-hour cooldown.`;
         Alert.alert(
           'Image Not Accepted',
-          `${reason}\n\nYou can try uploading a different photo in 24 hours.`,
+          `${reason}\n\n${tail}`,
           [{ text: 'OK' }]
         );
         return;
       }
 
+      setPhotoUploadStatus('uploading');
       const downloadURL = await uploadProfilePicture(user.uid, uri);
 
       setProfilePicture(downloadURL);
@@ -2612,10 +2623,18 @@ const ProfileTab = () => {
 
       await cacheCustomPhoto(user.uid, downloadURL);
       await setUploadCooldown(user.uid);
+      await resetRejectionCount(user.uid);
       setUploadCooldownKey(prev => prev + 1);
+      setPhotoUploadStatus(null);
     } catch (error) {
       console.error('[Upload] Failed:', error);
-      await setUploadCooldown(user.uid).catch(() => {});
+      setPhotoUploadStatus(null);
+      // Generic error (network, code bug, storage issue) is not a moderation
+      // rejection — don't start a 24h cooldown, and clear any prior cooldown
+      // that was incorrectly set by an earlier failed attempt.
+      if (user?.uid) {
+        await clearUploadCooldown(user.uid);
+      }
       setUploadCooldownKey(prev => prev + 1);
       Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
     }
@@ -3408,8 +3427,9 @@ const ProfileTab = () => {
       </Animated.View>
 
       {/* Main Content - flows to top like Twitter */}
-      <Animated.ScrollView 
-        style={styles.twitterContent} 
+      <Animated.ScrollView
+        ref={mainScrollRef}
+        style={styles.twitterContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
         onScroll={Animated.event(
@@ -3613,6 +3633,47 @@ const ProfileTab = () => {
                   <Text style={{ padding: 16, color: 'red' }}>ERROR: Countries not loaded!</Text>
                 )}
               </ScrollView>
+            </View>
+          </Modal>
+
+          {/* Profile photo analysis/upload progress overlay */}
+          <Modal visible={photoUploadStatus !== null} transparent animationType="fade">
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 32,
+            }}>
+              <View style={{
+                backgroundColor: theme.card || theme.background,
+                borderRadius: 16,
+                paddingVertical: 28,
+                paddingHorizontal: 32,
+                alignItems: 'center',
+                minWidth: 240,
+              }}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={{
+                  color: theme.text,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginTop: 16,
+                  textAlign: 'center',
+                }}>
+                  {photoUploadStatus === 'analyzing' ? 'Analyzing image…' : 'Uploading photo…'}
+                </Text>
+                <Text style={{
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  marginTop: 6,
+                  textAlign: 'center',
+                }}>
+                  {photoUploadStatus === 'analyzing'
+                    ? 'Checking the photo is safe to use.'
+                    : 'Saving to your profile. Hang tight.'}
+                </Text>
+              </View>
             </View>
           </Modal>
         </View>
@@ -8928,9 +8989,9 @@ const ProfileTab = () => {
         </TouchableOpacity>
 
         {/* Content */}
-        <Animated.ScrollView 
-          style={[styles.aboutContent, { paddingTop: insets.top + 70 }]}
-          contentContainerStyle={styles.aboutContentContainer}
+        <Animated.ScrollView
+          style={styles.aboutContent}
+          contentContainerStyle={[styles.aboutContentContainer, { paddingTop: 0 }]}
           showsVerticalScrollIndicator={false}
           opacity={modalFadeAnim}
         >

@@ -7,8 +7,6 @@ const IMAGE_PRESETS = {
   preset_2:  require('../assets/avatars/preset_2.jpg'),
   preset_3:  require('../assets/avatars/preset_3.jpg'),
   preset_4:  require('../assets/avatars/preset_4.jpg'),
-  preset_5:  require('../assets/avatars/preset_5.jpg'),
-  preset_6:  require('../assets/avatars/preset_6.jpg'),
   preset_7:  require('../assets/avatars/preset_7.jpg'),
   preset_8:  require('../assets/avatars/preset_8.jpg'),
   preset_9:  require('../assets/avatars/preset_9.jpg'),

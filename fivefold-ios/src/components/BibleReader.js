@@ -22,7 +22,7 @@ import {
   Image,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import ViewShot from 'react-native-view-shot';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -3355,23 +3355,23 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
           // Original header for books view
           <View style={styles.header}>
           <View style={styles.headerTop}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 hapticFeedback.light();
                 onClose();
-              }} 
+              }}
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 1,
               }}
               activeOpacity={0.7}
             >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              <MaterialIcons name="arrow-back" size={22} color={isDark ? '#FFFFFF' : theme.text} />
             </TouchableOpacity>
             <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
               <Text style={[styles.title, { color: theme.text }]}>Holy Bible</Text>

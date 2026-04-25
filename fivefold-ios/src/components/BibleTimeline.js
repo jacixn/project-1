@@ -27,6 +27,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import ScreenHeader from './ScreenHeader';
 import AchievementService from '../services/achievementService';
 
 const { width, height } = Dimensions.get('window');
@@ -984,12 +985,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
         </View>
       )}
 
-      <TouchableOpacity
-        onPress={onClose}
-        style={[styles.headerBtn, { backgroundColor: 'rgba(255,255,255,0.1)', position: 'absolute', top: insets.top + 8, left: 16, zIndex: 10 }]}
-      >
-        <MaterialIcons name="arrow-back-ios-new" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+      <ScreenHeader title="Bible Timeline" onBack={onClose} />
 
       {!loading && !error && (
         <ScrollView
@@ -1003,12 +999,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
           onScroll={handleScroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} colors={[theme.primary]} />}
         >
-          <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-            <View style={{ width: 44 }} />
-            <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Bible Timeline</Text>
-            <View style={{ width: 44 }} />
-          </View>
-
           <View style={styles.titleSection}>
             <Text style={[styles.pageSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>Journey through Biblical history</Text>
             <View style={styles.progressRow}>

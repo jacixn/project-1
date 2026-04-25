@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
 import { hapticFeedback } from "../utils/haptics";
 import WorkoutExercisePicker from "./WorkoutExercisePicker";
@@ -33,6 +34,7 @@ import { useNavigation } from "@react-navigation/native";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [templates, setTemplates] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -744,12 +746,39 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
 
   const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Static back button (mirrors Vision screen) */}
+        <TouchableOpacity
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'absolute',
+            top: insets.top + 8,
+            left: 20,
+            zIndex: 10,
+          }}
+          onPress={() => { hapticFeedback.light(); onClose(); }}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={theme.text} />
+        </TouchableOpacity>
+
         {/* Quick Start Section */}
         <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
         >
+          {/* Scrolling header row — title only, spacers match Vision layout */}
+          <View style={[styles.headerRow, { paddingHorizontal: 0, marginBottom: 20 }]}>
+            <View style={{ width: 44, height: 44 }} />
+            <Text style={[styles.title, { color: theme.text }]}>Start Workout</Text>
+            <View style={{ width: 44, height: 44 }} />
+          </View>
+
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Quick Start
           </Text>
@@ -1211,69 +1240,6 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
           <View style={{ height: 120 }} />
         </ScrollView>
 
-        {/* Transparent Blurred Header */}
-        <BlurView
-          intensity={20}
-          tint={isDark ? "dark" : "light"}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1000,
-            backgroundColor: "transparent",
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            overflow: "hidden",
-          }}
-          pointerEvents="box-none"
-        >
-          <View
-            style={{
-              height: Platform.OS === "ios" ? 60 : 30,
-              backgroundColor: "transparent",
-            }}
-            pointerEvents="box-none"
-          />
-          <View
-            style={[
-              styles.headerRow,
-              {
-                backgroundColor: "transparent",
-                paddingTop: 8,
-                paddingBottom: 12,
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <TouchableOpacity
-              onPress={() => {
-                hapticFeedback.light();
-                onClose();
-              }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.1)"
-                  : "rgba(0,0,0,0.05)",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 1,
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-              <Text style={[styles.title, { color: theme.text }]}>
-                Start Workout
-              </Text>
-            </View>
-            <View style={{ width: 60 }} />
-          </View>
-        </BlurView>
 
         {/* Create Template Modal */}
         <Modal

@@ -30,6 +30,7 @@ import KeyVerses from './KeyVerses';
 import BibleFastFacts from './BibleFastFacts';
 import QuizGames from './QuizGames';
 import AudioLearning from './AudioLearning';
+import ScreenHeader, { StaticBackButton, ScrollingTitle } from './ScreenHeader';
 
 // Animated Study Section Card Component (follows Rules of Hooks)
 const AnimatedStudySectionCard = ({ section, onPress, isDark, theme, index, entranceOpacity, entranceTranslateY }) => {
@@ -976,14 +977,11 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
   };
 
   const renderMainMenu = () => (
-    <ScrollView 
-      style={styles.content} 
+    <ScrollView
+      style={styles.content}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 110 : 80 }}
     >
-      <View style={styles.headerContainer}>
-          {/* Title text removed but container kept for spacing */}
-      </View>
+      <ScrollingTitle title="Bible Study" />
 
       <View style={styles.sectionsGrid}>
         {studySections.map((section, index) => (
@@ -1692,72 +1690,16 @@ const BibleStudyModal = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, 
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         
-        {/* Main Content - Scrolls from top */}
+        {/* Main Content */}
         <View style={{ flex: 1 }}>
           {selectedSection === 'main' ? renderMainMenu() : renderSectionDetail()}
         </View>
-        
-        {/* Header - Hide for Bible Characters section completely */}
+
+        {/* Static back button — title now lives inside the scrolling content */}
         {selectedSection !== 'characters' && (
-          <BlurView
-            intensity={20}
-            tint={isDark ? 'dark' : 'light'}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              borderBottomLeftRadius: 30,
-              borderBottomRightRadius: 30,
-              overflow: 'hidden',
-            }}
-          >
-            <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
-            
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 20,
-              paddingTop: 8,
-              paddingBottom: 20,
-              backgroundColor: 'transparent',
-            }}>
-              <TouchableOpacity 
-                onPress={selectedSection === 'main' ? onClose : () => setSelectedSection('main')} 
-                style={{ 
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1,
-                }}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-              </TouchableOpacity>
-              
-              <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 20, 
-                  fontWeight: '800', 
-                  textAlign: 'center',
-                  letterSpacing: 0.5,
-                }}>
-                  {selectedSection === 'maps' ? 'Bible Maps' :
-                   selectedSection === 'themes' ? 'Thematic Guides' :
-                   selectedSection === 'keyverses' ? 'Key Verses' :
-                   'Bible Study'}
-                </Text>
-              </View>
-              
-              <View style={{ width: 70 }} />
-            </View>
-          </BlurView>
+          <StaticBackButton
+            onBack={selectedSection === 'main' ? onClose : () => setSelectedSection('main')}
+          />
         )}
       </View>
 

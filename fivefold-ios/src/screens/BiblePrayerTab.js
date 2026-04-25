@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // SafeAreaView removed - using full screen experience
 import { MaterialIcons } from '@expo/vector-icons';
@@ -212,6 +213,8 @@ const BiblePrayerTab = () => {
   const [verseToInterpret, setVerseToInterpret] = useState(null);
   const [verseReference, setVerseReference] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const mainScrollRef = useRef(null);
+  useTabBarScrollToTop(mainScrollRef);
   const [prayerTimes, setPrayerTimes] = useState({});
   const [prayerHistory, setPrayerHistory] = useState([]);
   const [location, setLocation] = useState(null);
@@ -1534,8 +1537,9 @@ const BiblePrayerTab = () => {
       </Animated.View>
 
       {/* Main Content - flows to top like Twitter */}
-      <Animated.ScrollView 
-        style={styles.twitterContent} 
+      <Animated.ScrollView
+        ref={mainScrollRef}
+        style={styles.twitterContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
         onScroll={Animated.event(

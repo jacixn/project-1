@@ -785,21 +785,42 @@ export const downloadAndMergeCloudData = async (userId) => {
     }
     
     // Daily verse data (verse of the day - per user)
+    // Only apply cloud state when it is strictly newer than local — never roll
+    // local back to an older verse/index, which would cause the same verse to
+    // keep showing for days.
     if (cloudData.dailyVerseSync) {
       const dvSync = cloudData.dailyVerseSync;
-      if (dvSync.data) {
-        await userStorage.setRaw('daily_verse_data_v6', JSON.stringify(dvSync.data));
-      }
-      if (dvSync.index !== undefined && dvSync.index !== null) {
-        await userStorage.setRaw('daily_verse_index_v6', String(dvSync.index));
-      }
-      if (dvSync.shuffledVerses) {
-        await userStorage.setRaw('shuffled_verses_v6', JSON.stringify(dvSync.shuffledVerses));
-      }
-      if (dvSync.lastUpdate) {
+      const localLastUpdate = await userStorage.getRaw('daily_verse_last_update_v6');
+      const localIndexStr = await userStorage.getRaw('daily_verse_index_v6');
+      const localIndex = parseInt(localIndexStr || '0');
+      const cloudIndex = (typeof dvSync.index === 'number')
+        ? dvSync.index
+        : parseInt(dvSync.index || '0');
+
+      const cloudLastUpdateIsNewer = dvSync.lastUpdate
+        && (!localLastUpdate || dvSync.lastUpdate > localLastUpdate);
+
+      if (cloudLastUpdateIsNewer) {
+        if (dvSync.data) {
+          await userStorage.setRaw('daily_verse_data_v6', JSON.stringify(dvSync.data));
+        }
+        if (dvSync.index !== undefined && dvSync.index !== null && cloudIndex >= localIndex) {
+          await userStorage.setRaw('daily_verse_index_v6', String(cloudIndex));
+        }
+        if (dvSync.shuffledVerses) {
+          await userStorage.setRaw('shuffled_verses_v6', JSON.stringify(dvSync.shuffledVerses));
+        }
         await userStorage.setRaw('daily_verse_last_update_v6', dvSync.lastUpdate);
+        console.log('[Sync] Applied newer daily verse data from cloud');
+      } else {
+        // Still accept a higher index from cloud (e.g. another device advanced)
+        if (dvSync.index !== undefined && dvSync.index !== null && cloudIndex > localIndex) {
+          await userStorage.setRaw('daily_verse_index_v6', String(cloudIndex));
+          console.log('[Sync] Advanced daily verse index from cloud (index only)');
+        } else {
+          console.log('[Sync] Skipping daily verse cloud data — local is newer or equal');
+        }
       }
-      console.log('[Sync] Downloaded daily verse data from cloud');
     }
     
     // Selected Bible version preference

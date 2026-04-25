@@ -6,16 +6,24 @@
 
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { storage } from '../config/firebase';
-import * as FileSystem from 'expo-file-system';
 
-const localFileToBlob = async (uri) => {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-  const byteChars = atob(base64);
-  const byteNumbers = new Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) {
-    byteNumbers[i] = byteChars.charCodeAt(i);
+const blobFromUri = (uri) =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => resolve(xhr.response);
+    xhr.onerror = () => reject(new Error('Failed to read file at ' + uri));
+    xhr.responseType = 'blob';
+    xhr.open('GET', uri, true);
+    xhr.send(null);
+  });
+
+const uploadLocalFile = async (storageRef, uri, contentType = 'image/jpeg') => {
+  const blob = await blobFromUri(uri);
+  try {
+    return await uploadBytes(storageRef, blob, { contentType });
+  } finally {
+    if (blob.close) blob.close();
   }
-  return new Blob([new Uint8Array(byteNumbers)], { type: 'image/jpeg' });
 };
 
 /**
@@ -31,17 +39,11 @@ export const uploadProfilePicture = async (userId, localUri) => {
 
   try {
     console.log('[Storage] Uploading profile picture for user:', userId);
-    
-    const blob = localUri.startsWith('file://') 
-      ? await localFileToBlob(localUri)
-      : await (await fetch(localUri)).blob();
-    
-    // Create a reference to the file location
+
     const fileName = `profile_${userId}_${Date.now()}.jpg`;
     const storageRef = ref(storage, `profile-pictures/${userId}/${fileName}`);
-    
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, blob);
+
+    const snapshot = await uploadLocalFile(storageRef, localUri, 'image/jpeg');
     console.log('[Storage] Upload complete:', snapshot.metadata.name);
     
     // Get the download URL
@@ -63,13 +65,8 @@ export const uploadProfilePicture = async (userId, localUri) => {
  */
 export const uploadImage = async (path, localUri) => {
   try {
-    const blob = localUri.startsWith('file://') 
-      ? await localFileToBlob(localUri)
-      : await (await fetch(localUri)).blob();
-    
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, blob);
-    
+    const snapshot = await uploadLocalFile(storageRef, localUri, 'image/jpeg');
     return await getDownloadURL(snapshot.ref);
   } catch (error) {
     console.error('[Storage] Error uploading image:', error);
@@ -90,12 +87,8 @@ export const uploadPrayerBoardImage = async (userId, localUri, imageId) => {
   }
 
   try {
-    const blob = localUri.startsWith('file://') 
-      ? await localFileToBlob(localUri)
-      : await (await fetch(localUri)).blob();
-
     const storageRef = ref(storage, `prayer-boards/${userId}/${imageId}.jpg`);
-    const snapshot = await uploadBytes(storageRef, blob);
+    const snapshot = await uploadLocalFile(storageRef, localUri, 'image/jpeg');
 
     const downloadURL = await getDownloadURL(snapshot.ref);
     console.log('[Storage] Prayer board image uploaded:', imageId);

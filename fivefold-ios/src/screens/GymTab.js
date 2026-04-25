@@ -17,6 +17,7 @@ import {
   Easing,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -69,6 +70,8 @@ const GymTab = () => {
   } : {};
   const { hasActiveWorkout } = useWorkout();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const mainScrollRef = useRef(null);
+  useTabBarScrollToTop(mainScrollRef);
 
   // State
   const [exercisesModalVisible, setExercisesModalVisible] = useState(false);
@@ -873,8 +876,9 @@ const GymTab = () => {
         </Animated.View>
 
         {/* Main Content */}
-        <Animated.ScrollView 
-          style={styles.content} 
+        <Animated.ScrollView
+          ref={mainScrollRef}
+          style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           onScroll={Animated.event(

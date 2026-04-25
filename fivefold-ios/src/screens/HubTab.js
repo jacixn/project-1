@@ -34,6 +34,7 @@ import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,6 +99,8 @@ const HubTab = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLoadingAnim, setSelectedLoadingAnim] = useState('default');
   const refreshLottieRef = useRef(null);
+  const mainScrollRef = useRef(null);
+  useTabBarScrollToTop(mainScrollRef);
   const refreshLottieScale = useRef(new Animated.Value(0)).current;
   const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
   const refreshSpacerHeight = useRef(new Animated.Value(0)).current;
@@ -1073,6 +1076,7 @@ const HubTab = () => {
         </View>
       ) : (
         <FlatList
+          ref={mainScrollRef}
           data={posts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}

@@ -20,15 +20,11 @@ const AnimatedCheck = ({ done, onPress }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const rotate = useRef(new Animated.Value(0)).current;
   const bgScale = useRef(new Animated.Value(1)).current;
-  const tappedRef = useRef(false);
-
-  useEffect(() => {
-    if (done) tappedRef.current = true;
-  }, [done]);
+  const animatingRef = useRef(false);
 
   const handlePress = useCallback(() => {
-    if (tappedRef.current || done) return;
-    tappedRef.current = true;
+    if (done || animatingRef.current) return;
+    animatingRef.current = true;
 
     Animated.parallel([
       Animated.sequence([
@@ -44,7 +40,7 @@ const AnimatedCheck = ({ done, onPress }) => {
         Animated.timing(bgScale, { toValue: 1.6, duration: 250, useNativeDriver: true }),
         Animated.timing(bgScale, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]),
-    ]).start();
+    ]).start(() => { animatingRef.current = false; });
 
     onPress?.();
   }, [done, onPress, scale, rotate, bgScale]);

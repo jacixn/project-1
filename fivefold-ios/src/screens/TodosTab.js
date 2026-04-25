@@ -33,6 +33,7 @@ import ScrollHeader from '../components/ScrollHeader';
 import { createEntranceAnimation, createSpringAnimation } from '../utils/animations';
 import { AnimatedWallpaper } from '../components/AnimatedWallpaper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Components
@@ -176,6 +177,8 @@ const TodosTab = () => {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const mainScrollRef = useRef(null);
+  useTabBarScrollToTop(mainScrollRef);
   const [userStats, setUserStats] = useState({
     points: 0,
     level: 1,
@@ -926,8 +929,9 @@ const TodosTab = () => {
       </Animated.View>
 
       {/* Main Content - flows to top like Twitter */}
-      <Animated.ScrollView 
-        style={styles.twitterContent} 
+      <Animated.ScrollView
+        ref={mainScrollRef}
+        style={styles.twitterContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.twitterScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -957,9 +961,13 @@ const TodosTab = () => {
                 reminders={reminders}
                 onPress={() => navigation.navigate('Reminders')}
                 onComplete={async (reminder, dateStr) => {
-                  await completeReminder(reminder.id, dateStr);
-                  const r = await loadReminders();
-                  setReminders(r);
+                  try {
+                    await completeReminder(reminder.id, dateStr);
+                    const r = await loadReminders();
+                    setReminders(r);
+                  } catch (e) {
+                    console.error('[TodosTab] onComplete error', e);
+                  }
                 }}
                 onPointsEarned={handleMiscPoints}
                 liquidGlassEnabled={liquidGlassEnabled}
@@ -974,9 +982,13 @@ const TodosTab = () => {
                 habits={habits}
                 onPress={() => navigation.navigate('Habits')}
                 onCheckIn={async (habit) => {
-                  await habitCheckIn(habit.id);
-                  const h = await loadHabits();
-                  setHabits(h);
+                  try {
+                    await habitCheckIn(habit.id);
+                    const h = await loadHabits();
+                    setHabits(h);
+                  } catch (e) {
+                    console.error('[TodosTab] habit checkIn error', e);
+                  }
                 }}
                 onPointsEarned={handleMiscPoints}
                 liquidGlassEnabled={liquidGlassEnabled}

@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import ScreenHeader, { StaticBackButton, ScrollingTitle } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import BodyMap2D from '../components/BodyMap2D';
 import physiqueService from '../services/physiqueService';
@@ -266,23 +267,14 @@ const PhysiqueScreen = () => {
         />
       )}
 
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={[styles.backBtn, { position: 'absolute', top: insets.top + 8, left: 16, zIndex: 10 }]}
-      >
-        <MaterialIcons name="arrow-back-ios" size={20} color={textPrimary} />
-      </TouchableOpacity>
+      <StaticBackButton onBack={() => navigation.goBack()} />
 
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <View style={{ width: 44 }} />
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>Physique</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <ScrollingTitle title="Physique" />
 
         {/* ── Controls Row ── */}
         <View style={styles.controlsRow}>

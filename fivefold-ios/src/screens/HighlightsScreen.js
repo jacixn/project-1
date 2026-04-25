@@ -517,17 +517,17 @@ const HighlightsScreen = ({ navigation }) => {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <TouchableOpacity
               onPress={handleClose}
-              style={{ 
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
               activeOpacity={0.7}
             >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              <MaterialIcons name="arrow-back" size={22} color={isDark ? '#FFFFFF' : textColor} />
             </TouchableOpacity>
               
             <View style={{ 

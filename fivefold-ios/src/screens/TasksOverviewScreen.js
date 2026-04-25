@@ -517,26 +517,27 @@ const TasksOverviewScreen = () => {
     <View style={[styles.container, { backgroundColor: bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
+      {/* Static back button (mirrors Vision screen) */}
+      <TouchableOpacity
+        style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', position: 'absolute', top: insets.top + 8, left: 20, zIndex: 10 }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
+      </TouchableOpacity>
+
       <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header (scrolls with content) */}
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="arrow-back-ios-new" size={18} color={textPrimary} />
-          </TouchableOpacity>
-
+        {/* Header (title centered, spacers on both sides to match Vision) */}
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.backBtn} />
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, { color: textPrimary }]}>Your Tasks</Text>
           </View>
-
-          <View style={{ width: 40 }} />
+          <View style={styles.backBtn} />
         </View>
 
         {/* Stats Banner */}
@@ -624,19 +625,20 @@ const TasksOverviewScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Header
+  // Header — matches VisionScreen pattern
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 44, height: 44, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', letterSpacing: 0.3 },
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
 
   // Stats banner
   statsBanner: {

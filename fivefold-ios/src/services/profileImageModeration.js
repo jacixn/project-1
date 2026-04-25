@@ -114,6 +114,56 @@ export async function setUploadCooldown(userId) {
   }
 }
 
+/**
+ * Clear any active upload cooldown. Used when an upload failure turns out to
+ * be a transient code/network error rather than a moderation rejection.
+ */
+export async function clearUploadCooldown(userId) {
+  try {
+    await AsyncStorage.removeItem(`pfp_rejected_at_${userId}`);
+    await AsyncStorage.removeItem(`pfp_rejection_count_${userId}`);
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to clear cooldown:', e);
+  }
+}
+
+// ── Graduated moderation rejections ─────────────────────────────────────────
+// Users get a few chances before a 24h cooldown kicks in.
+export const MAX_REJECTIONS_BEFORE_COOLDOWN = 3;
+
+/**
+ * Record a moderation rejection. Returns how many tries remain and whether
+ * this rejection triggered the 24h cooldown.
+ */
+export async function recordRejection(userId) {
+  try {
+    const raw = await AsyncStorage.getItem(`pfp_rejection_count_${userId}`);
+    const prev = parseInt(raw || '0', 10) || 0;
+    const count = prev + 1;
+    if (count >= MAX_REJECTIONS_BEFORE_COOLDOWN) {
+      await setUploadCooldown(userId);
+      await AsyncStorage.removeItem(`pfp_rejection_count_${userId}`);
+      return { cooledDown: true, remaining: 0, count };
+    }
+    await AsyncStorage.setItem(`pfp_rejection_count_${userId}`, String(count));
+    return { cooledDown: false, remaining: MAX_REJECTIONS_BEFORE_COOLDOWN - count, count };
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to record rejection:', e);
+    return { cooledDown: false, remaining: null, count: 0 };
+  }
+}
+
+/**
+ * Reset the rejection counter (call on successful upload).
+ */
+export async function resetRejectionCount(userId) {
+  try {
+    await AsyncStorage.removeItem(`pfp_rejection_count_${userId}`);
+  } catch (e) {
+    console.warn('[ProfileModeration] Failed to reset rejection count:', e);
+  }
+}
+
 // ── Cached custom photo (24-hour grace period) ──
 
 const PHOTO_CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;

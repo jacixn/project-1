@@ -28,6 +28,7 @@ import { pushToCloud } from '../services/userSyncService';
 import { updateLoadingAnimCache } from '../components/CustomLoadingIndicator';
 import { PREMIUM_BG_REFERRAL_REQUIRED } from '../data/premiumBackgrounds';
 import { setAlternateAppIcon, getAppIconName } from 'expo-alternate-app-icons';
+import ScreenHeader, { StaticBackButton, ScrollingTitle } from '../components/ScreenHeader';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -421,9 +422,8 @@ const CustomisationScreen = () => {
   // ═══════════════════════════════════════════════════════════
   return (
     <View style={[st.root, { backgroundColor: bg }]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[st.scroll, { paddingTop: insets.top + 58 }]} showsVerticalScrollIndicator={false}>
-
-
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollingTitle title="Customisation" />
 
         {/* ── Referral count banner with shimmer ─────── */}
         <AnimSection anim={sections[0]}>
@@ -932,60 +932,7 @@ const CustomisationScreen = () => {
         <View style={{ height: 50 }} />
       </ScrollView>
 
-      {/* Premium Transparent Header */}
-      <BlurView
-        intensity={50}
-        tint={isDark ? 'dark' : 'light'}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-        }}
-      >
-        <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-        <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4, opacity: headerFade }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => { if (navigation.canGoBack()) navigation.goBack(); }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1,
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-              <Text
-                style={{
-                  color: tx,
-                  fontSize: 17,
-                  fontWeight: '700',
-                  letterSpacing: 0.3,
-                }}
-              >
-                Customisation
-              </Text>
-            </View>
-
-            <View style={{ width: 40 }} />
-          </View>
-        </Animated.View>
-      </BlurView>
+      <StaticBackButton onBack={() => { if (navigation.canGoBack()) navigation.goBack(); }} />
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* ── SHARE THE WORD POPUP (0 referrals) ────────────── */}

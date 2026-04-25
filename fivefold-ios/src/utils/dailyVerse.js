@@ -95,15 +95,42 @@ const getTodayString = () => {
 const getDailyVerse = async () => {
   try {
     const todayString = getTodayString();
-    
+
     // Get user's preferred version first
     const preferredVersion = await userStorage.getRaw('selectedBibleVersion') || 'niv';
-    
-    // Check if we already have today's verse
+
+    // Self-heal: if cached verse is 2+ days old, invalidate and advance index so we
+    // don't keep serving the same stale verse (e.g. when cloud sync clobbers markers).
+    try {
+      const staleRaw = await userStorage.getRaw(DAILY_VERSE_KEY);
+      if (staleRaw) {
+        const staleParsed = JSON.parse(staleRaw);
+        if (staleParsed?.date) {
+          const cachedMs = new Date(staleParsed.date + 'T00:00:00').getTime();
+          const todayMs = new Date(todayString + 'T00:00:00').getTime();
+          const daysDiff = Math.floor((todayMs - cachedMs) / 86400000);
+          if (daysDiff >= 2) {
+            console.log(`🧹 Daily verse cache is ${daysDiff} days old — invalidating and advancing index`);
+            await userStorage.remove(DAILY_VERSE_KEY);
+            await userStorage.remove(LAST_UPDATE_DATE_KEY);
+            const curIdx = parseInt(await userStorage.getRaw(VERSE_INDEX_KEY) || '0');
+            await userStorage.setRaw(VERSE_INDEX_KEY, String(curIdx + 1));
+          }
+        }
+      }
+    } catch (healErr) {
+      console.warn('Daily verse self-heal check failed:', healErr);
+    }
+
+    // Check if we already have today's verse (both markers must agree)
     const cachedVerse = await userStorage.getRaw(DAILY_VERSE_KEY);
     const lastUpdateDate = await userStorage.getRaw(LAST_UPDATE_DATE_KEY);
-    
-    if (cachedVerse && lastUpdateDate === todayString) {
+    let cachedVerseInnerDate = null;
+    if (cachedVerse) {
+      try { cachedVerseInnerDate = JSON.parse(cachedVerse).date; } catch {}
+    }
+
+    if (cachedVerse && lastUpdateDate === todayString && cachedVerseInnerDate === todayString) {
       const parsedVerse = JSON.parse(cachedVerse);
       
       // Check if the cached verse is in the correct version
@@ -215,7 +242,20 @@ const getDailyVerse = async () => {
     return dailyVerse;
   } catch (error) {
     console.error('❌ Error getting daily verse:', error);
-    
+
+    // If we still have a cached verse from today, return it rather than the
+    // generic "Loading..." fallback (prevents the popup from disappearing).
+    try {
+      const todayString = getTodayString();
+      const cachedRaw = await userStorage.getRaw(DAILY_VERSE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.date === todayString && cached?.reference && cached?.text) {
+          return cached;
+        }
+      }
+    } catch {}
+
     // Fallback verse
     return {
       text: "Daily verse is loading...",

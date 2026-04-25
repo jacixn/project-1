@@ -272,17 +272,25 @@ const RemindersScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Static back button (mirrors Vision screen) */}
+      <TouchableOpacity
+        style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', position: 'absolute', top: insets.top + 8, left: 20, zIndex: 10 }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
+      </TouchableOpacity>
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <MaterialIcons name="arrow-back-ios" size={22} color={textPrimary} />
-        </TouchableOpacity>
+        <View style={styles.headerBtn} />
         <Text style={[styles.headerTitle, { color: textPrimary }]}>Reminders</Text>
         <TouchableOpacity
           onPress={() => { hapticFeedback.light(); setEditingReminder(null); setShowCreate(true); }}
-          style={[styles.addBtn, { backgroundColor: theme.primary }]}
+          style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          activeOpacity={0.7}
         >
-          <MaterialIcons name="add" size={20} color="#fff" />
+          <MaterialIcons name="add" size={22} color={textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -359,13 +367,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
-  addBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   dayIndicator: {
     flexDirection: 'row',

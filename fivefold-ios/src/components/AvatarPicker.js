@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { hapticFeedback } from '../utils/haptics';
 import { isEmailVerified } from '../services/authService';
-import { checkUploadCooldown, getCachedCustomPhoto } from '../services/profileImageModeration';
+import { checkUploadCooldown, clearUploadCooldown, getCachedCustomPhoto } from '../services/profileImageModeration';
 import AvatarDisplay, { PRESET_IDS } from './AvatarDisplay';
+
+// One-time clear of cooldowns set by the pre-fix expo-file-system bug.
+// Bumping the version key re-runs this for all users on upgrade.
+const COOLDOWN_BUG_RESET_FLAG = 'pfp_cooldown_bug_reset_v1';
 
 const COLUMNS = 5;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_PADDING = 4;
 const GAP = 6;
 const BORDER_SPACE = 8;
-const AVATAR_SIZE = Math.floor((SCREEN_WIDTH - 64 - GRID_PADDING * 2 - GAP * (COLUMNS - 1) - BORDER_SPACE * COLUMNS) / COLUMNS);
+// Parent Edit Profile modal has 20pt padding on each side (total 40pt).
+const PARENT_HORIZONTAL_PADDING = 40;
+const AVATAR_SIZE = Math.floor((SCREEN_WIDTH - PARENT_HORIZONTAL_PADDING - GRID_PADDING * 2 - GAP * (COLUMNS - 1) - BORDER_SPACE * COLUMNS) / COLUMNS);
 
 const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPhoto, cooldownRefreshKey }) => {
   const { theme } = useTheme();
@@ -23,10 +30,19 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
   const [cachedPhotoUrl, setCachedPhotoUrl] = useState(null);
 
   useEffect(() => {
-    if (user?.uid) {
+    const run = async () => {
+      if (!user?.uid) return;
+      try {
+        const alreadyReset = await AsyncStorage.getItem(COOLDOWN_BUG_RESET_FLAG);
+        if (alreadyReset !== 'done') {
+          await clearUploadCooldown(user.uid);
+          await AsyncStorage.setItem(COOLDOWN_BUG_RESET_FLAG, 'done');
+        }
+      } catch {}
       checkCooldown();
       loadCachedPhoto();
-    }
+    };
+    run();
   }, [user?.uid, cooldownRefreshKey]);
 
   const checkCooldown = async () => {
