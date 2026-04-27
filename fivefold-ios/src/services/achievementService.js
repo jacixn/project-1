@@ -412,7 +412,7 @@ class AchievementService {
       id: 'biblely',
       name: 'Biblely',
       icon: null,                // Uses logo image instead
-      image: require('../../assets/logo.png'),
+      image: require('../../assets/animated-icon.png'),
       color: '#F59E0B',          // Gold/amber
       condition: (stats) => (stats.appStreak || 0) >= 30,
       description: 'Maintain a 30-day app streak',

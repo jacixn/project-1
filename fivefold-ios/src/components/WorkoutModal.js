@@ -2251,7 +2251,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               {/* Logo Icon */}
               <View style={styles.finishConfirmIconContainer}>
                 <Image 
-                  source={require('../../assets/logo.png')}
+                  source={require('../../assets/animated-icon.png')}
                   style={styles.finishConfirmLogo}
                   resizeMode="contain"
                 />

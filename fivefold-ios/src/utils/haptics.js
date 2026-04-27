@@ -1,19 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import userStorage from './userStorage';
 
-// Check if haptics are enabled
-let hapticsEnabled = true;
+// Haptics are always on — user-facing toggle removed.
+const hapticsEnabled = true;
 
-// Load haptics setting on app start
-userStorage.getRaw('fivefold_vibration').then(value => {
-  hapticsEnabled = value !== 'false';
-});
-
-// Listen for setting changes
-export const updateHapticsSetting = async (enabled) => {
-  hapticsEnabled = enabled;
-  await userStorage.setRaw('fivefold_vibration', enabled ? 'true' : 'false');
-};
+// Kept exported for back-compat with any caller still wired up; no-op now.
+export const updateHapticsSetting = async () => {};
 
 // Enhanced haptic feedback system with fluid interactions
 export const hapticFeedback = {

@@ -57,11 +57,11 @@ const AnimatedCheck = ({ done, onPress }) => {
     >
       <Animated.View style={[
         styles.checkPulse,
-        { backgroundColor: done ? '#4CAF5020' : '#FF3B3020', transform: [{ scale: bgScale }] },
+        { backgroundColor: done ? '#4CAF5020' : '#FFFFFF20', transform: [{ scale: bgScale }] },
       ]} />
       <Animated.View style={{ transform: [{ scale }, { rotate: spin }] }}>
-        <View style={[styles.miniCheckBtn, { backgroundColor: done ? '#4CAF5020' : '#FF3B3020' }]}>
-          <MaterialIcons name="check-circle" size={28} color={done ? '#4CAF50' : '#FF3B30'} />
+        <View style={[styles.miniCheckBtn, { backgroundColor: done ? '#4CAF5020' : '#FFFFFF20' }]}>
+          <MaterialIcons name="check-circle" size={28} color={done ? '#4CAF50' : '#FFFFFF'} />
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -160,11 +160,17 @@ const HabitsCard = ({
       {visibleHabits.map((habit) => {
         const done = isCheckedInToday(habit) || pendingIds.has(habit.id);
         return (
-          <BlurView
+          <View
             key={habit.id}
-            intensity={18}
-            tint={isDark ? 'dark' : 'light'}
-            style={styles.habitRow}
+            style={[
+              styles.habitRow,
+              {
+                backgroundColor: `${theme.primary}33`,
+                borderWidth: 0.8,
+                borderColor: `${theme.primary}60`,
+                opacity: 0.7,
+              },
+            ]}
           >
             <AnimatedCheck
               done={done}
@@ -192,7 +198,7 @@ const HabitsCard = ({
                 </Text>
               </View>
             </View>
-          </BlurView>
+          </View>
         );
       })}
 

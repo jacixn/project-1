@@ -916,12 +916,12 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     if (!isLiquidGlassSupported) {
       // Fallback for unsupported devices
       return (
-        <BlurView 
-          intensity={18} 
-          tint={isDark ? "dark" : "light"} 
-          style={[styles.container, { 
-            backgroundColor: isDark 
-              ? 'rgba(255, 255, 255, 0.05)' 
+        <BlurView
+          intensity={18}
+          tint={isDark ? "dark" : "light"}
+          style={[styles.container, {
+            backgroundColor: isDark
+              ? 'rgba(255, 255, 255, 0.05)'
               : `${theme.primary}15`
           }, style]}
         >
@@ -997,17 +997,15 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
             
             const PrayerItemCard = ({ children, style }) => {
               return (
-                <BlurView
-                  intensity={18}
-                  tint={isDark ? 'dark' : 'light'}
-                  style={[styles.fullyTransparentPrayerItem, { 
-                    backgroundColor: 'transparent',
+                <View
+                  style={[styles.fullyTransparentPrayerItem, {
+                    backgroundColor: completedToday ? `${successColor}33` : `${theme.primary}33`,
                     borderColor: completedToday ? `${successColor}60` : `${theme.primary}60`,
                     opacity: completedToday ? 1 : (canComplete ? 1 : 0.7),
                   }, style]}
                 >
                   {children}
-                </BlurView>
+                </View>
               );
             };
 

@@ -347,7 +347,7 @@ const ProfessionalOnboarding = ({ onComplete }) => {
     <View style={styles.stepContainer}>
       <View style={styles.logoContainer}>
         <Image 
-          source={require('../../assets/logo.png')} 
+          source={require('../../assets/animated-icon.png')} 
           style={styles.welcomeLogo}
           resizeMode="contain"
         />

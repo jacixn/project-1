@@ -1904,12 +1904,6 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           </TouchableOpacity>
           
           <View style={{ position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <View style={[styles.friendAvatarContainer, { 
-              backgroundColor: theme.primary || '#7C3AED',
-              marginRight: 10,
-            }]}>
-              <MaterialIcons name={isGymMode ? 'directions-run' : 'stars'} size={20} color="#FFFFFF" />
-            </View>
             <Text style={[styles.solidHeaderTitle, { color: theme.text }]}>
               {chatName}
             </Text>

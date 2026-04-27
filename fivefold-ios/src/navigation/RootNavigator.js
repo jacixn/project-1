@@ -167,7 +167,7 @@ const AuthProgressScreen = ({ authSteps }) => {
         transform: [{ scale: logoScale }],
       }]}>
         <Image
-          source={require('../../assets/icon.png')}
+          source={require('../../assets/animated-icon.png')}
           style={authProgStyles.logo}
           resizeMode="contain"
         />

@@ -28,7 +28,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import ScreenHeader from '../components/ScreenHeader';
+import ScreenHeader, { StaticBackButton, ScrollingTitle } from '../components/ScreenHeader';
 import bibleCharactersService from '../services/bibleCharactersService';
 import AchievementService from '../services/achievementService';
 import CustomLoadingIndicator from '../components/CustomLoadingIndicator';
@@ -293,11 +293,11 @@ const BibleCharactersScreen = ({ navigation }) => {
   const renderCharacterGroups = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 130 : 100 }}
       refreshControl={
         <RefreshControl refreshing={charactersRefreshing} onRefresh={onRefreshCharacters} tintColor={theme.primary} progressViewOffset={Platform.OS === 'ios' ? 110 : 80} />
       }
     >
+      <ScrollingTitle title="Bible Characters" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 }}>
         {characterGroups.map((group, index) => (
           <AnimatedCharacterCard key={group.id} group={group} isDark={isDark} theme={theme}
@@ -509,7 +509,7 @@ const BibleCharactersScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <ScreenHeader title="Bible Characters" onBack={handleBack} />
+      <StaticBackButton onBack={handleBack} />
       {renderContent()}
     </View>
   );

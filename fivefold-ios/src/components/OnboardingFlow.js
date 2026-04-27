@@ -27,7 +27,7 @@ import { checkUsernameAvailability } from '../services/authService';
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const onboardingImage = require('../../assets/logo.png');
+const onboardingImage = require('../../assets/animated-icon.png');
 
 const slidesConfig = [
   { key: 'hero', type: 'hero' },

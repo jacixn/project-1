@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, View, Image, Animated, Easing, DeviceEventEmitter } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as ExpoSplashScreen from 'expo-splash-screen';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
@@ -42,6 +43,11 @@ import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorkoutService from './src/services/workoutService';
 import { updateFuelWidget, updateTodoWidget, updateHabitsWidget, updateVisionWidget, updateBodyCompWidget } from './src/utils/widgetBridge';
+import { startSharedHeaderLogoAnim } from './src/utils/sharedHeaderLogoAnim';
+
+// Start shared header logo animation loops once at module load — values keep
+// ticking forever so all tabs animate in lock-step regardless of mount order.
+startSharedHeaderLogoAnim();
 
 if (!Object.getOwnPropertyDescriptor(globalThis, 'width')) {
   Object.defineProperty(globalThis, 'width', {
@@ -387,11 +393,24 @@ const ThemedApp = () => {
   const prevFriendReqCountRef = useRef(-1);
   const prevChallengeIdsRef = useRef(null);
 
-  // X/Twitter-style splash zoom reveal
+  // Animated splash — 4s cinematic sequence
   const [splashDone, setSplashDone] = useState(false);
-  const splashScale = useRef(new Animated.Value(1)).current;
-  const splashOpacity = useRef(new Animated.Value(1)).current;
   const splashZoomRan = useRef(false);
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0.45)).current; // small at entry, grows in flight
+  const iconTranslateY = useRef(new Animated.Value(-170)).current;
+  const iconTranslateX = useRef(new Animated.Value(-200)).current;
+  const iconRotateZ = useRef(new Animated.Value(-50)).current; // pre-spin tilt
+  const iconRotateY = useRef(new Animated.Value(0)).current; // 360° showcase spin
+  const shimmerTranslate = useRef(new Animated.Value(-1)).current;
+  const shimmerOpacity = useRef(new Animated.Value(0)).current;
+  const exitOpacity = useRef(new Animated.Value(1)).current;
+  const nameOpacity = useRef(new Animated.Value(0)).current;
+  const nameTranslateY = useRef(new Animated.Value(20)).current;
+  const nameScale = useRef(new Animated.Value(0.6)).current;
+  const sloganOpacity = useRef(new Animated.Value(0)).current;
+  const sloganTranslateY = useRef(new Animated.Value(16)).current;
+  const sloganScaleX = useRef(new Animated.Value(1.25)).current;
 
   const runSplashZoom = useCallback(() => {
     if (splashZoomRan.current) return;
@@ -399,35 +418,231 @@ const ThemedApp = () => {
 
     ExpoSplashScreen.hideAsync().catch(() => {});
 
-    setTimeout(() => {
+    // Reset all values defensively (handles fast-refresh and re-runs)
+    iconOpacity.setValue(0);
+    iconScale.setValue(0.45);
+    iconTranslateY.setValue(-170);
+    iconTranslateX.setValue(-200);
+    iconRotateZ.setValue(-50);
+    iconRotateY.setValue(0);
+    shimmerTranslate.setValue(-1);
+    shimmerOpacity.setValue(0);
+    exitOpacity.setValue(1);
+    nameOpacity.setValue(0);
+    nameTranslateY.setValue(20);
+    nameScale.setValue(0.6);
+    sloganOpacity.setValue(0);
+    sloganTranslateY.setValue(16);
+    sloganScaleX.setValue(1.25);
+
+    Animated.sequence([
+      Animated.delay(60),
+      // Phase 1: Sweep-in arc — icon flies from upper-left along curved path, settles center (~950ms)
       Animated.parallel([
-        Animated.timing(splashScale, {
-          toValue: 30,
-          duration: 700,
-          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        Animated.timing(iconOpacity, {
+          toValue: 1,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.timing(splashOpacity, {
+        Animated.timing(iconScale, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.out(Easing.back(1.7)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconTranslateX, {
           toValue: 0,
-          duration: 500,
-          delay: 200,
-          easing: Easing.out(Easing.ease),
+          duration: 900,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        setSplashDone(true);
-      });
-    }, 300);
+        Animated.timing(iconTranslateY, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.out(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconRotateZ, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.out(Easing.back(1.6)),
+          useNativeDriver: true,
+        }),
+      ]),
+      // Phase 2: Full 360° 3D spin + shimmer sweep + name/slogan fade-in (~1100ms)
+      Animated.parallel([
+        Animated.timing(iconRotateY, {
+          toValue: 360,
+          duration: 1050,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        // Diagonal shimmer sweep across screen
+        Animated.sequence([
+          Animated.delay(180),
+          Animated.parallel([
+            Animated.timing(shimmerOpacity, {
+              toValue: 0.75,
+              duration: 180,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shimmerTranslate, {
+              toValue: 1,
+              duration: 850,
+              easing: Easing.bezier(0.4, 0, 0.6, 1),
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(shimmerOpacity, {
+            toValue: 0,
+            duration: 130,
+            useNativeDriver: true,
+          }),
+        ]),
+        // Name (scale-bounce + slide-up + fade) → slogan (letter-spacing
+        // tighten + slide-up + fade). Staggered so the eye lands on title
+        // first, then sweeps into the tagline.
+        Animated.sequence([
+          Animated.delay(120),
+          Animated.parallel([
+            Animated.timing(nameOpacity, {
+              toValue: 1,
+              duration: 380,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.spring(nameScale, {
+              toValue: 1,
+              tension: 60,
+              friction: 6,
+              useNativeDriver: true,
+            }),
+            Animated.spring(nameTranslateY, {
+              toValue: 0,
+              tension: 70,
+              friction: 8,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.delay(180),
+          Animated.parallel([
+            Animated.timing(sloganOpacity, {
+              toValue: 1,
+              duration: 480,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.timing(sloganTranslateY, {
+              toValue: 0,
+              duration: 560,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            // Horizontal squeeze: text starts stretched 1.25× wide then
+            // settles to natural width, giving a "lock-in" feel.
+            Animated.timing(sloganScaleX, {
+              toValue: 1,
+              duration: 620,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ]),
+      // Phase 3: Wobble celebration — Z-axis wiggle + small hop (~520ms)
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(iconRotateZ, {
+            toValue: -10,
+            duration: 130,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconRotateZ, {
+            toValue: 10,
+            duration: 130,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconRotateZ, {
+            toValue: -5,
+            duration: 130,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconRotateZ, {
+            toValue: 0,
+            duration: 130,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(iconTranslateY, {
+            toValue: -14,
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconTranslateY, {
+            toValue: 0,
+            duration: 300,
+            easing: Easing.bounce,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+      // Phase 4: Brief hold (~280ms)
+      Animated.delay(280),
+      // Phase 5: Slide-up spin exit — icon flies UP off screen with continuing 3D spin + Z rotation + fade (~820ms)
+      Animated.parallel([
+        Animated.timing(iconTranslateY, {
+          toValue: -1100,
+          duration: 780,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconRotateZ, {
+          toValue: 35,
+          duration: 780,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        // Continue spinning during exit
+        Animated.timing(iconRotateY, {
+          toValue: 720,
+          duration: 780,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(320),
+          Animated.timing(exitOpacity, {
+            toValue: 0,
+            duration: 460,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]).start(() => {
+      global.__SPLASH_DONE__ = true;
+      DeviceEventEmitter.emit('splashFinished');
+      setSplashDone(true);
+    });
   }, []);
 
-  // Safety: if onReady never fires, force-hide the native splash after 5s
+  // Safety: if onReady never fires, force-hide native + animated splash after 6s
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!splashZoomRan.current) {
         ExpoSplashScreen.hideAsync().catch(() => {});
+        global.__SPLASH_DONE__ = true;
+        DeviceEventEmitter.emit('splashFinished');
         setSplashDone(true);
       }
-    }, 5000);
+    }, 6000);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -1188,7 +1403,7 @@ const ThemedApp = () => {
   if (isReloading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
-        <Image source={require('./assets/logo.png')} style={{ width: 120, height: 120 }} resizeMode="contain" />
+        <Image source={require('./assets/animated-icon.png')} style={{ width: 120, height: 120 }} resizeMode="contain" />
       </View>
     );
   }
@@ -1269,21 +1484,126 @@ const ThemedApp = () => {
           style={{
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: '#111827',
-            justifyContent: 'center',
-            alignItems: 'center',
-            opacity: splashOpacity,
+            opacity: exitOpacity,
           }}
         >
-          <Animated.Image
-            source={require('./assets/logo.png')}
+          <LinearGradient
+            colors={['#5FE08A', '#33C473', '#159A5A']}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
             style={{
-              width: 120,
-              height: 120,
-              transform: [{ scale: splashScale }],
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflow: 'hidden',
             }}
-            resizeMode="contain"
-          />
+          >
+            {/* Diagonal shimmer sweep across whole screen */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                top: '-30%',
+                left: 0,
+                right: 0,
+                bottom: '-30%',
+                opacity: shimmerOpacity,
+                transform: [
+                  {
+                    translateX: shimmerTranslate.interpolate({
+                      inputRange: [-1, 1],
+                      outputRange: [-700, 700],
+                    }),
+                  },
+                  { rotate: '22deg' },
+                ],
+              }}
+            >
+              <LinearGradient
+                colors={[
+                  'rgba(255,255,255,0)',
+                  'rgba(255,255,255,0.0)',
+                  'rgba(255,255,255,0.55)',
+                  'rgba(255,255,255,0.0)',
+                  'rgba(255,255,255,0)',
+                ]}
+                locations={[0, 0.4, 0.5, 0.6, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={{ flex: 1, width: 260, alignSelf: 'center' }}
+              />
+            </Animated.View>
+
+            {/* Icon + name + slogan stack — text below, doesn't move with icon
+                 transforms (RN transforms don't reflow siblings) so when the
+                 icon flies off in Phase 5, text fades out via outer exitOpacity. */}
+            <Animated.Image
+              source={require('./assets/animated-icon.png')}
+              style={{
+                width: 170,
+                height: 170,
+                opacity: iconOpacity,
+                transform: [
+                  { perspective: 1000 },
+                  { translateY: iconTranslateY },
+                  { translateX: iconTranslateX },
+                  {
+                    rotate: iconRotateZ.interpolate({
+                      inputRange: [-360, 360],
+                      outputRange: ['-360deg', '360deg'],
+                    }),
+                  },
+                  {
+                    rotateY: iconRotateY.interpolate({
+                      inputRange: [0, 720],
+                      outputRange: ['0deg', '720deg'],
+                    }),
+                  },
+                  { scale: iconScale },
+                ],
+              }}
+              resizeMode="contain"
+            />
+
+            <Animated.Text
+              style={{
+                marginTop: 24,
+                fontSize: 40,
+                fontWeight: '800',
+                color: '#FFFFFF',
+                letterSpacing: 0.5,
+                textShadowColor: 'rgba(0,0,0,0.2)',
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 8,
+                opacity: nameOpacity,
+                transform: [
+                  { translateY: nameTranslateY },
+                  { scale: nameScale },
+                ],
+              }}
+            >
+              Biblely
+            </Animated.Text>
+
+            <Animated.Text
+              style={{
+                marginTop: 10,
+                fontSize: 15,
+                fontWeight: '600',
+                color: 'rgba(255,255,255,0.94)',
+                letterSpacing: 1.4,
+                textTransform: 'uppercase',
+                opacity: sloganOpacity,
+                transform: [
+                  { translateY: sloganTranslateY },
+                  { scaleX: sloganScaleX },
+                ],
+              }}
+            >
+              Faith, Focus & Fitness all in ONE
+            </Animated.Text>
+          </LinearGradient>
         </Animated.View>
       )}
     </>

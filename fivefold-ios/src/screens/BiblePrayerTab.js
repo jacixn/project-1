@@ -16,6 +16,8 @@ import {
   Easing,
   ActivityIndicator,
 } from 'react-native';
+import AboutBiblelyModal from '../components/AboutBiblelyModal';
+import { logoSpin, logoPulse, logoFloat } from '../utils/sharedHeaderLogoAnim';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import useTabBarScrollToTop from '../hooks/useTabBarScrollToTop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -243,10 +245,7 @@ const BiblePrayerTab = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   
-  // Logo animations
-  const logoSpin = useRef(new Animated.Value(0)).current;
-  const logoPulse = useRef(new Animated.Value(1)).current;
-  const logoFloat = useRef(new Animated.Value(0)).current;
+  // Logo animations — shared singleton values so all tabs sync
 
   // Modal card animations
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
@@ -314,7 +313,7 @@ const BiblePrayerTab = () => {
     initializePrayerData();
     loadUserName();
     loadLiquidGlassSetting();
-    startLogoAnimations();
+    // Logo animations are now shared globally — no local start call needed.
     startShimmerAnimation();
 
     // Listen for liquid glass setting changes
@@ -361,27 +360,6 @@ const BiblePrayerTab = () => {
       ]).start();
     }
   }, [showAboutModal]);
-
-  const startLogoAnimations = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoSpin, { toValue: 1, duration: 8000, useNativeDriver: true }),
-        Animated.timing(logoSpin, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ])
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoPulse, { toValue: 1.15, duration: 1500, useNativeDriver: true }),
-        Animated.timing(logoPulse, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      ])
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoFloat, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(logoFloat, { toValue: 0, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
-  };
 
   const startShimmerAnimation = () => {
     Animated.loop(
@@ -607,6 +585,9 @@ const BiblePrayerTab = () => {
   }, [dailyVerse.reference]);
 
   // Auto-show Verse of the Day on first app load once the verse is ready
+  // Waits for the animated splash to finish — Modal renders in iOS's native
+  // window which sits above the React splash overlay, so opening earlier makes
+  // the VOTD pop while the splash gradient is still visible.
   useEffect(() => {
     if (
       !initialVerseShown.current &&
@@ -617,9 +598,8 @@ const BiblePrayerTab = () => {
       !suppressVerseToday
     ) {
       initialVerseShown.current = true;
-      // slight delay so the UI is ready before animating
-      setTimeout(() => {
-        // Skip if launched from widget (user wants specific verse, not daily verse)
+
+      const showVotdNow = () => {
         if (global.__WIDGET_LAUNCH__) {
           console.log('📱 Skipping Verse of the Day - launched from widget');
           return;
@@ -627,7 +607,27 @@ const BiblePrayerTab = () => {
         if (!showVerseModal) {
           openVerseModal();
         }
-      }, 450);
+      };
+
+      let splashSub = null;
+      let timer = null;
+
+      if (global.__SPLASH_DONE__) {
+        // Splash already finished — small delay to let UI settle
+        timer = setTimeout(showVotdNow, 250);
+      } else {
+        // Wait for splash to finish, then show with a short buffer
+        splashSub = DeviceEventEmitter.addListener('splashFinished', () => {
+          splashSub?.remove();
+          splashSub = null;
+          timer = setTimeout(showVotdNow, 250);
+        });
+      }
+
+      return () => {
+        if (splashSub) splashSub.remove();
+        if (timer) clearTimeout(timer);
+      };
     }
   }, [dailyVerse.text, dailyVerse.reference, showVerseModal, openVerseModal, suppressVerseToday]);
 
@@ -876,33 +876,43 @@ const BiblePrayerTab = () => {
   const closeVerseModal = useCallback(() => {
     hapticFeedback.light();
     setShowDismissOptions(false);
-    
+
     // CRITICAL: Stop infinite animation loops before closing
     shimmerAnim.stopAnimation();
     iconPulse.stopAnimation();
-    
-    // Animate out
+
+    // Deterministic timing exit (220ms). Springs were causing 600-1500ms
+    // settling delays where the Modal stayed mounted and blocked touches
+    // even after it looked closed. Timing finishes when it says it does.
     Animated.parallel([
-      Animated.spring(verseModalScale, {
+      Animated.timing(verseModalScale, {
         toValue: 0.3,
-        tension: 50,
-        friction: 7,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(verseModalOpacity, {
         toValue: 0,
         duration: 200,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.spring(verseModalSlide, {
+      Animated.timing(verseModalSlide, {
         toValue: 50,
-        tension: 50,
-        friction: 7,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start(() => {
+    ]).start(({ finished }) => {
+      // Always unmount, even if interrupted, so Modal never sticks around
       setShowVerseModal(false);
     });
+
+    // Hard safety: if start callback ever fails to fire (e.g. native driver
+    // interruption), force unmount after a frame past the expected duration.
+    setTimeout(() => {
+      setShowVerseModal((cur) => (cur ? false : cur));
+    }, 260);
   }, []);
 
   const handleDiscussVerse = () => {
@@ -1150,8 +1160,8 @@ const BiblePrayerTab = () => {
         Read, study, and grow in faith
       </Text>
       
-      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
-        <AnimatedBibleButton 
+      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
             hapticFeedback.medium();
@@ -1171,9 +1181,9 @@ const BiblePrayerTab = () => {
           </View>
           <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </AnimatedBibleButton>
-      </BlurView>
-      
-      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+      </View>
+
+      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
         <TouchableOpacity
           activeOpacity={0.4}
           onPress={openVerseModal}
@@ -1184,14 +1194,14 @@ const BiblePrayerTab = () => {
           <Text style={[styles.verseLabel, { color: textSecondaryColor, ...textOutlineStyle }]}>
             {userName ? `${getPossessiveName()} Verse of the Day` : 'Verse of the Day'}
           </Text>
-          <Text 
+          <Text
             style={[styles.verseText, { color: textColor, ...textOutlineStyle }]}
             selectable={false}
             allowFontScaling={true}
           >
             "{dailyVerse.text}"
           </Text>
-          <Text 
+          <Text
             style={[styles.verseReference, { color: textSecondaryColor, ...textOutlineStyle }]}
             selectable={false}
             allowFontScaling={true}
@@ -1199,7 +1209,7 @@ const BiblePrayerTab = () => {
             {dailyVerse.reference} {dailyVerse.version ? `(${dailyVerse.version})` : ''}
           </Text>
         </TouchableOpacity>
-      </BlurView>
+      </View>
       </LiquidGlassBibleContainer>
     );
   };
@@ -1246,8 +1256,8 @@ const BiblePrayerTab = () => {
         Explore characters, timeline, maps & more
       </Text>
       
-      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
-        <AnimatedBibleButton 
+      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
             hapticFeedback.medium();
@@ -1267,7 +1277,7 @@ const BiblePrayerTab = () => {
           </View>
           <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </AnimatedBibleButton>
-      </BlurView>
+      </View>
 
       </LiquidGlassBibleStudyContainer>
     );
@@ -1311,8 +1321,8 @@ const BiblePrayerTab = () => {
         Your personal space to pin prayers & praise
       </Text>
       
-      <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
-        <AnimatedBibleButton 
+      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
             hapticFeedback.medium();
@@ -1332,7 +1342,7 @@ const BiblePrayerTab = () => {
           </View>
           <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
         </AnimatedBibleButton>
-      </BlurView>
+      </View>
 
       </LiquidGlassPrayerBoardContainer>
     );
@@ -1376,7 +1386,7 @@ const BiblePrayerTab = () => {
           Your saved content & reflections
         </Text>
 
-        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1394,9 +1404,9 @@ const BiblePrayerTab = () => {
             </View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
           </TouchableOpacity>
-        </BlurView>
+        </View>
 
-        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={styles.innerBlurItem}>
+        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1414,9 +1424,9 @@ const BiblePrayerTab = () => {
             </View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
           </TouchableOpacity>
-        </BlurView>
+        </View>
 
-        <BlurView intensity={18} tint={isDark ? "dark" : "light"} style={[styles.innerBlurItem, { marginBottom: 16 }]}>
+        <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1434,7 +1444,7 @@ const BiblePrayerTab = () => {
             </View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary} />
           </TouchableOpacity>
-        </BlurView>
+        </View>
       </LiquidGlassLibraryContainer>
     );
   };
@@ -1473,7 +1483,7 @@ const BiblePrayerTab = () => {
             activeOpacity={0.7}
           >
             <Animated.Image 
-              source={require('../../assets/logo.png')} 
+              source={require('../../assets/animated-icon.png')} 
               style={[
                 styles.headerLogo,
                 {
@@ -1483,10 +1493,6 @@ const BiblePrayerTab = () => {
                     { scale: logoPulse },
                     { translateY: logoFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
                   ],
-                  shadowColor: theme.primary,
-                  shadowOpacity: 0.4,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 0 },
                 }
               ]}
               resizeMode="contain"
@@ -1698,10 +1704,10 @@ const BiblePrayerTab = () => {
                     <MaterialIcons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
                   </TouchableOpacity>
 
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false} 
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
                     bounces={true}
-                    contentContainerStyle={{ paddingBottom: 20 }}
+                    contentContainerStyle={{ paddingBottom: 0 }}
                   >
                   {/* Decorative top accent */}
                   <View style={{
@@ -2209,242 +2215,7 @@ const BiblePrayerTab = () => {
         </Modal>
       )}
 
-      {/* About Jason Modal */}
-      <Modal
-        visible={showAboutModal}
-        animationType="none"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowAboutModal(false)}
-      >
-        <LinearGradient
-          colors={isDark 
-            ? ['#0F0F23', '#1A1A2E', '#16213E'] 
-            : ['#F0F4FF', '#E8EEFF', '#DDE6FF']}
-          style={styles.aboutModal}
-        >
-          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-          
-          {/* Animated Background Circles */}
-          <Animated.View style={[styles.bgCircle1, {
-            opacity: cardShimmer.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.3, 0.6]
-            }),
-            transform: [{
-              scale: cardShimmer.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 1.2]
-              })
-            }]
-          }]} />
-          <Animated.View style={[styles.bgCircle2, {
-            opacity: cardShimmer.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.4, 0.7]
-            })
-          }]} />
-          
-          {/* Close Button */}
-          <TouchableOpacity
-            style={[styles.closeButtonFloating, {
-              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            }]}
-            onPress={() => {
-              hapticFeedback.medium();
-              setShowAboutModal(false);
-            }}
-          >
-            <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.closeButtonBlur}>
-              <MaterialIcons name="close" size={24} color={theme.text} />
-            </BlurView>
-          </TouchableOpacity>
-
-          {/* Content */}
-          <Animated.ScrollView 
-            style={styles.aboutContent}
-            contentContainerStyle={styles.aboutContentContainer}
-            showsVerticalScrollIndicator={false}
-            opacity={modalFadeAnim}
-          >
-            {/* Hero Title */}
-            <Animated.View style={{
-              transform: [{ translateY: modalSlideAnim }]
-            }}>
-              <LinearGradient
-                colors={[theme.primary, theme.primaryLight, theme.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroGradient}
-              >
-                <Text style={styles.heroTitle}>About Biblely</Text>
-                <MaterialIcons name="stars" size={28} color="#FFFFFF" style={styles.heroIcon} />
-              </LinearGradient>
-            </Animated.View>
-
-            {/* Creator Card */}
-            <Animated.View style={{
-              transform: [{ translateY: modalSlideAnim }],
-              opacity: modalFadeAnim
-            }}>
-              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.creatorCard}>
-                <LinearGradient
-                  colors={isDark 
-                    ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                    : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-                  style={styles.creatorCardInner}
-                >
-                  {/* Animated Avatar with Logo */}
-                  <Animated.View style={[styles.creatorIconContainer, {
-                    transform: [{
-                      scale: cardShimmer.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 1.05]
-                      })
-                    }]
-                  }]}>
-                    <LinearGradient
-                      colors={[theme.primary, theme.primaryLight]}
-                      style={styles.avatarGradient}
-                    >
-                      <Image 
-                        source={require('../../assets/logo.png')} 
-                        style={styles.avatarLogo}
-                        resizeMode="contain"
-                      />
-                    </LinearGradient>
-                    {/* Glow ring */}
-                    <Animated.View style={[styles.glowRing, {
-                      borderColor: theme.primary,
-                      opacity: cardShimmer.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.3, 0.8]
-                      })
-                    }]} />
-                  </Animated.View>
-                  
-                  <Text style={[styles.creatorName, { color: textColor }]}>
-                    Hi, I'm Jason 👋
-                  </Text>
-                  <View style={styles.badgeContainer}>
-                    <LinearGradient
-                      colors={[theme.primary + '40', theme.primary + '20']}
-                      style={styles.badge}
-                    >
-                      <MaterialIcons name="school" size={14} color={theme.primary} />
-                      <Text style={[styles.badgeText, { color: theme.primary }]}>
-                      CS & CF Graduate
-                    </Text>
-                  </LinearGradient>
-                  <LinearGradient
-                    colors={[theme.success + '40', theme.success + '20']}
-                    style={styles.badge}
-                  >
-                    <MaterialIcons name="code" size={14} color={theme.success} />
-                    <Text style={[styles.badgeText, { color: theme.success }]}>
-                      Software Engineer
-                      </Text>
-                    </LinearGradient>
-                  </View>
-                </LinearGradient>
-              </BlurView>
-            </Animated.View>
-
-            {/* Story Section */}
-            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.storyCard}>
-              <LinearGradient
-                colors={isDark 
-                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-                style={styles.storyCardInner}
-              >
-                {/* Story Header with Gradient */}
-                <LinearGradient
-                  colors={[theme.primary + '30', theme.primary + '10']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.storyHeaderGradient}
-                >
-                  <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                  <Text style={[styles.storyTitle, { color: textColor }]}>
-                    Why I Built This
-                  </Text>
-                </LinearGradient>
-                
-                <Text style={[styles.storyText, { color: textColor }]}>
-                  I'm Jason, a CS and CF graduate and Software Engineer who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
-                </Text>
-                
-                <Text style={[styles.storyText, { color: textColor }]}>
-                  Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
-                </Text>
-                
-                <Text style={[styles.storyText, { color: textColor }]}>
-                  So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
-                </Text>
-
-                <Text style={[styles.storyText, { color: textColor }]}>
-                  I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
-                </Text>
-              </LinearGradient>
-            </BlurView>
-
-            {/* Thank You Section */}
-            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.thankYouCard}>
-              <LinearGradient
-                colors={isDark
-                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-                style={styles.thankYouCardInner}
-              >
-                <Animated.View style={{
-                  transform: [{
-                    scale: cardShimmer.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.1]
-                    })
-                  }]
-                }}>
-                  <LinearGradient
-                    colors={['#FF6B6B', '#EE5A6F']}
-                    style={styles.heartContainer}
-                  >
-                    <MaterialIcons name="favorite" size={32} color="#FFFFFF" />
-                  </LinearGradient>
-                </Animated.View>
-                
-                <Text style={[styles.thankYouTitle, { color: textColor }]}>
-                  Thanks for being here
-                </Text>
-                <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
-                  Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
-                </Text>
-                
-                <View style={styles.contactInfo}>
-                  <View style={styles.contactItem}>
-                    <MaterialIcons name="email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: textColor }]}>
-                      biblelyios@gmail.com
-                    </Text>
-                  </View>
-                  <View style={styles.contactItem}>
-                    <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                    <Text style={[styles.contactText, { color: textColor }]}>
-                      @biblely.app on TikTok
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.signatureContainer}>
-                  <View style={styles.signatureLine} />
-                  <Text style={[styles.signature, { color: textSecondaryColor }]}>
-                    Jason
-                  </Text>
-                </View>
-              </LinearGradient>
-            </BlurView>
-          </Animated.ScrollView>
-        </LinearGradient>
-      </Modal>
+      <AboutBiblelyModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
     </View>
     </AnimatedWallpaper>
   );
@@ -2500,7 +2271,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     position: 'absolute',
-    left: 16,
+    left: 20,
     top: -10,
   },
   headerTextContainer: {
@@ -2699,7 +2470,7 @@ const styles = StyleSheet.create({
   verseModalCard: {
     width: Dimensions.get('window').width - 32,
     maxWidth: 450,
-    maxHeight: Dimensions.get('window').height * 0.85,
+    maxHeight: Dimensions.get('window').height * 0.96,
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
@@ -2725,8 +2496,8 @@ const styles = StyleSheet.create({
   },
   verseModalContent: {
     padding: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   verseModalClose: {
     position: 'absolute',
@@ -2933,7 +2704,7 @@ const styles = StyleSheet.create({
   },
   aboutContent: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 120 : 100,
+    paddingTop: Platform.OS === 'ios' ? 115 : 90,
   },
   aboutContentContainer: {
     padding: 20,

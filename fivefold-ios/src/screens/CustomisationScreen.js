@@ -101,7 +101,7 @@ const getTier = (required) => {
 const BADGES = [
   { id: 'country', name: 'Country', desc: 'Show your country flag next to your name', icon: 'public', image: null, color: '#10B981', gradient: ['#10B981', '#059669'] },
   { id: 'verified', name: 'Blue Tick', desc: 'Verified badge next to your name', icon: 'verified', image: null, color: '#1DA1F2', gradient: ['#1DA1F2', '#0D8BD9'] },
-  { id: 'biblely', name: 'Biblely Badge', desc: 'Exclusive founder-level badge', icon: null, image: require('../../assets/logo.png'), color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
+  { id: 'biblely', name: 'Biblely Badge', desc: 'Exclusive founder-level badge', icon: null, image: require('../../assets/animated-icon.png'), color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
 ];
 
 // ── Streak animation definitions (sorted by referral cost) ──

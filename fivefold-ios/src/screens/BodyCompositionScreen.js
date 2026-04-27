@@ -26,6 +26,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { StaticBackButton, ScrollingTitle } from '../components/ScreenHeader';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
@@ -648,23 +649,14 @@ const BodyCompositionScreen = () => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <TouchableOpacity
-        style={[styles.backBtn, { position: 'absolute', top: insets.top + 8, left: 16, zIndex: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-        onPress={() => navigation.goBack()}
-      >
-        <MaterialIcons name="arrow-back-ios-new" size={20} color={textPrimary} />
-      </TouchableOpacity>
+      <StaticBackButton onBack={() => navigation.goBack()} left={16} />
 
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <View style={{ width: 44 }} />
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>Body Composition</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <ScrollingTitle title="Body Composition" />
 
         {/* ── Smart Scale Card ── */}
         <Animated.View style={{

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -128,7 +128,7 @@ const NameInputScreen = React.memo(({
         
         <View style={{ alignItems: 'center', marginTop: 40 }}>
           <Image 
-            source={require('../../assets/logo.png')} 
+            source={require('../../assets/animated-icon.png')} 
             style={{ width: 60, height: 60 }}
             resizeMode="contain"
           />
@@ -691,6 +691,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const giftScaleAnim = useRef(new Animated.Value(1)).current;
   const priceStrikeAnim = useRef(new Animated.Value(0)).current;
   const freeRevealAnim = useRef(new Animated.Value(0)).current;
+  const screenFadeAnim = useRef(new Animated.Value(1)).current;
 
   // Check for existing local data on mount
   useEffect(() => {
@@ -845,6 +846,12 @@ const SimpleOnboarding = ({ onComplete }) => {
 
   const totalScreens = screens.length;
   const progress = (currentScreen + 1) / totalScreens;
+
+  // No cross-fade — the fade animation itself was being perceived as a flash.
+  // Parent View bg matches the current screen so any unmount/remount frame
+  // paints the destination color instead of a transparent default.
+  const currentScreenName = screens[currentScreen];
+  const currentScreenTheme = SCREEN_THEMES[currentScreenName] || SCREEN_THEMES.splash;
 
   const handleUploadPhoto = async () => {
     try {
@@ -1212,98 +1219,146 @@ const SimpleOnboarding = ({ onComplete }) => {
 
 
   // Gift hold state
+  const HOLD_DURATION_MS = 7000;
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [giftDisplayEmoji, setGiftDisplayEmoji] = useState('🎁');
   const holdTimerRef = useRef(null);
   const holdIntervalRef = useRef(null);
+  const burstTimeoutsRef = useRef([]);
   const giftShakeAnim = useRef(new Animated.Value(0)).current;
-  
+  const giftRotateAnim = useRef(new Animated.Value(0)).current;
+  const revealEntryAnim = useRef(new Animated.Value(0)).current;
+  const revealIconAnim = useRef(new Animated.Value(0)).current;
+
+  const clearBurstTimeouts = () => {
+    burstTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    burstTimeoutsRef.current = [];
+  };
+
   const startGiftHold = () => {
     if (giftOpened) return;
-    
-    // Clear any existing interval first
+
     if (holdIntervalRef.current) {
       clearInterval(holdIntervalRef.current);
       holdIntervalRef.current = null;
     }
-    
+    clearBurstTimeouts();
+
     setIsHolding(true);
     setHoldProgress(0);
+    setGiftDisplayEmoji('🎁');
     giftScaleAnim.setValue(1);
-    
-    // Smooth scale animation over 5 seconds (no jumpy setValue)
+    giftRotateAnim.setValue(0);
+
+    // Dramatic scale-up over the full hold (1 → 2.5×). Easing.in.cubic so the
+    // growth stays subtle early and accelerates into a climax near the end.
     Animated.timing(giftScaleAnim, {
-      toValue: 1.5,
-      duration: 5000,
+      toValue: 2.5,
+      duration: HOLD_DURATION_MS,
+      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start();
-    
-    // Gentle continuous wobble (smooth, not shaky)
-    const wobble = () => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(giftShakeAnim, { toValue: 4, duration: 120, useNativeDriver: true }),
-          Animated.timing(giftShakeAnim, { toValue: -4, duration: 120, useNativeDriver: true }),
-        ])
-      ).start();
-    };
-    wobble();
-    
-    // Progress timer (5 seconds total) - update less frequently to avoid flicker
-    let progress = 0;
+
+    // Continuous wobble (intensifies via shake amplitude — see below)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(giftShakeAnim, { toValue: 4, duration: 120, useNativeDriver: true }),
+        Animated.timing(giftShakeAnim, { toValue: -4, duration: 120, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Tiered haptic schedule. Drive progress from real elapsed time so JS-thread
+    // jitter doesn't bunch ticks (and haptics) together. On tier change, fire one
+    // boundary haptic and reset the timer so adjacent tiers don't double-fire.
+    const startTime = Date.now();
+    let lastHapticTime = 0;
+    let currentTier = -1;
+    const tiers = [
+      { interval: 850, fn: hapticFeedback.light },   // 0–30%   calm
+      { interval: 420, fn: hapticFeedback.medium },  // 30–60%  building
+      { interval: 200, fn: hapticFeedback.medium },  // 60–85%  urgent (medium, not heavy — heavy at high freq feels mushy)
+      { interval: 110, fn: hapticFeedback.heavy },   // 85–100% crescendo (~9 Hz, within JS-bridge headroom)
+    ];
+    const TICK_MS = 50; // decoupled from progress; just for sampling
+
     holdIntervalRef.current = setInterval(() => {
-      progress += 5; // Increment by 5 = 4 seconds total (20 intervals × 200ms)
-      setHoldProgress(Math.min(progress, 100));
-      
-      // Haptic feedback at 25%, 50%, 75%
-      if (progress === 25 || progress === 50 || progress === 75) {
-        hapticFeedback.light();
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(100, (elapsed / HOLD_DURATION_MS) * 100);
+      setHoldProgress(progress);
+
+      const tier = progress < 30 ? 0 : progress < 60 ? 1 : progress < 85 ? 2 : 3;
+      const cfg = tiers[tier];
+      if (tier !== currentTier) {
+        currentTier = tier;
+        lastHapticTime = now;
+        try { cfg.fn?.(); } catch (e) {}
+      } else if (now - lastHapticTime >= cfg.interval) {
+        lastHapticTime = now;
+        try { cfg.fn?.(); } catch (e) {}
       }
-      
-      // Complete at 100
+
       if (progress >= 100) {
         clearInterval(holdIntervalRef.current);
         holdIntervalRef.current = null;
         giftShakeAnim.stopAnimation();
         giftShakeAnim.setValue(0);
-        hapticFeedback.success();
-        
-        // Celebration pop
-        Animated.sequence([
-          Animated.timing(giftScaleAnim, {
-            toValue: 1.8,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(giftScaleAnim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
+
+        // Clean two-stage open haptic: punch + resolve. No notificationAsync stacking.
+        try { hapticFeedback.heavy?.(); } catch (e) {}
+        burstTimeoutsRef.current.push(setTimeout(() => { try { hapticFeedback.success?.(); } catch (e) {} }, 180));
+
+        // "Open" animation — gift pops, no emoji swap
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(giftScaleAnim, { toValue: 3.6, duration: 220, useNativeDriver: true }),
+            Animated.timing(giftScaleAnim, { toValue: 2.8, duration: 280, useNativeDriver: true }),
+          ]),
+          Animated.timing(giftRotateAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
         ]).start(() => {
           setGiftOpened(true);
           setIsHolding(false);
+          // Staggered entry animation for revealed content (replaces confetti)
+          revealEntryAnim.setValue(0);
+          revealIconAnim.setValue(0);
+          Animated.sequence([
+            Animated.spring(revealIconAnim, {
+              toValue: 1,
+              friction: 5,
+              tension: 80,
+              useNativeDriver: true,
+            }),
+            Animated.timing(revealEntryAnim, {
+              toValue: 1,
+              duration: 450,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+          ]).start();
         });
       }
-    }, 200); // 200ms intervals (smoother, fewer re-renders)
+    }, TICK_MS);
   };
-  
+
   const endGiftHold = () => {
     if (giftOpened) return;
-    
-    // Always clear the interval immediately
+
     if (holdIntervalRef.current) {
       clearInterval(holdIntervalRef.current);
       holdIntervalRef.current = null;
     }
-    
-    // Stop all animations and reset
+    clearBurstTimeouts();
+
     giftScaleAnim.stopAnimation();
     giftShakeAnim.stopAnimation();
+    giftRotateAnim.stopAnimation();
     setIsHolding(false);
     setHoldProgress(0);
+    setGiftDisplayEmoji('🎁');
     giftScaleAnim.setValue(1);
     giftShakeAnim.setValue(0);
+    giftRotateAnim.setValue(0);
   };
 
   const handlePaywallReveal = () => {
@@ -1350,7 +1405,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
         <View style={styles.content}>
           <Image 
-            source={require('../../assets/logo.png')} 
+            source={require('../../assets/animated-icon.png')} 
             style={styles.splashLogo}
             resizeMode="contain"
           />
@@ -1375,10 +1430,10 @@ const SimpleOnboarding = ({ onComplete }) => {
     const screenTheme = SCREEN_THEMES.welcome;
     
     const highlights = [
-      { icon: 'menu-book', text: '44 Bible translations' },
-      { icon: 'chat', text: 'Smart Bible companion' },
-      { icon: 'task-alt', text: 'Smart task system' },
-      { icon: 'fitness-center', text: 'Gym & workouts' },
+      { icon: 'book-outline', text: '44 Bible translations' },
+      { icon: 'chatbubbles-outline', text: 'Smart Bible companion' },
+      { icon: 'checkmark-done-outline', text: 'Smart task system' },
+      { icon: 'barbell-outline', text: 'Gym & workouts' },
     ];
     
     return (
@@ -1391,7 +1446,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           showsVerticalScrollIndicator={false}
         >
           <Image 
-            source={require('../../assets/logo.png')} 
+            source={require('../../assets/animated-icon.png')} 
             style={styles.mascotImage}
             resizeMode="contain"
           />
@@ -1408,7 +1463,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           <View style={styles.welcomeHighlights}>
             {highlights.map((item, index) => (
               <View key={index} style={styles.welcomeHighlightItem}>
-                <MaterialIcons name={item.icon} size={20} color={screenTheme.accent} />
+                <Ionicons name={item.icon} size={22} color={screenTheme.accent} />
                 <Text style={styles.welcomeHighlightText}>{item.text}</Text>
               </View>
             ))}
@@ -3540,7 +3595,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   // Glitter / Confetti Overlay for Gift Reveal
   // ============================================
   const GlitterOverlay = React.memo(() => {
-    const PARTICLE_COUNT = 30;
+    const PARTICLE_COUNT = 90;
     const { width: screenW, height: screenH } = Dimensions.get('window');
     
     // Generate particles once with useMemo
@@ -3768,15 +3823,18 @@ const SimpleOnboarding = ({ onComplete }) => {
       }
     };
     
-    // Price breakdown in USD (base prices)
+    // Price breakdown in USD — anchored to comparable subscription tiers
+    // (AI chat ≈ ChatGPT Plus, audio ≈ Audible, fitness ≈ MyFitnessPal Premium).
     const basePrices = [
-      { feature: 'Smart Bible Companion', usd: 4.99 },
-      { feature: '44 Bible Translations', usd: 3.99 },
-      { feature: 'Audio Bible Stories', usd: 2.99 },
-      { feature: 'Bible Quizzes & Games', usd: 1.99 },
-      { feature: 'Smart Task Scoring', usd: 3.99 },
-      { feature: 'Gym & Workout Tracker', usd: 4.99 },
-      { feature: 'Thematic Study Guides', usd: 2.99 },
+      { feature: 'Smart Bible Companion', usd: 12.99 },
+      { feature: '44 Bible Translations', usd: 6.99 },
+      { feature: 'Audio Bible Stories', usd: 9.99 },
+      { feature: 'Bible Quizzes & Games', usd: 4.99 },
+      { feature: 'Smart Task Scoring', usd: 7.99 },
+      { feature: 'Gym & Workout Tracker', usd: 9.99 },
+      { feature: 'Nutrition & Calorie Tracker', usd: 9.99 },
+      { feature: 'Body Composition Insights', usd: 6.99 },
+      { feature: 'Thematic Study Guides', usd: 5.99 },
     ];
     
     const priceBreakdown = basePrices.map(item => ({
@@ -3793,6 +3851,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         
         {!giftOpened ? (
           // Hold to reveal state
+          <>
           <View style={styles.content}>
             <Text style={[styles.screenTitle, { color: '#333' }]}>
               {userName}, I got you something!
@@ -3808,102 +3867,132 @@ const SimpleOnboarding = ({ onComplete }) => {
               activeOpacity={1}
               style={styles.giftContainer}
             >
-              <Animated.View style={{ 
+              <Animated.View style={{
                 transform: [
                   { scale: giftScaleAnim },
-                  { translateX: giftShakeAnim }
-                ] 
+                  { translateX: giftShakeAnim },
+                  {
+                    rotate: giftRotateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  },
+                ],
               }}>
                 <View style={styles.giftBox}>
-                  <Text style={styles.giftEmoji}>🎁</Text>
+                  <Text style={styles.giftEmoji}>{giftDisplayEmoji}</Text>
                 </View>
               </Animated.View>
             </TouchableOpacity>
-            
-            {/* Hold instruction & progress */}
+            </View>
+
+            {/* Hold instruction & progress — sibling of content so the
+                growing gift doesn't overlap it */}
             <View style={styles.holdInstructionContainer}>
               {!isHolding ? (
                 <Text style={styles.holdInstruction}>Hold to unwrap...</Text>
               ) : (
                 <View style={styles.holdProgressContainer}>
                   <View style={styles.holdProgressBar}>
-                    <View 
+                    <View
                       style={[
-                        styles.holdProgressFill, 
-                        { 
+                        styles.holdProgressFill,
+                        {
                           width: `${holdProgress}%`,
                           backgroundColor: screenTheme.accent,
                         }
-                      ]} 
+                      ]}
                     />
                   </View>
                   <Text style={styles.holdProgressText}>
-                    {holdProgress < 100 ? `${Math.ceil((100 - holdProgress) / 20)}s` : 'Opening...'}
+                    {holdProgress < 100 ? `${Math.ceil(((100 - holdProgress) / 100) * (HOLD_DURATION_MS / 1000))}s` : 'Opening...'}
                   </Text>
                 </View>
               )}
             </View>
-          </View>
+          </>
         ) : (
           // Revealed state - show the app is FREE
           <View style={{ flex: 1 }}>
-            <ScrollView 
+            <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.giftRevealScrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <MaterialIcons name="celebration" size={56} color="#AD1457" style={styles.giftRevealEmoji} />
-              
-              <Text style={[styles.screenTitle, { color: '#333', marginBottom: 8 }]}>
-                It's all FREE!
-              </Text>
-              
-              <Text style={[styles.screenSubtitle, { color: '#666', marginBottom: 24 }]}>
-                Everything. Forever. No catch.
-              </Text>
-            
-            {/* Value breakdown */}
-            <View style={styles.priceBreakdownCard}>
-              <Text style={styles.priceBreakdownTitle}>What you're getting:</Text>
-              
-              {priceBreakdown.map((item, index) => (
-                <View key={index} style={styles.priceBreakdownRow}>
-                  <View style={styles.priceBreakdownCheck}>
-                    <MaterialIcons name="check" size={14} color="#4CAF50" />
-                  </View>
-                  <Text style={styles.priceBreakdownFeature}>{item.feature}</Text>
-                  <Text style={styles.priceBreakdownPrice}>{item.price}</Text>
+              <Animated.View style={{
+                width: '100%',
+                opacity: revealEntryAnim,
+                transform: [{
+                  translateY: revealEntryAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+                }],
+              }}>
+                <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center', marginBottom: 8, minHeight: 48 }}>
+                  <Animated.View style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    justifyContent: 'center',
+                    transform: [
+                      { scale: revealIconAnim.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 1.25, 1] }) },
+                      { rotate: revealIconAnim.interpolate({ inputRange: [0, 1], outputRange: ['-25deg', '0deg'] }) },
+                    ],
+                    opacity: revealIconAnim,
+                  }}>
+                    <MaterialIcons name="celebration" size={40} color="#AD1457" />
+                  </Animated.View>
+                  <Text style={[styles.screenTitle, { color: '#333', marginBottom: 0, textAlign: 'center' }]}>
+                    It's all FREE!
+                  </Text>
                 </View>
-              ))}
-              
-              <View style={styles.priceBreakdownDivider} />
-              
-              <View style={styles.priceBreakdownTotal}>
-                <Text style={styles.priceBreakdownTotalLabel}>Total Value</Text>
-                <Text style={styles.priceBreakdownTotalPrice}>{totalValue}</Text>
-              </View>
-            </View>
-            
-            {/* Your price */}
-            <View style={styles.yourPriceCard}>
-              <Text style={styles.yourPriceLabel}>Your price:</Text>
-              <View style={styles.yourPriceRow}>
-                <Text style={styles.yourPriceStrikethrough}>{totalValue}</Text>
-                <Text style={styles.yourPriceFree}>{getCurrency().symbol}0</Text>
-              </View>
-              <Text style={styles.yourPriceForever}>Forever free. No ads. No trials.</Text>
-            </View>
-            
-            {/* Why free? */}
-            <View style={styles.whyFreeCard}>
-              <Text style={styles.whyFreeTitle}>Why is this free?</Text>
-              <Text style={styles.whyFreeText}>
-                I believe everyone deserves access to God's word and tools for spiritual growth - 
-                regardless of their financial situation. This app is my ministry to you.
-              </Text>
-            </View>
+
+                <Text style={[styles.screenSubtitle, { color: '#666', marginBottom: 14 }]}>
+                  Everything. Forever. No catch.
+                </Text>
+
+                {/* Value breakdown */}
+                <View style={styles.priceBreakdownCard}>
+                  <Text style={styles.priceBreakdownTitle}>What you're getting:</Text>
+
+                  {priceBreakdown.map((item, index) => (
+                    <View key={index} style={styles.priceBreakdownRow}>
+                      <View style={styles.priceBreakdownCheck}>
+                        <MaterialIcons name="check" size={14} color="#4CAF50" />
+                      </View>
+                      <Text style={styles.priceBreakdownFeature}>{item.feature}</Text>
+                      <Text style={styles.priceBreakdownPrice}>{item.price}</Text>
+                    </View>
+                  ))}
+
+                  <View style={styles.priceBreakdownDivider} />
+
+                  <View style={styles.priceBreakdownTotal}>
+                    <Text style={styles.priceBreakdownTotalLabel}>Total Value</Text>
+                    <Text style={styles.priceBreakdownTotalPrice}>{totalValue}</Text>
+                  </View>
+                </View>
+
+                {/* Your price */}
+                <View style={styles.yourPriceCard}>
+                  <Text style={styles.yourPriceLabel}>Your price:</Text>
+                  <View style={styles.yourPriceRow}>
+                    <Text style={styles.yourPriceStrikethrough}>{totalValue}</Text>
+                    <Text style={styles.yourPriceFree}>{getCurrency().symbol}0</Text>
+                  </View>
+                  <Text style={styles.yourPriceForever}>Forever free. No ads. No trials.</Text>
+                </View>
+
+                {/* Why free? */}
+                <View style={styles.whyFreeCard}>
+                  <Text style={styles.whyFreeTitle}>Why is this free?</Text>
+                  <Text style={styles.whyFreeText}>
+                    I believe everyone deserves access to God's word and tools for spiritual growth -
+                    regardless of their financial situation. This app is my ministry to you.
+                  </Text>
+                </View>
+              </Animated.View>
           </ScrollView>
-            {/* Falling glitter / confetti — on TOP of everything */}
+            {/* Falling confetti — on TOP of everything */}
             <GlitterOverlay />
           </View>
         )}
@@ -3943,7 +4032,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           <View style={styles.paywallContent}>
             {/* Mascot */}
             <Image 
-              source={require('../../assets/logo.png')} 
+              source={require('../../assets/animated-icon.png')} 
               style={styles.paywallMascot}
               resizeMode="contain"
             />
@@ -4066,7 +4155,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           contentContainerStyle={[styles.scrollContent, { justifyContent: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
-          <MaterialIcons name="stars" size={56} color="#2E7D32" style={styles.completeEmoji} />
+          <MaterialIcons name="rocket-launch" size={56} color="#2E7D32" style={styles.completeEmoji} />
           
           <Text style={[styles.completeTitle, { color: '#333' }]}>
             You're All Set, {userName || 'Friend'}!
@@ -4087,7 +4176,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           </View>
           
           <Image 
-            source={require('../../assets/logo.png')} 
+            source={require('../../assets/animated-icon.png')} 
             style={styles.completeMascot}
             resizeMode="contain"
           />
@@ -4350,7 +4439,18 @@ const SimpleOnboarding = ({ onComplete }) => {
     }
   };
 
-  return <View key={screens[currentScreen]} style={{ flex: 1 }}>{renderScreen()}</View>;
+  // Outer View bg = current screen's theme bg. Paints destination color
+  // instantly so any unmount/remount frame stays visually continuous.
+  // Inner View `key={currentScreenName}` forces a fresh mount per screen so
+  // each screen's ScrollView starts at offset 0 (without remounting, React
+  // reconciles ScrollView at the same JSX position and keeps scroll state).
+  return (
+    <View style={{ flex: 1, backgroundColor: currentScreenTheme.bg }}>
+      <View key={currentScreenName} style={{ flex: 1 }}>
+        {renderScreen()}
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -5190,8 +5290,9 @@ const styles = StyleSheet.create({
   
   // Hold to reveal styles
   holdInstructionContainer: {
-    marginTop: 30,
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 12,
   },
   holdInstruction: {
     fontSize: 18,
@@ -5220,18 +5321,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   giftRevealScrollContent: {
-    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 30,
+    paddingTop: 4,
+    paddingBottom: 16,
     alignItems: 'center',
   },
   priceBreakdownCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -5242,12 +5342,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   priceBreakdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   priceBreakdownCheck: {
     width: 20,
@@ -5271,7 +5371,7 @@ const styles = StyleSheet.create({
   priceBreakdownDivider: {
     height: 1,
     backgroundColor: '#EEE',
-    marginVertical: 16,
+    marginVertical: 10,
   },
   priceBreakdownTotal: {
     flexDirection: 'row',
@@ -5292,17 +5392,17 @@ const styles = StyleSheet.create({
   yourPriceCard: {
     backgroundColor: '#E8F5E9',
     borderRadius: 16,
-    padding: 24,
+    padding: 14,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     borderWidth: 2,
     borderColor: '#4CAF50',
   },
   yourPriceLabel: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   yourPriceRow: {
     flexDirection: 'row',
@@ -5315,14 +5415,14 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   yourPriceFree: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: '800',
     color: '#4CAF50',
   },
   yourPriceForever: {
     fontSize: 14,
     color: '#666',
-    marginTop: 8,
+    marginTop: 4,
     fontStyle: 'italic',
   },
   whyFreeCard: {

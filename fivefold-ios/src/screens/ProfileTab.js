@@ -31,6 +31,8 @@ import {
   Dimensions,
   Easing,
 } from 'react-native';
+import AboutBiblelyModal from '../components/AboutBiblelyModal';
+import { logoSpin, logoPulse, logoFloat } from '../utils/sharedHeaderLogoAnim';
 
 // const { width } = Dimensions.get('window');
 import { MaterialIcons } from '@expo/vector-icons';
@@ -1429,10 +1431,7 @@ const ProfileTab = () => {
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)  ).current;
   
-  // Logo animations
-  const logoSpin = useRef(new Animated.Value(0)).current;
-  const logoPulse = useRef(new Animated.Value(1)).current;
-  const logoFloat = useRef(new Animated.Value(0)).current;
+  // Logo animations — shared singleton values so all tabs sync
   
   // Modal card animations
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
@@ -1448,57 +1447,6 @@ const ProfileTab = () => {
           useNativeDriver: true,
         }),
         Animated.timing(cardShimmer, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  };
-
-  // Continuous logo animations
-  const startLogoAnimations = () => {
-    // Gentle spinning animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoSpin, {
-          toValue: 1,
-          duration: 8000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoSpin, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Pulsing animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoPulse, {
-          toValue: 1.15,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoPulse, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Floating animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoFloat, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoFloat, {
           toValue: 0,
           duration: 2000,
           useNativeDriver: true,
@@ -1646,7 +1594,7 @@ const ProfileTab = () => {
     loadJournalNotes();
     loadHighlights();
     loadCompletedTasks();
-    startLogoAnimations();
+    // Logo animations are now shared globally — no local start call needed.
   }, []);
 
   // Load auth-related data when user changes
@@ -3358,7 +3306,7 @@ const ProfileTab = () => {
             activeOpacity={0.7}
           >
             <Animated.Image 
-              source={require('../../assets/logo.png')} 
+              source={require('../../assets/animated-icon.png')} 
               style={[
                 styles.headerLogo,
                 {
@@ -3378,10 +3326,6 @@ const ProfileTab = () => {
                       })
                     }
                   ],
-                  shadowColor: theme.primary,
-                  shadowOpacity: 0.4,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 0 },
                 }
               ]}
               resizeMode="contain"
@@ -5040,35 +4984,6 @@ const ProfileTab = () => {
                 </View>
               </TouchableOpacity>
 
-              {/* Haptic Feedback */}
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: `${theme.primary}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="vibration" size={20} color={theme.primary} />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Haptics</Text>
-              </View>
-              <Switch
-                value={vibrationEnabled}
-                onValueChange={handleVibrationToggle}
-                  trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
-                  thumbColor="#fff"
-              />
-            </View>
 
               {/* Verse Popup */}
               <TouchableOpacity 
@@ -8938,242 +8853,7 @@ const ProfileTab = () => {
       </View>
     </Modal>
 
-    {/* About Modal */}
-    <Modal
-      visible={showAboutModal}
-      animationType="none"
-      presentationStyle="fullScreen"
-      onRequestClose={() => setShowAboutModal(false)}
-    >
-      <LinearGradient
-        colors={isDark 
-          ? ['#0F0F23', '#1A1A2E', '#16213E'] 
-          : ['#F0F4FF', '#E8EEFF', '#DDE6FF']}
-        style={styles.aboutModal}
-      >
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        
-        {/* Animated Background Circles */}
-        <Animated.View style={[styles.bgCircle1, {
-          opacity: cardShimmer.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 0.6]
-          }),
-          transform: [{
-            scale: cardShimmer.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 1.2]
-            })
-          }]
-        }]} />
-        <Animated.View style={[styles.bgCircle2, {
-          opacity: cardShimmer.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.4, 0.7]
-          })
-        }]} />
-        
-        {/* Close Button */}
-        <TouchableOpacity
-          style={[styles.closeButtonFloating, {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          }]}
-          onPress={() => {
-            hapticFeedback.medium();
-            setShowAboutModal(false);
-          }}
-        >
-          <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.closeButtonBlur}>
-            <MaterialIcons name="close" size={24} color={theme.text} />
-          </BlurView>
-        </TouchableOpacity>
-
-        {/* Content */}
-        <Animated.ScrollView
-          style={styles.aboutContent}
-          contentContainerStyle={[styles.aboutContentContainer, { paddingTop: 0 }]}
-          showsVerticalScrollIndicator={false}
-          opacity={modalFadeAnim}
-        >
-          {/* Hero Title */}
-          <Animated.View style={{
-            transform: [{ translateY: modalSlideAnim }]
-          }}>
-            <LinearGradient
-              colors={[theme.primary, theme.primaryLight, theme.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
-            >
-              <Text style={styles.heroTitle}>About Biblely</Text>
-              <MaterialIcons name="stars" size={28} color="#FFFFFF" style={styles.heroIcon} />
-            </LinearGradient>
-          </Animated.View>
-
-          {/* Creator Card */}
-          <Animated.View style={{
-            transform: [{ translateY: modalSlideAnim }],
-            opacity: modalFadeAnim
-          }}>
-            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.creatorCard}>
-              <LinearGradient
-                colors={isDark 
-                  ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                  : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-                style={styles.creatorCardInner}
-              >
-                {/* Animated Avatar with Logo */}
-                <Animated.View style={[styles.creatorIconContainer, {
-                  transform: [{
-                    scale: cardShimmer.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.05]
-                    })
-                  }]
-                }]}>
-                  <LinearGradient
-                    colors={[theme.primary, theme.primaryLight]}
-                    style={styles.avatarGradient}
-                  >
-                    <Image 
-                      source={require('../../assets/logo.png')} 
-                      style={styles.avatarLogo}
-                      resizeMode="contain"
-                    />
-                  </LinearGradient>
-                  {/* Glow ring */}
-                  <Animated.View style={[styles.glowRing, {
-                    borderColor: theme.primary,
-                    opacity: cardShimmer.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.3, 0.8]
-                    })
-                  }]} />
-                </Animated.View>
-                
-                <Text style={[styles.creatorName, { color: textColor, ...textOutlineStyle }]}>
-                  Hi, I'm Jason 👋
-                </Text>
-                <View style={styles.badgeContainer}>
-                  <LinearGradient
-                    colors={[theme.primary + '40', theme.primary + '20']}
-                    style={styles.badge}
-                  >
-                    <MaterialIcons name="school" size={14} color={theme.primary} />
-                    <Text style={[styles.badgeText, { color: theme.primary }]}>
-                      CS & CF Graduate
-                    </Text>
-                  </LinearGradient>
-                  <LinearGradient
-                    colors={[theme.success + '40', theme.success + '20']}
-                    style={styles.badge}
-                  >
-                    <MaterialIcons name="code" size={14} color={theme.success} />
-                    <Text style={[styles.badgeText, { color: theme.success }]}>
-                      Software Engineer
-                    </Text>
-                  </LinearGradient>
-                </View>
-              </LinearGradient>
-            </BlurView>
-          </Animated.View>
-
-          {/* Story Section */}
-          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.storyCard}>
-            <LinearGradient
-              colors={isDark 
-                ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-              style={styles.storyCardInner}
-            >
-              {/* Story Header with Gradient */}
-              <LinearGradient
-                colors={[theme.primary + '30', theme.primary + '10']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyHeaderGradient}
-              >
-                <MaterialIcons name="auto-stories" size={24} color={theme.primary} />
-                <Text style={[styles.storyTitle, { color: textColor, ...textOutlineStyle }]}>
-                  Why I Built This
-                </Text>
-              </LinearGradient>
-              
-              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
-                I'm Jason, a CS and CF graduate and Software Engineer who loves reading the Bible. I wanted an app to help me read daily, so I tried a few popular Bible apps.
-              </Text>
-              
-              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
-                Some had paywalls, others just weren't what I was looking for. I wanted something simple that combined faith, productivity, and wellness in one place.
-              </Text>
-              
-              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
-                So I built Biblely. It's got everything I wanted - Bible reading, daily prayers, tasks to stay productive, and even fitness tracking. All completely free.
-              </Text>
-
-              <Text style={[styles.storyText, { color: textColor, ...textOutlineStyle }]}>
-                I made this for myself, but I hope it helps you too. No subscriptions, no paywalls, just a simple app to help you grow.
-              </Text>
-            </LinearGradient>
-          </BlurView>
-
-          {/* Thank You Section */}
-          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.thankYouCard}>
-            <LinearGradient
-              colors={isDark
-                ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']
-                : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.6)']}
-              style={styles.thankYouCardInner}
-            >
-              <Animated.View style={{
-                transform: [{
-                  scale: cardShimmer.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.1]
-                  })
-                }]
-              }}>
-                <LinearGradient
-                  colors={['#FF6B6B', '#EE5A6F']}
-                  style={styles.heartContainer}
-                >
-                  <MaterialIcons name="favorite" size={32} color="#FFFFFF" />
-                </LinearGradient>
-              </Animated.View>
-              
-              <Text style={[styles.thankYouTitle, { color: textColor, ...textOutlineStyle }]}>
-                Thanks for being here
-              </Text>
-              <Text style={[styles.thankYouText, { color: textSecondaryColor }]}>
-                Hope Biblely helps you out. If you've got any ideas or feedback, I'd love to hear them.
-              </Text>
-              
-              <View style={styles.contactInfo}>
-                <View style={styles.contactItem}>
-                  <MaterialIcons name="email" size={18} color={theme.primary} />
-                  <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
-                    biblelyios@gmail.com
-                  </Text>
-                </View>
-                <View style={styles.contactItem}>
-                  <MaterialIcons name="alternate-email" size={18} color={theme.primary} />
-                  <Text style={[styles.contactText, { color: textColor, ...textOutlineStyle }]}>
-                    @biblely.app on TikTok
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.signatureContainer}>
-                <View style={styles.signatureLine} />
-                <Text style={[styles.signature, { color: textSecondaryColor }]}>
-                  Jason
-                </Text>
-              </View>
-            </LinearGradient>
-          </BlurView>
-        </Animated.ScrollView>
-      </LinearGradient>
-    </Modal>
+    <AboutBiblelyModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
 
     {/* Theme Modal */}
     <ThemeModal 
@@ -10105,6 +9785,7 @@ const styles = StyleSheet.create({
   },
   aboutContent: {
     flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 115 : 90,
   },
   aboutContentContainer: {
     padding: 20,

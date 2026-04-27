@@ -1845,7 +1845,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   sectionCard: {
-    marginBottom: 10,
+    marginBottom: 18,
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 2,

@@ -14,12 +14,12 @@ import { hapticFeedback } from '../utils/haptics';
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
   if (!isLiquidGlassSupported) {
     return (
-      <BlurView 
-        intensity={18} 
-        tint={isDark ? "dark" : "light"} 
-        style={[styles.container, { 
-          backgroundColor: isDark 
-            ? 'rgba(255, 255, 255, 0.05)' 
+      <BlurView
+        intensity={18}
+        tint={isDark ? "dark" : "light"}
+        style={[styles.container, {
+          backgroundColor: isDark
+            ? 'rgba(255, 255, 255, 0.05)'
             : `${theme.primary}15`
         }]}
       >
@@ -225,14 +225,12 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
 
       {/* Pending Tasks - Being Analyzed */}
       {pendingTasks.map(task => (
-        <BlurView 
-          key={task.id} 
-          intensity={30} 
-          tint={isDark ? "dark" : "light"} 
-          style={[styles.todoItem, styles.pendingItem, { 
-            backgroundColor: isDark 
-              ? 'rgba(255, 255, 255, 0.08)' 
-              : `${theme.primary}25`
+        <View
+          key={task.id}
+          style={[styles.todoItem, styles.pendingItem, {
+            backgroundColor: `${theme.primary}33`,
+            borderColor: `${theme.primary}60`,
+            opacity: 0.7,
           }]}
         >
           <View style={styles.checkButton}>
@@ -251,7 +249,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
               </View>
             </View>
           </View>
-        </BlurView>
+        </View>
       ))}
 
       {activeTodos.length === 0 && pendingTasks.length === 0 ? (
@@ -278,9 +276,17 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
             };
 
             return (
-              <BlurView key={todo.id} intensity={18} tint="light" style={styles.todoItem}>
-                <TouchableOpacity 
-                  style={styles.checkButton} 
+              <View
+                key={todo.id}
+                style={[styles.todoItem, {
+                  backgroundColor: `${theme.primary}33`,
+                  borderWidth: 0.8,
+                  borderColor: `${theme.primary}60`,
+                  opacity: 0.7,
+                }]}
+              >
+                <TouchableOpacity
+                  style={styles.checkButton}
                   onPress={() => {
                     hapticFeedback.success();
                     const getTierColor = (t) => {
@@ -303,7 +309,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
                     </View>
                   </View>
                 </View>
-              </BlurView>
+              </View>
             );
           })}
           {activeTodos.length > 3 && (
@@ -473,8 +479,6 @@ const styles = StyleSheet.create({
   pendingItem: {
     opacity: 0.7,
     borderWidth: 1,
-    borderColor: '#667eea',
-    borderStyle: 'dashed',
   },
   checkButton: {
     marginRight: 12,

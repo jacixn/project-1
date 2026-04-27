@@ -81,11 +81,17 @@ const VisionCard = ({
       {visibleGoals.map((vision) => {
         const progress = getProgress(vision);
         return (
-          <BlurView
+          <View
             key={vision.id}
-            intensity={18}
-            tint={isDark ? 'dark' : 'light'}
-            style={styles.goalRow}
+            style={[
+              styles.goalRow,
+              {
+                backgroundColor: `${theme.primary}33`,
+                borderWidth: 0.8,
+                borderColor: `${theme.primary}60`,
+                opacity: 0.7,
+              },
+            ]}
           >
             <Text
               style={[styles.goalTitle, { color: textColor, ...textOutlineStyle }]}
@@ -112,7 +118,7 @@ const VisionCard = ({
                 {getTimeRemaining(vision)}
               </Text>
             </View>
-          </BlurView>
+          </View>
         );
       })}
 
