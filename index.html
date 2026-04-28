@@ -3,565 +3,1849 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biblely - Faith, Focus & Fitness Daily</title>
-  <meta name="description" content="Your all-in-one spiritual companion. Read the Bible, track prayers, build habits, log workouts, and fuel your body — beautifully designed and completely free.">
+  <title>Biblely. Faith. Focus. Fitness.</title>
+  <meta name="description" content="The all-in-one spiritual companion. Read the Bible, pray with intention, build holy habits, train your body, fuel with purpose. Free, beautifully crafted, every detail.">
+  <meta property="og:title" content="Biblely. Faith. Focus. Fitness.">
+  <meta property="og:description" content="Your daily walk with God, in one app. Bible. Prayer. Fitness. Nutrition. Habits. Free forever.">
+  <meta property="og:image" content="https://biblely.uk/logo.png">
+  <meta name="theme-color" content="#0B1426">
+  <link rel="icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0C0E12;
-      --surface: #14171D;
-      --border: rgba(255,255,255,0.06);
-      --text: #F1F2F4;
-      --muted: #8A8F98;
-      --accent: #D4A746;
-      --accent-glow: rgba(212, 167, 70, 0.15);
+      /* Jesus & Lamb palette. Parchment, halo gold, dawn sky, sacred wine */
+      --parchment: #F5EFE0;
+      --parchment-warm: #FAF6EE;
+      --lamb-white: #FFFEF9;
+      --night: #0B1426;
+      --night-deep: #060B16;
+      --night-soft: #11203C;
+      --gold: #D4A52F;
+      --gold-warm: #E8B947;
+      --gold-glow: rgba(212, 165, 47, 0.25);
+      --halo: #F8E5A1;
+      --olive: #6B7C2A;
+      --wine: #8B2D3A;
+      --sky-dawn: #FBE0B5;
+      --sky-rose: #F5C7B5;
+      --ink: #1A1410;
+      --ink-soft: #4A3F30;
+      --muted: #8E8170;
+      --line: rgba(212, 165, 47, 0.18);
     }
+
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--parchment-warm);
+      color: var(--ink);
       line-height: 1.6;
       overflow-x: hidden;
+      font-feature-settings: "ss01", "cv11";
+    }
+
+    .serif { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; }
+
+    /* ── Floating dust particles (cathedral light) ── */
+    .dust {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .dust span {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: var(--halo);
+      border-radius: 50%;
+      opacity: 0;
+      box-shadow: 0 0 6px var(--halo);
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.4; }
+      100% { transform: translateY(-10vh) translateX(40px); opacity: 0; }
     }
 
     /* ── Navigation ── */
     nav {
       position: fixed;
-      top: 0;
-      width: 100%;
+      top: 0; left: 0; right: 0;
       z-index: 100;
-      padding: 18px 24px;
+      padding: 18px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background: rgba(12, 14, 18, 0.8);
-      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      background: rgba(250, 246, 238, 0.78);
+      border-bottom: 1px solid var(--line);
+      transition: all 0.4s ease;
     }
+    nav.scrolled { padding: 12px 32px; background: rgba(250, 246, 238, 0.95); }
 
     .nav-brand {
-      font-weight: 800;
-      font-size: 20px;
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      font-size: 26px;
       letter-spacing: -0.5px;
-      color: var(--text);
+      color: var(--ink);
       text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .nav-brand .lamb {
+      width: 28px; height: 28px;
+      filter: drop-shadow(0 0 8px var(--gold-glow));
+    }
+    .nav-brand span { color: var(--gold); font-style: italic; }
 
-    .nav-brand span { color: var(--accent); }
-
-    .nav-links { display: flex; gap: 28px; align-items: center; }
-
+    .nav-links { display: flex; gap: 32px; align-items: center; }
     .nav-links a {
-      color: var(--muted);
+      color: var(--ink-soft);
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
       transition: color 0.2s;
-    }
-
-    .nav-links a:hover { color: var(--text); }
-
-    .nav-cta {
-      background: var(--accent) !important;
-      color: #0C0E12 !important;
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-weight: 600 !important;
-      transition: opacity 0.2s;
-    }
-
-    .nav-cta:hover { opacity: 0.9; color: #0C0E12 !important; }
-
-    /* ── Hero ── */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
       position: relative;
     }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 2px;
+      background: var(--gold);
+      transition: width 0.3s ease;
+    }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-links a:hover { color: var(--ink); }
 
+    .nav-cta {
+      background: linear-gradient(135deg, var(--gold), var(--gold-warm));
+      color: var(--night) !important;
+      padding: 10px 22px;
+      border-radius: 100px;
+      font-weight: 700 !important;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px var(--gold-glow);
+    }
+    .nav-cta::after { display: none; }
+    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--gold-glow); }
+
+    @media (max-width: 720px) {
+      nav { padding: 14px 18px; }
+      .nav-links { gap: 14px; }
+      .nav-links a:not(.nav-cta) { display: none; }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 140px 24px 80px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 0%, var(--sky-dawn) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 80%, var(--sky-rose) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 60%, var(--gold-glow) 0%, transparent 45%),
+        var(--parchment-warm);
+    }
     .hero::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 600px;
-      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(248, 229, 161, 0.45), transparent 40%);
       pointer-events: none;
     }
 
-    .pill {
-      display: inline-flex;
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      max-width: 1280px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 60px;
       align-items: center;
-      gap: 6px;
-      background: var(--accent-glow);
-      border: 1px solid rgba(212, 167, 70, 0.2);
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 600;
-      padding: 6px 16px;
-      border-radius: 100px;
-      margin-bottom: 32px;
-      position: relative;
-      z-index: 1;
-      letter-spacing: 0.3px;
+    }
+    @media (max-width: 980px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 50px; text-align: center; }
     }
 
-    .hero h1 {
-      font-size: clamp(42px, 7vw, 72px);
-      font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1.05;
-      max-width: 700px;
-      margin-bottom: 24px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero h1 em {
-      font-style: normal;
-      color: var(--accent);
-    }
-
-    .hero-sub {
-      font-size: clamp(16px, 2.5vw, 19px);
-      color: var(--muted);
-      max-width: 540px;
-      margin-bottom: 40px;
-      position: relative;
-      z-index: 1;
-      line-height: 1.7;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      justify-content: center;
-      position: relative;
-      z-index: 1;
-    }
-
-    .btn-primary {
+    .hero-eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      background: var(--accent);
-      color: #0C0E12;
-      text-decoration: none;
-      padding: 15px 28px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 8px 32px rgba(212, 167, 70, 0.25);
+      padding: 8px 18px;
+      border-radius: 100px;
+      background: rgba(255, 254, 249, 0.7);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 28px;
+    }
+    .hero-eyebrow .pulse {
+      width: 8px; height: 8px;
+      background: var(--olive);
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 var(--olive);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(107, 124, 42, 0.6); }
+      70% { box-shadow: 0 0 0 14px rgba(107, 124, 42, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(107, 124, 42, 0); }
     }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(212, 167, 70, 0.35);
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(48px, 7vw, 92px);
+      line-height: 0.98;
+      letter-spacing: -2px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 28px;
     }
+    .hero h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--wine) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+    }
+    .hero h1 .reveal-word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: revealWord 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .hero h1 .reveal-word:nth-child(1) { animation-delay: 0.1s; }
+    .hero h1 .reveal-word:nth-child(2) { animation-delay: 0.25s; }
+    .hero h1 .reveal-word:nth-child(3) { animation-delay: 0.4s; }
+    .hero h1 .reveal-word:nth-child(4) { animation-delay: 0.55s; }
+    .hero h1 .reveal-word:nth-child(5) { animation-delay: 0.7s; }
+    @keyframes revealWord { to { opacity: 1; transform: translateY(0); } }
 
-    .btn-primary svg { width: 20px; height: 20px; fill: #0C0E12; }
+    .hero p.lede {
+      font-size: 19px;
+      color: var(--ink-soft);
+      max-width: 540px;
+      margin-bottom: 36px;
+      line-height: 1.7;
+      opacity: 0;
+      animation: fadeIn 1s 0.9s forwards;
+    }
+    @media (max-width: 980px) { .hero p.lede { margin: 0 auto 36px; } }
+    @keyframes fadeIn { to { opacity: 1; } }
 
-    .btn-secondary {
+    .cta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeIn 1s 1.1s forwards;
+    }
+    @media (max-width: 980px) { .cta-row { justify-content: center; } }
+
+    .btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
+      gap: 10px;
+      padding: 16px 30px;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 15px;
       text-decoration: none;
-      padding: 15px 28px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      transition: background 0.2s;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
     }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-warm));
+      color: var(--night);
+      box-shadow: 0 8px 32px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 40px var(--gold-glow); }
+    .btn-secondary {
+      background: var(--lamb-white);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover { background: var(--parchment); transform: translateY(-2px); }
 
-    .btn-secondary:hover { background: rgba(255,255,255,0.08); }
+    .hero-trust {
+      margin-top: 36px;
+      display: flex;
+      gap: 28px;
+      align-items: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeIn 1s 1.3s forwards;
+    }
+    @media (max-width: 980px) { .hero-trust { justify-content: center; } }
+    .hero-trust-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 500; }
+    .hero-trust-item svg { width: 18px; height: 18px; color: var(--olive); }
 
-    /* ── Stats ── */
-    .stats {
+    /* ── Hero visual: divine halo + phone mockup ── */
+    .hero-visual {
+      position: relative;
       display: flex;
       justify-content: center;
-      gap: 48px;
-      padding: 48px 24px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
+      align-items: center;
+      min-height: 600px;
+    }
+    .halo {
+      position: absolute;
+      width: 520px; height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--halo) 0%, var(--gold-glow) 30%, transparent 70%);
+      animation: haloRotate 30s linear infinite, haloBreathe 4s ease-in-out infinite;
+      filter: blur(0.5px);
+    }
+    @keyframes haloRotate { to { transform: rotate(360deg); } }
+    @keyframes haloBreathe { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.9; } }
+
+    .lamb-svg {
+      position: absolute;
+      width: 380px;
+      height: auto;
+      opacity: 0.18;
+      filter: drop-shadow(0 0 20px var(--gold-glow));
+      animation: gentleFloat 6s ease-in-out infinite;
+      z-index: 1;
+    }
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
     }
 
-    .stat { text-align: center; }
-    .stat-num { font-size: 32px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
-    .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500; }
-
-    /* ── Section ── */
-    section {
-      padding: 100px 24px;
-      max-width: 1100px;
-      margin: 0 auto;
+    .phone-mockup {
+      position: relative;
+      width: 320px;
+      height: 660px;
+      border-radius: 56px;
+      background: var(--night);
+      padding: 14px;
+      box-shadow:
+        0 30px 80px rgba(11, 20, 38, 0.35),
+        0 10px 30px rgba(11, 20, 38, 0.2),
+        inset 0 0 0 2px rgba(255,255,255,0.08);
+      z-index: 2;
+      animation: phoneFloat 7s ease-in-out infinite;
     }
-
-    .section-label {
-      font-size: 13px;
+    @keyframes phoneFloat {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-16px) rotate(-1deg); }
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 44px;
+      background:
+        radial-gradient(circle at 50% 0%, var(--sky-dawn) 0%, transparent 40%),
+        linear-gradient(180deg, #FBE0B5 0%, #F5C7B5 60%, #D4A52F 100%);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 24px 24px;
+    }
+    .phone-screen .notch {
+      position: absolute;
+      top: 14px; left: 50%;
+      transform: translateX(-50%);
+      width: 100px; height: 28px;
+      background: var(--night);
+      border-radius: 100px;
+    }
+    .phone-screen h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      color: var(--night);
       font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .phone-screen .verse-of-day {
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-align: center;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .phone-card {
+      background: var(--lamb-white);
+      border-radius: 18px;
+      padding: 16px;
+      width: 100%;
+      box-shadow: 0 4px 16px rgba(11, 20, 38, 0.08);
       margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
-
-    .section-title {
-      font-size: clamp(28px, 4vw, 40px);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 20px;
-      line-height: 1.15;
-    }
-
-    .section-desc {
-      font-size: 17px;
-      color: var(--muted);
-      max-width: 560px;
-      line-height: 1.7;
-      margin-bottom: 56px;
-    }
-
-    /* ── Feature Grid ── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px 28px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(212, 167, 70, 0.15);
-    }
-
-    .feature-icon {
-      width: 48px;
-      height: 48px;
+    .phone-card-icon {
+      width: 40px; height: 40px;
       border-radius: 12px;
-      background: var(--accent-glow);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      margin-bottom: 20px;
-    }
-
-    .feature-card h3 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.3px;
-    }
-
-    .feature-card p {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    /* ── Highlight Section ── */
-    .highlights {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-      margin-top: 56px;
-    }
-
-    .highlight {
-      padding: 28px 24px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    .highlight-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      margin-top: 7px;
+      font-size: 20px;
       flex-shrink: 0;
     }
+    .phone-card-text { flex: 1; min-width: 0; }
+    .phone-card-text strong { font-size: 13px; color: var(--ink); display: block; margin-bottom: 2px; }
+    .phone-card-text span { font-size: 11px; color: var(--muted); }
+    .phone-card-progress { width: 100%; height: 4px; background: rgba(11,20,38,0.08); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+    .phone-card-progress > div { height: 100%; background: var(--olive); border-radius: 2px; }
 
-    .highlight p {
-      font-size: 15px;
-      color: var(--muted);
-      line-height: 1.6;
+    .floating-tag {
+      position: absolute;
+      background: var(--lamb-white);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: 0 12px 28px rgba(11, 20, 38, 0.15);
+      z-index: 3;
+      backdrop-filter: blur(10px);
+      animation: floatTag 5s ease-in-out infinite;
+    }
+    .floating-tag.t1 { top: 6%; right: 0; animation-delay: 0s; }
+    .floating-tag.t2 { bottom: 14%; left: -6%; animation-delay: 1.5s; }
+    .floating-tag.t3 { top: 38%; left: -12%; animation-delay: 3s; }
+    @keyframes floatTag {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .floating-tag .ft-row { display: flex; align-items: center; gap: 8px; }
+    .floating-tag .ft-icon { font-size: 18px; }
+    .floating-tag .ft-text strong { display: block; font-size: 12px; color: var(--ink); }
+    .floating-tag .ft-text span { font-size: 10px; color: var(--muted); }
+
+    @media (max-width: 720px) {
+      .floating-tag.t1, .floating-tag.t3 { display: none; }
+      .halo { width: 380px; height: 380px; }
+      .lamb-svg { width: 280px; }
     }
 
-    .highlight strong { color: var(--text); }
-
-    /* ── CTA Banner ── */
-    .cta-banner {
-      margin: 0 24px 100px;
-      max-width: 1100px;
-      margin-left: auto;
-      margin-right: auto;
-      background: linear-gradient(135deg, #1A1D24 0%, #14171D 100%);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 72px 40px;
+    /* ── Verse rotator (scripture banner) ── */
+    .scripture-banner {
+      background: linear-gradient(180deg, var(--night-deep) 0%, var(--night) 100%);
+      color: var(--lamb-white);
+      padding: 80px 24px;
       text-align: center;
       position: relative;
       overflow: hidden;
     }
-
-    .cta-banner::before {
+    .scripture-banner::before {
       content: '';
       position: absolute;
-      top: -100px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 500px;
-      height: 400px;
-      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, var(--gold-glow) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .scripture-eyebrow {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 22px;
+      position: relative;
+      z-index: 2;
+    }
+    .scripture-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.3;
+      max-width: 900px;
+      margin: 0 auto 18px;
+      font-weight: 500;
+      font-style: italic;
+      color: var(--lamb-white);
+      position: relative;
+      z-index: 2;
+      min-height: 1.2em;
+    }
+    .scripture-ref {
+      font-size: 13px;
+      color: var(--gold-warm);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── Section base ── */
+    section.feature-section {
+      padding: 120px 24px;
+      position: relative;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .section-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 18px;
+    }
+    .section-eyebrow::before {
+      content: '';
+      width: 24px; height: 2px;
+      background: var(--gold);
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+    .section-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+    .section-lede {
+      font-size: 19px;
+      color: var(--ink-soft);
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 60px;
+    }
+
+    /* ── Reveal on scroll ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 1s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal.delay-1 { transition-delay: 0.1s; }
+    .reveal.delay-2 { transition-delay: 0.2s; }
+    .reveal.delay-3 { transition-delay: 0.3s; }
+
+    /* ── Pillars (Bible / Prayer / Fitness / Fuel / Tasks) ── */
+    .pillars {
+      background: var(--parchment);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .pillar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+    .pillar {
+      background: var(--lamb-white);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 32px 28px;
+      transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .pillar::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-warm));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+    .pillar:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(11, 20, 38, 0.12); }
+    .pillar:hover::before { transform: scaleX(1); }
+    .pillar-icon {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, var(--gold-glow), transparent);
+      border: 1px solid var(--line);
+    }
+    .pillar h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      color: var(--ink);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .pillar p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+
+    /* ── Feature deep-dive (split layout) ── */
+    .deep-dive {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      margin-bottom: 100px;
+    }
+    .deep-dive:last-child { margin-bottom: 0; }
+    .deep-dive.reverse > .dd-content { order: 2; }
+    @media (max-width: 980px) {
+      .deep-dive { grid-template-columns: 1fr; gap: 40px; }
+      .deep-dive.reverse > .dd-content { order: unset; }
+    }
+    .dd-content h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(30px, 3.4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      color: var(--ink);
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .dd-content h3 em { font-style: italic; color: var(--gold); }
+    .dd-content > p {
+      font-size: 16px;
+      color: var(--ink-soft);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+    .dd-list { list-style: none; margin-bottom: 24px; }
+    .dd-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .dd-list li:last-child { border-bottom: none; }
+    .dd-list li::before {
+      content: '';
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 3px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M10.5 3h3v6.5H20v3h-6.5V20h-3v-7.5H4v-3h6.5z' fill='%23D4A52F'/></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+    }
+    .dd-list strong { color: var(--ink); font-weight: 600; margin-right: 6px; }
+
+    .dd-visual {
+      background: linear-gradient(145deg, var(--parchment) 0%, var(--lamb-white) 100%);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      box-shadow: 0 16px 48px rgba(11, 20, 38, 0.08);
+    }
+    .dd-visual::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -30%;
+      width: 80%; height: 200%;
+      background: radial-gradient(ellipse, var(--gold-glow), transparent 70%);
       pointer-events: none;
     }
 
-    .cta-banner h2 {
-      font-size: clamp(28px, 4vw, 38px);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 16px;
+    .preview-card {
+      background: var(--lamb-white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+      transition: transform 0.3s;
+    }
+    .preview-card:hover { transform: translateX(6px); }
+    .preview-card-icon {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--gold-glow), transparent);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .preview-card-text { flex: 1; min-width: 0; }
+    .preview-card-text strong { display: block; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+    .preview-card-text span { font-size: 12px; color: var(--muted); }
+    .preview-card-meta {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    /* ── Stat strip ── */
+    .stats {
+      background: var(--night);
+      color: var(--lamb-white);
+      padding: 80px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stats::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120%;
+      height: 100%;
+      background: radial-gradient(ellipse at top, var(--gold-glow), transparent 60%);
+      pointer-events: none;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 40px;
+      max-width: 1100px;
+      margin: 0 auto;
       position: relative;
       z-index: 1;
     }
-
-    .cta-banner p {
-      font-size: 17px;
-      color: var(--muted);
-      max-width: 480px;
-      margin: 0 auto 36px;
-      line-height: 1.7;
-      position: relative;
-      z-index: 1;
+    .stat { text-align: center; }
+    .stat-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(48px, 6vw, 72px);
+      font-weight: 600;
+      color: var(--gold-warm);
+      line-height: 1;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .stat-label {
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(248, 229, 161, 0.7);
+      font-weight: 500;
     }
 
-    .cta-banner .btn-primary {
+    /* ── Game grid ── */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .game-tile {
+      background: var(--lamb-white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 16px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: default;
+    }
+    .game-tile:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold);
+      box-shadow: 0 12px 28px rgba(212, 165, 47, 0.15);
+    }
+    .game-tile-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+    .game-tile h4 { font-size: 13px; color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+    .game-tile span { font-size: 11px; color: var(--muted); }
+
+    /* ── Testimonial-ish blockquote ── */
+    .promise {
+      background:
+        radial-gradient(ellipse at top, var(--sky-dawn) 0%, transparent 50%),
+        var(--parchment-warm);
+      padding: 100px 24px;
+      text-align: center;
+    }
+    .promise blockquote {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(28px, 3.6vw, 44px);
+      line-height: 1.3;
+      max-width: 900px;
+      margin: 0 auto 24px;
+      font-style: italic;
+      color: var(--ink);
       position: relative;
-      z-index: 1;
+    }
+    .promise blockquote::before {
+      content: '“';
+      font-size: 120px;
+      color: var(--gold);
+      position: absolute;
+      left: -20px; top: -40px;
+      font-family: Georgia, serif;
+      line-height: 1;
+      opacity: 0.4;
+    }
+    .promise cite {
+      font-style: normal;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ── Final CTA ── */
+    .final-cta {
+      background:
+        radial-gradient(ellipse at 30% 30%, var(--gold-glow) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 70%, var(--sky-rose) 0%, transparent 50%),
+        var(--night);
+      color: var(--lamb-white);
+      padding: 140px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .final-cta h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(44px, 6vw, 80px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .final-cta h2 em { font-style: italic; color: var(--gold-warm); }
+    .final-cta p {
+      font-size: 19px;
+      color: rgba(255, 254, 249, 0.75);
+      max-width: 600px;
+      margin: 0 auto 40px;
     }
 
     /* ── Footer ── */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 48px 24px;
-      max-width: 1100px;
+      background: var(--night-deep);
+      color: rgba(255, 254, 249, 0.6);
+      padding: 60px 24px 40px;
+      border-top: 1px solid rgba(212, 165, 47, 0.12);
+    }
+    .footer-grid {
+      max-width: 1280px;
       margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 720px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .footer-col h5 {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .footer-col a {
+      display: block;
+      color: rgba(255, 254, 249, 0.65);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 0;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--gold-warm); }
+    .footer-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      color: var(--lamb-white);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .footer-brand span { color: var(--gold); font-style: italic; }
+    .footer-tagline {
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 320px;
+      margin-bottom: 16px;
+    }
+    .footer-bottom {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding-top: 30px;
+      border-top: 1px solid rgba(212, 165, 47, 0.12);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 12px;
+      color: rgba(255, 254, 249, 0.4);
       flex-wrap: wrap;
-      gap: 24px;
+      gap: 16px;
     }
 
-    .footer-left {
-      font-size: 14px;
-      color: var(--muted);
+    /* ── Icon fill (gold cross fills every icon container) ── */
+    .pillar-icon::before,
+    .preview-card-icon::before,
+    .phone-card-icon::before,
+    .game-tile-icon::before,
+    .floating-tag .ft-icon::before {
+      content: '';
+      display: block;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M10.5 3h3v6.5H20v3h-6.5V20h-3v-7.5H4v-3h6.5z' fill='%23D4A52F'/></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
     }
+    .pillar-icon::before { width: 26px; height: 26px; }
+    .preview-card-icon::before { width: 20px; height: 20px; }
+    .phone-card-icon::before { width: 18px; height: 18px; }
+    .game-tile-icon { display: flex !important; align-items: center; justify-content: center; height: 36px; margin-bottom: 10px; }
+    .game-tile-icon::before { width: 22px; height: 22px; }
+    .floating-tag .ft-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
+    .floating-tag .ft-icon::before { width: 18px; height: 18px; }
 
-    .footer-left a {
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-    }
-
-    .footer-right {
-      display: flex;
-      gap: 24px;
-    }
-
-    .footer-right a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .footer-right a:hover { color: var(--text); }
-
-    /* ── Responsive ── */
-    @media (max-width: 640px) {
-      .nav-links a:not(.nav-cta) { display: none; }
-      .stats { gap: 32px; }
-      .features-grid { grid-template-columns: 1fr; }
-      .highlights { grid-template-columns: 1fr; }
-      footer { flex-direction: column; text-align: center; }
-      .cta-banner { padding: 56px 24px; margin-bottom: 60px; }
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="/" class="nav-brand">B<span>.</span></a>
+  <!-- Floating dust particles -->
+  <div class="dust" id="dust"></div>
+
+  <!-- Navigation -->
+  <nav id="nav">
+    <a href="/" class="nav-brand">
+      <svg class="lamb" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="34" r="20" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+        <ellipse cx="22" cy="32" rx="6" ry="7" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+        <ellipse cx="42" cy="32" rx="6" ry="7" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+        <ellipse cx="32" cy="40" rx="14" ry="11" fill="#FFFEF9" stroke="#1A1410" stroke-width="2"/>
+        <circle cx="28" cy="40" r="1.5" fill="#1A1410"/>
+        <circle cx="36" cy="40" r="1.5" fill="#1A1410"/>
+        <ellipse cx="32" cy="46" rx="2" ry="1.5" fill="#1A1410"/>
+        <circle cx="32" cy="14" r="6" fill="none" stroke="#D4A52F" stroke-width="2" opacity="0.6"/>
+      </svg>
+      Bibl<span>el</span>y
+    </a>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#why">Why Biblely</a>
-      <a href="https://apps.apple.com/app/biblely" target="_blank" rel="noopener" class="nav-cta">Download</a>
+      <a href="#bible">Bible</a>
+      <a href="#prayer">Prayer</a>
+      <a href="#fitness">Fitness</a>
+      <a href="#fuel">Fuel</a>
+      <a href="#games">Games</a>
+      <a href="#download" class="nav-cta">Download</a>
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="pill">100% Free &middot; No Ads &middot; No Paywalls</div>
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-eyebrow">
+          <span class="pulse"></span>
+          Free forever · No ads · No subscriptions
+        </div>
+        <h1>
+          <span class="reveal-word">Faith.</span>
+          <span class="reveal-word">Focus.</span>
+          <span class="reveal-word"><em>Fitness.</em></span>
+          <span class="reveal-word">Daily.</span>
+        </h1>
+        <p class="lede">
+          Read the Word, pray with intention, build holy habits, train your body, fuel with purpose. All in one beautifully crafted companion. Your daily walk with God, deepened.
+        </p>
+        <div class="cta-row">
+          <a href="#download" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+            Download for iOS
+          </a>
+          <a href="#features" class="btn btn-secondary">Explore features →</a>
+        </div>
+        <div class="hero-trust">
+          <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Free forever</div>
+          <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Privacy-first</div>
+          <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Built for iOS</div>
+        </div>
+      </div>
 
-    <h1>Faith, focus &amp; fitness.<br><em>All in one app.</em></h1>
+      <div class="hero-visual">
+        <div class="halo"></div>
+        <svg class="lamb-svg" viewBox="0 0 200 200" fill="none">
+          <ellipse cx="100" cy="120" rx="60" ry="45" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+          <circle cx="100" cy="100" r="32" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+          <ellipse cx="80" cy="92" rx="10" ry="14" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+          <ellipse cx="120" cy="92" rx="10" ry="14" fill="#FFFEF9" stroke="#D4A52F" stroke-width="2"/>
+          <circle cx="92" cy="105" r="2.5" fill="#1A1410"/>
+          <circle cx="108" cy="105" r="2.5" fill="#1A1410"/>
+          <ellipse cx="100" cy="118" rx="4" ry="3" fill="#1A1410"/>
+          <circle cx="100" cy="55" r="20" fill="none" stroke="#D4A52F" stroke-width="2" opacity="0.7"/>
+          <circle cx="100" cy="55" r="14" fill="none" stroke="#D4A52F" stroke-width="1" opacity="0.4"/>
+        </svg>
 
-    <p class="hero-sub">Read the Bible across 40+ translations, track your prayers, manage tasks, log workouts, and fuel your body &mdash; beautifully designed for your daily life.</p>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="notch"></div>
+            <h3>Good morning, Friend</h3>
+            <div class="verse-of-day">"Be still, and know that I am God." Psalm 46:10</div>
+            <div class="phone-card">
+              <div class="phone-card-icon" style="background:#fff5e3"></div>
+              <div class="phone-card-text">
+                <strong>Daily Reading</strong>
+                <span>Romans 8 · 12 min</span>
+                <div class="phone-card-progress"><div style="width: 60%"></div></div>
+              </div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-icon" style="background:#e8f0e0"></div>
+              <div class="phone-card-text">
+                <strong>Morning Prayer</strong>
+                <span>Reflect · Listen · Speak</span>
+              </div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-icon" style="background:#fde8d8"></div>
+              <div class="phone-card-text">
+                <strong>Push Day</strong>
+                <span>5 exercises · 45 min</span>
+              </div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-icon" style="background:#fff0e8"></div>
+              <div class="phone-card-text">
+                <strong>Fuel</strong>
+                <span>1,420 / 2,200 cal · on track</span>
+                <div class="phone-card-progress"><div style="width: 65%; background:#D4A52F"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <div class="hero-actions">
-      <a class="btn-primary" href="https://apps.apple.com/app/biblely" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-        Download for iOS
+        <div class="floating-tag t1">
+          <div class="ft-row">
+            <div class="ft-icon"></div>
+            <div class="ft-text"><strong>4-day streak</strong><span>Keep going</span></div>
+          </div>
+        </div>
+        <div class="floating-tag t2">
+          <div class="ft-row">
+            <div class="ft-icon"></div>
+            <div class="ft-text"><strong>+85 points</strong><span>Workout completed</span></div>
+          </div>
+        </div>
+        <div class="floating-tag t3">
+          <div class="ft-row">
+            <div class="ft-icon"></div>
+            <div class="ft-text"><strong>Verse saved</strong><span>Philippians 4:13</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Scripture rotator -->
+  <section class="scripture-banner">
+    <div class="scripture-eyebrow">Daily Scripture</div>
+    <div class="scripture-text" id="scripture-text">"Trust in the Lord with all your heart, and lean not on your own understanding."</div>
+    <div class="scripture-ref" id="scripture-ref">Proverbs 3:5</div>
+  </section>
+
+  <!-- PILLARS -->
+  <section class="feature-section pillars" id="features">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Five pillars · One purpose</div>
+        <h2 class="section-title">Everything for the <em>whole</em> you. Body, mind, and spirit.</h2>
+        <p class="section-lede">Biblely is not a Bible app. Not a workout app. Not a habit tracker. It's the marriage of all three, designed for believers who want to honor God with every part of their day.</p>
+      </div>
+
+      <div class="pillar-grid">
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>Bible</h3>
+          <p>Read, listen, search, highlight, journal. Multiple translations, audio narration, AI verse simplification.</p>
+        </div>
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>Prayer</h3>
+          <p>Daily prayers, Vision Board, prayer board, reminders, habits. Your spiritual rhythm, beautifully tracked.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon"></div>
+          <h3>Fitness</h3>
+          <p>Custom workouts, exercise library, body composition, scale tracking, physique scoring. Discipline in the temple.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon"></div>
+          <h3>Fuel</h3>
+          <p>Macro tracking, AI food vision, barcode scan, daily targets. Wisdom in what you eat.</p>
+        </div>
+        <div class="pillar reveal delay-3">
+          <div class="pillar-icon"></div>
+          <h3>Tasks</h3>
+          <p>AI-tiered todos, points, streaks, achievements. The discipline of a steward.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BIBLE deep dive -->
+  <section class="feature-section" id="bible">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">The Word, alive</div>
+        <h2 class="section-title">A Bible that goes <em>deeper</em> with you.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Read, listen, <em>and journal</em> in one place.</h3>
+          <p>The Bible isn't a book to consume. It's a Person to encounter. Biblely brings the whole experience together. Verse-perfect formatting, audio narration in NLT/KJV/ESV, smart highlighting, and journal entries you tie directly to verses.</p>
+          <ul class="dd-list">
+            <li><strong>Multi-translation reader.</strong> NLT, KJV, ESV, NIV, NASB and more. Switch instantly without losing place.</li>
+            <li><strong>Audio Bible.</strong> Listen to chapters with professional narration. Background-play supported.</li>
+            <li><strong>Verse highlights.</strong> Color-code with custom names ("promises", "warnings", "favorites").</li>
+            <li><strong>Verse journal.</strong> Tap any verse → write a reflection that lives with the verse forever.</li>
+            <li><strong>AI verse simplification.</strong> Don't understand a passage? Tap "Simplify". Claude rewords it in plain English.</li>
+            <li><strong>Saved verses.</strong> Build your personal verse library, organized and searchable.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Romans 8:28</strong><span>NLT · highlighted in gold</span></div>
+            <div class="preview-card-meta">SAVED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Listening: John 14</strong><span>06:42 · 18 verses</span></div>
+            <div class="preview-card-meta">PLAYING</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Journal entry</strong><span>"Felt convicted by v.12 today..."</span></div>
+            <div class="preview-card-meta">2 MIN AGO</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Simplified</strong><span>"God works good from everything..."</span></div>
+            <div class="preview-card-meta">AI</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="deep-dive reverse reveal">
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Bible Maps</strong><span>Walk where Paul walked</span></div>
+            <div class="preview-card-meta">EXPLORE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Bible Timeline</strong><span>Creation → Revelation</span></div>
+            <div class="preview-card-meta">10 ERAS</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Bible Characters</strong><span>Moses, David, Mary, Paul…</span></div>
+            <div class="preview-card-meta">100+</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Key Verses</strong><span>Curated essentials by topic</span></div>
+            <div class="preview-card-meta">200+</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Bible Fast Facts</strong><span>Bite-sized scripture wisdom</span></div>
+            <div class="preview-card-meta">DAILY</div>
+          </div>
+        </div>
+        <div class="dd-content">
+          <h3>The Bible like you've <em>never</em> seen it.</h3>
+          <p>Scripture isn't flat. It's a story across continents and centuries. Biblely brings the world of the Bible alive. Interactive maps, full timelines, character profiles, themed studies, and audio learning sessions you can play on a walk.</p>
+          <ul class="dd-list">
+            <li><strong>Interactive Bible Maps.</strong> Tap locations to learn what happened there, with cross-references.</li>
+            <li><strong>Bible Timeline.</strong> Creation, Exodus, Kings, Prophets, Christ, Apostles, Revelation. All visual.</li>
+            <li><strong>Bible Characters.</strong> Deep profiles with story arcs, references, and lessons.</li>
+            <li><strong>Thematic guides.</strong> "Forgiveness", "Anxiety", "Identity in Christ". Curated paths.</li>
+            <li><strong>Audio learning.</strong> Bible stories narrated for kids and adults.</li>
+            <li><strong>Bible study screen.</strong> Cross-references, commentaries, deep-dives.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRAYER -->
+  <section class="feature-section pillars" id="prayer">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Prayer & spiritual rhythm</div>
+        <h2 class="section-title">A prayer life with <em>structure</em>, not pressure.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Prayers that <em>stick</em>.</h3>
+          <p>Most prayer apps drown you in lists. Biblely is different. Daily prayers tied to your rhythm. A vision board for what you're believing for. A prayer board for friends and family. Reminders that nudge, not nag.</p>
+          <ul class="dd-list">
+            <li><strong>Daily prayers.</strong> Morning, midday, evening. Pick your rhythm. Each prayer logs a streak.</li>
+            <li><strong>Vision Board.</strong> Pin the dreams you're praying over. See them every day.</li>
+            <li><strong>Prayer Board.</strong> Family, friends, ministries. Track requests, mark answered.</li>
+            <li><strong>Reminders.</strong> Custom times, custom intentions. Never miss again.</li>
+            <li><strong>Habits tracker.</strong> Build holy habits. Read, pray, fast, give. Track them all.</li>
+            <li><strong>Reflection prompts.</strong> AI-generated reflection questions tied to today's verse.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Morning Prayer</strong><span>"Lord, lead my steps today..."</span></div>
+            <div class="preview-card-meta">7:00 AM</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Vision: Move out of debt</strong><span>Praying for 89 days</span></div>
+            <div class="preview-card-meta">PINNED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Prayer for Mom</strong><span>Healing · added Jan 12</span></div>
+            <div class="preview-card-meta">ACTIVE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Habit: Daily devotion</strong><span>14-day streak</span></div>
+            <div class="preview-card-meta">+1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FITNESS -->
+  <section class="feature-section" id="fitness">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">The temple, trained</div>
+        <h2 class="section-title">A gym in your pocket. <em>built like a real lifter's app</em>.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Workouts, not <em>worksheets</em>.</h3>
+          <p>Biblely's gym tab is built by someone who actually lifts. Templates you reuse. Folders to organize splits. A full exercise library. Schedule a session for tomorrow, finish today, see your history forever.</p>
+          <ul class="dd-list">
+            <li><strong>Workout templates.</strong> Push/pull/legs, full-body, custom. Save and reuse.</li>
+            <li><strong>Folders.</strong> Group templates by phase (cut, bulk, deload).</li>
+            <li><strong>Scheduled workouts.</strong> Plan the week. App reminds you on the day.</li>
+            <li><strong>Exercise library.</strong> 200+ exercises with bodyparts, equipment, video form cues.</li>
+            <li><strong>Set-by-set logging.</strong> Reps, weight, RPE. Auto-suggest weight from last session.</li>
+            <li><strong>Workout history.</strong> Every set, every rep, every note. Forever (90 days cloud, longer locally).</li>
+            <li><strong>Workout splits.</strong> Custom splits (PPL, U/L, Bro). App recommends what's next.</li>
+            <li><strong>Mid-workout exercise picker.</strong> Add exercises on the fly, no friction.</li>
+            <li><strong>Workout points.</strong> Effort-based scoring (20–200 pts) factoring sets, reps, volume, time.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Push Day · Bench</strong><span>5 sets · 80kg × 8</span></div>
+            <div class="preview-card-meta">+95 PTS</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Tomorrow: Pull Day</strong><span>Scheduled · 6 exercises</span></div>
+            <div class="preview-card-meta">QUEUED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>This Week</strong><span>4 workouts · 3h 22m</span></div>
+            <div class="preview-card-meta">+380 PTS</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Bench Press PR</strong><span>Up 5kg this month</span></div>
+            <div class="preview-card-meta">NEW PR</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="deep-dive reverse reveal">
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Scale sync</strong><span>76.4 kg · 18.2% BF</span></div>
+            <div class="preview-card-meta">LIVE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Body composition</strong><span>−2.1 kg · −0.8% BF (30d)</span></div>
+            <div class="preview-card-meta">TREND</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Physique score</strong><span>72 / 100 · Athletic</span></div>
+            <div class="preview-card-meta">UPDATED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Equipment loadout</strong><span>Barbell · DBs · Cable · Bench</span></div>
+            <div class="preview-card-meta">SETUP</div>
+          </div>
+        </div>
+        <div class="dd-content">
+          <h3>Body composition that <em>actually</em> tracks change.</h3>
+          <p>Step on a Bluetooth scale. Numbers flow into Biblely. Trends update. A physique score reflects your current build. The body is a temple. Biblely treats it like one.</p>
+          <ul class="dd-list">
+            <li><strong>Bluetooth scale sync.</strong> Weight, BF%, muscle mass, water. Auto-imported.</li>
+            <li><strong>Physique score.</strong> A holistic 0–100 score blending body comp + workout consistency.</li>
+            <li><strong>Body composition history.</strong> Charts spanning weeks and months.</li>
+            <li><strong>Equipment profile.</strong> Tell Biblely what you have. Exercise suggestions adapt.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FUEL / Nutrition -->
+  <section class="feature-section pillars" id="fuel">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Fuel · Wisdom in eating</div>
+        <h2 class="section-title">Macros without the <em>misery</em>.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>AI vision. Barcode scan. <em>Actual</em> tracking.</h3>
+          <p>Most calorie apps require manual logging. Biblely's Fuel tab uses on-device AI vision and barcode scanning to make logging frictionless. Pour milk, snap a photo, done. Your daily targets adjust to your goals.</p>
+          <ul class="dd-list">
+            <li><strong>AI food vision.</strong> Photograph a meal. Claude identifies food + estimates macros.</li>
+            <li><strong>Barcode scan.</strong> Tap, scan, log. Open Food Facts integration.</li>
+            <li><strong>Daily targets.</strong> Calories, protein, carbs, fat. Calibrated to your weight goal.</li>
+            <li><strong>Food log.</strong> Per-day entries, with copy-yesterday support.</li>
+            <li><strong>Food favorites.</strong> Re-add common foods in one tap.</li>
+            <li><strong>Auto-recalibration.</strong> Lose/gain weight on the scale → targets update automatically.</li>
+            <li><strong>Nutrition profile.</strong> Activity level, goal, body type. Set once, used everywhere.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>AI scan: chicken & rice</strong><span>~620 cal · 48g P · 72g C</span></div>
+            <div class="preview-card-meta">LOGGED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Today: 1,420 / 2,200 cal</strong><span>108g P · 145g C · 52g F</span></div>
+            <div class="preview-card-meta">ON TRACK</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Barcode: Greek yogurt</strong><span>110 cal · 18g protein</span></div>
+            <div class="preview-card-meta">SCANNED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Auto-recalibrated</strong><span>Targets bumped +120 cal</span></div>
+            <div class="preview-card-meta">SCALE SYNC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TASKS / AI -->
+  <section class="feature-section" id="tasks">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Tasks · Stewardship of time</div>
+        <h2 class="section-title">A todo list that <em>levels you up</em>.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Every task earns. Every win <em>compounds</em>.</h3>
+          <p>Biblely's task tab uses AI to tier each todo (low/mid/high effort) and award proportional points. Finish them. Build streaks. Unlock customizations. Discipline becomes its own reward.</p>
+          <ul class="dd-list">
+            <li><strong>AI task tiering.</strong> Paste any task. Claude estimates effort + time and assigns 35–300 pts.</li>
+            <li><strong>Schedule tasks.</strong> Pick a day, get reminded.</li>
+            <li><strong>Tasks done view.</strong> Celebrate completed tasks. They don't disappear.</li>
+            <li><strong>Achievements.</strong> 70+ achievements across all categories with prestige system.</li>
+            <li><strong>Permanent unlocks.</strong> Hit milestones to unlock app icons, loading animations, badge styles.</li>
+            <li><strong>Streaks.</strong> App streak, gym streak, reading streak. Separate, all visible.</li>
+            <li><strong>Levels.</strong> Total points → level. The higher the level, the more visible your discipline.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Refactor auth flow</strong><span>High tier · 2-4 hours</span></div>
+            <div class="preview-card-meta">+220 PTS</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Write thank-you note</strong><span>Low tier · 5 min</span></div>
+            <div class="preview-card-meta">+35 PTS</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>App streak</strong><span>4 days · keep going</span></div>
+            <div class="preview-card-meta">ACTIVE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Level 26</strong><span>7,797 / 8,200 pts</span></div>
+            <div class="preview-card-meta">95%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOCIAL -->
+  <section class="feature-section pillars" id="social">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Community · The body of Christ</div>
+        <h2 class="section-title">Walk with <em>others</em>, not alone.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Friends. Hub. Challenges. <em>All in one place</em>.</h3>
+          <p>Christianity isn't a solo sport. Biblely's social side connects believers without the toxicity of mainstream social. Curated, kind, with prayer + accountability built in.</p>
+          <ul class="dd-list">
+            <li><strong>Friends.</strong> Add friends by username. See their streaks, encourage them.</li>
+            <li><strong>Hub posts.</strong> Share verses, prayer requests, milestones. Auto-deletes after 7 days.</li>
+            <li><strong>1-on-1 messages.</strong> DM friends with prayer + verse sharing.</li>
+            <li><strong>Leaderboards.</strong> Friendly competition by points, streaks, prayers, workouts.</li>
+            <li><strong>Challenges.</strong> Challenge a friend to a Bible quiz, prayer streak, or workout duel.</li>
+            <li><strong>Block & report.</strong> Safety built in. Profanity filter on all posts.</li>
+            <li><strong>Country flags.</strong> See where in the world your community is praying from.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Sarah K.</strong><span> · 21-day streak · Lvl 14</span></div>
+            <div class="preview-card-meta">FRIEND</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Hub post</strong><span>"Prayed for healing this morning..."</span></div>
+            <div class="preview-card-meta">12 </div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Challenge: Bible Quiz</strong><span>vs Daniel · 7 days left</span></div>
+            <div class="preview-card-meta">LIVE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Friends Leaderboard</strong><span>You: #2 of 14</span></div>
+            <div class="preview-card-meta">+85</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI -->
+  <section class="feature-section" id="ai">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">AI · Built on Claude</div>
+        <h2 class="section-title">Intelligence that <em>serves</em>, not distracts.</h2>
+        <p class="section-lede">Biblely's AI features are built on Claude (Anthropic's model). Server-side rate-limited per user, daily resets, fully private. The AI is in service of scripture and discipline. Never a substitute for either.</p>
+      </div>
+
+      <div class="pillar-grid">
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>AI Chat</h3>
+          <p>Ask anything Bible, theology, spiritual life. 50 messages/day.</p>
+        </div>
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>Bible Discussion</h3>
+          <p>Discuss specific verses with AI grounded in scripture. 25/day.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon"></div>
+          <h3>Reflection AI</h3>
+          <p>AI-generated prayer reflection prompts. 15/day.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon"></div>
+          <h3>Food Vision</h3>
+          <p>Photograph meals, AI estimates macros. 15 scans/day.</p>
+        </div>
+        <div class="pillar reveal delay-3">
+          <div class="pillar-icon"></div>
+          <h3>Voice & Speech</h3>
+          <p>Voice input for chat. AI text-to-speech for verses. 35/25 daily.</p>
+        </div>
+        <div class="pillar reveal delay-3">
+          <div class="pillar-icon"></div>
+          <h3>Verse Simplification</h3>
+          <p>Tap any verse → plain-English version, instantly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="feature-section pillars" id="games">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Games · Sharpen mind & spirit</div>
+        <h2 class="section-title">28+ mini-games. Bible quizzes. <em>Distraction off-ramps</em>.</h2>
+        <p class="section-lede">Tempted? Bored? Stuck? Biblely's games rebuild focus and steep your mind in scripture. Bible-themed challenges + brain trainers + the Panic Button. Your sanctuary in the moment.</p>
+      </div>
+
+      <div class="game-grid">
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Verse Jumble</h4><span>Reorder words</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Bible Hangman</h4><span>Classic, scriptural</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Who Am I</h4><span>Guess the figure</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Book Order</h4><span>Memorize 66</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Verse Complete</h4><span>Fill the blank</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Bible Pairs</h4><span>Match cards</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Memory Recall</h4><span>Sequence test</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Find It Fast</h4><span>Speed find</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Stroop Test</h4><span>Color & word</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Math Blitz</h4><span>Quick arithmetic</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Breath Hold</h4><span>Calm + focus</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Color Match</h4><span>Reflexes</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Pattern Repeat</h4><span>Simon-style</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon">⏱</span><h4>Reaction Time</h4><span>Tap when ready</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Number Chain</h4><span>Pattern logic</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon">⌨</span><h4>Typing Speed</h4><span>WPM challenge</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Emoji Match</h4><span>Visual pairs</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Bubble Pop</h4><span>Tap to clear</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Maze Runner</h4><span>Find the path</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Quick Sort</h4><span>Order ASAP</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Spot Difference</h4><span>Find the change</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>True or False</h4><span>Bible facts</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon">⏳</span><h4>Countdown</h4><span>Beat the clock</span></div>
+        <div class="game-tile reveal"><span class="game-tile-icon"></span><h4>Bible Quizzes</h4><span>Categorized</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANIC BUTTON -->
+  <section class="feature-section" id="panic">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Panic Button · When you need it most</div>
+        <h2 class="section-title">A red button for the <em>moments</em> that matter.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>Tempted? <em>Tap</em>.</h3>
+          <p>Lust, addiction, despair, rage. The moments that derail us are seconds long. Biblely's Panic Button is one tap away from anywhere in the app. Instant verses, breath exercises, distraction games, your safety plan, and a "Relapsed" tracker if you fall.</p>
+          <ul class="dd-list">
+            <li><strong>Instant scripture.</strong> Curated verses for the exact battle you're in.</li>
+            <li><strong>Breath-hold game.</strong> Re-center your nervous system in 60 seconds.</li>
+            <li><strong>Distraction games.</strong> Fast brain-occupying games to break the loop.</li>
+            <li><strong>Relapsed tracker.</strong> No shame. Mark it, learn, restart the streak.</li>
+            <li><strong>Custom safety plan.</strong> Your verses, your contacts, your steps.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card" style="border-color: var(--wine);">
+            <div class="preview-card-icon" style="background: rgba(139, 45, 58, 0.1);"></div>
+            <div class="preview-card-text"><strong>Panic Button</strong><span>Tap anywhere · always one screen away</span></div>
+            <div class="preview-card-meta" style="color: var(--wine);">READY</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Breath: 4-7-8</strong><span>60-second reset</span></div>
+            <div class="preview-card-meta">NOW</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>1 Cor 10:13</strong><span>"No temptation has overtaken you..."</span></div>
+            <div class="preview-card-meta">VERSE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Call accountability partner</strong><span>One-tap dial</span></div>
+            <div class="preview-card-meta">SAFETY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CUSTOMIZATION -->
+  <section class="feature-section pillars" id="customization">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Make it yours</div>
+        <h2 class="section-title">Customize <em>every pixel</em>.</h2>
+      </div>
+
+      <div class="pillar-grid">
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>Themes</h3>
+          <p>Light, dark, automatic. Plus accent colors and wallpapers.</p>
+        </div>
+        <div class="pillar reveal delay-1">
+          <div class="pillar-icon"></div>
+          <h3>App Icons</h3>
+          <p>Unlockable alt icons. Pixel, sketch, gradient, classic.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon">⏳</div>
+          <h3>Loading Animations</h3>
+          <p>Lottie animations: fire, lightning, hamster, cat, bulb.</p>
+        </div>
+        <div class="pillar reveal delay-2">
+          <div class="pillar-icon"></div>
+          <h3>Custom Tabs</h3>
+          <p>Reorder tab bar. Hide tabs you don't use.</p>
+        </div>
+        <div class="pillar reveal delay-3">
+          <div class="pillar-icon"></div>
+          <h3>Home Cards</h3>
+          <p>Reorder home dashboard cards. Show what matters to you.</p>
+        </div>
+        <div class="pillar reveal delay-3">
+          <div class="pillar-icon"></div>
+          <h3>Badges</h3>
+          <p>Toggle profile badges: streak, country, verified, OG.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats">
+    <div class="container">
+      <div class="stat-grid">
+        <div class="stat reveal"><span class="stat-num">200+</span><span class="stat-label">Exercises</span></div>
+        <div class="stat reveal delay-1"><span class="stat-num">28+</span><span class="stat-label">Mini-Games</span></div>
+        <div class="stat reveal delay-1"><span class="stat-num">66</span><span class="stat-label">Books · 5+ Versions</span></div>
+        <div class="stat reveal delay-2"><span class="stat-num">70+</span><span class="stat-label">Achievements</span></div>
+        <div class="stat reveal delay-2"><span class="stat-num">100%</span><span class="stat-label">Free Forever</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY / TRUST -->
+  <section class="feature-section" id="privacy">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Privacy · Built into the foundation</div>
+        <h2 class="section-title">Your faith is <em>not</em> training data.</h2>
+      </div>
+
+      <div class="deep-dive reveal">
+        <div class="dd-content">
+          <h3>End-to-end private. <em>Always</em>.</h3>
+          <p>Biblely runs on Firebase + Apple iCloud. Your data is encrypted at rest and in transit, scoped to your account. No selling. No ads. No tracking pixels. Email verification gates AI features to keep abuse out.</p>
+          <ul class="dd-list">
+            <li><strong>Server-side rate limiting.</strong> Atomic Firestore counters keyed to verified UID. Bypass-proof.</li>
+            <li><strong>Subcollection storage.</strong> Per-item docs scale to unlimited verses, workouts, prayers without 1 MiB caps.</li>
+            <li><strong>iCloud sync.</strong> Native Apple sync as backup. Your data follows you across devices.</li>
+            <li><strong>Email verification required.</strong> AI features locked behind verified accounts to prevent spam.</li>
+            <li><strong>Open architecture.</strong> Privacy policy + terms in plain English. No dark patterns.</li>
+            <li><strong>Free forever.</strong> No subscriptions, no in-app purchases, no ads. Period.</li>
+          </ul>
+        </div>
+        <div class="dd-visual">
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>End-to-end encrypted</strong><span>TLS 1.3 + Firestore at-rest</span></div>
+            <div class="preview-card-meta">SECURE</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>iCloud + Firebase</strong><span>Dual sync · device-portable</span></div>
+            <div class="preview-card-meta">SYNCED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Email-verified gating</strong><span>AI features behind verification</span></div>
+            <div class="preview-card-meta">PROTECTED</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-card-icon"></div>
+            <div class="preview-card-text"><strong>Zero ads. Zero tracking.</strong><span>You are the user, never the product</span></div>
+            <div class="preview-card-meta">PROMISE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROMISE -->
+  <section class="promise">
+    <blockquote>
+      Biblely is not built to grow your screen time. It's built to grow your soul, your body, and your discipline. To help you live the life you were called to.
+    </blockquote>
+    <cite>, The Biblely promise</cite>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta" id="download">
+    <div class="container">
+      <h2>Begin your <em>walk</em> today.</h2>
+      <p>Free forever. Your faith, focus, and fitness. In one app, beautifully made.</p>
+      <a href="#" class="btn btn-primary" style="font-size: 17px; padding: 18px 36px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        Download on the App Store
       </a>
-      <a class="btn-secondary" href="#features">See features</a>
+      <p style="margin-top: 30px; font-size: 14px; color: rgba(255, 254, 249, 0.5);">iPhone · iOS 16+ · 64-bit</p>
     </div>
   </section>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-num">40+</div>
-      <div class="stat-label">Bible Translations</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">25+</div>
-      <div class="stat-label">Themes & Wallpapers</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">0</div>
-      <div class="stat-label">Ads or Trackers</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">&pound;0</div>
-      <div class="stat-label">Forever</div>
-    </div>
-  </div>
-
-  <section id="features">
-    <p class="section-label">Features</p>
-    <h2 class="section-title">Everything you need,<br>nothing you don't.</h2>
-    <p class="section-desc">Biblely brings together the tools that matter most for your spiritual growth and daily productivity.</p>
-
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">&#128214;</div>
-        <h3>Bible Reading</h3>
-        <p>Access over 40 translations including KJV, NIV, and ESV. Highlight verses, listen with audio, and build a daily reading streak.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">&#128591;</div>
-        <h3>Prayer Tracking</h3>
-        <p>Write and organise your prayers. Mark them as answered. Set reminders and share on the community prayer wall.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">&#9745;&#65039;</div>
-        <h3>Smart Tasks</h3>
-        <p>Plan your day with an intuitive todo list. Smart prioritisation helps you focus on what matters. Earn points as you complete tasks.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">&#128170;</div>
-        <h3>Workout Tracking</h3>
-        <p>Choose from dozens of templates or build your own. Log sets, reps, and weights. Track your physique and body composition.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">&#127822;</div>
-        <h3>Nutrition & Fuel</h3>
-        <p>Scan food photos to estimate calories and macros. Track daily intake with personalised targets based on your goals.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">&#128101;</div>
-        <h3>Community</h3>
-        <p>Connect with friends, share encouragements and prayer requests, and message each other directly. Grow together.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="why">
-    <p class="section-label">Why Biblely</p>
-    <h2 class="section-title">Built different.</h2>
-    <p class="section-desc">Most apps want your money or your data. Biblely wants neither. Just a tool that respects you and helps you grow.</p>
-
-    <div class="highlights">
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>Completely free</strong> &mdash; no subscriptions, no in-app purchases, no paywalls. Every feature is available to everyone.</p>
-      </div>
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>No ads, no trackers</strong> &mdash; zero advertising SDKs, zero analytics trackers. Your data stays on your device.</p>
-      </div>
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>Beautiful design</strong> &mdash; 25+ themes and wallpapers, smooth animations, dark mode, and offline support.</p>
-      </div>
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>Your data, your control</strong> &mdash; stored locally with secure cloud backup. Delete everything at any time.</p>
-      </div>
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>Works offline</strong> &mdash; read your Bible, check your tasks, and review prayers without an internet connection.</p>
-      </div>
-      <div class="highlight">
-        <div class="highlight-dot"></div>
-        <p><strong>Daily verse</strong> &mdash; start every morning with an inspiring verse to carry through the day.</p>
-      </div>
-    </div>
-  </section>
-
-  <div class="cta-banner">
-    <h2>Start your journey today.</h2>
-    <p>Whether you're deepening your faith, building better habits, or pursuing a healthier lifestyle &mdash; Biblely brings it all together.</p>
-    <a class="btn-primary" href="https://apps.apple.com/app/biblely" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:#0C0E12"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      Download for iOS
-    </a>
-  </div>
-
+  <!-- FOOTER -->
   <footer>
-    <div class="footer-left">&copy; 2026 <a href="/">Biblely</a></div>
-    <div class="footer-right">
-      <a href="/privacy-policy">Privacy</a>
-      <a href="/terms-of-service">Terms</a>
-      <a href="/support">Support</a>
-      <a href="mailto:biblelyios@gmail.com">Contact</a>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-brand">Bibl<span>el</span>y</div>
+        <p class="footer-tagline">Faith, focus, and fitness. Daily. Free forever, made for the believer who wants to honor God with their whole life.</p>
+      </div>
+      <div class="footer-col">
+        <h5>App</h5>
+        <a href="#bible">Bible</a>
+        <a href="#prayer">Prayer</a>
+        <a href="#fitness">Fitness</a>
+        <a href="#fuel">Fuel</a>
+        <a href="#tasks">Tasks</a>
+        <a href="#games">Games</a>
+      </div>
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <a href="/support.html">Support</a>
+        <a href="/privacy-policy.html">Privacy</a>
+        <a href="/terms-of-service.html">Terms</a>
+        <a href="https://github.com/jacixn/project-1">GitHub</a>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <a href="mailto:hello@biblely.uk">Email</a>
+        <a href="#">Instagram</a>
+        <a href="#">TikTok</a>
+        <a href="#">YouTube</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Biblely · Made for the saints</span>
+      <span>"Whatever you do, work at it with all your heart, as working for the Lord." Col 3:23</span>
     </div>
   </footer>
 
+  <script>
+    // Floating dust particles
+    (function() {
+      const dust = document.getElementById('dust');
+      const count = 40;
+      for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.style.left = Math.random() * 100 + '%';
+        span.style.animationDuration = (15 + Math.random() * 25) + 's';
+        span.style.animationDelay = Math.random() * 20 + 's';
+        span.style.opacity = (0.3 + Math.random() * 0.5).toString();
+        const size = 2 + Math.random() * 3;
+        span.style.width = size + 'px';
+        span.style.height = size + 'px';
+        dust.appendChild(span);
+      }
+    })();
+
+    // Nav scroll state
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    // Reveal-on-scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // Scripture rotator
+    const verses = [
+      { text: '"Trust in the Lord with all your heart, and lean not on your own understanding."', ref: 'Proverbs 3:5' },
+      { text: '"I can do all things through Christ who strengthens me."', ref: 'Philippians 4:13' },
+      { text: '"Be still, and know that I am God."', ref: 'Psalm 46:10' },
+      { text: '"For God so loved the world that he gave his one and only Son."', ref: 'John 3:16' },
+      { text: '"The Lord is my shepherd; I shall not want."', ref: 'Psalm 23:1' },
+      { text: '"And we know that in all things God works for the good of those who love him."', ref: 'Romans 8:28' },
+      { text: '"Do not be anxious about anything, but in every situation, by prayer and petition, present your requests to God."', ref: 'Philippians 4:6' },
+      { text: '"For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you."', ref: 'Jeremiah 29:11' },
+    ];
+    let vi = 0;
+    const sText = document.getElementById('scripture-text');
+    const sRef = document.getElementById('scripture-ref');
+    setInterval(() => {
+      vi = (vi + 1) % verses.length;
+      sText.style.transition = 'opacity 0.6s';
+      sRef.style.transition = 'opacity 0.6s';
+      sText.style.opacity = '0';
+      sRef.style.opacity = '0';
+      setTimeout(() => {
+        sText.textContent = verses[vi].text;
+        sRef.textContent = verses[vi].ref;
+        sText.style.opacity = '1';
+        sRef.style.opacity = '1';
+      }, 600);
+    }, 6000);
+  </script>
 </body>
 </html>
